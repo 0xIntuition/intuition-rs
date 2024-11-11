@@ -19,7 +19,7 @@ pub struct Triple {
     pub vault_id: U256Wrapper,
     pub counter_vault_id: U256Wrapper,
     pub block_number: U256Wrapper,
-    pub block_timestamp: U256Wrapper,
+    pub block_timestamp: i64,
     pub transaction_hash: Vec<u8>,
 }
 
@@ -50,7 +50,7 @@ impl SimpleCrud<U256Wrapper> for Triple {
             RETURNING id as "id: U256Wrapper", creator_id, subject_id as "subject_id: U256Wrapper", 
                       predicate_id as "predicate_id: U256Wrapper", object_id as "object_id: U256Wrapper", 
                       label, vault_id as "vault_id: U256Wrapper", counter_vault_id as "counter_vault_id: U256Wrapper", 
-                      block_number as "block_number: U256Wrapper", block_timestamp as "block_timestamp: U256Wrapper", 
+                      block_number as "block_number: U256Wrapper", block_timestamp, 
                       transaction_hash
             "#,
             self.id.to_big_decimal()?,
@@ -62,7 +62,7 @@ impl SimpleCrud<U256Wrapper> for Triple {
             self.vault_id.to_big_decimal()?,
             self.counter_vault_id.to_big_decimal()?,
             self.block_number.to_big_decimal()?,
-            self.block_timestamp.to_big_decimal()?,
+            self.block_timestamp,
             &self.transaction_hash,
         )
         .fetch_one(pool)
@@ -85,7 +85,7 @@ impl SimpleCrud<U256Wrapper> for Triple {
                 vault_id as "vault_id: U256Wrapper", 
                 counter_vault_id as "counter_vault_id: U256Wrapper", 
                 block_number as "block_number: U256Wrapper", 
-                block_timestamp as "block_timestamp: U256Wrapper", 
+                block_timestamp, 
                 transaction_hash
             FROM triple
             WHERE id = $1

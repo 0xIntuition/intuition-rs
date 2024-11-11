@@ -53,7 +53,7 @@ impl TripleCreated {
             .event_type(EventType::TripleCreated)
             .triple_id(self.vaultID)
             .block_number(U256Wrapper::try_from(event.block_number)?)
-            .block_timestamp(U256Wrapper::try_from(event.block_timestamp)?)
+            .block_timestamp(event.block_timestamp)
             .transaction_hash(event.transaction_hash.clone())
             .build()
             .upsert(pg_pool)
@@ -120,9 +120,7 @@ impl TripleCreated {
                         object_atom.id,
                     ))
                     .block_number(U256Wrapper::try_from(event.block_number).unwrap_or_default())
-                    .block_timestamp(
-                        U256Wrapper::try_from(event.block_timestamp).unwrap_or_default(),
-                    )
+                    .block_timestamp(event.block_timestamp)
                     .transaction_hash(event.transaction_hash.clone())
                     .build()
             })

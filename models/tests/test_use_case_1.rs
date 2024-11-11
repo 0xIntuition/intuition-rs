@@ -7,7 +7,7 @@ mod tests {
         atom::{Atom, AtomType},
         atom_value::AtomValue,
         person::Person,
-        test_helpers::{create_random_u256wrapper, setup_test_db},
+        test_helpers::{create_random_number, create_random_u256wrapper, setup_test_db},
         traits::SimpleCrud,
         types::U256Wrapper,
         vault::Vault,
@@ -47,7 +47,7 @@ mod tests {
             .emoji("⛓️".to_string())
             .label("0x00...01".to_string())
             .block_number(create_random_u256wrapper())
-            .block_timestamp(create_random_u256wrapper())
+            .block_timestamp(create_random_number())
             .transaction_hash(vec![5u8])
             .build()
             .upsert(&pool)
@@ -92,7 +92,7 @@ mod tests {
             .emoji("👤".to_string())
             .label("Alice".to_string())
             .block_number(create_random_u256wrapper())
-            .block_timestamp(create_random_u256wrapper())
+            .block_timestamp(create_random_number())
             .transaction_hash(vec![5u8])
             .build()
             .upsert(&pool)

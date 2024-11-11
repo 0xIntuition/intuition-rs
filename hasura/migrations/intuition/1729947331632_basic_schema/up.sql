@@ -74,7 +74,7 @@ CREATE TABLE atom (
   image TEXT,
   value_id NUMERIC(78, 0),
   block_number NUMERIC(78, 0) NOT NULL,
-  block_timestamp NUMERIC(78, 0) NOT NULL,
+  block_timestamp BIGINT NOT NULL,
   transaction_hash BYTEA NOT NULL
 );
 
@@ -92,7 +92,7 @@ CREATE TABLE triple (
   vault_id NUMERIC(78, 0) NOT NULL,
   counter_vault_id NUMERIC(78, 0) NOT NULL,
   block_number NUMERIC(78, 0) NOT NULL,
-  block_timestamp NUMERIC(78, 0) NOT NULL,
+  block_timestamp BIGINT NOT NULL,
   transaction_hash BYTEA NOT NULL
 );
 
@@ -117,7 +117,7 @@ CREATE TABLE fee_transfer (
   receiver_id TEXT REFERENCES account(id) NOT NULL,
   amount NUMERIC(78, 0) NOT NULL,
   block_number NUMERIC(78, 0) NOT NULL,
-  block_timestamp NUMERIC(78, 0) NOT NULL,
+  block_timestamp BIGINT NOT NULL,
   transaction_hash BYTEA NOT NULL
 );
 
@@ -134,7 +134,7 @@ CREATE TABLE deposit (
   is_triple BOOLEAN NOT NULL,
   is_atom_wallet BOOLEAN NOT NULL,
   block_number NUMERIC(78, 0) NOT NULL,
-  block_timestamp NUMERIC(78, 0) NOT NULL,
+  block_timestamp BIGINT NOT NULL,
   transaction_hash BYTEA NOT NULL
 );
 
@@ -148,7 +148,7 @@ CREATE TABLE redemption (
   exit_fee NUMERIC(78, 0) NOT NULL,
   vault_id NUMERIC(78, 0) REFERENCES vault(id) NOT NULL,
   block_number NUMERIC(78, 0) NOT NULL,
-  block_timestamp NUMERIC(78, 0) NOT NULL,
+  block_timestamp BIGINT NOT NULL,
   transaction_hash BYTEA NOT NULL
 );
 
@@ -161,7 +161,7 @@ CREATE TABLE event (
   deposit_id TEXT REFERENCES deposit(id),
   redemption_id TEXT REFERENCES redemption(id),
   block_number NUMERIC(78, 0) NOT NULL,
-  block_timestamp NUMERIC(78, 0) NOT NULL,
+  block_timestamp BIGINT NOT NULL,
   transaction_hash BYTEA NOT NULL
 );
 
@@ -205,7 +205,7 @@ CREATE TABLE signal (
   deposit_id TEXT REFERENCES deposit(id),
   redemption_id TEXT REFERENCES redemption(id),
   block_number NUMERIC(78, 0) NOT NULL,
-  block_timestamp NUMERIC(78, 0) NOT NULL,
+  block_timestamp BIGINT NOT NULL,
   transaction_hash BYTEA NOT NULL,
   -- Ensure that exactly one of atom_id, triple_id, deposit_id, or redemption_id is set
   CONSTRAINT check_signal_constraints CHECK (
@@ -322,261 +322,3 @@ CREATE INDEX idx_event_triple ON event(triple_id);
 CREATE INDEX idx_event_block_number ON event(block_number);
 CREATE INDEX idx_event_block_timestamp ON event(block_timestamp);
 CREATE INDEX idx_event_transaction_hash ON event(transaction_hash);
-
-
--- Ensure we have a record in the stats table
-INSERT INTO stats (id, total_accounts, total_atoms, total_triples, total_positions, total_signals, total_fees, contract_balance)
-VALUES (0, 0, 0, 0, 0, 0, 0, 0);
-
-
--- ACCOUNT STATS
--- Create a trigger on the accounts table for inserts
-CREATE OR REPLACE FUNCTION update_account_stats()
-RETURNS TRIGGER AS $$
-BEGIN
-    UPDATE stats
-    SET total_accounts = total_accounts + 1
-    WHERE id = 0;  -- Assuming single row stats table with id 0
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- ATOM STATS
--- Create a trigger on the atom table for inserts
-CREATE OR REPLACE FUNCTION update_atom_stats()
-RETURNS TRIGGER AS $$
-BEGIN
-    -- Update stats logic here
-    UPDATE stats
-    SET total_atoms = total_atoms + 1
-    WHERE id = 0;  -- Assuming single row stats table with id 0
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- TRIPLE STATS
--- Create a trigger on the triple table for inserts
-CREATE OR REPLACE FUNCTION update_triple_stats()
-RETURNS TRIGGER AS $$
-BEGIN
-    -- Update stats logic here
-    UPDATE stats
-    SET total_triples = total_triples + 1
-    WHERE id = 0;  -- Assuming single row stats table with id 0
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- POSITION STATS
--- Create a trigger on the position table for inserts
-CREATE OR REPLACE FUNCTION update_position_stats()
-RETURNS TRIGGER AS $$
-BEGIN
-    -- Update stats logic here
-    UPDATE stats
-    SET total_positions = total_positions + 1
-    WHERE id = 0;  -- Assuming single row stats table with id 0
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- SIGNAL STATS
--- Create a trigger on the signal table for inserts
-CREATE OR REPLACE FUNCTION update_signal_stats()
-RETURNS TRIGGER AS $$
-BEGIN
-    -- Update stats logic here
-    UPDATE stats
-    SET total_signals = total_signals + 1
-    WHERE id = 0;  -- Assuming single row stats table with id 0
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- FEE STATS
--- Create a trigger on the fee_transfer table for inserts
-CREATE OR REPLACE FUNCTION update_fee_stats()
-RETURNS TRIGGER AS $$
-BEGIN
-    -- Update stats logic here
-    UPDATE stats
-    SET total_fees = total_fees + NEW.amount
-    WHERE id = 0;  -- Assuming single row stats table with id 0
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- DEPOSITED STATS
--- Create a trigger on the deposit table for inserts
-CREATE OR REPLACE FUNCTION update_deposit_stats()
-RETURNS TRIGGER AS $$
-BEGIN
-    -- Update stats logic here
-    UPDATE stats
-    SET contract_balance = contract_balance + NEW.sender_assets_after_total_fees
-    WHERE id = 0;  -- Assuming single row stats table with id 0
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- REDEMPTION STATS
--- Create a trigger on the redemption table for inserts
-CREATE OR REPLACE FUNCTION update_redemption_stats()
-RETURNS TRIGGER AS $$
-BEGIN
-    IF NEW.sender_total_shares_in_vault = 0 THEN
-        -- Full redemption - update both positions and balance
-        UPDATE stats
-        SET total_positions = total_positions - 1,
-            contract_balance = contract_balance - NEW.assets_for_receiver
-        WHERE id = 0;
-    ELSE
-        -- Partial redemption - only update balance
-        UPDATE stats
-        SET contract_balance = contract_balance - NEW.assets_for_receiver
-        WHERE id = 0;
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-
--- TRIGGERS
--- Create a trigger on the accounts table for inserts
-CREATE TRIGGER account_insert_trigger
-AFTER INSERT ON account
-FOR EACH ROW
-EXECUTE FUNCTION update_account_stats();
-
--- Create a trigger on the atom table for inserts
-CREATE TRIGGER atom_insert_trigger
-AFTER INSERT ON atom
-FOR EACH ROW
-EXECUTE FUNCTION update_atom_stats();
-
--- Create a trigger on the triple table for inserts
-CREATE TRIGGER triple_insert_trigger
-AFTER INSERT ON triple
-FOR EACH ROW
-EXECUTE FUNCTION update_triple_stats();
-
--- Create a trigger on the position table for inserts
-CREATE TRIGGER position_insert_trigger
-AFTER INSERT ON position
-FOR EACH ROW
-EXECUTE FUNCTION update_position_stats();
-
--- Create a trigger on the signal table for inserts
-CREATE TRIGGER signal_insert_trigger
-AFTER INSERT ON signal
-FOR EACH ROW
-EXECUTE FUNCTION update_signal_stats();
-
--- Create a trigger on the fee_transfer table for inserts
-CREATE TRIGGER fee_insert_trigger
-AFTER INSERT ON fee_transfer
-FOR EACH ROW
-EXECUTE FUNCTION update_fee_stats();
-
--- Create a trigger on the deposit table for inserts
-CREATE TRIGGER deposit_insert_trigger
-AFTER INSERT ON deposit
-FOR EACH ROW
-EXECUTE FUNCTION update_deposit_stats();
-
--- Create a trigger on the redemption table for inserts
-CREATE TRIGGER redemption_insert_trigger
-AFTER INSERT ON redemption
-FOR EACH ROW
-EXECUTE FUNCTION update_redemption_stats();
-
--- TODO: move this to a separate file
--- STATS HOUR
-CREATE OR REPLACE FUNCTION update_stats_hour() 
-RETURNS VOID AS $$ 
-BEGIN 
-    INSERT INTO stats_hour (total_accounts, total_atoms, total_triples, total_positions, total_signals, total_fees, contract_balance, created_at) 
-    SELECT total_accounts, total_atoms, total_triples, total_positions, total_signals, total_fees, contract_balance, now() FROM stats WHERE id = 0; 
-END; 
-$$ LANGUAGE plpgsql;   
-
--- Table to track the last update time 
-CREATE TABLE stats_hour_tracker ( id SERIAL PRIMARY KEY, last_updated TIMESTAMP ); 
--- Insert initial row 
-INSERT INTO stats_hour_tracker (last_updated) VALUES (CURRENT_TIMESTAMP); 
-
--- Function to update stats_hour and stats_hour_tracker
-CREATE OR REPLACE FUNCTION update_stats_hour_if_needed() RETURNS VOID AS $$ 
-DECLARE last_update_time TIMESTAMP; 
-BEGIN 
-    -- Get the last update time 
-    SELECT last_updated INTO last_update_time FROM stats_hour_tracker WHERE id = 1; 
-    -- Check if an hour has passed 
-    IF (CURRENT_TIMESTAMP - last_update_time) >= INTERVAL '5 minute' THEN 
-        -- Update the stats_hour table 
-        INSERT INTO stats_hour (total_accounts, total_atoms, total_triples, total_positions, total_signals, total_fees, contract_balance, created_at) 
-          SELECT total_accounts, total_atoms, total_triples, total_positions, total_signals, total_fees, contract_balance, now() FROM stats WHERE id = 0; 
-        -- Update the tracker 
-        UPDATE stats_hour_tracker SET last_updated = CURRENT_TIMESTAMP WHERE id = 1; 
-    END IF; 
-END; 
-$$ LANGUAGE plpgsql;
-
-CREATE OR REPLACE FUNCTION trigger_update_stats_hour() 
-RETURNS TRIGGER AS $$ 
-BEGIN 
-    PERFORM update_stats_hour_if_needed(); 
-    RETURN NEW; 
-END; 
-$$ LANGUAGE plpgsql; 
-
-CREATE TRIGGER trigger_on_stats_update
-AFTER UPDATE ON stats
-FOR EACH ROW
-EXECUTE FUNCTION trigger_update_stats_hour();
-
--- Create a function to get the accounts that a given account follows
-
-CREATE FUNCTION accounts_that_claim_about_account(address text, subject numeric, predicate numeric) RETURNS SETOF "account"
-    LANGUAGE sql STABLE
-    AS $$
-SELECT "account".*
-FROM "claim"
-JOIN "account" ON "account"."atom_id" = "claim"."object_id"
-WHERE 
- "claim"."subject_id" = subject
-AND "claim"."predicate_id" = predicate
-AND "claim"."account_id" = LOWER(address);
-$$;
-
-CREATE FUNCTION following(address text) RETURNS SETOF "account"
-    LANGUAGE sql STABLE
-    AS $$
-SELECT *
-FROM accounts_that_claim_about_account( address, 11, 3);
-$$;
-
-CREATE FUNCTION claims_from_following(address text) RETURNS SETOF "claim"
-    LANGUAGE sql STABLE
-    AS $$
-	SELECT
-		*
-	FROM "claim"
-        WHERE "claim"."account_id" IN (SELECT "id" FROM following(address));
-$$;
-
-CREATE FUNCTION signals_from_following (address text)
-	RETURNS SETOF "signal"
-	LANGUAGE sql
-	STABLE
-	AS $$
-	SELECT
-		*
-	FROM
-		"signal"
-	WHERE
-		"signal"."account_id" IN(
-			SELECT
-				"id" FROM FOLLOWING (address));
-$$;
-

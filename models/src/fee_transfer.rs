@@ -17,7 +17,7 @@ pub struct FeeTransfer {
     pub receiver_id: String,
     pub amount: U256Wrapper,
     pub block_number: U256Wrapper,
-    pub block_timestamp: U256Wrapper,
+    pub block_timestamp: i64,
     pub transaction_hash: Vec<u8>,
 }
 
@@ -47,7 +47,7 @@ impl SimpleCrud<String> for FeeTransfer {
                 id, sender_id, receiver_id, 
                 amount as "amount: U256Wrapper",
                 block_number as "block_number: U256Wrapper",
-                block_timestamp as "block_timestamp: U256Wrapper",
+                block_timestamp,
                 transaction_hash
             "#,
             self.id,
@@ -55,7 +55,7 @@ impl SimpleCrud<String> for FeeTransfer {
             self.receiver_id,
             self.amount.to_big_decimal()?,
             self.block_number.to_big_decimal()?,
-            self.block_timestamp.to_big_decimal()?,
+            self.block_timestamp,
             self.transaction_hash,
         )
         .fetch_one(pool)
@@ -75,7 +75,7 @@ impl SimpleCrud<String> for FeeTransfer {
                 id, sender_id, receiver_id,
                 amount as "amount: U256Wrapper",
                 block_number as "block_number: U256Wrapper",
-                block_timestamp as "block_timestamp: U256Wrapper",
+                block_timestamp,
                 transaction_hash
             FROM fee_transfer
             WHERE id = $1

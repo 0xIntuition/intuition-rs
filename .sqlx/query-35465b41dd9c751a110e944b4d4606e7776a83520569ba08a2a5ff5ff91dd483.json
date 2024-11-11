@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT \n                id, \n                delta as \"delta: U256Wrapper\", \n                account_id, \n                atom_id as \"atom_id: U256Wrapper\", \n                triple_id as \"triple_id: U256Wrapper\", \n                deposit_id, \n                redemption_id, \n                block_number as \"block_number: U256Wrapper\", \n                block_timestamp as \"block_timestamp: U256Wrapper\", \n                transaction_hash \n            FROM signal \n            WHERE id = $1\n            ",
+  "query": "\n            SELECT \n                id, \n                delta as \"delta: U256Wrapper\", \n                account_id, \n                atom_id as \"atom_id: U256Wrapper\", \n                triple_id as \"triple_id: U256Wrapper\", \n                deposit_id, \n                redemption_id, \n                block_number as \"block_number: U256Wrapper\", \n                block_timestamp, \n                transaction_hash \n            FROM signal \n            WHERE id = $1\n            ",
   "describe": {
     "columns": [
       {
@@ -45,8 +45,8 @@
       },
       {
         "ordinal": 8,
-        "name": "block_timestamp: U256Wrapper",
-        "type_info": "Numeric"
+        "name": "block_timestamp",
+        "type_info": "Int8"
       },
       {
         "ordinal": 9,
@@ -72,5 +72,5 @@
       false
     ]
   },
-  "hash": "0477c0e88e69d3ecb9d0aa0ac7106be8157de3ec4db1b0f6f7ec4ed3f6ab765b"
+  "hash": "35465b41dd9c751a110e944b4d4606e7776a83520569ba08a2a5ff5ff91dd483"
 }

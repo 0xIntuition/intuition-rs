@@ -1,0 +1,92 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO redemption (\n                id, sender_id, receiver_id, sender_total_shares_in_vault,\n                assets_for_receiver, shares_redeemed_by_sender, exit_fee, vault_id,\n                block_number, block_timestamp, transaction_hash\n            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)\n            ON CONFLICT (id) DO UPDATE SET\n                sender_id = EXCLUDED.sender_id,\n                receiver_id = EXCLUDED.receiver_id,\n                sender_total_shares_in_vault = EXCLUDED.sender_total_shares_in_vault,\n                assets_for_receiver = EXCLUDED.assets_for_receiver,\n                shares_redeemed_by_sender = EXCLUDED.shares_redeemed_by_sender,\n                exit_fee = EXCLUDED.exit_fee,\n                vault_id = EXCLUDED.vault_id,\n                block_number = EXCLUDED.block_number,\n                block_timestamp = EXCLUDED.block_timestamp,\n                transaction_hash = EXCLUDED.transaction_hash\n            RETURNING \n                id, sender_id, receiver_id,\n                sender_total_shares_in_vault as \"sender_total_shares_in_vault: U256Wrapper\",\n                assets_for_receiver as \"assets_for_receiver: U256Wrapper\",\n                shares_redeemed_by_sender as \"shares_redeemed_by_sender: U256Wrapper\",\n                exit_fee as \"exit_fee: U256Wrapper\",\n                vault_id as \"vault_id: U256Wrapper\",\n                block_number as \"block_number: U256Wrapper\",\n                block_timestamp,\n                transaction_hash\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "sender_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "receiver_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "sender_total_shares_in_vault: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "assets_for_receiver: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 5,
+        "name": "shares_redeemed_by_sender: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 6,
+        "name": "exit_fee: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 7,
+        "name": "vault_id: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 8,
+        "name": "block_number: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 9,
+        "name": "block_timestamp",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 10,
+        "name": "transaction_hash",
+        "type_info": "Bytea"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Int8",
+        "Bytea"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "b2233bd04d9b193f4aa98d646a8f55aa130814f8249cf89de776d40fca0880a8"
+}

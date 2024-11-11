@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT \n                id, sender_id, receiver_id,\n                receiver_total_shares_in_vault as \"receiver_total_shares_in_vault: U256Wrapper\",\n                sender_assets_after_total_fees as \"sender_assets_after_total_fees: U256Wrapper\",\n                shares_for_receiver as \"shares_for_receiver: U256Wrapper\",\n                entry_fee as \"entry_fee: U256Wrapper\",\n                vault_id as \"vault_id: U256Wrapper\",\n                is_triple,\n                is_atom_wallet,\n                block_number as \"block_number: U256Wrapper\",\n                block_timestamp as \"block_timestamp: U256Wrapper\",\n                transaction_hash\n            FROM deposit\n            WHERE id = $1\n            ",
+  "query": "\n            SELECT \n                id, sender_id, receiver_id,\n                receiver_total_shares_in_vault as \"receiver_total_shares_in_vault: U256Wrapper\",\n                sender_assets_after_total_fees as \"sender_assets_after_total_fees: U256Wrapper\",\n                shares_for_receiver as \"shares_for_receiver: U256Wrapper\",\n                entry_fee as \"entry_fee: U256Wrapper\",\n                vault_id as \"vault_id: U256Wrapper\",\n                is_triple,\n                is_atom_wallet,\n                block_number as \"block_number: U256Wrapper\",\n                block_timestamp,\n                transaction_hash\n            FROM deposit\n            WHERE id = $1\n            ",
   "describe": {
     "columns": [
       {
@@ -60,8 +60,8 @@
       },
       {
         "ordinal": 11,
-        "name": "block_timestamp: U256Wrapper",
-        "type_info": "Numeric"
+        "name": "block_timestamp",
+        "type_info": "Int8"
       },
       {
         "ordinal": 12,
@@ -90,5 +90,5 @@
       false
     ]
   },
-  "hash": "63640ca877a4a9c811d0413e6696623270a6819c73b36e7e2094a6deb07649e9"
+  "hash": "e8ba56f37f392012dcc6de2770d9be36ff1cd0ff2bd13cf2ec7b2d127a254491"
 }

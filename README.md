@@ -34,7 +34,7 @@ aws_secret_access_key = YOUR_SECRET_ACCESS_KEY
 
 ## Running the local pipeline
 
-If you are using docker compose, you dont need to worry about copying the `.env` file, as it will be mounted in the `consumer` service, however, if you want to run the services manually, you need to copy the `.env.sample` file to `.env` and set the correct values. Note that some of the values need to be set manually, such as the `PINATA_GATEWAY_TOKEN`, the `RPC_URL` and the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`.
+You need to copy the `.env.sample` file to `.env` and set the correct values. Note that some of the values need to be set manually, such as the `PINATA_GATEWAY_TOKEN`, the `RPC_URL` and the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`. If values are not set, the pipeline will not work.
 
 ```
 cp .env.sample .env
@@ -88,5 +88,6 @@ Also note that you need to set the right environment variables for the queues (`
 
 ## Conveniences
 
+* `cargo make start-docker-and-migrate` to start the docker compose and run the migrations.
 * `cargo make clippy` to run clippy
 * `cargo make fmt` to run rustfmt

@@ -18,7 +18,7 @@ pub struct Signal {
     pub deposit_id: Option<String>,
     pub redemption_id: Option<String>,
     pub block_number: U256Wrapper,
-    pub block_timestamp: U256Wrapper,
+    pub block_timestamp: i64,
     pub transaction_hash: Vec<u8>,
 }
 
@@ -55,7 +55,7 @@ impl SimpleCrud<String> for Signal {
                 deposit_id, 
                 redemption_id, 
                 block_number as "block_number: U256Wrapper", 
-                block_timestamp as "block_timestamp: U256Wrapper", 
+                block_timestamp, 
                 transaction_hash
             "#,
             self.id,
@@ -66,7 +66,7 @@ impl SimpleCrud<String> for Signal {
             self.deposit_id,
             self.redemption_id,
             self.block_number.to_big_decimal()?,
-            self.block_timestamp.to_big_decimal()?,
+            self.block_timestamp,
             self.transaction_hash,
         )
         .fetch_one(pool)
@@ -88,7 +88,7 @@ impl SimpleCrud<String> for Signal {
                 deposit_id, 
                 redemption_id, 
                 block_number as "block_number: U256Wrapper", 
-                block_timestamp as "block_timestamp: U256Wrapper", 
+                block_timestamp, 
                 transaction_hash 
             FROM signal 
             WHERE id = $1

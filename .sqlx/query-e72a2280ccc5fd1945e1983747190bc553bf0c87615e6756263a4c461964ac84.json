@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT \n                id, sender_id, receiver_id,\n                sender_total_shares_in_vault as \"sender_total_shares_in_vault: U256Wrapper\",\n                assets_for_receiver as \"assets_for_receiver: U256Wrapper\",\n                shares_redeemed_by_sender as \"shares_redeemed_by_sender: U256Wrapper\",\n                exit_fee as \"exit_fee: U256Wrapper\",\n                vault_id as \"vault_id: U256Wrapper\",\n                block_number as \"block_number: U256Wrapper\",\n                block_timestamp as \"block_timestamp: U256Wrapper\",\n                transaction_hash\n            FROM redemption\n            WHERE id = $1\n            ",
+  "query": "\n            SELECT \n                id, sender_id, receiver_id,\n                sender_total_shares_in_vault as \"sender_total_shares_in_vault: U256Wrapper\",\n                assets_for_receiver as \"assets_for_receiver: U256Wrapper\",\n                shares_redeemed_by_sender as \"shares_redeemed_by_sender: U256Wrapper\",\n                exit_fee as \"exit_fee: U256Wrapper\",\n                vault_id as \"vault_id: U256Wrapper\",\n                block_number as \"block_number: U256Wrapper\",\n                block_timestamp,\n                transaction_hash\n            FROM redemption\n            WHERE id = $1\n            ",
   "describe": {
     "columns": [
       {
@@ -50,8 +50,8 @@
       },
       {
         "ordinal": 9,
-        "name": "block_timestamp: U256Wrapper",
-        "type_info": "Numeric"
+        "name": "block_timestamp",
+        "type_info": "Int8"
       },
       {
         "ordinal": 10,
@@ -78,5 +78,5 @@
       false
     ]
   },
-  "hash": "c4cc32bb7864eeee743ae3bc52ec58294599d4f91f1cf7d033f10a5817d9a087"
+  "hash": "e72a2280ccc5fd1945e1983747190bc553bf0c87615e6756263a4c461964ac84"
 }

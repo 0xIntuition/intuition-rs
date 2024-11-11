@@ -22,7 +22,7 @@ pub struct Atom {
     pub image: Option<String>,
     pub value_id: Option<U256Wrapper>,
     pub block_number: U256Wrapper,
-    pub block_timestamp: U256Wrapper,
+    pub block_timestamp: i64,
     pub transaction_hash: Vec<u8>,
 }
 
@@ -85,7 +85,7 @@ impl SimpleCrud<U256Wrapper> for Atom {
                       image, 
                       value_id as "value_id: U256Wrapper",
                       block_number as "block_number: U256Wrapper",
-                      block_timestamp as "block_timestamp: U256Wrapper",
+                      block_timestamp,
                       transaction_hash
             "#,
             self.id.to_big_decimal()?,
@@ -99,7 +99,7 @@ impl SimpleCrud<U256Wrapper> for Atom {
             self.image,
             self.value_id.as_ref().and_then(|w| w.to_big_decimal().ok()),
             self.block_number.to_big_decimal()?,
-            self.block_timestamp.to_big_decimal()?,
+            self.block_timestamp,
             self.transaction_hash,
         )
         .fetch_one(pool)
@@ -135,7 +135,7 @@ impl SimpleCrud<U256Wrapper> for Atom {
                    image, 
                    value_id as "value_id: U256Wrapper",
                    block_number as "block_number: U256Wrapper",
-                   block_timestamp as "block_timestamp: U256Wrapper",
+                   block_timestamp,
                    transaction_hash
             FROM atom
             WHERE id = $1

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT \n                id, sender_id, receiver_id,\n                amount as \"amount: U256Wrapper\",\n                block_number as \"block_number: U256Wrapper\",\n                block_timestamp as \"block_timestamp: U256Wrapper\",\n                transaction_hash\n            FROM fee_transfer\n            WHERE id = $1\n            ",
+  "query": "\n            SELECT \n                id, sender_id, receiver_id,\n                amount as \"amount: U256Wrapper\",\n                block_number as \"block_number: U256Wrapper\",\n                block_timestamp,\n                transaction_hash\n            FROM fee_transfer\n            WHERE id = $1\n            ",
   "describe": {
     "columns": [
       {
@@ -30,8 +30,8 @@
       },
       {
         "ordinal": 5,
-        "name": "block_timestamp: U256Wrapper",
-        "type_info": "Numeric"
+        "name": "block_timestamp",
+        "type_info": "Int8"
       },
       {
         "ordinal": 6,
@@ -54,5 +54,5 @@
       false
     ]
   },
-  "hash": "04210f8a83b195d9322347676be9b152992f3c07879e65edfffee737a00119d9"
+  "hash": "a7261b7490fbbc192d9e5476576d5f10234b070cf56e2b31ef610fb15af4de2e"
 }
