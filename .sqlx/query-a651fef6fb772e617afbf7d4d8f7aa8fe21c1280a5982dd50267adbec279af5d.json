@@ -1,0 +1,114 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT id as \"id: U256Wrapper\", \n                   wallet_id, \n                   creator_id, \n                   vault_id as \"vault_id: U256Wrapper\", \n                   data, \n                   type as \"atom_type: AtomType\", \n                   emoji, \n                   label, \n                   image, \n                   value_id as \"value_id: U256Wrapper\",\n                   block_number as \"block_number: U256Wrapper\",\n                   block_timestamp as \"block_timestamp: U256Wrapper\",\n                   transaction_hash\n            FROM atom\n            WHERE id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 1,
+        "name": "wallet_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "creator_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "vault_id: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "data",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "atom_type: AtomType",
+        "type_info": {
+          "Custom": {
+            "name": "atom_type",
+            "kind": {
+              "Enum": [
+                "Unknown",
+                "Account",
+                "Thing",
+                "ThingPredicate",
+                "Person",
+                "PersonPredicate",
+                "Organization",
+                "OrganizationPredicate",
+                "Book",
+                "LikeAction",
+                "FollowAction",
+                "Keywords"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "emoji",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "label",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "image",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "value_id: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 10,
+        "name": "block_number: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 11,
+        "name": "block_timestamp: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 12,
+        "name": "transaction_hash",
+        "type_info": "Bytea"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Numeric"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "a651fef6fb772e617afbf7d4d8f7aa8fe21c1280a5982dd50267adbec279af5d"
+}

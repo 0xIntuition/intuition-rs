@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \n                id, \n                account_id, \n                vault_id as \"vault_id: U256Wrapper\", \n                shares as \"shares: U256Wrapper\"\n            FROM position\n            WHERE id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "account_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "vault_id: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 3,
+        "name": "shares: U256Wrapper",
+        "type_info": "Numeric"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "3264cd7ac432cce7c4b0119d27afcab45b67f96a0ebeb71bf5e8f2ac9d080b1c"
+}

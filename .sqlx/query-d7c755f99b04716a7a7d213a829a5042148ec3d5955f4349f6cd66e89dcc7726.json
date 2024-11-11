@@ -1,0 +1,106 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO deposit (\n                id, sender_id, receiver_id, receiver_total_shares_in_vault,\n                sender_assets_after_total_fees, shares_for_receiver, entry_fee, vault_id,\n                is_triple, is_atom_wallet, block_number, block_timestamp, transaction_hash\n            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)\n            ON CONFLICT (id) DO UPDATE SET\n                sender_id = EXCLUDED.sender_id,\n                receiver_id = EXCLUDED.receiver_id,\n                receiver_total_shares_in_vault = EXCLUDED.receiver_total_shares_in_vault,\n                sender_assets_after_total_fees = EXCLUDED.sender_assets_after_total_fees,\n                shares_for_receiver = EXCLUDED.shares_for_receiver,\n                entry_fee = EXCLUDED.entry_fee,\n                vault_id = EXCLUDED.vault_id,\n                is_triple = EXCLUDED.is_triple,\n                is_atom_wallet = EXCLUDED.is_atom_wallet,\n                block_number = EXCLUDED.block_number,\n                block_timestamp = EXCLUDED.block_timestamp,\n                transaction_hash = EXCLUDED.transaction_hash\n            RETURNING \n                id, sender_id, receiver_id,\n                receiver_total_shares_in_vault as \"receiver_total_shares_in_vault: U256Wrapper\",\n                sender_assets_after_total_fees as \"sender_assets_after_total_fees: U256Wrapper\",\n                shares_for_receiver as \"shares_for_receiver: U256Wrapper\",\n                entry_fee as \"entry_fee: U256Wrapper\",\n                vault_id as \"vault_id: U256Wrapper\",\n                is_triple,\n                is_atom_wallet,\n                block_number as \"block_number: U256Wrapper\",\n                block_timestamp as \"block_timestamp: U256Wrapper\",\n                transaction_hash\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "sender_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "receiver_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "receiver_total_shares_in_vault: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "sender_assets_after_total_fees: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 5,
+        "name": "shares_for_receiver: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 6,
+        "name": "entry_fee: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 7,
+        "name": "vault_id: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 8,
+        "name": "is_triple",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 9,
+        "name": "is_atom_wallet",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 10,
+        "name": "block_number: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 11,
+        "name": "block_timestamp: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 12,
+        "name": "transaction_hash",
+        "type_info": "Bytea"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Bool",
+        "Bool",
+        "Numeric",
+        "Numeric",
+        "Bytea"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "d7c755f99b04716a7a7d213a829a5042148ec3d5955f4349f6cd66e89dcc7726"
+}

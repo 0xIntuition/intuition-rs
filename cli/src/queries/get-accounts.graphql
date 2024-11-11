@@ -1,0 +1,11 @@
+query GetAccounts {
+  accounts(where: {type: {_eq: "Default"}}, order_by: {claims_aggregate: {count: desc}}) {
+    id
+    label
+    positions_aggregate {
+      aggregate {
+        count
+      }
+    }
+  }
+}

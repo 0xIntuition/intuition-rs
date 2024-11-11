@@ -1,0 +1,34 @@
+table:
+  name: position
+  schema: public
+configuration:
+  column_config: {}
+  custom_column_names: {}
+  custom_name: positions
+  custom_root_fields:
+    select_by_pk: position
+object_relationships:
+  - name: account
+    using:
+      manual_configuration:
+        column_mapping:
+          account_id: id
+        insertion_order: null
+        remote_table:
+          name: account
+          schema: public
+  - name: vault
+    using:
+      foreign_key_constraint_on: vault_id
+select_permissions:
+  - role: anonymous
+    permission:
+      columns:
+        - shares
+        - vault_id
+        - account_id
+        - id
+      filter: {}
+      limit: 100
+      allow_aggregations: true
+    comment: ""

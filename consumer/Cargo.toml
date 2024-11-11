@@ -1,0 +1,39 @@
+[package]
+name = "consumer"
+version = "0.11.0"
+edition = "2021"
+
+[dependencies]
+clap = { version = "4.4.7", features = ["derive"] }
+
+hex = "0.4.3"
+reqwest = "0.12.8"
+rustc-hex = "2.1.0"
+sqlx-core = "0.8.0"
+
+# Local dependencies
+models = { path = "../models" }
+
+# Workspace dependencies
+alloy.workspace = true
+async-trait.workspace = true
+aws-config.workspace = true
+aws-sdk-sqs.workspace = true
+aws-smithy-runtime-api.workspace = true
+dotenvy.workspace = true
+env_logger.workspace = true
+envy.workspace = true
+log.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sqlx.workspace = true
+strum.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+regex = "1.11.1"
+futures = "0.3.31"
+
+[features]
+local = []
+default = []
+

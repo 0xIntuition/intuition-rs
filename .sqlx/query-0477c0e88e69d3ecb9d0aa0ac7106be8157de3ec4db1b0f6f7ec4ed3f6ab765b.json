@@ -1,0 +1,76 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \n                id, \n                delta as \"delta: U256Wrapper\", \n                account_id, \n                atom_id as \"atom_id: U256Wrapper\", \n                triple_id as \"triple_id: U256Wrapper\", \n                deposit_id, \n                redemption_id, \n                block_number as \"block_number: U256Wrapper\", \n                block_timestamp as \"block_timestamp: U256Wrapper\", \n                transaction_hash \n            FROM signal \n            WHERE id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "delta: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 2,
+        "name": "account_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "atom_id: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "triple_id: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 5,
+        "name": "deposit_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "redemption_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "block_number: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 8,
+        "name": "block_timestamp: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 9,
+        "name": "transaction_hash",
+        "type_info": "Bytea"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "0477c0e88e69d3ecb9d0aa0ac7106be8157de3ec4db1b0f6f7ec4ed3f6ab765b"
+}

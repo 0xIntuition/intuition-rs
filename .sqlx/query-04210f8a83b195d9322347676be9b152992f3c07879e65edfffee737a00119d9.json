@@ -1,0 +1,58 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \n                id, sender_id, receiver_id,\n                amount as \"amount: U256Wrapper\",\n                block_number as \"block_number: U256Wrapper\",\n                block_timestamp as \"block_timestamp: U256Wrapper\",\n                transaction_hash\n            FROM fee_transfer\n            WHERE id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "sender_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "receiver_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "amount: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "block_number: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 5,
+        "name": "block_timestamp: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 6,
+        "name": "transaction_hash",
+        "type_info": "Bytea"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "04210f8a83b195d9322347676be9b152992f3c07879e65edfffee737a00119d9"
+}

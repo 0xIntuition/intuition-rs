@@ -1,0 +1,7 @@
+query GetAtoms {
+  atoms(limit: 100) {
+    id
+    label
+    type
+  }
+}

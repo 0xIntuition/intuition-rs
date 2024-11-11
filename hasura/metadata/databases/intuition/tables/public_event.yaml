@@ -1,0 +1,55 @@
+table:
+  name: event
+  schema: public
+configuration:
+  column_config: {}
+  custom_column_names: {}
+  custom_name: events
+  custom_root_fields:
+    select_by_pk: event
+object_relationships:
+  - name: atom
+    using:
+      manual_configuration:
+        column_mapping:
+          atom_id: id
+        insertion_order: null
+        remote_table:
+          name: atom
+          schema: public
+  - name: deposit
+    using:
+      foreign_key_constraint_on: deposit_id
+  - name: fee_transfer
+    using:
+      foreign_key_constraint_on: fee_transfer_id
+  - name: redemption
+    using:
+      foreign_key_constraint_on: redemption_id
+  - name: triple
+    using:
+      manual_configuration:
+        column_mapping:
+          triple_id: id
+        insertion_order: null
+        remote_table:
+          name: triple
+          schema: public
+select_permissions:
+  - role: anonymous
+    permission:
+      columns:
+        - transaction_hash
+        - atom_id
+        - block_number
+        - block_timestamp
+        - triple_id
+        - deposit_id
+        - fee_transfer_id
+        - id
+        - redemption_id
+        - type
+      filter: {}
+      limit: 100
+      allow_aggregations: true
+    comment: ""

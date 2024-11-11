@@ -1,0 +1,117 @@
+table:
+  name: atom
+  schema: public
+configuration:
+  column_config: {}
+  custom_column_names: {}
+  custom_name: atoms
+  custom_root_fields:
+    select_by_pk: atom
+object_relationships:
+  - name: controler
+    using:
+      manual_configuration:
+        column_mapping:
+          wallet_id: id
+        insertion_order: null
+        remote_table:
+          name: account
+          schema: public
+  - name: creator
+    using:
+      manual_configuration:
+        column_mapping:
+          creator_id: id
+        insertion_order: null
+        remote_table:
+          name: account
+          schema: public
+  - name: value
+    using:
+      manual_configuration:
+        column_mapping:
+          value_id: id
+        insertion_order: null
+        remote_table:
+          name: atom_value
+          schema: public
+array_relationships:
+  - name: accounts
+    using:
+      foreign_key_constraint_on:
+        column: atom_id
+        table:
+          name: account
+          schema: public
+  - name: as_object_claims
+    using:
+      foreign_key_constraint_on:
+        column: object_id
+        table:
+          name: claim
+          schema: public
+  - name: as_object_triples
+    using:
+      foreign_key_constraint_on:
+        column: object_id
+        table:
+          name: triple
+          schema: public
+  - name: as_predicate_claims
+    using:
+      foreign_key_constraint_on:
+        column: predicate_id
+        table:
+          name: claim
+          schema: public
+  - name: as_predicate_triples
+    using:
+      foreign_key_constraint_on:
+        column: predicate_id
+        table:
+          name: triple
+          schema: public
+  - name: as_subject_claims
+    using:
+      foreign_key_constraint_on:
+        column: subject_id
+        table:
+          name: claim
+          schema: public
+  - name: as_subject_triples
+    using:
+      foreign_key_constraint_on:
+        column: subject_id
+        table:
+          name: triple
+          schema: public
+  - name: signals
+    using:
+      manual_configuration:
+        column_mapping:
+          id: atom_id
+        insertion_order: null
+        remote_table:
+          name: signal
+          schema: public
+select_permissions:
+  - role: anonymous
+    permission:
+      columns:
+        - transaction_hash
+        - block_number
+        - block_timestamp
+        - id
+        - value_id
+        - vault_id
+        - creator_id
+        - data
+        - emoji
+        - image
+        - label
+        - wallet_id
+        - type
+      filter: {}
+      limit: 100
+      allow_aggregations: true
+    comment: ""

@@ -1,0 +1,50 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO book (id, name, description, genre, url)\n            VALUES ($1, $2, $3, $4, $5)\n            ON CONFLICT (id) DO UPDATE SET\n                name = EXCLUDED.name,\n                description = EXCLUDED.description,\n                genre = EXCLUDED.genre,\n                url = EXCLUDED.url\n            RETURNING id as \"id: U256Wrapper\",\n                      name,\n                      description,\n                      genre,\n                      url\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "genre",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "url",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Numeric",
+        "Text",
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "a9557aa14a1df28cb08c87de5c2a6dd4b7b446a76ac9b940346c4e78c246f442"
+}

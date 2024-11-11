@@ -1,0 +1,45 @@
+table:
+  name: fee_transfer
+  schema: public
+configuration:
+  column_config: {}
+  custom_column_names: {}
+  custom_name: fee_transfers
+  custom_root_fields:
+    select_by_pk: fee_transfer
+object_relationships:
+  - name: receiver
+    using:
+      foreign_key_constraint_on: receiver_id
+  - name: sender
+    using:
+      manual_configuration:
+        column_mapping:
+          sender_id: id
+        insertion_order: null
+        remote_table:
+          name: account
+          schema: public
+array_relationships:
+  - name: events
+    using:
+      foreign_key_constraint_on:
+        column: fee_transfer_id
+        table:
+          name: event
+          schema: public
+select_permissions:
+  - role: anonymous
+    permission:
+      columns:
+        - transaction_hash
+        - amount
+        - block_number
+        - block_timestamp
+        - id
+        - receiver_id
+        - sender_id
+      filter: {}
+      limit: 100
+      allow_aggregations: true
+    comment: ""

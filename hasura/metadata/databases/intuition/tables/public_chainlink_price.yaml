@@ -1,0 +1,18 @@
+table:
+  name: chainlink_price
+  schema: public
+configuration:
+  column_config: {}
+  custom_column_names: {}
+  custom_name: chainlink_prices
+  custom_root_fields:
+    select_by_pk: chainlink_price
+select_permissions:
+  - role: anonymous
+    permission:
+      columns:
+        - usd
+        - id
+      filter: {}
+      limit: 100
+    comment: ""

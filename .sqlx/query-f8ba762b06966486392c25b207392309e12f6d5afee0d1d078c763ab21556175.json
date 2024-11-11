@@ -1,0 +1,76 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \n                id,\n                account_id,\n                triple_id as \"triple_id: U256Wrapper\",\n                subject_id as \"subject_id: U256Wrapper\",\n                predicate_id as \"predicate_id: U256Wrapper\",\n                object_id as \"object_id: U256Wrapper\",\n                shares as \"shares: U256Wrapper\",\n                counter_shares as \"counter_shares: U256Wrapper\",\n                vault_id as \"vault_id: U256Wrapper\",\n                counter_vault_id as \"counter_vault_id: U256Wrapper\"\n            FROM claim\n            WHERE id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "account_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "triple_id: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 3,
+        "name": "subject_id: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "predicate_id: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 5,
+        "name": "object_id: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 6,
+        "name": "shares: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 7,
+        "name": "counter_shares: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 8,
+        "name": "vault_id: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 9,
+        "name": "counter_vault_id: U256Wrapper",
+        "type_info": "Numeric"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "f8ba762b06966486392c25b207392309e12f6d5afee0d1d078c763ab21556175"
+}

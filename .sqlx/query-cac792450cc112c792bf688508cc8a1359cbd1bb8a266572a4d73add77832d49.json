@@ -1,0 +1,61 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO account (id, atom_id, label, image, type)\n            VALUES ($1, $2, $3, $4, $5::text::account_type)\n            ON CONFLICT (id) DO UPDATE SET\n                atom_id = EXCLUDED.atom_id,\n                label = EXCLUDED.label,\n                image = EXCLUDED.image,\n                type = EXCLUDED.type\n            RETURNING \n                id, \n                atom_id as \"atom_id: U256Wrapper\", \n                label, \n                image, \n                type as \"account_type: AccountType\"\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "atom_id: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 2,
+        "name": "label",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "image",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "account_type: AccountType",
+        "type_info": {
+          "Custom": {
+            "name": "account_type",
+            "kind": {
+              "Enum": [
+                "Default",
+                "AtomWallet",
+                "ProtocolVault"
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Numeric",
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "cac792450cc112c792bf688508cc8a1359cbd1bb8a266572a4d73add77832d49"
+}

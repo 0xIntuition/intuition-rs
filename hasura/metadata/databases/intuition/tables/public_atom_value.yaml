@@ -1,0 +1,72 @@
+table:
+  name: atom_value
+  schema: public
+configuration:
+  column_config: {}
+  custom_column_names: {}
+  custom_name: atom_values
+  custom_root_fields:
+    select_by_pk: atom_value
+object_relationships:
+  - name: account
+    using:
+      foreign_key_constraint_on: account_id
+  - name: atom
+    using:
+      manual_configuration:
+        column_mapping:
+          id: id
+        insertion_order: null
+        remote_table:
+          name: atom
+          schema: public
+  - name: book
+    using:
+      manual_configuration:
+        column_mapping:
+          book_id: id
+        insertion_order: null
+        remote_table:
+          name: book
+          schema: public
+  - name: organization
+    using:
+      manual_configuration:
+        column_mapping:
+          organization_id: id
+        insertion_order: null
+        remote_table:
+          name: organization
+          schema: public
+  - name: person
+    using:
+      manual_configuration:
+        column_mapping:
+          person_id: id
+        insertion_order: null
+        remote_table:
+          name: person
+          schema: public
+  - name: thing
+    using:
+      manual_configuration:
+        column_mapping:
+          thing_id: id
+        insertion_order: null
+        remote_table:
+          name: thing
+          schema: public
+select_permissions:
+  - role: anonymous
+    permission:
+      columns:
+        - book_id
+        - id
+        - organization_id
+        - person_id
+        - thing_id
+        - account_id
+      filter: {}
+      limit: 100
+      allow_aggregations: true
+    comment: ""

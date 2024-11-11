@@ -1,0 +1,28 @@
+query GetSignals {
+  signals(limit: 100, order_by: {block_timestamp: desc}) {
+    id
+    delta
+    block_timestamp
+    account {
+      label
+      type
+    }
+    atom {
+      emoji
+      id
+      label
+    }
+    deposit {
+      shares_for_receiver
+    }
+    redemption {
+      receiver {
+        label
+      }
+    }
+    triple {
+      label
+    }
+  }
+}
+

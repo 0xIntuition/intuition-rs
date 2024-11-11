@@ -1,0 +1,34 @@
+table:
+  name: person
+  schema: public
+configuration:
+  column_config: {}
+  custom_column_names: {}
+  custom_name: persons
+  custom_root_fields:
+    select_by_pk: person
+object_relationships:
+  - name: atom
+    using:
+      manual_configuration:
+        column_mapping:
+          id: id
+        insertion_order: null
+        remote_table:
+          name: atom
+          schema: public
+select_permissions:
+  - role: anonymous
+    permission:
+      columns:
+        - id
+        - description
+        - email
+        - identifier
+        - image
+        - name
+        - url
+      filter: {}
+      limit: 100
+      allow_aggregations: true
+    comment: ""

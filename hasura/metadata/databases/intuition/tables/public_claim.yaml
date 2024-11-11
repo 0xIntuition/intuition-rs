@@ -1,0 +1,55 @@
+table:
+  name: claim
+  schema: public
+configuration:
+  column_config: {}
+  custom_column_names: {}
+  custom_name: claims
+  custom_root_fields:
+    select_by_pk: claim
+object_relationships:
+  - name: account
+    using:
+      manual_configuration:
+        column_mapping:
+          account_id: id
+        insertion_order: null
+        remote_table:
+          name: account
+          schema: public
+  - name: counter_vault
+    using:
+      foreign_key_constraint_on: counter_vault_id
+  - name: object
+    using:
+      foreign_key_constraint_on: object_id
+  - name: predicate
+    using:
+      foreign_key_constraint_on: predicate_id
+  - name: subject
+    using:
+      foreign_key_constraint_on: subject_id
+  - name: triple
+    using:
+      foreign_key_constraint_on: triple_id
+  - name: vault
+    using:
+      foreign_key_constraint_on: vault_id
+select_permissions:
+  - role: anonymous
+    permission:
+      columns:
+        - counter_shares
+        - counter_vault_id
+        - object_id
+        - predicate_id
+        - shares
+        - subject_id
+        - triple_id
+        - vault_id
+        - account_id
+        - id
+      filter: {}
+      limit: 100
+      allow_aggregations: true
+    comment: ""

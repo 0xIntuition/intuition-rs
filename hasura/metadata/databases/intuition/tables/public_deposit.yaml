@@ -1,0 +1,61 @@
+table:
+  name: deposit
+  schema: public
+configuration:
+  column_config: {}
+  custom_column_names: {}
+  custom_name: deposits
+  custom_root_fields:
+    select_by_pk: deposit
+object_relationships:
+  - name: receiver
+    using:
+      foreign_key_constraint_on: receiver_id
+  - name: sender
+    using:
+      manual_configuration:
+        column_mapping:
+          sender_id: id
+        insertion_order: null
+        remote_table:
+          name: account
+          schema: public
+  - name: vault
+    using:
+      foreign_key_constraint_on: vault_id
+array_relationships:
+  - name: events
+    using:
+      foreign_key_constraint_on:
+        column: deposit_id
+        table:
+          name: event
+          schema: public
+  - name: signals
+    using:
+      foreign_key_constraint_on:
+        column: deposit_id
+        table:
+          name: signal
+          schema: public
+select_permissions:
+  - role: anonymous
+    permission:
+      columns:
+        - is_atom_wallet
+        - is_triple
+        - transaction_hash
+        - block_number
+        - block_timestamp
+        - entry_fee
+        - receiver_total_shares_in_vault
+        - sender_assets_after_total_fees
+        - shares_for_receiver
+        - vault_id
+        - id
+        - receiver_id
+        - sender_id
+      filter: {}
+      limit: 100
+      allow_aggregations: true
+    comment: ""

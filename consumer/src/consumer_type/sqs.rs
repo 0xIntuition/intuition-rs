@@ -1,0 +1,157 @@
+use crate::{
+    config::{IndexerSource, POOLING_PAUSE_IN_MS},
+    error::ConsumerError,
+    mode::types::ConsumerMode,
+    traits::BasicConsumer,
+    EthMultiVault::EthMultiVaultInstance,
+};
+use alloy::{providers::RootProvider, transports::http::Http};
+use async_trait::async_trait;
+use aws_sdk_sqs::{
+    operation::receive_message::ReceiveMessageOutput, types::Message, Client as AWSClient,
+};
+use log::{debug, info};
+use reqwest::Client;
+use sqlx::PgPool;
+use std::sync::Arc;
+use tokio::time;
+/// Represents the SQS consumer
+pub struct Sqs {
+    client: AWSClient,
+    input_queue: Arc<String>,
+    output_queue: Arc<String>,
+}
+
+impl Sqs {
+    pub async fn new(input_queue: String, output_queue: String, localstack_url: String) -> Self {
+        Self {
+            client: Self::get_aws_client(localstack_url).await,
+            input_queue: Arc::new(input_queue),
+            output_queue: Arc::new(output_queue),
+        }
+    }
+
+    /// This function returns an [`aws_sdk_sqs::Client`] based on the
+    /// environment variables and feature flag. Note that if you are
+    /// running the local development environment and wants to connect
+    /// to the local SQS, you need to turn on the `local` flag
+    #[allow(unused_variables)]
+    pub async fn get_aws_client(localstack_url: String) -> AWSClient {
+        let shared_config = aws_config::from_env().load().await;
+        // When running locally we need to build the client differently
+        // by providing the `endpoint_url`
+        #[cfg(feature = "local")]
+        let shared_config = aws_config::from_env()
+            .endpoint_url(localstack_url)
+            .load()
+            .await;
+
+        AWSClient::new(&shared_config)
+    }
+
+    /// Get the AWS client
+    pub async fn get_client(&self) -> AWSClient {
+        self.client.clone()
+    }
+
+    /// Get the input queue
+    pub fn get_input_queue(&self) -> Arc<String> {
+        self.input_queue.clone()
+    }
+
+    /// Get the output queue
+    pub fn get_output_queue(&self) -> Arc<String> {
+        self.output_queue.clone()
+    }
+}
+
+#[async_trait]
+impl BasicConsumer for Sqs {
+    /// This function receives a [`Message`] and try to delete it, logging
+    /// the results.
+    async fn consume_message(&self, message: Message) -> Result<(), ConsumerError> {
+        if let Some(receipt_handle) = message.receipt_handle() {
+            let _delete_message = self
+                .get_client()
+                .await
+                .delete_message()
+                .receipt_handle(receipt_handle)
+                .queue_url(&*self.get_input_queue())
+                .send()
+                .await?;
+            debug!("Message {receipt_handle} deleted!");
+        }
+        debug!(
+            "Nothing to do. No message found for the following receipt handle: {}",
+            message.receipt_handle.unwrap_or_default()
+        );
+        Ok(())
+    }
+
+    /// This function process the messages available on the SQS queue. Processing
+    /// include three steps: receiving the message, processing it and delete it
+    /// right after.
+    async fn process_messages(
+        &self,
+        mode: ConsumerMode,
+        pg_pool: &PgPool,
+        web3: Arc<EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>>>,
+        indexing_source: Arc<IndexerSource>,
+    ) -> Result<(), ConsumerError> {
+        info!("Starting the consumer loop in mode: {:?}", mode);
+        loop {
+            info!("awaiting for new messages...");
+            let rcv_message_output = self.receive_message().await?;
+
+            if let Some(messages) = rcv_message_output.messages {
+                for message in messages {
+                    if let Some(message_body) = message.clone().body {
+                        // Process the message
+                        mode.process_message(
+                            message_body,
+                            self,
+                            pg_pool,
+                            &web3,
+                            indexing_source.clone(),
+                        )
+                        .await?;
+                        // Delete the message from the queue
+                        self.consume_message(message).await?
+                    }
+                }
+            }
+            // If no message is received, wait for a while
+            tokio::time::sleep(time::Duration::from_millis(POOLING_PAUSE_IN_MS)).await;
+        }
+    }
+
+    /// This function collect available messages from the SQS queue and return them.
+    /// Note that if no message is found on the queue, this function stills returning
+    /// a result with an empty [`Message`] vector.
+    async fn receive_message(&self) -> Result<ReceiveMessageOutput, ConsumerError> {
+        let received_message = self
+            .get_client()
+            .await
+            .receive_message()
+            .queue_url(&*self.get_input_queue())
+            .send()
+            .await?;
+        Ok(received_message)
+    }
+
+    /// This function receives a [`String`] message and try to send it. Note
+    /// that the message is serialized into a JSON string before being sent.
+    async fn send_message(&self, message: String) -> Result<(), ConsumerError> {
+        self.get_client()
+            .await
+            .send_message()
+            .queue_url(&*self.get_output_queue())
+            .message_body(&message)
+            // If the queue is FIFO, you need to set .message_deduplication_id
+            // and message_group_id or configure the queue for ContentBasedDeduplication.
+            .send()
+            .await?;
+
+        Ok(())
+    }
+}

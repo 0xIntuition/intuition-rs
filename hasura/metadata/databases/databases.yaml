@@ -1,0 +1,10 @@
+- name: intuition
+  kind: postgres
+  configuration:
+    connection_info:
+      database_url:
+        from_env: HASURA_GRAPHQL_METADATA_DATABASE_URL
+      isolation_level: read-committed
+      use_prepared_statements: false
+  tables: "!include intuition/tables/tables.yaml"
+  functions: "!include intuition/functions/functions.yaml"

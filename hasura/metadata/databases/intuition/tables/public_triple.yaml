@@ -1,0 +1,82 @@
+table:
+  name: triple
+  schema: public
+configuration:
+  column_config: {}
+  custom_column_names: {}
+  custom_name: triples
+  custom_root_fields:
+    select_by_pk: triple
+object_relationships:
+  - name: counter_vault
+    using:
+      manual_configuration:
+        column_mapping:
+          counter_vault_id: id
+        insertion_order: null
+        remote_table:
+          name: vault
+          schema: public
+  - name: creator
+    using:
+      manual_configuration:
+        column_mapping:
+          creator_id: id
+        insertion_order: null
+        remote_table:
+          name: account
+          schema: public
+  - name: object
+    using:
+      foreign_key_constraint_on: object_id
+  - name: predicate
+    using:
+      foreign_key_constraint_on: predicate_id
+  - name: subject
+    using:
+      foreign_key_constraint_on: subject_id
+  - name: vault
+    using:
+      manual_configuration:
+        column_mapping:
+          vault_id: id
+        insertion_order: null
+        remote_table:
+          name: vault
+          schema: public
+array_relationships:
+  - name: claims
+    using:
+      foreign_key_constraint_on:
+        column: triple_id
+        table:
+          name: claim
+          schema: public
+  - name: signals
+    using:
+      manual_configuration:
+        column_mapping:
+          id: triple_id
+        insertion_order: null
+        remote_table:
+          name: signal
+          schema: public
+select_permissions:
+  - role: anonymous
+    permission:
+      columns:
+        - transaction_hash
+        - block_number
+        - block_timestamp
+        - counter_vault_id
+        - id
+        - object_id
+        - predicate_id
+        - subject_id
+        - vault_id
+        - creator_id
+        - label
+      filter: {}
+      limit: 100
+      allow_aggregations: true
+    comment: ""

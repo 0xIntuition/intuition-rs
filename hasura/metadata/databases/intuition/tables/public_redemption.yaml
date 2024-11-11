@@ -1,0 +1,59 @@
+table:
+  name: redemption
+  schema: public
+configuration:
+  column_config: {}
+  custom_column_names: {}
+  custom_name: redemptions
+  custom_root_fields:
+    select_by_pk: redemption
+object_relationships:
+  - name: receiver
+    using:
+      foreign_key_constraint_on: receiver_id
+  - name: sender
+    using:
+      manual_configuration:
+        column_mapping:
+          sender_id: id
+        insertion_order: null
+        remote_table:
+          name: account
+          schema: public
+  - name: vault
+    using:
+      foreign_key_constraint_on: vault_id
+array_relationships:
+  - name: events
+    using:
+      foreign_key_constraint_on:
+        column: redemption_id
+        table:
+          name: event
+          schema: public
+  - name: signals
+    using:
+      foreign_key_constraint_on:
+        column: redemption_id
+        table:
+          name: signal
+          schema: public
+select_permissions:
+  - role: anonymous
+    permission:
+      columns:
+        - transaction_hash
+        - assets_for_receiver
+        - block_number
+        - block_timestamp
+        - exit_fee
+        - sender_total_shares_in_vault
+        - shares_redeemed_by_sender
+        - vault_id
+        - id
+        - receiver_id
+        - sender_id
+      filter: {}
+      limit: 100
+      allow_aggregations: true
+    comment: ""

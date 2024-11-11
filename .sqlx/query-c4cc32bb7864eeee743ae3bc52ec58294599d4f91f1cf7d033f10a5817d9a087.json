@@ -1,0 +1,82 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \n                id, sender_id, receiver_id,\n                sender_total_shares_in_vault as \"sender_total_shares_in_vault: U256Wrapper\",\n                assets_for_receiver as \"assets_for_receiver: U256Wrapper\",\n                shares_redeemed_by_sender as \"shares_redeemed_by_sender: U256Wrapper\",\n                exit_fee as \"exit_fee: U256Wrapper\",\n                vault_id as \"vault_id: U256Wrapper\",\n                block_number as \"block_number: U256Wrapper\",\n                block_timestamp as \"block_timestamp: U256Wrapper\",\n                transaction_hash\n            FROM redemption\n            WHERE id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "sender_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "receiver_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "sender_total_shares_in_vault: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "assets_for_receiver: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 5,
+        "name": "shares_redeemed_by_sender: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 6,
+        "name": "exit_fee: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 7,
+        "name": "vault_id: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 8,
+        "name": "block_number: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 9,
+        "name": "block_timestamp: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 10,
+        "name": "transaction_hash",
+        "type_info": "Bytea"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "c4cc32bb7864eeee743ae3bc52ec58294599d4f91f1cf7d033f10a5817d9a087"
+}

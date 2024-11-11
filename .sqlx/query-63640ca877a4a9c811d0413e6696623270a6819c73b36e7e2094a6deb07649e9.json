@@ -1,0 +1,94 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \n                id, sender_id, receiver_id,\n                receiver_total_shares_in_vault as \"receiver_total_shares_in_vault: U256Wrapper\",\n                sender_assets_after_total_fees as \"sender_assets_after_total_fees: U256Wrapper\",\n                shares_for_receiver as \"shares_for_receiver: U256Wrapper\",\n                entry_fee as \"entry_fee: U256Wrapper\",\n                vault_id as \"vault_id: U256Wrapper\",\n                is_triple,\n                is_atom_wallet,\n                block_number as \"block_number: U256Wrapper\",\n                block_timestamp as \"block_timestamp: U256Wrapper\",\n                transaction_hash\n            FROM deposit\n            WHERE id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "sender_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "receiver_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "receiver_total_shares_in_vault: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "sender_assets_after_total_fees: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 5,
+        "name": "shares_for_receiver: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 6,
+        "name": "entry_fee: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 7,
+        "name": "vault_id: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 8,
+        "name": "is_triple",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 9,
+        "name": "is_atom_wallet",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 10,
+        "name": "block_number: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 11,
+        "name": "block_timestamp: U256Wrapper",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 12,
+        "name": "transaction_hash",
+        "type_info": "Bytea"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "63640ca877a4a9c811d0413e6696623270a6819c73b36e7e2094a6deb07649e9"
+}

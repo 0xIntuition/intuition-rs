@@ -1,0 +1,3 @@
+function:
+  name: claims_from_following
+  schema: public

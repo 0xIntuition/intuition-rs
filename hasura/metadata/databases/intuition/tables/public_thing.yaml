@@ -1,0 +1,32 @@
+table:
+  name: thing
+  schema: public
+configuration:
+  column_config: {}
+  custom_column_names: {}
+  custom_name: things
+  custom_root_fields:
+    select_by_pk: thing
+object_relationships:
+  - name: atom
+    using:
+      manual_configuration:
+        column_mapping:
+          id: id
+        insertion_order: null
+        remote_table:
+          name: thing
+          schema: public
+select_permissions:
+  - role: anonymous
+    permission:
+      columns:
+        - id
+        - description
+        - image
+        - name
+        - url
+      filter: {}
+      limit: 100
+      allow_aggregations: true
+    comment: ""

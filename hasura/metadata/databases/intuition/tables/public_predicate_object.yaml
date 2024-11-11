@@ -1,0 +1,34 @@
+table:
+  name: predicate_object
+  schema: public
+configuration:
+  column_config: {}
+  custom_column_names: {}
+  custom_name: predicate_objects
+  custom_root_fields: {}
+object_relationships:
+  - name: object
+    using:
+      foreign_key_constraint_on: object_id
+  - name: predicate
+    using:
+      manual_configuration:
+        column_mapping:
+          predicate_id: id
+        insertion_order: null
+        remote_table:
+          name: atom
+          schema: public
+select_permissions:
+  - role: anonymous
+    permission:
+      columns:
+        - claim_count
+        - triple_count
+        - object_id
+        - predicate_id
+        - id
+      filter: {}
+      limit: 100
+      allow_aggregations: true
+    comment: ""

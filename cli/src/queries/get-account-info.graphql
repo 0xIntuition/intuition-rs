@@ -1,0 +1,35 @@
+query GetAccountInfo($address: String!) {
+  account(id: $address) {
+    image
+    label
+    id
+    claims(order_by: {shares: desc}) {
+      triple {
+        id
+        label
+      }
+      shares
+      counter_shares
+    }
+    positions(order_by: {shares: desc}) {
+      id
+      shares
+      vault {
+        id
+        total_shares
+        current_share_price
+        atom {
+          id
+          label
+        }
+        triple {
+          id
+          label
+        }
+      }
+    }
+  }
+  chainlink_prices(limit: 1, order_by: {id: desc}) {
+    usd
+  }
+}

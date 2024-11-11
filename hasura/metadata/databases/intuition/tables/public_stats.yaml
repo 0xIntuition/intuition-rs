@@ -1,0 +1,25 @@
+table:
+  name: stats
+  schema: public
+configuration:
+  column_config: {}
+  custom_column_names: {}
+  custom_name: stats
+  custom_root_fields:
+    select_by_pk: stat
+select_permissions:
+  - role: anonymous
+    permission:
+      columns:
+        - id
+        - total_accounts
+        - total_atoms
+        - total_positions
+        - total_signals
+        - total_triples
+        - contract_balance
+        - total_fees
+      filter: {}
+      limit: 98
+      allow_aggregations: true
+    comment: ""
