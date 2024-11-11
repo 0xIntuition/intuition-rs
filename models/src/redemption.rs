@@ -18,7 +18,7 @@ pub struct Redemption {
     pub exit_fee: U256Wrapper,
     pub vault_id: U256Wrapper,
     pub block_number: U256Wrapper,
-    pub block_timestamp: U256Wrapper,
+    pub block_timestamp: i64,
     pub transaction_hash: Vec<u8>,
 }
 
@@ -58,7 +58,7 @@ impl SimpleCrud<String> for Redemption {
                 exit_fee as "exit_fee: U256Wrapper",
                 vault_id as "vault_id: U256Wrapper",
                 block_number as "block_number: U256Wrapper",
-                block_timestamp as "block_timestamp: U256Wrapper",
+                block_timestamp,
                 transaction_hash
             "#,
             self.id,
@@ -70,7 +70,7 @@ impl SimpleCrud<String> for Redemption {
             self.exit_fee.to_big_decimal()?,
             self.vault_id.to_big_decimal()?,
             self.block_number.to_big_decimal()?,
-            self.block_timestamp.to_big_decimal()?,
+            self.block_timestamp,
             self.transaction_hash,
         )
         .fetch_one(pool)
@@ -94,7 +94,7 @@ impl SimpleCrud<String> for Redemption {
                 exit_fee as "exit_fee: U256Wrapper",
                 vault_id as "vault_id: U256Wrapper",
                 block_number as "block_number: U256Wrapper",
-                block_timestamp as "block_timestamp: U256Wrapper",
+                block_timestamp,
                 transaction_hash
             FROM redemption
             WHERE id = $1

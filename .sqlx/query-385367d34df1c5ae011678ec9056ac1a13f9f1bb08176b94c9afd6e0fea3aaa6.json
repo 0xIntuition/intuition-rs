@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT \n                id as \"id: U256Wrapper\", \n                creator_id, \n                subject_id as \"subject_id: U256Wrapper\", \n                predicate_id as \"predicate_id: U256Wrapper\", \n                object_id as \"object_id: U256Wrapper\", \n                label, \n                vault_id as \"vault_id: U256Wrapper\", \n                counter_vault_id as \"counter_vault_id: U256Wrapper\", \n                block_number as \"block_number: U256Wrapper\", \n                block_timestamp as \"block_timestamp: U256Wrapper\", \n                transaction_hash\n            FROM triple\n            WHERE id = $1\n            ",
+  "query": "\n            SELECT \n                id as \"id: U256Wrapper\", \n                creator_id, \n                subject_id as \"subject_id: U256Wrapper\", \n                predicate_id as \"predicate_id: U256Wrapper\", \n                object_id as \"object_id: U256Wrapper\", \n                label, \n                vault_id as \"vault_id: U256Wrapper\", \n                counter_vault_id as \"counter_vault_id: U256Wrapper\", \n                block_number as \"block_number: U256Wrapper\", \n                block_timestamp, \n                transaction_hash\n            FROM triple\n            WHERE id = $1\n            ",
   "describe": {
     "columns": [
       {
@@ -50,8 +50,8 @@
       },
       {
         "ordinal": 9,
-        "name": "block_timestamp: U256Wrapper",
-        "type_info": "Numeric"
+        "name": "block_timestamp",
+        "type_info": "Int8"
       },
       {
         "ordinal": 10,
@@ -78,5 +78,5 @@
       false
     ]
   },
-  "hash": "9b07c02abdbc92a115cb9c1aff87aa23c1f34ab9b7e98dd26004c4df7401aa94"
+  "hash": "385367d34df1c5ae011678ec9056ac1a13f9f1bb08176b94c9afd6e0fea3aaa6"
 }

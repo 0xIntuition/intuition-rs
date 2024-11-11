@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            INSERT INTO triple (id, creator_id, subject_id, predicate_id, object_id, label, vault_id, counter_vault_id, block_number, block_timestamp, transaction_hash)\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)\n            ON CONFLICT (id) DO UPDATE SET\n                creator_id = EXCLUDED.creator_id,\n                subject_id = EXCLUDED.subject_id,\n                predicate_id = EXCLUDED.predicate_id,\n                object_id = EXCLUDED.object_id,\n                label = EXCLUDED.label,\n                vault_id = EXCLUDED.vault_id,\n                counter_vault_id = EXCLUDED.counter_vault_id,\n                block_number = EXCLUDED.block_number,\n                block_timestamp = EXCLUDED.block_timestamp,\n                transaction_hash = EXCLUDED.transaction_hash\n            RETURNING id as \"id: U256Wrapper\", creator_id, subject_id as \"subject_id: U256Wrapper\", \n                      predicate_id as \"predicate_id: U256Wrapper\", object_id as \"object_id: U256Wrapper\", \n                      label, vault_id as \"vault_id: U256Wrapper\", counter_vault_id as \"counter_vault_id: U256Wrapper\", \n                      block_number as \"block_number: U256Wrapper\", block_timestamp as \"block_timestamp: U256Wrapper\", \n                      transaction_hash\n            ",
+  "query": "\n            INSERT INTO triple (id, creator_id, subject_id, predicate_id, object_id, label, vault_id, counter_vault_id, block_number, block_timestamp, transaction_hash)\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)\n            ON CONFLICT (id) DO UPDATE SET\n                creator_id = EXCLUDED.creator_id,\n                subject_id = EXCLUDED.subject_id,\n                predicate_id = EXCLUDED.predicate_id,\n                object_id = EXCLUDED.object_id,\n                label = EXCLUDED.label,\n                vault_id = EXCLUDED.vault_id,\n                counter_vault_id = EXCLUDED.counter_vault_id,\n                block_number = EXCLUDED.block_number,\n                block_timestamp = EXCLUDED.block_timestamp,\n                transaction_hash = EXCLUDED.transaction_hash\n            RETURNING id as \"id: U256Wrapper\", creator_id, subject_id as \"subject_id: U256Wrapper\", \n                      predicate_id as \"predicate_id: U256Wrapper\", object_id as \"object_id: U256Wrapper\", \n                      label, vault_id as \"vault_id: U256Wrapper\", counter_vault_id as \"counter_vault_id: U256Wrapper\", \n                      block_number as \"block_number: U256Wrapper\", block_timestamp, \n                      transaction_hash\n            ",
   "describe": {
     "columns": [
       {
@@ -50,8 +50,8 @@
       },
       {
         "ordinal": 9,
-        "name": "block_timestamp: U256Wrapper",
-        "type_info": "Numeric"
+        "name": "block_timestamp",
+        "type_info": "Int8"
       },
       {
         "ordinal": 10,
@@ -70,7 +70,7 @@
         "Numeric",
         "Numeric",
         "Numeric",
-        "Numeric",
+        "Int8",
         "Bytea"
       ]
     },
@@ -88,5 +88,5 @@
       false
     ]
   },
-  "hash": "3ee2c4f984be17247dd91abcb9e15b75962888d05d2c9467a7a5c5ebc5e3a915"
+  "hash": "a36bc78cfdb5e4010f56966c06abdee8afaf1f0a42801d51371c32d1ba0ff3f9"
 }

@@ -39,7 +39,7 @@ mod tests {
         // Update the event with new values
         let mut updated_event = event.clone();
         updated_event.block_number = U256Wrapper::from(U256::from_str("2").unwrap());
-        updated_event.block_timestamp = U256Wrapper::from(U256::from_str("2000").unwrap());
+        updated_event.block_timestamp = 2000;
 
         // Test update via upsert
         let upserted_updated = updated_event.upsert(&pool).await?;
@@ -160,7 +160,7 @@ mod tests {
             deposit_id: None,
             redemption_id: None,
             block_number: U256Wrapper::from(U256::from_str("1").unwrap()),
-            block_timestamp: U256Wrapper::from(U256::from_str("1000").unwrap()),
+            block_timestamp: 1000,
             transaction_hash: vec![1, 2, 3],
         };
 
@@ -204,7 +204,7 @@ mod tests {
             deposit_id: Some("some_deposit_id".to_string()),
             redemption_id: None,
             block_number: U256Wrapper::from(U256::from_str("1").unwrap()),
-            block_timestamp: U256Wrapper::from(U256::from_str("1000").unwrap()),
+            block_timestamp: 1000,
             transaction_hash: vec![1, 2, 3],
         };
 
@@ -249,7 +249,7 @@ mod tests {
             deposit_id: Some(deposit.id),
             redemption_id: Some("some_redemption_id".to_string()),
             block_number: U256Wrapper::from(U256::from_str("1").unwrap()),
-            block_timestamp: U256Wrapper::from(U256::from_str("1000").unwrap()),
+            block_timestamp: 1000,
             transaction_hash: vec![1, 2, 3],
         };
 
@@ -294,7 +294,7 @@ mod tests {
             deposit_id: None,
             redemption_id: Some(redemption.id),
             block_number: U256Wrapper::from(U256::from_str("1").unwrap()),
-            block_timestamp: U256Wrapper::from(U256::from_str("1000").unwrap()),
+            block_timestamp: 1000,
             transaction_hash: vec![1, 2, 3],
         };
 

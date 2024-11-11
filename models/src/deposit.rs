@@ -22,7 +22,7 @@ pub struct Deposit {
     pub is_triple: bool,
     pub is_atom_wallet: bool,
     pub block_number: U256Wrapper,
-    pub block_timestamp: U256Wrapper,
+    pub block_timestamp: i64,
     pub transaction_hash: Vec<u8>,
 }
 
@@ -66,7 +66,7 @@ impl SimpleCrud<String> for Deposit {
                 is_triple,
                 is_atom_wallet,
                 block_number as "block_number: U256Wrapper",
-                block_timestamp as "block_timestamp: U256Wrapper",
+                block_timestamp,
                 transaction_hash
             "#,
             self.id.to_lowercase(),
@@ -80,7 +80,7 @@ impl SimpleCrud<String> for Deposit {
             self.is_triple,
             self.is_atom_wallet,
             self.block_number.to_big_decimal()?,
-            self.block_timestamp.to_big_decimal()?,
+            self.block_timestamp,
             self.transaction_hash,
         )
         .fetch_one(pool)
@@ -109,7 +109,7 @@ impl SimpleCrud<String> for Deposit {
                 is_triple,
                 is_atom_wallet,
                 block_number as "block_number: U256Wrapper",
-                block_timestamp as "block_timestamp: U256Wrapper",
+                block_timestamp,
                 transaction_hash
             FROM deposit
             WHERE id = $1

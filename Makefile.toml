@@ -43,12 +43,11 @@ args = ["compose", "up", "-d", "--force-recreate"]
 
 # Migrate the database
 [tasks.migrate-database]
-command = "hasura"
-args = ["deploy", "project", "hasura"]
+command = "./migrate_database.sh"
 
 # This task remove the docker volumes, start the docker compose stack, and migrate the database
 [tasks.start-docker-and-migrate]
-dependencies = ["remove-docker-volumes", "build-docker", "start-docker"]
+dependencies = ["remove-docker-volumes", "build-docker", "start-docker", "migrate-database"]
 
 # Run the RAW SQS consumer connected to the real SQS queue
 [tasks.raw-consumer]

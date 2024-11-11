@@ -48,7 +48,7 @@ mod tests {
         updated_atom.label = Some("Updated Test Atom".to_string());
         updated_atom.image = Some("https://example.com/image.jpg".to_string());
         updated_atom.block_number = U256Wrapper::from(U256::from(5u64));
-        updated_atom.block_timestamp = U256Wrapper::from(U256::from(6u64));
+        updated_atom.block_timestamp = 6;
         updated_atom.transaction_hash = vec![7u8];
 
         // Step 8: Upsert the updated Atom
