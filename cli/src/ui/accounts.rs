@@ -49,7 +49,7 @@ fn draw_accounts_list(f: &mut Frame, app: &App, area: Rect) {
     let table = Table::new(rows, vec![Constraint::Percentage(100)])
         .header(header)
         .block(Block::default().title("Accounts").borders(Borders::ALL))
-        .widths([Constraint::Percentage(50), Constraint::Percentage(50)]);
+        .widths([Constraint::Max(18), Constraint::Fill(50)]);
 
     f.render_widget(table, area);
 }
@@ -81,20 +81,15 @@ fn draw_account_details(f: &mut Frame, app: &App, area: Rect) {
             .iter()
             .map(|pos| {
                 // Extract the label, defaulting to "N/A" if none exists
-                // let label = if let Some(vault) = pos.vault.as_ref() {
-                //     if let Some(atom) = vault.atom.as_ref() {
-                //         atom.label.as_deref().unwrap_or("N/A")
-                //     } else if let Some(triple) = vault.triple.as_ref() {
-                //         triple.label.as_deref().unwrap_or("N/A")
-                //     } else {
-                //         "N/A"
-                //     }
-                // } else {
-                //     "N/A"
-                // };
+                let label = 
+                    if let Some(atom) = pos.vault.atom.as_ref() {
+                        atom.label.as_deref().unwrap_or("N/A")
+                    } else if let Some(triple) = pos.vault.triple.as_ref() {
+                        triple.label.as_deref().unwrap_or("N/A")
+                    } else {
+                        "N/A"
+                    };
 
-                // FIXME: This is a temporary fix to avoid the error
-                let label = "N/A";
                 ListItem::new(Line::from(format!("{}, {}", label, pos.shares)))
             })
             .collect();
