@@ -14,18 +14,18 @@ use crate::app::{App, Tab};
 pub fn draw(f: &mut Frame, app: &App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Length(3), Constraint::Min(0)].as_ref())
+        .constraints([Constraint::Length(2), Constraint::Min(0)].as_ref())
         .split(f.area());
 
     let titles = vec![
         "Aggregates",
         "Accounts",
-        "PredicateObjects",
+        "Predicate Objects",
         "Atoms",
         "Signals",
     ];
     let tabs = Tabs::new(titles)
-        .block(Block::default().borders(Borders::ALL).title("Intuition"))
+        .block(Block::default().borders(Borders::NONE))
         .select(match app.current_tab {
             Tab::Aggregates => 0,
             Tab::Accounts => 1,
