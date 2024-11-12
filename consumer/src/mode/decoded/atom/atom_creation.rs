@@ -139,8 +139,8 @@ impl AtomCreated {
         // get the supported atom metadata
         let supported_atom_metadata =
             get_supported_atom_metadata(&atom, &decoded_atom_data, pg_pool).await?;
-        // handle the account type, if it's an account type, we need to create an `AtomValue`
-        // and an `Account` first
+        // handle the account type, we need to create an `AtomValue` and an
+        // `Account` first
         supported_atom_metadata
             .handle_account_type(pg_pool, &mut atom, &decoded_atom_data)
             .await?;

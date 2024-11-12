@@ -78,9 +78,10 @@ CREATE TABLE atom (
   transaction_hash BYTEA NOT NULL
 );
 
+-- Add foreign key constraints after tables are created
 ALTER TABLE account
-ADD CONSTRAINT fk_atom_id
-FOREIGN KEY (atom_id) REFERENCES atom(id);
+  ADD CONSTRAINT fk_account_atom
+  FOREIGN KEY (atom_id) REFERENCES atom(id);
 
 CREATE TABLE triple (
   id NUMERIC(78, 0) PRIMARY KEY NOT NULL,
@@ -322,3 +323,9 @@ CREATE INDEX idx_event_triple ON event(triple_id);
 CREATE INDEX idx_event_block_number ON event(block_number);
 CREATE INDEX idx_event_block_timestamp ON event(block_timestamp);
 CREATE INDEX idx_event_transaction_hash ON event(transaction_hash);
+CREATE INDEX idx_raw_data_block_number ON raw_data(block_number);
+CREATE INDEX idx_raw_data_block_timestamp ON raw_data(block_timestamp);
+CREATE INDEX idx_raw_data_transaction_hash ON raw_data(transaction_hash);
+CREATE INDEX idx_raw_data_address ON raw_data(address);
+CREATE INDEX idx_raw_data_topics ON raw_data(topics);
+

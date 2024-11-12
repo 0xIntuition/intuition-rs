@@ -75,6 +75,7 @@ impl AtomMetadata {
             // Create the account first
             let account = Account::builder()
                 .id(decoded_atom_data)
+                .atom_id(atom_data.id.clone())
                 .label(short_id(decoded_atom_data))
                 .account_type(AccountType::Default)
                 .build()
