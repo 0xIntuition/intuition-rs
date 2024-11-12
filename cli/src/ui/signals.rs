@@ -1,3 +1,5 @@
+use crate::app::App;
+use alloy::primitives::utils::{format_units, parse_units};
 use ratatui::{
     layout::Constraint,
     layout::Rect,
@@ -5,8 +7,6 @@ use ratatui::{
     widgets::{Block, Borders, Cell, Row, Table},
     Frame,
 };
-
-use crate::app::App;
 
 pub fn draw(f: &mut Frame, app: &App, area: Rect) {
     let signals: Vec<Row> = app
@@ -34,13 +34,19 @@ pub fn draw(f: &mut Frame, app: &App, area: Rect) {
 
             Row::new(vec![
                 Cell::from(account_label),
+                Cell::from(
+                    format_units(
+                        parse_units(&signal.delta.to_string(), "wei").unwrap(),
+                        "ether",
+                    )
+                    .unwrap_or_else(|_| "Error".to_string()),
+                ),
                 Cell::from(label),
-                Cell::from(signal.delta.to_string()),
             ])
         })
         .collect();
 
-    let header_cells = ["Account", "Label", "Delta"]
+    let header_cells = ["Account", "Delta ETH", "Label"]
         .iter()
         .map(|h| Cell::from(*h).style(Style::default().fg(Color::Yellow)));
     let header = Row::new(header_cells)
@@ -52,8 +58,8 @@ pub fn draw(f: &mut Frame, app: &App, area: Rect) {
         .block(Block::default().title("Signals").borders(Borders::ALL))
         .widths([
             ratatui::layout::Constraint::Max(15),
+            ratatui::layout::Constraint::Max(25),
             ratatui::layout::Constraint::Fill(1),
-            ratatui::layout::Constraint::Max(15),
         ]);
 
     f.render_widget(signals_table, area);
