@@ -5,7 +5,11 @@ use crossterm::{
 };
 use ratatui::{backend::CrosstermBackend, Terminal};
 use std::{error::Error, io};
-
+use std::{
+    io::stdout,
+    panic::{set_hook, take_hook}
+};
+use ratatui::backend::Backend;
 mod app;
 mod queries;
 mod ui;
@@ -14,6 +18,8 @@ use app::App;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    init_panic_hook();
+
     // Setup terminal
     enable_raw_mode()?;
     let mut stdout = io::stdout();
@@ -39,6 +45,27 @@ async fn main() -> Result<(), Box<dyn Error>> {
         println!("{:?}", err)
     }
 
+    Ok(())
+}
+
+pub fn init_panic_hook() {
+    let original_hook = take_hook();
+    set_hook(Box::new(move |panic_info| {
+        // intentionally ignore errors here since we're already in a panic
+        let _ = restore_tui();
+        original_hook(panic_info);
+    }));
+}
+
+pub fn init_tui() -> io::Result<Terminal<impl Backend>> {
+    enable_raw_mode()?;
+    execute!(stdout(), EnterAlternateScreen)?;
+    Terminal::new(CrosstermBackend::new(stdout()))
+}
+
+pub fn restore_tui() -> io::Result<()> {
+    disable_raw_mode()?;
+    execute!(stdout(), LeaveAlternateScreen)?;
     Ok(())
 }
 
