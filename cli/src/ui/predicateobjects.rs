@@ -13,23 +13,34 @@ pub fn draw(f: &mut Frame, app: &App, area: Rect) {
         .predicate_objects
         .iter()
         .map(|predicate_object| {
-            // let label = predicate_object
-            //     .object
-            //     .as_ref()
-            //     .map(|object| object.label.clone())
-            //     .unwrap_or_else(|| Some(String::from("N/A")));
+            let object_label = predicate_object
+                .object
+                .label
+                .as_ref()
+                .unwrap_or(&"N/A".to_string())
+                .to_string();
 
-            // FIXME: This is a temporary fix to get the code to compile
-            let label = "N/A";
+            let mut predicate_label = "N/A".to_string();
+
+            // FIXME: predicate is optional, but it should not be
+
+            if let Some(predicate) = &predicate_object.predicate {
+                predicate_label = predicate
+                    .label
+                    .as_ref()
+                    .unwrap_or(&"N/A".to_string())
+                    .to_string();
+            }
             Row::new(vec![
                 Cell::from(predicate_object.claim_count.to_string()),
                 Cell::from(predicate_object.triple_count.to_string()),
-                Cell::from(label),
+                Cell::from(predicate_label),
+                Cell::from(object_label),
             ])
         })
         .collect();
 
-    let header_cells = ["Claims", "Triples", "Object"]
+    let header_cells = ["Claims", "Triples", "Predicate", "Object"]
         .iter()
         .map(|h| Cell::from(*h).style(Style::default().fg(Color::Yellow)));
     let header = Row::new(header_cells)
