@@ -1,5 +1,6 @@
 use graphql_client::GraphQLQuery;
-type Numeric = i64;
+type Numeric = String;
+type Bigint = String;
 type Float8 = f64;
 type AtomType = String;
 type AccountType = String;
@@ -48,3 +49,12 @@ pub struct GetSignals;
     normalization = "rust"
 )]
 pub struct GetPredicateObjects;
+
+#[derive(GraphQLQuery, Debug)]
+#[graphql(
+    schema_path = "src/queries/schema.graphql",
+    query_path = "src/queries/get-aggregates.graphql",
+    response_derives = "Debug",
+    normalization = "rust"
+)]
+pub struct GetAggregates;

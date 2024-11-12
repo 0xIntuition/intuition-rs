@@ -410,6 +410,17 @@ type accounts_aggregate {
   nodes: [accounts!]!
 }
 
+input accounts_aggregate_bool_exp {
+  count: accounts_aggregate_bool_exp_count
+}
+
+input accounts_aggregate_bool_exp_count {
+  arguments: [accounts_select_column!]
+  distinct: Boolean
+  filter: accounts_bool_exp
+  predicate: Int_comparison_exp!
+}
+
 """
 aggregate fields of "account"
 """
@@ -427,9 +438,33 @@ type accounts_aggregate_fields {
   variance: accounts_variance_fields
 }
 
+"""
+order by aggregate values of table "account"
+"""
+input accounts_aggregate_order_by {
+  avg: accounts_avg_order_by
+  count: order_by
+  max: accounts_max_order_by
+  min: accounts_min_order_by
+  stddev: accounts_stddev_order_by
+  stddev_pop: accounts_stddev_pop_order_by
+  stddev_samp: accounts_stddev_samp_order_by
+  sum: accounts_sum_order_by
+  var_pop: accounts_var_pop_order_by
+  var_samp: accounts_var_samp_order_by
+  variance: accounts_variance_order_by
+}
+
 """aggregate avg on columns"""
 type accounts_avg_fields {
   atom_id: Float
+}
+
+"""
+order by avg() on columns of table "account"
+"""
+input accounts_avg_order_by {
+  atom_id: order_by
 }
 
 """
@@ -476,6 +511,17 @@ type accounts_max_fields {
   type: account_type
 }
 
+"""
+order by max() on columns of table "account"
+"""
+input accounts_max_order_by {
+  atom_id: order_by
+  id: order_by
+  image: order_by
+  label: order_by
+  type: order_by
+}
+
 """aggregate min on columns"""
 type accounts_min_fields {
   atom_id: numeric
@@ -483,6 +529,17 @@ type accounts_min_fields {
   image: String
   label: String
   type: account_type
+}
+
+"""
+order by min() on columns of table "account"
+"""
+input accounts_min_order_by {
+  atom_id: order_by
+  id: order_by
+  image: order_by
+  label: order_by
+  type: order_by
 }
 
 """Ordering options when selecting data from "account"."""
@@ -530,14 +587,35 @@ type accounts_stddev_fields {
   atom_id: Float
 }
 
+"""
+order by stddev() on columns of table "account"
+"""
+input accounts_stddev_order_by {
+  atom_id: order_by
+}
+
 """aggregate stddev_pop on columns"""
 type accounts_stddev_pop_fields {
   atom_id: Float
 }
 
+"""
+order by stddev_pop() on columns of table "account"
+"""
+input accounts_stddev_pop_order_by {
+  atom_id: order_by
+}
+
 """aggregate stddev_samp on columns"""
 type accounts_stddev_samp_fields {
   atom_id: Float
+}
+
+"""
+order by stddev_samp() on columns of table "account"
+"""
+input accounts_stddev_samp_order_by {
+  atom_id: order_by
 }
 
 """
@@ -565,9 +643,29 @@ type accounts_sum_fields {
   atom_id: numeric
 }
 
+"""
+order by sum() on columns of table "account"
+"""
+input accounts_sum_order_by {
+  atom_id: order_by
+}
+
+input accounts_that_claim_about_account_args {
+  address: String
+  predicate: numeric
+  subject: numeric
+}
+
 """aggregate var_pop on columns"""
 type accounts_var_pop_fields {
   atom_id: Float
+}
+
+"""
+order by var_pop() on columns of table "account"
+"""
+input accounts_var_pop_order_by {
+  atom_id: order_by
 }
 
 """aggregate var_samp on columns"""
@@ -575,9 +673,23 @@ type accounts_var_samp_fields {
   atom_id: Float
 }
 
+"""
+order by var_samp() on columns of table "account"
+"""
+input accounts_var_samp_order_by {
+  atom_id: order_by
+}
+
 """aggregate variance on columns"""
 type accounts_variance_fields {
   atom_id: Float
+}
+
+"""
+order by variance() on columns of table "account"
+"""
+input accounts_variance_order_by {
+  atom_id: order_by
 }
 
 scalar atom_type
@@ -607,10 +719,22 @@ type atom_values {
 
   """An object relationship"""
   atom: atoms
+
+  """An object relationship"""
+  book: books
   book_id: numeric
   id: numeric!
+
+  """An object relationship"""
+  organization: organizations
   organization_id: numeric
+
+  """An object relationship"""
+  person: persons
   person_id: numeric
+
+  """An object relationship"""
+  thing: things
   thing_id: numeric
 }
 
@@ -658,10 +782,14 @@ input atom_values_bool_exp {
   account: accounts_bool_exp
   account_id: String_comparison_exp
   atom: atoms_bool_exp
+  book: books_bool_exp
   book_id: numeric_comparison_exp
   id: numeric_comparison_exp
+  organization: organizations_bool_exp
   organization_id: numeric_comparison_exp
+  person: persons_bool_exp
   person_id: numeric_comparison_exp
+  thing: things_bool_exp
   thing_id: numeric_comparison_exp
 }
 
@@ -690,10 +818,14 @@ input atom_values_order_by {
   account: accounts_order_by
   account_id: order_by
   atom: atoms_order_by
+  book: books_order_by
   book_id: order_by
   id: order_by
+  organization: organizations_order_by
   organization_id: order_by
+  person: persons_order_by
   person_id: order_by
+  thing: things_order_by
   thing_id: order_by
 }
 
@@ -809,7 +941,79 @@ columns and relationships of "atom"
 """
 type atoms {
   """An array relationship"""
-  as_object(
+  accounts(
+    """distinct select on columns"""
+    distinct_on: [accounts_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [accounts_order_by!]
+
+    """filter the rows returned"""
+    where: accounts_bool_exp
+  ): [accounts!]!
+
+  """An aggregate relationship"""
+  accounts_aggregate(
+    """distinct select on columns"""
+    distinct_on: [accounts_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [accounts_order_by!]
+
+    """filter the rows returned"""
+    where: accounts_bool_exp
+  ): accounts_aggregate!
+
+  """An array relationship"""
+  as_object_claims(
+    """distinct select on columns"""
+    distinct_on: [claims_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [claims_order_by!]
+
+    """filter the rows returned"""
+    where: claims_bool_exp
+  ): [claims!]!
+
+  """An aggregate relationship"""
+  as_object_claims_aggregate(
+    """distinct select on columns"""
+    distinct_on: [claims_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [claims_order_by!]
+
+    """filter the rows returned"""
+    where: claims_bool_exp
+  ): claims_aggregate!
+
+  """An array relationship"""
+  as_object_triples(
     """distinct select on columns"""
     distinct_on: [triples_select_column!]
 
@@ -827,7 +1031,7 @@ type atoms {
   ): [triples!]!
 
   """An aggregate relationship"""
-  as_object_aggregate(
+  as_object_triples_aggregate(
     """distinct select on columns"""
     distinct_on: [triples_select_column!]
 
@@ -845,7 +1049,43 @@ type atoms {
   ): triples_aggregate!
 
   """An array relationship"""
-  as_predicate(
+  as_predicate_claims(
+    """distinct select on columns"""
+    distinct_on: [claims_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [claims_order_by!]
+
+    """filter the rows returned"""
+    where: claims_bool_exp
+  ): [claims!]!
+
+  """An aggregate relationship"""
+  as_predicate_claims_aggregate(
+    """distinct select on columns"""
+    distinct_on: [claims_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [claims_order_by!]
+
+    """filter the rows returned"""
+    where: claims_bool_exp
+  ): claims_aggregate!
+
+  """An array relationship"""
+  as_predicate_triples(
     """distinct select on columns"""
     distinct_on: [triples_select_column!]
 
@@ -863,7 +1103,7 @@ type atoms {
   ): [triples!]!
 
   """An aggregate relationship"""
-  as_predicate_aggregate(
+  as_predicate_triples_aggregate(
     """distinct select on columns"""
     distinct_on: [triples_select_column!]
 
@@ -881,7 +1121,43 @@ type atoms {
   ): triples_aggregate!
 
   """An array relationship"""
-  as_subject(
+  as_subject_claims(
+    """distinct select on columns"""
+    distinct_on: [claims_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [claims_order_by!]
+
+    """filter the rows returned"""
+    where: claims_bool_exp
+  ): [claims!]!
+
+  """An aggregate relationship"""
+  as_subject_claims_aggregate(
+    """distinct select on columns"""
+    distinct_on: [claims_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [claims_order_by!]
+
+    """filter the rows returned"""
+    where: claims_bool_exp
+  ): claims_aggregate!
+
+  """An array relationship"""
+  as_subject_triples(
     """distinct select on columns"""
     distinct_on: [triples_select_column!]
 
@@ -899,7 +1175,7 @@ type atoms {
   ): [triples!]!
 
   """An aggregate relationship"""
-  as_subject_aggregate(
+  as_subject_triples_aggregate(
     """distinct select on columns"""
     distinct_on: [triples_select_column!]
 
@@ -916,7 +1192,7 @@ type atoms {
     where: triples_bool_exp
   ): triples_aggregate!
   block_number: numeric!
-  block_timestamp: numeric!
+  block_timestamp: bigint!
 
   """An object relationship"""
   controler: accounts
@@ -1055,14 +1331,22 @@ input atoms_bool_exp {
   _and: [atoms_bool_exp!]
   _not: atoms_bool_exp
   _or: [atoms_bool_exp!]
-  as_object: triples_bool_exp
-  as_object_aggregate: triples_aggregate_bool_exp
-  as_predicate: triples_bool_exp
-  as_predicate_aggregate: triples_aggregate_bool_exp
-  as_subject: triples_bool_exp
-  as_subject_aggregate: triples_aggregate_bool_exp
+  accounts: accounts_bool_exp
+  accounts_aggregate: accounts_aggregate_bool_exp
+  as_object_claims: claims_bool_exp
+  as_object_claims_aggregate: claims_aggregate_bool_exp
+  as_object_triples: triples_bool_exp
+  as_object_triples_aggregate: triples_aggregate_bool_exp
+  as_predicate_claims: claims_bool_exp
+  as_predicate_claims_aggregate: claims_aggregate_bool_exp
+  as_predicate_triples: triples_bool_exp
+  as_predicate_triples_aggregate: triples_aggregate_bool_exp
+  as_subject_claims: claims_bool_exp
+  as_subject_claims_aggregate: claims_aggregate_bool_exp
+  as_subject_triples: triples_bool_exp
+  as_subject_triples_aggregate: triples_aggregate_bool_exp
   block_number: numeric_comparison_exp
-  block_timestamp: numeric_comparison_exp
+  block_timestamp: bigint_comparison_exp
   controler: accounts_bool_exp
   creator: accounts_bool_exp
   creator_id: String_comparison_exp
@@ -1084,7 +1368,7 @@ input atoms_bool_exp {
 """aggregate max on columns"""
 type atoms_max_fields {
   block_number: numeric
-  block_timestamp: numeric
+  block_timestamp: bigint
   creator_id: String
   data: String
   emoji: String
@@ -1118,7 +1402,7 @@ input atoms_max_order_by {
 """aggregate min on columns"""
 type atoms_min_fields {
   block_number: numeric
-  block_timestamp: numeric
+  block_timestamp: bigint
   creator_id: String
   data: String
   emoji: String
@@ -1151,9 +1435,13 @@ input atoms_min_order_by {
 
 """Ordering options when selecting data from "atom"."""
 input atoms_order_by {
-  as_object_aggregate: triples_aggregate_order_by
-  as_predicate_aggregate: triples_aggregate_order_by
-  as_subject_aggregate: triples_aggregate_order_by
+  accounts_aggregate: accounts_aggregate_order_by
+  as_object_claims_aggregate: claims_aggregate_order_by
+  as_object_triples_aggregate: triples_aggregate_order_by
+  as_predicate_claims_aggregate: claims_aggregate_order_by
+  as_predicate_triples_aggregate: triples_aggregate_order_by
+  as_subject_claims_aggregate: claims_aggregate_order_by
+  as_subject_triples_aggregate: triples_aggregate_order_by
   block_number: order_by
   block_timestamp: order_by
   controler: accounts_order_by
@@ -1291,7 +1579,7 @@ input atoms_stream_cursor_input {
 """Initial value of the column from where the streaming should start"""
 input atoms_stream_cursor_value_input {
   block_number: numeric
-  block_timestamp: numeric
+  block_timestamp: bigint
   creator_id: String
   data: String
   emoji: String
@@ -1308,7 +1596,7 @@ input atoms_stream_cursor_value_input {
 """aggregate sum on columns"""
 type atoms_sum_fields {
   block_number: numeric
-  block_timestamp: numeric
+  block_timestamp: bigint
   id: numeric
   value_id: numeric
   vault_id: numeric
@@ -1383,6 +1671,23 @@ input atoms_variance_order_by {
   id: order_by
   value_id: order_by
   vault_id: order_by
+}
+
+scalar bigint
+
+"""
+Boolean expression to compare columns of type "bigint". All fields are combined with logical 'AND'.
+"""
+input bigint_comparison_exp {
+  _eq: bigint
+  _gt: bigint
+  _gte: bigint
+  _in: [bigint!]
+  _is_null: Boolean
+  _lt: bigint
+  _lte: bigint
+  _neq: bigint
+  _nin: [bigint!]
 }
 
 """
@@ -1772,6 +2077,10 @@ input claims_bool_exp {
   vault_id: numeric_comparison_exp
 }
 
+input claims_from_following_args {
+  address: String
+}
+
 """aggregate max on columns"""
 type claims_max_fields {
   account_id: String
@@ -2109,8 +2418,44 @@ columns and relationships of "deposit"
 """
 type deposits {
   block_number: numeric!
-  block_timestamp: numeric!
+  block_timestamp: bigint!
   entry_fee: numeric!
+
+  """An array relationship"""
+  events(
+    """distinct select on columns"""
+    distinct_on: [events_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [events_order_by!]
+
+    """filter the rows returned"""
+    where: events_bool_exp
+  ): [events!]!
+
+  """An aggregate relationship"""
+  events_aggregate(
+    """distinct select on columns"""
+    distinct_on: [events_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [events_order_by!]
+
+    """filter the rows returned"""
+    where: events_bool_exp
+  ): events_aggregate!
   id: String!
   is_atom_wallet: Boolean!
   is_triple: Boolean!
@@ -2125,6 +2470,42 @@ type deposits {
   sender_assets_after_total_fees: numeric!
   sender_id: String!
   shares_for_receiver: numeric!
+
+  """An array relationship"""
+  signals(
+    """distinct select on columns"""
+    distinct_on: [signals_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [signals_order_by!]
+
+    """filter the rows returned"""
+    where: signals_bool_exp
+  ): [signals!]!
+
+  """An aggregate relationship"""
+  signals_aggregate(
+    """distinct select on columns"""
+    distinct_on: [signals_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [signals_order_by!]
+
+    """filter the rows returned"""
+    where: signals_bool_exp
+  ): signals_aggregate!
   transaction_hash: bytea!
 
   """An object relationship"""
@@ -2233,8 +2614,10 @@ input deposits_bool_exp {
   _not: deposits_bool_exp
   _or: [deposits_bool_exp!]
   block_number: numeric_comparison_exp
-  block_timestamp: numeric_comparison_exp
+  block_timestamp: bigint_comparison_exp
   entry_fee: numeric_comparison_exp
+  events: events_bool_exp
+  events_aggregate: events_aggregate_bool_exp
   id: String_comparison_exp
   is_atom_wallet: Boolean_comparison_exp
   is_triple: Boolean_comparison_exp
@@ -2245,6 +2628,8 @@ input deposits_bool_exp {
   sender_assets_after_total_fees: numeric_comparison_exp
   sender_id: String_comparison_exp
   shares_for_receiver: numeric_comparison_exp
+  signals: signals_bool_exp
+  signals_aggregate: signals_aggregate_bool_exp
   transaction_hash: bytea_comparison_exp
   vault: vaults_bool_exp
   vault_id: numeric_comparison_exp
@@ -2253,7 +2638,7 @@ input deposits_bool_exp {
 """aggregate max on columns"""
 type deposits_max_fields {
   block_number: numeric
-  block_timestamp: numeric
+  block_timestamp: bigint
   entry_fee: numeric
   id: String
   receiver_id: String
@@ -2283,7 +2668,7 @@ input deposits_max_order_by {
 """aggregate min on columns"""
 type deposits_min_fields {
   block_number: numeric
-  block_timestamp: numeric
+  block_timestamp: bigint
   entry_fee: numeric
   id: String
   receiver_id: String
@@ -2315,6 +2700,7 @@ input deposits_order_by {
   block_number: order_by
   block_timestamp: order_by
   entry_fee: order_by
+  events_aggregate: events_aggregate_order_by
   id: order_by
   is_atom_wallet: order_by
   is_triple: order_by
@@ -2325,6 +2711,7 @@ input deposits_order_by {
   sender_assets_after_total_fees: order_by
   sender_id: order_by
   shares_for_receiver: order_by
+  signals_aggregate: signals_aggregate_order_by
   transaction_hash: order_by
   vault: vaults_order_by
   vault_id: order_by
@@ -2482,7 +2869,7 @@ input deposits_stream_cursor_input {
 """Initial value of the column from where the streaming should start"""
 input deposits_stream_cursor_value_input {
   block_number: numeric
-  block_timestamp: numeric
+  block_timestamp: bigint
   entry_fee: numeric
   id: String
   is_atom_wallet: Boolean
@@ -2499,7 +2886,7 @@ input deposits_stream_cursor_value_input {
 """aggregate sum on columns"""
 type deposits_sum_fields {
   block_number: numeric
-  block_timestamp: numeric
+  block_timestamp: bigint
   entry_fee: numeric
   receiver_total_shares_in_vault: numeric
   sender_assets_after_total_fees: numeric
@@ -2617,7 +3004,7 @@ type events {
   atom: atoms
   atom_id: numeric
   block_number: numeric!
-  block_timestamp: numeric!
+  block_timestamp: bigint!
 
   """An object relationship"""
   deposit: deposits
@@ -2647,6 +3034,17 @@ type events_aggregate {
   nodes: [events!]!
 }
 
+input events_aggregate_bool_exp {
+  count: events_aggregate_bool_exp_count
+}
+
+input events_aggregate_bool_exp_count {
+  arguments: [events_select_column!]
+  distinct: Boolean
+  filter: events_bool_exp
+  predicate: Int_comparison_exp!
+}
+
 """
 aggregate fields of "event"
 """
@@ -2664,12 +3062,39 @@ type events_aggregate_fields {
   variance: events_variance_fields
 }
 
+"""
+order by aggregate values of table "event"
+"""
+input events_aggregate_order_by {
+  avg: events_avg_order_by
+  count: order_by
+  max: events_max_order_by
+  min: events_min_order_by
+  stddev: events_stddev_order_by
+  stddev_pop: events_stddev_pop_order_by
+  stddev_samp: events_stddev_samp_order_by
+  sum: events_sum_order_by
+  var_pop: events_var_pop_order_by
+  var_samp: events_var_samp_order_by
+  variance: events_variance_order_by
+}
+
 """aggregate avg on columns"""
 type events_avg_fields {
   atom_id: Float
   block_number: Float
   block_timestamp: Float
   triple_id: Float
+}
+
+"""
+order by avg() on columns of table "event"
+"""
+input events_avg_order_by {
+  atom_id: order_by
+  block_number: order_by
+  block_timestamp: order_by
+  triple_id: order_by
 }
 
 """
@@ -2682,7 +3107,7 @@ input events_bool_exp {
   atom: atoms_bool_exp
   atom_id: numeric_comparison_exp
   block_number: numeric_comparison_exp
-  block_timestamp: numeric_comparison_exp
+  block_timestamp: bigint_comparison_exp
   deposit: deposits_bool_exp
   deposit_id: String_comparison_exp
   fee_transfer: fee_transfers_bool_exp
@@ -2700,7 +3125,7 @@ input events_bool_exp {
 type events_max_fields {
   atom_id: numeric
   block_number: numeric
-  block_timestamp: numeric
+  block_timestamp: bigint
   deposit_id: String
   fee_transfer_id: String
   id: String
@@ -2709,17 +3134,47 @@ type events_max_fields {
   type: event_type
 }
 
+"""
+order by max() on columns of table "event"
+"""
+input events_max_order_by {
+  atom_id: order_by
+  block_number: order_by
+  block_timestamp: order_by
+  deposit_id: order_by
+  fee_transfer_id: order_by
+  id: order_by
+  redemption_id: order_by
+  triple_id: order_by
+  type: order_by
+}
+
 """aggregate min on columns"""
 type events_min_fields {
   atom_id: numeric
   block_number: numeric
-  block_timestamp: numeric
+  block_timestamp: bigint
   deposit_id: String
   fee_transfer_id: String
   id: String
   redemption_id: String
   triple_id: numeric
   type: event_type
+}
+
+"""
+order by min() on columns of table "event"
+"""
+input events_min_order_by {
+  atom_id: order_by
+  block_number: order_by
+  block_timestamp: order_by
+  deposit_id: order_by
+  fee_transfer_id: order_by
+  id: order_by
+  redemption_id: order_by
+  triple_id: order_by
+  type: order_by
 }
 
 """Ordering options when selecting data from "event"."""
@@ -2784,6 +3239,16 @@ type events_stddev_fields {
   triple_id: Float
 }
 
+"""
+order by stddev() on columns of table "event"
+"""
+input events_stddev_order_by {
+  atom_id: order_by
+  block_number: order_by
+  block_timestamp: order_by
+  triple_id: order_by
+}
+
 """aggregate stddev_pop on columns"""
 type events_stddev_pop_fields {
   atom_id: Float
@@ -2792,12 +3257,32 @@ type events_stddev_pop_fields {
   triple_id: Float
 }
 
+"""
+order by stddev_pop() on columns of table "event"
+"""
+input events_stddev_pop_order_by {
+  atom_id: order_by
+  block_number: order_by
+  block_timestamp: order_by
+  triple_id: order_by
+}
+
 """aggregate stddev_samp on columns"""
 type events_stddev_samp_fields {
   atom_id: Float
   block_number: Float
   block_timestamp: Float
   triple_id: Float
+}
+
+"""
+order by stddev_samp() on columns of table "event"
+"""
+input events_stddev_samp_order_by {
+  atom_id: order_by
+  block_number: order_by
+  block_timestamp: order_by
+  triple_id: order_by
 }
 
 """
@@ -2815,7 +3300,7 @@ input events_stream_cursor_input {
 input events_stream_cursor_value_input {
   atom_id: numeric
   block_number: numeric
-  block_timestamp: numeric
+  block_timestamp: bigint
   deposit_id: String
   fee_transfer_id: String
   id: String
@@ -2829,8 +3314,18 @@ input events_stream_cursor_value_input {
 type events_sum_fields {
   atom_id: numeric
   block_number: numeric
-  block_timestamp: numeric
+  block_timestamp: bigint
   triple_id: numeric
+}
+
+"""
+order by sum() on columns of table "event"
+"""
+input events_sum_order_by {
+  atom_id: order_by
+  block_number: order_by
+  block_timestamp: order_by
+  triple_id: order_by
 }
 
 """aggregate var_pop on columns"""
@@ -2841,12 +3336,32 @@ type events_var_pop_fields {
   triple_id: Float
 }
 
+"""
+order by var_pop() on columns of table "event"
+"""
+input events_var_pop_order_by {
+  atom_id: order_by
+  block_number: order_by
+  block_timestamp: order_by
+  triple_id: order_by
+}
+
 """aggregate var_samp on columns"""
 type events_var_samp_fields {
   atom_id: Float
   block_number: Float
   block_timestamp: Float
   triple_id: Float
+}
+
+"""
+order by var_samp() on columns of table "event"
+"""
+input events_var_samp_order_by {
+  atom_id: order_by
+  block_number: order_by
+  block_timestamp: order_by
+  triple_id: order_by
 }
 
 """aggregate variance on columns"""
@@ -2858,12 +3373,58 @@ type events_variance_fields {
 }
 
 """
+order by variance() on columns of table "event"
+"""
+input events_variance_order_by {
+  atom_id: order_by
+  block_number: order_by
+  block_timestamp: order_by
+  triple_id: order_by
+}
+
+"""
 columns and relationships of "fee_transfer"
 """
 type fee_transfers {
   amount: numeric!
   block_number: numeric!
-  block_timestamp: numeric!
+  block_timestamp: bigint!
+
+  """An array relationship"""
+  events(
+    """distinct select on columns"""
+    distinct_on: [events_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [events_order_by!]
+
+    """filter the rows returned"""
+    where: events_bool_exp
+  ): [events!]!
+
+  """An aggregate relationship"""
+  events_aggregate(
+    """distinct select on columns"""
+    distinct_on: [events_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [events_order_by!]
+
+    """filter the rows returned"""
+    where: events_bool_exp
+  ): events_aggregate!
   id: String!
 
   """An object relationship"""
@@ -2954,7 +3515,9 @@ input fee_transfers_bool_exp {
   _or: [fee_transfers_bool_exp!]
   amount: numeric_comparison_exp
   block_number: numeric_comparison_exp
-  block_timestamp: numeric_comparison_exp
+  block_timestamp: bigint_comparison_exp
+  events: events_bool_exp
+  events_aggregate: events_aggregate_bool_exp
   id: String_comparison_exp
   receiver: accounts_bool_exp
   receiver_id: String_comparison_exp
@@ -2967,7 +3530,7 @@ input fee_transfers_bool_exp {
 type fee_transfers_max_fields {
   amount: numeric
   block_number: numeric
-  block_timestamp: numeric
+  block_timestamp: bigint
   id: String
   receiver_id: String
   sender_id: String
@@ -2989,7 +3552,7 @@ input fee_transfers_max_order_by {
 type fee_transfers_min_fields {
   amount: numeric
   block_number: numeric
-  block_timestamp: numeric
+  block_timestamp: bigint
   id: String
   receiver_id: String
   sender_id: String
@@ -3012,6 +3575,7 @@ input fee_transfers_order_by {
   amount: order_by
   block_number: order_by
   block_timestamp: order_by
+  events_aggregate: events_aggregate_order_by
   id: order_by
   receiver: accounts_order_by
   receiver_id: order_by
@@ -3109,7 +3673,7 @@ input fee_transfers_stream_cursor_input {
 input fee_transfers_stream_cursor_value_input {
   amount: numeric
   block_number: numeric
-  block_timestamp: numeric
+  block_timestamp: bigint
   id: String
   receiver_id: String
   sender_id: String
@@ -3120,7 +3684,7 @@ input fee_transfers_stream_cursor_value_input {
 type fee_transfers_sum_fields {
   amount: numeric
   block_number: numeric
-  block_timestamp: numeric
+  block_timestamp: bigint
 }
 
 """
@@ -3195,6 +3759,10 @@ input float8_comparison_exp {
   _lte: float8
   _neq: float8
   _nin: [float8!]
+}
+
+input following_args {
+  address: String
 }
 
 """
@@ -4071,9 +4639,7 @@ type query_root {
   """fetch data from the table: "account" using primary key columns"""
   account(id: String!): accounts
 
-  """
-  fetch data from the table: "account"
-  """
+  """An array relationship"""
   accounts(
     """distinct select on columns"""
     distinct_on: [accounts_select_column!]
@@ -4091,10 +4657,58 @@ type query_root {
     where: accounts_bool_exp
   ): [accounts!]!
 
-  """
-  fetch aggregated fields from the table: "account"
-  """
+  """An aggregate relationship"""
   accounts_aggregate(
+    """distinct select on columns"""
+    distinct_on: [accounts_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [accounts_order_by!]
+
+    """filter the rows returned"""
+    where: accounts_bool_exp
+  ): accounts_aggregate!
+
+  """
+  execute function "accounts_that_claim_about_account" which returns "account"
+  """
+  accounts_that_claim_about_account(
+    """
+    input parameters for function "accounts_that_claim_about_account"
+    """
+    args: accounts_that_claim_about_account_args!
+
+    """distinct select on columns"""
+    distinct_on: [accounts_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [accounts_order_by!]
+
+    """filter the rows returned"""
+    where: accounts_bool_exp
+  ): [accounts!]!
+
+  """
+  execute function "accounts_that_claim_about_account" and query aggregates on result of table type "account"
+  """
+  accounts_that_claim_about_account_aggregate(
+    """
+    input parameters for function "accounts_that_claim_about_account_aggregate"
+    """
+    args: accounts_that_claim_about_account_args!
+
     """distinct select on columns"""
     distinct_on: [accounts_select_column!]
 
@@ -4298,6 +4912,56 @@ type query_root {
     where: claims_bool_exp
   ): claims_aggregate!
 
+  """
+  execute function "claims_from_following" which returns "claim"
+  """
+  claims_from_following(
+    """
+    input parameters for function "claims_from_following"
+    """
+    args: claims_from_following_args!
+
+    """distinct select on columns"""
+    distinct_on: [claims_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [claims_order_by!]
+
+    """filter the rows returned"""
+    where: claims_bool_exp
+  ): [claims!]!
+
+  """
+  execute function "claims_from_following" and query aggregates on result of table type "claim"
+  """
+  claims_from_following_aggregate(
+    """
+    input parameters for function "claims_from_following_aggregate"
+    """
+    args: claims_from_following_args!
+
+    """distinct select on columns"""
+    distinct_on: [claims_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [claims_order_by!]
+
+    """filter the rows returned"""
+    where: claims_bool_exp
+  ): claims_aggregate!
+
   """fetch data from the table: "deposit" using primary key columns"""
   deposit(id: String!): deposits
 
@@ -4340,9 +5004,7 @@ type query_root {
   """fetch data from the table: "event" using primary key columns"""
   event(id: String!): events
 
-  """
-  fetch data from the table: "event"
-  """
+  """An array relationship"""
   events(
     """distinct select on columns"""
     distinct_on: [events_select_column!]
@@ -4360,9 +5022,7 @@ type query_root {
     where: events_bool_exp
   ): [events!]!
 
-  """
-  fetch aggregated fields from the table: "event"
-  """
+  """An aggregate relationship"""
   events_aggregate(
     """distinct select on columns"""
     distinct_on: [events_select_column!]
@@ -4418,6 +5078,56 @@ type query_root {
     """filter the rows returned"""
     where: fee_transfers_bool_exp
   ): fee_transfers_aggregate!
+
+  """
+  execute function "following" which returns "account"
+  """
+  following(
+    """
+    input parameters for function "following"
+    """
+    args: following_args!
+
+    """distinct select on columns"""
+    distinct_on: [accounts_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [accounts_order_by!]
+
+    """filter the rows returned"""
+    where: accounts_bool_exp
+  ): [accounts!]!
+
+  """
+  execute function "following" and query aggregates on result of table type "account"
+  """
+  following_aggregate(
+    """
+    input parameters for function "following_aggregate"
+    """
+    args: following_args!
+
+    """distinct select on columns"""
+    distinct_on: [accounts_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [accounts_order_by!]
+
+    """filter the rows returned"""
+    where: accounts_bool_exp
+  ): accounts_aggregate!
 
   """fetch data from the table: "organization" using primary key columns"""
   organization(id: numeric!): organizations
@@ -4667,6 +5377,56 @@ type query_root {
     where: signals_bool_exp
   ): signals_aggregate!
 
+  """
+  execute function "signals_from_following" which returns "signal"
+  """
+  signals_from_following(
+    """
+    input parameters for function "signals_from_following"
+    """
+    args: signals_from_following_args!
+
+    """distinct select on columns"""
+    distinct_on: [signals_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [signals_order_by!]
+
+    """filter the rows returned"""
+    where: signals_bool_exp
+  ): [signals!]!
+
+  """
+  execute function "signals_from_following" and query aggregates on result of table type "signal"
+  """
+  signals_from_following_aggregate(
+    """
+    input parameters for function "signals_from_following_aggregate"
+    """
+    args: signals_from_following_args!
+
+    """distinct select on columns"""
+    distinct_on: [signals_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [signals_order_by!]
+
+    """filter the rows returned"""
+    where: signals_bool_exp
+  ): signals_aggregate!
+
   """fetch data from the table: "stats" using primary key columns"""
   stat(id: Int!): stats
 
@@ -4842,7 +5602,43 @@ columns and relationships of "redemption"
 type redemptions {
   assets_for_receiver: numeric!
   block_number: numeric!
-  block_timestamp: numeric!
+  block_timestamp: bigint!
+
+  """An array relationship"""
+  events(
+    """distinct select on columns"""
+    distinct_on: [events_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [events_order_by!]
+
+    """filter the rows returned"""
+    where: events_bool_exp
+  ): [events!]!
+
+  """An aggregate relationship"""
+  events_aggregate(
+    """distinct select on columns"""
+    distinct_on: [events_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [events_order_by!]
+
+    """filter the rows returned"""
+    where: events_bool_exp
+  ): events_aggregate!
   exit_fee: numeric!
   id: String!
 
@@ -4855,6 +5651,42 @@ type redemptions {
   sender_id: String!
   sender_total_shares_in_vault: numeric!
   shares_redeemed_by_sender: numeric!
+
+  """An array relationship"""
+  signals(
+    """distinct select on columns"""
+    distinct_on: [signals_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [signals_order_by!]
+
+    """filter the rows returned"""
+    where: signals_bool_exp
+  ): [signals!]!
+
+  """An aggregate relationship"""
+  signals_aggregate(
+    """distinct select on columns"""
+    distinct_on: [signals_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [signals_order_by!]
+
+    """filter the rows returned"""
+    where: signals_bool_exp
+  ): signals_aggregate!
   transaction_hash: bytea!
 
   """An object relationship"""
@@ -4948,7 +5780,9 @@ input redemptions_bool_exp {
   _or: [redemptions_bool_exp!]
   assets_for_receiver: numeric_comparison_exp
   block_number: numeric_comparison_exp
-  block_timestamp: numeric_comparison_exp
+  block_timestamp: bigint_comparison_exp
+  events: events_bool_exp
+  events_aggregate: events_aggregate_bool_exp
   exit_fee: numeric_comparison_exp
   id: String_comparison_exp
   receiver: accounts_bool_exp
@@ -4957,6 +5791,8 @@ input redemptions_bool_exp {
   sender_id: String_comparison_exp
   sender_total_shares_in_vault: numeric_comparison_exp
   shares_redeemed_by_sender: numeric_comparison_exp
+  signals: signals_bool_exp
+  signals_aggregate: signals_aggregate_bool_exp
   transaction_hash: bytea_comparison_exp
   vault: vaults_bool_exp
   vault_id: numeric_comparison_exp
@@ -4966,7 +5802,7 @@ input redemptions_bool_exp {
 type redemptions_max_fields {
   assets_for_receiver: numeric
   block_number: numeric
-  block_timestamp: numeric
+  block_timestamp: bigint
   exit_fee: numeric
   id: String
   receiver_id: String
@@ -4996,7 +5832,7 @@ input redemptions_max_order_by {
 type redemptions_min_fields {
   assets_for_receiver: numeric
   block_number: numeric
-  block_timestamp: numeric
+  block_timestamp: bigint
   exit_fee: numeric
   id: String
   receiver_id: String
@@ -5027,6 +5863,7 @@ input redemptions_order_by {
   assets_for_receiver: order_by
   block_number: order_by
   block_timestamp: order_by
+  events_aggregate: events_aggregate_order_by
   exit_fee: order_by
   id: order_by
   receiver: accounts_order_by
@@ -5035,6 +5872,7 @@ input redemptions_order_by {
   sender_id: order_by
   sender_total_shares_in_vault: order_by
   shares_redeemed_by_sender: order_by
+  signals_aggregate: signals_aggregate_order_by
   transaction_hash: order_by
   vault: vaults_order_by
   vault_id: order_by
@@ -5165,7 +6003,7 @@ input redemptions_stream_cursor_input {
 input redemptions_stream_cursor_value_input {
   assets_for_receiver: numeric
   block_number: numeric
-  block_timestamp: numeric
+  block_timestamp: bigint
   exit_fee: numeric
   id: String
   receiver_id: String
@@ -5180,7 +6018,7 @@ input redemptions_stream_cursor_value_input {
 type redemptions_sum_fields {
   assets_for_receiver: numeric
   block_number: numeric
-  block_timestamp: numeric
+  block_timestamp: bigint
   exit_fee: numeric
   sender_total_shares_in_vault: numeric
   shares_redeemed_by_sender: numeric
@@ -5284,7 +6122,7 @@ type signals {
   atom: atoms
   atom_id: numeric
   block_number: numeric!
-  block_timestamp: numeric!
+  block_timestamp: bigint!
   delta: numeric!
 
   """An object relationship"""
@@ -5387,7 +6225,7 @@ input signals_bool_exp {
   atom: atoms_bool_exp
   atom_id: numeric_comparison_exp
   block_number: numeric_comparison_exp
-  block_timestamp: numeric_comparison_exp
+  block_timestamp: bigint_comparison_exp
   delta: numeric_comparison_exp
   deposit: deposits_bool_exp
   deposit_id: String_comparison_exp
@@ -5399,12 +6237,16 @@ input signals_bool_exp {
   triple_id: numeric_comparison_exp
 }
 
+input signals_from_following_args {
+  address: String
+}
+
 """aggregate max on columns"""
 type signals_max_fields {
   account_id: String
   atom_id: numeric
   block_number: numeric
-  block_timestamp: numeric
+  block_timestamp: bigint
   delta: numeric
   deposit_id: String
   id: String
@@ -5432,7 +6274,7 @@ type signals_min_fields {
   account_id: String
   atom_id: numeric
   block_number: numeric
-  block_timestamp: numeric
+  block_timestamp: bigint
   delta: numeric
   deposit_id: String
   id: String
@@ -5585,7 +6427,7 @@ input signals_stream_cursor_value_input {
   account_id: String
   atom_id: numeric
   block_number: numeric
-  block_timestamp: numeric
+  block_timestamp: bigint
   delta: numeric
   deposit_id: String
   id: String
@@ -5598,7 +6440,7 @@ input signals_stream_cursor_value_input {
 type signals_sum_fields {
   atom_id: numeric
   block_number: numeric
-  block_timestamp: numeric
+  block_timestamp: bigint
   delta: numeric
   triple_id: numeric
 }
@@ -5971,9 +6813,7 @@ type subscription_root {
   """fetch data from the table: "account" using primary key columns"""
   account(id: String!): accounts
 
-  """
-  fetch data from the table: "account"
-  """
+  """An array relationship"""
   accounts(
     """distinct select on columns"""
     distinct_on: [accounts_select_column!]
@@ -5991,9 +6831,7 @@ type subscription_root {
     where: accounts_bool_exp
   ): [accounts!]!
 
-  """
-  fetch aggregated fields from the table: "account"
-  """
+  """An aggregate relationship"""
   accounts_aggregate(
     """distinct select on columns"""
     distinct_on: [accounts_select_column!]
@@ -6024,6 +6862,56 @@ type subscription_root {
     """filter the rows returned"""
     where: accounts_bool_exp
   ): [accounts!]!
+
+  """
+  execute function "accounts_that_claim_about_account" which returns "account"
+  """
+  accounts_that_claim_about_account(
+    """
+    input parameters for function "accounts_that_claim_about_account"
+    """
+    args: accounts_that_claim_about_account_args!
+
+    """distinct select on columns"""
+    distinct_on: [accounts_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [accounts_order_by!]
+
+    """filter the rows returned"""
+    where: accounts_bool_exp
+  ): [accounts!]!
+
+  """
+  execute function "accounts_that_claim_about_account" and query aggregates on result of table type "account"
+  """
+  accounts_that_claim_about_account_aggregate(
+    """
+    input parameters for function "accounts_that_claim_about_account_aggregate"
+    """
+    args: accounts_that_claim_about_account_args!
+
+    """distinct select on columns"""
+    distinct_on: [accounts_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [accounts_order_by!]
+
+    """filter the rows returned"""
+    where: accounts_bool_exp
+  ): accounts_aggregate!
 
   """fetch data from the table: "atom" using primary key columns"""
   atom(id: numeric!): atoms
@@ -6269,6 +7157,56 @@ type subscription_root {
   ): claims_aggregate!
 
   """
+  execute function "claims_from_following" which returns "claim"
+  """
+  claims_from_following(
+    """
+    input parameters for function "claims_from_following"
+    """
+    args: claims_from_following_args!
+
+    """distinct select on columns"""
+    distinct_on: [claims_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [claims_order_by!]
+
+    """filter the rows returned"""
+    where: claims_bool_exp
+  ): [claims!]!
+
+  """
+  execute function "claims_from_following" and query aggregates on result of table type "claim"
+  """
+  claims_from_following_aggregate(
+    """
+    input parameters for function "claims_from_following_aggregate"
+    """
+    args: claims_from_following_args!
+
+    """distinct select on columns"""
+    distinct_on: [claims_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [claims_order_by!]
+
+    """filter the rows returned"""
+    where: claims_bool_exp
+  ): claims_aggregate!
+
+  """
   fetch data from the table in a streaming manner: "claim"
   """
   claims_stream(
@@ -6338,9 +7276,7 @@ type subscription_root {
   """fetch data from the table: "event" using primary key columns"""
   event(id: String!): events
 
-  """
-  fetch data from the table: "event"
-  """
+  """An array relationship"""
   events(
     """distinct select on columns"""
     distinct_on: [events_select_column!]
@@ -6358,9 +7294,7 @@ type subscription_root {
     where: events_bool_exp
   ): [events!]!
 
-  """
-  fetch aggregated fields from the table: "event"
-  """
+  """An aggregate relationship"""
   events_aggregate(
     """distinct select on columns"""
     distinct_on: [events_select_column!]
@@ -6444,6 +7378,56 @@ type subscription_root {
     """filter the rows returned"""
     where: fee_transfers_bool_exp
   ): [fee_transfers!]!
+
+  """
+  execute function "following" which returns "account"
+  """
+  following(
+    """
+    input parameters for function "following"
+    """
+    args: following_args!
+
+    """distinct select on columns"""
+    distinct_on: [accounts_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [accounts_order_by!]
+
+    """filter the rows returned"""
+    where: accounts_bool_exp
+  ): [accounts!]!
+
+  """
+  execute function "following" and query aggregates on result of table type "account"
+  """
+  following_aggregate(
+    """
+    input parameters for function "following_aggregate"
+    """
+    args: following_args!
+
+    """distinct select on columns"""
+    distinct_on: [accounts_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [accounts_order_by!]
+
+    """filter the rows returned"""
+    where: accounts_bool_exp
+  ): accounts_aggregate!
 
   """fetch data from the table: "organization" using primary key columns"""
   organization(id: numeric!): organizations
@@ -6747,6 +7731,56 @@ type subscription_root {
 
   """An aggregate relationship"""
   signals_aggregate(
+    """distinct select on columns"""
+    distinct_on: [signals_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [signals_order_by!]
+
+    """filter the rows returned"""
+    where: signals_bool_exp
+  ): signals_aggregate!
+
+  """
+  execute function "signals_from_following" which returns "signal"
+  """
+  signals_from_following(
+    """
+    input parameters for function "signals_from_following"
+    """
+    args: signals_from_following_args!
+
+    """distinct select on columns"""
+    distinct_on: [signals_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [signals_order_by!]
+
+    """filter the rows returned"""
+    where: signals_bool_exp
+  ): [signals!]!
+
+  """
+  execute function "signals_from_following" and query aggregates on result of table type "signal"
+  """
+  signals_from_following_aggregate(
+    """
+    input parameters for function "signals_from_following_aggregate"
+    """
+    args: signals_from_following_args!
+
     """distinct select on columns"""
     distinct_on: [signals_select_column!]
 
@@ -7168,7 +8202,43 @@ columns and relationships of "triple"
 """
 type triples {
   block_number: numeric!
-  block_timestamp: numeric!
+  block_timestamp: bigint!
+
+  """An array relationship"""
+  claims(
+    """distinct select on columns"""
+    distinct_on: [claims_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [claims_order_by!]
+
+    """filter the rows returned"""
+    where: claims_bool_exp
+  ): [claims!]!
+
+  """An aggregate relationship"""
+  claims_aggregate(
+    """distinct select on columns"""
+    distinct_on: [claims_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [claims_order_by!]
+
+    """filter the rows returned"""
+    where: claims_bool_exp
+  ): claims_aggregate!
 
   """An object relationship"""
   counter_vault: vaults
@@ -7187,6 +8257,42 @@ type triples {
   """An object relationship"""
   predicate: atoms!
   predicate_id: numeric!
+
+  """An array relationship"""
+  signals(
+    """distinct select on columns"""
+    distinct_on: [signals_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [signals_order_by!]
+
+    """filter the rows returned"""
+    where: signals_bool_exp
+  ): [signals!]!
+
+  """An aggregate relationship"""
+  signals_aggregate(
+    """distinct select on columns"""
+    distinct_on: [signals_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [signals_order_by!]
+
+    """filter the rows returned"""
+    where: signals_bool_exp
+  ): signals_aggregate!
 
   """An object relationship"""
   subject: atoms!
@@ -7285,7 +8391,9 @@ input triples_bool_exp {
   _not: triples_bool_exp
   _or: [triples_bool_exp!]
   block_number: numeric_comparison_exp
-  block_timestamp: numeric_comparison_exp
+  block_timestamp: bigint_comparison_exp
+  claims: claims_bool_exp
+  claims_aggregate: claims_aggregate_bool_exp
   counter_vault: vaults_bool_exp
   counter_vault_id: numeric_comparison_exp
   creator: accounts_bool_exp
@@ -7296,6 +8404,8 @@ input triples_bool_exp {
   object_id: numeric_comparison_exp
   predicate: atoms_bool_exp
   predicate_id: numeric_comparison_exp
+  signals: signals_bool_exp
+  signals_aggregate: signals_aggregate_bool_exp
   subject: atoms_bool_exp
   subject_id: numeric_comparison_exp
   transaction_hash: bytea_comparison_exp
@@ -7306,7 +8416,7 @@ input triples_bool_exp {
 """aggregate max on columns"""
 type triples_max_fields {
   block_number: numeric
-  block_timestamp: numeric
+  block_timestamp: bigint
   counter_vault_id: numeric
   creator_id: String
   id: numeric
@@ -7336,7 +8446,7 @@ input triples_max_order_by {
 """aggregate min on columns"""
 type triples_min_fields {
   block_number: numeric
-  block_timestamp: numeric
+  block_timestamp: bigint
   counter_vault_id: numeric
   creator_id: String
   id: numeric
@@ -7367,6 +8477,7 @@ input triples_min_order_by {
 input triples_order_by {
   block_number: order_by
   block_timestamp: order_by
+  claims_aggregate: claims_aggregate_order_by
   counter_vault: vaults_order_by
   counter_vault_id: order_by
   creator: accounts_order_by
@@ -7377,6 +8488,7 @@ input triples_order_by {
   object_id: order_by
   predicate: atoms_order_by
   predicate_id: order_by
+  signals_aggregate: signals_aggregate_order_by
   subject: atoms_order_by
   subject_id: order_by
   transaction_hash: order_by
@@ -7514,7 +8626,7 @@ input triples_stream_cursor_input {
 """Initial value of the column from where the streaming should start"""
 input triples_stream_cursor_value_input {
   block_number: numeric
-  block_timestamp: numeric
+  block_timestamp: bigint
   counter_vault_id: numeric
   creator_id: String
   id: numeric
@@ -7529,7 +8641,7 @@ input triples_stream_cursor_value_input {
 """aggregate sum on columns"""
 type triples_sum_fields {
   block_number: numeric
-  block_timestamp: numeric
+  block_timestamp: bigint
   counter_vault_id: numeric
   id: numeric
   object_id: numeric

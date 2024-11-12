@@ -1,7 +1,6 @@
 use crate::queries::{
-    get_account_info, get_accounts, get_atoms,
-    get_predicate_objects,
-    get_signals, GetAccountInfo, GetAccounts, GetAtoms, GetPredicateObjects, GetSignals,
+    get_account_info, get_accounts, get_aggregates, get_atoms, get_predicate_objects, get_signals,
+    GetAccountInfo, GetAccounts, GetAggregates, GetAtoms, GetPredicateObjects, GetSignals,
 };
 use graphql_client::GraphQLQuery;
 use lazy_static::lazy_static;
@@ -13,6 +12,7 @@ lazy_static! {
 }
 
 pub enum Tab {
+    Aggregates,
     Accounts,
     PredicateObjects,
     Atoms,
@@ -21,6 +21,7 @@ pub enum Tab {
 
 pub struct App {
     pub current_tab: Tab,
+    pub aggregates: Option<get_aggregates::ResponseData>,
     pub accounts: Vec<get_accounts::GetAccountsAccounts>,
     pub atoms: Vec<get_atoms::GetAtomsAtoms>,
     pub signals: Vec<get_signals::GetSignalsSignals>,
@@ -32,7 +33,8 @@ pub struct App {
 impl App {
     pub fn new() -> Self {
         Self {
-            current_tab: Tab::Accounts,
+            current_tab: Tab::Aggregates,
+            aggregates: None,
             accounts: Vec::new(),
             atoms: Vec::new(),
             signals: Vec::new(),
@@ -44,16 +46,18 @@ impl App {
 
     pub fn next_tab(&mut self) {
         self.current_tab = match self.current_tab {
+            Tab::Aggregates => Tab::Accounts,
             Tab::Accounts => Tab::PredicateObjects,
             Tab::PredicateObjects => Tab::Atoms,
             Tab::Atoms => Tab::Signals,
-            Tab::Signals => Tab::Accounts,
+            Tab::Signals => Tab::Aggregates,
         };
     }
 
     pub fn previous_tab(&mut self) {
         self.current_tab = match self.current_tab {
-            Tab::Accounts => Tab::Signals,
+            Tab::Aggregates => Tab::Signals,
+            Tab::Accounts => Tab::Aggregates,
             Tab::Atoms => Tab::PredicateObjects,
             Tab::PredicateObjects => Tab::Accounts,
             Tab::Signals => Tab::Atoms,
@@ -61,6 +65,12 @@ impl App {
     }
 
     pub async fn fetch_data(&mut self) {
+        // Fetch aggregates
+        let aggregates = fetch_aggregates().await;
+        if let Some(data) = aggregates {
+            self.aggregates = Some(data);
+        }
+
         // Fetch accounts
         let accounts = fetch_accounts().await;
         if let Some(data) = accounts {
@@ -137,6 +147,26 @@ impl App {
     }
 }
 
+async fn fetch_aggregates() -> Option<get_aggregates::ResponseData> {
+    let client = reqwest::Client::new();
+    let variables = get_aggregates::Variables {};
+    let request_body = GetAggregates::build_query(variables);
+
+    let res = client
+        .post(&*GRAPHQL_ENDPOINT)
+        .json(&request_body)
+        .send()
+        .await
+        .expect("Failed to send request");
+
+    let data: graphql_client::Response<get_aggregates::ResponseData> = res
+        .json()
+        .await
+        .expect("Failed to parse response");
+
+    data.data
+}
+
 async fn fetch_accounts() -> Option<Vec<get_accounts::GetAccountsAccounts>> {
     let client = reqwest::Client::new();
     let variables = get_accounts::Variables {};
@@ -146,19 +176,15 @@ async fn fetch_accounts() -> Option<Vec<get_accounts::GetAccountsAccounts>> {
         .post(&*GRAPHQL_ENDPOINT)
         .json(&request_body)
         .send()
-        .await;
+        .await
+        .expect("Failed to send request");
 
-    match res {
-        Ok(response) => {
-            let data: Result<graphql_client::Response<get_accounts::ResponseData>, _> =
-                response.json().await;
-            match data {
-                Ok(data) => data.data.map(|d| d.accounts),
-                Err(_) => None,
-            }
-        }
-        Err(_) => None,
-    }
+    let data: graphql_client::Response<get_accounts::ResponseData> = res
+        .json()
+        .await
+        .expect("Failed to parse response");
+
+    data.data.map(|d| d.accounts)
 }
 
 async fn fetch_atoms() -> Option<Vec<get_atoms::GetAtomsAtoms>> {
@@ -170,19 +196,15 @@ async fn fetch_atoms() -> Option<Vec<get_atoms::GetAtomsAtoms>> {
         .post(&*GRAPHQL_ENDPOINT)
         .json(&request_body)
         .send()
-        .await;
+        .await
+        .expect("Failed to send request");
 
-    match res {
-        Ok(response) => {
-            let data: Result<graphql_client::Response<get_atoms::ResponseData>, _> =
-                response.json().await;
-            match data {
-                Ok(data) => data.data.map(|d| d.atoms),
-                Err(_) => None,
-            }
-        }
-        Err(_) => None,
-    }
+    let data: graphql_client::Response<get_atoms::ResponseData> = res
+        .json()
+        .await
+        .expect("Failed to parse response");
+
+    data.data.map(|d| d.atoms)
 }
 
 async fn fetch_signals() -> Option<Vec<get_signals::GetSignalsSignals>> {
@@ -194,46 +216,35 @@ async fn fetch_signals() -> Option<Vec<get_signals::GetSignalsSignals>> {
         .post(&*GRAPHQL_ENDPOINT)
         .json(&request_body)
         .send()
-        .await;
+        .await
+        .expect("Failed to send request");
 
-    match res {
-        Ok(response) => {
-            let data: Result<graphql_client::Response<get_signals::ResponseData>, _> =
-                response.json().await;
-            match data {
-                Ok(data) => data.data.map(|d| d.signals),
-                Err(_) => None,
-            }
-        }
-        Err(_) => None,
-    }
+    let data: graphql_client::Response<get_signals::ResponseData> = res
+        .json()
+        .await
+        .expect("Failed to parse response");
+
+    data.data.map(|d| d.signals)
 }
 
-async fn fetch_predicate_objects(
-) -> Option<Vec<get_predicate_objects::GetPredicateObjectsPredicateObjects>> {
+async fn fetch_predicate_objects() -> Option<Vec<get_predicate_objects::GetPredicateObjectsPredicateObjects>> {
     let client = reqwest::Client::new();
-    let variables = get_predicate_objects::Variables {
-        predicate_id: Some(4),
-    };
+    let variables = get_predicate_objects::Variables {};
     let request_body = GetPredicateObjects::build_query(variables);
 
     let res = client
         .post(&*GRAPHQL_ENDPOINT)
         .json(&request_body)
         .send()
-        .await;
+        .await
+        .expect("Failed to send request");
 
-    match res {
-        Ok(response) => {
-            let data: Result<graphql_client::Response<get_predicate_objects::ResponseData>, _> =
-                response.json().await;
-            match data {
-                Ok(data) => data.data.map(|d| d.predicate_objects),
-                Err(_) => None,
-            }
-        }
-        Err(_) => None,
-    }
+    let data: graphql_client::Response<get_predicate_objects::ResponseData> = res
+        .json()
+        .await
+        .expect("Failed to parse response");
+
+    data.data.map(|d| d.predicate_objects)
 }
 
 async fn fetch_account_info(address: &str) -> Option<get_account_info::GetAccountInfoAccount> {
@@ -247,17 +258,13 @@ async fn fetch_account_info(address: &str) -> Option<get_account_info::GetAccoun
         .post(&*GRAPHQL_ENDPOINT)
         .json(&request_body)
         .send()
-        .await;
+        .await
+        .expect("Failed to send request");
 
-    match res {
-        Ok(response) => {
-            let data: Result<graphql_client::Response<get_account_info::ResponseData>, _> =
-                response.json().await;
-            match data {
-                Ok(data) => data.data.and_then(|d| d.account),
-                Err(_) => None,
-            }
-        }
-        Err(_) => None,
-    }
+    let data: graphql_client::Response<get_account_info::ResponseData> = res
+        .json()
+        .await
+        .expect("Failed to parse response");
+
+    data.data.and_then(|d| d.account)
 }
