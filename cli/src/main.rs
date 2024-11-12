@@ -69,36 +69,47 @@ pub fn restore_tui() -> io::Result<()> {
     Ok(())
 }
 
-async fn run_app<B: ratatui::backend::Backend>(
-    terminal: &mut Terminal<B>,
-    mut app: App,
-) -> io::Result<()> {
+async fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<()> {
+    let mut last_tick = std::time::Instant::now();
+    let tick_rate = std::time::Duration::from_secs(1);
+
     loop {
         terminal.draw(|f| ui::draw(f, &app))?;
 
-        if let Event::Key(key) = event::read()? {
-            match key.code {
-                KeyCode::Char('q') => return Ok(()),
-                KeyCode::Char('r') => app.fetch_data().await,
-                KeyCode::Tab => app.next_tab(),
-                KeyCode::Right => app.next_tab(),
-                KeyCode::Left => app.previous_tab(),
-                KeyCode::Down => {
-                    app.next_account();
-                    app.fetch_account_details().await;
-                }
-                KeyCode::Up => {
-                    app.previous_account();
-                    app.fetch_account_details().await;
-                }
-                KeyCode::Enter => {
-                    if let Some(selected) = app.selected_account() {
-                        app.select_account(selected);
+        let timeout = tick_rate
+            .checked_sub(last_tick.elapsed())
+            .unwrap_or_else(|| std::time::Duration::from_secs(0));
+
+        if event::poll(timeout)? {
+            if let Event::Key(key) = event::read()? {
+                match key.code {
+                    KeyCode::Char('q') => return Ok(()),
+                    KeyCode::Char('r') => app.fetch_data().await,
+                    KeyCode::Tab => app.next_tab(),
+                    KeyCode::Right => app.next_tab(),
+                    KeyCode::Left => app.previous_tab(),
+                    KeyCode::Down => {
+                        app.next_account();
                         app.fetch_account_details().await;
                     }
+                    KeyCode::Up => {
+                        app.previous_account();
+                        app.fetch_account_details().await;
+                    }
+                    KeyCode::Enter => {
+                        if let Some(selected) = app.selected_account() {
+                            app.select_account(selected);
+                            app.fetch_account_details().await;
+                        }
+                    }
+                    _ => {}
                 }
-                _ => {}
             }
+        }
+
+        if last_tick.elapsed() >= tick_rate {
+            app.fetch_data().await;
+            last_tick = std::time::Instant::now();
         }
     }
 }
