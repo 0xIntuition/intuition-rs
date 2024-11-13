@@ -27,7 +27,8 @@ pub struct Server {
     indexing_source: Arc<IndexerSource>,
     consumer_mode: ConsumerMode,
     consumer_type: Arc<dyn BasicConsumer>,
-    web3: Arc<EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>>>,
+    base_client: Arc<EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>>>,
+    mainnet_client: Arc<EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>>>,
     pg_pool: PgPool,
 }
 
@@ -51,7 +52,14 @@ impl Server {
                 consumer_type: Arc::new(
                     Sqs::new(input_queue, output_queue, data.env.localstack_url.clone()).await,
                 ),
-                web3: Arc::new(Self::build_web3_client(&data.env)?),
+                base_client: Arc::new(Self::build_web3_client(
+                    &data.env.rpc_url_base_mainnet,
+                    &data.env.intuition_contract_address,
+                )?),
+                mainnet_client: Arc::new(Self::build_web3_client(
+                    &data.env.rpc_url_mainnet,
+                    &data.env.ens_contract_address,
+                )?),
                 pg_pool,
             },
         })
@@ -59,13 +67,31 @@ impl Server {
 
     /// Builds the alloy client
     fn build_web3_client(
-        env: &Env,
+        rpc_url: &str,
+        contract_address: &str,
     ) -> Result<EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>>, ConsumerError>
     {
-        let provider = ProviderBuilder::new().on_http(env.rpc_url.parse()?);
+        let provider = ProviderBuilder::new().on_http(rpc_url.parse()?);
 
         let alloy_contract = EthMultiVault::new(
-            Address::from_str(&env.contract_address)
+            Address::from_str(contract_address)
+                .map_err(|e| ConsumerError::AddressParse(e.to_string()))?,
+            provider.clone(),
+        );
+
+        Ok(alloy_contract)
+    }
+
+    /// Builds the alloy client
+    fn build_web3_client_mainnet(
+        rpc_url: &str,
+        contract_address: &str,
+    ) -> Result<EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>>, ConsumerError>
+    {
+        let provider = ProviderBuilder::new().on_http(rpc_url.parse()?);
+
+        let alloy_contract = EthMultiVault::new(
+            Address::from_str(contract_address)
                 .map_err(|e| ConsumerError::AddressParse(e.to_string()))?,
             provider.clone(),
         );
@@ -116,7 +142,7 @@ impl Server {
     pub async fn web3(
         &self,
     ) -> Arc<EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>>> {
-        self.web3.clone()
+        self.base_client.clone()
     }
 }
 

@@ -58,6 +58,8 @@ pub enum ConsumerError {
     Empty(String),
     #[error(transparent)]
     Envy(#[from] envy::Error),
+    #[error("Failed to resolve ENS data: {0}")]
+    Ens(String),
     #[error(transparent)]
     Hex(#[from] hex::FromHexError),
     #[error(transparent)]

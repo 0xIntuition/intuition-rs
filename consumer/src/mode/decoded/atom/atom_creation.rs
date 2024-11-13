@@ -109,7 +109,7 @@ impl AtomCreated {
                 .vault_id(U256Wrapper::from_str(&self.vaultID.to_string())?)
                 .value_id(U256Wrapper::from_str(&self.vaultID.to_string())?)
                 .data(self.atomData.to_string())
-                .atom_type(AtomType::Thing)
+                .atom_type(AtomType::Unknown)
                 .block_number(U256Wrapper::from_str(&event.block_number.to_string())?)
                 .block_timestamp(event.block_timestamp)
                 .transaction_hash(event.transaction_hash.clone())
@@ -136,15 +136,17 @@ impl AtomCreated {
 
         // decode the hex data from the atomData
         let decoded_atom_data = self.decode_data()?;
+
         // get the supported atom metadata
         let supported_atom_metadata =
-            get_supported_atom_metadata(&atom, &decoded_atom_data, pg_pool).await?;
-        // handle the account type, we need to create an `AtomValue` and an
-        // `Account` first
+            get_supported_atom_metadata(&mut atom, &decoded_atom_data, pg_pool).await?;
+
+        // Handle the account type
         supported_atom_metadata
-            .handle_account_type(pg_pool, &mut atom, &decoded_atom_data)
+            .handle_account_type(pg_pool, &atom, &decoded_atom_data)
             .await?;
-        // Update the atom metadata
+
+        // Update the atom metadata to reflect the supported atom type
         supported_atom_metadata
             .update_atom_metadata(&mut atom, pg_pool)
             .await?;
@@ -188,5 +190,35 @@ impl AtomCreated {
             .await?;
 
         Ok((vault, atom))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::mode::decoded::atom::atom_supported_types::try_to_resolve_schema_org_url;
+
+    #[tokio::test]
+    async fn test_try_to_resolve_schema_org_url() {
+        // Test valid schema.org URL
+        let result = try_to_resolve_schema_org_url("https://schema.org/Person")
+            .await
+            .unwrap();
+        assert_eq!(result, Some("Person".to_string()));
+
+        // Test valid schema.org URL with trailing slash
+        let result = try_to_resolve_schema_org_url("https://schema.org/Thing/")
+            .await
+            .unwrap();
+        assert_eq!(result, Some("Thing/".to_string()));
+
+        // Test invalid schema.org URL
+        let result = try_to_resolve_schema_org_url("not a schema url")
+            .await
+            .unwrap();
+        assert_eq!(result, None);
+
+        // Test empty string
+        let result = try_to_resolve_schema_org_url("").await.unwrap();
+        assert_eq!(result, None);
     }
 }

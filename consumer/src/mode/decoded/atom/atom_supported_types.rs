@@ -1,5 +1,5 @@
 use alloy::primitives::Address;
-use log::{info, warn};
+use log::info;
 use models::{
     account::{Account, AccountType},
     atom::{Atom, AtomType},
@@ -12,7 +12,7 @@ use std::str::FromStr;
 
 use crate::{error::ConsumerError, mode::decoded::utils::short_id};
 
-use super::atom_resolver::{try_to_parse_json, try_to_resolve_ipfs_uri};
+use super::atom_resolver::{try_to_parse_json, try_to_resolve_ipfs_uri, SCHEMA_ORG_CONTEXTS};
 
 /// Represents the metadata for an atom
 #[derive(Debug, Serialize, Deserialize)]
@@ -23,6 +23,13 @@ pub struct AtomMetadata {
 }
 
 impl AtomMetadata {
+    pub fn address(address: &str) -> Self {
+        Self {
+            label: short_id(address),
+            emoji: "⛓️".to_string(),
+            atom_type: "Account".to_string(),
+        }
+    }
     pub fn new(label: String, emoji: String, atom_type: String) -> Self {
         Self {
             label,
@@ -35,7 +42,7 @@ impl AtomMetadata {
     pub async fn handle_account_type(
         &self,
         pg_pool: &PgPool,
-        atom: &mut Atom,
+        atom: &Atom,
         decoded_atom_data: &str,
     ) -> Result<(), ConsumerError> {
         match AtomType::from_str(self.atom_type.as_str())? {
@@ -68,7 +75,7 @@ impl AtomMetadata {
     pub async fn create_account(
         &self,
         pg_pool: &PgPool,
-        atom_data: &mut Atom,
+        atom_data: &Atom,
         decoded_atom_data: &str,
     ) -> Result<(), ConsumerError> {
         if self.atom_type == "Account" {
@@ -90,9 +97,16 @@ impl AtomMetadata {
                 .await?;
         }
 
-        atom_data.atom_type = AtomType::from_str(self.atom_type.as_str())?;
-
         Ok(())
+    }
+
+    /// Returns an unknown atom metadata
+    pub fn unknown() -> Self {
+        Self {
+            label: "Unknown".to_string(),
+            emoji: "❓".to_string(),
+            atom_type: "Unknown".to_string(),
+        }
     }
 }
 
@@ -111,102 +125,104 @@ pub fn is_valid_address(address: &str) -> Result<bool, ConsumerError> {
     }
 }
 
-/// Gets the metadata for a supported atom type based on the atom data
+/// This function tries to resolve a schema.org URL from the atom data
+pub async fn try_to_resolve_schema_org_url(
+    atom_data: &str,
+) -> Result<Option<String>, ConsumerError> {
+    // check if the atom data contains a predefine string (schema.org/something)
+    if let Some(schema_org_url) = SCHEMA_ORG_CONTEXTS
+        .iter()
+        .find(|ctx| atom_data.starts_with(**ctx))
+        .map(|ctx| atom_data[ctx.len()..].trim_start_matches('/').to_string())
+    {
+        Ok(Some(schema_org_url))
+    } else {
+        Ok(None)
+    }
+}
+
+/// Gets the metadata for a supported atom type based on the atom data.
+/// So when we receive the the atom data, there are some situations
+/// we need to handle:
+/// 1. The atom data is a schema.org URL. This is the "happy path", since
+///    we can directly map it to an atom metadata and dont need to resolve
+///    anything.
+/// 2. The atom data is an address. This is also some sort of "happy path",
+///    since we can directly map it to an account and dont need to resolve
+///    anything.
+/// 3. The atom data is an IPFS URI. We need to fetch the data from IPFS
+///    and then resolve it. Keep in mind that if we are parsing an IPFS URI,
+///    we need to fetch the data from IPFS and then parse it as JSON.
+/// 4. The atom data is a JSON object. We need to resolve the properties
+///    of the JSON object and then map it to an atom.
 pub async fn get_supported_atom_metadata(
-    atom: &Atom,
+    atom: &mut Atom,
     decoded_atom_data: &str,
     pg_pool: &PgPool,
 ) -> Result<AtomMetadata, ConsumerError> {
-    // So when we receive the the atom data, there are some situations
-    // we need to handle:
-    // 1. The atom data is an address. This is the "happy path", since
-    //    we can directly map it to an account and dont need to resolve
-    //    anything.
-    // 2. The atom data is an IPFS URI. We need to fetch the data from IPFS
-    //    and then resolve it.
-    // 3. The atom data is a JSON object. We need to resolve the properties
-    //    of the JSON object and then map it to an atom.
-    // Keep in mind that if we are parsing an IPFS URI, we need to fetch
-    // the data from IPFS and then parse it as JSON.
-
-    // We need to keep track of the current state of the atom data
-    // because we might need to update it if we are resolving an IPFS URI
-    let mut current_atom_data_state: String = decoded_atom_data.to_string();
-
-    warn!("Current atom data state: {}", current_atom_data_state);
-    // Handling the happy path
-    if is_valid_address(&current_atom_data_state)? {
-        Ok(AtomMetadata::new(
-            short_id(&current_atom_data_state),
-            "⛓️".to_string(),
-            "Account".to_string(),
-        ))
+    // 1. Handling the happy path (schema.org URL, predicate)
+    if let Some(schema_org_url) = try_to_resolve_schema_org_url(decoded_atom_data).await? {
+        return Ok(get_predicate_metadata(schema_org_url));
     } else {
-        // Handle IPFS URIs
-        let data = try_to_resolve_ipfs_uri(&current_atom_data_state).await?;
-        // If we resolved an IPFS URI, we need to update the current state of the atom data
-        if let Some(data) = data {
-            current_atom_data_state = data;
-        }
+        info!("No schema.org URL found, verifying if atom data is an address...");
+    }
 
-        // Try to parse the JSON
-        match try_to_parse_json(&current_atom_data_state, atom, pg_pool).await {
-            Ok(json_data) => {
-                // If we resolved a JSON, we need to update the current state of the atom data
-                if let Some(json_data) = json_data {
-                    current_atom_data_state = json_data;
-                }
-            }
-            Err(e) => {
-                warn!(
-                    "Not able to parse {} into a JSON: {}",
-                    current_atom_data_state, e
-                );
-            }
-        }
-
-        let metadata = get_atom_metadata_from_str(current_atom_data_state);
+    // 2. Handling the happy path (address)
+    if is_valid_address(decoded_atom_data)? {
+        info!("Atom data is an address, returning account metadata...");
+        Ok(AtomMetadata::address(decoded_atom_data))
+    } else {
+        info!("Atom data is not an address, verifying if it's an IPFS URI...");
+        // 3. Handling IPFS URIs
+        let data = try_to_resolve_ipfs_uri(decoded_atom_data).await?;
+        // If we resolved an IPFS URI, we need to try to parse the JSON
+        let metadata = if let Some(data) = data {
+            info!("Atom data is an IPFS URI: {data}");
+            try_to_parse_json(&data, atom, pg_pool).await?
+        } else {
+            info!("No IPFS URI found, trying to parse atom data as JSON...");
+            // 4. This is the fallback case, where we try to parse the atom data as JSON
+            // even if it's not a valid IPFS URI. This is useful for cases where the
+            // atom data is a JSON object that is not a schema.org URL.
+            try_to_parse_json(decoded_atom_data, atom, pg_pool).await?
+        };
 
         Ok(metadata)
     }
 }
 
-pub fn get_atom_metadata_from_str(current_atom_data_state: String) -> AtomMetadata {
+pub fn get_predicate_metadata(current_atom_data_state: String) -> AtomMetadata {
     match current_atom_data_state.as_str() {
-        "https://schema.org/Person" => AtomMetadata {
+        "https://schema.org/Person" | "Person" => AtomMetadata {
             label: "is person".to_string(),
             emoji: "👤".to_string(),
             atom_type: "PersonPredicate".to_string(),
         },
-        "https://schema.org/Thing" => AtomMetadata {
+        "https://schema.org/Thing" | "Thing" => AtomMetadata {
             label: "is thing".to_string(),
             emoji: "🧩".to_string(),
             atom_type: "ThingPredicate".to_string(),
         },
-        "https://schema.org/Organization" => AtomMetadata {
+        "https://schema.org/Organization" | "Organization" => AtomMetadata {
             label: "is organization".to_string(),
             emoji: "🏢".to_string(),
             atom_type: "OrganizationPredicate".to_string(),
         },
-        "https://schema.org/keywords" => AtomMetadata {
+        "https://schema.org/keywords" | "Keywords" => AtomMetadata {
             label: "has tag".to_string(),
             emoji: "🏷️".to_string(),
             atom_type: "Keywords".to_string(),
         },
-        "https://schema.org/LikeAction" => AtomMetadata {
+        "https://schema.org/LikeAction" | "LikeAction" => AtomMetadata {
             label: "like".to_string(),
             emoji: "👍".to_string(),
             atom_type: "LikeAction".to_string(),
         },
-        "https://schema.org/FollowAction" => AtomMetadata {
+        "https://schema.org/FollowAction" | "FollowAction" => AtomMetadata {
             label: "follow".to_string(),
             emoji: "🔔".to_string(),
             atom_type: "FollowAction".to_string(),
         },
-        _ => AtomMetadata {
-            label: "Unknown".to_string(),
-            emoji: "❓".to_string(),
-            atom_type: "Unknown".to_string(),
-        },
+        _ => AtomMetadata::unknown(),
     }
 }
