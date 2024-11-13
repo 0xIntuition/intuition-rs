@@ -1,6 +1,48 @@
-actions: []
+actions:
+  - name: pinThing
+    definition:
+      kind: synchronous
+      handler: https://api.pinata.cloud/pinning/pinJSONToIPFS
+      headers:
+        - name: Content-Type
+          value: application/json
+        - name: Authorization
+          value_from_env: PINATA_AUTH
+      request_transform:
+        body:
+          action: transform
+          template: |-
+            {
+              "pinataOptions": {
+                "cidVersion": 1
+              },
+              "pinataContent": {
+                "@context": "https://schema.org",
+                "@type": "Thing",
+                "name": "{{$body.input.thing.name}}",
+                "description": "{{$body.input.thing.description}}",
+                "image": "{{$body.input.thing.image}}",
+                "url": "{{$body.input.thing.url}}"
+              }
+            }
+        template_engine: Kriti
+        version: 2
+      response_transform:
+        body:
+          action: transform
+          template: |-
+            {
+            "uri": "ipfs://{{$body.IpfsHash}}"
+            }
+        template_engine: Kriti
+        version: 2
+    permissions:
+      - role: anonymous
+    comment: Uploads Thing to IPFS
 custom_types:
   enums: []
-  input_objects: []
-  objects: []
+  input_objects:
+    - name: PinThingInput
+  objects:
+    - name: PinThingOutput
   scalars: []

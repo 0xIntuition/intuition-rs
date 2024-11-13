@@ -1,0 +1,17 @@
+type Mutation {
+  pinThing(
+    thing: PinThingInput!
+  ): PinThingOutput
+}
+
+input PinThingInput {
+  name: String
+  description: String
+  image: String
+  url: String
+}
+
+type PinThingOutput {
+  uri: String
+}
+
