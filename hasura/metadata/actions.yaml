@@ -38,11 +38,96 @@ actions:
         version: 2
     permissions:
       - role: anonymous
-    comment: Uploads Thing to IPFS
+    comment: Uploads and pins Thing to IPFS
+  - name: pinPerson
+    definition:
+      kind: synchronous
+      handler: https://api.pinata.cloud/pinning/pinJSONToIPFS
+      headers:
+        - name: Content-Type
+          value: application/json
+        - name: Authorization
+          value_from_env: PINATA_AUTH
+      request_transform:
+        body:
+          action: transform
+          template: |-
+            {
+              "pinataOptions": {
+                "cidVersion": 1
+              },
+              "pinataContent": {
+                "@context": "https://schema.org",
+                "@type": "Person",
+                "identifier": "{{$body.input.person.identifier}}",
+                "name": "{{$body.input.person.name}}",
+                "description": "{{$body.input.person.description}}",
+                "image": "{{$body.input.person.image}}",
+                "url": "{{$body.input.person.url}}",
+                "email": "{{$body.input.person.email}}"
+              }
+            }
+        template_engine: Kriti
+        version: 2
+      response_transform:
+        body:
+          action: transform
+          template: |-
+            {
+            "uri": "ipfs://{{$body.IpfsHash}}"
+            }
+        template_engine: Kriti
+        version: 2
+    permissions:
+      - role: anonymous
+    comment: Uploads and pins Person to IPFS
+  - name: pinOrganization
+    definition:
+      kind: synchronous
+      handler: https://api.pinata.cloud/pinning/pinJSONToIPFS
+      headers:
+        - name: Content-Type
+          value: application/json
+        - name: Authorization
+          value_from_env: PINATA_AUTH
+      request_transform:
+        body:
+          action: transform
+          template: |-
+            {
+              "pinataOptions": {
+                "cidVersion": 1
+              },
+              "pinataContent": {
+                "@context": "https://schema.org",
+                "@type": "Organization",
+                "name": "{{$body.input.organization.name}}",
+                "description": "{{$body.input.organization.description}}",
+                "image": "{{$body.input.organization.image}}",
+                "url": "{{$body.input.organization.url}}",
+                "email": "{{$body.input.organization.email}}"
+              }
+            }
+        template_engine: Kriti
+        version: 2
+      response_transform:
+        body:
+          action: transform
+          template: |-
+            {
+            "uri": "ipfs://{{$body.IpfsHash}}"
+            }
+        template_engine: Kriti
+        version: 2
+    permissions:
+      - role: anonymous
+    comment: Uploads and pins Organization to IPFS
 custom_types:
   enums: []
   input_objects:
     - name: PinThingInput
+    - name: PinPersonInput
+    - name: PinOrganizationInput
   objects:
-    - name: PinThingOutput
+    - name: PinOutput
   scalars: []
