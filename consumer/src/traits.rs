@@ -1,14 +1,6 @@
-use crate::{
-    config::IndexerSource, error::ConsumerError, mode::types::ConsumerMode,
-    schemas::goldsky::RawMessage, ENSRegistry::ENSRegistryInstance,
-    EthMultiVault::EthMultiVaultInstance,
-};
-use alloy::{providers::RootProvider, transports::http::Http};
+use crate::{error::ConsumerError, mode::types::ConsumerMode, schemas::goldsky::RawMessage};
 use async_trait::async_trait;
 use aws_sdk_sqs::{operation::receive_message::ReceiveMessageOutput, types::Message};
-use reqwest::Client;
-use sqlx::PgPool;
-use std::sync::Arc;
 
 /// This is a generic trait for Consumers. It contains all of the
 /// basic methods to provide basic functionality.

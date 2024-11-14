@@ -4,7 +4,6 @@ use app_context::Server;
 use clap::Parser;
 use error::ConsumerError;
 use serde::{Deserialize, Serialize};
-use traits::BasicConsumer;
 
 mod app_context;
 mod config;
@@ -48,7 +47,7 @@ sol! {
 #[derive(Parser, Clone, Debug)]
 pub struct ConsumerArgs {
     #[arg(short, long)]
-    mode: Option<String>,
+    mode: String,
 }
 
 /// This is the main function that starts the consumer. It reads the `.env`

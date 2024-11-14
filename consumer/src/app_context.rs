@@ -37,9 +37,7 @@ impl Server {
 
     /// Build the server
     pub async fn new(data: ServerInitialize) -> Result<Self, ConsumerError> {
-        let consumer_mode =
-            ConsumerMode::from_str(data.args.mode.clone().unwrap_or_default().as_str(), data)
-                .await?;
+        let consumer_mode = ConsumerMode::from_str(data).await?;
 
         Ok(Self { consumer_mode })
     }

@@ -46,21 +46,17 @@ pub enum ConsumerMode {
 }
 
 impl ConsumerMode {
-    /// Builds the alloy client for the Intuition contract
-    fn build_intuition_client(
-        rpc_url: &str,
-        contract_address: &str,
-    ) -> Result<EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>>, ConsumerError>
-    {
-        let provider = ProviderBuilder::new().on_http(rpc_url.parse()?);
-
-        let alloy_contract = EthMultiVault::new(
-            Address::from_str(contract_address)
-                .map_err(|e| ConsumerError::AddressParse(e.to_string()))?,
-            provider.clone(),
-        );
-
-        Ok(alloy_contract)
+    /// This function builds the client based on the consumer type
+    async fn build_client(
+        data: ServerInitialize,
+        input_queue: String,
+        output_queue: String,
+    ) -> Result<Arc<dyn BasicConsumer>, ConsumerError> {
+        match ConsumerType::from_str(&data.env.consumer_type)? {
+            ConsumerType::Sqs => Ok(Arc::new(
+                Sqs::new(input_queue, output_queue, data.env.localstack_url.clone()).await,
+            )),
+        }
     }
 
     /// Builds the alloy client for the ENS contract
@@ -79,60 +75,83 @@ impl ConsumerMode {
         Ok(alloy_contract)
     }
 
+    /// Builds the alloy client for the Intuition contract
+    fn build_intuition_client(
+        rpc_url: &str,
+        contract_address: &str,
+    ) -> Result<EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>>, ConsumerError>
+    {
+        let provider = ProviderBuilder::new().on_http(rpc_url.parse()?);
+
+        let alloy_contract = EthMultiVault::new(
+            Address::from_str(contract_address)
+                .map_err(|e| ConsumerError::AddressParse(e.to_string()))?,
+            provider.clone(),
+        );
+
+        Ok(alloy_contract)
+    }
+
+    /// This function creates a decoded consumer
+    async fn create_decoded_consumer(
+        data: ServerInitialize,
+        pg_pool: PgPool,
+    ) -> Result<ConsumerMode, ConsumerError> {
+        let base_client = Arc::new(Self::build_intuition_client(
+            &data.env.rpc_url_base_mainnet,
+            &data.env.intuition_contract_address,
+        )?);
+        let mainnet_client = Arc::new(Self::build_ens_client(
+            &data.env.rpc_url_mainnet,
+            &data.env.ens_contract_address,
+        )?);
+        let client = Self::build_client(
+            data.clone(),
+            data.env.decoded_logs_queue_url.clone(),
+            data.env.decoded_logs_queue_url.clone(),
+        )
+        .await?;
+
+        Ok(ConsumerMode::Decoded(DecodedConsumerContext {
+            base_client,
+            client,
+            mainnet_client,
+            pg_pool,
+        }))
+    }
+
+    /// This function creates a raw consumer
+    async fn create_raw_consumer(
+        data: ServerInitialize,
+        pg_pool: PgPool,
+    ) -> Result<ConsumerMode, ConsumerError> {
+        let indexing_source = match IndexerSource::from_str(&data.env.indexing_source)? {
+            IndexerSource::GoldSky => Arc::new(IndexerSource::GoldSky),
+            IndexerSource::Substreams => Arc::new(IndexerSource::Substreams),
+        };
+
+        let client = Self::build_client(
+            data.clone(),
+            data.env.raw_consumer_queue_url.clone(),
+            data.env.decoded_logs_queue_url.clone(),
+        )
+        .await?;
+
+        Ok(ConsumerMode::Raw(RawConsumerContext {
+            client,
+            pg_pool,
+            indexing_source,
+        }))
+    }
+
     /// We need to implement this convenience so we can transform
     /// the [`String`] received by the CLI into an actual [`ConsumerMode`]
-    pub async fn from_str(
-        input: &str,
-        data: ServerInitialize,
-    ) -> Result<ConsumerMode, ConsumerError> {
-        match input {
-            "Raw" | "raw" | "RAW" => {
-                let input_queue = data.env.raw_consumer_queue_url.clone();
-                let output_queue = data.env.decoded_logs_queue_url.clone();
-                let pg_pool = connect_to_db(&data.env).await?;
+    pub async fn from_str(data: ServerInitialize) -> Result<ConsumerMode, ConsumerError> {
+        let pg_pool = connect_to_db(&data.env).await?;
 
-                let indexing_source = match IndexerSource::from_str(&data.env.indexing_source)? {
-                    IndexerSource::GoldSky => Arc::new(IndexerSource::GoldSky),
-                    IndexerSource::Substreams => Arc::new(IndexerSource::Substreams),
-                };
-
-                let client = match ConsumerType::from_str(&data.env.consumer_type)? {
-                    ConsumerType::Sqs => Arc::new(
-                        Sqs::new(input_queue, output_queue, data.env.localstack_url.clone()).await,
-                    ),
-                };
-
-                Ok(ConsumerMode::Raw(RawConsumerContext {
-                    client,
-                    pg_pool,
-                    indexing_source,
-                }))
-            }
-            "Decoded" | "decoded" | "DECODED" => {
-                let base_client = Arc::new(Self::build_intuition_client(
-                    &data.env.rpc_url_base_mainnet,
-                    &data.env.intuition_contract_address,
-                )?);
-                let mainnet_client = Arc::new(Self::build_ens_client(
-                    &data.env.rpc_url_mainnet,
-                    &data.env.ens_contract_address,
-                )?);
-                let input_queue = data.env.decoded_logs_queue_url.clone();
-                let output_queue = data.env.decoded_logs_queue_url.clone();
-                let client = match ConsumerType::from_str(&data.env.consumer_type)? {
-                    ConsumerType::Sqs => Arc::new(
-                        Sqs::new(input_queue, output_queue, data.env.localstack_url.clone()).await,
-                    ),
-                };
-
-                let pg_pool = connect_to_db(&data.env).await?;
-                Ok(ConsumerMode::Decoded(DecodedConsumerContext {
-                    base_client,
-                    client,
-                    mainnet_client,
-                    pg_pool,
-                }))
-            }
+        match data.args.mode.as_str() {
+            "Raw" | "raw" | "RAW" => Self::create_raw_consumer(data, pg_pool).await,
+            "Decoded" | "decoded" | "DECODED" => Self::create_decoded_consumer(data, pg_pool).await,
             _ => Err(ConsumerError::UnsuportedMode),
         }
     }
