@@ -40,30 +40,45 @@ impl AtomMetadata {
     }
 
     /// Creates an account and an atom value
-    pub async fn create_account(
+    pub async fn create_account_and_atom_value(
         &self,
         pg_pool: &PgPool,
         atom_data: &Atom,
         decoded_atom_data: &str,
     ) -> Result<(), ConsumerError> {
-        if self.atom_type == "Account" {
-            // Create the account first
-            let account = Account::builder()
-                .id(decoded_atom_data)
-                .atom_id(atom_data.id.clone())
-                .label(short_id(decoded_atom_data))
-                .account_type(AccountType::Default)
-                .build()
-                .upsert(pg_pool)
-                .await?;
-            // create an AtomValue
-            AtomValue::builder()
-                .id(atom_data.vault_id.clone())
-                .account_id(account.id.clone())
-                .build()
-                .upsert(pg_pool)
-                .await?;
+        if self.atom_type != "Account" {
+            return Ok(());
         }
+
+        let account = match Account::find_by_id(decoded_atom_data.to_string(), pg_pool).await? {
+            Some(account) => account,
+            None => {
+                Account::builder()
+                    .id(decoded_atom_data)
+                    .atom_id(atom_data.id.clone())
+                    .label(short_id(decoded_atom_data))
+                    .account_type(AccountType::Default)
+                    .build()
+                    .upsert(pg_pool)
+                    .await?
+            }
+        };
+
+        // Skip if atom value already exists
+        if AtomValue::find_by_id(atom_data.vault_id.clone(), pg_pool)
+            .await?
+            .is_some()
+        {
+            info!("Atom value already exists, skipping...");
+            return Ok(());
+        }
+
+        AtomValue::builder()
+            .id(atom_data.vault_id.clone())
+            .account_id(account.id)
+            .build()
+            .upsert(pg_pool)
+            .await?;
 
         Ok(())
     }
@@ -85,7 +100,10 @@ impl AtomMetadata {
         decoded_atom_data: &str,
     ) -> Result<(), ConsumerError> {
         match AtomType::from_str(self.atom_type.as_str())? {
-            AtomType::Account => self.create_account(pg_pool, atom, decoded_atom_data).await,
+            AtomType::Account => {
+                self.create_account_and_atom_value(pg_pool, atom, decoded_atom_data)
+                    .await
+            }
 
             _ => {
                 info!(

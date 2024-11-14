@@ -57,7 +57,10 @@ pub async fn get_or_create_account(
 
         Account::builder()
             .id(id.clone())
-            .label(ens.name.unwrap_or_else(|| short_id(&id)))
+            .label(match &ens.name {
+                Some(name) => name.clone(),
+                None => short_id(&id),
+            })
             .image(ens.image.unwrap_or_default())
             .account_type(AccountType::Default)
             .build()
