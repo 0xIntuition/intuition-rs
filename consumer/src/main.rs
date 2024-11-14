@@ -28,17 +28,15 @@ sol!(
     #[derive(Debug, Deserialize, Serialize)]
     #[allow(missing_docs)]
     #[sol(rpc)]
-    ENSRegistry,
-    "contracts/ENSRegistry.json"
+    interface ENSRegistry {
+        function resolver(bytes32 node) external view returns (address);
+    }
 );
 
 sol! {
     #[allow(missing_docs)]
     #[sol(rpc)]
-    interface D3Connect {
-        // abi: parseAbi(['function name(bytes32 node) external view returns (string)',]),
-        function resolve(string name, string network) view returns (address);
-        function reverseResolve(address addr, string network) view returns (string);
+    interface ENSName {
         function name(bytes32 node) external view returns (string);
     }
 }

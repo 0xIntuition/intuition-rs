@@ -4,7 +4,6 @@ version = "0.11.0"
 edition = "2021"
 
 [dependencies]
-alloy-ccip-read = "0.3.0"
 clap = { version = "4.4.7", features = ["derive"] }
 hex = "0.4.3"
 reqwest = "0.12.8"

@@ -1,23 +1,11 @@
-use std::str::FromStr;
-
+use crate::{error::ConsumerError, ENSName::ENSNameInstance, ENSRegistry::ENSRegistryInstance};
 use alloy::{
-    contract::{ContractInstance, Interface},
-    json_abi::{Function, JsonAbi, Param, StateMutability},
-    network::Ethereum,
-    primitives::{keccak256, Address, Bytes, FixedBytes, TxKind},
-    providers::{Provider, ProviderBuilder, RootProvider},
-    rpc::types::{TransactionInput, TransactionRequest},
+    primitives::{keccak256, Address, FixedBytes},
+    providers::RootProvider,
     transports::http::Http,
 };
-use alloy_ccip_read::CCIPReader;
 use log::info;
 use reqwest::Client;
-
-use crate::{
-    error::ConsumerError,
-    D3Connect::{self, D3ConnectInstance},
-    ENSRegistry::ENSRegistryInstance,
-};
 
 /// This struct represents the ENS name and avatar for an address.
 #[derive(Debug)]
@@ -60,7 +48,6 @@ pub async fn get_ens_name(
     info!("Getting ENS name for {}", address);
     let addr_str = address.to_string().to_lowercase();
     let name = format!("{}.addr.reverse", addr_str.trim_start_matches("0x"));
-    // let node = hex::encode(namehash(&name));
 
     let resolver_address = mainnet_client
         .resolver(FixedBytes::from_slice(namehash(&name).as_slice()))
@@ -68,7 +55,6 @@ pub async fn get_ens_name(
         .await?
         ._0;
 
-    info!("Resolver address: {:?}", resolver_address);
     if resolver_address == Address::ZERO {
         info!("No resolver found for {}", address);
         return Ok(None);
@@ -76,95 +62,17 @@ pub async fn get_ens_name(
 
     info!("Resolver found for {}: {}", address, resolver_address);
 
-    let provider = ProviderBuilder::new()
-        .on_http("https://eth-mainnet.g.alchemy.com/v2/qqDU-DK2v3BXXNVwrIs4oECQXQMPKXW0".parse()?);
-
-    let alloy_contract = D3ConnectInstance::new(resolver_address, provider.clone());
+    let alloy_contract = ENSNameInstance::new(resolver_address, mainnet_client.provider());
 
     let name = alloy_contract
         .name(FixedBytes::from_slice(namehash(&name).as_slice()))
         .call()
         .await?
         ._0;
-    println!("Name: {:?}", name);
-    // let reader = CCIPReader::new(provider.boxed());
 
-    // let call = D3Connect::reverseResolveCall {
-    //     addr: resolver_address,
-    //     network: "".into(),
-    // };
+    info!("ResolvedENS name: {:?}", name);
 
-    // println!("Caling ccip");
-
-    // let name = alloy_ccip_read::ens::query_resolver_non_wildcarded(&reader, resolver_address, call)
-    //     .await
-    //     .map_err(|e| ConsumerError::Ens(e.to_string()))?
-    //     .map(|name| name._0);
-
-    // ccip_read_used |= name.ccip_read_used();
-
-    // let name = alloy_ccip_read::ens::query_resolver_non_wildcarded(
-    //     &reader,
-    //     resolver_address,
-    //     namehash(&name),
-    // )
-    // .await
-    // .map_err(|e| ConsumerError::Ens(e.to_string()))?;
-
-    // let contract: ContractInstance<Http<Client>, _, Ethereum> = ContractInstance::new(
-    //     resolver_address,
-    //     Interface::new(JsonAbi::new(vec![Function {
-    //         name: "name".to_string(),
-    //         inputs: vec![Param {
-    //             name: "bytes32".to_string(),
-    //             components: vec![],
-    //             internal_type: None,
-    //             ty: "bytes32".to_string(),
-    //         }],
-    //         outputs: vec![Param {
-    //             name: "string".to_string(),
-    //             components: vec![],
-    //             internal_type: None,
-    //             ty: "string".to_string(),
-    //         }],
-    //         constant: None,
-    //         state_mutability: StateMutability::View,
-    //     }])),
-    //     provider,
-    // );
-
-    // // let name = mainnet_client.(resolver_address, node).call().await?._0;
-
-    // Create transaction request to call 'name(bytes32)' function
-    // Takes the first 4 bytes of the keccak256 hash of "name(bytes32)" to create the function selector
-    // This is how Ethereum identifies which function to call on a contract
-    // let name_selector = keccak256(b"name(bytes32)")[..4].to_vec();
-    // let call_data = [name_selector, namehash(&name)].concat();
-
-    // let request = TransactionRequest::default()
-    //     .to(resolver_address)
-    //     .input(TransactionInput::new(Bytes::from(call_data)));
-
-    // let name = provider
-    //     .send_transaction(request)
-    //     .await
-    //     .map_err(|e| ConsumerError::Ens(e.to_string()))?
-    //     .get_receipt()
-    //     .await
-    //     .map_err(|e| ConsumerError::Ens(e.to_string()))?;
-
-    info!("Name: {:?}", name);
-    // Decode the result - ENS names are ABI-encoded strings
-    // if name.serialize()?.to_string().is_empty() {
-    //     return Ok(None);
-    // }
-
-    // Skip first 32 bytes (length offset) and next 32 bytes (string length)
-    // let name_str =
-    //     String::from_utf8(name.[64..].to_vec()).map_err(|e| ConsumerError::Ens(e.to_string()))?;
-    let name_str = name;
-
-    Ok(Some(name_str))
+    Ok(Some(name))
 }
 
 /// Gets the ENS avatar URL for a given name
