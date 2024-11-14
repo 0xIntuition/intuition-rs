@@ -40,32 +40,44 @@ pub async fn get_ens(
     Ok(Ens { name, image })
 }
 
-/// This function gets the ENS name for an address.
-pub async fn get_ens_name(
-    address: Address,
-    mainnet_client: &ENSRegistryInstance<Http<Client>, RootProvider<Http<Client>>>,
-) -> Result<Option<String>, ConsumerError> {
-    info!("Getting ENS name for {}", address);
+/// This function prepares the name for the ENS resolver.
+fn prepare_name(address: Address) -> String {
     let addr_str = address.to_string().to_lowercase();
-    let name = format!("{}.addr.reverse", addr_str.trim_start_matches("0x"));
+    format!("{}.addr.reverse", addr_str.trim_start_matches("0x"))
+}
 
+/// This function gets the resolver address for an address hash.
+async fn get_resolver_address(
+    address: Address,
+    address_hash: &[u8],
+    mainnet_client: &ENSRegistryInstance<Http<Client>, RootProvider<Http<Client>>>,
+) -> Result<Address, ConsumerError> {
     let resolver_address = mainnet_client
-        .resolver(FixedBytes::from_slice(namehash(&name).as_slice()))
+        .resolver(FixedBytes::from_slice(address_hash))
         .call()
         .await?
         ._0;
 
     if resolver_address == Address::ZERO {
         info!("No resolver found for {}", address);
-        return Ok(None);
+    } else {
+        info!("Resolver found for {}: {}", address, resolver_address);
     }
 
-    info!("Resolver found for {}: {}", address, resolver_address);
+    Ok(resolver_address)
+}
+/// This function gets the ENS name for an address.
+pub async fn get_ens_name(
+    address: Address,
+    mainnet_client: &ENSRegistryInstance<Http<Client>, RootProvider<Http<Client>>>,
+) -> Result<Option<String>, ConsumerError> {
+    info!("Getting ENS name for {}", address);
+    let address_hash = namehash(&prepare_name(address));
+    let resolver_address = get_resolver_address(address, &address_hash, mainnet_client).await?;
 
     let alloy_contract = ENSNameInstance::new(resolver_address, mainnet_client.provider());
-
     let name = alloy_contract
-        .name(FixedBytes::from_slice(namehash(&name).as_slice()))
+        .name(FixedBytes::from_slice(address_hash.as_slice()))
         .call()
         .await?
         ._0;
