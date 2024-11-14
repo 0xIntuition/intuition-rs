@@ -9,9 +9,6 @@ pub async fn fetch_from_ipfs(cid: &str) -> Result<String, ConsumerError> {
     let gateway_url = env::var("IPFS_GATEWAY_URL")
         .map_err(|_| ConsumerError::Ipfs("IPFS_GATEWAY_URL not set".into()))?;
 
-    let pinata_token = env::var("PINATA_GATEWAY_TOKEN")
-        .map_err(|_| ConsumerError::Ipfs("PINATA_GATEWAY_TOKEN not set".into()))?;
-
     let url = format!("{}/ipfs/{}", gateway_url, cid);
 
     let client = Client::new();
@@ -20,7 +17,6 @@ pub async fn fetch_from_ipfs(cid: &str) -> Result<String, ConsumerError> {
         attempts += 1;
         match client
             .get(&url)
-            .header("x-pinata-gateway-token", &pinata_token)
             .timeout(Duration::from_millis(3000))
             .send()
             .await
