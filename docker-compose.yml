@@ -127,7 +127,7 @@ services:
         ipfs config --json Pinning.RemoteServices '[\"Pinata\"]';
 
         # Configure policy to automatically pin all files to Pinata (MFS policy)
-        ipfs config --json Pinning.RemoteServices.Pinata.Policies '{\"MFS\":{\"Enable\": true,\"PinName\": \"\",\"RepinInterval\": \"1m\"}}';
+        ipfs config --json Pinning.RemoteServices.Pinata.Policies '{\"MFS\":{\"Enable\": false,\"PinName\": \"\",\"RepinInterval\": \"1m\"}}';
 
         # Add Peering to Pinata (optional)
         ipfs config --json Peering.Peers '[{\"ID\": \"Qma8ddFEQWEU8ijWvdxXm3nxU7oHsRtCykAaVz8WUYhiKn\", \"Addrs\": [\"/dnsaddr/bitswap.pinata.cloud\"]}]';
