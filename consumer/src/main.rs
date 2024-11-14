@@ -4,6 +4,7 @@ use app_context::Server;
 use clap::Parser;
 use error::ConsumerError;
 use serde::{Deserialize, Serialize};
+use traits::BasicConsumer;
 
 mod app_context;
 mod config;
@@ -33,6 +34,7 @@ sol!(
     }
 );
 
+// Codegen from ABI file to interact with the ENSName contract.
 sol! {
     #[allow(missing_docs)]
     #[sol(rpc)]
@@ -59,14 +61,5 @@ async fn main() -> Result<(), ConsumerError> {
     // Build the server with the basic context
     let server = Server::new(init).await?;
     // Start processing messages
-    server
-        .consumer()
-        .process_messages(
-            server.consumer_mode(),
-            &server.pg_pool(),
-            server.base_client().await,
-            server.mainnet_client().await,
-            server.indexing_source(),
-        )
-        .await
+    server.consumer_mode().process_messages().await
 }
