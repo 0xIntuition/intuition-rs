@@ -75,16 +75,18 @@ pub async fn get_ens_name(
     let address_hash = namehash(&prepare_name(address));
     let resolver_address = get_resolver_address(address, &address_hash, mainnet_client).await?;
 
-    let alloy_contract = ENSNameInstance::new(resolver_address, mainnet_client.provider());
-    let name = alloy_contract
-        .name(FixedBytes::from_slice(address_hash.as_slice()))
-        .call()
-        .await?
-        ._0;
-
-    info!("ResolvedENS name: {:?}", name);
-
-    Ok(Some(name))
+    if resolver_address != Address::ZERO {
+        let alloy_contract = ENSNameInstance::new(resolver_address, mainnet_client.provider());
+        let name = alloy_contract
+            .name(FixedBytes::from_slice(address_hash.as_slice()))
+            .call()
+            .await?
+            ._0;
+        info!("ResolvedENS name: {:?}", name);
+        Ok(Some(name))
+    } else {
+        Ok(None)
+    }
 }
 
 /// Gets the ENS avatar URL for a given name
