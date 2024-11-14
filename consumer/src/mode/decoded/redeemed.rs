@@ -2,6 +2,7 @@ use super::utils::get_or_create_account;
 use crate::{
     error::ConsumerError,
     schemas::types::DecodedMessage,
+    ENSRegistry::ENSRegistryInstance,
     EthMultiVault::{EthMultiVaultInstance, Redeemed},
 };
 use alloy::{
@@ -162,11 +163,14 @@ impl Redeemed {
         &self,
         pg_pool: &PgPool,
         web3: &EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>>,
+        mainnet_client: &ENSRegistryInstance<Http<Client>, RootProvider<Http<Client>>>,
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
         // 1. Set up accounts
-        let sender_account = get_or_create_account(pg_pool, self.sender.to_string()).await?;
-        let receiver_account = get_or_create_account(pg_pool, self.receiver.to_string()).await?;
+        let sender_account =
+            get_or_create_account(pg_pool, self.sender.to_string(), mainnet_client).await?;
+        let receiver_account =
+            get_or_create_account(pg_pool, self.receiver.to_string(), mainnet_client).await?;
 
         // 2. Create redemption record
         let redemption = self

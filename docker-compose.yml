@@ -3,6 +3,21 @@ networks:
     driver: bridge
 
 services:
+  enstate:
+    image: ghcr.io/v3xlabs/enstate:1.0.7-9
+    ports:
+      - 3000:3000
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - RPC_URL=https://eth-mainnet.g.alchemy.com/v2/qqDU-DK2v3BXXNVwrIs4oECQXQMPKXW0
+      - OPENSEA_API_KEY=
+      - UNIVERSAL_RESOLVER=0x74E20Bd2A1fE0cdbe45b9A1d89cb7e0a45b36376
+    depends_on:
+      - redis
+  redis:
+    image: redis:6.2.5-alpine
+    ports:
+        - 6379:6379
   database:
     container_name: database
     image: postgres

@@ -14,7 +14,7 @@ mod schemas;
 mod traits;
 mod utils;
 
-// Codegen from ABI file to interact with the contract.
+// Codegen from ABI file to interact with the Intuition contract.
 sol!(
     #[derive(Debug, Deserialize, Serialize)]
     #[allow(missing_docs)]
@@ -22,6 +22,26 @@ sol!(
     EthMultiVault,
     "contracts/EthMultiVault.json"
 );
+
+// Codegen from ABI file to interact with the ENS contract.
+sol!(
+    #[derive(Debug, Deserialize, Serialize)]
+    #[allow(missing_docs)]
+    #[sol(rpc)]
+    ENSRegistry,
+    "contracts/ENSRegistry.json"
+);
+
+sol! {
+    #[allow(missing_docs)]
+    #[sol(rpc)]
+    interface D3Connect {
+        // abi: parseAbi(['function name(bytes32 node) external view returns (string)',]),
+        function resolve(string name, string network) view returns (address);
+        function reverseResolve(address addr, string network) view returns (string);
+        function name(bytes32 node) external view returns (string);
+    }
+}
 
 /// The current supported CLI parameters are listed below.
 /// Each consumer needs to connect to a queue in a region
@@ -46,7 +66,8 @@ async fn main() -> Result<(), ConsumerError> {
         .process_messages(
             server.consumer_mode(),
             &server.pg_pool(),
-            server.web3().await,
+            server.base_client().await,
+            server.mainnet_client().await,
             server.indexing_source(),
         )
         .await

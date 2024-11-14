@@ -1,3 +1,5 @@
+use super::atom_resolver::{try_to_parse_json, try_to_resolve_ipfs_uri, SCHEMA_ORG_CONTEXTS};
+use crate::{error::ConsumerError, mode::decoded::utils::short_id};
 use alloy::primitives::Address;
 use log::info;
 use models::{
@@ -10,10 +12,6 @@ use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use std::str::FromStr;
 
-use crate::{error::ConsumerError, mode::decoded::utils::short_id};
-
-use super::atom_resolver::{try_to_parse_json, try_to_resolve_ipfs_uri, SCHEMA_ORG_CONTEXTS};
-
 /// Represents the metadata for an atom
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AtomMetadata {
@@ -23,6 +21,7 @@ pub struct AtomMetadata {
 }
 
 impl AtomMetadata {
+    /// Creates a new atom metadata for an address
     pub fn address(address: &str) -> Self {
         Self {
             label: short_id(address),
@@ -30,45 +29,14 @@ impl AtomMetadata {
             atom_type: "Account".to_string(),
         }
     }
-    pub fn new(label: String, emoji: String, atom_type: String) -> Self {
+
+    /// Creates a new atom metadata for a book
+    pub fn book(name: String) -> Self {
         Self {
-            label,
-            emoji,
-            atom_type,
+            label: name,
+            emoji: "📚".to_string(),
+            atom_type: "Book".to_string(),
         }
-    }
-
-    /// Stores the atom data in the database based on the atom type
-    pub async fn handle_account_type(
-        &self,
-        pg_pool: &PgPool,
-        atom: &Atom,
-        decoded_atom_data: &str,
-    ) -> Result<(), ConsumerError> {
-        match AtomType::from_str(self.atom_type.as_str())? {
-            AtomType::Account => self.create_account(pg_pool, atom, decoded_atom_data).await,
-
-            _ => {
-                info!(
-                    "This atom type is updated at the end of processing: {}",
-                    self.atom_type
-                );
-                Ok(())
-            }
-        }
-    }
-
-    /// Updates the atom metadata
-    pub async fn update_atom_metadata(
-        &self,
-        atom: &mut Atom,
-        pg_pool: &PgPool,
-    ) -> Result<(), ConsumerError> {
-        atom.emoji = Some(self.emoji.clone());
-        atom.atom_type = AtomType::from_str(&self.atom_type)?;
-        atom.label = Some(self.label.clone());
-        atom.upsert(pg_pool).await?;
-        Ok(())
     }
 
     /// Creates an account and an atom value
@@ -100,6 +68,106 @@ impl AtomMetadata {
         Ok(())
     }
 
+    /// Creates a new atom metadata for a follow action
+    pub fn follow_action() -> Self {
+        Self {
+            label: "follow".to_string(),
+            emoji: "🔔".to_string(),
+            atom_type: "FollowAction".to_string(),
+        }
+    }
+
+    /// Stores the atom data in the database based on the atom type
+    pub async fn handle_account_type(
+        &self,
+        pg_pool: &PgPool,
+        atom: &Atom,
+        decoded_atom_data: &str,
+    ) -> Result<(), ConsumerError> {
+        match AtomType::from_str(self.atom_type.as_str())? {
+            AtomType::Account => self.create_account(pg_pool, atom, decoded_atom_data).await,
+
+            _ => {
+                info!(
+                    "This atom type is updated at the end of processing: {}",
+                    self.atom_type
+                );
+                Ok(())
+            }
+        }
+    }
+    /// Creates a new atom metadata for a keywords predicate
+    pub fn keywords_predicate() -> Self {
+        Self {
+            label: "has tag".to_string(),
+            emoji: "🏷️".to_string(),
+            atom_type: "Keywords".to_string(),
+        }
+    }
+
+    /// Creates a new atom metadata for a like action
+    pub fn like_action() -> Self {
+        Self {
+            label: "like".to_string(),
+            emoji: "👍".to_string(),
+            atom_type: "LikeAction".to_string(),
+        }
+    }
+
+    /// Creates a new atom metadata for an organization
+    pub fn organization(name: String) -> Self {
+        Self {
+            label: name,
+            emoji: "🏢".to_string(),
+            atom_type: "Organization".to_string(),
+        }
+    }
+
+    /// Creates a new atom metadata for an organization predicate
+    pub fn organization_predicate() -> Self {
+        Self {
+            label: "is organization".to_string(),
+            emoji: "🏢".to_string(),
+            atom_type: "OrganizationPredicate".to_string(),
+        }
+    }
+
+    /// Creates a new atom metadata for a person
+    pub fn person(name: String) -> Self {
+        Self {
+            label: name,
+            emoji: "👤".to_string(),
+            atom_type: "Person".to_string(),
+        }
+    }
+
+    /// Creates a new atom metadata for a person predicate
+    pub fn person_predicate() -> Self {
+        Self {
+            label: "is person".to_string(),
+            emoji: "👤".to_string(),
+            atom_type: "PersonPredicate".to_string(),
+        }
+    }
+
+    /// Creates a new atom metadata for a thing
+    pub fn thing(name: String) -> Self {
+        Self {
+            label: name,
+            emoji: "🧩".to_string(),
+            atom_type: "Thing".to_string(),
+        }
+    }
+
+    /// Creates a new atom metadata for a thing predicate
+    pub fn thing_predicate() -> Self {
+        Self {
+            label: "is thing".to_string(),
+            emoji: "🧩".to_string(),
+            atom_type: "ThingPredicate".to_string(),
+        }
+    }
+
     /// Returns an unknown atom metadata
     pub fn unknown() -> Self {
         Self {
@@ -107,6 +175,19 @@ impl AtomMetadata {
             emoji: "❓".to_string(),
             atom_type: "Unknown".to_string(),
         }
+    }
+
+    /// Updates the atom metadata
+    pub async fn update_atom_metadata(
+        &self,
+        atom: &mut Atom,
+        pg_pool: &PgPool,
+    ) -> Result<(), ConsumerError> {
+        atom.emoji = Some(self.emoji.clone());
+        atom.atom_type = AtomType::from_str(&self.atom_type)?;
+        atom.label = Some(self.label.clone());
+        atom.upsert(pg_pool).await?;
+        Ok(())
     }
 }
 
@@ -191,38 +272,15 @@ pub async fn get_supported_atom_metadata(
     }
 }
 
+/// Returns the metadata for a predicate based on the current atom data state
 pub fn get_predicate_metadata(current_atom_data_state: String) -> AtomMetadata {
     match current_atom_data_state.as_str() {
-        "https://schema.org/Person" | "Person" => AtomMetadata {
-            label: "is person".to_string(),
-            emoji: "👤".to_string(),
-            atom_type: "PersonPredicate".to_string(),
-        },
-        "https://schema.org/Thing" | "Thing" => AtomMetadata {
-            label: "is thing".to_string(),
-            emoji: "🧩".to_string(),
-            atom_type: "ThingPredicate".to_string(),
-        },
-        "https://schema.org/Organization" | "Organization" => AtomMetadata {
-            label: "is organization".to_string(),
-            emoji: "🏢".to_string(),
-            atom_type: "OrganizationPredicate".to_string(),
-        },
-        "https://schema.org/keywords" | "Keywords" => AtomMetadata {
-            label: "has tag".to_string(),
-            emoji: "🏷️".to_string(),
-            atom_type: "Keywords".to_string(),
-        },
-        "https://schema.org/LikeAction" | "LikeAction" => AtomMetadata {
-            label: "like".to_string(),
-            emoji: "👍".to_string(),
-            atom_type: "LikeAction".to_string(),
-        },
-        "https://schema.org/FollowAction" | "FollowAction" => AtomMetadata {
-            label: "follow".to_string(),
-            emoji: "🔔".to_string(),
-            atom_type: "FollowAction".to_string(),
-        },
+        "Person" => AtomMetadata::person_predicate(),
+        "Thing" => AtomMetadata::thing_predicate(),
+        "Organization" => AtomMetadata::organization_predicate(),
+        "Keywords" => AtomMetadata::keywords_predicate(),
+        "LikeAction" => AtomMetadata::like_action(),
+        "FollowAction" => AtomMetadata::follow_action(),
         _ => AtomMetadata::unknown(),
     }
 }

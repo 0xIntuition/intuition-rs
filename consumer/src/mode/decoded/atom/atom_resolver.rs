@@ -1,14 +1,19 @@
+use super::{atom_supported_types::AtomMetadata, ipfs_resolver::fetch_from_ipfs};
 use crate::error::ConsumerError;
 use log::warn;
 use models::{
-    atom::Atom, book::Book, organization::Organization, person::Person, thing::Thing,
+    atom::{Atom, AtomType},
+    book::Book,
+    organization::Organization,
+    person::Person,
+    thing::Thing,
     traits::SimpleCrud,
 };
 use serde_json::Value;
 use sqlx::PgPool;
+use std::str::FromStr;
 
-use super::{atom_supported_types::AtomMetadata, ipfs_resolver::fetch_from_ipfs};
-
+/// Supported schema.org contexts
 pub const SCHEMA_ORG_CONTEXTS: [&str; 4] = [
     "https://schema.org",
     "https://schema.org/",
@@ -70,40 +75,26 @@ async fn try_to_resolve_schema_org_properties(
     obj: &Value,
 ) -> Result<AtomMetadata, ConsumerError> {
     if let Some(obj_type) = obj.get("@type").and_then(|t| t.as_str()) {
-        match obj_type {
-            "Thing" => {
+        match AtomType::from_str(obj_type)? {
+            AtomType::Thing => {
                 let thing = create_thing_from_obj(atom, obj).upsert(pg_pool).await?;
-                Ok(AtomMetadata::new(
-                    thing.name.unwrap_or_default(),
-                    "🏷️".to_string(),
-                    "Thing".to_string(),
-                ))
+                Ok(AtomMetadata::thing(thing.name.unwrap_or_default()))
             }
-            "Person" => {
+            AtomType::Person => {
                 let person = create_person_from_obj(atom, obj).upsert(pg_pool).await?;
-                Ok(AtomMetadata::new(
-                    person.name.unwrap_or_default(),
-                    "👤".to_string(),
-                    "Person".to_string(),
-                ))
+                Ok(AtomMetadata::person(person.name.unwrap_or_default()))
             }
-            "Organization" => {
+            AtomType::Organization => {
                 let organization = create_organization_from_obj(atom, obj)
                     .upsert(pg_pool)
                     .await?;
-                Ok(AtomMetadata::new(
+                Ok(AtomMetadata::organization(
                     organization.name.unwrap_or_default(),
-                    "🏢".to_string(),
-                    "Organization".to_string(),
                 ))
             }
-            "Book" => {
+            AtomType::Book => {
                 let book = create_book_from_obj(atom, obj).upsert(pg_pool).await?;
-                Ok(AtomMetadata::new(
-                    book.name.unwrap_or_default(),
-                    "📚".to_string(),
-                    "Book".to_string(),
-                ))
+                Ok(AtomMetadata::book(book.name.unwrap_or_default()))
             }
             _ => {
                 warn!("Unsupported schema.org type: {}", obj_type);

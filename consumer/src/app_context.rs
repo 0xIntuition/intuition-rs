@@ -6,6 +6,7 @@ use crate::{
     traits::BasicConsumer,
     utils::connect_to_db,
     ConsumerArgs,
+    ENSRegistry::{self, ENSRegistryInstance},
     EthMultiVault::{self, EthMultiVaultInstance},
 };
 use alloy::{
@@ -28,7 +29,7 @@ pub struct Server {
     consumer_mode: ConsumerMode,
     consumer_type: Arc<dyn BasicConsumer>,
     base_client: Arc<EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>>>,
-    mainnet_client: Arc<EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>>>,
+    mainnet_client: Arc<ENSRegistryInstance<Http<Client>, RootProvider<Http<Client>>>>,
     pg_pool: PgPool,
 }
 
@@ -52,11 +53,11 @@ impl Server {
                 consumer_type: Arc::new(
                     Sqs::new(input_queue, output_queue, data.env.localstack_url.clone()).await,
                 ),
-                base_client: Arc::new(Self::build_web3_client(
+                base_client: Arc::new(Self::build_intuition_client(
                     &data.env.rpc_url_base_mainnet,
                     &data.env.intuition_contract_address,
                 )?),
-                mainnet_client: Arc::new(Self::build_web3_client(
+                mainnet_client: Arc::new(Self::build_ens_client(
                     &data.env.rpc_url_mainnet,
                     &data.env.ens_contract_address,
                 )?),
@@ -65,8 +66,8 @@ impl Server {
         })
     }
 
-    /// Builds the alloy client
-    fn build_web3_client(
+    /// Builds the alloy client for the Intuition contract
+    fn build_intuition_client(
         rpc_url: &str,
         contract_address: &str,
     ) -> Result<EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>>, ConsumerError>
@@ -82,15 +83,14 @@ impl Server {
         Ok(alloy_contract)
     }
 
-    /// Builds the alloy client
-    fn build_web3_client_mainnet(
+    /// Builds the alloy client for the ENS contract
+    fn build_ens_client(
         rpc_url: &str,
         contract_address: &str,
-    ) -> Result<EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>>, ConsumerError>
-    {
+    ) -> Result<ENSRegistryInstance<Http<Client>, RootProvider<Http<Client>>>, ConsumerError> {
         let provider = ProviderBuilder::new().on_http(rpc_url.parse()?);
 
-        let alloy_contract = EthMultiVault::new(
+        let alloy_contract = ENSRegistry::new(
             Address::from_str(contract_address)
                 .map_err(|e| ConsumerError::AddressParse(e.to_string()))?,
             provider.clone(),
@@ -139,10 +139,17 @@ impl Server {
     }
     /// Returns the web3 client. We currently use this to parse raw logs
     /// from our contract and to send RPC requests to the provider.
-    pub async fn web3(
+    pub async fn base_client(
         &self,
     ) -> Arc<EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>>> {
         self.base_client.clone()
+    }
+
+    /// Returns the Mainnet client
+    pub async fn mainnet_client(
+        &self,
+    ) -> Arc<ENSRegistryInstance<Http<Client>, RootProvider<Http<Client>>>> {
+        self.mainnet_client.clone()
     }
 }
 

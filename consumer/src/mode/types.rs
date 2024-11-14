@@ -3,6 +3,7 @@ use crate::{
     error::ConsumerError,
     schemas::types::DecodedMessage,
     traits::BasicConsumer,
+    ENSRegistry::ENSRegistryInstance,
     EthMultiVault::{EthMultiVaultEvents, EthMultiVaultInstance},
 };
 use alloy::{providers::RootProvider, transports::http::Http};
@@ -52,7 +53,8 @@ impl ConsumerMode {
         message: String,
         client: &impl BasicConsumer,
         pg_pool: &PgPool,
-        web3: &EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>>,
+        base_client: &EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>>,
+        mainnet_client: &ENSRegistryInstance<Http<Client>, RootProvider<Http<Client>>>,
         indexing_source: Arc<IndexerSource>,
     ) -> Result<(), ConsumerError> {
         match self {
@@ -60,7 +62,10 @@ impl ConsumerMode {
                 self.raw_message_store_and_relay(message, client, pg_pool, indexing_source)
                     .await
             }
-            ConsumerMode::Decoded => self.handle_decoded_message(message, web3, pg_pool).await,
+            ConsumerMode::Decoded => {
+                self.handle_decoded_message(message, base_client, mainnet_client, pg_pool)
+                    .await
+            }
         }
     }
 
@@ -68,7 +73,8 @@ impl ConsumerMode {
     async fn handle_decoded_message(
         &self,
         message: String,
-        web3: &EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>>,
+        base_client: &EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>>,
+        mainnet_client: &ENSRegistryInstance<Http<Client>, RootProvider<Http<Client>>>,
         pg_pool: &PgPool,
     ) -> Result<(), ConsumerError> {
         debug!("Processing a decoded message: {message:?}");
@@ -79,7 +85,7 @@ impl ConsumerMode {
             EthMultiVaultEvents::AtomCreated(atom_data) => {
                 info!("Received: {atom_data:#?}");
                 atom_data
-                    .handle_atom_creation(pg_pool, web3, &decoded_message)
+                    .handle_atom_creation(pg_pool, base_client, mainnet_client, &decoded_message)
                     .await?;
             }
             EthMultiVaultEvents::FeesTransferred(fees_data) => {
@@ -91,19 +97,24 @@ impl ConsumerMode {
             EthMultiVaultEvents::TripleCreated(triple_data) => {
                 info!("Received: {triple_data:#?}");
                 triple_data
-                    .handle_triple_creation(pg_pool, web3, &decoded_message)
+                    .handle_triple_creation(pg_pool, base_client, &decoded_message)
                     .await?;
             }
             EthMultiVaultEvents::Deposited(deposited_data) => {
                 info!("Received: {deposited_data:#?}");
                 deposited_data
-                    .handle_deposit_creation(pg_pool, web3, &decoded_message)
+                    .handle_deposit_creation(pg_pool, base_client, mainnet_client, &decoded_message)
                     .await?;
             }
             EthMultiVaultEvents::Redeemed(redeemed_data) => {
                 info!("Received: {redeemed_data:#?}");
                 redeemed_data
-                    .handle_redeemed_creation(pg_pool, web3, &decoded_message)
+                    .handle_redeemed_creation(
+                        pg_pool,
+                        base_client,
+                        mainnet_client,
+                        &decoded_message,
+                    )
                     .await?;
             }
             _ => {

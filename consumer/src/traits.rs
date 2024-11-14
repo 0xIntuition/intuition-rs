@@ -1,6 +1,7 @@
 use crate::{
     config::IndexerSource, error::ConsumerError, mode::types::ConsumerMode,
-    schemas::goldsky::RawMessage, EthMultiVault::EthMultiVaultInstance,
+    schemas::goldsky::RawMessage, ENSRegistry::ENSRegistryInstance,
+    EthMultiVault::EthMultiVaultInstance,
 };
 use alloy::{providers::RootProvider, transports::http::Http};
 use async_trait::async_trait;
@@ -21,7 +22,8 @@ pub trait BasicConsumer {
         &self,
         mode: ConsumerMode,
         pg_pool: &PgPool,
-        web3: Arc<EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>>>,
+        base_client: Arc<EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>>>,
+        mainnet_client: Arc<ENSRegistryInstance<Http<Client>, RootProvider<Http<Client>>>>,
         indexing_source: Arc<IndexerSource>,
     ) -> Result<(), ConsumerError>;
     async fn receive_message(&self) -> Result<ReceiveMessageOutput, ConsumerError>;

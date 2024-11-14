@@ -3,6 +3,7 @@ use crate::{
     error::ConsumerError,
     mode::types::ConsumerMode,
     traits::BasicConsumer,
+    ENSRegistry::ENSRegistryInstance,
     EthMultiVault::EthMultiVaultInstance,
 };
 use alloy::{providers::RootProvider, transports::http::Http};
@@ -95,7 +96,8 @@ impl BasicConsumer for Sqs {
         &self,
         mode: ConsumerMode,
         pg_pool: &PgPool,
-        web3: Arc<EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>>>,
+        base_client: Arc<EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>>>,
+        mainnet_client: Arc<ENSRegistryInstance<Http<Client>, RootProvider<Http<Client>>>>,
         indexing_source: Arc<IndexerSource>,
     ) -> Result<(), ConsumerError> {
         info!("Starting the consumer loop in mode: {:?}", mode);
@@ -111,7 +113,8 @@ impl BasicConsumer for Sqs {
                             message_body,
                             self,
                             pg_pool,
-                            &web3,
+                            &base_client,
+                            &mainnet_client,
                             indexing_source.clone(),
                         )
                         .await?;
