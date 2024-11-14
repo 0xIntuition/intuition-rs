@@ -14,7 +14,7 @@ RUST_LOG=info cargo run --bin histoflux -- --queue-name <queue-name>
 or if you want to run it locally:
 
 ```bash
-RUST_LOG=info cargo run --features local -- --queue-name http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/activity
+RUST_LOG=info cargo run --features local -- --queue-name http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/raw_logs
 ```
 
 ## Managing queue state:
