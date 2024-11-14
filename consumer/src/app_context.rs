@@ -3,9 +3,7 @@ use clap::Parser;
 use log::info;
 
 /// Represents the consumer server context. It contains the consumer mode,
-/// the consumer type, the web3 client and the pg pool. Currently we only
-/// support the SQS `consumer_type`, but we can extend this to support other
-/// types in the future, they only need to implement the `BasicConsumer` trait.
+/// and each consumer mode has its own context with the required dependencies.
 pub struct Server {
     consumer_mode: ConsumerMode,
 }
