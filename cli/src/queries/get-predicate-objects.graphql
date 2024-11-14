@@ -1,6 +1,5 @@
-query GetPredicateObjects($predicate_id: numeric) {
+query GetPredicateObjects {
   predicate_objects(
-    where: { predicate_id: {_eq: $predicate_id}}
     order_by: [{claim_count: desc}, {triple_count: desc}]
   ) {
     claim_count
@@ -8,6 +7,10 @@ query GetPredicateObjects($predicate_id: numeric) {
     object {
       label
       data
+      id
+    }
+    predicate {
+      label
       id
     }
   }

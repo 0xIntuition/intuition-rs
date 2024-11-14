@@ -1,0 +1,86 @@
+query GetAggregates {
+  events(limit: 1, order_by: {block_number: desc}) {
+    block_number
+  }
+  accounts_aggregate {
+    aggregate {
+      count
+    }
+  }
+  atom_values_aggregate {
+    aggregate {
+      count
+    }
+  }
+  atoms_aggregate {
+    aggregate {
+      count
+    }
+  }
+  claims_aggregate {
+    aggregate {
+      count
+    }
+  }
+  deposits_aggregate {
+    aggregate {
+      count
+    }
+  }
+  events_aggregate {
+    aggregate {
+      count
+    }
+  }
+  fee_transfers_aggregate {
+    aggregate {
+      count
+    }
+  }
+  organizations_aggregate {
+    aggregate {
+      count
+    }
+  }
+  persons_aggregate {
+    aggregate {
+      count
+    }
+  }
+  positions_aggregate {
+    aggregate {
+      count
+    }
+  }
+  predicate_objects_aggregate {
+    aggregate {
+      count
+    }
+  }
+  redemptions_aggregate {
+    aggregate {
+      count
+    }
+  }
+  signals_aggregate {
+    aggregate {
+      count
+    }
+  }
+  things_aggregate {
+    aggregate {
+      count
+    }
+  }
+  triples_aggregate {
+    aggregate {
+      count
+    }
+  }
+  vaults_aggregate {
+    aggregate {
+      count
+    }
+  }
+
+}

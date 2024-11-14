@@ -1,0 +1,40 @@
+type Mutation {
+  pinThing(
+    thing: PinThingInput!
+  ): PinOutput
+  pinPerson(
+    person: PinPersonInput!
+  ): PinOutput
+  pinOrganization(
+    organization: PinOrganizationInput!
+  ): PinOutput
+}
+
+input PinThingInput {
+  name: String
+  description: String
+  image: String
+  url: String
+}
+
+input PinPersonInput {
+  identifier: String
+  name: String
+  description: String
+  image: String
+  url: String
+  email: String
+}
+
+input PinOrganizationInput {
+  name: String
+  description: String
+  image: String
+  url: String
+  email: String
+}
+
+type PinOutput {
+  uri: String
+}
+
