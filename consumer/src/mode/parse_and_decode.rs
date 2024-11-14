@@ -12,7 +12,7 @@ impl ConsumerMode {
     ) -> Result<Vec<alloy::primitives::B256>, ConsumerError> {
         Ok(topics
             .iter()
-            .map(|t| alloy::primitives::B256::from_str(t).unwrap())
+            .map(|t| alloy::primitives::B256::from_str(t).unwrap_or_default())
             .collect())
     }
 

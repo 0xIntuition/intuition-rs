@@ -50,7 +50,7 @@ pub async fn get_or_create_account(
         Ok(account)
     } else {
         info!("Creating account for: {}", id);
-        let ens = get_ens(Address::from_str(&id).unwrap(), mainnet_client).await?;
+        let ens = get_ens(Address::from_str(&id)?, mainnet_client).await?;
         if let Some(_name) = ens.name.clone() {
             info!("Woo! ENS for account: {:?}", ens);
         }
