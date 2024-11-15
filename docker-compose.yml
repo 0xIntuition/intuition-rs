@@ -121,7 +121,7 @@ services:
         ipfs pin remote service add Pinata https://api.pinata.cloud/psa $PINATA_API_JWT;
 
         # Configure Pinata gateway and use subdomains
-      ipfs config --json Gateway.PublicGateways '{\"localhost\": {\"UseSubdomains\": false,\"Paths\": [\"/ipfs\", \"/ipns\"]}}';
+        ipfs config --json Gateway.PublicGateways '{\"localhost\": {\"UseSubdomains\": false,\"Paths\": [\"/ipfs\", \"/ipns\"]},\"ipfs\": {\"UseSubdomains\": false,\"Paths\": [\"/ipfs\", \"/ipns\"]}}';
 
         # Set Pinata as the default remote pinning service
         ipfs config --json Pinning.RemoteServices '[\"Pinata\"]';
