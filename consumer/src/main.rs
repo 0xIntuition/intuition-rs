@@ -14,7 +14,7 @@ mod schemas;
 mod traits;
 mod utils;
 
-// Codegen from ABI file to interact with the contract.
+// Codegen from ABI file to interact with the Intuition contract.
 sol!(
     #[derive(Debug, Deserialize, Serialize)]
     #[allow(missing_docs)]
@@ -23,12 +23,31 @@ sol!(
     "contracts/EthMultiVault.json"
 );
 
+// Codegen from ABI file to interact with the ENS contract.
+sol!(
+    #[derive(Debug, Deserialize, Serialize)]
+    #[allow(missing_docs)]
+    #[sol(rpc)]
+    interface ENSRegistry {
+        function resolver(bytes32 node) external view returns (address);
+    }
+);
+
+// Codegen from ABI file to interact with the ENSName contract.
+sol! {
+    #[allow(missing_docs)]
+    #[sol(rpc)]
+    interface ENSName {
+        function name(bytes32 node) external view returns (string);
+    }
+}
+
 /// The current supported CLI parameters are listed below.
 /// Each consumer needs to connect to a queue in a region
 #[derive(Parser, Clone, Debug)]
 pub struct ConsumerArgs {
     #[arg(short, long)]
-    mode: Option<String>,
+    mode: String,
 }
 
 /// This is the main function that starts the consumer. It reads the `.env`
@@ -41,13 +60,5 @@ async fn main() -> Result<(), ConsumerError> {
     // Build the server with the basic context
     let server = Server::new(init).await?;
     // Start processing messages
-    server
-        .consumer()
-        .process_messages(
-            server.consumer_mode(),
-            &server.pg_pool(),
-            server.web3().await,
-            server.indexing_source(),
-        )
-        .await
+    server.consumer_mode().process_messages().await
 }

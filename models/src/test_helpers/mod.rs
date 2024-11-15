@@ -48,7 +48,7 @@ pub fn create_random_number() -> i32 {
 
 /// This function creates a random U256Wrapper.
 pub fn create_random_u256wrapper() -> U256Wrapper {
-    U256Wrapper::from_str(&create_random_number().to_string()).unwrap()
+    U256Wrapper::from_str(&create_random_number().to_string()).unwrap_or_default()
 }
 
 /// This function creates a test account.   

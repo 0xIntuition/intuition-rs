@@ -1,3 +1,4 @@
+use alloy::hex::FromHexError;
 use thiserror::Error;
 
 /// This enum represents the error types of our application.
@@ -14,6 +15,8 @@ pub enum ConsumerError {
     AddressParse(String),
     #[error(transparent)]
     Alloy(#[from] alloy::contract::Error),
+    #[error(transparent)]
+    AlloyHex(#[from] FromHexError),
     #[error(transparent)]
     AWSDeleteMessage(
         #[from]
@@ -58,6 +61,8 @@ pub enum ConsumerError {
     Empty(String),
     #[error(transparent)]
     Envy(#[from] envy::Error),
+    #[error("Failed to resolve ENS data: {0}")]
+    Ens(String),
     #[error(transparent)]
     Hex(#[from] hex::FromHexError),
     #[error(transparent)]

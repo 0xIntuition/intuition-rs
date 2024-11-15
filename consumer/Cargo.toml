@@ -5,7 +5,6 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.4.7", features = ["derive"] }
-
 hex = "0.4.3"
 reqwest = "0.12.8"
 rustc-hex = "2.1.0"

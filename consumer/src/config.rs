@@ -9,14 +9,16 @@ pub const POOLING_PAUSE_IN_MS: u64 = 300;
 #[derive(Clone, Deserialize, Debug)]
 pub struct Env {
     pub consumer_type: String,
-    pub contract_address: String,
     pub decoded_logs_queue_url: String,
+    pub ens_contract_address: String,
     pub indexing_source: String,
+    pub intuition_contract_address: String,
     pub localstack_url: String,
     #[serde(flatten)]
     pub postgres: PostgresEnv,
     pub raw_consumer_queue_url: String,
-    pub rpc_url: String,
+    pub rpc_url_base_mainnet: String,
+    pub rpc_url_mainnet: String,
 }
 
 #[derive(Deserialize, Debug)]

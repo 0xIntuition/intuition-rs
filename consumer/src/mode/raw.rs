@@ -1,5 +1,4 @@
-use std::sync::Arc;
-
+use super::types::RawConsumerContext;
 use crate::{
     config::IndexerSource,
     error::ConsumerError,
@@ -9,10 +8,9 @@ use crate::{
         substreams::SubstreamRawLog,
         types::DecodedMessage,
     },
-    traits::{BasicConsumer, IntoRawMessage},
+    traits::IntoRawMessage,
 };
 use log::{debug, info, warn};
-use sqlx::PgPool;
 
 impl ConsumerMode {
     /// This function stores a raw message into the database and relays it to the
@@ -20,12 +18,10 @@ impl ConsumerMode {
     pub async fn raw_message_store_and_relay(
         &self,
         message: String,
-        client: &impl BasicConsumer,
-        pg_pool: &PgPool,
-        indexing_source: Arc<IndexerSource>,
+        raw_consumer_context: &RawConsumerContext,
     ) -> Result<(), ConsumerError> {
         debug!("Processing a raw message: {message:?}");
-        let raw_message = match *indexing_source {
+        let raw_message = match *raw_consumer_context.indexing_source {
             IndexerSource::GoldSky => {
                 let raw_message: RawMessage = serde_json::from_str(&message)?;
                 raw_message
@@ -39,7 +35,10 @@ impl ConsumerMode {
         match raw_message.op {
             Operation::C => {
                 // Insert it into the DB
-                raw_message.body.insert(pg_pool).await?;
+                raw_message
+                    .body
+                    .insert(&raw_consumer_context.pg_pool)
+                    .await?;
                 // Decode the log using Alloy's built-in decoder
                 // Decode the log using Alloy's built-in decoder
                 let event = Self::decode_raw_log(
@@ -52,7 +51,8 @@ impl ConsumerMode {
                     Ok(event) => {
                         // Send the decoded message to the queue
                         let message = DecodedMessage::new(event, raw_message.body);
-                        client
+                        raw_consumer_context
+                            .client
                             .send_message(serde_json::to_string(&message)?)
                             .await?;
                         info!("Sent a decoded message to the queue!");

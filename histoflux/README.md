@@ -28,6 +28,6 @@ You can install some tools to manage the local state of the SQS queue:
 To check queue status
 
 ```bash
-awslocal sqs get-queue-attributes --queue-url http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/activity --attribute-names All
+awslocal sqs get-queue-attributes --queue-url http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/raw_logs --attribute-names All
 ```
 

@@ -1,15 +1,20 @@
+use super::{atom_supported_types::AtomMetadata, ipfs_resolver::fetch_from_ipfs};
 use crate::error::ConsumerError;
 use log::warn;
 use models::{
-    atom::Atom, book::Book, organization::Organization, person::Person, thing::Thing,
+    atom::{Atom, AtomType},
+    book::Book,
+    organization::Organization,
+    person::Person,
+    thing::Thing,
     traits::SimpleCrud,
 };
 use serde_json::Value;
 use sqlx::PgPool;
+use std::str::FromStr;
 
-use super::ipfs_resolver::fetch_from_ipfs;
-
-const SCHEMA_ORG_CONTEXTS: [&str; 4] = [
+/// Supported schema.org contexts
+pub const SCHEMA_ORG_CONTEXTS: [&str; 4] = [
     "https://schema.org",
     "https://schema.org/",
     "http://schema.org",
@@ -39,24 +44,28 @@ pub async fn try_to_parse_json(
     atom_data: &str,
     atom: &Atom,
     pg_pool: &PgPool,
-) -> Result<Option<String>, ConsumerError> {
+) -> Result<AtomMetadata, ConsumerError> {
     // TODO: What if the JSON is not valid? Should we return an error?
-    let json: Value = serde_json::from_str(atom_data).map_err(|_| ConsumerError::InvalidJson)?;
-
-    match json.get("@context").and_then(|c| c.as_str()) {
-        Some(ctx_str) if SCHEMA_ORG_CONTEXTS.contains(&ctx_str) => {
-            try_to_resolve_schema_org_properties(pg_pool, atom, &json).await
+    // Currently, we just return unknown metadata
+    if let Ok(json) = serde_json::from_str::<Value>(atom_data) {
+        match json.get("@context").and_then(|c| c.as_str()) {
+            Some(ctx_str) if SCHEMA_ORG_CONTEXTS.contains(&ctx_str) => {
+                let metadata = try_to_resolve_schema_org_properties(pg_pool, atom, &json).await?;
+                Ok(metadata)
+            }
+            // TODO: Handle unsuported schemas
+            Some(ctx_str) if !SCHEMA_ORG_CONTEXTS.contains(&ctx_str) => {
+                warn!("Unsupported schema.org context: {}", ctx_str);
+                Ok(AtomMetadata::unknown())
+            }
+            _ => {
+                // TODO: Handle unknown contexts
+                warn!("No @context found in JSON");
+                Ok(AtomMetadata::unknown())
+            }
         }
-        // TODO: Handle unsuported schemas
-        Some(ctx_str) if !SCHEMA_ORG_CONTEXTS.contains(&ctx_str) => {
-            warn!("Unsupported schema.org context: {}", ctx_str);
-            Ok(None)
-        }
-        _ => {
-            // TODO: Handle unknown contexts
-            warn!("No @context found in JSON");
-            Ok(None)
-        }
+    } else {
+        Ok(AtomMetadata::unknown())
     }
 }
 /// Resolves schema.org properties
@@ -64,34 +73,36 @@ async fn try_to_resolve_schema_org_properties(
     pg_pool: &PgPool,
     atom: &Atom,
     obj: &Value,
-) -> Result<Option<String>, ConsumerError> {
+) -> Result<AtomMetadata, ConsumerError> {
     if let Some(obj_type) = obj.get("@type").and_then(|t| t.as_str()) {
-        match obj_type {
-            "Thing" => {
-                create_thing_from_obj(atom, obj).upsert(pg_pool).await?;
-                Ok(Some("https://schema.org/Thing".to_string()))
+        match AtomType::from_str(obj_type)? {
+            AtomType::Thing => {
+                let thing = create_thing_from_obj(atom, obj).upsert(pg_pool).await?;
+                Ok(AtomMetadata::thing(thing.name.unwrap_or_default()))
             }
-            "Person" => {
-                create_person_from_obj(atom, obj).upsert(pg_pool).await?;
-                Ok(Some("https://schema.org/Person".to_string()))
+            AtomType::Person => {
+                let person = create_person_from_obj(atom, obj).upsert(pg_pool).await?;
+                Ok(AtomMetadata::person(person.name.unwrap_or_default()))
             }
-            "Organization" => {
-                create_organization_from_obj(atom, obj)
+            AtomType::Organization => {
+                let organization = create_organization_from_obj(atom, obj)
                     .upsert(pg_pool)
                     .await?;
-                Ok(Some("https://schema.org/Organization".to_string()))
+                Ok(AtomMetadata::organization(
+                    organization.name.unwrap_or_default(),
+                ))
             }
-            "Book" => {
-                create_book_from_obj(atom, obj).upsert(pg_pool).await?;
-                Ok(Some("https://schema.org/Book".to_string()))
+            AtomType::Book => {
+                let book = create_book_from_obj(atom, obj).upsert(pg_pool).await?;
+                Ok(AtomMetadata::book(book.name.unwrap_or_default()))
             }
             _ => {
-                // Handle unknown types
-                Ok(None)
+                warn!("Unsupported schema.org type: {}", obj_type);
+                Ok(AtomMetadata::unknown())
             }
         }
     } else {
-        Ok(None)
+        Ok(AtomMetadata::unknown())
     }
 }
 

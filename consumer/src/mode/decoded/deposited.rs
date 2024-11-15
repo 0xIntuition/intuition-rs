@@ -3,6 +3,7 @@ use crate::{
     mode::decoded::utils::get_or_create_account,
     schemas::types::DecodedMessage,
     ConsumerError,
+    ENSRegistry::ENSRegistryInstance,
     EthMultiVault::{Deposited, EthMultiVaultInstance},
 };
 use alloy::{eips::BlockId, primitives::U256, providers::RootProvider, transports::http::Http};
@@ -270,6 +271,7 @@ impl Deposited {
         &self,
         pg_pool: &PgPool,
         web3: &EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>>,
+        mainnet_client: &ENSRegistryInstance<Http<Client>, RootProvider<Http<Client>>>,
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
         // Initialize core data
@@ -277,7 +279,11 @@ impl Deposited {
 
         // Initialize accounts and vault. We need to block on this because it's async and
         // we need to ensure that the accounts and vault are initialized before we proceed
-        let vault = block_on(self.initialize_accounts_and_vault(pg_pool, current_share_price))?;
+        let vault = block_on(self.initialize_accounts_and_vault(
+            pg_pool,
+            current_share_price,
+            mainnet_client,
+        ))?;
 
         // Create deposit record
         self.create_deposit(event, pg_pool).await?;
@@ -372,11 +378,12 @@ impl Deposited {
         &self,
         pg_pool: &PgPool,
         current_share_price: U256,
+        mainnet_client: &ENSRegistryInstance<Http<Client>, RootProvider<Http<Client>>>,
     ) -> Result<Vault, ConsumerError> {
         // Create accounts concurrently
         let (sender, receiver) = futures::join!(
-            get_or_create_account(pg_pool, self.sender.to_string()),
-            get_or_create_account(pg_pool, self.receiver.to_string())
+            get_or_create_account(pg_pool, self.sender.to_string(), mainnet_client),
+            get_or_create_account(pg_pool, self.receiver.to_string(), mainnet_client)
         );
         sender?;
         receiver?;

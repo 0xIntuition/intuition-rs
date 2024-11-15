@@ -1,18 +1,12 @@
 use crate::{
-    config::{IndexerSource, POOLING_PAUSE_IN_MS},
-    error::ConsumerError,
-    mode::types::ConsumerMode,
+    config::POOLING_PAUSE_IN_MS, error::ConsumerError, mode::types::ConsumerMode,
     traits::BasicConsumer,
-    EthMultiVault::EthMultiVaultInstance,
 };
-use alloy::{providers::RootProvider, transports::http::Http};
 use async_trait::async_trait;
 use aws_sdk_sqs::{
     operation::receive_message::ReceiveMessageOutput, types::Message, Client as AWSClient,
 };
 use log::{debug, info};
-use reqwest::Client;
-use sqlx::PgPool;
 use std::sync::Arc;
 use tokio::time;
 /// Represents the SQS consumer
@@ -91,14 +85,8 @@ impl BasicConsumer for Sqs {
     /// This function process the messages available on the SQS queue. Processing
     /// include three steps: receiving the message, processing it and delete it
     /// right after.
-    async fn process_messages(
-        &self,
-        mode: ConsumerMode,
-        pg_pool: &PgPool,
-        web3: Arc<EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>>>,
-        indexing_source: Arc<IndexerSource>,
-    ) -> Result<(), ConsumerError> {
-        info!("Starting the consumer loop in mode: {:?}", mode);
+    async fn process_messages(&self, mode: ConsumerMode) -> Result<(), ConsumerError> {
+        info!("Starting the consumer loop");
         loop {
             info!("awaiting for new messages...");
             let rcv_message_output = self.receive_message().await?;
@@ -107,14 +95,8 @@ impl BasicConsumer for Sqs {
                 for message in messages {
                     if let Some(message_body) = message.clone().body {
                         // Process the message
-                        mode.process_message(
-                            message_body,
-                            self,
-                            pg_pool,
-                            &web3,
-                            indexing_source.clone(),
-                        )
-                        .await?;
+                        mode.process_message(message_body).await?;
+
                         // Delete the message from the queue
                         self.consume_message(message).await?
                     }

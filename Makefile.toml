@@ -43,7 +43,8 @@ args = ["compose", "up", "-d", "--force-recreate"]
 
 # Migrate the database
 [tasks.migrate-database]
-command = "./migrate_database.sh"
+command = "hasura"
+args = ["deploy", "--project", "hasura"]
 
 # This task remove the docker volumes, start the docker compose stack, and migrate the database
 [tasks.start-docker-and-migrate]
