@@ -246,6 +246,7 @@ pub async fn get_supported_atom_metadata(
 ) -> Result<AtomMetadata, ConsumerError> {
     // 1. Handling the happy path (schema.org URL, predicate)
     if let Some(schema_org_url) = try_to_resolve_schema_org_url(decoded_atom_data).await? {
+        info!("Schema.org URL found, returning predicate metadata...");
         return Ok(get_predicate_metadata(schema_org_url));
     } else {
         info!("No schema.org URL found, verifying if atom data is an address...");
@@ -280,7 +281,7 @@ pub fn get_predicate_metadata(current_atom_data_state: String) -> AtomMetadata {
         "Person" => AtomMetadata::person_predicate(),
         "Thing" => AtomMetadata::thing_predicate(),
         "Organization" => AtomMetadata::organization_predicate(),
-        "Keywords" => AtomMetadata::keywords_predicate(),
+        "Keywords" | "keywords" => AtomMetadata::keywords_predicate(),
         "LikeAction" => AtomMetadata::like_action(),
         "FollowAction" => AtomMetadata::follow_action(),
         _ => AtomMetadata::unknown(),
