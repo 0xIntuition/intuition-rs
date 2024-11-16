@@ -3,10 +3,6 @@ use crate::{
     config::{ConsumerType, IndexerSource},
     consumer_type::sqs::Sqs,
     error::ConsumerError,
-    mode::resolver::{
-        atom_resolver::{try_to_parse_json, try_to_resolve_ipfs_uri},
-        ens_resolver::get_ens,
-    },
     schemas::types::DecodedMessage,
     traits::BasicConsumer,
     utils::connect_to_db,
@@ -19,22 +15,20 @@ use alloy::{
     transports::http::Http,
 };
 use log::{debug, info, warn};
-use models::{
-    account::{Account, AccountType},
-    atom::{Atom, AtomType},
-    traits::SimpleCrud,
-};
 use reqwest::Client;
-use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use std::{str::FromStr, sync::Arc};
 
-/// Represents the raw consumer context
+use super::resolver::types::ResolverConsumerMessage;
+
+/// This enum describes the possible modes that the consumer
+/// can be executed on. At each mode the consumer is going
+/// to be performing different actions
 #[derive(Clone)]
-pub struct RawConsumerContext {
-    pub client: Arc<dyn BasicConsumer>,
-    pub pg_pool: PgPool,
-    pub indexing_source: Arc<IndexerSource>,
+pub enum ConsumerMode {
+    Decoded(DecodedConsumerContext),
+    Raw(RawConsumerContext),
+    Resolver(ResolverConsumerContext),
 }
 
 /// Represents the decoded consumer context
@@ -45,152 +39,20 @@ pub struct DecodedConsumerContext {
     pub pg_pool: PgPool,
 }
 
+/// Represents the raw consumer context
+#[derive(Clone)]
+pub struct RawConsumerContext {
+    pub client: Arc<dyn BasicConsumer>,
+    pub pg_pool: PgPool,
+    pub indexing_source: Arc<IndexerSource>,
+}
+
 /// Represents the resolver consumer context
 #[derive(Clone)]
 pub struct ResolverConsumerContext {
     pub client: Arc<dyn BasicConsumer>,
     pub mainnet_client: Arc<ENSRegistryInstance<Http<Client>, RootProvider<Http<Client>>>>,
     pub pg_pool: PgPool,
-}
-
-/// This struct represents a message that is sent to the resolver
-/// consumer to be processed.
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ResolverConsumerMessage {
-    pub message: ResolverMessageType,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ResolveAtom {
-    pub atom: Atom,
-    pub decoded_atom_data: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub enum ResolverMessageType {
-    Atom(Box<ResolveAtom>),
-    Account(Account),
-}
-
-impl ResolverMessageType {
-    pub async fn process(
-        &self,
-        resolver_consumer_context: &ResolverConsumerContext,
-    ) -> Result<(), ConsumerError> {
-        match self {
-            ResolverMessageType::Atom(resolver_message) => {
-                info!("Processing a resolved message: {resolver_message:?}");
-                self.process_atom(resolver_consumer_context, resolver_message)
-                    .await
-            }
-            ResolverMessageType::Account(account) => {
-                info!("Processing a resolved account: {account:?}");
-                self.process_account(resolver_consumer_context, account)
-                    .await
-            }
-        }
-    }
-
-    async fn process_account(
-        &self,
-        resolver_consumer_context: &ResolverConsumerContext,
-        account: &Account,
-    ) -> Result<(), ConsumerError> {
-        let ens = get_ens(
-            Address::from_str(&account.id)?,
-            &resolver_consumer_context.mainnet_client,
-        )
-        .await?;
-        if let Some(name) = ens.name.clone() {
-            info!("ENS for account: {:?}", ens);
-            Account::builder()
-                .id(account.id.clone())
-                .label(name.clone())
-                .image(ens.image.unwrap_or_default())
-                .account_type(AccountType::Default)
-                .build()
-                .upsert(&resolver_consumer_context.pg_pool)
-                .await
-                .map_err(ConsumerError::ModelError)?;
-        } else {
-            info!("No ENS found for account: {:?}", account);
-        }
-        Ok(())
-    }
-
-    async fn process_atom(
-        &self,
-        resolver_consumer_context: &ResolverConsumerContext,
-        resolver_message: &ResolveAtom,
-    ) -> Result<(), ConsumerError> {
-        let data = try_to_resolve_ipfs_uri(&resolver_message.decoded_atom_data).await?;
-        // If we resolved an IPFS URI, we need to try to parse the JSON
-        let metadata = if let Some(data) = data {
-            info!("Atom data is an IPFS URI: {data}");
-            try_to_parse_json(
-                &data,
-                &resolver_message.atom,
-                &resolver_consumer_context.pg_pool,
-            )
-            .await?
-        } else {
-            info!("No IPFS URI found, trying to parse atom data as JSON...");
-            // This is the fallback case, where we try to parse the atom data as JSON
-            // even if it's not a valid IPFS URI. This is useful for cases where the
-            // atom data is a JSON object that is not a schema.org URL.
-            try_to_parse_json(
-                &resolver_message.decoded_atom_data,
-                &resolver_message.atom,
-                &resolver_consumer_context.pg_pool,
-            )
-            .await?
-        };
-
-        // If at this point we have an atom type that is not unknown (it means it changes it state),
-        // we need to update the atom metadata
-        if AtomType::from_str(&metadata.atom_type)? != AtomType::Unknown {
-            let atom = Atom::find_by_id(
-                resolver_message.atom.id.clone(),
-                &resolver_consumer_context.pg_pool,
-            )
-            .await?;
-
-            if let Some(mut atom) = atom {
-                metadata
-                    .update_atom_metadata(&mut atom, &resolver_consumer_context.pg_pool)
-                    .await?;
-                info!("Updated atom metadata: {atom:?}");
-            }
-        }
-        Ok(())
-    }
-}
-
-impl ResolverConsumerMessage {
-    pub fn new_atom(atom: Atom, decoded_atom_data: String) -> Self {
-        Self {
-            message: ResolverMessageType::Atom(Box::new(ResolveAtom {
-                atom,
-                decoded_atom_data,
-            })),
-        }
-    }
-
-    pub fn new_account(account: Account) -> Self {
-        Self {
-            message: ResolverMessageType::Account(account),
-        }
-    }
-}
-
-/// This enum describes the possible modes that the consumer
-/// can be executed on. At each mode the consumer is going
-/// to be performing different actions
-#[derive(Clone)]
-pub enum ConsumerMode {
-    Decoded(DecodedConsumerContext),
-    Raw(RawConsumerContext),
-    Resolver(ResolverConsumerContext),
 }
 
 impl ConsumerMode {
@@ -240,29 +102,6 @@ impl ConsumerMode {
         Ok(alloy_contract)
     }
 
-    /// This function creates a resolver consumer
-    async fn create_resolver_consumer(
-        data: ServerInitialize,
-        pg_pool: PgPool,
-    ) -> Result<ConsumerMode, ConsumerError> {
-        let mainnet_client = Arc::new(Self::build_ens_client(
-            &data.env.rpc_url_mainnet,
-            &data.env.ens_contract_address,
-        )?);
-        let client = Self::build_client(
-            data.clone(),
-            data.env.resolver_queue_url.clone(),
-            data.env.resolver_queue_url.clone(),
-        )
-        .await?;
-
-        Ok(ConsumerMode::Resolver(ResolverConsumerContext {
-            client,
-            mainnet_client,
-            pg_pool,
-        }))
-    }
-
     /// This function creates a decoded consumer
     async fn create_decoded_consumer(
         data: ServerInitialize,
@@ -307,6 +146,29 @@ impl ConsumerMode {
             client,
             pg_pool,
             indexing_source,
+        }))
+    }
+
+    /// This function creates a resolver consumer
+    async fn create_resolver_consumer(
+        data: ServerInitialize,
+        pg_pool: PgPool,
+    ) -> Result<ConsumerMode, ConsumerError> {
+        let mainnet_client = Arc::new(Self::build_ens_client(
+            &data.env.rpc_url_mainnet,
+            &data.env.ens_contract_address,
+        )?);
+        let client = Self::build_client(
+            data.clone(),
+            data.env.resolver_queue_url.clone(),
+            data.env.resolver_queue_url.clone(),
+        )
+        .await?;
+
+        Ok(ConsumerMode::Resolver(ResolverConsumerContext {
+            client,
+            mainnet_client,
+            pg_pool,
         }))
     }
 

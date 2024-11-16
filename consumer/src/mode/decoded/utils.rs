@@ -1,6 +1,6 @@
 use crate::{
     error::ConsumerError,
-    mode::types::{DecodedConsumerContext, ResolverConsumerMessage},
+    mode::{resolver::types::ResolverConsumerMessage, types::DecodedConsumerContext},
 };
 use alloy::primitives::U256;
 use log::info;

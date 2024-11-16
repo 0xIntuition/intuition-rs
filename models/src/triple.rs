@@ -97,3 +97,35 @@ impl SimpleCrud<U256Wrapper> for Triple {
         .map_err(|e| ModelError::QueryError(e.to_string()))
     }
 }
+
+impl Triple {
+    /// This function gets all the triples that either the `subject_id` or `predicate_id` or `object_id` match the given `id`
+    /// and update their labels.
+    pub async fn update_triple_labels(id: U256Wrapper, pool: &PgPool) -> Result<(), ModelError> {
+        sqlx::query!(
+            r#"
+            UPDATE triple 
+            SET label = subquery.new_label
+            FROM (
+                SELECT t.id,
+                    CASE 
+                        WHEN t.subject_id = $1 THEN s.label
+                        WHEN t.predicate_id = $1 THEN p.label
+                        WHEN t.object_id = $1 THEN o.label
+                    END as new_label
+                FROM triple t
+                LEFT JOIN triple s ON t.subject_id = s.id
+                LEFT JOIN triple p ON t.predicate_id = p.id
+                LEFT JOIN triple o ON t.object_id = o.id
+                WHERE t.subject_id = $1 OR t.predicate_id = $1 OR t.object_id = $1
+            ) as subquery
+            WHERE triple.id = subquery.id"#,
+            id.to_big_decimal()?
+        )
+        .execute(pool)
+        .await
+        .map_err(|e| ModelError::QueryError(e.to_string()))?;
+
+        Ok(())
+    }
+}

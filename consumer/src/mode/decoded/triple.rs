@@ -63,12 +63,11 @@ impl TripleCreated {
 
     /// This function creates a triple label
     fn create_triple_label(
-        &self,
-        subject_id: U256Wrapper,
-        predicate_id: U256Wrapper,
-        object_id: U256Wrapper,
+        subject_label: String,
+        predicate_label: String,
+        object_label: String,
     ) -> String {
-        format!("{} {} {}", subject_id, predicate_id, object_id)
+        format!("{} {} {}", subject_label, predicate_label, object_label)
     }
 
     /// This function verifies if the creator account exists in our DB. If it does, it returns it.
@@ -114,10 +113,10 @@ impl TripleCreated {
                     .object_id(object_atom.id.clone())
                     .vault_id(U256Wrapper::from(self.vaultID))
                     .counter_vault_id(U256Wrapper::from(counter_vault_id))
-                    .label(self.create_triple_label(
-                        subject_atom.id,
-                        predicate_atom.id,
-                        object_atom.id,
+                    .label(Self::create_triple_label(
+                        subject_atom.label.clone().unwrap_or_default(),
+                        predicate_atom.label.clone().unwrap_or_default(),
+                        object_atom.label.clone().unwrap_or_default(),
                     ))
                     .block_number(U256Wrapper::try_from(event.block_number).unwrap_or_default())
                     .block_timestamp(event.block_timestamp)

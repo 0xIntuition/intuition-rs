@@ -2,14 +2,16 @@ use crate::{
     error::ConsumerError,
     mode::{
         decoded::utils::{get_or_create_account, short_id},
-        resolver::atom_resolver::{try_to_parse_json, try_to_resolve_schema_org_url},
-        types::{DecodedConsumerContext, ResolveAtom, ResolverConsumerMessage},
+        resolver::{
+            atom_resolver::{try_to_parse_json, try_to_resolve_schema_org_url},
+            types::{ResolveAtom, ResolverConsumerMessage},
+        },
+        types::DecodedConsumerContext,
     },
 };
 use alloy::primitives::Address;
 use log::info;
 use models::{
-    account::{Account, AccountType},
     atom::{Atom, AtomType},
     atom_value::AtomValue,
     traits::SimpleCrud,
