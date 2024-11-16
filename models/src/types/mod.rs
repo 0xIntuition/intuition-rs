@@ -6,6 +6,7 @@ use std::{
 
 use crate::error::ModelError;
 use alloy::primitives::U256;
+use serde::{Deserialize, Serialize};
 use sqlx::{
     encode::IsNull,
     postgres::{PgArgumentBuffer, PgTypeInfo, PgValueRef},
@@ -15,7 +16,7 @@ use sqlx::{
 
 /// This is a wrapper around the `U256` type to be able to use it with
 /// the `sqlx` library.
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub struct U256Wrapper(U256);
 
 impl TryInto<U256> for U256Wrapper {

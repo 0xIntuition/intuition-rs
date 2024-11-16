@@ -1,5 +1,5 @@
-use super::{atom_supported_types::AtomMetadata, ipfs_resolver::fetch_from_ipfs};
-use crate::error::ConsumerError;
+use super::ipfs_resolver::fetch_from_ipfs;
+use crate::{error::ConsumerError, mode::decoded::atom::atom_supported_types::AtomMetadata};
 use log::warn;
 use models::{
     atom::{Atom, AtomType},
@@ -34,6 +34,22 @@ pub async fn try_to_resolve_ipfs_uri(atom_data: &str) -> Result<Option<String>, 
                 "Failed to fetch IPFS data".into(),
             ))
         }
+    } else {
+        Ok(None)
+    }
+}
+
+/// This function tries to resolve a schema.org URL from the atom data
+pub async fn try_to_resolve_schema_org_url(
+    atom_data: &str,
+) -> Result<Option<String>, ConsumerError> {
+    // check if the atom data contains a predefine string (schema.org/something)
+    if let Some(schema_org_url) = SCHEMA_ORG_CONTEXTS
+        .iter()
+        .find(|ctx| atom_data.starts_with(**ctx))
+        .map(|ctx| atom_data[ctx.len()..].trim_start_matches('/').to_string())
+    {
+        Ok(Some(schema_org_url))
     } else {
         Ok(None)
     }

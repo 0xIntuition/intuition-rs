@@ -26,6 +26,19 @@ services:
       PGADMIN_DEFAULT_PASSWORD: strong-password
     volumes:
       - pgadmin-data:/var/lib/pgadmin
+
+  resolver_consumer:
+    container_name: resolver_consumer
+    image: consumer:latest
+    command: ./consumer --mode resolver
+    env_file:
+      - .env.sample.docker
+    restart: always
+    depends_on:
+      sqs:
+        condition: service_healthy
+    volumes:
+      - ~/.aws/:/root/.aws:ro
   
   decoded_consumer:
     container_name: decoded_consumer
@@ -33,7 +46,7 @@ services:
     command: ./consumer --mode decoded
     env_file:
       - .env.sample.docker
-
+    restart: always
     depends_on:
       sqs:
         condition: service_healthy
@@ -46,7 +59,7 @@ services:
     command: ./consumer --mode raw
     env_file:
       - .env.sample.docker
-
+    restart: always
     depends_on:
       sqs:
         condition: service_healthy

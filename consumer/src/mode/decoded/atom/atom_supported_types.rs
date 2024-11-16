@@ -1,5 +1,11 @@
-use super::atom_resolver::{try_to_parse_json, try_to_resolve_ipfs_uri, SCHEMA_ORG_CONTEXTS};
-use crate::{error::ConsumerError, mode::decoded::utils::short_id};
+use crate::{
+    error::ConsumerError,
+    mode::{
+        decoded::utils::short_id,
+        resolver::atom_resolver::{try_to_parse_json, try_to_resolve_schema_org_url},
+        types::{DecodedConsumerContext, ResolverConsumerMessage},
+    },
+};
 use alloy::primitives::Address;
 use log::info;
 use models::{
@@ -224,22 +230,6 @@ pub fn is_valid_address(address: &str) -> Result<bool, ConsumerError> {
     }
 }
 
-/// This function tries to resolve a schema.org URL from the atom data
-pub async fn try_to_resolve_schema_org_url(
-    atom_data: &str,
-) -> Result<Option<String>, ConsumerError> {
-    // check if the atom data contains a predefine string (schema.org/something)
-    if let Some(schema_org_url) = SCHEMA_ORG_CONTEXTS
-        .iter()
-        .find(|ctx| atom_data.starts_with(**ctx))
-        .map(|ctx| atom_data[ctx.len()..].trim_start_matches('/').to_string())
-    {
-        Ok(Some(schema_org_url))
-    } else {
-        Ok(None)
-    }
-}
-
 /// Gets the metadata for a supported atom type based on the atom data.
 /// So when we receive the the atom data, there are some situations
 /// we need to handle:
@@ -257,7 +247,7 @@ pub async fn try_to_resolve_schema_org_url(
 pub async fn get_supported_atom_metadata(
     atom: &mut Atom,
     decoded_atom_data: &str,
-    pg_pool: &PgPool,
+    decoded_consumer_context: &DecodedConsumerContext,
 ) -> Result<AtomMetadata, ConsumerError> {
     // 1. Handling the happy path (schema.org URL, predicate)
     if let Some(schema_org_url) = try_to_resolve_schema_org_url(decoded_atom_data).await? {
@@ -272,19 +262,17 @@ pub async fn get_supported_atom_metadata(
         Ok(AtomMetadata::address(decoded_atom_data))
     } else {
         info!("Atom data is not an address, verifying if it's an IPFS URI...");
-        // 3. Handling IPFS URIs
-        let data = try_to_resolve_ipfs_uri(decoded_atom_data).await?;
-        // If we resolved an IPFS URI, we need to try to parse the JSON
-        let metadata = if let Some(data) = data {
-            info!("Atom data is an IPFS URI: {data}");
-            try_to_parse_json(&data, atom, pg_pool).await?
-        } else {
-            info!("No IPFS URI found, trying to parse atom data as JSON...");
-            // 4. This is the fallback case, where we try to parse the atom data as JSON
-            // even if it's not a valid IPFS URI. This is useful for cases where the
-            // atom data is a JSON object that is not a schema.org URL.
-            try_to_parse_json(decoded_atom_data, atom, pg_pool).await?
-        };
+        // Now we need to enqueue the message to be processed by the resolver
+        let message = ResolverConsumerMessage::new(atom.clone(), decoded_atom_data.to_string());
+        decoded_consumer_context
+            .client
+            .send_message(serde_json::to_string(&message)?)
+            .await?;
+
+        // Now we try to parse the JSON and return the metadata. At this point
+        // the resolver will handle the rest of the cases.
+        let metadata =
+            try_to_parse_json(decoded_atom_data, atom, &decoded_consumer_context.pg_pool).await?;
 
         Ok(metadata)
     }

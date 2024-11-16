@@ -1,8 +1,7 @@
 use std::str::FromStr;
 
 use crate::{
-    error::ConsumerError, mode::decoded::atom::ens_resolver::get_ens,
-    ENSRegistry::ENSRegistryInstance,
+    error::ConsumerError, mode::resolver::ens_resolver::get_ens, ENSRegistry::ENSRegistryInstance,
 };
 use alloy::{
     primitives::{Address, U256},
