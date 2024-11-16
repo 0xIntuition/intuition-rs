@@ -1,9 +1,9 @@
 use crate::{
     error::ConsumerError,
     mode::{
-        decoded::utils::short_id,
+        decoded::utils::{get_or_create_account, short_id},
         resolver::atom_resolver::{try_to_parse_json, try_to_resolve_schema_org_url},
-        types::{DecodedConsumerContext, ResolverConsumerMessage},
+        types::{DecodedConsumerContext, ResolveAtom, ResolverConsumerMessage},
     },
 };
 use alloy::primitives::Address;
@@ -48,42 +48,36 @@ impl AtomMetadata {
     /// Creates an account and an atom value
     pub async fn create_account_and_atom_value(
         &self,
-        pg_pool: &PgPool,
-        atom_data: &Atom,
-        decoded_atom_data: &str,
+        resolved_atom: &ResolveAtom,
+        decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<(), ConsumerError> {
         if self.atom_type != "Account" {
             return Ok(());
         }
 
-        let account = match Account::find_by_id(decoded_atom_data.to_string(), pg_pool).await? {
-            Some(account) => account,
-            None => {
-                Account::builder()
-                    .id(decoded_atom_data)
-                    .atom_id(atom_data.id.clone())
-                    .label(short_id(decoded_atom_data))
-                    .account_type(AccountType::Default)
-                    .build()
-                    .upsert(pg_pool)
-                    .await?
-            }
-        };
+        let account = get_or_create_account(
+            resolved_atom.decoded_atom_data.to_string(),
+            decoded_consumer_context,
+        )
+        .await?;
 
         // Skip if atom value already exists
-        if AtomValue::find_by_id(atom_data.vault_id.clone(), pg_pool)
-            .await?
-            .is_some()
+        if AtomValue::find_by_id(
+            resolved_atom.atom.vault_id.clone(),
+            &decoded_consumer_context.pg_pool,
+        )
+        .await?
+        .is_some()
         {
             info!("Atom value already exists, skipping...");
             return Ok(());
         }
 
         AtomValue::builder()
-            .id(atom_data.vault_id.clone())
+            .id(resolved_atom.atom.vault_id.clone())
             .account_id(account.id)
             .build()
-            .upsert(pg_pool)
+            .upsert(&decoded_consumer_context.pg_pool)
             .await?;
 
         Ok(())
@@ -101,13 +95,12 @@ impl AtomMetadata {
     /// Stores the atom data in the database based on the atom type
     pub async fn handle_account_type(
         &self,
-        pg_pool: &PgPool,
-        atom: &Atom,
-        decoded_atom_data: &str,
+        resolved_atom: &ResolveAtom,
+        decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<(), ConsumerError> {
         match AtomType::from_str(self.atom_type.as_str())? {
             AtomType::Account => {
-                self.create_account_and_atom_value(pg_pool, atom, decoded_atom_data)
+                self.create_account_and_atom_value(resolved_atom, decoded_consumer_context)
                     .await
             }
 

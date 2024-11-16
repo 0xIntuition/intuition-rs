@@ -5,7 +5,7 @@ use crate::{
             atom::atom_supported_types::get_supported_atom_metadata,
             utils::{get_or_create_account, short_id},
         },
-        types::DecodedConsumerContext,
+        types::{DecodedConsumerContext, ResolveAtom},
     },
     schemas::types::DecodedMessage,
     EthMultiVault::AtomCreated,
@@ -136,8 +136,12 @@ impl AtomCreated {
                 .await?;
 
         // Handle the account type
+        let resolved_atom = ResolveAtom {
+            atom: atom.clone(),
+            decoded_atom_data,
+        };
         supported_atom_metadata
-            .handle_account_type(&decoded_consumer_context.pg_pool, &atom, &decoded_atom_data)
+            .handle_account_type(&resolved_atom, decoded_consumer_context)
             .await?;
 
         // Update the atom metadata to reflect the supported atom type
