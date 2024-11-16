@@ -28,7 +28,6 @@ services:
       - pgadmin-data:/var/lib/pgadmin
 
   resolver_consumer:
-    container_name: resolver_consumer
     image: consumer:latest
     command: ./consumer --mode resolver
     env_file:
@@ -39,6 +38,8 @@ services:
         condition: service_healthy
     volumes:
       - ~/.aws/:/root/.aws:ro
+    deploy:
+      replicas: 3
   
   decoded_consumer:
     container_name: decoded_consumer

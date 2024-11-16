@@ -8,10 +8,9 @@ use crate::{
         types::DecodedConsumerContext,
     },
     schemas::types::DecodedMessage,
-    ENSRegistry::ENSRegistryInstance,
     EthMultiVault::AtomCreated,
 };
-use alloy::{eips::BlockId, primitives::U256, providers::RootProvider, transports::http::Http};
+use alloy::{eips::BlockId, primitives::U256};
 use log::info;
 use models::{
     account::{Account, AccountType},
@@ -21,7 +20,6 @@ use models::{
     types::U256Wrapper,
     vault::Vault,
 };
-use reqwest::Client;
 use sqlx::PgPool;
 use std::str::FromStr;
 
@@ -75,21 +73,25 @@ impl AtomCreated {
     /// If it does not, it creates it.
     async fn get_or_create_vault_atom(
         &self,
-        pg_pool: &PgPool,
+        decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
-        mainnet_client: &ENSRegistryInstance<Http<Client>, RootProvider<Http<Client>>>,
     ) -> Result<Atom, ConsumerError> {
-        if let Some(atom) =
-            Atom::find_by_id(U256Wrapper::from_str(&self.vaultID.to_string())?, pg_pool).await?
+        if let Some(atom) = Atom::find_by_id(
+            U256Wrapper::from_str(&self.vaultID.to_string())?,
+            &decoded_consumer_context.pg_pool,
+        )
+        .await?
         {
             // If the atom exists, return it
             info!("Atom already exists, returning it");
             Ok(atom)
         } else {
             info!("Atom does not exist, creating it");
-            let atom_wallet_account = self.get_or_create_atom_wallet_account(pg_pool).await?;
+            let atom_wallet_account = self
+                .get_or_create_atom_wallet_account(&decoded_consumer_context.pg_pool)
+                .await?;
             let creator_account =
-                get_or_create_account(pg_pool, self.creator.to_string(), mainnet_client).await?;
+                get_or_create_account(self.creator.to_string(), decoded_consumer_context).await?;
             // Create the `Atom` and upsert it
             Atom::builder()
                 .id(U256Wrapper::from_str(
@@ -105,7 +107,7 @@ impl AtomCreated {
                 .block_timestamp(event.block_timestamp)
                 .transaction_hash(event.transaction_hash.clone())
                 .build()
-                .upsert(pg_pool)
+                .upsert(&decoded_consumer_context.pg_pool)
                 .await
                 .map_err(ConsumerError::ModelError)
         }
@@ -170,11 +172,7 @@ impl AtomCreated {
         // created first, so if they don't exist, we create them as part of this
         // process.
         let atom = self
-            .get_or_create_vault_atom(
-                &decoded_consumer_context.pg_pool,
-                event,
-                &decoded_consumer_context.mainnet_client,
-            )
+            .get_or_create_vault_atom(decoded_consumer_context, event)
             .await?;
 
         // Update the respective vault with the correct share price

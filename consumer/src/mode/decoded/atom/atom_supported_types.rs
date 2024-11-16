@@ -262,8 +262,9 @@ pub async fn get_supported_atom_metadata(
         Ok(AtomMetadata::address(decoded_atom_data))
     } else {
         info!("Atom data is not an address, verifying if it's an IPFS URI...");
-        // Now we need to enqueue the message to be processed by the resolver
-        let message = ResolverConsumerMessage::new(atom.clone(), decoded_atom_data.to_string());
+        // 3. Now we need to enqueue the message to be processed by the resolver
+        let message =
+            ResolverConsumerMessage::new_atom(atom.clone(), decoded_atom_data.to_string());
         decoded_consumer_context
             .client
             .send_message(serde_json::to_string(&message)?)

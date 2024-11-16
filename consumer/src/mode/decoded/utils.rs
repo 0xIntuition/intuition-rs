@@ -1,20 +1,13 @@
-use std::str::FromStr;
-
 use crate::{
-    error::ConsumerError, mode::resolver::ens_resolver::get_ens, ENSRegistry::ENSRegistryInstance,
+    error::ConsumerError,
+    mode::types::{DecodedConsumerContext, ResolverConsumerMessage},
 };
-use alloy::{
-    primitives::{Address, U256},
-    providers::RootProvider,
-    transports::http::Http,
-};
+use alloy::primitives::U256;
 use log::info;
 use models::{
     account::{Account, AccountType},
     traits::SimpleCrud,
 };
-use reqwest::Client;
-use sqlx::PgPool;
 
 /// Shortens an address string by taking first 6 and last 4 chars
 pub fn short_id(address: &str) -> String {
@@ -40,31 +33,33 @@ pub fn get_absolute_triple_id(vault_id: U256) -> U256 {
 
 /// This function gets or creates an account
 pub async fn get_or_create_account(
-    pg_pool: &PgPool,
     id: String,
-    mainnet_client: &ENSRegistryInstance<Http<Client>, RootProvider<Http<Client>>>,
+    decoded_consumer_context: &DecodedConsumerContext,
 ) -> Result<Account, ConsumerError> {
-    if let Some(account) = Account::find_by_id(id.clone(), pg_pool).await? {
+    if let Some(account) =
+        Account::find_by_id(id.clone(), &decoded_consumer_context.pg_pool).await?
+    {
         info!("Returning existing account for: {}", id);
         Ok(account)
     } else {
         info!("Creating account for: {}", id);
-        let ens = get_ens(Address::from_str(&id)?, mainnet_client).await?;
-        if let Some(_name) = ens.name.clone() {
-            info!("Woo! ENS for account: {:?}", ens);
-        }
-
-        Account::builder()
+        let account = Account::builder()
             .id(id.clone())
-            .label(match &ens.name {
-                Some(name) => name.clone(),
-                None => short_id(&id),
-            })
-            .image(ens.image.unwrap_or_default())
+            .label(short_id(&id))
             .account_type(AccountType::Default)
             .build()
-            .upsert(pg_pool)
+            .upsert(&decoded_consumer_context.pg_pool)
             .await
-            .map_err(ConsumerError::ModelError)
+            .map_err(ConsumerError::ModelError)?;
+
+        // Now we need to enqueue the message to be processed by the resolver. In this
+        // process we check if the account has ENS data associated, and if it does, we
+        // update the account with the ENS data (name [label] and image)
+        let message = ResolverConsumerMessage::new_account(account.clone());
+        decoded_consumer_context
+            .client
+            .send_message(serde_json::to_string(&message)?)
+            .await?;
+        Ok(account)
     }
 }
