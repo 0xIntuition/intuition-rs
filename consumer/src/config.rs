@@ -17,6 +17,7 @@ pub struct Env {
     #[serde(flatten)]
     pub postgres: PostgresEnv,
     pub raw_consumer_queue_url: String,
+    pub resolver_queue_url: String,
     pub rpc_url_base_mainnet: String,
     pub rpc_url_mainnet: String,
 }

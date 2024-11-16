@@ -31,6 +31,21 @@ args = [
     "decoded",
 ]
 
+# Run the RESOLVER SQS consumer connected to the test queue in test mode
+[tasks.resolver-consumer-local]
+env = { "RUST_LOG" = "info" }
+command = "cargo"
+args = [
+    "run",
+    "--bin",
+    "consumer",
+    "--features",
+    "local",
+    "--",
+    "--mode",
+    "resolver",
+]
+
 # Remove docker volumes
 [tasks.remove-docker-volumes]
 command = "docker"
@@ -74,6 +89,19 @@ args = [
     "--",
     "--mode",
     "decoded",
+]
+
+# Run the SQS consumer connected to the real SQS queue
+[tasks.resolver-consumer]
+env = { "RUST_LOG" = "info" }
+command = "cargo"
+args = [
+    "run",
+    "--bin",
+    "consumer",
+    "--",
+    "--mode",
+    "resolver",
 ]
 
 # Build the docker image for the consumer service

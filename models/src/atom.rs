@@ -3,12 +3,13 @@ use crate::{
     traits::{Model, SimpleCrud},
     types::U256Wrapper,
 };
+use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use strum_macros::{Display, EnumString};
 
 use async_trait::async_trait;
 /// This struct represents an atom in the database.
-#[derive(sqlx::FromRow, Debug, PartialEq, Clone, Builder)]
+#[derive(sqlx::FromRow, Debug, PartialEq, Clone, Builder, Serialize, Deserialize)]
 #[sqlx(type_name = "atom")]
 pub struct Atom {
     pub id: U256Wrapper,
@@ -27,7 +28,7 @@ pub struct Atom {
 }
 
 /// This enum represents the type of an atom.
-#[derive(sqlx::Type, Clone, Debug, Display, EnumString, PartialEq)]
+#[derive(sqlx::Type, Clone, Debug, Display, EnumString, PartialEq, Serialize, Deserialize)]
 #[sqlx(type_name = "atom_type")]
 pub enum AtomType {
     Account,

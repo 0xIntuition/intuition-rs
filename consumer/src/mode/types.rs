@@ -3,6 +3,7 @@ use crate::{
     config::{ConsumerType, IndexerSource},
     consumer_type::sqs::Sqs,
     error::ConsumerError,
+    mode::resolver::atom_resolver::{try_to_parse_json, try_to_resolve_ipfs_uri},
     schemas::types::DecodedMessage,
     traits::BasicConsumer,
     utils::connect_to_db,
@@ -15,7 +16,12 @@ use alloy::{
     transports::http::Http,
 };
 use log::{debug, info, warn};
+use models::{
+    atom::{Atom, AtomType},
+    traits::SimpleCrud,
+};
 use reqwest::Client;
+use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use std::{str::FromStr, sync::Arc};
 
@@ -36,13 +42,39 @@ pub struct DecodedConsumerContext {
     pub pg_pool: PgPool,
 }
 
+/// Represents the resolver consumer context
+#[derive(Clone)]
+pub struct ResolverConsumerContext {
+    pub client: Arc<dyn BasicConsumer>,
+    pub mainnet_client: Arc<ENSRegistryInstance<Http<Client>, RootProvider<Http<Client>>>>,
+    pub pg_pool: PgPool,
+}
+
+/// This struct represents a message that is sent to the resolver
+/// consumer to be processed.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ResolverConsumerMessage {
+    pub atom: Atom,
+    pub decoded_atom_data: String,
+}
+
+impl ResolverConsumerMessage {
+    pub fn new(atom: Atom, decoded_atom_data: String) -> Self {
+        Self {
+            atom,
+            decoded_atom_data,
+        }
+    }
+}
+
 /// This enum describes the possible modes that the consumer
 /// can be executed on. At each mode the consumer is going
 /// to be performing different actions
 #[derive(Clone)]
 pub enum ConsumerMode {
-    Raw(RawConsumerContext),
     Decoded(DecodedConsumerContext),
+    Raw(RawConsumerContext),
+    Resolver(ResolverConsumerContext),
 }
 
 impl ConsumerMode {
@@ -92,6 +124,29 @@ impl ConsumerMode {
         Ok(alloy_contract)
     }
 
+    /// This function creates a resolver consumer
+    async fn create_resolver_consumer(
+        data: ServerInitialize,
+        pg_pool: PgPool,
+    ) -> Result<ConsumerMode, ConsumerError> {
+        let mainnet_client = Arc::new(Self::build_ens_client(
+            &data.env.rpc_url_mainnet,
+            &data.env.ens_contract_address,
+        )?);
+        let client = Self::build_client(
+            data.clone(),
+            data.env.resolver_queue_url.clone(),
+            data.env.resolver_queue_url.clone(),
+        )
+        .await?;
+
+        Ok(ConsumerMode::Resolver(ResolverConsumerContext {
+            client,
+            mainnet_client,
+            pg_pool,
+        }))
+    }
+
     /// This function creates a decoded consumer
     async fn create_decoded_consumer(
         data: ServerInitialize,
@@ -108,7 +163,7 @@ impl ConsumerMode {
         let client = Self::build_client(
             data.clone(),
             data.env.decoded_logs_queue_url.clone(),
-            data.env.decoded_logs_queue_url.clone(),
+            data.env.resolver_queue_url.clone(),
         )
         .await?;
 
@@ -152,6 +207,9 @@ impl ConsumerMode {
         match data.args.mode.as_str() {
             "Raw" | "raw" | "RAW" => Self::create_raw_consumer(data, pg_pool).await,
             "Decoded" | "decoded" | "DECODED" => Self::create_decoded_consumer(data, pg_pool).await,
+            "Resolver" | "resolver" | "RESOLVER" => {
+                Self::create_resolver_consumer(data, pg_pool).await
+            }
             _ => Err(ConsumerError::UnsuportedMode),
         }
     }
@@ -166,6 +224,10 @@ impl ConsumerMode {
             }
             ConsumerMode::Decoded(decoded_consumer_context) => {
                 self.handle_decoded_message(message, decoded_consumer_context)
+                    .await
+            }
+            ConsumerMode::Resolver(resolver_consumer_context) => {
+                self.handle_resolved_message(message, resolver_consumer_context)
                     .await
             }
         }
@@ -187,6 +249,12 @@ impl ConsumerMode {
                     .process_messages(self.clone())
                     .await
             }
+            ConsumerMode::Resolver(resolver_consumer_context) => {
+                resolver_consumer_context
+                    .client
+                    .process_messages(self.clone())
+                    .await
+            }
         }
     }
 
@@ -204,12 +272,7 @@ impl ConsumerMode {
             EthMultiVaultEvents::AtomCreated(atom_data) => {
                 info!("Received: {atom_data:#?}");
                 atom_data
-                    .handle_atom_creation(
-                        &decoded_consumer_context.pg_pool,
-                        &decoded_consumer_context.base_client,
-                        &decoded_consumer_context.mainnet_client,
-                        &decoded_message,
-                    )
+                    .handle_atom_creation(decoded_consumer_context, &decoded_message)
                     .await?;
             }
             EthMultiVaultEvents::FeesTransferred(fees_data) => {
@@ -257,6 +320,57 @@ impl ConsumerMode {
                 warn!("Received event: {decoded_message:#?}");
             }
         }
+        Ok(())
+    }
+
+    /// This function process a decoded message.
+    async fn handle_resolved_message(
+        &self,
+        message: String,
+        resolver_consumer_context: &ResolverConsumerContext,
+    ) -> Result<(), ConsumerError> {
+        info!("Processing a resolved message: {message:?}");
+        // Deserialize the message into an `Event`
+        let resolver_message: ResolverConsumerMessage = serde_json::from_str(&message)?;
+        // 3. Handling IPFS URIs
+        let data = try_to_resolve_ipfs_uri(&resolver_message.decoded_atom_data).await?;
+        // If we resolved an IPFS URI, we need to try to parse the JSON
+        let metadata = if let Some(data) = data {
+            info!("Atom data is an IPFS URI: {data}");
+            try_to_parse_json(
+                &data,
+                &resolver_message.atom,
+                &resolver_consumer_context.pg_pool,
+            )
+            .await?
+        } else {
+            info!("No IPFS URI found, trying to parse atom data as JSON...");
+            // 4. This is the fallback case, where we try to parse the atom data as JSON
+            // even if it's not a valid IPFS URI. This is useful for cases where the
+            // atom data is a JSON object that is not a schema.org URL.
+            try_to_parse_json(
+                &resolver_message.decoded_atom_data,
+                &resolver_message.atom,
+                &resolver_consumer_context.pg_pool,
+            )
+            .await?
+        };
+
+        // If at this point we have an atom type that is not unknown (it means it changes it state),
+        // we need to update the atom metadata
+        if AtomType::from_str(&metadata.atom_type)? != AtomType::Unknown {
+            let atom =
+                Atom::find_by_id(resolver_message.atom.id, &resolver_consumer_context.pg_pool)
+                    .await?;
+
+            if let Some(mut atom) = atom {
+                metadata
+                    .update_atom_metadata(&mut atom, &resolver_consumer_context.pg_pool)
+                    .await?;
+                info!("Updated atom metadata: {atom:#?}");
+            }
+        }
+
         Ok(())
     }
 }
