@@ -329,9 +329,9 @@ impl ConsumerMode {
         message: String,
         resolver_consumer_context: &ResolverConsumerContext,
     ) -> Result<(), ConsumerError> {
-        info!("Processing a resolved message: {message:?}");
         // Deserialize the message into an `Event`
         let resolver_message: ResolverConsumerMessage = serde_json::from_str(&message)?;
+        info!("Processing a resolved message: {resolver_message:?}");
         // 3. Handling IPFS URIs
         let data = try_to_resolve_ipfs_uri(&resolver_message.decoded_atom_data).await?;
         // If we resolved an IPFS URI, we need to try to parse the JSON
@@ -367,7 +367,7 @@ impl ConsumerMode {
                 metadata
                     .update_atom_metadata(&mut atom, &resolver_consumer_context.pg_pool)
                     .await?;
-                info!("Updated atom metadata: {atom:#?}");
+                info!("Updated atom metadata: {atom:?}");
             }
         }
 
