@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE triple \n            SET label = subquery.new_label\n            FROM (\n                SELECT t.id,\n                    CONCAT_WS(' ', \n                        COALESCE(s.label, ''),\n                        COALESCE(p.label, ''),\n                        COALESCE(o.label, '')\n                    ) as new_label\n                FROM triple t\n                LEFT JOIN triple s ON t.subject_id = s.id\n                LEFT JOIN triple p ON t.predicate_id = p.id\n                LEFT JOIN triple o ON t.object_id = o.id\n                WHERE t.subject_id = $1 OR t.predicate_id = $1 OR t.object_id = $1\n            ) as subquery\n            WHERE triple.id = subquery.id",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Numeric"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d7e3f0d5e9325cd1c5b02f75e3f68b909312c1a1c264d7fa3bf8de5713ba91f9"
+}

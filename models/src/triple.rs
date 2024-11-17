@@ -108,11 +108,11 @@ impl Triple {
             SET label = subquery.new_label
             FROM (
                 SELECT t.id,
-                    CASE 
-                        WHEN t.subject_id = $1 THEN s.label
-                        WHEN t.predicate_id = $1 THEN p.label
-                        WHEN t.object_id = $1 THEN o.label
-                    END as new_label
+                    CONCAT_WS(' ', 
+                        COALESCE(s.label, ''),
+                        COALESCE(p.label, ''),
+                        COALESCE(o.label, '')
+                    ) as new_label
                 FROM triple t
                 LEFT JOIN triple s ON t.subject_id = s.id
                 LEFT JOIN triple p ON t.predicate_id = p.id
