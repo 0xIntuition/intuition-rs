@@ -3,9 +3,6 @@ use std::str::FromStr;
 use crate::{error::ConsumerError, utils::PostgresEnv};
 use serde::Deserialize;
 
-// Default consumer pooling pause in miliseconds
-pub const POOLING_PAUSE_IN_MS: u64 = 300;
-
 /// Number of attempts to fetch IPFS data
 pub const IPFS_RETRY_ATTEMPTS: i32 = 10;
 

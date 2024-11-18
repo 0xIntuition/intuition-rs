@@ -1,14 +1,10 @@
-use crate::{
-    config::POOLING_PAUSE_IN_MS, error::ConsumerError, mode::types::ConsumerMode,
-    traits::BasicConsumer,
-};
+use crate::{error::ConsumerError, mode::types::ConsumerMode, traits::BasicConsumer};
 use async_trait::async_trait;
 use aws_sdk_sqs::{
     operation::receive_message::ReceiveMessageOutput, types::Message, Client as AWSClient,
 };
 use log::{debug, info};
 use std::sync::Arc;
-use tokio::time;
 /// Represents the SQS consumer
 pub struct Sqs {
     client: AWSClient,
@@ -102,8 +98,6 @@ impl BasicConsumer for Sqs {
                     }
                 }
             }
-            // If no message is received, wait for a while
-            tokio::time::sleep(time::Duration::from_millis(POOLING_PAUSE_IN_MS)).await;
         }
     }
 
