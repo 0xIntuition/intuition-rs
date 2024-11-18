@@ -15,7 +15,7 @@ use alloy::{eips::BlockId, primitives::U256};
 use log::info;
 use models::{
     account::{Account, AccountType},
-    atom::{Atom, AtomType},
+    atom::{Atom, AtomResolvingStatus, AtomType},
     event::{Event, EventType},
     traits::SimpleCrud,
     types::U256Wrapper,
@@ -107,6 +107,7 @@ impl AtomCreated {
                 .block_number(U256Wrapper::from_str(&event.block_number.to_string())?)
                 .block_timestamp(event.block_timestamp)
                 .transaction_hash(event.transaction_hash.clone())
+                .resolving_status(AtomResolvingStatus::Pending)
                 .build()
                 .upsert(&decoded_consumer_context.pg_pool)
                 .await

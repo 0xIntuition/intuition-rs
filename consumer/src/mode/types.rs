@@ -19,7 +19,7 @@ use reqwest::Client;
 use sqlx::PgPool;
 use std::{str::FromStr, sync::Arc};
 
-use super::resolver::types::ResolverConsumerMessage;
+use super::resolver::{ipfs_resolver::IPFSResolver, types::ResolverConsumerMessage};
 
 /// This enum describes the possible modes that the consumer
 /// can be executed on. At each mode the consumer is going
@@ -51,8 +51,10 @@ pub struct RawConsumerContext {
 #[derive(Clone)]
 pub struct ResolverConsumerContext {
     pub client: Arc<dyn BasicConsumer>,
+    pub ipfs_resolver: IPFSResolver,
     pub mainnet_client: Arc<ENSRegistryInstance<Http<Client>, RootProvider<Http<Client>>>>,
     pub pg_pool: PgPool,
+    pub server_initialize: ServerInitialize,
 }
 
 impl ConsumerMode {
@@ -158,6 +160,7 @@ impl ConsumerMode {
             &data.env.rpc_url_mainnet,
             &data.env.ens_contract_address,
         )?);
+
         let client = Self::build_client(
             data.clone(),
             data.env.resolver_queue_url.clone(),
@@ -165,10 +168,14 @@ impl ConsumerMode {
         )
         .await?;
 
+        let ipfs_resolver = IPFSResolver::new(Client::new(), data.env.ipfs_gateway_url.clone());
+
         Ok(ConsumerMode::Resolver(ResolverConsumerContext {
             client,
+            ipfs_resolver,
             mainnet_client,
             pg_pool,
+            server_initialize: data,
         }))
     }
 

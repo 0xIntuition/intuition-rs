@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use crate::{
     account::{Account, AccountType},
-    atom::{Atom, AtomType},
+    atom::{Atom, AtomResolvingStatus, AtomType},
     deposit::Deposit,
     event::{Event, EventType},
     fee_transfer::FeeTransfer,
@@ -81,6 +81,7 @@ pub fn create_test_atom(wallet_id: String, creator_id: String) -> Atom {
         .block_number(create_random_u256wrapper())
         .block_timestamp(create_random_number())
         .transaction_hash(vec![5u8])
+        .resolving_status(AtomResolvingStatus::Pending)
         .build()
 }
 

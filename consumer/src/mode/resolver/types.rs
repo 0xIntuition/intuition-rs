@@ -96,7 +96,11 @@ impl ResolverMessageType {
         resolver_consumer_context: &ResolverConsumerContext,
         resolver_message: &ResolveAtom,
     ) -> Result<(), ConsumerError> {
-        let data = try_to_resolve_ipfs_uri(&resolver_message.decoded_atom_data).await?;
+        let data = try_to_resolve_ipfs_uri(
+            &resolver_message.decoded_atom_data,
+            resolver_consumer_context,
+        )
+        .await?;
         // If we resolved an IPFS URI, we need to try to parse the JSON
         let metadata = if let Some(data) = data {
             info!("Atom data is an IPFS URI: {data}");
@@ -132,6 +136,11 @@ impl ResolverMessageType {
                 metadata
                     .update_atom_metadata(&mut atom, &resolver_consumer_context.pg_pool)
                     .await?;
+                // Mark the atom as resolved
+                resolver_message
+                    .atom
+                    .mark_as_resolved(&resolver_consumer_context.pg_pool)
+                    .await?;
                 info!("Updated atom metadata: {atom:?}");
             }
 
@@ -141,6 +150,12 @@ impl ResolverMessageType {
                 &resolver_consumer_context.pg_pool,
             )
             .await?;
+        } else {
+            // Mark the atom as failed
+            resolver_message
+                .atom
+                .mark_as_failed(&resolver_consumer_context.pg_pool)
+                .await?;
         }
         Ok(())
     }

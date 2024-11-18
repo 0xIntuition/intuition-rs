@@ -12,7 +12,7 @@ use crate::{
 use alloy::primitives::Address;
 use log::info;
 use models::{
-    atom::{Atom, AtomType},
+    atom::{Atom, AtomResolvingStatus, AtomType},
     atom_value::AtomValue,
     traits::SimpleCrud,
 };
@@ -247,6 +247,8 @@ pub async fn get_supported_atom_metadata(
     // 1. Handling the happy path (schema.org URL, predicate)
     if let Some(schema_org_url) = try_to_resolve_schema_org_url(decoded_atom_data).await? {
         info!("Schema.org URL found, returning predicate metadata...");
+        // As we dont need to resolve anything, we can mark the atom as resolved
+        atom.resolving_status = AtomResolvingStatus::Resolved;
         return Ok(get_predicate_metadata(schema_org_url));
     } else {
         info!("No schema.org URL found, verifying if atom data is an address...");
@@ -255,6 +257,8 @@ pub async fn get_supported_atom_metadata(
     // 2. Handling the happy path (address)
     if is_valid_address(decoded_atom_data)? {
         info!("Atom data is an address, returning account metadata...");
+        // As we dont need to resolve anything, we can mark the atom as resolved
+        atom.resolving_status = AtomResolvingStatus::Resolved;
         Ok(AtomMetadata::address(decoded_atom_data))
     } else {
         info!("Atom data is not an address, verifying if it's an IPFS URI...");
