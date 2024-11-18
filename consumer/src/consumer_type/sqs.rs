@@ -83,20 +83,27 @@ impl BasicConsumer for Sqs {
     /// right after.
     async fn process_messages(&self, mode: ConsumerMode) -> Result<(), ConsumerError> {
         info!("Starting the consumer loop");
+        let mut backoff_ms = 0;
+        let max_backoff = 1000; // 1 second max delay
+
         loop {
             info!("awaiting for new messages...");
             let rcv_message_output = self.receive_message().await?;
 
             if let Some(messages) = rcv_message_output.messages {
+                // Reset backoff when messages are found
+                backoff_ms = 0;
+
                 for message in messages {
                     if let Some(message_body) = message.clone().body {
-                        // Process the message
                         mode.process_message(message_body).await?;
-
-                        // Delete the message from the queue
                         self.consume_message(message).await?
                     }
                 }
+            } else {
+                // Implement exponential backoff with max limit
+                backoff_ms = (backoff_ms * 2 + 100).min(max_backoff);
+                tokio::time::sleep(tokio::time::Duration::from_millis(backoff_ms)).await;
             }
         }
     }
@@ -109,6 +116,8 @@ impl BasicConsumer for Sqs {
             .get_client()
             .await
             .receive_message()
+            .max_number_of_messages(10)
+            .set_max_number_of_messages(Some(10))
             .queue_url(&*self.get_input_queue())
             .send()
             .await?;

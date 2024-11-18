@@ -142,14 +142,10 @@ impl ResolverMessageType {
                     .mark_as_resolved(&resolver_consumer_context.pg_pool)
                     .await?;
                 info!("Updated atom metadata: {atom:?}");
+                // Now we need to update the triple labels
+                Triple::update_triple_labels(atom.id.clone(), &resolver_consumer_context.pg_pool)
+                    .await?;
             }
-
-            // Now we need to update the triple labels
-            Triple::update_triple_labels(
-                resolver_message.atom.id.clone(),
-                &resolver_consumer_context.pg_pool,
-            )
-            .await?;
         } else {
             // Mark the atom as failed
             resolver_message
