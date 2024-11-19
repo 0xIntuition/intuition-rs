@@ -98,7 +98,6 @@ pub fn create_test_triple(
         .subject_id(subject_id)
         .predicate_id(predicate_id)
         .object_id(object_id)
-        .label(create_random_string())
         .vault_id(create_random_u256wrapper())
         .counter_vault_id(create_random_u256wrapper())
         .block_number(create_random_u256wrapper())

@@ -80,7 +80,9 @@ impl BasicConsumer for Sqs {
 
     /// This function process the messages available on the SQS queue. Processing
     /// include three steps: receiving the message, processing it and delete it
-    /// right after.
+    /// right after. When ingesting historical data, we want no delay in between
+    /// messages, but when idle, we want to have a delay between message polling to
+    /// avoid busy-waiting.
     async fn process_messages(&self, mode: ConsumerMode) -> Result<(), ConsumerError> {
         info!("Starting the consumer loop");
         let mut backoff_ms = 0;

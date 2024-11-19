@@ -14,7 +14,6 @@ use models::{
     account::{Account, AccountType},
     atom::{Atom, AtomType},
     traits::SimpleCrud,
-    triple::Triple,
 };
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
@@ -142,9 +141,6 @@ impl ResolverMessageType {
                     .mark_as_resolved(&resolver_consumer_context.pg_pool)
                     .await?;
                 info!("Updated atom metadata: {atom:?}");
-                // Now we need to update the triple labels
-                Triple::update_triple_labels(atom.id.clone(), &resolver_consumer_context.pg_pool)
-                    .await?;
             }
         } else {
             // Mark the atom as failed

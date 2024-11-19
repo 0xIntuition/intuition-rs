@@ -91,7 +91,6 @@ CREATE TABLE triple (
   subject_id NUMERIC(78, 0) REFERENCES atom(id) NOT NULL,
   predicate_id NUMERIC(78, 0) REFERENCES atom(id) NOT NULL,
   object_id NUMERIC(78, 0) REFERENCES atom(id) NOT NULL,
-  label TEXT,
   vault_id NUMERIC(78, 0) NOT NULL,
   counter_vault_id NUMERIC(78, 0) NOT NULL,
   block_number NUMERIC(78, 0) NOT NULL,
