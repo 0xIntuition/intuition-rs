@@ -24,6 +24,7 @@ CREATE TYPE atom_type AS ENUM (
   'Unknown', 'Account', 'Thing', 'ThingPredicate', 'Person', 'PersonPredicate',
   'Organization', 'OrganizationPredicate', 'Book', 'LikeAction', 'FollowAction', 'Keywords'
 );
+CREATE TYPE atom_resolving_status AS ENUM ('Pending', 'Resolved', 'Failed');
 
 -- Create tables
 CREATE TABLE chainlink_price (
@@ -75,7 +76,8 @@ CREATE TABLE atom (
   value_id NUMERIC(78, 0),
   block_number NUMERIC(78, 0) NOT NULL,
   block_timestamp BIGINT NOT NULL,
-  transaction_hash BYTEA NOT NULL
+  transaction_hash BYTEA NOT NULL,
+  resolving_status atom_resolving_status NOT NULL DEFAULT 'Pending'
 );
 
 -- Add foreign key constraints after tables are created
@@ -89,7 +91,6 @@ CREATE TABLE triple (
   subject_id NUMERIC(78, 0) REFERENCES atom(id) NOT NULL,
   predicate_id NUMERIC(78, 0) REFERENCES atom(id) NOT NULL,
   object_id NUMERIC(78, 0) REFERENCES atom(id) NOT NULL,
-  label TEXT,
   vault_id NUMERIC(78, 0) NOT NULL,
   counter_vault_id NUMERIC(78, 0) NOT NULL,
   block_number NUMERIC(78, 0) NOT NULL,

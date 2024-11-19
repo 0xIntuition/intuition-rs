@@ -61,16 +61,6 @@ impl TripleCreated {
             .map_err(ConsumerError::ModelError)
     }
 
-    /// This function creates a triple label
-    fn create_triple_label(
-        &self,
-        subject_id: U256Wrapper,
-        predicate_id: U256Wrapper,
-        object_id: U256Wrapper,
-    ) -> String {
-        format!("{} {} {}", subject_id, predicate_id, object_id)
-    }
-
     /// This function verifies if the creator account exists in our DB. If it does, it returns it.
     /// If it does not, it creates it.
     async fn get_or_create_creator_account(
@@ -114,11 +104,6 @@ impl TripleCreated {
                     .object_id(object_atom.id.clone())
                     .vault_id(U256Wrapper::from(self.vaultID))
                     .counter_vault_id(U256Wrapper::from(counter_vault_id))
-                    .label(self.create_triple_label(
-                        subject_atom.id,
-                        predicate_atom.id,
-                        object_atom.id,
-                    ))
                     .block_number(U256Wrapper::try_from(event.block_number).unwrap_or_default())
                     .block_timestamp(event.block_timestamp)
                     .transaction_hash(event.transaction_hash.clone())

@@ -1,9 +1,8 @@
 use super::utils::get_absolute_triple_id;
 use crate::{
-    mode::decoded::utils::get_or_create_account,
+    mode::{decoded::utils::get_or_create_account, types::DecodedConsumerContext},
     schemas::types::DecodedMessage,
     ConsumerError,
-    ENSRegistry::ENSRegistryInstance,
     EthMultiVault::{Deposited, EthMultiVaultInstance},
 };
 use alloy::{eips::BlockId, primitives::U256, providers::RootProvider, transports::http::Http};
@@ -269,33 +268,35 @@ impl Deposited {
     /// This function handles the creation of a `Deposit`
     pub async fn handle_deposit_creation(
         &self,
-        pg_pool: &PgPool,
-        web3: &EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>>,
-        mainnet_client: &ENSRegistryInstance<Http<Client>, RootProvider<Http<Client>>>,
+        decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
         // Initialize core data
-        let current_share_price = self.fetch_current_share_price(web3, event).await?;
+        let current_share_price = self
+            .fetch_current_share_price(&decoded_consumer_context.base_client, event)
+            .await?;
 
         // Initialize accounts and vault. We need to block on this because it's async and
         // we need to ensure that the accounts and vault are initialized before we proceed
-        let vault = block_on(self.initialize_accounts_and_vault(
-            pg_pool,
-            current_share_price,
-            mainnet_client,
-        ))?;
+        let vault = block_on(
+            self.initialize_accounts_and_vault(decoded_consumer_context, current_share_price),
+        )?;
 
         // Create deposit record
-        self.create_deposit(event, pg_pool).await?;
+        self.create_deposit(event, &decoded_consumer_context.pg_pool)
+            .await?;
 
         // Handle position and related entities
-        self.handle_position_and_claims(pg_pool, &vault).await?;
+        self.handle_position_and_claims(&decoded_consumer_context.pg_pool, &vault)
+            .await?;
 
         // Create event
-        self.create_event(event, pg_pool).await?;
+        self.create_event(event, &decoded_consumer_context.pg_pool)
+            .await?;
 
         // Create signal
-        self.create_signal(pg_pool, event, &vault).await?;
+        self.create_signal(&decoded_consumer_context.pg_pool, event, &vault)
+            .await?;
 
         Ok(())
     }
@@ -376,20 +377,23 @@ impl Deposited {
     /// This function initializes the accounts and vault
     async fn initialize_accounts_and_vault(
         &self,
-        pg_pool: &PgPool,
+        decoded_consumer_context: &DecodedConsumerContext,
         current_share_price: U256,
-        mainnet_client: &ENSRegistryInstance<Http<Client>, RootProvider<Http<Client>>>,
     ) -> Result<Vault, ConsumerError> {
         // Create accounts concurrently
         let (sender, receiver) = futures::join!(
-            get_or_create_account(pg_pool, self.sender.to_string(), mainnet_client),
-            get_or_create_account(pg_pool, self.receiver.to_string(), mainnet_client)
+            get_or_create_account(self.sender.to_string(), decoded_consumer_context),
+            get_or_create_account(self.receiver.to_string(), decoded_consumer_context)
         );
         sender?;
         receiver?;
 
-        self.get_or_create_vault(pg_pool, self.vaultId, current_share_price)
-            .await
+        self.get_or_create_vault(
+            &decoded_consumer_context.pg_pool,
+            self.vaultId,
+            current_share_price,
+        )
+        .await
     }
 
     /// This function updates the claim

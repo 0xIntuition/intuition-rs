@@ -3,8 +3,8 @@ use std::str::FromStr;
 use crate::{error::ConsumerError, utils::PostgresEnv};
 use serde::Deserialize;
 
-// Default consumer pooling pause in miliseconds
-pub const POOLING_PAUSE_IN_MS: u64 = 300;
+/// Number of attempts to fetch IPFS data
+pub const IPFS_RETRY_ATTEMPTS: i32 = 10;
 
 #[derive(Clone, Deserialize, Debug)]
 pub struct Env {
@@ -13,10 +13,12 @@ pub struct Env {
     pub ens_contract_address: String,
     pub indexing_source: String,
     pub intuition_contract_address: String,
+    pub ipfs_gateway_url: String,
     pub localstack_url: String,
     #[serde(flatten)]
     pub postgres: PostgresEnv,
     pub raw_consumer_queue_url: String,
+    pub resolver_queue_url: String,
     pub rpc_url_base_mainnet: String,
     pub rpc_url_mainnet: String,
 }

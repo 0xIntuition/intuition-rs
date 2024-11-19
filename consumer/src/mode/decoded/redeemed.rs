@@ -1,8 +1,8 @@
 use super::utils::get_or_create_account;
 use crate::{
     error::ConsumerError,
+    mode::types::DecodedConsumerContext,
     schemas::types::DecodedMessage,
-    ENSRegistry::ENSRegistryInstance,
     EthMultiVault::{EthMultiVaultInstance, Redeemed},
 };
 use alloy::{
@@ -161,47 +161,65 @@ impl Redeemed {
     /// This function handles the creation of a `Redeemed`
     pub async fn handle_redeemed_creation(
         &self,
-        pg_pool: &PgPool,
-        web3: &EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>>,
-        mainnet_client: &ENSRegistryInstance<Http<Client>, RootProvider<Http<Client>>>,
+        decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
         // 1. Set up accounts
         let sender_account =
-            get_or_create_account(pg_pool, self.sender.to_string(), mainnet_client).await?;
+            get_or_create_account(self.sender.to_string(), decoded_consumer_context).await?;
         let receiver_account =
-            get_or_create_account(pg_pool, self.receiver.to_string(), mainnet_client).await?;
+            get_or_create_account(self.receiver.to_string(), decoded_consumer_context).await?;
 
         // 2. Create redemption record
         let redemption = self
-            .create_redemption_record(pg_pool, &sender_account, &receiver_account, event)
+            .create_redemption_record(
+                &decoded_consumer_context.pg_pool,
+                &sender_account,
+                &receiver_account,
+                event,
+            )
             .await?;
 
         // 3. Get vault and current share price
-        let current_share_price = self.fetch_current_share_price(web3, event).await?;
-        let vault = Vault::find_by_id(U256Wrapper::from(self.vaultId), pg_pool)
-            .await?
-            .ok_or(ConsumerError::VaultNotFound)?;
+        let current_share_price = self
+            .fetch_current_share_price(&decoded_consumer_context.base_client, event)
+            .await?;
+        let vault = Vault::find_by_id(
+            U256Wrapper::from(self.vaultId),
+            &decoded_consumer_context.pg_pool,
+        )
+        .await?
+        .ok_or(ConsumerError::VaultNotFound)?;
 
         // 4. Handle position and claims based on remaining shares
         if self.senderTotalSharesInVault == Uint::from(0) {
-            self.handle_zero_shares(&vault, &sender_account, pg_pool)
+            self.handle_zero_shares(&vault, &sender_account, &decoded_consumer_context.pg_pool)
                 .await?;
         } else {
-            self.handle_remaining_shares(&vault, &sender_account, pg_pool)
-                .await?;
+            self.handle_remaining_shares(
+                &vault,
+                &sender_account,
+                &decoded_consumer_context.pg_pool,
+            )
+            .await?;
         }
 
         // 5. Update vault stats
-        self.update_vault_stats(pg_pool, current_share_price)
+        self.update_vault_stats(&decoded_consumer_context.pg_pool, current_share_price)
             .await?;
 
         // 6. Create event record
-        self.create_event(pg_pool, event, redemption.id, &vault)
-            .await?;
+        self.create_event(
+            &decoded_consumer_context.pg_pool,
+            event,
+            redemption.id,
+            &vault,
+        )
+        .await?;
 
         // 7. Create signal record
-        self.create_signal(pg_pool, event, &vault).await?;
+        self.create_signal(&decoded_consumer_context.pg_pool, event, &vault)
+            .await?;
 
         Ok(())
     }

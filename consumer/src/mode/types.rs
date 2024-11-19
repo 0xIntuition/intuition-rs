@@ -19,6 +19,26 @@ use reqwest::Client;
 use sqlx::PgPool;
 use std::{str::FromStr, sync::Arc};
 
+use super::resolver::{ipfs_resolver::IPFSResolver, types::ResolverConsumerMessage};
+
+/// This enum describes the possible modes that the consumer
+/// can be executed on. At each mode the consumer is going
+/// to be performing different actions
+#[derive(Clone)]
+pub enum ConsumerMode {
+    Decoded(DecodedConsumerContext),
+    Raw(RawConsumerContext),
+    Resolver(ResolverConsumerContext),
+}
+
+/// Represents the decoded consumer context
+#[derive(Clone)]
+pub struct DecodedConsumerContext {
+    pub client: Arc<dyn BasicConsumer>,
+    pub base_client: Arc<EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>>>,
+    pub pg_pool: PgPool,
+}
+
 /// Represents the raw consumer context
 #[derive(Clone)]
 pub struct RawConsumerContext {
@@ -27,22 +47,14 @@ pub struct RawConsumerContext {
     pub indexing_source: Arc<IndexerSource>,
 }
 
-/// Represents the decoded consumer context
+/// Represents the resolver consumer context
 #[derive(Clone)]
-pub struct DecodedConsumerContext {
+pub struct ResolverConsumerContext {
     pub client: Arc<dyn BasicConsumer>,
-    pub base_client: Arc<EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>>>,
+    pub ipfs_resolver: IPFSResolver,
     pub mainnet_client: Arc<ENSRegistryInstance<Http<Client>, RootProvider<Http<Client>>>>,
     pub pg_pool: PgPool,
-}
-
-/// This enum describes the possible modes that the consumer
-/// can be executed on. At each mode the consumer is going
-/// to be performing different actions
-#[derive(Clone)]
-pub enum ConsumerMode {
-    Raw(RawConsumerContext),
-    Decoded(DecodedConsumerContext),
+    pub server_initialize: ServerInitialize,
 }
 
 impl ConsumerMode {
@@ -101,21 +113,16 @@ impl ConsumerMode {
             &data.env.rpc_url_base_mainnet,
             &data.env.intuition_contract_address,
         )?);
-        let mainnet_client = Arc::new(Self::build_ens_client(
-            &data.env.rpc_url_mainnet,
-            &data.env.ens_contract_address,
-        )?);
         let client = Self::build_client(
             data.clone(),
             data.env.decoded_logs_queue_url.clone(),
-            data.env.decoded_logs_queue_url.clone(),
+            data.env.resolver_queue_url.clone(),
         )
         .await?;
 
         Ok(ConsumerMode::Decoded(DecodedConsumerContext {
             base_client,
             client,
-            mainnet_client,
             pg_pool,
         }))
     }
@@ -144,6 +151,34 @@ impl ConsumerMode {
         }))
     }
 
+    /// This function creates a resolver consumer
+    async fn create_resolver_consumer(
+        data: ServerInitialize,
+        pg_pool: PgPool,
+    ) -> Result<ConsumerMode, ConsumerError> {
+        let mainnet_client = Arc::new(Self::build_ens_client(
+            &data.env.rpc_url_mainnet,
+            &data.env.ens_contract_address,
+        )?);
+
+        let client = Self::build_client(
+            data.clone(),
+            data.env.resolver_queue_url.clone(),
+            data.env.resolver_queue_url.clone(),
+        )
+        .await?;
+
+        let ipfs_resolver = IPFSResolver::new(Client::new(), data.env.ipfs_gateway_url.clone());
+
+        Ok(ConsumerMode::Resolver(ResolverConsumerContext {
+            client,
+            ipfs_resolver,
+            mainnet_client,
+            pg_pool,
+            server_initialize: data,
+        }))
+    }
+
     /// We need to implement this convenience so we can transform
     /// the [`String`] received by the CLI into an actual [`ConsumerMode`]
     pub async fn from_str(data: ServerInitialize) -> Result<ConsumerMode, ConsumerError> {
@@ -152,6 +187,9 @@ impl ConsumerMode {
         match data.args.mode.as_str() {
             "Raw" | "raw" | "RAW" => Self::create_raw_consumer(data, pg_pool).await,
             "Decoded" | "decoded" | "DECODED" => Self::create_decoded_consumer(data, pg_pool).await,
+            "Resolver" | "resolver" | "RESOLVER" => {
+                Self::create_resolver_consumer(data, pg_pool).await
+            }
             _ => Err(ConsumerError::UnsuportedMode),
         }
     }
@@ -166,6 +204,10 @@ impl ConsumerMode {
             }
             ConsumerMode::Decoded(decoded_consumer_context) => {
                 self.handle_decoded_message(message, decoded_consumer_context)
+                    .await
+            }
+            ConsumerMode::Resolver(resolver_consumer_context) => {
+                self.handle_resolved_message(message, resolver_consumer_context)
                     .await
             }
         }
@@ -187,6 +229,12 @@ impl ConsumerMode {
                     .process_messages(self.clone())
                     .await
             }
+            ConsumerMode::Resolver(resolver_consumer_context) => {
+                resolver_consumer_context
+                    .client
+                    .process_messages(self.clone())
+                    .await
+            }
         }
     }
 
@@ -204,12 +252,7 @@ impl ConsumerMode {
             EthMultiVaultEvents::AtomCreated(atom_data) => {
                 info!("Received: {atom_data:#?}");
                 atom_data
-                    .handle_atom_creation(
-                        &decoded_consumer_context.pg_pool,
-                        &decoded_consumer_context.base_client,
-                        &decoded_consumer_context.mainnet_client,
-                        &decoded_message,
-                    )
+                    .handle_atom_creation(decoded_consumer_context, &decoded_message)
                     .await?;
             }
             EthMultiVaultEvents::FeesTransferred(fees_data) => {
@@ -234,29 +277,36 @@ impl ConsumerMode {
             EthMultiVaultEvents::Deposited(deposited_data) => {
                 info!("Received: {deposited_data:#?}");
                 deposited_data
-                    .handle_deposit_creation(
-                        &decoded_consumer_context.pg_pool,
-                        &decoded_consumer_context.base_client,
-                        &decoded_consumer_context.mainnet_client,
-                        &decoded_message,
-                    )
+                    .handle_deposit_creation(decoded_consumer_context, &decoded_message)
                     .await?;
             }
             EthMultiVaultEvents::Redeemed(redeemed_data) => {
                 info!("Received: {redeemed_data:#?}");
                 redeemed_data
-                    .handle_redeemed_creation(
-                        &decoded_consumer_context.pg_pool,
-                        &decoded_consumer_context.base_client,
-                        &decoded_consumer_context.mainnet_client,
-                        &decoded_message,
-                    )
+                    .handle_redeemed_creation(decoded_consumer_context, &decoded_message)
                     .await?;
             }
             _ => {
                 warn!("Received event: {decoded_message:#?}");
             }
         }
+        Ok(())
+    }
+
+    /// This function process a decoded message.
+    async fn handle_resolved_message(
+        &self,
+        message: String,
+        resolver_consumer_context: &ResolverConsumerContext,
+    ) -> Result<(), ConsumerError> {
+        // Deserialize the message into an `Event`
+        let resolver_message: ResolverConsumerMessage = serde_json::from_str(&message)?;
+        // We need to match the message type and process it accordingly
+        resolver_message
+            .message
+            .process(resolver_consumer_context)
+            .await?;
+
         Ok(())
     }
 }

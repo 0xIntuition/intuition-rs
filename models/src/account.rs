@@ -5,10 +5,11 @@ use crate::{
 };
 
 use async_trait::async_trait;
+use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use strum_macros::{Display, EnumString};
 /// This is the `Account` struct that represents an account in the database.
-#[derive(sqlx::FromRow, Debug, Builder)]
+#[derive(sqlx::FromRow, Debug, Builder, Serialize, Deserialize, Clone)]
 #[sqlx(type_name = "account")]
 pub struct Account {
     pub id: String,
@@ -19,7 +20,7 @@ pub struct Account {
 }
 
 /// This is the `AccountType` enum that represents the type of an account.
-#[derive(sqlx::Type, Clone, Debug, Display, EnumString)]
+#[derive(sqlx::Type, Clone, Debug, Display, EnumString, Serialize, Deserialize)]
 #[sqlx(type_name = "account_type")]
 pub enum AccountType {
     AtomWallet,

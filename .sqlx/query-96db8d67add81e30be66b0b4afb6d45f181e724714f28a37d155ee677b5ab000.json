@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            INSERT INTO atom \n                (id, wallet_id, creator_id, vault_id, data, type, emoji, label, image, value_id, block_number, block_timestamp, transaction_hash)\n            VALUES ($1, $2, $3, $4, $5, $6::text::atom_type, $7, $8, $9, $10, $11, $12, $13)\n            ON CONFLICT (id) DO UPDATE SET\n                wallet_id = EXCLUDED.wallet_id,\n                creator_id = EXCLUDED.creator_id,\n                vault_id = EXCLUDED.vault_id,\n                data = EXCLUDED.data,\n                type = EXCLUDED.type,\n                emoji = EXCLUDED.emoji,\n                label = EXCLUDED.label,\n                image = EXCLUDED.image,\n                value_id = EXCLUDED.value_id,\n                block_number = EXCLUDED.block_number,\n                block_timestamp = EXCLUDED.block_timestamp,\n                transaction_hash = EXCLUDED.transaction_hash\n            RETURNING id as \"id: U256Wrapper\", \n                      wallet_id, \n                      creator_id, \n                      vault_id as \"vault_id: U256Wrapper\", \n                      data, \n                      type as \"atom_type: AtomType\", \n                      emoji, \n                      label, \n                      image, \n                      value_id as \"value_id: U256Wrapper\",\n                      block_number as \"block_number: U256Wrapper\",\n                      block_timestamp,\n                      transaction_hash\n            ",
+  "query": "\n            SELECT id as \"id: U256Wrapper\", \n                   wallet_id, \n                   creator_id, \n                   vault_id as \"vault_id: U256Wrapper\", \n                   data, \n                   type as \"atom_type: AtomType\", \n                   emoji, \n                   label, \n                   image, \n                   value_id as \"value_id: U256Wrapper\",\n                   block_number as \"block_number: U256Wrapper\",\n                   block_timestamp,\n                   transaction_hash,\n                   resolving_status as \"resolving_status: AtomResolvingStatus\"\n            FROM atom\n            WHERE id = $1\n            ",
   "describe": {
     "columns": [
       {
@@ -87,23 +87,27 @@
         "ordinal": 12,
         "name": "transaction_hash",
         "type_info": "Bytea"
+      },
+      {
+        "ordinal": 13,
+        "name": "resolving_status: AtomResolvingStatus",
+        "type_info": {
+          "Custom": {
+            "name": "atom_resolving_status",
+            "kind": {
+              "Enum": [
+                "Pending",
+                "Resolved",
+                "Failed"
+              ]
+            }
+          }
+        }
       }
     ],
     "parameters": {
       "Left": [
-        "Numeric",
-        "Text",
-        "Text",
-        "Numeric",
-        "Text",
-        "Text",
-        "Text",
-        "Text",
-        "Text",
-        "Numeric",
-        "Numeric",
-        "Int8",
-        "Bytea"
+        "Numeric"
       ]
     },
     "nullable": [
@@ -119,8 +123,9 @@
       true,
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "f32b93d42f34c677de8a068055279aa116780abb59cafe82b9fb60fcb8ae1f99"
+  "hash": "96db8d67add81e30be66b0b4afb6d45f181e724714f28a37d155ee677b5ab000"
 }

@@ -21,7 +21,15 @@ query GetSignals {
       }
     }
     triple {
-      label
+        subject {
+          label
+        }
+        predicate {
+          label
+        }
+        object {
+          label
+        }
     }
   }
 }

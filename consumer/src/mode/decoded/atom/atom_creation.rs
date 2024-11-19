@@ -1,24 +1,26 @@
 use crate::{
     error::ConsumerError,
-    mode::decoded::{
-        atom::atom_supported_types::get_supported_atom_metadata,
-        utils::{get_or_create_account, short_id},
+    mode::{
+        decoded::{
+            atom::atom_supported_types::get_supported_atom_metadata,
+            utils::{get_or_create_account, short_id},
+        },
+        resolver::types::ResolveAtom,
+        types::DecodedConsumerContext,
     },
     schemas::types::DecodedMessage,
-    ENSRegistry::ENSRegistryInstance,
-    EthMultiVault::{AtomCreated, EthMultiVaultInstance},
+    EthMultiVault::AtomCreated,
 };
-use alloy::{eips::BlockId, primitives::U256, providers::RootProvider, transports::http::Http};
+use alloy::{eips::BlockId, primitives::U256};
 use log::info;
 use models::{
     account::{Account, AccountType},
-    atom::{Atom, AtomType},
+    atom::{Atom, AtomResolvingStatus, AtomType},
     event::{Event, EventType},
     traits::SimpleCrud,
     types::U256Wrapper,
     vault::Vault,
 };
-use reqwest::Client;
 use sqlx::PgPool;
 use std::str::FromStr;
 
@@ -72,21 +74,25 @@ impl AtomCreated {
     /// If it does not, it creates it.
     async fn get_or_create_vault_atom(
         &self,
-        pg_pool: &PgPool,
+        decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
-        mainnet_client: &ENSRegistryInstance<Http<Client>, RootProvider<Http<Client>>>,
     ) -> Result<Atom, ConsumerError> {
-        if let Some(atom) =
-            Atom::find_by_id(U256Wrapper::from_str(&self.vaultID.to_string())?, pg_pool).await?
+        if let Some(atom) = Atom::find_by_id(
+            U256Wrapper::from_str(&self.vaultID.to_string())?,
+            &decoded_consumer_context.pg_pool,
+        )
+        .await?
         {
             // If the atom exists, return it
             info!("Atom already exists, returning it");
             Ok(atom)
         } else {
             info!("Atom does not exist, creating it");
-            let atom_wallet_account = self.get_or_create_atom_wallet_account(pg_pool).await?;
+            let atom_wallet_account = self
+                .get_or_create_atom_wallet_account(&decoded_consumer_context.pg_pool)
+                .await?;
             let creator_account =
-                get_or_create_account(pg_pool, self.creator.to_string(), mainnet_client).await?;
+                get_or_create_account(self.creator.to_string(), decoded_consumer_context).await?;
             // Create the `Atom` and upsert it
             Atom::builder()
                 .id(U256Wrapper::from_str(
@@ -101,8 +107,9 @@ impl AtomCreated {
                 .block_number(U256Wrapper::from_str(&event.block_number.to_string())?)
                 .block_timestamp(event.block_timestamp)
                 .transaction_hash(event.transaction_hash.clone())
+                .resolving_status(AtomResolvingStatus::Pending)
                 .build()
-                .upsert(pg_pool)
+                .upsert(&decoded_consumer_context.pg_pool)
                 .await
                 .map_err(ConsumerError::ModelError)
         }
@@ -112,16 +119,14 @@ impl AtomCreated {
     /// in the atom creation process.
     pub async fn handle_atom_creation(
         &self,
-        pg_pool: &PgPool,
-        web3: &EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>>,
-        mainnet_client: &ENSRegistryInstance<Http<Client>, RootProvider<Http<Client>>>,
-        event: &DecodedMessage,
+        decoded_consumer_context: &DecodedConsumerContext,
+        decoded_message: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
         info!("Handling atom creation: {self:#?}");
 
         // Update the vault current share price
         let (_vault, mut atom) = self
-            .update_vault_current_share_price(pg_pool, web3, event, mainnet_client)
+            .update_vault_current_share_price(decoded_consumer_context, decoded_message)
             .await?;
 
         // decode the hex data from the atomData
@@ -129,20 +134,26 @@ impl AtomCreated {
 
         // get the supported atom metadata
         let supported_atom_metadata =
-            get_supported_atom_metadata(&mut atom, &decoded_atom_data, pg_pool).await?;
+            get_supported_atom_metadata(&mut atom, &decoded_atom_data, decoded_consumer_context)
+                .await?;
 
         // Handle the account type
+        let resolved_atom = ResolveAtom {
+            atom: atom.clone(),
+            decoded_atom_data,
+        };
         supported_atom_metadata
-            .handle_account_type(pg_pool, &atom, &decoded_atom_data)
+            .handle_account_type(&resolved_atom, decoded_consumer_context)
             .await?;
 
         // Update the atom metadata to reflect the supported atom type
         supported_atom_metadata
-            .update_atom_metadata(&mut atom, pg_pool)
+            .update_atom_metadata(&mut atom, &decoded_consumer_context.pg_pool)
             .await?;
 
         // Create the event
-        self.create_event(event, pg_pool).await?;
+        self.create_event(decoded_message, &decoded_consumer_context.pg_pool)
+            .await?;
 
         Ok(())
     }
@@ -150,13 +161,12 @@ impl AtomCreated {
     /// This function updates the vault current share price and it returns the vault and atom
     async fn update_vault_current_share_price(
         &self,
-        pg_pool: &PgPool,
-        web3: &EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>>,
+        decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
-        mainnet_client: &ENSRegistryInstance<Http<Client>, RootProvider<Http<Client>>>,
     ) -> Result<(Vault, Atom), ConsumerError> {
         // Get the share price of the atom
-        let current_share_price = web3
+        let current_share_price = decoded_consumer_context
+            .base_client
             .currentSharePrice(self.vaultID)
             .block(BlockId::from_str(&event.block_number.to_string())?)
             .call()
@@ -168,7 +178,7 @@ impl AtomCreated {
         // created first, so if they don't exist, we create them as part of this
         // process.
         let atom = self
-            .get_or_create_vault_atom(pg_pool, event, mainnet_client)
+            .get_or_create_vault_atom(decoded_consumer_context, event)
             .await?;
 
         // Update the respective vault with the correct share price
@@ -179,7 +189,7 @@ impl AtomCreated {
             .current_share_price(U256Wrapper::from_str(&current_share_price._0.to_string())?)
             .position_count(0)
             .build()
-            .upsert(pg_pool)
+            .upsert(&decoded_consumer_context.pg_pool)
             .await?;
 
         Ok((vault, atom))

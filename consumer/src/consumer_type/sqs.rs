@@ -1,14 +1,10 @@
-use crate::{
-    config::POOLING_PAUSE_IN_MS, error::ConsumerError, mode::types::ConsumerMode,
-    traits::BasicConsumer,
-};
+use crate::{error::ConsumerError, mode::types::ConsumerMode, traits::BasicConsumer};
 use async_trait::async_trait;
 use aws_sdk_sqs::{
     operation::receive_message::ReceiveMessageOutput, types::Message, Client as AWSClient,
 };
 use log::{debug, info};
 use std::sync::Arc;
-use tokio::time;
 /// Represents the SQS consumer
 pub struct Sqs {
     client: AWSClient,
@@ -84,26 +80,33 @@ impl BasicConsumer for Sqs {
 
     /// This function process the messages available on the SQS queue. Processing
     /// include three steps: receiving the message, processing it and delete it
-    /// right after.
+    /// right after. When ingesting historical data, we want no delay in between
+    /// messages, but when idle, we want to have a delay between message polling to
+    /// avoid busy-waiting.
     async fn process_messages(&self, mode: ConsumerMode) -> Result<(), ConsumerError> {
         info!("Starting the consumer loop");
+        let mut backoff_ms = 0;
+        let max_backoff = 1000; // 1 second max delay
+
         loop {
             info!("awaiting for new messages...");
             let rcv_message_output = self.receive_message().await?;
 
             if let Some(messages) = rcv_message_output.messages {
+                // Reset backoff when messages are found
+                backoff_ms = 0;
+
                 for message in messages {
                     if let Some(message_body) = message.clone().body {
-                        // Process the message
                         mode.process_message(message_body).await?;
-
-                        // Delete the message from the queue
                         self.consume_message(message).await?
                     }
                 }
+            } else {
+                // Implement exponential backoff with max limit
+                backoff_ms = (backoff_ms * 2 + 100).min(max_backoff);
+                tokio::time::sleep(tokio::time::Duration::from_millis(backoff_ms)).await;
             }
-            // If no message is received, wait for a while
-            tokio::time::sleep(time::Duration::from_millis(POOLING_PAUSE_IN_MS)).await;
         }
     }
 
@@ -115,6 +118,8 @@ impl BasicConsumer for Sqs {
             .get_client()
             .await
             .receive_message()
+            .max_number_of_messages(10)
+            .set_max_number_of_messages(Some(10))
             .queue_url(&*self.get_input_queue())
             .send()
             .await?;

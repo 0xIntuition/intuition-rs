@@ -1,5 +1,4 @@
-use super::types::ConsumerMode;
-use crate::{error::ConsumerError, EthMultiVault::EthMultiVaultEvents};
+use crate::{error::ConsumerError, mode::types::ConsumerMode, EthMultiVault::EthMultiVaultEvents};
 use alloy::sol_types::SolEventInterface;
 use std::str::FromStr;
 

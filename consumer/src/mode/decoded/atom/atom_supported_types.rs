@@ -1,10 +1,18 @@
-use super::atom_resolver::{try_to_parse_json, try_to_resolve_ipfs_uri, SCHEMA_ORG_CONTEXTS};
-use crate::{error::ConsumerError, mode::decoded::utils::short_id};
+use crate::{
+    error::ConsumerError,
+    mode::{
+        decoded::utils::{get_or_create_account, short_id},
+        resolver::{
+            atom_resolver::{try_to_parse_json, try_to_resolve_schema_org_url},
+            types::{ResolveAtom, ResolverConsumerMessage},
+        },
+        types::DecodedConsumerContext,
+    },
+};
 use alloy::primitives::Address;
 use log::info;
 use models::{
-    account::{Account, AccountType},
-    atom::{Atom, AtomType},
+    atom::{Atom, AtomResolvingStatus, AtomType},
     atom_value::AtomValue,
     traits::SimpleCrud,
 };
@@ -42,42 +50,36 @@ impl AtomMetadata {
     /// Creates an account and an atom value
     pub async fn create_account_and_atom_value(
         &self,
-        pg_pool: &PgPool,
-        atom_data: &Atom,
-        decoded_atom_data: &str,
+        resolved_atom: &ResolveAtom,
+        decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<(), ConsumerError> {
         if self.atom_type != "Account" {
             return Ok(());
         }
 
-        let account = match Account::find_by_id(decoded_atom_data.to_string(), pg_pool).await? {
-            Some(account) => account,
-            None => {
-                Account::builder()
-                    .id(decoded_atom_data)
-                    .atom_id(atom_data.id.clone())
-                    .label(short_id(decoded_atom_data))
-                    .account_type(AccountType::Default)
-                    .build()
-                    .upsert(pg_pool)
-                    .await?
-            }
-        };
+        let account = get_or_create_account(
+            resolved_atom.decoded_atom_data.to_string(),
+            decoded_consumer_context,
+        )
+        .await?;
 
         // Skip if atom value already exists
-        if AtomValue::find_by_id(atom_data.vault_id.clone(), pg_pool)
-            .await?
-            .is_some()
+        if AtomValue::find_by_id(
+            resolved_atom.atom.vault_id.clone(),
+            &decoded_consumer_context.pg_pool,
+        )
+        .await?
+        .is_some()
         {
             info!("Atom value already exists, skipping...");
             return Ok(());
         }
 
         AtomValue::builder()
-            .id(atom_data.vault_id.clone())
+            .id(resolved_atom.atom.vault_id.clone())
             .account_id(account.id)
             .build()
-            .upsert(pg_pool)
+            .upsert(&decoded_consumer_context.pg_pool)
             .await?;
 
         Ok(())
@@ -95,13 +97,12 @@ impl AtomMetadata {
     /// Stores the atom data in the database based on the atom type
     pub async fn handle_account_type(
         &self,
-        pg_pool: &PgPool,
-        atom: &Atom,
-        decoded_atom_data: &str,
+        resolved_atom: &ResolveAtom,
+        decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<(), ConsumerError> {
         match AtomType::from_str(self.atom_type.as_str())? {
             AtomType::Account => {
-                self.create_account_and_atom_value(pg_pool, atom, decoded_atom_data)
+                self.create_account_and_atom_value(resolved_atom, decoded_consumer_context)
                     .await
             }
 
@@ -224,22 +225,6 @@ pub fn is_valid_address(address: &str) -> Result<bool, ConsumerError> {
     }
 }
 
-/// This function tries to resolve a schema.org URL from the atom data
-pub async fn try_to_resolve_schema_org_url(
-    atom_data: &str,
-) -> Result<Option<String>, ConsumerError> {
-    // check if the atom data contains a predefine string (schema.org/something)
-    if let Some(schema_org_url) = SCHEMA_ORG_CONTEXTS
-        .iter()
-        .find(|ctx| atom_data.starts_with(**ctx))
-        .map(|ctx| atom_data[ctx.len()..].trim_start_matches('/').to_string())
-    {
-        Ok(Some(schema_org_url))
-    } else {
-        Ok(None)
-    }
-}
-
 /// Gets the metadata for a supported atom type based on the atom data.
 /// So when we receive the the atom data, there are some situations
 /// we need to handle:
@@ -257,10 +242,13 @@ pub async fn try_to_resolve_schema_org_url(
 pub async fn get_supported_atom_metadata(
     atom: &mut Atom,
     decoded_atom_data: &str,
-    pg_pool: &PgPool,
+    decoded_consumer_context: &DecodedConsumerContext,
 ) -> Result<AtomMetadata, ConsumerError> {
     // 1. Handling the happy path (schema.org URL, predicate)
     if let Some(schema_org_url) = try_to_resolve_schema_org_url(decoded_atom_data).await? {
+        info!("Schema.org URL found, returning predicate metadata...");
+        // As we dont need to resolve anything, we can mark the atom as resolved
+        atom.resolving_status = AtomResolvingStatus::Resolved;
         return Ok(get_predicate_metadata(schema_org_url));
     } else {
         info!("No schema.org URL found, verifying if atom data is an address...");
@@ -269,22 +257,23 @@ pub async fn get_supported_atom_metadata(
     // 2. Handling the happy path (address)
     if is_valid_address(decoded_atom_data)? {
         info!("Atom data is an address, returning account metadata...");
+        // As we dont need to resolve anything, we can mark the atom as resolved
+        atom.resolving_status = AtomResolvingStatus::Resolved;
         Ok(AtomMetadata::address(decoded_atom_data))
     } else {
         info!("Atom data is not an address, verifying if it's an IPFS URI...");
-        // 3. Handling IPFS URIs
-        let data = try_to_resolve_ipfs_uri(decoded_atom_data).await?;
-        // If we resolved an IPFS URI, we need to try to parse the JSON
-        let metadata = if let Some(data) = data {
-            info!("Atom data is an IPFS URI: {data}");
-            try_to_parse_json(&data, atom, pg_pool).await?
-        } else {
-            info!("No IPFS URI found, trying to parse atom data as JSON...");
-            // 4. This is the fallback case, where we try to parse the atom data as JSON
-            // even if it's not a valid IPFS URI. This is useful for cases where the
-            // atom data is a JSON object that is not a schema.org URL.
-            try_to_parse_json(decoded_atom_data, atom, pg_pool).await?
-        };
+        // 3. Now we need to enqueue the message to be processed by the resolver
+        let message =
+            ResolverConsumerMessage::new_atom(atom.clone(), decoded_atom_data.to_string());
+        decoded_consumer_context
+            .client
+            .send_message(serde_json::to_string(&message)?)
+            .await?;
+
+        // Now we try to parse the JSON and return the metadata. At this point
+        // the resolver will handle the rest of the cases.
+        let metadata =
+            try_to_parse_json(decoded_atom_data, atom, &decoded_consumer_context.pg_pool).await?;
 
         Ok(metadata)
     }
@@ -296,7 +285,7 @@ pub fn get_predicate_metadata(current_atom_data_state: String) -> AtomMetadata {
         "Person" => AtomMetadata::person_predicate(),
         "Thing" => AtomMetadata::thing_predicate(),
         "Organization" => AtomMetadata::organization_predicate(),
-        "Keywords" => AtomMetadata::keywords_predicate(),
+        "Keywords" | "keywords" => AtomMetadata::keywords_predicate(),
         "LikeAction" => AtomMetadata::like_action(),
         "FollowAction" => AtomMetadata::follow_action(),
         _ => AtomMetadata::unknown(),

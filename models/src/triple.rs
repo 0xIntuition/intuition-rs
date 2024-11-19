@@ -15,7 +15,6 @@ pub struct Triple {
     pub subject_id: U256Wrapper,
     pub predicate_id: U256Wrapper,
     pub object_id: U256Wrapper,
-    pub label: Option<String>,
     pub vault_id: U256Wrapper,
     pub counter_vault_id: U256Wrapper,
     pub block_number: U256Wrapper,
@@ -34,14 +33,13 @@ impl SimpleCrud<U256Wrapper> for Triple {
         sqlx::query_as!(
             Triple,
             r#"
-            INSERT INTO triple (id, creator_id, subject_id, predicate_id, object_id, label, vault_id, counter_vault_id, block_number, block_timestamp, transaction_hash)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            INSERT INTO triple (id, creator_id, subject_id, predicate_id, object_id, vault_id, counter_vault_id, block_number, block_timestamp, transaction_hash)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             ON CONFLICT (id) DO UPDATE SET
                 creator_id = EXCLUDED.creator_id,
                 subject_id = EXCLUDED.subject_id,
                 predicate_id = EXCLUDED.predicate_id,
                 object_id = EXCLUDED.object_id,
-                label = EXCLUDED.label,
                 vault_id = EXCLUDED.vault_id,
                 counter_vault_id = EXCLUDED.counter_vault_id,
                 block_number = EXCLUDED.block_number,
@@ -49,7 +47,7 @@ impl SimpleCrud<U256Wrapper> for Triple {
                 transaction_hash = EXCLUDED.transaction_hash
             RETURNING id as "id: U256Wrapper", creator_id, subject_id as "subject_id: U256Wrapper", 
                       predicate_id as "predicate_id: U256Wrapper", object_id as "object_id: U256Wrapper", 
-                      label, vault_id as "vault_id: U256Wrapper", counter_vault_id as "counter_vault_id: U256Wrapper", 
+                      vault_id as "vault_id: U256Wrapper", counter_vault_id as "counter_vault_id: U256Wrapper", 
                       block_number as "block_number: U256Wrapper", block_timestamp, 
                       transaction_hash
             "#,
@@ -58,7 +56,6 @@ impl SimpleCrud<U256Wrapper> for Triple {
             self.subject_id.to_big_decimal()?,
             self.predicate_id.to_big_decimal()?,
             self.object_id.to_big_decimal()?,
-            self.label,
             self.vault_id.to_big_decimal()?,
             self.counter_vault_id.to_big_decimal()?,
             self.block_number.to_big_decimal()?,
@@ -81,7 +78,6 @@ impl SimpleCrud<U256Wrapper> for Triple {
                 subject_id as "subject_id: U256Wrapper", 
                 predicate_id as "predicate_id: U256Wrapper", 
                 object_id as "object_id: U256Wrapper", 
-                label, 
                 vault_id as "vault_id: U256Wrapper", 
                 counter_vault_id as "counter_vault_id: U256Wrapper", 
                 block_number as "block_number: U256Wrapper", 

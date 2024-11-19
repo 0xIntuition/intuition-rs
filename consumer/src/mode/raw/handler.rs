@@ -1,8 +1,7 @@
-use super::types::RawConsumerContext;
 use crate::{
     config::IndexerSource,
     error::ConsumerError,
-    mode::types::ConsumerMode,
+    mode::types::{ConsumerMode, RawConsumerContext},
     schemas::{
         goldsky::{Operation, RawMessage},
         substreams::SubstreamRawLog,

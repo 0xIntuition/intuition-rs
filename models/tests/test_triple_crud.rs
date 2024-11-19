@@ -46,7 +46,6 @@ mod tests {
 
         assert_eq!(inserted_triple, triple);
         assert_eq!(inserted_triple.id, triple.id);
-        assert_eq!(inserted_triple.label, triple.label);
 
         // Test retrieval
         let retrieved_triple = Triple::find_by_id(triple.id.clone(), &pool)
@@ -57,7 +56,6 @@ mod tests {
         assert_eq!(retrieved_triple.subject_id, triple.subject_id);
         assert_eq!(retrieved_triple.predicate_id, triple.predicate_id);
         assert_eq!(retrieved_triple.object_id, triple.object_id);
-        assert_eq!(retrieved_triple.label, triple.label);
         assert_eq!(retrieved_triple.vault_id, triple.vault_id);
         assert_eq!(retrieved_triple.counter_vault_id, triple.counter_vault_id);
         assert_eq!(retrieved_triple.block_number, triple.block_number);
@@ -66,19 +64,16 @@ mod tests {
 
         // Test update
         let mut updated_triple = triple.clone();
-        updated_triple.label = Some("Updated Test Triple".to_string());
         updated_triple.block_number = U256Wrapper::from_str("2").unwrap();
 
         let upserted_triple = updated_triple.upsert(&pool).await?;
         assert_eq!(upserted_triple.id, updated_triple.id);
-        assert_eq!(upserted_triple.label, updated_triple.label);
         assert_eq!(upserted_triple.block_number, updated_triple.block_number);
 
         // Verify update
         let final_triple = Triple::find_by_id(triple.id, &pool)
             .await?
             .expect("Triple not found");
-        assert_eq!(final_triple.label, Some("Updated Test Triple".to_string()));
         assert_eq!(
             final_triple.block_number,
             U256Wrapper::from_str("2").unwrap()

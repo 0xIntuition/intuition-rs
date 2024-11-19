@@ -4,7 +4,7 @@ This workspace contains the following crates:
 
 
 * `cli`: contains the code to run the intuition TUI client.
-* `consumer`: contains the code to RAW and DECODED consumers.
+* `consumer`: contains the code to RAW, DECODED and RESOLVER consumers.
 * `hasura`: contains the migrations and hasura config.
 * `histoflux`: streams historical data from our contracts to a queue. Currently supports SQS queues.
 * `models`: contains the domain models for the intuition data as basic traits for the data.
@@ -34,14 +34,12 @@ aws_secret_access_key = YOUR_SECRET_ACCESS_KEY
 
 ## Running the local pipeline
 
-You need to copy the `.env.sample` file to `.env` and set the correct values. Note that some of the values need to be set manually, such as the `PINATA_GATEWAY_TOKEN`, the `RPC_URL` and the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`. If values are not set, the pipeline will not work.
+You need to copy the `.env.sample.docker` file to `.env.docker` and set the correct values. Note that some of the values need to be set manually, such as the `PINATA_GATEWAY_TOKEN`, `PINATA_API_JWT`, the `RPC_URL` and the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`. If values are not set, the pipeline will not work.
 
 ```
-cp .env.sample .env
-source .env
-cargo make build-docker
-docker compose up -d --force-recreate
-hasura deploy --project hasura
+cp .env.sample.docker .env.docker
+source .env.docker
+cargo make start-docker-and-migrate
 
 ```
 
@@ -50,7 +48,7 @@ hasura deploy --project hasura
 ```
 docker compose down -v
 docker compose up -d --force-recreate
-hasura deploy --project hasura
+cargo make migrate-database
 ```
 
 ## Run tests
@@ -65,6 +63,11 @@ None so far.
 
 ### Running manually
 
+First you need to copy the `.env.sample` file to `.env` and source it. Make sure you set the correct values for the environment variables.
+```
+cp .env.sample .env
+source .env
+```
 
 If you want to run the local raw consumer connected to the real raw SQS queue you can run
 

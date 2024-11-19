@@ -4,7 +4,7 @@ mod tests {
     use alloy::primitives::U256;
     use models::{
         account::{Account, AccountType},
-        atom::{Atom, AtomType},
+        atom::{Atom, AtomResolvingStatus, AtomType},
         atom_value::AtomValue,
         person::Person,
         test_helpers::{create_random_number, create_random_u256wrapper, setup_test_db},
@@ -49,6 +49,7 @@ mod tests {
             .block_number(create_random_u256wrapper())
             .block_timestamp(create_random_number())
             .transaction_hash(vec![5u8])
+            .resolving_status(AtomResolvingStatus::Pending)
             .build()
             .upsert(&pool)
             .await
@@ -94,6 +95,7 @@ mod tests {
             .block_number(create_random_u256wrapper())
             .block_timestamp(create_random_number())
             .transaction_hash(vec![5u8])
+            .resolving_status(AtomResolvingStatus::Pending)
             .build()
             .upsert(&pool)
             .await

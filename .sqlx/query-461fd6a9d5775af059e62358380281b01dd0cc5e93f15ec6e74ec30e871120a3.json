@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE atom SET resolving_status = 'Resolved' WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Numeric"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "461fd6a9d5775af059e62358380281b01dd0cc5e93f15ec6e74ec30e871120a3"
+}

@@ -1,5 +1,7 @@
-use super::{atom_supported_types::AtomMetadata, ipfs_resolver::fetch_from_ipfs};
-use crate::error::ConsumerError;
+use crate::{
+    error::ConsumerError,
+    mode::{decoded::atom::atom_supported_types::AtomMetadata, types::ResolverConsumerContext},
+};
 use log::warn;
 use models::{
     atom::{Atom, AtomType},
@@ -22,10 +24,17 @@ pub const SCHEMA_ORG_CONTEXTS: [&str; 4] = [
 ];
 
 /// Resolves an IPFS URI
-pub async fn try_to_resolve_ipfs_uri(atom_data: &str) -> Result<Option<String>, ConsumerError> {
+pub async fn try_to_resolve_ipfs_uri(
+    atom_data: &str,
+    resolver_consumer_context: &ResolverConsumerContext,
+) -> Result<Option<String>, ConsumerError> {
     // Handle IPFS URIs
     if let Some(ipfs_hash) = atom_data.strip_prefix("ipfs://") {
-        if let Ok(ipfs_data) = fetch_from_ipfs(ipfs_hash).await {
+        if let Ok(ipfs_data) = resolver_consumer_context
+            .ipfs_resolver
+            .fetch_from_ipfs(ipfs_hash)
+            .await
+        {
             // Remove UTF-8 BOM if present
             let data = ipfs_data.replace('\u{feff}', "");
             Ok(Some(data))
@@ -34,6 +43,22 @@ pub async fn try_to_resolve_ipfs_uri(atom_data: &str) -> Result<Option<String>, 
                 "Failed to fetch IPFS data".into(),
             ))
         }
+    } else {
+        Ok(None)
+    }
+}
+
+/// This function tries to resolve a schema.org URL from the atom data
+pub async fn try_to_resolve_schema_org_url(
+    atom_data: &str,
+) -> Result<Option<String>, ConsumerError> {
+    // check if the atom data contains a predefine string (schema.org/something)
+    if let Some(schema_org_url) = SCHEMA_ORG_CONTEXTS
+        .iter()
+        .find(|ctx| atom_data.starts_with(**ctx))
+        .map(|ctx| atom_data[ctx.len()..].trim_start_matches('/').to_string())
+    {
+        Ok(Some(schema_org_url))
     } else {
         Ok(None)
     }
