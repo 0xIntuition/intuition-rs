@@ -1,5 +1,6 @@
 schema {
   query: query_root
+  mutation: mutation_root
   subscription: subscription_root
 }
 
@@ -3780,6 +3781,18 @@ input Int_comparison_exp {
   _nin: [Int!]
 }
 
+"""mutation root"""
+type mutation_root {
+  """Uploads and pins Organization to IPFS"""
+  pinOrganization(organization: PinOrganizationInput!): PinOutput
+
+  """Uploads and pins Person to IPFS"""
+  pinPerson(person: PinPersonInput!): PinOutput
+
+  """Uploads and pins Thing to IPFS"""
+  pinThing(thing: PinThingInput!): PinOutput
+}
+
 scalar numeric
 
 """
@@ -4165,6 +4178,34 @@ type persons_var_samp_fields {
 """aggregate variance on columns"""
 type persons_variance_fields {
   id: Float
+}
+
+input PinOrganizationInput {
+  description: String
+  email: String
+  image: String
+  name: String
+  url: String
+}
+
+type PinOutput {
+  uri: String
+}
+
+input PinPersonInput {
+  description: String
+  email: String
+  identifier: String
+  image: String
+  name: String
+  url: String
+}
+
+input PinThingInput {
+  description: String
+  image: String
+  name: String
+  url: String
 }
 
 """
@@ -8248,7 +8289,6 @@ type triples {
   creator: accounts
   creator_id: String!
   id: numeric!
-  label: String
 
   """An object relationship"""
   object: atoms!
@@ -8399,7 +8439,6 @@ input triples_bool_exp {
   creator: accounts_bool_exp
   creator_id: String_comparison_exp
   id: numeric_comparison_exp
-  label: String_comparison_exp
   object: atoms_bool_exp
   object_id: numeric_comparison_exp
   predicate: atoms_bool_exp
@@ -8420,7 +8459,6 @@ type triples_max_fields {
   counter_vault_id: numeric
   creator_id: String
   id: numeric
-  label: String
   object_id: numeric
   predicate_id: numeric
   subject_id: numeric
@@ -8436,7 +8474,6 @@ input triples_max_order_by {
   counter_vault_id: order_by
   creator_id: order_by
   id: order_by
-  label: order_by
   object_id: order_by
   predicate_id: order_by
   subject_id: order_by
@@ -8450,7 +8487,6 @@ type triples_min_fields {
   counter_vault_id: numeric
   creator_id: String
   id: numeric
-  label: String
   object_id: numeric
   predicate_id: numeric
   subject_id: numeric
@@ -8466,7 +8502,6 @@ input triples_min_order_by {
   counter_vault_id: order_by
   creator_id: order_by
   id: order_by
-  label: order_by
   object_id: order_by
   predicate_id: order_by
   subject_id: order_by
@@ -8483,7 +8518,6 @@ input triples_order_by {
   creator: accounts_order_by
   creator_id: order_by
   id: order_by
-  label: order_by
   object: atoms_order_by
   object_id: order_by
   predicate: atoms_order_by
@@ -8514,9 +8548,6 @@ enum triples_select_column {
 
   """column name"""
   id
-
-  """column name"""
-  label
 
   """column name"""
   object_id
@@ -8630,7 +8661,6 @@ input triples_stream_cursor_value_input {
   counter_vault_id: numeric
   creator_id: String
   id: numeric
-  label: String
   object_id: numeric
   predicate_id: numeric
   subject_id: numeric

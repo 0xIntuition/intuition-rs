@@ -6,7 +6,15 @@ query GetAccountInfo($address: String!) {
     claims(order_by: {shares: desc}) {
       triple {
         id
-        label
+        subject {
+          label
+        }
+        predicate {
+          label
+        }
+        object {
+          label
+        }
       }
       shares
       counter_shares
@@ -24,7 +32,15 @@ query GetAccountInfo($address: String!) {
         }
         triple {
           id
-          label
+          subject {
+            label
+          }
+          predicate {
+            label
+          }
+          object {
+            label
+          }
         }
       }
     }
