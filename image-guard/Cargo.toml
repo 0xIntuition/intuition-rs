@@ -1,0 +1,10 @@
+[package]
+name = "image-guard"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum = "0.7.9"
+tokio.workspace = true
+serde_json.workspace = true
+serde.workspace = true
