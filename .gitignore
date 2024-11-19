@@ -2,3 +2,4 @@ target
 volume
 .DS_store
 .env
+.env.docker
