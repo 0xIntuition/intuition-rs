@@ -17,12 +17,13 @@ pub fn draw(f: &mut Frame, app: &App, area: Rect) {
                 .atom
                 .as_ref()
                 .and_then(|atom| atom.label.as_deref())
-                .or_else(|| {
-                    signal
-                        .triple
-                        .as_ref()
-                        .and_then(|triple| triple.label.as_deref())
-                })
+                // FIXME: Concatinate atom labels
+                // .or_else(|| {
+                //     signal
+                //         .triple
+                //         .as_ref()
+                //         .and_then(|triple| triple.label.as_deref())
+                // })
                 .unwrap_or("N/A")
                 .to_string();
 
