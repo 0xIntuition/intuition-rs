@@ -75,7 +75,6 @@ select_permissions:
         - subject_id
         - vault_id
         - creator_id
-        - label
       filter: {}
       limit: 100
       allow_aggregations: true
