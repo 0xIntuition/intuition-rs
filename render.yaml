@@ -2,7 +2,7 @@ services:
   - type: web
     name: graphql-engine
     runtime: docker
-    repo: https://github.com/yourusername/intuition-rust
+    repo: https://github.com/0xIntuition/intuition-rs
     dockerfilePath: ./consumer/Dockerfile
     envVars:
       - key: HASURA_GRAPHQL_METADATA_DATABASE_URL
@@ -24,7 +24,7 @@ services:
   - type: worker
     name: resolver-consumer
     runtime: docker
-    repo: https://github.com/yourusername/intuition-rust
+    repo: https://github.com/0xIntuition/intuition-rs
     dockerfilePath: ./consumer/Dockerfile
     dockerCommand: ./consumer --mode resolver
     envVars:
@@ -46,7 +46,7 @@ services:
   - type: worker
     name: decoded-consumer
     runtime: docker
-    repo: https://github.com/yourusername/intuition-rust
+    repo: https://github.com/0xIntuition/intuition-rs
     dockerfilePath: ./consumer/Dockerfile
     dockerCommand: ./consumer --mode decoded
     envVars:
@@ -68,7 +68,7 @@ services:
   - type: worker
     name: raw-consumer
     runtime: docker
-    repo: https://github.com/yourusername/intuition-rust
+    repo: https://github.com/0xIntuition/intuition-rs
     dockerfilePath: ./consumer/Dockerfile
     dockerCommand: ./consumer --mode raw
     envVars:
