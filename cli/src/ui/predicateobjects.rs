@@ -58,7 +58,7 @@ pub fn draw(f: &mut Frame, app: &App, area: Rect) {
             ratatui::layout::Constraint::Max(7),
             ratatui::layout::Constraint::Max(7),
             ratatui::layout::Constraint::Max(10),
-            ratatui::layout::Constraint::Max(10),
+            ratatui::layout::Constraint::Fill(20),
         ]);
 
     f.render_widget(table, area);

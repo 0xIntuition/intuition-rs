@@ -84,8 +84,8 @@ fn draw_account_details(f: &mut Frame, app: &App, area: Rect) {
                 let label = 
                     if let Some(atom) = pos.vault.atom.as_ref() {
                         atom.label.as_deref().unwrap_or("N/A")
-                    } else if let Some(triple) = pos.vault.triple.as_ref() {
-                        triple.label.as_deref().unwrap_or("N/A")
+                    // } else if let Some(triple) = pos.vault.triple.as_ref() {
+                    //     triple.label.as_deref().unwrap_or("N/A")
                     } else {
                         "N/A"
                     };
@@ -105,7 +105,8 @@ fn draw_account_details(f: &mut Frame, app: &App, area: Rect) {
             .claims
             .iter()
             .map(|claim| {
-                let label = claim.triple.label.as_deref().unwrap_or("N/A").to_string();
+                // let label = claim.triple.label.as_deref().unwrap_or("N/A").to_string();
+                let label = "FIXME";
                 ListItem::new(Line::from(format!("{}, {}", label, claim.shares)))
             })
             .collect();
