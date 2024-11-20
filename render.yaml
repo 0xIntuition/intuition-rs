@@ -1,0 +1,54 @@
+services:
+  - type: web
+    name: graphql-engine
+    env: docker
+    dockerfilePath: ./consumer/Dockerfile
+    envVars:
+      - key: HASURA_GRAPHQL_METADATA_DATABASE_URL
+        fromDatabase:
+          name: database
+          property: connectionString
+      - key: HASURA_GRAPHQL_ENABLE_CONSOLE
+        value: true
+      - key: HASURA_GRAPHQL_UNAUTHORIZED_ROLE
+        value: anonymous
+      - key: HASURA_GRAPHQL_DEV_MODE
+        value: true
+      - key: HASURA_GRAPHQL_ENABLED_LOG_TYPES
+        value: startup, http-log, webhook-log, websocket-log, query-log
+      - key: HASURA_GRAPHQL_ADMIN_SECRET
+        sync: false
+      - key: HASURA_GRAPHQL_STRINGIFY_NUMERIC_TYPES
+        value: true
+      - key: PINATA_AUTH
+        sync: false
+
+  - type: worker
+    name: resolver-consumer
+    env: docker
+    dockerfilePath: ./consumer/Dockerfile
+    dockerCommand: ./consumer --mode resolver
+    envVars:
+      - fromFile: .env.docker
+
+  - type: worker
+    name: decoded-consumer
+    env: docker
+    dockerfilePath: ./consumer/Dockerfile
+    dockerCommand: ./consumer --mode decoded
+    envVars:
+      - fromFile: .env.docker
+
+  - type: worker
+    name: raw-consumer
+    env: docker
+    dockerfilePath: ./consumer/Dockerfile
+    dockerCommand: ./consumer --mode raw
+    envVars:
+      - fromFile: .env.docker
+
+databases:
+  - name: database
+    databaseName: storage
+    user: testuser
+    ipAllowList: []
