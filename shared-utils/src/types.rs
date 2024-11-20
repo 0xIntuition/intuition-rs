@@ -1,3 +1,5 @@
+use bytes::Bytes;
+use chrono::{DateTime, Utc};
 use macon::Builder;
 use serde::{Deserialize, Serialize};
 
@@ -18,6 +20,11 @@ pub struct ImageClassificationResponse {
     // full score json returned by the classification service
     pub score: String,
     pub model: ClassificationModel,
-    pub date_classified: i64,
+    pub date_classified: DateTime<Utc>,
     pub url: String,
+}
+
+pub struct MultiPartImage {
+    pub name: String,
+    pub image_data: Bytes,
 }

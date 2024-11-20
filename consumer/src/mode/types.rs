@@ -1,6 +1,6 @@
 use crate::{
     app_context::ServerInitialize,
-    config::{ConsumerType, IndexerSource},
+    config::{ConsumerType, IndexerSource, IPFS_RETRY_ATTEMPTS},
     consumer_type::sqs::Sqs,
     error::ConsumerError,
     schemas::types::DecodedMessage,
@@ -16,10 +16,11 @@ use alloy::{
 };
 use log::{debug, info, warn};
 use reqwest::Client;
+use shared_utils::ipfs::IPFSResolver;
 use sqlx::PgPool;
 use std::{str::FromStr, sync::Arc};
 
-use super::resolver::{ipfs_resolver::IPFSResolver, types::ResolverConsumerMessage};
+use super::resolver::types::ResolverConsumerMessage;
 
 /// This enum describes the possible modes that the consumer
 /// can be executed on. At each mode the consumer is going
@@ -168,7 +169,11 @@ impl ConsumerMode {
         )
         .await?;
 
-        let ipfs_resolver = IPFSResolver::new(Client::new(), data.env.ipfs_gateway_url.clone());
+        let ipfs_resolver = IPFSResolver::new(
+            Client::new(),
+            data.env.ipfs_gateway_url.clone(),
+            IPFS_RETRY_ATTEMPTS,
+        );
 
         Ok(ConsumerMode::Resolver(ResolverConsumerContext {
             client,

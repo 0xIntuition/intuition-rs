@@ -336,11 +336,16 @@ impl TripleCreated {
             .call()
             .await?;
 
+        println!(
+            "vault_current_share_price: {:?}",
+            vault_current_share_price._0
+        );
         // Get or create the triple
         let triple = self
             .get_or_create_triple(pg_pool, event, counter_vault_id._0)
             .await?;
 
+        println!("triple: {:?}", triple);
         // Get or update the vault
         self.get_or_create_vault(pg_pool, self.vaultID, vault_current_share_price._0)
             .await?;

@@ -6,9 +6,11 @@ edition = "2021"
 [dependencies]
 axum = { version = "0.7.9", features = ["multipart", "tokio"] }
 axum-macros = "0.4.2"
+chrono.workspace = true
 dotenvy.workspace = true
 envy.workspace = true
 env_logger.workspace = true
+reqwest.workspace = true
 shared-utils = { path = "../shared-utils" }
 serde.workspace = true
 serde_json.workspace = true

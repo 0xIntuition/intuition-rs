@@ -98,8 +98,6 @@ pub enum ConsumerError {
     #[error(transparent)]
     SqlError(#[from] sqlx::Error),
     #[error(transparent)]
-    SQLXCore(#[from] sqlx_core::error::Error),
-    #[error(transparent)]
     Strum(#[from] strum::ParseError),
     #[error("Subject atom not found")]
     SubjectAtomNotFound,

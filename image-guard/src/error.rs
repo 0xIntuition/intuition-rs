@@ -16,6 +16,8 @@ pub enum ApiError {
     #[error(transparent)]
     Axum(#[from] axum::Error),
     #[error(transparent)]
+    Lib(#[from] shared_utils::error::LibError),
+    #[error(transparent)]
     IO(#[from] std::io::Error),
 }
 

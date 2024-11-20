@@ -4,5 +4,12 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+bytes = "1.8.0"
+chrono.workspace = true
+log.workspace = true
+reqwest.workspace = true
 macon.workspace = true
 serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+thiserror.workspace = true

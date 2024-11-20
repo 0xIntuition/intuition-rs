@@ -1,7 +1,14 @@
 use axum::extract::Multipart;
 use axum::Json;
 use axum_macros::debug_handler;
-use shared_utils::types::{ClassificationModel, ClassificationStatus, ImageClassificationResponse};
+use chrono::Utc;
+use reqwest::Client;
+use shared_utils::{
+    ipfs::{IPFSResolver, IpfsResponse},
+    types::{
+        ClassificationModel, ClassificationStatus, ImageClassificationResponse, MultiPartImage,
+    },
+};
 
 use crate::error::ApiError;
 
@@ -14,11 +21,22 @@ use crate::error::ApiError;
 pub async fn upload_image(
     mut multipart: Multipart,
 ) -> Result<Json<ImageClassificationResponse>, ApiError> {
+    let mut ipfs_response: IpfsResponse = IpfsResponse::default();
     while let Some(field) = multipart.next_field().await.unwrap() {
-        let image_name = field.name().unwrap().to_string();
-        let image_data = field.bytes().await.unwrap();
+        let multi_part_image = MultiPartImage {
+            name: field.name().unwrap().to_string(),
+            image_data: field.bytes().await.unwrap(),
+        };
 
-        println!("Length of `{}` is {} bytes", image_name, image_data.len());
+        println!(
+            "Length of `{}` is {} bytes",
+            multi_part_image.name,
+            multi_part_image.image_data.len()
+        );
+        let ipfs_resolver =
+            IPFSResolver::new(Client::new(), "http://localhost:5001".to_string(), 3);
+        ipfs_response = ipfs_resolver.upload_to_ipfs(multi_part_image).await?;
+        println!("IPFS response: {:?}", ipfs_response);
     }
 
     Ok(Json(
@@ -26,8 +44,8 @@ pub async fn upload_image(
             .status(ClassificationStatus::Safe)
             .score("".to_string())
             .model(ClassificationModel::GPT4o)
-            .date_classified(0)
-            .url("".to_string())
+            .date_classified(Utc::now())
+            .url(ipfs_response.hash)
             .build(),
     ))
 }
