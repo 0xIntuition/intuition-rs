@@ -29,7 +29,24 @@ services:
     dockerfilePath: ./consumer/Dockerfile
     dockerCommand: ./consumer --mode resolver
     envVars:
-      - fromFile: .env.docker
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_REGION
+        value: us-east-1
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: CONSUMER_TYPE
+        value: sqs
+      - key: DATABASE_URL
+        fromDatabase:
+          name: database
+          property: connectionString
+      - key: INDEXING_SOURCE
+        value: substreams
+      - key: IPFS_GATEWAY_URL
+        value: https://ipfs.io
+      - key: RUST_LOG
+        value: info
 
   - type: worker
     name: decoded-consumer
@@ -37,7 +54,24 @@ services:
     dockerfilePath: ./consumer/Dockerfile
     dockerCommand: ./consumer --mode decoded
     envVars:
-      - fromFile: .env.docker
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_REGION
+        value: us-east-1
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: CONSUMER_TYPE
+        value: sqs
+      - key: DATABASE_URL
+        fromDatabase:
+          name: database
+          property: connectionString
+      - key: INDEXING_SOURCE
+        value: substreams
+      - key: IPFS_GATEWAY_URL
+        value: https://ipfs.io
+      - key: RUST_LOG
+        value: info
 
   - type: worker
     name: raw-consumer
@@ -45,7 +79,24 @@ services:
     dockerfilePath: ./consumer/Dockerfile
     dockerCommand: ./consumer --mode raw
     envVars:
-      - fromFile: .env.docker
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_REGION
+        value: us-east-1
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: CONSUMER_TYPE
+        value: sqs
+      - key: DATABASE_URL
+        fromDatabase:
+          name: database
+          property: connectionString
+      - key: INDEXING_SOURCE
+        value: substreams
+      - key: IPFS_GATEWAY_URL
+        value: https://ipfs.io
+      - key: RUST_LOG
+        value: info
 
 databases:
   - name: database
