@@ -18,7 +18,7 @@ services:
         value: startup, http-log, webhook-log, websocket-log, query-log
       - key: HASURA_GRAPHQL_STRINGIFY_NUMERIC_TYPES
         value: true
-    envGroups:
+    envVarGroups:
       - name: hasura-secrets
 
   - type: worker
@@ -39,7 +39,7 @@ services:
         value: https://ipfs.io
       - key: RUST_LOG
         value: info
-    envGroups:
+    envVarGroups:
       - name: aws-credentials
       - name: pinata-secrets
 
@@ -61,7 +61,7 @@ services:
         value: https://ipfs.io
       - key: RUST_LOG
         value: info
-    envGroups:
+    envVarGroups:
       - name: aws-credentials
       - name: pinata-secrets
 
@@ -83,11 +83,11 @@ services:
         value: https://ipfs.io
       - key: RUST_LOG
         value: info
-    envGroups:
+    envVarGroups:
       - name: aws-credentials
       - name: pinata-secrets
 
-envGroups:
+envVarGroups:
   - name: aws-credentials
     envVars:
       - key: AWS_ACCESS_KEY_ID
