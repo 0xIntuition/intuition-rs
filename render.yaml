@@ -16,12 +16,10 @@ services:
         value: true
       - key: HASURA_GRAPHQL_ENABLED_LOG_TYPES
         value: startup, http-log, webhook-log, websocket-log, query-log
-      - key: HASURA_GRAPHQL_ADMIN_SECRET
-        sync: false
       - key: HASURA_GRAPHQL_STRINGIFY_NUMERIC_TYPES
         value: true
-      - key: PINATA_AUTH
-        sync: false
+    envGroups:
+      - name: hasura-secrets
 
   - type: worker
     name: resolver-consumer
@@ -29,24 +27,21 @@ services:
     dockerfilePath: ./consumer/Dockerfile
     dockerCommand: ./consumer --mode resolver
     envVars:
-      - key: AWS_ACCESS_KEY_ID
-        sync: false
-      - key: AWS_REGION
-        value: us-east-1
-      - key: AWS_SECRET_ACCESS_KEY
-        sync: false
-      - key: CONSUMER_TYPE
-        value: sqs
       - key: DATABASE_URL
         fromDatabase:
           name: database
           property: connectionString
+      - key: CONSUMER_TYPE
+        value: sqs
       - key: INDEXING_SOURCE
         value: substreams
       - key: IPFS_GATEWAY_URL
         value: https://ipfs.io
       - key: RUST_LOG
         value: info
+    envGroups:
+      - name: aws-credentials
+      - name: pinata-secrets
 
   - type: worker
     name: decoded-consumer
@@ -54,24 +49,21 @@ services:
     dockerfilePath: ./consumer/Dockerfile
     dockerCommand: ./consumer --mode decoded
     envVars:
-      - key: AWS_ACCESS_KEY_ID
-        sync: false
-      - key: AWS_REGION
-        value: us-east-1
-      - key: AWS_SECRET_ACCESS_KEY
-        sync: false
-      - key: CONSUMER_TYPE
-        value: sqs
       - key: DATABASE_URL
         fromDatabase:
           name: database
           property: connectionString
+      - key: CONSUMER_TYPE
+        value: sqs
       - key: INDEXING_SOURCE
         value: substreams
       - key: IPFS_GATEWAY_URL
         value: https://ipfs.io
       - key: RUST_LOG
         value: info
+    envGroups:
+      - name: aws-credentials
+      - name: pinata-secrets
 
   - type: worker
     name: raw-consumer
@@ -79,24 +71,45 @@ services:
     dockerfilePath: ./consumer/Dockerfile
     dockerCommand: ./consumer --mode raw
     envVars:
-      - key: AWS_ACCESS_KEY_ID
-        sync: false
-      - key: AWS_REGION
-        value: us-east-1
-      - key: AWS_SECRET_ACCESS_KEY
-        sync: false
-      - key: CONSUMER_TYPE
-        value: sqs
       - key: DATABASE_URL
         fromDatabase:
           name: database
           property: connectionString
+      - key: CONSUMER_TYPE
+        value: sqs
       - key: INDEXING_SOURCE
         value: substreams
       - key: IPFS_GATEWAY_URL
         value: https://ipfs.io
       - key: RUST_LOG
         value: info
+    envGroups:
+      - name: aws-credentials
+      - name: pinata-secrets
+
+envGroups:
+  - name: aws-credentials
+    envVars:
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_REGION
+        value: us-east-1
+
+  - name: hasura-secrets
+    envVars:
+      - key: HASURA_GRAPHQL_ADMIN_SECRET
+        sync: false
+      - key: PINATA_AUTH
+        sync: false
+
+  - name: pinata-secrets
+    envVars:
+      - key: PINATA_API_JWT
+        sync: false
+      - key: PINATA_GATEWAY_TOKEN
+        sync: false
 
 databases:
   - name: database
