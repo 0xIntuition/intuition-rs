@@ -1,7 +1,8 @@
 services:
   - type: web
     name: graphql-engine
-    env: docker
+    runtime: docker
+    repo: https://github.com/yourusername/intuition-rust
     dockerfilePath: ./consumer/Dockerfile
     envVars:
       - key: HASURA_GRAPHQL_METADATA_DATABASE_URL
@@ -18,12 +19,12 @@ services:
         value: startup, http-log, webhook-log, websocket-log, query-log
       - key: HASURA_GRAPHQL_STRINGIFY_NUMERIC_TYPES
         value: true
-    envVarGroups:
-      - name: hasura-secrets
+      - fromGroup: hasura-secrets
 
   - type: worker
     name: resolver-consumer
-    env: docker
+    runtime: docker
+    repo: https://github.com/yourusername/intuition-rust
     dockerfilePath: ./consumer/Dockerfile
     dockerCommand: ./consumer --mode resolver
     envVars:
@@ -39,13 +40,13 @@ services:
         value: https://ipfs.io
       - key: RUST_LOG
         value: info
-    envVarGroups:
-      - name: aws-credentials
-      - name: pinata-secrets
+      - fromGroup: aws-credentials
+      - fromGroup: pinata-secrets
 
   - type: worker
     name: decoded-consumer
-    env: docker
+    runtime: docker
+    repo: https://github.com/yourusername/intuition-rust
     dockerfilePath: ./consumer/Dockerfile
     dockerCommand: ./consumer --mode decoded
     envVars:
@@ -61,13 +62,13 @@ services:
         value: https://ipfs.io
       - key: RUST_LOG
         value: info
-    envVarGroups:
-      - name: aws-credentials
-      - name: pinata-secrets
+      - fromGroup: aws-credentials
+      - fromGroup: pinata-secrets
 
   - type: worker
     name: raw-consumer
-    env: docker
+    runtime: docker
+    repo: https://github.com/yourusername/intuition-rust
     dockerfilePath: ./consumer/Dockerfile
     dockerCommand: ./consumer --mode raw
     envVars:
@@ -83,9 +84,14 @@ services:
         value: https://ipfs.io
       - key: RUST_LOG
         value: info
-    envVarGroups:
-      - name: aws-credentials
-      - name: pinata-secrets
+      - fromGroup: aws-credentials
+      - fromGroup: pinata-secrets
+
+databases:
+  - name: database
+    databaseName: storage
+    user: testuser
+    ipAllowList: []
 
 envVarGroups:
   - name: aws-credentials
@@ -110,9 +116,3 @@ envVarGroups:
         sync: false
       - key: PINATA_GATEWAY_TOKEN
         sync: false
-
-databases:
-  - name: database
-    databaseName: storage
-    user: testuser
-    ipAllowList: []
