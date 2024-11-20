@@ -1284,6 +1284,7 @@ dependencies = [
  "matchit",
  "memchr",
  "mime",
+ "multer",
  "percent-encoding",
  "pin-project-lite",
  "rustversion",
@@ -1318,6 +1319,17 @@ dependencies = [
  "tower-layer",
  "tower-service",
  "tracing",
+]
+
+[[package]]
+name = "axum-macros"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "57d123550fa8d071b7255cb0cc04dc302baa6c8c4a79f55701552684d8399bce"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.85",
 ]
 
 [[package]]
@@ -2910,8 +2922,14 @@ name = "image-guard"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "axum-macros",
+ "dotenvy",
+ "env_logger",
+ "envy",
  "serde",
  "serde_json",
+ "shared-utils",
+ "thiserror",
  "tokio",
 ]
 
@@ -3259,6 +3277,23 @@ dependencies = [
  "strum_macros 0.25.3",
  "thiserror",
  "tokio",
+]
+
+[[package]]
+name = "multer"
+version = "3.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "83e87776546dc87511aa5ee218730c92b666d7264ab6ed41f9d215af9cd5224b"
+dependencies = [
+ "bytes",
+ "encoding_rs",
+ "futures-util",
+ "http 1.1.0",
+ "httparse",
+ "memchr",
+ "mime",
+ "spin",
+ "version_check",
 ]
 
 [[package]]
@@ -4501,6 +4536,14 @@ checksum = "c28efc5e327c837aa837c59eae585fc250715ef939ac32881bcc11677cd02d46"
 dependencies = [
  "cc",
  "cfg-if",
+]
+
+[[package]]
+name = "shared-utils"
+version = "0.1.0"
+dependencies = [
+ "macon",
+ "serde",
 ]
 
 [[package]]

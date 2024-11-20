@@ -1,21 +1,26 @@
-use axum::{response::Json, routing::get, Router};
-use serde_json::{json, Value};
+use error::ApiError;
+use routes::router;
+use types::Env;
 
-pub fn router() -> Router {
-    Router::new().route("/", get(upload_image))
-}
+mod endpoints;
+mod error;
+mod routes;
+mod types;
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), ApiError> {
+    // Initialize the logger
+    env_logger::init();
+    // Read the .env file from the current directory or parents
+    dotenvy::dotenv().ok();
+    // Load the environment variables into our struct
+    let env = envy::from_env::<Env>()?;
+
     // build our application with a single route
-    let app = router();
-
+    let app = router().await;
     // run our app with hyper, listening globally on port 3000
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    axum::serve(listener, app).await.unwrap();
-}
-
-async fn upload_image() -> Json<Value> {
-    println!("Hello, World!");
-    Json(json!({ "message": "Hello, World!" }))
+    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", env.api_port))
+        .await
+        .unwrap();
+    axum::serve(listener, app).await.map_err(ApiError::from)
 }
