@@ -1,8 +1,7 @@
 use serde::Deserialize;
 use sqlx::{postgres::PgPoolOptions, PgPool};
 
-use crate::config::Env;
-use crate::error::ConsumerError;
+use crate::error::LibError;
 
 /// This struct describes the env vars that we
 /// need to have in order to be able to set the
@@ -21,13 +20,13 @@ pub struct PostgresEnv {
     pub host: String,
 }
 
-pub async fn connect_to_db(env: &Env) -> Result<PgPool, ConsumerError> {
-    let connection_string = &pg_connect_str(&env.postgres);
+pub async fn connect_to_db(pg_env: &PostgresEnv) -> Result<PgPool, LibError> {
+    let connection_string = &pg_connect_str(pg_env);
     PgPoolOptions::new()
         .min_connections(5)
         .connect(connection_string)
         .await
-        .map_err(|error| ConsumerError::PostgresConnectError(error.to_string()))
+        .map_err(|error| LibError::PostgresConnectError(error.to_string()))
 }
 
 pub fn pg_connect_str(postgres_env: &PostgresEnv) -> String {

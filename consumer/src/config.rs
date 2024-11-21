@@ -1,7 +1,8 @@
 use std::str::FromStr;
 
-use crate::{error::ConsumerError, utils::PostgresEnv};
+use crate::error::ConsumerError;
 use serde::Deserialize;
+use shared_utils::postgres::PostgresEnv;
 
 /// Number of attempts to fetch IPFS data
 pub const IPFS_RETRY_ATTEMPTS: i32 = 10;
@@ -17,6 +18,7 @@ pub struct Env {
     pub localstack_url: String,
     #[serde(flatten)]
     pub postgres: PostgresEnv,
+    pub pinata_api_jwt: String,
     pub raw_consumer_queue_url: String,
     pub resolver_queue_url: String,
     pub rpc_url_base_mainnet: String,

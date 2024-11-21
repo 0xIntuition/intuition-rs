@@ -96,6 +96,8 @@ pub enum ConsumerError {
     #[error(transparent)]
     SerdeJson(#[from] serde_json::Error),
     #[error(transparent)]
+    SharedUtils(#[from] shared_utils::error::LibError),
+    #[error(transparent)]
     SqlError(#[from] sqlx::Error),
     #[error(transparent)]
     Strum(#[from] strum::ParseError),

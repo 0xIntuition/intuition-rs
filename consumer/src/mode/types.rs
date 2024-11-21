@@ -5,7 +5,6 @@ use crate::{
     error::ConsumerError,
     schemas::types::DecodedMessage,
     traits::BasicConsumer,
-    utils::connect_to_db,
     ENSRegistry::{self, ENSRegistryInstance},
     EthMultiVault::{self, EthMultiVaultEvents, EthMultiVaultInstance},
 };
@@ -16,7 +15,7 @@ use alloy::{
 };
 use log::{debug, info, warn};
 use reqwest::Client;
-use shared_utils::ipfs::IPFSResolver;
+use shared_utils::{ipfs::IPFSResolver, postgres::connect_to_db};
 use sqlx::PgPool;
 use std::{str::FromStr, sync::Arc};
 
@@ -173,6 +172,7 @@ impl ConsumerMode {
             Client::new(),
             data.env.ipfs_gateway_url.clone(),
             IPFS_RETRY_ATTEMPTS,
+            data.env.pinata_api_jwt.clone(),
         );
 
         Ok(ConsumerMode::Resolver(ResolverConsumerContext {
@@ -187,7 +187,7 @@ impl ConsumerMode {
     /// We need to implement this convenience so we can transform
     /// the [`String`] received by the CLI into an actual [`ConsumerMode`]
     pub async fn from_str(data: ServerInitialize) -> Result<ConsumerMode, ConsumerError> {
-        let pg_pool = connect_to_db(&data.env).await?;
+        let pg_pool = connect_to_db(&data.env.postgres).await?;
 
         match data.args.mode.as_str() {
             "Raw" | "raw" | "RAW" => Self::create_raw_consumer(data, pg_pool).await,

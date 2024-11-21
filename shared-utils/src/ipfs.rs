@@ -12,6 +12,7 @@ use tokio::time::sleep;
 pub const BASE_DELAY: Duration = Duration::from_secs(1);
 pub const FETCH_TIMEOUT: Duration = Duration::from_millis(3000);
 pub const PIN_TIMEOUT: Duration = Duration::from_secs(10);
+pub const PINATA_API_URL: &str = "https://api.pinata.cloud";
 
 /// The response from the IPFS gateway
 #[derive(Deserialize, Default, Debug)]
@@ -33,6 +34,7 @@ pub struct IPFSResolver {
     pub http_client: Client,
     pub ipfs_gateway_url: String,
     pub retry_attempts: i32,
+    pub pinata_jwt: String,
 }
 
 impl IPFSResolver {
@@ -73,8 +75,8 @@ impl IPFSResolver {
     }
 
     /// Formats the URL to pin a hash to IPFS
-    fn format_ipfs_pin_url(&self, hash: &str) -> String {
-        format!("{}/api/v0/pin/add?arg={}", self.ipfs_gateway_url, hash)
+    fn format_ipfs_pin_url(&self) -> String {
+        format!("{}/pinning/pinByHash", PINATA_API_URL)
     }
 
     /// Formats the URL to upload a file to IPFS
@@ -152,11 +154,17 @@ impl IPFSResolver {
     }
 
     /// Creates a new IPFS resolver
-    pub fn new(client: Client, ipfs_gateway_url: String, retry_attempts: i32) -> Self {
+    pub fn new(
+        client: Client,
+        ipfs_gateway_url: String,
+        retry_attempts: i32,
+        pinata_jwt: String,
+    ) -> Self {
         Self {
             http_client: client,
             ipfs_gateway_url,
             retry_attempts,
+            pinata_jwt,
         }
     }
 
@@ -166,17 +174,33 @@ impl IPFSResolver {
         loop {
             attempts += 1;
             match self.pin_to_ipfs_request(hash).await {
-                Ok(_) => break Ok(()),
+                Ok(response) => {
+                    // Check if the response is successful
+                    if !response.status().is_success() {
+                        let status = response.status();
+                        let error_text = response.text().await.unwrap_or_default();
+                        warn!("Pinata pin failed: Status {}, Body: {}", status, error_text);
+
+                        if attempts < self.retry_attempts {
+                            let backoff = BASE_DELAY.mul_f64(2_f64.powi(attempts - 1));
+                            sleep(backoff).await;
+                            continue;
+                        }
+
+                        return Err(LibError::PinataError(format!(
+                            "Failed to pin: Status {}, Body: {}",
+                            status, error_text
+                        )));
+                    }
+                    break Ok(());
+                }
                 Err(e) if attempts < self.retry_attempts => {
                     warn!("Pin error: {}, retrying... (attempt {})", e, attempts);
                     let backoff = BASE_DELAY.mul_f64(2_f64.powi(attempts - 1));
                     sleep(backoff).await;
                 }
                 Err(e) => {
-                    break Err(match e.is_timeout() {
-                        true => LibError::TimeoutError("IPFS pin request timed out".into()),
-                        false => LibError::NetworkError(e.to_string()),
-                    })
+                    break Err(LibError::NetworkError(e.to_string()));
                 }
             }
         }
@@ -184,8 +208,18 @@ impl IPFSResolver {
 
     /// Pins a hash to keep it persistent in IPFS
     async fn pin_to_ipfs_request(&self, hash: &str) -> Result<Response, reqwest::Error> {
+        let json_body = serde_json::json!({
+            "hashToPin": hash,
+            "pinataMetadata": {
+                "name": format!("Pin request for {}", hash)
+            }
+        });
+
         self.http_client
-            .post(self.format_ipfs_pin_url(hash))
+            .post(self.format_ipfs_pin_url())
+            .header("Authorization", format!("Bearer {}", self.pinata_jwt))
+            .header("Content-Type", "application/json")
+            .json(&json_body)
             .timeout(PIN_TIMEOUT)
             .send()
             .await
