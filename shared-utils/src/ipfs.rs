@@ -1,4 +1,4 @@
-use crate::{error::LibError, types::MultiPartImage};
+use crate::{error::LibError, types::MultiPartHandler};
 use log::warn;
 use macon::Builder;
 use reqwest::{
@@ -33,12 +33,13 @@ pub struct IpfsResponse {
 /// by changing the `IPFS_RETRY_ATTEMPTS` constant.
 #[derive(Clone, Builder)]
 pub struct IPFSResolver {
-    pub http_client: Client,
-    pub ipfs_url: String,
-    pub pinata_jwt: String,
     pub base_delay: Option<Duration>,
     pub fetch_timeout: Option<Duration>,
+    pub http_client: Client,
+    pub ipfs_fetch_url: String,
+    pub ipfs_upload_url: String,
     pub pin_timeout: Option<Duration>,
+    pub pinata_jwt: String,
     pub retry_attempts: Option<i32>,
 }
 
@@ -85,13 +86,13 @@ impl IPFSResolver {
     fn format_add_remote_pin_to_pinata(&self, cid: &str) -> String {
         format!(
             "{}/api/v0/pin/remote/add?arg={}&service=Pinata",
-            self.ipfs_url, cid
+            self.ipfs_upload_url, cid
         )
     }
 
     /// Formats the URL to fetch IPFS data
     fn format_ipfs_fetch_url(&self, cid: &str) -> String {
-        format!("{}/ipfs/{}", self.ipfs_url, cid)
+        format!("{}/ipfs/{}", self.ipfs_fetch_url, cid)
     }
 
     /// Formats the URL to pin a hash to IPFS
@@ -101,12 +102,12 @@ impl IPFSResolver {
 
     /// Formats the URL to upload a file to IPFS
     fn format_ipfs_upload_url(&self) -> String {
-        format!("{}/api/v0/add", self.ipfs_url)
+        format!("{}/api/v0/add", self.ipfs_upload_url)
     }
 
     /// Formats the URL to pin a CID to local IPFS
     fn format_pin_with_cid(&self, cid: &str) -> String {
-        format!("{}/api/v0/pin/add?arg={}", self.ipfs_url, cid)
+        format!("{}/api/v0/pin/add?arg={}", self.ipfs_upload_url, cid)
     }
 
     /// Handles retry logic for pin operations
@@ -198,11 +199,11 @@ impl IPFSResolver {
     }
 
     /// Formats the multipart form to upload a file to IPFS
-    fn multipart_form(&self, multi_part_image: MultiPartImage) -> Form {
+    fn multipart_form(&self, multi_part_handler: MultiPartHandler) -> Form {
         Form::new().part(
-            multi_part_image.name.clone(),
-            Part::bytes(multi_part_image.image_data.clone().to_vec())
-                .file_name(multi_part_image.name.clone()),
+            multi_part_handler.name.clone(),
+            Part::bytes(multi_part_handler.data.clone().to_vec())
+                .file_name(multi_part_handler.name.clone()),
         )
     }
 
@@ -269,14 +270,17 @@ impl IPFSResolver {
     /// the uploaded file.
     pub async fn upload_to_ipfs(
         &self,
-        multi_part_image: MultiPartImage,
+        multi_part_handler: MultiPartHandler,
     ) -> Result<IpfsResponse, LibError> {
         let mut attempts = 0;
 
         loop {
             attempts += 1;
 
-            match self.upload_to_ipfs_request(multi_part_image.clone()).await {
+            match self
+                .upload_to_ipfs_request(multi_part_handler.clone())
+                .await
+            {
                 Ok(resp) => {
                     let status = resp.status();
                     let body = resp.text().await.unwrap_or_default();
@@ -317,11 +321,11 @@ impl IPFSResolver {
     /// Sends a request to upload a file to IPFS
     async fn upload_to_ipfs_request(
         &self,
-        multi_part_image: MultiPartImage,
+        multi_part_handler: MultiPartHandler,
     ) -> Result<Response, reqwest::Error> {
         self.http_client
             .post(self.format_ipfs_upload_url())
-            .multipart(self.multipart_form(multi_part_image.clone()))
+            .multipart(self.multipart_form(multi_part_handler.clone()))
             .send()
             .await
     }

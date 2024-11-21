@@ -12,6 +12,7 @@ pub struct Env {
     pub indexing_source: String,
     pub intuition_contract_address: String,
     pub ipfs_gateway_url: String,
+    pub ipfs_upload_url: String,
     pub localstack_url: String,
     #[serde(flatten)]
     pub postgres: PostgresEnv,

@@ -15,6 +15,8 @@ pub enum ApiError {
     Env(#[from] envy::Error),
     #[error(transparent)]
     Axum(#[from] axum::Error),
+    #[error("Invalid input: {0}")]
+    InvalidInput(String),
     #[error(transparent)]
     Lib(#[from] shared_utils::error::LibError),
     #[error(transparent)]

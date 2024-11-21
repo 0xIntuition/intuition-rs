@@ -7,7 +7,7 @@ use reqwest::Client;
 use shared_utils::{
     ipfs::{IPFSResolver, IpfsResponse},
     types::{
-        ClassificationModel, ClassificationStatus, ImageClassificationResponse, MultiPartImage,
+        ClassificationModel, ClassificationStatus, ImageClassificationResponse, MultiPartHandler,
     },
 };
 
@@ -23,23 +23,51 @@ pub async fn upload_image(
 ) -> Result<Json<ImageClassificationResponse>, ApiError> {
     let mut ipfs_response: IpfsResponse = IpfsResponse::default();
     while let Some(field) = multipart.next_field().await.unwrap() {
-        let multi_part_image = MultiPartImage {
-            name: field.name().unwrap().to_string(),
-            image_data: field.bytes().await.unwrap(),
+        // Get content type and filename first before consuming the field
+        let content_type = field
+            .content_type()
+            .ok_or(ApiError::InvalidInput("Missing content type".into()))?;
+        let name = field
+            .file_name()
+            .ok_or(ApiError::InvalidInput("Missing filename".into()))?
+            .to_string();
+
+        if !content_type.starts_with("image/") {
+            return Err(ApiError::InvalidInput("File must be an image".into()));
+        }
+
+        // Now get the bytes which consumes the field
+        let data = field.bytes().await.unwrap();
+
+        // Verify magic numbers for common image formats
+        let is_valid_image = match data.get(0..4) {
+            Some(bytes) => {
+                bytes.starts_with(&[0xFF, 0xD8, 0xFF]) || // JPEG
+                    bytes.starts_with(&[0x89, 0x50, 0x4E, 0x47]) || // PNG
+                    bytes.starts_with(&[0x47, 0x49, 0x46]) // GIF
+            }
+            None => false,
         };
+
+        if !is_valid_image {
+            return Err(ApiError::InvalidInput("Invalid image format".into()));
+        }
+
+        let multi_part_handler = MultiPartHandler { name, data };
 
         println!(
             "Length of `{}` is {} bytes",
-            multi_part_image.name,
-            multi_part_image.image_data.len()
+            multi_part_handler.name,
+            multi_part_handler.data.len()
         );
         let ipfs_resolver = IPFSResolver::builder()
             .http_client(Client::new())
-            .ipfs_url(state.ipfs_upload_url.clone())
+            .ipfs_upload_url(state.ipfs_upload_url.clone())
+            .ipfs_fetch_url(state.ipfs_fetch_url.clone())
             .pinata_jwt(state.pinata_api_jwt.clone())
             .build();
 
-        ipfs_response = ipfs_resolver.upload_to_ipfs(multi_part_image).await?;
+        ipfs_response = ipfs_resolver.upload_to_ipfs(multi_part_handler).await?;
         println!("IPFS response: {:?}", ipfs_response);
     }
 

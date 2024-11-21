@@ -170,7 +170,8 @@ impl ConsumerMode {
 
         let ipfs_resolver = IPFSResolver::builder()
             .http_client(Client::new())
-            .ipfs_url(data.env.ipfs_gateway_url.clone())
+            .ipfs_upload_url(data.env.ipfs_upload_url.clone())
+            .ipfs_fetch_url(data.env.ipfs_gateway_url.clone())
             .pinata_jwt(data.env.pinata_api_jwt.clone())
             .build();
 
