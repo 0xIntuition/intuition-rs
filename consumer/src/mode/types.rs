@@ -1,6 +1,6 @@
 use crate::{
     app_context::ServerInitialize,
-    config::{ConsumerType, IndexerSource, IPFS_RETRY_ATTEMPTS},
+    config::{ConsumerType, IndexerSource},
     consumer_type::sqs::Sqs,
     error::ConsumerError,
     schemas::types::DecodedMessage,

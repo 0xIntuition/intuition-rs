@@ -3289,6 +3289,7 @@ dependencies = [
  "macon",
  "rand",
  "serde",
+ "serde_json",
  "sqlx",
  "strum",
  "strum_macros",

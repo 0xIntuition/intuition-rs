@@ -25,6 +25,7 @@ CREATE TYPE atom_type AS ENUM (
   'Organization', 'OrganizationPredicate', 'Book', 'LikeAction', 'FollowAction', 'Keywords'
 );
 CREATE TYPE atom_resolving_status AS ENUM ('Pending', 'Resolved', 'Failed');
+CREATE TYPE image_classification AS ENUM ('Safe', 'Unsafe', 'Unknown');
 
 -- Create tables
 CREATE TABLE chainlink_price (
@@ -271,6 +272,16 @@ CREATE TABLE book (
   description TEXT,
   genre TEXT,
   url TEXT
+);
+
+CREATE TABLE image_guard (
+  -- id is the original name of the image in lowercase without the extension
+  id TEXT PRIMARY KEY NOT NULL,
+  ipfs_hash VARCHAR(32) NOT NULL,
+  score JSONB,
+  model TEXT,
+  classification image_classification NOT NULL DEFAULT 'Unknown',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 -- Create indexes

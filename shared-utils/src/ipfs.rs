@@ -109,6 +109,25 @@ impl IPFSResolver {
         format!("{}/api/v0/pin/add?arg={}", self.ipfs_url, cid)
     }
 
+    /// Handles retry logic for pin operations
+    async fn handle_existing_file_retry_logic(
+        &self,
+        e: reqwest::Error,
+        attempts: i32,
+    ) -> Result<(), LibError> {
+        if attempts < self.retry_attempts.unwrap_or(RETRY_ATTEMPTS) {
+            warn!("Pin error: {}, retrying... (attempt {})", e, attempts);
+            let backoff = self
+                .base_delay
+                .unwrap_or(BASE_DELAY)
+                .mul_f64(2_f64.powi(attempts - 1));
+            sleep(backoff).await;
+            Ok(())
+        } else {
+            Err(LibError::NetworkError(e.to_string()))
+        }
+    }
+
     /// Handles the error response for IPFS fetches
     async fn handle_fetch_error(&self, e: reqwest::Error, attempts: i32) -> Result<(), LibError> {
         if attempts < self.retry_attempts.unwrap_or(RETRY_ATTEMPTS) {
@@ -218,17 +237,10 @@ impl IPFSResolver {
                     }
                     break Ok(());
                 }
-                Err(e) if attempts < self.retry_attempts.unwrap_or(RETRY_ATTEMPTS) => {
-                    warn!("Pin error: {}, retrying... (attempt {})", e, attempts);
-                    let backoff = self
-                        .base_delay
-                        .unwrap_or(BASE_DELAY)
-                        .mul_f64(2_f64.powi(attempts - 1));
-                    sleep(backoff).await;
-                }
-                Err(e) => {
-                    break Err(LibError::NetworkError(e.to_string()));
-                }
+                Err(e) => match self.handle_existing_file_retry_logic(e, attempts).await {
+                    Ok(()) => continue,
+                    Err(e) => break Err(e),
+                },
             }
         }
     }

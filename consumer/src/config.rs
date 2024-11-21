@@ -4,9 +4,6 @@ use crate::error::ConsumerError;
 use serde::Deserialize;
 use shared_utils::postgres::PostgresEnv;
 
-/// Number of attempts to fetch IPFS data
-pub const IPFS_RETRY_ATTEMPTS: i32 = 10;
-
 #[derive(Clone, Deserialize, Debug)]
 pub struct Env {
     pub consumer_type: String,
