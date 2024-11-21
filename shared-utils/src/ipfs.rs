@@ -8,8 +8,12 @@ use serde::Deserialize;
 use std::time::Duration;
 use tokio::time::sleep;
 
-/// The base delay for the retry mechanism
+/// The base delays for the retry mechanism and timeouts
 pub const BASE_DELAY: Duration = Duration::from_secs(1);
+pub const FETCH_TIMEOUT: Duration = Duration::from_millis(3000);
+pub const PIN_TIMEOUT: Duration = Duration::from_secs(10);
+
+/// The response from the IPFS gateway
 #[derive(Deserialize, Default, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct IpfsResponse {
@@ -35,22 +39,13 @@ impl IPFSResolver {
     /// Fetches a file and returns its content as a string from IPFS
     /// using the configured gateway.
     pub async fn fetch_from_ipfs(&self, cid: &str) -> Result<String, LibError> {
-        let url = self.format_ipfs_fetch_url(cid);
-
         let mut attempts = 0;
-        let base_delay = Duration::from_secs(1);
 
         let response = loop {
             attempts += 1;
-            match self
-                .http_client
-                .get(&url)
-                .timeout(Duration::from_millis(3000))
-                .send()
-                .await
-            {
+            match self.fetch_from_ipfs_request(cid).await {
                 Ok(resp) => break Ok(resp),
-                Err(e) => match self.handle_fetch_error(e, attempts, base_delay).await {
+                Err(e) => match self.handle_fetch_error(e, attempts).await {
                     Ok(()) => continue,
                     Err(e) => break Err(e),
                 },
@@ -63,9 +58,23 @@ impl IPFSResolver {
             .map_err(|e| LibError::NetworkError(e.to_string()))
     }
 
+    /// Sends a request to fetch IPFS data
+    async fn fetch_from_ipfs_request(&self, cid: &str) -> Result<Response, reqwest::Error> {
+        self.http_client
+            .get(self.format_ipfs_fetch_url(cid))
+            .timeout(FETCH_TIMEOUT)
+            .send()
+            .await
+    }
+
     /// Formats the URL to fetch IPFS data
     fn format_ipfs_fetch_url(&self, cid: &str) -> String {
         format!("{}/ipfs/{}", self.ipfs_gateway_url, cid)
+    }
+
+    /// Formats the URL to pin a hash to IPFS
+    fn format_ipfs_pin_url(&self, hash: &str) -> String {
+        format!("{}/api/v0/pin/add?arg={}", self.ipfs_gateway_url, hash)
     }
 
     /// Formats the URL to upload a file to IPFS
@@ -74,19 +83,14 @@ impl IPFSResolver {
     }
 
     /// Handles the error response for IPFS fetches
-    async fn handle_fetch_error(
-        &self,
-        e: reqwest::Error,
-        attempts: i32,
-        base_delay: Duration,
-    ) -> Result<(), LibError> {
+    async fn handle_fetch_error(&self, e: reqwest::Error, attempts: i32) -> Result<(), LibError> {
         if attempts < self.retry_attempts {
             if e.is_timeout() {
                 warn!("IPFS request timed out, retrying... (attempt {})", attempts);
             } else {
                 warn!("Network error: {}, retrying... (attempt {})", e, attempts);
             }
-            let backoff = base_delay.mul_f64(2_f64.powi(attempts - 1));
+            let backoff = BASE_DELAY.mul_f64(2_f64.powi(attempts - 1));
             sleep(backoff).await;
             Ok(())
         } else {
@@ -181,11 +185,8 @@ impl IPFSResolver {
     /// Pins a hash to keep it persistent in IPFS
     async fn pin_to_ipfs_request(&self, hash: &str) -> Result<Response, reqwest::Error> {
         self.http_client
-            .post(format!(
-                "{}/api/v0/pin/add?arg={}",
-                self.ipfs_gateway_url, hash
-            ))
-            .timeout(Duration::from_secs(10))
+            .post(self.format_ipfs_pin_url(hash))
+            .timeout(PIN_TIMEOUT)
             .send()
             .await
     }
