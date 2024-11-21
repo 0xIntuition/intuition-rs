@@ -45,9 +45,13 @@ pub struct IPFSResolver {
 
 impl IPFSResolver {
     /// Adds a remote pin to Pinata
-    async fn add_remote_pin_to_pinata(&self, cid: &str) -> Result<Response, reqwest::Error> {
+    async fn add_remote_pin_to_pinata(
+        &self,
+        cid: &str,
+        name: &str,
+    ) -> Result<Response, reqwest::Error> {
         self.http_client
-            .post(self.format_add_remote_pin_to_pinata(cid))
+            .post(self.format_add_remote_pin_to_pinata(cid, name))
             .send()
             .await
     }
@@ -83,10 +87,10 @@ impl IPFSResolver {
     }
 
     /// Formats the URL to add a remote pin to Pinata
-    fn format_add_remote_pin_to_pinata(&self, cid: &str) -> String {
+    fn format_add_remote_pin_to_pinata(&self, cid: &str, name: &str) -> String {
         format!(
-            "{}/api/v0/pin/remote/add?arg={}&service=Pinata",
-            self.ipfs_upload_url, cid
+            "{}/api/v0/pin/remote/add?arg={}&service=Pinata&name={}",
+            self.ipfs_upload_url, cid, name
         )
     }
 
@@ -298,7 +302,8 @@ impl IPFSResolver {
                     // Pin the CID to local IPFS
                     self.pin_with_cid(&result.hash).await?;
                     // Add a remote pin to Pinata
-                    self.add_remote_pin_to_pinata(&result.hash).await?;
+                    self.add_remote_pin_to_pinata(&result.hash, &multi_part_handler.name)
+                        .await?;
 
                     return Ok(result);
                 }
