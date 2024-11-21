@@ -226,12 +226,10 @@ impl Deposited {
         id: U256,
         current_share_price: U256,
     ) -> Result<Vault, ConsumerError> {
-        println!("Getting or creating vault with id: {}", id);
         let vault = match Vault::find_by_id(U256Wrapper::from_str(&id.to_string())?, pg_pool)
             .await?
         {
             Some(mut vault) => {
-                println!("Vault found: {:?}", vault);
                 vault.current_share_price = U256Wrapper::from(current_share_price);
                 vault.total_shares = vault.total_shares + U256Wrapper::from(self.sharesForReceiver);
                 vault
