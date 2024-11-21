@@ -3,7 +3,6 @@ use routes::router;
 use state::AppState;
 use types::Env;
 
-mod config;
 mod endpoints;
 mod error;
 mod routes;

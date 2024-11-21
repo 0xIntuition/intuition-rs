@@ -168,12 +168,11 @@ impl ConsumerMode {
         )
         .await?;
 
-        let ipfs_resolver = IPFSResolver::new(
-            Client::new(),
-            data.env.ipfs_gateway_url.clone(),
-            IPFS_RETRY_ATTEMPTS,
-            data.env.pinata_api_jwt.clone(),
-        );
+        let ipfs_resolver = IPFSResolver::builder()
+            .http_client(Client::new())
+            .ipfs_url(data.env.ipfs_gateway_url.clone())
+            .pinata_jwt(data.env.pinata_api_jwt.clone())
+            .build();
 
         Ok(ConsumerMode::Resolver(ResolverConsumerContext {
             client,

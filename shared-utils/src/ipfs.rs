@@ -1,5 +1,6 @@
 use crate::{error::LibError, types::MultiPartImage};
 use log::warn;
+use macon::Builder;
 use reqwest::{
     multipart::{Form, Part},
     Client, Response, StatusCode,
@@ -13,6 +14,7 @@ pub const BASE_DELAY: Duration = Duration::from_secs(1);
 pub const FETCH_TIMEOUT: Duration = Duration::from_millis(3000);
 pub const PIN_TIMEOUT: Duration = Duration::from_secs(10);
 pub const PINATA_API_URL: &str = "https://api.pinata.cloud";
+pub const RETRY_ATTEMPTS: i32 = 3;
 
 /// The response from the IPFS gateway
 #[derive(Deserialize, Default, Debug)]
@@ -29,15 +31,25 @@ pub struct IpfsResponse {
 /// and we are implementing a simple exponential backoff retry mechanism
 /// to fetch the data from IPFS. You can configure the number of attempts
 /// by changing the `IPFS_RETRY_ATTEMPTS` constant.
-#[derive(Clone)]
+#[derive(Clone, Builder)]
 pub struct IPFSResolver {
     pub http_client: Client,
-    pub ipfs_gateway_url: String,
-    pub retry_attempts: i32,
+    pub ipfs_url: String,
     pub pinata_jwt: String,
+    pub base_delay: Option<Duration>,
+    pub fetch_timeout: Option<Duration>,
+    pub pin_timeout: Option<Duration>,
+    pub retry_attempts: Option<i32>,
 }
 
 impl IPFSResolver {
+    /// Adds a remote pin to Pinata
+    async fn add_remote_pin_to_pinata(&self, cid: &str) -> Result<Response, reqwest::Error> {
+        self.http_client
+            .post(self.format_add_remote_pin_to_pinata(cid))
+            .send()
+            .await
+    }
     /// Fetches a file and returns its content as a string from IPFS
     /// using the configured gateway.
     pub async fn fetch_from_ipfs(&self, cid: &str) -> Result<String, LibError> {
@@ -64,14 +76,22 @@ impl IPFSResolver {
     async fn fetch_from_ipfs_request(&self, cid: &str) -> Result<Response, reqwest::Error> {
         self.http_client
             .get(self.format_ipfs_fetch_url(cid))
-            .timeout(FETCH_TIMEOUT)
+            .timeout(self.fetch_timeout.unwrap_or(FETCH_TIMEOUT))
             .send()
             .await
     }
 
+    /// Formats the URL to add a remote pin to Pinata
+    fn format_add_remote_pin_to_pinata(&self, cid: &str) -> String {
+        format!(
+            "{}/api/v0/pin/remote/add?arg={}&service=Pinata",
+            self.ipfs_url, cid
+        )
+    }
+
     /// Formats the URL to fetch IPFS data
     fn format_ipfs_fetch_url(&self, cid: &str) -> String {
-        format!("{}/ipfs/{}", self.ipfs_gateway_url, cid)
+        format!("{}/ipfs/{}", self.ipfs_url, cid)
     }
 
     /// Formats the URL to pin a hash to IPFS
@@ -81,18 +101,26 @@ impl IPFSResolver {
 
     /// Formats the URL to upload a file to IPFS
     fn format_ipfs_upload_url(&self) -> String {
-        format!("{}/api/v0/add", self.ipfs_gateway_url)
+        format!("{}/api/v0/add", self.ipfs_url)
+    }
+
+    /// Formats the URL to pin a CID to local IPFS
+    fn format_pin_with_cid(&self, cid: &str) -> String {
+        format!("{}/api/v0/pin/add?arg={}", self.ipfs_url, cid)
     }
 
     /// Handles the error response for IPFS fetches
     async fn handle_fetch_error(&self, e: reqwest::Error, attempts: i32) -> Result<(), LibError> {
-        if attempts < self.retry_attempts {
+        if attempts < self.retry_attempts.unwrap_or(RETRY_ATTEMPTS) {
             if e.is_timeout() {
                 warn!("IPFS request timed out, retrying... (attempt {})", attempts);
             } else {
                 warn!("Network error: {}, retrying... (attempt {})", e, attempts);
             }
-            let backoff = BASE_DELAY.mul_f64(2_f64.powi(attempts - 1));
+            let backoff = self
+                .base_delay
+                .unwrap_or(BASE_DELAY)
+                .mul_f64(2_f64.powi(attempts - 1));
             sleep(backoff).await;
             Ok(())
         } else {
@@ -112,8 +140,11 @@ impl IPFSResolver {
         if !status.is_success() {
             warn!("IPFS upload failed with status {}", status);
 
-            if attempts < self.retry_attempts {
-                let backoff = BASE_DELAY.mul_f64(2_f64.powi(attempts - 1));
+            if attempts < self.retry_attempts.unwrap_or(RETRY_ATTEMPTS) {
+                let backoff = self
+                    .base_delay
+                    .unwrap_or(BASE_DELAY)
+                    .mul_f64(2_f64.powi(attempts - 1));
                 sleep(backoff).await;
                 return Ok(true); // true means "should continue"
             }
@@ -131,9 +162,12 @@ impl IPFSResolver {
         e: reqwest::Error,
         attempts: i32,
     ) -> Result<(), LibError> {
-        if attempts < self.retry_attempts {
+        if attempts < self.retry_attempts.unwrap_or(RETRY_ATTEMPTS) {
             warn!("Upload error: {}, retrying... (attempt {})", e, attempts);
-            let backoff = BASE_DELAY.mul_f64(2_f64.powi(attempts - 1));
+            let backoff = self
+                .base_delay
+                .unwrap_or(BASE_DELAY)
+                .mul_f64(2_f64.powi(attempts - 1));
             sleep(backoff).await;
             Ok(())
         } else {
@@ -153,23 +187,10 @@ impl IPFSResolver {
         )
     }
 
-    /// Creates a new IPFS resolver
-    pub fn new(
-        client: Client,
-        ipfs_gateway_url: String,
-        retry_attempts: i32,
-        pinata_jwt: String,
-    ) -> Self {
-        Self {
-            http_client: client,
-            ipfs_gateway_url,
-            retry_attempts,
-            pinata_jwt,
-        }
-    }
-
-    /// Pins a hash to keep it persistent in IPFS
-    async fn pin_hash(&self, hash: &str) -> Result<(), LibError> {
+    /// Pins an already uploaded file hash to Pinata. Keep in mind that
+    /// for this function to work, the file must have been uploaded to IPFS.
+    #[allow(dead_code)]
+    async fn pin_existing_file_hash(&self, hash: &str) -> Result<(), LibError> {
         let mut attempts = 0;
         loop {
             attempts += 1;
@@ -181,8 +202,11 @@ impl IPFSResolver {
                         let error_text = response.text().await.unwrap_or_default();
                         warn!("Pinata pin failed: Status {}, Body: {}", status, error_text);
 
-                        if attempts < self.retry_attempts {
-                            let backoff = BASE_DELAY.mul_f64(2_f64.powi(attempts - 1));
+                        if attempts < self.retry_attempts.unwrap_or(RETRY_ATTEMPTS) {
+                            let backoff = self
+                                .base_delay
+                                .unwrap_or(BASE_DELAY)
+                                .mul_f64(2_f64.powi(attempts - 1));
                             sleep(backoff).await;
                             continue;
                         }
@@ -194,9 +218,12 @@ impl IPFSResolver {
                     }
                     break Ok(());
                 }
-                Err(e) if attempts < self.retry_attempts => {
+                Err(e) if attempts < self.retry_attempts.unwrap_or(RETRY_ATTEMPTS) => {
                     warn!("Pin error: {}, retrying... (attempt {})", e, attempts);
-                    let backoff = BASE_DELAY.mul_f64(2_f64.powi(attempts - 1));
+                    let backoff = self
+                        .base_delay
+                        .unwrap_or(BASE_DELAY)
+                        .mul_f64(2_f64.powi(attempts - 1));
                     sleep(backoff).await;
                 }
                 Err(e) => {
@@ -220,7 +247,7 @@ impl IPFSResolver {
             .header("Authorization", format!("Bearer {}", self.pinata_jwt))
             .header("Content-Type", "application/json")
             .json(&json_body)
-            .timeout(PIN_TIMEOUT)
+            .timeout(self.pin_timeout.unwrap_or(PIN_TIMEOUT))
             .send()
             .await
     }
@@ -252,7 +279,11 @@ impl IPFSResolver {
                         LibError::NetworkError(format!("Invalid JSON: {}", body))
                     })?;
 
-                    self.pin_hash(&result.hash).await?;
+                    // Pin the CID to local IPFS
+                    self.pin_with_cid(&result.hash).await?;
+                    // Add a remote pin to Pinata
+                    self.add_remote_pin_to_pinata(&result.hash).await?;
+
                     return Ok(result);
                 }
                 Err(e) => match self.handle_upload_retry_error(e, attempts).await {
@@ -261,6 +292,14 @@ impl IPFSResolver {
                 },
             }
         }?
+    }
+
+    /// Pins a CID to local IPFS
+    async fn pin_with_cid(&self, cid: &str) -> Result<Response, reqwest::Error> {
+        self.http_client
+            .post(self.format_pin_with_cid(cid))
+            .send()
+            .await
     }
 
     /// Sends a request to upload a file to IPFS

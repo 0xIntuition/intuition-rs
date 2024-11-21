@@ -1,3 +1,4 @@
+use crate::{error::ApiError, state::AppState};
 use axum::extract::{Multipart, State};
 use axum::Json;
 use axum_macros::debug_handler;
@@ -9,8 +10,6 @@ use shared_utils::{
         ClassificationModel, ClassificationStatus, ImageClassificationResponse, MultiPartImage,
     },
 };
-
-use crate::{config::RETRY_ATTEMPTS, error::ApiError, state::AppState};
 
 /// Upload an image to the image guard. An example of a curl request to a local server is:
 /// ```bash
@@ -34,12 +33,12 @@ pub async fn upload_image(
             multi_part_image.name,
             multi_part_image.image_data.len()
         );
-        let ipfs_resolver = IPFSResolver::new(
-            Client::new(),
-            state.ipfs_gateway_url.clone(),
-            RETRY_ATTEMPTS,
-            state.pinata_api_jwt.clone(),
-        );
+        let ipfs_resolver = IPFSResolver::builder()
+            .http_client(Client::new())
+            .ipfs_url(state.ipfs_upload_url.clone())
+            .pinata_jwt(state.pinata_api_jwt.clone())
+            .build();
+
         ipfs_response = ipfs_resolver.upload_to_ipfs(multi_part_image).await?;
         println!("IPFS response: {:?}", ipfs_response);
     }
