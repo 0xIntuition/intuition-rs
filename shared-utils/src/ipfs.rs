@@ -1,11 +1,15 @@
 use crate::{error::LibError, types::MultiPartImage};
-use bytes::Bytes;
 use log::warn;
-use reqwest::Client;
+use reqwest::{
+    multipart::{Form, Part},
+    Client, Response, StatusCode,
+};
 use serde::Deserialize;
 use std::time::Duration;
 use tokio::time::sleep;
 
+/// The base delay for the retry mechanism
+pub const BASE_DELAY: Duration = Duration::from_secs(1);
 #[derive(Deserialize, Default, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct IpfsResponse {
@@ -28,23 +32,10 @@ pub struct IPFSResolver {
 }
 
 impl IPFSResolver {
-    pub fn new(client: Client, ipfs_gateway_url: String, retry_attempts: i32) -> Self {
-        Self {
-            http_client: client,
-            ipfs_gateway_url,
-            retry_attempts,
-        }
-    }
-
-    /// Formats the URL to fetch IPFS data
-    pub fn format_url(&self, cid: &str) -> String {
-        format!("{}/ipfs/{}", self.ipfs_gateway_url, cid)
-    }
-
     /// Fetches a file and returns its content as a string from IPFS
     /// using the configured gateway.
     pub async fn fetch_from_ipfs(&self, cid: &str) -> Result<String, LibError> {
-        let url = self.format_url(cid);
+        let url = self.format_ipfs_fetch_url(cid);
 
         let mut attempts = 0;
         let base_delay = Duration::from_secs(1);
@@ -59,23 +50,10 @@ impl IPFSResolver {
                 .await
             {
                 Ok(resp) => break Ok(resp),
-                Err(e) if attempts < self.retry_attempts => {
-                    if e.is_timeout() {
-                        warn!("IPFS request timed out, retrying... (attempt {})", attempts);
-                    } else {
-                        warn!("Network error: {}, retrying... (attempt {})", e, attempts);
-                    }
-
-                    // Exponential backoff: 1s, 2s, 4s, 8s, etc.
-                    let backoff = base_delay.mul_f64(2_f64.powi(attempts - 1));
-                    sleep(backoff).await;
-                }
-                Err(e) => {
-                    break Err(match e.is_timeout() {
-                        true => LibError::TimeoutError("IPFS request timed out".into()),
-                        false => LibError::NetworkError(e.to_string()),
-                    })
-                }
+                Err(e) => match self.handle_fetch_error(e, attempts, base_delay).await {
+                    Ok(()) => continue,
+                    Err(e) => break Err(e),
+                },
             }
         }?;
 
@@ -85,46 +63,152 @@ impl IPFSResolver {
             .map_err(|e| LibError::NetworkError(e.to_string()))
     }
 
+    /// Formats the URL to fetch IPFS data
+    fn format_ipfs_fetch_url(&self, cid: &str) -> String {
+        format!("{}/ipfs/{}", self.ipfs_gateway_url, cid)
+    }
+
+    /// Formats the URL to upload a file to IPFS
+    fn format_ipfs_upload_url(&self) -> String {
+        format!("{}/api/v0/add", self.ipfs_gateway_url)
+    }
+
+    /// Handles the error response for IPFS fetches
+    async fn handle_fetch_error(
+        &self,
+        e: reqwest::Error,
+        attempts: i32,
+        base_delay: Duration,
+    ) -> Result<(), LibError> {
+        if attempts < self.retry_attempts {
+            if e.is_timeout() {
+                warn!("IPFS request timed out, retrying... (attempt {})", attempts);
+            } else {
+                warn!("Network error: {}, retrying... (attempt {})", e, attempts);
+            }
+            let backoff = base_delay.mul_f64(2_f64.powi(attempts - 1));
+            sleep(backoff).await;
+            Ok(())
+        } else {
+            Err(match e.is_timeout() {
+                true => LibError::TimeoutError("IPFS request timed out".into()),
+                false => LibError::NetworkError(e.to_string()),
+            })
+        }
+    }
+
+    /// Handles the error response for IPFS uploads
+    async fn handle_upload_error_response(
+        &self,
+        status: StatusCode,
+        attempts: i32,
+    ) -> Result<bool, LibError> {
+        if !status.is_success() {
+            warn!("IPFS upload failed with status {}", status);
+
+            if attempts < self.retry_attempts {
+                let backoff = BASE_DELAY.mul_f64(2_f64.powi(attempts - 1));
+                sleep(backoff).await;
+                return Ok(true); // true means "should continue"
+            }
+            return Err(LibError::NetworkError(format!(
+                "Upload failed with status {}",
+                status
+            )));
+        }
+        Ok(false) // false means "don't continue"
+    }
+
+    /// Handles the retry error for IPFS uploads
+    async fn handle_upload_retry_error(
+        &self,
+        e: reqwest::Error,
+        attempts: i32,
+    ) -> Result<(), LibError> {
+        if attempts < self.retry_attempts {
+            warn!("Upload error: {}, retrying... (attempt {})", e, attempts);
+            let backoff = BASE_DELAY.mul_f64(2_f64.powi(attempts - 1));
+            sleep(backoff).await;
+            Ok(())
+        } else {
+            Err(match e.is_timeout() {
+                true => LibError::TimeoutError("IPFS upload timed out".into()),
+                false => LibError::NetworkError(e.to_string()),
+            })
+        }
+    }
+
+    /// Formats the multipart form to upload a file to IPFS
+    fn multipart_form(&self, multi_part_image: MultiPartImage) -> Form {
+        Form::new().part(
+            multi_part_image.name.clone(),
+            Part::bytes(multi_part_image.image_data.clone().to_vec())
+                .file_name(multi_part_image.name.clone()),
+        )
+    }
+
+    /// Creates a new IPFS resolver
+    pub fn new(client: Client, ipfs_gateway_url: String, retry_attempts: i32) -> Self {
+        Self {
+            http_client: client,
+            ipfs_gateway_url,
+            retry_attempts,
+        }
+    }
+
+    /// Pins a hash to keep it persistent in IPFS
+    async fn pin_hash(&self, hash: &str) -> Result<(), LibError> {
+        let mut attempts = 0;
+        loop {
+            attempts += 1;
+            match self.pin_to_ipfs_request(hash).await {
+                Ok(_) => break Ok(()),
+                Err(e) if attempts < self.retry_attempts => {
+                    warn!("Pin error: {}, retrying... (attempt {})", e, attempts);
+                    let backoff = BASE_DELAY.mul_f64(2_f64.powi(attempts - 1));
+                    sleep(backoff).await;
+                }
+                Err(e) => {
+                    break Err(match e.is_timeout() {
+                        true => LibError::TimeoutError("IPFS pin request timed out".into()),
+                        false => LibError::NetworkError(e.to_string()),
+                    })
+                }
+            }
+        }
+    }
+
+    /// Pins a hash to keep it persistent in IPFS
+    async fn pin_to_ipfs_request(&self, hash: &str) -> Result<Response, reqwest::Error> {
+        self.http_client
+            .post(format!(
+                "{}/api/v0/pin/add?arg={}",
+                self.ipfs_gateway_url, hash
+            ))
+            .timeout(Duration::from_secs(10))
+            .send()
+            .await
+    }
+
     /// Uploads and pins a file to IPFS using the configured gateway
-    /// Returns the CID of the uploaded file
+    /// Returns an [`IpfsResponse`] with the `name`, `hash` and `size` of
+    /// the uploaded file.
     pub async fn upload_to_ipfs(
         &self,
         multi_part_image: MultiPartImage,
     ) -> Result<IpfsResponse, LibError> {
         let mut attempts = 0;
-        let base_delay = Duration::from_secs(1);
 
         loop {
             attempts += 1;
-            let form = reqwest::multipart::Form::new().part(
-                multi_part_image.name.clone(),
-                reqwest::multipart::Part::bytes(multi_part_image.image_data.clone().to_vec())
-                    .file_name(multi_part_image.name.clone()),
-            );
 
-            match self
-                .http_client
-                .post(format!("{}/api/v0/add", self.ipfs_gateway_url))
-                .multipart(form)
-                .send()
-                .await
-            {
+            match self.upload_to_ipfs_request(multi_part_image.clone()).await {
                 Ok(resp) => {
                     let status = resp.status();
                     let body = resp.text().await.unwrap_or_default();
 
-                    if !status.is_success() {
-                        warn!("IPFS upload failed with status {}: {}", status, body);
-
-                        if attempts < self.retry_attempts {
-                            let backoff = base_delay.mul_f64(2_f64.powi(attempts - 1));
-                            sleep(backoff).await;
-                            continue;
-                        }
-                        return Err(LibError::NetworkError(format!(
-                            "Upload failed with status {}",
-                            status
-                        )));
+                    if self.handle_upload_error_response(status, attempts).await? {
+                        continue;
                     }
 
                     // Attempt to parse JSON from the body
@@ -136,51 +220,23 @@ impl IPFSResolver {
                     self.pin_hash(&result.hash).await?;
                     return Ok(result);
                 }
-                Err(e) if attempts < self.retry_attempts => {
-                    warn!("Upload error: {}, retrying... (attempt {})", e, attempts);
-                    let backoff = base_delay.mul_f64(2_f64.powi(attempts - 1));
-                    sleep(backoff).await;
-                }
-                Err(e) => {
-                    break Err(match e.is_timeout() {
-                        true => LibError::TimeoutError("IPFS upload timed out".into()),
-                        false => LibError::NetworkError(e.to_string()),
-                    })
-                }
+                Err(e) => match self.handle_upload_retry_error(e, attempts).await {
+                    Ok(()) => continue,
+                    Err(e) => break Err(e),
+                },
             }
         }?
     }
 
-    /// Pins a hash to keep it persistent in IPFS
-    async fn pin_hash(&self, hash: &str) -> Result<(), LibError> {
-        let mut attempts = 0;
-        let base_delay = Duration::from_secs(1);
-
-        loop {
-            attempts += 1;
-            match self
-                .http_client
-                .post(format!(
-                    "{}/api/v0/pin/add?arg={}",
-                    self.ipfs_gateway_url, hash
-                ))
-                .timeout(Duration::from_secs(10))
-                .send()
-                .await
-            {
-                Ok(_) => break Ok(()),
-                Err(e) if attempts < self.retry_attempts => {
-                    warn!("Pin error: {}, retrying... (attempt {})", e, attempts);
-                    let backoff = base_delay.mul_f64(2_f64.powi(attempts - 1));
-                    sleep(backoff).await;
-                }
-                Err(e) => {
-                    break Err(match e.is_timeout() {
-                        true => LibError::TimeoutError("IPFS pin request timed out".into()),
-                        false => LibError::NetworkError(e.to_string()),
-                    })
-                }
-            }
-        }
+    /// Sends a request to upload a file to IPFS
+    async fn upload_to_ipfs_request(
+        &self,
+        multi_part_image: MultiPartImage,
+    ) -> Result<Response, reqwest::Error> {
+        self.http_client
+            .post(self.format_ipfs_upload_url())
+            .multipart(self.multipart_form(multi_part_image.clone()))
+            .send()
+            .await
     }
 }

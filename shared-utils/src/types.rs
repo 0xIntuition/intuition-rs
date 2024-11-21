@@ -24,6 +24,8 @@ pub struct ImageClassificationResponse {
     pub url: String,
 }
 
+/// Represents a multi-part image to be uploaded to IPFS
+#[derive(Clone)]
 pub struct MultiPartImage {
     pub name: String,
     pub image_data: Bytes,
