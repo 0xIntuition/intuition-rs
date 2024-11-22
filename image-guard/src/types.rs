@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use shared_utils::postgres::PostgresEnv;
 use utoipa::ToSchema;
 
 use crate::error::ApiError;
@@ -7,12 +6,11 @@ use crate::error::ApiError;
 #[derive(Deserialize)]
 pub struct Env {
     pub api_port: u16,
+    pub database_url: String,
     pub ipfs_gateway_url: String,
     pub ipfs_upload_url: String,
     pub pinata_api_jwt: String,
     pub hf_token: String,
-    #[serde(flatten)]
-    pub postgres: PostgresEnv,
 }
 
 /// A multipart request with an image

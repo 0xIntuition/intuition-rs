@@ -34,11 +34,11 @@ aws_secret_access_key = YOUR_SECRET_ACCESS_KEY
 
 ## Running the local pipeline
 
-You need to copy the `.env.sample.docker` file to `.env.docker` and set the correct values. Note that some of the values need to be set manually, such as the `PINATA_GATEWAY_TOKEN`, `PINATA_API_JWT`, the `RPC_URL` and the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`. If values are not set, the pipeline will not work.
+You need to copy the `.env.sample.docker` file to `.env` and set the correct values. Note that some of the values need to be set manually, such as the `PINATA_GATEWAY_TOKEN`, `PINATA_API_JWT`, the `RPC_URL` and the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`. If values are not set, the pipeline will not work.
 
 ```
-cp .env.sample.docker .env.docker
-source .env.docker
+cp .env.sample.docker .env
+source .env
 cargo make start-docker-and-migrate
 
 ```

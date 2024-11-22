@@ -2,11 +2,11 @@ use std::str::FromStr;
 
 use crate::error::ConsumerError;
 use serde::Deserialize;
-use shared_utils::postgres::PostgresEnv;
 
 #[derive(Clone, Deserialize, Debug)]
 pub struct Env {
     pub consumer_type: String,
+    pub database_url: String,
     pub decoded_logs_queue_url: Option<String>,
     pub ens_contract_address: Option<String>,
     pub indexing_source: Option<String>,
@@ -14,8 +14,6 @@ pub struct Env {
     pub ipfs_gateway_url: Option<String>,
     pub ipfs_upload_url: Option<String>,
     pub localstack_url: String,
-    #[serde(flatten)]
-    pub postgres: PostgresEnv,
     pub pinata_api_jwt: Option<String>,
     pub raw_consumer_queue_url: Option<String>,
     pub resolver_queue_url: Option<String>,

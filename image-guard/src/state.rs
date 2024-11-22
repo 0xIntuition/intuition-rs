@@ -15,7 +15,7 @@ pub struct AppState {
 impl AppState {
     pub async fn new(env: &Env) -> Self {
         Self {
-            pg_pool: connect_to_db(&env.postgres).await.unwrap(),
+            pg_pool: connect_to_db(&env.database_url).await.unwrap(),
             pinata_api_jwt: env.pinata_api_jwt.clone(),
             ipfs_fetch_url: env.ipfs_gateway_url.clone(),
             ipfs_upload_url: env.ipfs_upload_url.clone(),
