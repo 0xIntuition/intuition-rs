@@ -1,31 +1,37 @@
 services:
-  - type: web
-    name: graphql-engine
-    runtime: docker
-    repo: https://github.com/0xIntuition/intuition-rs
-    dockerfilePath: ./consumer/Dockerfile
-    envVars:
-      - key: HASURA_GRAPHQL_METADATA_DATABASE_URL
-        fromDatabase:
-          name: database
-          property: connectionString
-      - key: HASURA_GRAPHQL_ENABLE_CONSOLE
-        value: true
-      - key: HASURA_GRAPHQL_UNAUTHORIZED_ROLE
-        value: anonymous
-      - key: HASURA_GRAPHQL_DEV_MODE
-        value: true
-      - key: HASURA_GRAPHQL_ENABLED_LOG_TYPES
-        value: startup, http-log, webhook-log, websocket-log, query-log
-      - key: HASURA_GRAPHQL_STRINGIFY_NUMERIC_TYPES
-        value: true
-      - fromGroup: hasura-secrets
 
+  - type: web
+    name: hasura
+    runtime: image
+    image:
+      url: docker.io/hasura/graphql-engine:v2.44.0
+    dockerCommand: graphql-engine serve --server-port $PORT
+    plan: starter
+    envVars:
+    - key: HASURA_GRAPHQL_STRINGIFY_NUMERIC_TYPES
+      value: true
+    - key: HASURA_GRAPHQL_UNAUTHORIZED_ROLE
+      value: anonymous
+    - key: HASURA_GRAPHQL_ADMIN_SECRET
+      sync: false
+    - key: HASURA_GRAPHQL_ENABLE_CONSOLE
+      value: true
+    - key: PINATA_AUTH
+      sync: false
+    - key: HASURA_GRAPHQL_METADATA_DATABASE_URL
+      fromDatabase:
+        name: database
+        property: connectionString
+    region: oregon
+    healthCheckPath: /healthz
+    autoDeploy: false
+  
   - type: worker
+    plan: starter
     name: resolver-consumer
-    runtime: docker
-    repo: https://github.com/0xIntuition/intuition-rs
-    dockerfilePath: ./consumer/Dockerfile
+    runtime: image
+    image:
+      url: docker.io/leboiko/intuition-be
     dockerCommand: ./consumer --mode resolver
     envVars:
       - key: DATABASE_URL
@@ -45,9 +51,9 @@ services:
 
   - type: worker
     name: decoded-consumer
-    runtime: docker
-    repo: https://github.com/0xIntuition/intuition-rs
-    dockerfilePath: ./consumer/Dockerfile
+    runtime: image
+    image:
+      url: docker.io/leboiko/intuition-be
     dockerCommand: ./consumer --mode decoded
     envVars:
       - key: DATABASE_URL
@@ -67,9 +73,9 @@ services:
 
   - type: worker
     name: raw-consumer
-    runtime: docker
-    repo: https://github.com/0xIntuition/intuition-rs
-    dockerfilePath: ./consumer/Dockerfile
+    runtime: image
+    image:
+      url: docker.io/leboiko/intuition-be
     dockerCommand: ./consumer --mode raw
     envVars:
       - key: DATABASE_URL
@@ -101,11 +107,12 @@ envVarGroups:
       - key: AWS_SECRET_ACCESS_KEY
         sync: false
       - key: AWS_REGION
-        value: us-east-1
+        value: us-west-2
 
   - name: hasura-secrets
     envVars:
       - key: HASURA_GRAPHQL_ADMIN_SECRET
+        generateValue: true
         sync: false
       - key: PINATA_AUTH
         sync: false
