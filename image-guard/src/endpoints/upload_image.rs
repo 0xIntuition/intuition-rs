@@ -23,10 +23,10 @@ use shared_utils::{
         (status = 200, description = "Image successfully uploaded and classified", body = ImageClassificationResponse,
             example = json!({
                 "status": "Safe",
-                "score": "",
-                "model": "GPT4o",
+                "score": "{\"normal\":0.82167643,\"nsfw\":0.1601617}",
+                "model": "Falconsai",
                 "date_classified": "2024-03-21T12:00:00Z",
-                "url": "QmHash..."
+                "url": "QmcqqAoEQLAP84ptTY1VjL7UoXMbGQ8sjyAPHXog8Ynbrt"
             })
         ),
         (status = 400, description = "Invalid input - not an image or wrong format", body = String),

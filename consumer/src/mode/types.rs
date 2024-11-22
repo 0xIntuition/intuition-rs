@@ -110,13 +110,27 @@ impl ConsumerMode {
         pg_pool: PgPool,
     ) -> Result<ConsumerMode, ConsumerError> {
         let base_client = Arc::new(Self::build_intuition_client(
-            &data.env.rpc_url_base_mainnet,
-            &data.env.intuition_contract_address,
+            &data
+                .clone()
+                .env
+                .rpc_url_base_mainnet
+                .unwrap_or_else(|| panic!("RPC URL base mainnet is not set")),
+            &data
+                .clone()
+                .env
+                .intuition_contract_address
+                .unwrap_or_else(|| panic!("Intuition contract address is not set")),
         )?);
         let client = Self::build_client(
             data.clone(),
-            data.env.decoded_logs_queue_url.clone(),
-            data.env.resolver_queue_url.clone(),
+            data.env
+                .decoded_logs_queue_url
+                .clone()
+                .unwrap_or_else(|| panic!("Decoded logs queue URL is not set")),
+            data.env
+                .resolver_queue_url
+                .clone()
+                .unwrap_or_else(|| panic!("Resolver queue URL is not set")),
         )
         .await?;
 
@@ -132,15 +146,27 @@ impl ConsumerMode {
         data: ServerInitialize,
         pg_pool: PgPool,
     ) -> Result<ConsumerMode, ConsumerError> {
-        let indexing_source = match IndexerSource::from_str(&data.env.indexing_source)? {
+        let indexing_source = match IndexerSource::from_str(
+            &data
+                .env
+                .indexing_source
+                .clone()
+                .unwrap_or_else(|| panic!("Indexing source is not set")),
+        )? {
             IndexerSource::GoldSky => Arc::new(IndexerSource::GoldSky),
             IndexerSource::Substreams => Arc::new(IndexerSource::Substreams),
         };
 
         let client = Self::build_client(
             data.clone(),
-            data.env.raw_consumer_queue_url.clone(),
-            data.env.decoded_logs_queue_url.clone(),
+            data.env
+                .raw_consumer_queue_url
+                .clone()
+                .unwrap_or_else(|| panic!("Raw consumer queue URL is not set")),
+            data.env
+                .decoded_logs_queue_url
+                .clone()
+                .unwrap_or_else(|| panic!("Decoded logs queue URL is not set")),
         )
         .await?;
 
@@ -157,22 +183,51 @@ impl ConsumerMode {
         pg_pool: PgPool,
     ) -> Result<ConsumerMode, ConsumerError> {
         let mainnet_client = Arc::new(Self::build_ens_client(
-            &data.env.rpc_url_mainnet,
-            &data.env.ens_contract_address,
+            &data
+                .clone()
+                .env
+                .rpc_url_mainnet
+                .unwrap_or_else(|| panic!("RPC URL mainnet is not set")),
+            &data
+                .clone()
+                .env
+                .ens_contract_address
+                .unwrap_or_else(|| panic!("ENS contract address is not set")),
         )?);
 
         let client = Self::build_client(
             data.clone(),
-            data.env.resolver_queue_url.clone(),
-            data.env.resolver_queue_url.clone(),
+            data.env
+                .resolver_queue_url
+                .clone()
+                .unwrap_or_else(|| panic!("Resolver queue URL is not set")),
+            data.env
+                .resolver_queue_url
+                .clone()
+                .unwrap_or_else(|| panic!("Resolver queue URL is not set")),
         )
         .await?;
 
         let ipfs_resolver = IPFSResolver::builder()
             .http_client(Client::new())
-            .ipfs_upload_url(data.env.ipfs_upload_url.clone())
-            .ipfs_fetch_url(data.env.ipfs_gateway_url.clone())
-            .pinata_jwt(data.env.pinata_api_jwt.clone())
+            .ipfs_upload_url(
+                data.env
+                    .ipfs_upload_url
+                    .clone()
+                    .unwrap_or_else(|| panic!("IPFS upload URL is not set")),
+            )
+            .ipfs_fetch_url(
+                data.env
+                    .ipfs_gateway_url
+                    .clone()
+                    .unwrap_or_else(|| panic!("IPFS gateway URL is not set")),
+            )
+            .pinata_jwt(
+                data.env
+                    .pinata_api_jwt
+                    .clone()
+                    .unwrap_or_else(|| panic!("Pinata API JWT is not set")),
+            )
             .build();
 
         Ok(ConsumerMode::Resolver(ResolverConsumerContext {

@@ -7,20 +7,20 @@ use shared_utils::postgres::PostgresEnv;
 #[derive(Clone, Deserialize, Debug)]
 pub struct Env {
     pub consumer_type: String,
-    pub decoded_logs_queue_url: String,
-    pub ens_contract_address: String,
-    pub indexing_source: String,
-    pub intuition_contract_address: String,
-    pub ipfs_gateway_url: String,
-    pub ipfs_upload_url: String,
+    pub decoded_logs_queue_url: Option<String>,
+    pub ens_contract_address: Option<String>,
+    pub indexing_source: Option<String>,
+    pub intuition_contract_address: Option<String>,
+    pub ipfs_gateway_url: Option<String>,
+    pub ipfs_upload_url: Option<String>,
     pub localstack_url: String,
     #[serde(flatten)]
     pub postgres: PostgresEnv,
-    pub pinata_api_jwt: String,
-    pub raw_consumer_queue_url: String,
-    pub resolver_queue_url: String,
-    pub rpc_url_base_mainnet: String,
-    pub rpc_url_mainnet: String,
+    pub pinata_api_jwt: Option<String>,
+    pub raw_consumer_queue_url: Option<String>,
+    pub resolver_queue_url: Option<String>,
+    pub rpc_url_base_mainnet: Option<String>,
+    pub rpc_url_mainnet: Option<String>,
 }
 
 #[derive(Deserialize, Debug)]

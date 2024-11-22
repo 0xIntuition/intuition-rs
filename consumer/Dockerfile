@@ -17,6 +17,7 @@ RUN apt-get update && \
     libclang-dev \
     libssl-dev \
     pkg-config \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 RUN cargo chef cook --release --recipe-path recipe.json

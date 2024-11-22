@@ -30,8 +30,27 @@ services:
   resolver_consumer:
     image: consumer:latest
     command: ./consumer --mode resolver
-    env_file:
-      - .env.docker
+    environment:
+      AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
+      AWS_REGION: $AWS_REGION
+      AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
+      CONSUMER_TYPE: $CONSUMER_TYPE
+      ENS_CONTRACT_ADDRESS: $ENS_CONTRACT_ADDRESS
+      IPFS_GATEWAY_URL: $IPFS_GATEWAY_URL
+      IPFS_UPLOAD_URL: $IPFS_UPLOAD_URL
+      LOCALSTACK_URL: $LOCALSTACK_URL
+      PINATA_API_JWT: $PINATA_API_JWT
+      PINATA_GATEWAY_TOKEN: $PINATA_GATEWAY_TOKEN
+      PG_MIN_CONNECTIONS: $PG_MIN_CONNECTIONS
+      PG_PORT: $PG_PORT
+      PG_USER: $PG_USER
+      PG_DB: $PG_DB
+      PG_HOST: $PG_HOST
+      PG_PASSWORD: $PG_PASSWORD
+      RESOLVER_QUEUE_URL: $RESOLVER_QUEUE_URL
+      RPC_URL_BASE_MAINNET: $RPC_URL_BASE_MAINNET
+      RPC_URL_MAINNET: $RPC_URL_MAINNET
+      RUST_LOG: $RUST_LOG
     restart: always
     depends_on:
       sqs:
@@ -45,8 +64,24 @@ services:
     container_name: decoded_consumer
     image: consumer:latest
     command: ./consumer --mode decoded
-    env_file:
-      - .env.docker
+    environment:
+      AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
+      AWS_REGION: $AWS_REGION
+      AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
+      CONSUMER_TYPE: $CONSUMER_TYPE
+      DECODED_LOGS_QUEUE_URL: $DECODED_LOGS_QUEUE_URL
+      INTUITION_CONTRACT_ADDRESS: $INTUITION_CONTRACT_ADDRESS
+      LOCALSTACK_URL: $LOCALSTACK_URL
+      PG_MIN_CONNECTIONS: $PG_MIN_CONNECTIONS
+      PG_PORT: $PG_PORT
+      PG_USER: $PG_USER
+      PG_DB: $PG_DB
+      PG_HOST: $PG_HOST
+      PG_PASSWORD: $PG_PASSWORD
+      RESOLVER_QUEUE_URL: $RESOLVER_QUEUE_URL
+      RPC_URL_BASE_MAINNET: $RPC_URL_BASE_MAINNET
+      RPC_URL_MAINNET: $RPC_URL_MAINNET
+      RUST_LOG: $RUST_LOG
     restart: always
     depends_on:
       sqs:
@@ -58,8 +93,24 @@ services:
     container_name: raw_consumer
     image: consumer:latest
     command: ./consumer --mode raw
-    env_file:
-      - .env.docker
+    environment:
+      AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
+      AWS_REGION: $AWS_REGION
+      AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
+      CONSUMER_TYPE: $CONSUMER_TYPE
+      DECODED_LOGS_QUEUE_URL: $DECODED_LOGS_QUEUE_URL
+      INDEXING_SOURCE: $INDEXING_SOURCE
+      LOCALSTACK_URL: $LOCALSTACK_URL
+      PG_MIN_CONNECTIONS: $PG_MIN_CONNECTIONS
+      PG_PORT: $PG_PORT
+      PG_USER: $PG_USER
+      PG_DB: $PG_DB
+      PG_HOST: $PG_HOST
+      PG_PASSWORD: $PG_PASSWORD
+      RAW_CONSUMER_QUEUE_URL: $RAW_CONSUMER_QUEUE_URL
+      RPC_URL_BASE_MAINNET: $RPC_URL_BASE_MAINNET
+      RPC_URL_MAINNET: $RPC_URL_MAINNET
+      RUST_LOG: $RUST_LOG
     restart: always
     depends_on:
       sqs:
