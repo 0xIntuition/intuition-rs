@@ -3,8 +3,8 @@ use http::{
     header::{AUTHORIZATION, CONTENT_TYPE},
     Method,
 };
+use openapi::ApiDoc;
 use routes::router;
-use shared_utils::types::{ClassificationModel, ClassificationStatus, ImageClassificationResponse};
 use state::AppState;
 use std::time::Duration;
 use tokio::net::TcpListener;
@@ -15,27 +15,10 @@ use utoipa_swagger_ui::SwaggerUi;
 
 mod endpoints;
 mod error;
+mod openapi;
 mod routes;
 mod state;
 mod types;
-
-#[derive(OpenApi)]
-#[openapi(
-    paths(
-        endpoints::upload_image::upload_image
-    ),
-    components(
-        schemas(
-            ImageClassificationResponse,
-            ClassificationStatus,
-            ClassificationModel
-        )
-    ),
-    tags(
-        (name = "images", description = "Image upload and classification endpoints")
-    )
-)]
-pub struct ApiDoc;
 
 #[tokio::main]
 async fn main() -> Result<(), ApiError> {
@@ -52,11 +35,6 @@ async fn main() -> Result<(), ApiError> {
     // Configure CORS
     let cors = CorsLayer::new()
         .allow_methods([Method::GET, Method::POST])
-        .allow_origin([
-            // TODO: replace with the actual domain when we have it
-            "https://placeholder-to-the-domain.com".parse().unwrap(),
-            "http://localhost:3000".parse().unwrap(),
-        ])
         .allow_headers([CONTENT_TYPE, AUTHORIZATION])
         .max_age(Duration::from_secs(3600));
 

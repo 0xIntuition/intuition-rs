@@ -6,6 +6,7 @@ use utoipa::ToSchema;
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub enum ClassificationModel {
+    Falconsai,
     GPT4o,
 }
 
@@ -26,7 +27,7 @@ pub struct ImageClassificationResponse {
 }
 
 /// Represents a multi-part handler
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct MultiPartHandler {
     pub name: String,
     pub data: Bytes,

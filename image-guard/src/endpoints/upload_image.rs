@@ -1,3 +1,4 @@
+use crate::types::{ClassificationScore, ClassificationScoreParsed, MultipartRequest};
 use crate::{error::ApiError, state::AppState};
 use axum::extract::multipart::Field;
 use axum::extract::{Multipart, State};
@@ -12,19 +13,11 @@ use shared_utils::{
         ClassificationModel, ClassificationStatus, ImageClassificationResponse, MultiPartHandler,
     },
 };
-use utoipa::ToSchema;
-
-/// A multipart request with an image
-#[derive(ToSchema)]
-struct MultipartRequest {
-    #[schema(format = Binary)]
-    image: String,
-}
 
 /// Upload and classify an image
 #[utoipa::path(
     post,
-    path = "/",
+    path = "/upload",
     request_body = inline(MultipartRequest),
     responses(
         (status = 200, description = "Image successfully uploaded and classified", body = ImageClassificationResponse,
@@ -47,9 +40,19 @@ pub async fn upload_image(
     mut multipart: Multipart,
 ) -> Result<Json<ImageClassificationResponse>, ApiError> {
     let mut ipfs_response: IpfsResponse = IpfsResponse::default();
+    let mut status: ClassificationStatus = ClassificationStatus::Safe;
+    let mut scores: ClassificationScoreParsed = ClassificationScoreParsed::default();
     while let Some(field) = multipart.next_field().await.unwrap() {
         // verify image format
         let multi_part_handler = check_image_format_and_get_handler(field).await?;
+        // classify the image
+        let classify_images =
+            classify_image(&Client::new(), &multi_part_handler.data, &state.hf_token).await?;
+        // parse the scores
+        scores = ClassificationScoreParsed::from(classify_images)?;
+        debug!("Scores: {:?}", scores);
+        // determine the classification status
+        status = determine_classification_status(&scores);
 
         debug!(
             "Length of `{}` type `{}` is {} bytes",
@@ -58,26 +61,45 @@ pub async fn upload_image(
             multi_part_handler.data.len()
         );
 
-        let ipfs_resolver = IPFSResolver::builder()
-            .http_client(Client::new())
-            .ipfs_upload_url(state.ipfs_upload_url.clone())
-            .ipfs_fetch_url(state.ipfs_fetch_url.clone())
-            .pinata_jwt(state.pinata_api_jwt.clone())
-            .build();
-
-        ipfs_response = ipfs_resolver.upload_to_ipfs(multi_part_handler).await?;
-        debug!("IPFS response: {:?}", ipfs_response);
+        // upload the image to IPFS
+        ipfs_response = upload_image_to_ipfs(&state, multi_part_handler).await?;
     }
+    debug!("IPFS response: {:?}", ipfs_response);
 
     Ok(Json(
         ImageClassificationResponse::builder()
-            .status(ClassificationStatus::Safe)
-            .score("".to_string())
-            .model(ClassificationModel::GPT4o)
+            .status(status)
+            .score(serde_json::to_string(&scores)?)
+            .model(ClassificationModel::Falconsai)
             .date_classified(Utc::now())
             .url(ipfs_response.hash)
             .build(),
     ))
+}
+
+/// Uploads an image to IPFS and pins it
+async fn upload_image_to_ipfs(
+    state: &AppState,
+    multi_part_handler: MultiPartHandler,
+) -> Result<IpfsResponse, ApiError> {
+    IPFSResolver::builder()
+        .http_client(Client::new())
+        .ipfs_upload_url(state.ipfs_upload_url.clone())
+        .ipfs_fetch_url(state.ipfs_fetch_url.clone())
+        .pinata_jwt(state.pinata_api_jwt.clone())
+        .build()
+        .upload_to_ipfs_and_pin(multi_part_handler)
+        .await
+        .map_err(|e| ApiError::ExternalService(format!("IPFS error: {}", e)))
+}
+
+/// Determines the classification status based on the scores
+fn determine_classification_status(scores: &ClassificationScoreParsed) -> ClassificationStatus {
+    if scores.nsfw > 0.6 {
+        ClassificationStatus::Unsafe
+    } else {
+        ClassificationStatus::Safe
+    }
 }
 
 /// Checks the image format and returns a [`MultiPartHandler`]
@@ -132,4 +154,30 @@ fn validate_image_bytes(data: &[u8]) -> Result<(), ApiError> {
         return Err(ApiError::InvalidInput("Invalid image format".into()));
     }
     Ok(())
+}
+
+/// Classifies an image using the Falconsai model hosted on Hugging Face.
+/// Returns a vector of [`ClassificationScore`], which contains the scores for each category.
+/// The scores are represented in a json format like `[{"label":"nsfw","score":0.9508878588676453},
+/// {"label":"normal","score":0.04826589673757553}]`
+async fn classify_image(
+    client: &Client,
+    image_data: &[u8],
+    hf_token: &str,
+) -> Result<Vec<ClassificationScore>, ApiError> {
+    let response = client
+        .post("https://api-inference.huggingface.co/models/Falconsai/nsfw_image_detection")
+        .header("Content-Type", "image/jpeg")
+        .header("Authorization", format!("Bearer {}", hf_token))
+        .body(image_data.to_vec())
+        .send()
+        .await
+        .map_err(|e| ApiError::ExternalService(format!("Hugging Face API error: {}", e)))?;
+
+    let scores: Vec<ClassificationScore> = response
+        .json()
+        .await
+        .map_err(|e| ApiError::ExternalService(format!("Failed to parse response: {}", e)))?;
+
+    Ok(scores)
 }

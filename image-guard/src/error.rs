@@ -13,6 +13,8 @@ use thiserror::Error;
 pub enum ApiError {
     #[error(transparent)]
     Env(#[from] envy::Error),
+    #[error("External service error: {0}")]
+    ExternalService(String),
     #[error(transparent)]
     Axum(#[from] axum::Error),
     #[error("Invalid input: {0}")]
@@ -21,6 +23,8 @@ pub enum ApiError {
     Lib(#[from] shared_utils::error::LibError),
     #[error(transparent)]
     IO(#[from] std::io::Error),
+    #[error(transparent)]
+    Serde(#[from] serde_json::Error),
 }
 
 impl IntoResponse for ApiError {

@@ -9,6 +9,7 @@ pub struct AppState {
     pub pinata_api_jwt: String,
     pub ipfs_upload_url: String,
     pub ipfs_fetch_url: String,
+    pub hf_token: String,
 }
 
 impl AppState {
@@ -18,6 +19,7 @@ impl AppState {
             pinata_api_jwt: env.pinata_api_jwt.clone(),
             ipfs_fetch_url: env.ipfs_gateway_url.clone(),
             ipfs_upload_url: env.ipfs_upload_url.clone(),
+            hf_token: env.hf_token.clone(),
         }
     }
 }

@@ -272,7 +272,7 @@ impl IPFSResolver {
     /// Uploads and pins a file to IPFS using the configured gateway
     /// Returns an [`IpfsResponse`] with the `name`, `hash` and `size` of
     /// the uploaded file.
-    pub async fn upload_to_ipfs(
+    pub async fn upload_to_ipfs_and_pin(
         &self,
         multi_part_handler: MultiPartHandler,
     ) -> Result<IpfsResponse, LibError> {

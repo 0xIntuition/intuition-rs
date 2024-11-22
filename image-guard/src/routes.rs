@@ -3,6 +3,6 @@ use axum::{routing::post, Router};
 
 pub async fn router(app_state: AppState) -> Router {
     Router::new()
-        .route("/", post(upload_image))
+        .route("/upload", post(upload_image))
         .with_state(app_state)
 }
