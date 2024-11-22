@@ -113,7 +113,6 @@ envVarGroups:
     envVars:
       - key: HASURA_GRAPHQL_ADMIN_SECRET
         generateValue: true
-        sync: false
       - key: PINATA_AUTH
         sync: false
 
