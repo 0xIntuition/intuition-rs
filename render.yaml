@@ -119,17 +119,6 @@ services:
     disk:
       name: ipfs-data
       mountPath: /data/ipfs
-    ports:
-      - port: 4001
-        protocol: TCP
-      - port: 4002
-        protocol: UDP  
-      - port: 4003
-        protocol: TCP
-      - port: 5001
-        protocol: TCP
-      - port: 8080
-        protocol: TCP
 
 databases:
   - name: database
