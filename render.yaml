@@ -93,6 +93,44 @@ services:
       - fromGroup: aws-credentials
       - fromGroup: pinata-secrets
 
+  - type: web
+    name: ipfs
+    runtime: image
+    image:
+      url: ipfs/kubo:latest
+    dockerCommand: |
+      sh -c "
+      if [ ! -f /data/ipfs/config ]; then
+        ipfs init;
+      fi;
+      ipfs config Addresses.API /ip4/0.0.0.0/tcp/5001;
+      ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/8080;
+      ipfs pin remote service add Pinata https://api.pinata.cloud/psa $PINATA_API_JWT;
+      ipfs config --json Gateway.PublicGateways '{\"localhost\": {\"UseSubdomains\": false,\"Paths\": [\"/ipfs\", \"/ipns\"]},\"ipfs\": {\"UseSubdomains\": false,\"Paths\": [\"/ipfs\", \"/ipns\"]}}';
+      ipfs config --json Pinning.RemoteServices '[\"Pinata\"]';
+      ipfs config --json Pinning.RemoteServices.Pinata.Policies '{\"MFS\":{\"Enable\": false,\"PinName\": \"\",\"RepinInterval\": \"1m\"}}';
+      ipfs config --json Peering.Peers '[{\"ID\": \"Qma8ddFEQWEU8ijWvdxXm3nxU7oHsRtCykAaVz8WUYhiKn\", \"Addrs\": [\"/dnsaddr/bitswap.pinata.cloud\"]}]';
+      exec ipfs daemon --migrate=true --agent-version-suffix=docker"
+    envVars:
+      - key: IPFS_PATH
+        value: /data/ipfs
+      - key: PINATA_API_JWT
+        sync: false
+    disk:
+      name: ipfs-data
+      mountPath: /data/ipfs
+    ports:
+      - port: 4001
+        protocol: TCP
+      - port: 4002
+        protocol: UDP  
+      - port: 4003
+        protocol: TCP
+      - port: 5001
+        protocol: TCP
+      - port: 8080
+        protocol: TCP
+
 databases:
   - name: database
     databaseName: storage
