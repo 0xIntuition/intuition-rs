@@ -31,7 +31,7 @@ services:
     name: resolver-consumer
     runtime: image
     image:
-      url: docker.io/leboiko/intuition-be
+      url: docker.io/leboiko/intuition-be:0.2.0 
     dockerCommand: ./consumer --mode resolver
     envVars:
       - key: DATABASE_URL
@@ -53,7 +53,7 @@ services:
     name: decoded-consumer
     runtime: image
     image:
-      url: docker.io/leboiko/intuition-be
+      url: docker.io/leboiko/intuition-be:0.2.0
     dockerCommand: ./consumer --mode decoded
     envVars:
       - key: DATABASE_URL
@@ -75,7 +75,7 @@ services:
     name: raw-consumer
     runtime: image
     image:
-      url: docker.io/leboiko/intuition-be
+      url: docker.io/leboiko/intuition-be:0.2.0
     dockerCommand: ./consumer --mode raw
     envVars:
       - key: DATABASE_URL
