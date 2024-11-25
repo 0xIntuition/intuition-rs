@@ -21,22 +21,38 @@ pub struct Ens {
 impl Ens {
     /// This function downloads an avatar, classifies it and stores it in the database
     pub async fn download_image_classify_and_store(
-        url: &str,
+        url: String,
         consumer_context: &ResolverConsumerContext,
     ) -> Result<(), ConsumerError> {
-        // We download the image and send its bytes to the image guard
-        let image_bytes = reqwest::get(&String::from(url)).await?.bytes().await?;
-        // And send a request to the `/upload` endpoint of the image guard
-        let image_guard_url = format!("{}/upload", consumer_context.image_guard_url);
+        // Clone the URL to avoid borrowing issues
+        let url_clone = url.clone();
+        let (name, extension) = Self::get_name_and_extension(&url_clone);
+        // Download image bytes
+        let image_bytes = reqwest::get(&url_clone.to_string())
+            .await?
+            .bytes()
+            .await?
+            .to_vec();
+
+        // Create multipart form with content type and filename
+        let part = reqwest::multipart::Part::bytes(image_bytes)
+            .mime_str(&format!("image/{}", extension))?
+            .file_name(name); // Add filename
+        let form = reqwest::multipart::Form::new().part("file", part);
+
+        // Send request with multipart form
+        let endpoint = format!("{}/upload", consumer_context.image_guard_url);
         let client = reqwest::Client::new();
-        let image_guard_url: Vec<ImageGuard> = client
-            .post(image_guard_url)
-            .body(image_bytes)
+
+        let response: Vec<ImageGuard> = client
+            .post(endpoint)
+            .multipart(form)
             .send()
             .await?
             .json()
             .await?;
-        info!("Image classification responde: {image_guard_url:?}");
+
+        info!("Image classification response: {response:?}");
         Ok(())
     }
 
@@ -74,9 +90,8 @@ impl Ens {
         let url = format!("https://metadata.ens.domains/mainnet/avatar/{}", name);
         match reqwest::get(&url).await {
             Ok(response) => {
-                // If the user has an avatar, we classify it and store it in the database
                 if response.status() == 200 {
-                    Self::download_image_classify_and_store(&url, consumer_context).await?;
+                    Self::download_image_classify_and_store(url.clone(), consumer_context).await?;
                     Ok(Some(url))
                 } else {
                     Ok(None)
@@ -108,6 +123,13 @@ impl Ens {
         } else {
             Ok(None)
         }
+    }
+
+    /// This function gets the name and extension from a URL.
+    fn get_name_and_extension(url: &str) -> (String, String) {
+        let filename = url.split('/').last().unwrap_or_default();
+        let (name, extension) = filename.split_once('.').unwrap_or_default();
+        (name.to_string(), extension.to_string())
     }
 
     /// This function gets the resolver address for an address hash.

@@ -110,9 +110,9 @@ services:
     container_name: sqs
     image: localstack/localstack:latest
     ports:
-      - "127.0.0.1:53:53"
+      # - "127.0.0.1:53:53"
       # - "127.0.0.1:53:53/udp"
-      - "127.0.0.1:443:443"
+      # - "127.0.0.1:443:443"
       - "127.0.0.1:4566:4566"
       - "127.0.0.1:4571:4571"
     volumes:
@@ -135,10 +135,11 @@ services:
     environment:
       API_PORT: 3000
       DATABASE_URL: $DATABASE_URL
+      HF_TOKEN: $HF_TOKEN
       IPFS_GATEWAY_URL: $IPFS_GATEWAY_URL
       IPFS_UPLOAD_URL: $IPFS_UPLOAD_URL
       PINATA_API_JWT: $PINATA_API_JWT
-      HF_TOKEN: $HF_TOKEN
+      RUST_LOG: $RUST_LOG
     ports:
       - 3000:3000
 

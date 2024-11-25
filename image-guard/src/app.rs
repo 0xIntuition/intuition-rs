@@ -4,6 +4,7 @@ use http::{
     header::{AUTHORIZATION, CONTENT_TYPE},
     Method,
 };
+use log::info;
 use std::time::Duration;
 use tokio::net::TcpListener;
 use tower_http::cors::CorsLayer;
@@ -71,7 +72,12 @@ impl App {
 
     /// Serve the application.
     pub async fn serve(&self) -> Result<(), ApiError> {
+        info!(
+            "Starting image-guard server on port {}...",
+            self.env.api_port
+        );
         let listener = self.build_listener().await?;
+        info!("Ready to receive requests");
         axum::serve(listener, self.merge_layers())
             .await
             .map_err(ApiError::from)

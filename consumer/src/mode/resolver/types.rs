@@ -134,7 +134,7 @@ impl ResolverMessageType {
 
                 // If the atom has an image, we need to download it and classify it
                 if let Some(image) = metadata.image {
-                    Ens::download_image_classify_and_store(&image, resolver_consumer_context)
+                    Ens::download_image_classify_and_store(image, resolver_consumer_context)
                         .await?;
                 }
 
