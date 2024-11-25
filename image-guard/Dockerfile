@@ -1,5 +1,5 @@
 # Builder stage
-FROM rust:1.76-slim as builder
+FROM rust:1.81-slim as builder
 
 WORKDIR /usr/src/app
 
@@ -7,22 +7,15 @@ WORKDIR /usr/src/app
 RUN apt-get update && apt-get install -y \
     pkg-config \
     libssl-dev \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy manifests first (better layer caching)
-COPY Cargo.toml Cargo.lock ./
+# Copy the entire workspace
+COPY . .
 
-# Create a dummy main.rs to build dependencies
-RUN mkdir src && \
-    echo "fn main() {}" > src/main.rs && \
-    cargo build --release && \
-    rm -rf src
-
-# Now copy the real source code
-COPY src ./src
-
-# Build the actual binary
-RUN touch src/main.rs && cargo build --release
+# Build the specific package
+ENV SQLX_OFFLINE=true
+RUN cargo build --release -p image-guard
 
 # Runtime stage
 FROM debian:bookworm-slim
@@ -35,12 +28,12 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy only the compiled binary
-COPY --from=builder /usr/src/app/target/release/your-binary-name ./api
+COPY --from=builder /usr/src/app/target/release/image-guard ./api
 
 # Create a non-root user
 RUN useradd -m appuser && \
     chown appuser:appuser /app
 USER appuser
 
-EXPOSE 3000
+ENV RUST_LOG=info
 CMD ["./api"]

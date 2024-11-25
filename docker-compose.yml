@@ -38,6 +38,7 @@ services:
       CONSUMER_TYPE: $CONSUMER_TYPE
       DATABASE_URL: $DATABASE_URL
       ENS_CONTRACT_ADDRESS: $ENS_CONTRACT_ADDRESS
+      IMAGE_GUARD_URL: $IMAGE_GUARD_URL
       IPFS_GATEWAY_URL: $IPFS_GATEWAY_URL
       IPFS_UPLOAD_URL: $IPFS_UPLOAD_URL
       LOCALSTACK_URL: $LOCALSTACK_URL
@@ -118,14 +119,28 @@ services:
       - ./consumer/devops/localstack-setup.sh:/etc/localstack/init/ready.d/script.sh
     environment:
     # Set an env var to use later in the code
-      - AWS_ENDPOINT=http://localstack:4566
-      - EXTRA_CORS_ALLOWED_ORIGINS=app://.
       - ALLOW_NONSTANDARD_REGIONS=1
-      - SERVICES=sqs
+      - AWS_DEFAULT_REGION=us-east-1
+      - AWS_ENDPOINT=http://localstack:4566
       - DEBUG=1
       - DOCKER_HOST=0.0.0.0
+      - EXTRA_CORS_ALLOWED_ORIGINS=app://.
       - HOSTNAME_EXTERNAL=localstack
-      - AWS_DEFAULT_REGION=us-east-1
+      - RUST_LOG=debug
+      - SERVICES=sqs
+
+  api:
+    container_name: api
+    image: image-guard:latest
+    environment:
+      API_PORT: 3000
+      DATABASE_URL: $DATABASE_URL
+      IPFS_GATEWAY_URL: $IPFS_GATEWAY_URL
+      IPFS_UPLOAD_URL: $IPFS_UPLOAD_URL
+      PINATA_API_JWT: $PINATA_API_JWT
+      HF_TOKEN: $HF_TOKEN
+    ports:
+      - 3000:3000
 
   graphql-engine:
     container_name: graphql-engine

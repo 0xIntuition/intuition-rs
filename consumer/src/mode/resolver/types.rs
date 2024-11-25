@@ -3,7 +3,7 @@ use crate::{
     mode::{
         resolver::{
             atom_resolver::{try_to_parse_json, try_to_resolve_ipfs_uri},
-            ens_resolver::get_ens,
+            ens_resolver::Ens,
         },
         types::ResolverConsumerContext,
     },
@@ -67,7 +67,7 @@ impl ResolverMessageType {
         resolver_consumer_context: &ResolverConsumerContext,
         account: &Account,
     ) -> Result<(), ConsumerError> {
-        let ens = get_ens(Address::from_str(&account.id)?, &resolver_consumer_context).await?;
+        let ens = Ens::get_ens(Address::from_str(&account.id)?, resolver_consumer_context).await?;
         if let Some(name) = ens.name.clone() {
             info!("ENS for account: {:?}", ens);
             Account::builder()
@@ -131,6 +131,13 @@ impl ResolverMessageType {
                 metadata
                     .update_atom_metadata(&mut atom, &resolver_consumer_context.pg_pool)
                     .await?;
+
+                // If the atom has an image, we need to download it and classify it
+                if let Some(image) = metadata.image {
+                    Ens::download_image_classify_and_store(&image, resolver_consumer_context)
+                        .await?;
+                }
+
                 // Mark the atom as resolved
                 resolver_message
                     .atom

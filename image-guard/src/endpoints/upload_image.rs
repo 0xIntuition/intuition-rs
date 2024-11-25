@@ -5,7 +5,7 @@ use axum::extract::{Multipart, State};
 use axum::Json;
 use axum_macros::debug_handler;
 use chrono::Utc;
-use log::debug;
+use log::{debug, info};
 use models::image_guard::{ImageClassification, ImageGuard};
 use models::traits::SimpleCrud;
 use reqwest::Client;
@@ -49,7 +49,7 @@ pub async fn upload_image(
             classify_image(&Client::new(), &multi_part_handler.data, &state.hf_token).await?;
         // Parse the scores
         let scores = ClassificationScoreParsed::from(classify_images)?;
-        debug!("Scores: {:?}", scores);
+        info!("Scores for image {}: {:?}", multi_part_handler.name, scores);
         // Determine the classification status
         let status = determine_classification_status(&scores);
         // Get the original name
@@ -63,7 +63,7 @@ pub async fn upload_image(
         );
 
         let ipfs_response = upload_image_to_ipfs(&state, multi_part_handler).await?;
-        debug!("IPFS response: {:?}", ipfs_response);
+        info!("IPFS response: {:?}", ipfs_response);
 
         let image_guard = ImageGuard::builder()
             .id(ipfs_response.hash.clone())

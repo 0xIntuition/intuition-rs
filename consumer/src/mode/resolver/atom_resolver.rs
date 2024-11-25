@@ -104,11 +104,17 @@ async fn try_to_resolve_schema_org_properties(
         match AtomType::from_str(obj_type)? {
             AtomType::Thing => {
                 let thing = create_thing_from_obj(atom, obj).upsert(pg_pool).await?;
-                Ok(AtomMetadata::thing(thing.name.unwrap_or_default()))
+                Ok(AtomMetadata::thing(
+                    thing.name.unwrap_or_default(),
+                    thing.image.clone(),
+                ))
             }
             AtomType::Person => {
                 let person = create_person_from_obj(atom, obj).upsert(pg_pool).await?;
-                Ok(AtomMetadata::person(person.name.unwrap_or_default()))
+                Ok(AtomMetadata::person(
+                    person.name.unwrap_or_default(),
+                    person.image.clone(),
+                ))
             }
             AtomType::Organization => {
                 let organization = create_organization_from_obj(atom, obj)
@@ -116,6 +122,7 @@ async fn try_to_resolve_schema_org_properties(
                     .await?;
                 Ok(AtomMetadata::organization(
                     organization.name.unwrap_or_default(),
+                    organization.image.clone(),
                 ))
             }
             AtomType::Book => {

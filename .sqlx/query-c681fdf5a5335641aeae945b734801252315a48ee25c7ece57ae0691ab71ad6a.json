@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, ipfs_hash, score, model, classification as \"classification: ImageClassification\", created_at FROM image_guard WHERE id = $1",
+  "query": "SELECT id, ipfs_hash, original_name, score, model, classification as \"classification: ImageClassification\", created_at FROM image_guard WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -15,16 +15,21 @@
       },
       {
         "ordinal": 2,
+        "name": "original_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
         "name": "score",
         "type_info": "Jsonb"
       },
       {
-        "ordinal": 3,
+        "ordinal": 4,
         "name": "model",
         "type_info": "Text"
       },
       {
-        "ordinal": 4,
+        "ordinal": 5,
         "name": "classification: ImageClassification",
         "type_info": {
           "Custom": {
@@ -40,7 +45,7 @@
         }
       },
       {
-        "ordinal": 5,
+        "ordinal": 6,
         "name": "created_at",
         "type_info": "Timestamptz"
       }
@@ -53,11 +58,12 @@
     "nullable": [
       false,
       false,
+      false,
       true,
       true,
       false,
       false
     ]
   },
-  "hash": "15dc31178ff654de556029980f4adbc2900a06859863675ec618a4e1ae4c6245"
+  "hash": "c681fdf5a5335641aeae945b734801252315a48ee25c7ece57ae0691ab71ad6a"
 }

@@ -7,6 +7,7 @@ This workspace contains the following crates:
 * `consumer`: contains the code to RAW, DECODED and RESOLVER consumers.
 * `hasura`: contains the migrations and hasura config.
 * `histoflux`: streams historical data from our contracts to a queue. Currently supports SQS queues.
+* `image-guard`: contains the code to guard the images.
 * `models`: contains the domain models for the intuition data as basic traits for the data.
 * `substreams-sink`: contains the code to consume the Substreams events.
 
@@ -32,12 +33,32 @@ aws_access_key_id = YOUR_ACCESS_KEY_ID
 aws_secret_access_key = YOUR_SECRET_ACCESS_KEY
 ```
 
-## Running the local pipeline
+## Configuring the `/etc/hosts` file
 
-You need to copy the `.env.sample.docker` file to `.env` and set the correct values. Note that some of the values need to be set manually, such as the `PINATA_GATEWAY_TOKEN`, `PINATA_API_JWT`, the `RPC_URL` and the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`. If values are not set, the pipeline will not work.
+You need to add `database`, `ipfs`, `sqs` and `api` to the `/etc/hosts` file so it looks like this:
 
 ```
-cp .env.sample.docker .env
+##
+# Host Database
+#
+# localhost is used to configure the loopback interface
+# when the system is booting.  Do not change this entry.
+##
+127.0.0.1	localhost
+255.255.255.255	broadcasthost
+::1             localhost
+127.0.0.1 	database
+127.0.0.1	ipfs
+127.0.0.1	sqs
+127.0.0.1	api
+```
+
+## Running the local pipeline
+
+You need to copy the `.env.sample` file to `.env` and set the correct values. Note that some of the values need to be set manually, such as the `PINATA_GATEWAY_TOKEN`, `PINATA_API_JWT`, the `RPC_URL` and the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`. If values are not set, the pipeline will not work.
+
+```
+cp .env.sample .env
 source .env
 cargo make start-docker-and-migrate
 
