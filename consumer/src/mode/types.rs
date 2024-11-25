@@ -51,6 +51,7 @@ pub struct RawConsumerContext {
 #[derive(Clone)]
 pub struct ResolverConsumerContext {
     pub client: Arc<dyn BasicConsumer>,
+    pub image_guard_url: String,
     pub ipfs_resolver: IPFSResolver,
     pub mainnet_client: Arc<ENSRegistryInstance<Http<Client>, RootProvider<Http<Client>>>>,
     pub pg_pool: PgPool,
@@ -230,8 +231,15 @@ impl ConsumerMode {
             )
             .build();
 
+        let image_guard_url = data
+            .env
+            .image_guard_url
+            .clone()
+            .unwrap_or_else(|| panic!("Image guard URL is not set"));
+
         Ok(ConsumerMode::Resolver(ResolverConsumerContext {
             client,
+            image_guard_url,
             ipfs_resolver,
             mainnet_client,
             pg_pool,

@@ -94,6 +94,8 @@ pub enum ConsumerError {
     #[error(transparent)]
     Regex(#[from] regex::Error),
     #[error(transparent)]
+    Reqwest(#[from] reqwest::Error),
+    #[error(transparent)]
     SerdeJson(#[from] serde_json::Error),
     #[error(transparent)]
     SharedUtils(#[from] shared_utils::error::LibError),

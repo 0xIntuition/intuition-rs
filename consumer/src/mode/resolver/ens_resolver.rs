@@ -1,10 +1,14 @@
-use crate::{error::ConsumerError, ENSName::ENSNameInstance, ENSRegistry::ENSRegistryInstance};
+use crate::{
+    error::ConsumerError, mode::types::ResolverConsumerContext, ENSName::ENSNameInstance,
+    ENSRegistry::ENSRegistryInstance,
+};
 use alloy::{
     primitives::{keccak256, Address, FixedBytes},
     providers::RootProvider,
     transports::http::Http,
 };
 use log::info;
+use models::image_guard::ImageGuard;
 use reqwest::Client;
 
 /// This struct represents the ENS name and avatar for an address.
@@ -30,12 +34,12 @@ fn namehash(name: &str) -> Vec<u8> {
 /// This function gets the ENS name and avatar for an address.
 pub async fn get_ens(
     address: Address,
-    mainnet_client: &ENSRegistryInstance<Http<Client>, RootProvider<Http<Client>>>,
+    consumer_context: &ResolverConsumerContext,
 ) -> Result<Ens, ConsumerError> {
-    let name = get_ens_name(address, mainnet_client).await?;
+    let name = get_ens_name(address, &consumer_context.mainnet_client).await?;
     let mut image = None;
     if let Some(name_str) = &name {
-        image = get_ens_avatar(name_str).await?;
+        image = get_ens_avatar(name_str, &consumer_context).await?;
     }
     Ok(Ens { name, image })
 }
@@ -90,9 +94,25 @@ pub async fn get_ens_name(
 }
 
 /// Gets the ENS avatar URL for a given name
-pub async fn get_ens_avatar(name: &str) -> Result<Option<String>, ConsumerError> {
+pub async fn get_ens_avatar(
+    name: &str,
+    consumer_context: &ResolverConsumerContext,
+) -> Result<Option<String>, ConsumerError> {
     let url = format!("https://metadata.ens.domains/mainnet/avatar/{}", name);
 
+    // We download the image and send its bytes to the image guard
+    let image_bytes = reqwest::get(&url).await?.bytes().await?;
+    // And send a request to the `/upload` endpoint of the image guard
+    let image_guard_url = format!("{}/upload", consumer_context.image_guard_url);
+    let client = reqwest::Client::new();
+    let image_guard_url: Vec<ImageGuard> = client
+        .post(image_guard_url)
+        .body(image_bytes)
+        .send()
+        .await?
+        .json()
+        .await?;
+    info!("Image classification responde: {image_guard_url:?}");
     match reqwest::get(&url).await {
         Ok(response) => {
             if response.status() == 200 {

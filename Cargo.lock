@@ -2933,6 +2933,7 @@ dependencies = [
  "envy",
  "http 1.1.0",
  "log",
+ "models",
  "reqwest 0.12.9",
  "serde",
  "serde_json",
@@ -3300,6 +3301,7 @@ dependencies = [
  "strum_macros",
  "thiserror 2.0.3",
  "tokio",
+ "utoipa",
 ]
 
 [[package]]

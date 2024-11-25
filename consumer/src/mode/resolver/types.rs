@@ -67,11 +67,7 @@ impl ResolverMessageType {
         resolver_consumer_context: &ResolverConsumerContext,
         account: &Account,
     ) -> Result<(), ConsumerError> {
-        let ens = get_ens(
-            Address::from_str(&account.id)?,
-            &resolver_consumer_context.mainnet_client,
-        )
-        .await?;
+        let ens = get_ens(Address::from_str(&account.id)?, &resolver_consumer_context).await?;
         if let Some(name) = ens.name.clone() {
             info!("ENS for account: {:?}", ens);
             Account::builder()

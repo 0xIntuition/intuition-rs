@@ -277,7 +277,8 @@ CREATE TABLE book (
 CREATE TABLE image_guard (
   -- id is the original name of the image in lowercase without the extension
   id TEXT PRIMARY KEY NOT NULL,
-  ipfs_hash VARCHAR(32) NOT NULL,
+  ipfs_hash VARCHAR(46) NOT NULL,
+  original_name TEXT NOT NULL,
   score JSONB,
   model TEXT,
   classification image_classification NOT NULL DEFAULT 'Unknown',

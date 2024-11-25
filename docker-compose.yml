@@ -10,10 +10,11 @@ services:
       POSTGRES_USER: $PG_USER
       POSTGRES_PASSWORD: $PG_PASSWORD
       POSTGRES_DB: $PG_DB
+      PGPORT: $PG_PORT
     volumes:
       - database-data:/var/lib/postgresql/data/
     ports:
-      - ${PG_PORT}:5432
+      - $PG_PORT:$PG_PORT
   
   pgadmin:
     image: dpage/pgadmin4
@@ -133,7 +134,7 @@ services:
       - '8080:8080'
     restart: always
     environment:
-      HASURA_GRAPHQL_METADATA_DATABASE_URL: postgres://testuser:test@database:5432/storage
+      HASURA_GRAPHQL_METADATA_DATABASE_URL: postgres://testuser:test@database:5435/storage
       HASURA_GRAPHQL_ENABLE_CONSOLE: 'true'
       HASURA_GRAPHQL_UNAUTHORIZED_ROLE: 'anonymous'
       HASURA_GRAPHQL_DEV_MODE: 'true'

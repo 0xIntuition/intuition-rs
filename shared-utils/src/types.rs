@@ -1,31 +1,22 @@
+use std::fmt::Display;
+
 use bytes::Bytes;
-use chrono::{DateTime, Utc};
-use macon::Builder;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema, Default)]
 pub enum ClassificationModel {
+    #[default]
     Falconsai,
-    GPT4o,
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub enum ClassificationStatus {
-    Safe,
-    Unsafe,
+impl Display for ClassificationModel {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ClassificationModel::Falconsai => write!(f, "Falconsai"),
+        }
+    }
 }
-
-#[derive(Debug, Serialize, Deserialize, Builder, ToSchema)]
-pub struct ImageClassificationResponse {
-    pub status: ClassificationStatus,
-    // full score json returned by the classification service
-    pub score: String,
-    pub model: ClassificationModel,
-    pub date_classified: DateTime<Utc>,
-    pub url: String,
-}
-
 /// Represents a multi-part handler
 #[derive(Clone, Debug)]
 pub struct MultiPartHandler {

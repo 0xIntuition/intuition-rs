@@ -22,6 +22,10 @@ pub enum ApiError {
     #[error(transparent)]
     Lib(#[from] shared_utils::error::LibError),
     #[error(transparent)]
+    Model(#[from] models::error::ModelError),
+    #[error(transparent)]
+    Multipart(#[from] axum::extract::multipart::MultipartError),
+    #[error(transparent)]
     IO(#[from] std::io::Error),
     #[error(transparent)]
     Serde(#[from] serde_json::Error),

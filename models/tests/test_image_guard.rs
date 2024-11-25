@@ -14,6 +14,7 @@ mod tests {
         let mut guard = ImageGuard {
             id: id.clone(),
             ipfs_hash: "QmTest".to_string(),
+            original_name: "test.png".to_string(),
             score: None,
             model: None,
             classification: ImageClassification::Unknown,

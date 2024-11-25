@@ -12,6 +12,7 @@ env_logger.workspace = true
 envy.workspace = true
 http = "1.1.0"
 log.workspace = true
+models = { path = "../models" }
 reqwest.workspace = true
 serde.workspace = true
 serde_json.workspace = true

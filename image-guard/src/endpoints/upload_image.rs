@@ -6,12 +6,12 @@ use axum::Json;
 use axum_macros::debug_handler;
 use chrono::Utc;
 use log::debug;
+use models::image_guard::{ImageClassification, ImageGuard};
+use models::traits::SimpleCrud;
 use reqwest::Client;
 use shared_utils::{
     ipfs::{IPFSResolver, IpfsResponse},
-    types::{
-        ClassificationModel, ClassificationStatus, ImageClassificationResponse, MultiPartHandler,
-    },
+    types::{ClassificationModel, MultiPartHandler},
 };
 
 /// Upload and classify an image
@@ -20,7 +20,7 @@ use shared_utils::{
     path = "/upload",
     request_body = inline(MultipartRequest),
     responses(
-        (status = 200, description = "Image successfully uploaded and classified", body = ImageClassificationResponse,
+        (status = 200, description = "Image successfully uploaded and classified", body = Vec<ImageGuard>,
             example = json!({
                 "status": "Safe",
                 "score": "{\"normal\":0.82167643,\"nsfw\":0.1601617}",
@@ -38,43 +38,50 @@ use shared_utils::{
 pub async fn upload_image(
     State(state): State<AppState>,
     mut multipart: Multipart,
-) -> Result<Json<ImageClassificationResponse>, ApiError> {
-    let mut ipfs_response: IpfsResponse = IpfsResponse::default();
-    let mut status: ClassificationStatus = ClassificationStatus::Safe;
-    let mut scores: ClassificationScoreParsed = ClassificationScoreParsed::default();
-    while let Some(field) = multipart.next_field().await.unwrap() {
-        // verify image format
+) -> Result<Json<Vec<ImageGuard>>, ApiError> {
+    let mut responses = Vec::new();
+
+    while let Some(field) = multipart.next_field().await? {
+        // Check the image format and get the handler
         let multi_part_handler = check_image_format_and_get_handler(field).await?;
-        // classify the image
+        // Classify the image
         let classify_images =
             classify_image(&Client::new(), &multi_part_handler.data, &state.hf_token).await?;
-        // parse the scores
-        scores = ClassificationScoreParsed::from(classify_images)?;
+        // Parse the scores
+        let scores = ClassificationScoreParsed::from(classify_images)?;
         debug!("Scores: {:?}", scores);
-        // determine the classification status
-        status = determine_classification_status(&scores);
+        // Determine the classification status
+        let status = determine_classification_status(&scores);
+        // Get the original name
+        let original_name = multi_part_handler.name.clone();
 
         debug!(
             "Length of `{}` type `{}` is {} bytes",
-            multi_part_handler.name,
+            original_name,
             multi_part_handler.content_type,
             multi_part_handler.data.len()
         );
 
-        // upload the image to IPFS
-        ipfs_response = upload_image_to_ipfs(&state, multi_part_handler).await?;
-    }
-    debug!("IPFS response: {:?}", ipfs_response);
+        let ipfs_response = upload_image_to_ipfs(&state, multi_part_handler).await?;
+        debug!("IPFS response: {:?}", ipfs_response);
 
-    Ok(Json(
-        ImageClassificationResponse::builder()
-            .status(status)
+        let image_guard = ImageGuard::builder()
+            .id(ipfs_response.hash.clone())
+            .ipfs_hash(ipfs_response.hash)
+            .original_name(original_name)
             .score(serde_json::to_string(&scores)?)
-            .model(ClassificationModel::Falconsai)
-            .date_classified(Utc::now())
-            .url(ipfs_response.hash)
-            .build(),
-    ))
+            .model(ClassificationModel::Falconsai.to_string())
+            .classification(status)
+            .created_at(Utc::now())
+            .build();
+
+        // Add to the responses vector
+        responses.push(image_guard.clone());
+        // And upsert the image guard to the database
+        image_guard.upsert(&state.pg_pool).await?;
+    }
+
+    Ok(Json(responses))
 }
 
 /// Uploads an image to IPFS and pins it
@@ -94,11 +101,11 @@ async fn upload_image_to_ipfs(
 }
 
 /// Determines the classification status based on the scores
-fn determine_classification_status(scores: &ClassificationScoreParsed) -> ClassificationStatus {
+fn determine_classification_status(scores: &ClassificationScoreParsed) -> ImageClassification {
     if scores.nsfw > 0.6 {
-        ClassificationStatus::Unsafe
+        ImageClassification::Unsafe
     } else {
-        ClassificationStatus::Safe
+        ImageClassification::Safe
     }
 }
 
