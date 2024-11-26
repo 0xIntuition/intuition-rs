@@ -143,6 +143,12 @@ services:
     ports:
       - 3000:3000
 
+  safe-content:
+    container_name: safe-content
+    image: steelcityamir/safe-content-ai:latest
+    ports:
+      - 8000:8000
+
   graphql-engine:
     container_name: graphql-engine
     image: hasura/graphql-engine:v2.44.0
