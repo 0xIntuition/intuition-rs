@@ -12,6 +12,7 @@ pub struct ImageOutput {
 }
 
 #[derive(Deserialize, Serialize, Debug, ToSchema)]
+#[schema(example = json!({"url": "http://example.com/image.png"}))]
 pub struct Image {
     pub url: String,
 }
