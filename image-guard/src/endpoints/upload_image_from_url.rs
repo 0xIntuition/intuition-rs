@@ -43,50 +43,52 @@ pub async fn upload_image_from_url(
     info!("Uploading image");
     // Download the image
     let image_bytes = image.download().await?;
-    // Validate the image bytes
-    validate_image_bytes(&image_bytes)?;
+    if let Some(image_bytes) = image_bytes {
+        // Validate the image bytes
+        validate_image_bytes(&image_bytes)?;
 
-    // Extract the name and extension from the URL
-    let image_output = image
-        .extract_name_and_extension()
-        .ok_or(ApiError::ExtractNameAndExtension)?;
+        // Extract the name and extension from the URL
+        let image_output = image
+            .extract_name_and_extension()
+            .ok_or(ApiError::ExtractNameAndExtension)?;
 
-    // Construct the MultipartHandler
-    let multi_part_handler = MultiPartHandler {
-        name: image_output.name, // Replace with actual name
-        content_type: format!("image/{}", image_output.extension.to_lowercase()), // Replace with actual content type
-        data: Bytes::from(image_bytes), // Convert Vec<u8> to Bytes
-    };
+        // Construct the MultipartHandler
+        let multi_part_handler = MultiPartHandler {
+            name: image_output.name, // Replace with actual name
+            content_type: format!("image/{}", image_output.extension.to_lowercase()), // Replace with actual content type
+            data: Bytes::from(image_bytes), // Convert Vec<u8> to Bytes
+        };
 
-    // Classify the image
-    let (scores, status) = handle_image(&state, &multi_part_handler).await?;
+        // Classify the image
+        let (scores, status) = handle_image(&state, &multi_part_handler).await?;
 
-    let original_name = image.combine_name_and_extension()?;
+        let original_name = image.combine_name_and_extension()?;
 
-    debug!(
-        "Length of `{}` type `{}` is {} bytes",
-        original_name,
-        multi_part_handler.content_type,
-        multi_part_handler.data.len()
-    );
+        debug!(
+            "Length of `{}` type `{}` is {} bytes",
+            original_name,
+            multi_part_handler.content_type,
+            multi_part_handler.data.len()
+        );
 
-    let ipfs_response = upload_image_to_ipfs(&state, multi_part_handler).await?;
-    info!("IPFS response: {:?}", ipfs_response);
+        let ipfs_response = upload_image_to_ipfs(&state, multi_part_handler).await?;
+        info!("IPFS response: {:?}", ipfs_response);
 
-    let image_guard = ImageGuard::builder()
-        .id(format!("ipfs://{}", ipfs_response.hash))
-        .ipfs_hash(ipfs_response.hash)
-        .original_name(&image.url)
-        .score(serde_json::to_string(&scores)?)
-        .model(ClassificationModel::Falconsai.to_string())
-        .classification(status)
-        .created_at(Utc::now())
-        .build();
+        let image_guard = ImageGuard::builder()
+            .id(format!("ipfs://{}", ipfs_response.hash))
+            .ipfs_hash(ipfs_response.hash)
+            .original_name(&image.url)
+            .score(serde_json::to_string(&scores)?)
+            .model(ClassificationModel::Falconsai.to_string())
+            .classification(status)
+            .created_at(Utc::now())
+            .build();
 
-    // Add to the responses vector
-    responses.push(image_guard.clone());
-    // And upsert the image guard to the database
-    image_guard.upsert(&state.pg_pool).await?;
+        // Add to the responses vector
+        responses.push(image_guard.clone());
+        // And upsert the image guard to the database
+        image_guard.upsert(&state.pg_pool).await?;
+    }
 
     Ok(Json(responses))
 }

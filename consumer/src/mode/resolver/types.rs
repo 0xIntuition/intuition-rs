@@ -135,12 +135,16 @@ impl ResolverMessageType {
 
                 // If the atom has an image, we need to download it and classify it
                 if let Some(image) = metadata.image {
-                    Image::download_image_classify_and_store(
-                        image,
-                        resolver_consumer_context.reqwest_client.clone(),
-                        resolver_consumer_context.image_guard_url.clone(),
-                    )
-                    .await?;
+                    // We still need to check if the image is empty because the image
+                    // could be an empty string
+                    if !image.is_empty() {
+                        Image::download_image_classify_and_store(
+                            image,
+                            resolver_consumer_context.reqwest_client.clone(),
+                            resolver_consumer_context.image_guard_url.clone(),
+                        )
+                        .await?;
+                    }
                 }
 
                 // Mark the atom as resolved

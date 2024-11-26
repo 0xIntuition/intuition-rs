@@ -26,9 +26,12 @@ impl Image {
     }
 
     /// This function downloads an image from a URL and returns the bytes
-    pub async fn download(&self) -> Result<Vec<u8>, LibError> {
+    pub async fn download(&self) -> Result<Option<Vec<u8>>, LibError> {
         let response = reqwest::get(&self.url).await?;
-        Ok(response.bytes().await?.to_vec())
+        if response.status() == reqwest::StatusCode::NOT_FOUND {
+            return Ok(None);
+        }
+        Ok(Some(response.bytes().await?.to_vec()))
     }
     /// This function downloads an avatar, classifies it and stores it in the database
     pub async fn download_image_classify_and_store(
