@@ -8,8 +8,8 @@ use alloy::{
     transports::http::Http,
 };
 use log::info;
-use models::image_guard::ImageGuard;
 use reqwest::Client;
+use shared_utils::image::Image;
 
 /// This struct represents the ENS name and avatar for an address.
 #[derive(Debug)]
@@ -19,43 +19,6 @@ pub struct Ens {
 }
 
 impl Ens {
-    /// This function downloads an avatar, classifies it and stores it in the database
-    pub async fn download_image_classify_and_store(
-        url: String,
-        consumer_context: &ResolverConsumerContext,
-    ) -> Result<(), ConsumerError> {
-        // Clone the URL to avoid borrowing issues
-        let url_clone = url.clone();
-        let (name, extension) = Self::get_name_and_extension(&url_clone);
-        // Download image bytes
-        let image_bytes = reqwest::get(&url_clone.to_string())
-            .await?
-            .bytes()
-            .await?
-            .to_vec();
-
-        // Create multipart form with content type and filename
-        let part = reqwest::multipart::Part::bytes(image_bytes)
-            .mime_str(&format!("image/{}", extension))?
-            .file_name(name); // Add filename
-        let form = reqwest::multipart::Form::new().part("file", part);
-
-        // Send request with multipart form
-        let endpoint = format!("{}/upload", consumer_context.image_guard_url);
-        let client = reqwest::Client::new();
-
-        let response: Vec<ImageGuard> = client
-            .post(endpoint)
-            .multipart(form)
-            .send()
-            .await?
-            .json()
-            .await?;
-
-        info!("Image classification response: {response:?}");
-        Ok(())
-    }
-
     /// This function hashes the ENS name.
     fn namehash(name: &str) -> Vec<u8> {
         if name.is_empty() {
@@ -91,7 +54,12 @@ impl Ens {
         match reqwest::get(&url).await {
             Ok(response) => {
                 if response.status() == 200 {
-                    Self::download_image_classify_and_store(url.clone(), consumer_context).await?;
+                    Image::download_image_classify_and_store(
+                        url.clone(),
+                        consumer_context.reqwest_client.clone(),
+                        consumer_context.image_guard_url.clone(),
+                    )
+                    .await?;
                     Ok(Some(url))
                 } else {
                     Ok(None)
@@ -123,13 +91,6 @@ impl Ens {
         } else {
             Ok(None)
         }
-    }
-
-    /// This function gets the name and extension from a URL.
-    fn get_name_and_extension(url: &str) -> (String, String) {
-        let filename = url.split('/').last().unwrap_or_default();
-        let (name, extension) = filename.split_once('.').unwrap_or_default();
-        (name.to_string(), extension.to_string())
     }
 
     /// This function gets the resolver address for an address hash.

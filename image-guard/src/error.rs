@@ -11,6 +11,8 @@ use thiserror::Error;
 /// libraries
 #[derive(Error, Debug)]
 pub enum ApiError {
+    #[error("Failed to extract name and extension from URL")]
+    ExtractNameAndExtension,
     #[error(transparent)]
     Env(#[from] envy::Error),
     #[error("External service error: {0}")]

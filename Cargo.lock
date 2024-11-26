@@ -4615,6 +4615,7 @@ dependencies = [
  "chrono",
  "log",
  "macon",
+ "models",
  "reqwest 0.12.9",
  "serde",
  "serde_json",

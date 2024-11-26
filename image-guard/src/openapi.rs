@@ -1,6 +1,9 @@
-use crate::{endpoints, types::ClassificationScoreParsed};
+use crate::{
+    endpoints,
+    types::{ClassificationScoreParsed, LocalClassificationScore},
+};
 use models::image_guard::{ImageClassification, ImageGuard};
-use shared_utils::types::ClassificationModel;
+use shared_utils::{image::Image, types::ClassificationModel};
 use utoipa::OpenApi;
 
 #[derive(OpenApi)]
@@ -10,10 +13,12 @@ use utoipa::OpenApi;
     ),
     components(
         schemas(
+            Image,
             ImageGuard,
             ImageClassification,
             ClassificationModel,
             ClassificationScoreParsed,
+            LocalClassificationScore,
         )
     ),
     tags(

@@ -51,11 +51,23 @@ You need to add `database`, `ipfs`, `sqs` and `api` to the `/etc/hosts` file so 
 127.0.0.1	ipfs
 127.0.0.1	sqs
 127.0.0.1	api
+127.0.0.1	safe-content
 ```
 
 ## Running the local pipeline
 
-You need to copy the `.env.sample` file to `.env` and set the correct values. Note that some of the values need to be set manually, such as the `PINATA_GATEWAY_TOKEN`, `PINATA_API_JWT`, the `RPC_URL` and the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`. If values are not set, the pipeline will not work.
+There is a `.env.sample` file that you need to use as a template to create the `.env` file. First, you need to set the values for following variables:
+
+* `PINATA_GATEWAY_TOKEN`: You can get the token from [Pinata](https://www.pinata.cloud/keys)
+* `PINATA_API_JWT`: You can get the token from [Pinata](https://www.pinata.cloud/keys)
+* `RPC_URL_MAINNET`: We are currently using Alchemy. You can create new ones using the [Alchemy dashboard](https://dashboard.alchemy.com/)
+* `RPC_URL_BASE_MAINNET`: We are currently using Alchemy. You can create new ones using the [Alchemy dashboard](https://dashboard.alchemy.com/apps)
+* `AWS_ACCESS_KEY_ID`: You can get the values from your [AWS account](https://us-east-1.console.aws.amazon.com/iam/home?region=us-east-1#/users)
+* `AWS_SECRET_ACCESS_KEY`: You can get the values from your [AWS account](https://us-east-1.console.aws.amazon.com/iam/home?region=us-east-1#/users)
+* `HF_TOKEN`: You can get the token from [Hugging Face](https://huggingface.co/settings/tokens)
+* `SUBSTREAMS_API_TOKEN`: You can get the token from [Substreams](https://thegraph.market/auth/substreams-devenv)  
+
+After filling all of the variables, you can run the following commands:
 
 ```
 cp .env.sample .env

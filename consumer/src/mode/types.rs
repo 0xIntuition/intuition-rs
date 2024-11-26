@@ -55,6 +55,7 @@ pub struct ResolverConsumerContext {
     pub ipfs_resolver: IPFSResolver,
     pub mainnet_client: Arc<ENSRegistryInstance<Http<Client>, RootProvider<Http<Client>>>>,
     pub pg_pool: PgPool,
+    pub reqwest_client: reqwest::Client,
     pub server_initialize: ServerInitialize,
 }
 
@@ -237,12 +238,14 @@ impl ConsumerMode {
             .clone()
             .unwrap_or_else(|| panic!("Image guard URL is not set"));
 
+        let reqwest_client = reqwest::Client::new();
         Ok(ConsumerMode::Resolver(ResolverConsumerContext {
             client,
             image_guard_url,
             ipfs_resolver,
             mainnet_client,
             pg_pool,
+            reqwest_client,
             server_initialize: data,
         }))
     }

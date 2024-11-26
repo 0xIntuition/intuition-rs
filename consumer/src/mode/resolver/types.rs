@@ -16,6 +16,7 @@ use models::{
     traits::SimpleCrud,
 };
 use serde::{Deserialize, Serialize};
+use shared_utils::image::Image;
 use std::str::FromStr;
 
 /// This struct represents a message that is sent to the resolver
@@ -134,8 +135,12 @@ impl ResolverMessageType {
 
                 // If the atom has an image, we need to download it and classify it
                 if let Some(image) = metadata.image {
-                    Ens::download_image_classify_and_store(image, resolver_consumer_context)
-                        .await?;
+                    Image::download_image_classify_and_store(
+                        image,
+                        resolver_consumer_context.reqwest_client.clone(),
+                        resolver_consumer_context.image_guard_url.clone(),
+                    )
+                    .await?;
                 }
 
                 // Mark the atom as resolved

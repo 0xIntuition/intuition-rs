@@ -23,3 +23,12 @@ tokio.workspace = true
 tower-http = { version = "0.6.2", features = ["cors"] }
 utoipa.workspace = true
 utoipa-swagger-ui = { version = "8.0.3", features = ["axum"] }
+
+[features]
+# Local feature that uses the `safe-content` API for classification.
+# This runs locally and is available in our docker compose setup.
+local_with_classification = []
+# Local feature that uses the database only
+local_with_db_only = []
+# Default feature uses huggingface for classification
+default = []

@@ -1,5 +1,11 @@
+use crate::{
+    endpoints::{upload_image::upload_image, upload_image_from_url::upload_image_from_url},
+    error::ApiError,
+    openapi::ApiDoc,
+    state::AppState,
+    types::Env,
+};
 use axum::{routing::post, Router};
-
 use http::{
     header::{AUTHORIZATION, CONTENT_TYPE},
     Method,
@@ -10,11 +16,6 @@ use tokio::net::TcpListener;
 use tower_http::cors::CorsLayer;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
-
-use crate::{
-    endpoints::upload_image::upload_image, error::ApiError, openapi::ApiDoc, state::AppState,
-    types::Env,
-};
 
 pub struct App {
     env: Env,
@@ -67,6 +68,7 @@ impl App {
     fn router(&self) -> Router {
         Router::new()
             .route("/upload", post(upload_image))
+            .route("/upload_image_from_url", post(upload_image_from_url))
             .with_state(self.app_state.clone())
     }
 

@@ -6,6 +6,8 @@ use thiserror::Error;
 /// libraries
 #[derive(Error, Debug)]
 pub enum LibError {
+    #[error("Extract name and extension error")]
+    ExtractNameAndExtension,
     #[error("Network error: {0}")]
     NetworkError(String),
     #[error("Pinata error: {0}")]

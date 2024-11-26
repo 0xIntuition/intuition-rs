@@ -15,7 +15,8 @@ COPY . .
 
 # Build the specific package
 ENV SQLX_OFFLINE=true
-RUN cargo build --release -p image-guard
+RUN cargo build --release -p image-guard --no-default-features --features local_with_classification
+
 
 # Runtime stage
 FROM debian:bookworm-slim
