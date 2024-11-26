@@ -15,6 +15,8 @@ services:
       - database-data:/var/lib/postgresql/data/
     ports:
       - $PG_PORT:$PG_PORT
+    networks:
+      - intuition-be
   
   pgadmin:
     image: dpage/pgadmin4
@@ -27,6 +29,8 @@ services:
       PGADMIN_DEFAULT_PASSWORD: strong-password
     volumes:
       - pgadmin-data:/var/lib/pgadmin
+    networks:
+      - intuition-be
 
   resolver_consumer:
     image: consumer:latest
@@ -57,6 +61,8 @@ services:
       - ~/.aws/:/root/.aws:ro
     deploy:
       replicas: 3
+    networks:
+      - intuition-be
   
   decoded_consumer:
     container_name: decoded_consumer
@@ -81,6 +87,8 @@ services:
         condition: service_healthy
     volumes:
       - ~/.aws/:/root/.aws:ro
+    networks:
+      - intuition-be
 
   raw_consumer:
     container_name: raw_consumer
@@ -106,6 +114,9 @@ services:
         condition: service_healthy
     volumes:
       - ~/.aws/:/root/.aws:ro
+    networks:
+      - intuition-be
+
   sqs:
     container_name: sqs
     image: localstack/localstack:latest
@@ -128,6 +139,8 @@ services:
       - HOSTNAME_EXTERNAL=localstack
       - RUST_LOG=debug
       - SERVICES=sqs
+    networks:
+      - intuition-be
 
   api:
     container_name: api
@@ -142,12 +155,16 @@ services:
       RUST_LOG: $RUST_LOG
     ports:
       - 3000:3000
+    networks:
+      - intuition-be
 
   safe-content:
     container_name: safe-content
     image: steelcityamir/safe-content-ai:latest
     ports:
       - 8000:8000
+    networks:
+      - intuition-be
 
   graphql-engine:
     container_name: graphql-engine
@@ -156,7 +173,7 @@ services:
       - '8080:8080'
     restart: always
     environment:
-      HASURA_GRAPHQL_METADATA_DATABASE_URL: postgres://testuser:test@database:5435/storage
+      HASURA_GRAPHQL_METADATA_DATABASE_URL: postgres://testuser:test@database:$PG_PORT/storage
       HASURA_GRAPHQL_ENABLE_CONSOLE: 'true'
       HASURA_GRAPHQL_UNAUTHORIZED_ROLE: 'anonymous'
       HASURA_GRAPHQL_DEV_MODE: 'true'
@@ -164,6 +181,8 @@ services:
       HASURA_GRAPHQL_ADMIN_SECRET: $HASURA_GRAPHQL_ADMIN_SECRET
       HASURA_GRAPHQL_STRINGIFY_NUMERIC_TYPES: 'true'
       PINATA_AUTH: Bearer $PINATA_API_JWT
+    networks:
+      - intuition-be
 
   ipfs:
     container_name: ipfs
@@ -210,6 +229,8 @@ services:
         # Start the IPFS daemon
         exec ipfs daemon --migrate=true --agent-version-suffix=docker
       "
+    networks:
+      - intuition-be
 
 volumes:
   sqs:

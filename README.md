@@ -33,27 +33,6 @@ aws_access_key_id = YOUR_ACCESS_KEY_ID
 aws_secret_access_key = YOUR_SECRET_ACCESS_KEY
 ```
 
-## Configuring the `/etc/hosts` file
-
-You need to add `database`, `ipfs`, `sqs` and `api` to the `/etc/hosts` file so it looks like this:
-
-```
-##
-# Host Database
-#
-# localhost is used to configure the loopback interface
-# when the system is booting.  Do not change this entry.
-##
-127.0.0.1	localhost
-255.255.255.255	broadcasthost
-::1             localhost
-127.0.0.1 	database
-127.0.0.1	ipfs
-127.0.0.1	sqs
-127.0.0.1	api
-127.0.0.1	safe-content
-```
-
 ## Running the local pipeline
 
 There is a `.env.sample` file that you need to use as a template to create the `.env` file. First, you need to set the values for following variables:
