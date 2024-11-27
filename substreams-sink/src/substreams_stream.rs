@@ -1,6 +1,15 @@
+use crate::substreams::SubstreamsEndpoint;
+use crate::{app::App, error::SubstreamError, pb::sf::substreams::v1::Modules, Cli};
+use crate::{
+    pb::sf::substreams::rpc::v2::{
+        response::Message, BlockScopedData, BlockUndoSignal, Request, Response,
+    },
+    types::PreparedEndpointAndPackage,
+};
 use anyhow::{anyhow, Error};
 use async_stream::try_stream;
 use futures03::{Stream, StreamExt};
+use log::{info, warn};
 use std::{
     pin::Pin,
     sync::Arc,
@@ -10,46 +19,70 @@ use std::{
 use tokio::time::sleep;
 use tokio_retry::strategy::ExponentialBackoff;
 
-use crate::pb::sf::substreams::rpc::v2::{
-    response::Message, BlockScopedData, BlockUndoSignal, Request, Response,
-};
-use crate::pb::sf::substreams::v1::Modules;
-
-use crate::substreams::SubstreamsEndpoint;
-
+/// The response from the substreams stream.
 pub enum BlockResponse {
     New(BlockScopedData),
     Undo(BlockUndoSignal),
 }
-
+/// A struct that implements the substreams stream.
 pub struct SubstreamsStream {
+    /// The stream of blocks
     stream: Pin<Box<dyn Stream<Item = Result<BlockResponse, Error>> + Send>>,
 }
 
 impl SubstreamsStream {
-    pub fn new(
-        endpoint: Arc<SubstreamsEndpoint>,
-        cursor: Option<String>,
-        modules: Option<Modules>,
-        output_module_name: String,
-        start_block: i64,
-        end_block: u64,
-    ) -> Self {
-        SubstreamsStream {
-            stream: Box::pin(stream_blocks(
-                endpoint,
-                cursor,
-                modules,
-                output_module_name,
-                start_block,
-                end_block,
-            )),
+    pub async fn new(cli: &Cli, app: &App) -> Result<Self, SubstreamError> {
+        let prepared_endpoint_package = PreparedEndpointAndPackage::new(cli, app).await?;
+        Ok(Self {
+            stream: Box::pin(
+                stream_blocks(
+                    prepared_endpoint_package.endpoint.clone(),
+                    // FIXME: Handle cursor
+                    None,
+                    Some(prepared_endpoint_package.mutable_modules().await.unwrap()),
+                    cli.module.to_string(),
+                    prepared_endpoint_package.block_range.0,
+                    prepared_endpoint_package.block_range.1,
+                )
+                .await,
+            ),
+        })
+    }
+
+    /// Process the stream.
+    pub async fn process(&mut self, app: &App) -> Result<(), SubstreamError> {
+        loop {
+            match self.stream.next().await {
+                None => {
+                    info!("Stream consumed");
+                    break;
+                }
+                Some(Ok(BlockResponse::New(data))) => {
+                    app.app_state.process_block_scoped_data(&data).await?;
+                    app.app_state.persist_cursor(data.cursor).await?;
+                }
+                Some(Ok(BlockResponse::Undo(undo_signal))) => {
+                    app.app_state
+                        .process_block_undo_signal(&undo_signal)
+                        .await?;
+                    app.app_state
+                        .persist_cursor(undo_signal.last_valid_cursor)
+                        .await?;
+                }
+                Some(Err(err)) => {
+                    warn!("!");
+                    warn!("Stream terminated with error");
+                    warn!("{:?}", err);
+                    std::process::exit(1);
+                }
+            }
         }
+        Ok(())
     }
 }
 
 // Create the Stream implementation that streams blocks with auto-reconnection.
-fn stream_blocks(
+async fn stream_blocks(
     endpoint: Arc<SubstreamsEndpoint>,
     cursor: Option<String>,
     modules: Option<Modules>,
@@ -57,7 +90,7 @@ fn stream_blocks(
     start_block_num: i64,
     stop_block_num: u64,
 ) -> impl Stream<Item = Result<BlockResponse, Error>> {
-    let mut latest_cursor = cursor.unwrap_or_else(|| "".to_string());
+    let mut latest_cursor = cursor.unwrap_or_default();
     let mut backoff = ExponentialBackoff::from_millis(500).max_delay(Duration::from_secs(45));
     let mut last_progress_report = Instant::now();
 
