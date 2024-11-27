@@ -16,6 +16,14 @@ pub enum LibError {
     PostgresConnectError(String),
     #[error(transparent)]
     Reqwest(#[from] reqwest::Error),
+    #[error(transparent)]
+    SerdeJson(#[from] serde_json::Error),
     #[error("IPFS request timed out")]
     TimeoutError(String),
+}
+
+impl From<reqwest::StatusCode> for LibError {
+    fn from(status: reqwest::StatusCode) -> Self {
+        LibError::NetworkError(status.to_string())
+    }
 }

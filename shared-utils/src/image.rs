@@ -28,6 +28,7 @@ impl Image {
 
     /// This function downloads an image from a URL and returns the bytes
     pub async fn download(&self) -> Result<Option<Vec<u8>>, LibError> {
+        info!("Downloading image from URL: {}", self.url);
         let response = reqwest::get(&self.url).await?;
         if response.status() == reqwest::StatusCode::NOT_FOUND {
             return Ok(None);
@@ -42,16 +43,34 @@ impl Image {
     ) -> Result<(), LibError> {
         // Send request with multipart form
         let endpoint = format!("{}/upload_image_from_url", image_guard_url);
+        info!("Uploading image to image guard: {}", endpoint);
 
-        let response: Vec<ImageGuard> = reqwest_client
+        let response = reqwest_client
             .post(endpoint)
-            .json(&Image::new(url))
+            .json(&Self::new(url))
             .send()
-            .await?
-            .json()
             .await?;
 
-        info!("Image classification response: {response:?}");
+        // Check if the response status is successful
+        if !response.status().is_success() {
+            info!("Failed to upload image, status: {}", response.status());
+            return Err(LibError::from(response.status()));
+        }
+
+        // Log the raw response body
+        let response_text = response.text().await?;
+        info!("Raw response body: {}", response_text);
+
+        // Attempt to parse the JSON
+        let parsed_response: Result<Vec<ImageGuard>, _> = serde_json::from_str(&response_text);
+        match parsed_response {
+            Ok(data) => info!("Image classification response: {:?}", data),
+            Err(e) => {
+                info!("Failed to parse JSON response: {}", e);
+                return Err(LibError::from(e));
+            }
+        }
+
         Ok(())
     }
 

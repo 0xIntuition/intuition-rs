@@ -86,7 +86,7 @@ pub async fn try_to_parse_json(
             }
             _ => {
                 // TODO: Handle unknown contexts
-                warn!("No @context found in JSON");
+                warn!("No @context found in JSON: {:?}", json);
                 Ok(AtomMetadata::unknown())
             }
         }
