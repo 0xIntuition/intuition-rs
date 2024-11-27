@@ -19,6 +19,8 @@ pub enum ApiError {
     ExternalService(String),
     #[error(transparent)]
     Axum(#[from] axum::Error),
+    #[error("HF token is not set")]
+    HFToken(String),
     #[error("Invalid input: {0}")]
     InvalidInput(String),
     #[error(transparent)]
