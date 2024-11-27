@@ -5,7 +5,6 @@ use crate::{
     error::ConsumerError,
     schemas::types::DecodedMessage,
     traits::BasicConsumer,
-    utils::connect_to_db,
     ENSRegistry::{self, ENSRegistryInstance},
     EthMultiVault::{self, EthMultiVaultEvents, EthMultiVaultInstance},
 };
@@ -16,10 +15,11 @@ use alloy::{
 };
 use log::{debug, info, warn};
 use reqwest::Client;
+use shared_utils::{ipfs::IPFSResolver, postgres::connect_to_db};
 use sqlx::PgPool;
 use std::{str::FromStr, sync::Arc};
 
-use super::resolver::{ipfs_resolver::IPFSResolver, types::ResolverConsumerMessage};
+use super::resolver::types::ResolverConsumerMessage;
 
 /// This enum describes the possible modes that the consumer
 /// can be executed on. At each mode the consumer is going
@@ -51,9 +51,11 @@ pub struct RawConsumerContext {
 #[derive(Clone)]
 pub struct ResolverConsumerContext {
     pub client: Arc<dyn BasicConsumer>,
+    pub image_guard_url: String,
     pub ipfs_resolver: IPFSResolver,
     pub mainnet_client: Arc<ENSRegistryInstance<Http<Client>, RootProvider<Http<Client>>>>,
     pub pg_pool: PgPool,
+    pub reqwest_client: reqwest::Client,
     pub server_initialize: ServerInitialize,
 }
 
@@ -110,13 +112,27 @@ impl ConsumerMode {
         pg_pool: PgPool,
     ) -> Result<ConsumerMode, ConsumerError> {
         let base_client = Arc::new(Self::build_intuition_client(
-            &data.env.rpc_url_base_mainnet,
-            &data.env.intuition_contract_address,
+            &data
+                .clone()
+                .env
+                .rpc_url_base_mainnet
+                .unwrap_or_else(|| panic!("RPC URL base mainnet is not set")),
+            &data
+                .clone()
+                .env
+                .intuition_contract_address
+                .unwrap_or_else(|| panic!("Intuition contract address is not set")),
         )?);
         let client = Self::build_client(
             data.clone(),
-            data.env.decoded_logs_queue_url.clone(),
-            data.env.resolver_queue_url.clone(),
+            data.env
+                .decoded_logs_queue_url
+                .clone()
+                .unwrap_or_else(|| panic!("Decoded logs queue URL is not set")),
+            data.env
+                .resolver_queue_url
+                .clone()
+                .unwrap_or_else(|| panic!("Resolver queue URL is not set")),
         )
         .await?;
 
@@ -132,15 +148,27 @@ impl ConsumerMode {
         data: ServerInitialize,
         pg_pool: PgPool,
     ) -> Result<ConsumerMode, ConsumerError> {
-        let indexing_source = match IndexerSource::from_str(&data.env.indexing_source)? {
+        let indexing_source = match IndexerSource::from_str(
+            &data
+                .env
+                .indexing_source
+                .clone()
+                .unwrap_or_else(|| panic!("Indexing source is not set")),
+        )? {
             IndexerSource::GoldSky => Arc::new(IndexerSource::GoldSky),
             IndexerSource::Substreams => Arc::new(IndexerSource::Substreams),
         };
 
         let client = Self::build_client(
             data.clone(),
-            data.env.raw_consumer_queue_url.clone(),
-            data.env.decoded_logs_queue_url.clone(),
+            data.env
+                .raw_consumer_queue_url
+                .clone()
+                .unwrap_or_else(|| panic!("Raw consumer queue URL is not set")),
+            data.env
+                .decoded_logs_queue_url
+                .clone()
+                .unwrap_or_else(|| panic!("Decoded logs queue URL is not set")),
         )
         .await?;
 
@@ -157,24 +185,67 @@ impl ConsumerMode {
         pg_pool: PgPool,
     ) -> Result<ConsumerMode, ConsumerError> {
         let mainnet_client = Arc::new(Self::build_ens_client(
-            &data.env.rpc_url_mainnet,
-            &data.env.ens_contract_address,
+            &data
+                .clone()
+                .env
+                .rpc_url_mainnet
+                .unwrap_or_else(|| panic!("RPC URL mainnet is not set")),
+            &data
+                .clone()
+                .env
+                .ens_contract_address
+                .unwrap_or_else(|| panic!("ENS contract address is not set")),
         )?);
 
         let client = Self::build_client(
             data.clone(),
-            data.env.resolver_queue_url.clone(),
-            data.env.resolver_queue_url.clone(),
+            data.env
+                .resolver_queue_url
+                .clone()
+                .unwrap_or_else(|| panic!("Resolver queue URL is not set")),
+            data.env
+                .resolver_queue_url
+                .clone()
+                .unwrap_or_else(|| panic!("Resolver queue URL is not set")),
         )
         .await?;
 
-        let ipfs_resolver = IPFSResolver::new(Client::new(), data.env.ipfs_gateway_url.clone());
+        let ipfs_resolver = IPFSResolver::builder()
+            .http_client(Client::new())
+            .ipfs_upload_url(
+                data.env
+                    .ipfs_upload_url
+                    .clone()
+                    .unwrap_or_else(|| panic!("IPFS upload URL is not set")),
+            )
+            .ipfs_fetch_url(
+                data.env
+                    .ipfs_gateway_url
+                    .clone()
+                    .unwrap_or_else(|| panic!("IPFS gateway URL is not set")),
+            )
+            .pinata_jwt(
+                data.env
+                    .pinata_api_jwt
+                    .clone()
+                    .unwrap_or_else(|| panic!("Pinata API JWT is not set")),
+            )
+            .build();
 
+        let image_guard_url = data
+            .env
+            .image_guard_url
+            .clone()
+            .unwrap_or_else(|| panic!("Image guard URL is not set"));
+
+        let reqwest_client = reqwest::Client::new();
         Ok(ConsumerMode::Resolver(ResolverConsumerContext {
             client,
+            image_guard_url,
             ipfs_resolver,
             mainnet_client,
             pg_pool,
+            reqwest_client,
             server_initialize: data,
         }))
     }
@@ -182,7 +253,7 @@ impl ConsumerMode {
     /// We need to implement this convenience so we can transform
     /// the [`String`] received by the CLI into an actual [`ConsumerMode`]
     pub async fn from_str(data: ServerInitialize) -> Result<ConsumerMode, ConsumerError> {
-        let pg_pool = connect_to_db(&data.env).await?;
+        let pg_pool = connect_to_db(&data.env.database_url).await?;
 
         match data.args.mode.as_str() {
             "Raw" | "raw" | "RAW" => Self::create_raw_consumer(data, pg_pool).await,

@@ -24,7 +24,7 @@ RUN cargo chef cook --release --recipe-path recipe.json
 
 COPY . .
 ENV SQLX_OFFLINE=true
-RUN cargo build --release --bin consumer --features local
+RUN cargo build --release --bin consumer
 
 # Stage 3 - Final runtime image
 FROM debian:bookworm-slim AS runtime

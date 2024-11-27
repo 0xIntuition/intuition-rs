@@ -63,7 +63,7 @@ args = ["deploy", "--project", "hasura"]
 
 # This task remove the docker volumes, start the docker compose stack, and migrate the database
 [tasks.start-docker-and-migrate]
-dependencies = ["remove-docker-volumes", "build-docker", "start-docker", "migrate-database"]
+dependencies = ["remove-docker-volumes", "build-docker", "build-image-guard-docker", "start-docker", "migrate-database"]
 
 # Run the RAW SQS consumer connected to the real SQS queue
 [tasks.raw-consumer]
@@ -108,6 +108,11 @@ args = [
 [tasks.build-docker]
 command = "docker"
 args = ["build", "-t", "consumer:latest", "-f", "consumer/Dockerfile", "."]
+
+# Build the docker image for the api service
+[tasks.build-image-guard-docker]
+command = "docker"
+args = ["build", "-t", "image-guard:latest", "-f", "image-guard/Dockerfile", "."]
 
 
 # Simply format and lint checking with `cargo clippy` for all targets

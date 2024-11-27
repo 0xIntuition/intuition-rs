@@ -6,12 +6,12 @@ edition = "2021"
 [dependencies]
 clap = { version = "4.4.7", features = ["derive"] }
 hex = "0.4.3"
-reqwest = "0.12.8"
 rustc-hex = "2.1.0"
 sqlx-core = "0.8.0"
 
 # Local dependencies
 models = { path = "../models" }
+shared-utils = { path = "../shared-utils" }
 
 # Workspace dependencies
 alloy.workspace = true
@@ -30,6 +30,7 @@ strum.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
 regex = "1.11.1"
+reqwest.workspace = true
 futures = "0.3.31"
 
 [features]

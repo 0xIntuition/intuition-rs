@@ -12,7 +12,6 @@ mod error;
 mod mode;
 mod schemas;
 mod traits;
-mod utils;
 
 // Codegen from ABI file to interact with the Intuition contract.
 sol!(

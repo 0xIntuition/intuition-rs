@@ -1,22 +1,19 @@
 [package]
-name = "models"
+name = "shared-utils"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-alloy.workspace = true
-async-trait.workspace = true
+bytes = "1.8.0"
 chrono.workspace = true
+log.workspace = true
+reqwest.workspace = true
 macon.workspace = true
-rand.workspace = true
+models = { path = "../models" }
 serde.workspace = true
 serde_json.workspace = true
 sqlx.workspace = true
-strum.workspace = true
-strum_macros.workspace = true
-thiserror.workspace = true
 tokio.workspace = true
+thiserror.workspace = true
 utoipa.workspace = true
 
-[package.metadata.cargo-machete]
-ignored = ["strum"]

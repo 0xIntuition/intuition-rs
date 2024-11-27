@@ -26,15 +26,17 @@ pub struct AtomMetadata {
     pub label: String,
     pub emoji: String,
     pub atom_type: String,
+    pub image: Option<String>,
 }
 
 impl AtomMetadata {
     /// Creates a new atom metadata for an address
-    pub fn address(address: &str) -> Self {
+    pub fn address(address: &str, image: Option<String>) -> Self {
         Self {
             label: short_id(address),
             emoji: "⛓️".to_string(),
             atom_type: "Account".to_string(),
+            image,
         }
     }
 
@@ -44,6 +46,7 @@ impl AtomMetadata {
             label: name,
             emoji: "📚".to_string(),
             atom_type: "Book".to_string(),
+            image: None,
         }
     }
 
@@ -86,11 +89,12 @@ impl AtomMetadata {
     }
 
     /// Creates a new atom metadata for a follow action
-    pub fn follow_action() -> Self {
+    pub fn follow_action(image: Option<String>) -> Self {
         Self {
             label: "follow".to_string(),
             emoji: "🔔".to_string(),
             atom_type: "FollowAction".to_string(),
+            image,
         }
     }
 
@@ -116,74 +120,82 @@ impl AtomMetadata {
         }
     }
     /// Creates a new atom metadata for a keywords predicate
-    pub fn keywords_predicate() -> Self {
+    pub fn keywords_predicate(image: Option<String>) -> Self {
         Self {
             label: "has tag".to_string(),
             emoji: "🏷️".to_string(),
             atom_type: "Keywords".to_string(),
+            image,
         }
     }
 
     /// Creates a new atom metadata for a like action
-    pub fn like_action() -> Self {
+    pub fn like_action(image: Option<String>) -> Self {
         Self {
             label: "like".to_string(),
             emoji: "👍".to_string(),
             atom_type: "LikeAction".to_string(),
+            image,
         }
     }
 
     /// Creates a new atom metadata for an organization
-    pub fn organization(name: String) -> Self {
+    pub fn organization(name: String, image: Option<String>) -> Self {
         Self {
             label: name,
             emoji: "🏢".to_string(),
             atom_type: "Organization".to_string(),
+            image,
         }
     }
 
     /// Creates a new atom metadata for an organization predicate
-    pub fn organization_predicate() -> Self {
+    pub fn organization_predicate(image: Option<String>) -> Self {
         Self {
             label: "is organization".to_string(),
             emoji: "🏢".to_string(),
             atom_type: "OrganizationPredicate".to_string(),
+            image,
         }
     }
 
     /// Creates a new atom metadata for a person
-    pub fn person(name: String) -> Self {
+    pub fn person(name: String, image: Option<String>) -> Self {
         Self {
             label: name,
             emoji: "👤".to_string(),
             atom_type: "Person".to_string(),
+            image,
         }
     }
 
     /// Creates a new atom metadata for a person predicate
-    pub fn person_predicate() -> Self {
+    pub fn person_predicate(image: Option<String>) -> Self {
         Self {
             label: "is person".to_string(),
             emoji: "👤".to_string(),
             atom_type: "PersonPredicate".to_string(),
+            image,
         }
     }
 
     /// Creates a new atom metadata for a thing
-    pub fn thing(name: String) -> Self {
+    pub fn thing(name: String, image: Option<String>) -> Self {
         Self {
             label: name,
             emoji: "🧩".to_string(),
             atom_type: "Thing".to_string(),
+            image,
         }
     }
 
     /// Creates a new atom metadata for a thing predicate
-    pub fn thing_predicate() -> Self {
+    pub fn thing_predicate(image: Option<String>) -> Self {
         Self {
             label: "is thing".to_string(),
             emoji: "🧩".to_string(),
             atom_type: "ThingPredicate".to_string(),
+            image,
         }
     }
 
@@ -193,6 +205,7 @@ impl AtomMetadata {
             label: "Unknown".to_string(),
             emoji: "❓".to_string(),
             atom_type: "Unknown".to_string(),
+            image: None,
         }
     }
 
@@ -205,6 +218,7 @@ impl AtomMetadata {
         atom.emoji = Some(self.emoji.clone());
         atom.atom_type = AtomType::from_str(&self.atom_type)?;
         atom.label = Some(self.label.clone());
+        atom.image = self.image.clone();
         atom.upsert(pg_pool).await?;
         Ok(())
     }
@@ -249,7 +263,7 @@ pub async fn get_supported_atom_metadata(
         info!("Schema.org URL found, returning predicate metadata...");
         // As we dont need to resolve anything, we can mark the atom as resolved
         atom.resolving_status = AtomResolvingStatus::Resolved;
-        return Ok(get_predicate_metadata(schema_org_url));
+        return Ok(get_predicate_metadata(schema_org_url, atom.image.clone()));
     } else {
         info!("No schema.org URL found, verifying if atom data is an address...");
     }
@@ -259,7 +273,7 @@ pub async fn get_supported_atom_metadata(
         info!("Atom data is an address, returning account metadata...");
         // As we dont need to resolve anything, we can mark the atom as resolved
         atom.resolving_status = AtomResolvingStatus::Resolved;
-        Ok(AtomMetadata::address(decoded_atom_data))
+        Ok(AtomMetadata::address(decoded_atom_data, atom.image.clone()))
     } else {
         info!("Atom data is not an address, verifying if it's an IPFS URI...");
         // 3. Now we need to enqueue the message to be processed by the resolver
@@ -280,14 +294,17 @@ pub async fn get_supported_atom_metadata(
 }
 
 /// Returns the metadata for a predicate based on the current atom data state
-pub fn get_predicate_metadata(current_atom_data_state: String) -> AtomMetadata {
+pub fn get_predicate_metadata(
+    current_atom_data_state: String,
+    image: Option<String>,
+) -> AtomMetadata {
     match current_atom_data_state.as_str() {
-        "Person" => AtomMetadata::person_predicate(),
-        "Thing" => AtomMetadata::thing_predicate(),
-        "Organization" => AtomMetadata::organization_predicate(),
-        "Keywords" | "keywords" => AtomMetadata::keywords_predicate(),
-        "LikeAction" => AtomMetadata::like_action(),
-        "FollowAction" => AtomMetadata::follow_action(),
+        "Person" => AtomMetadata::person_predicate(image),
+        "Thing" => AtomMetadata::thing_predicate(image),
+        "Organization" => AtomMetadata::organization_predicate(image),
+        "Keywords" | "keywords" => AtomMetadata::keywords_predicate(image),
+        "LikeAction" => AtomMetadata::like_action(image),
+        "FollowAction" => AtomMetadata::follow_action(image),
         _ => AtomMetadata::unknown(),
     }
 }

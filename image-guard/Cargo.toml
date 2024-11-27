@@ -1,0 +1,34 @@
+[package]
+name = "image-guard"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum = { version = "0.7.9", features = ["multipart", "tokio"] }
+axum-macros = "0.4.2"
+chrono.workspace = true
+dotenvy.workspace = true
+env_logger.workspace = true
+envy.workspace = true
+http = "1.1.0"
+log.workspace = true
+models = { path = "../models" }
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+shared-utils = { path = "../shared-utils" }
+sqlx.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tower-http = { version = "0.6.2", features = ["cors"] }
+utoipa.workspace = true
+utoipa-swagger-ui = { version = "8.0.3", features = ["axum"] }
+
+[features]
+# Local feature that uses the `safe-content` API for classification.
+# This runs locally and is available in our docker compose setup.
+local_with_classification = []
+# Local feature that uses the database only
+local_with_db_only = []
+# Default feature uses huggingface for classification
+default = []
