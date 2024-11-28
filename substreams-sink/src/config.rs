@@ -1,3 +1,3 @@
 // Localstack URL
 #[allow(dead_code)]
-pub const LOCALSTACK_URL: &str = "http://localhost:4566/";
+pub const LOCALSTACK_URL: &str = "http://sqs:4566/";
