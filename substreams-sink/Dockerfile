@@ -1,24 +1,55 @@
-# Stage 1: Build the Rust application
-FROM rust:latest AS builder
+# Stage 1 - Generate recipe file
+FROM rust:slim-bookworm AS chef
+RUN cargo install cargo-chef
+WORKDIR /app
 
-# Set the working directory
-WORKDIR /usr/src/substreams-sink
-
-# Copy the entire workspace
+FROM chef AS planner
 COPY . .
+RUN cargo chef prepare --recipe-path recipe.json
 
-# Build the application
+# Stage 2 - Build dependencies and application
+FROM chef AS builder
+COPY --from=planner /app/recipe.json recipe.json
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    cmake \
+    libclang-dev \
+    libssl-dev \
+    pkg-config \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN cargo chef cook --release --recipe-path recipe.json
+
+COPY . .
 ENV SQLX_OFFLINE=true
 RUN cargo build --release --bin substreams-sink --features local
 
-# Stage 2: Create a minimal runtime image
-FROM debian:buster-slim
+# Stage 3 - Final runtime image
+FROM debian:bookworm-slim AS runtime
 
-# Set the working directory
-WORKDIR /usr/local/bin
+# Create non-root user
+RUN groupadd -r appuser && useradd -r -g appuser appuser
 
-# Copy the compiled binary from the builder stage
-COPY --from=builder /usr/src/substreams-sink/target/release/substreams-sink .
+# Install runtime dependencies only
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    ca-certificates \
+    libssl3 \
+    && rm -rf /var/lib/apt/lists/*
 
-# Set the entrypoint
-ENTRYPOINT ["./substreams-sink"]
+# Copy binary from builder
+COPY --from=builder /app/target/release/substreams-sink /app/substreams-sink
+
+# Set ownership
+RUN chown appuser:appuser /app/substreams-sink
+
+# Use non-root user
+USER appuser
+
+# Set runtime configs
+ENV RUST_LOG=info
+WORKDIR /app
+
+ENTRYPOINT ["/app/substreams-sink"]
