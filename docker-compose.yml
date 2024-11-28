@@ -208,6 +208,7 @@ services:
         # Start the IPFS daemon
         exec ipfs daemon --migrate=true --agent-version-suffix=docker
       "
+      
   substreams-sink:
     container_name: substreams-sink
     image: substreams-sink:latest

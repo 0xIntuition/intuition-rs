@@ -6,10 +6,11 @@ use crate::{
         ethereum::v1::Events,
         rpc::v2::{BlockScopedData, BlockUndoSignal},
     },
+    Cli,
 };
 use aws_sdk_sqs::Client as AWSClient;
 use log::info;
-use models::raw_logs::RawLog;
+use models::{raw_logs::RawLog, substreams_cursor::SubstreamsCursor, traits::SimpleCrud};
 use prost::Message;
 use serde::Deserialize;
 use shared_utils::postgres::connect_to_db;
@@ -108,15 +109,23 @@ impl AppState {
         unimplemented!("you must implement some kind of block undo handling, or request only final blocks (tweak substreams_stream.rs)")
     }
 
-    pub async fn persist_cursor(&self, _cursor: String) -> Result<(), SubstreamError> {
-        // FIXME: Handling of the cursor is missing here. It should be saved each time
-        // a full block has been correctly processed/persisted. The saving location
-        // is your responsibility.
-        //
-        // By making it persistent, we ensure that if we crash, on startup we are
-        // going to read it back from database and start back our SubstreamsStream
-        // with it ensuring we are continuously streaming without ever losing a single
-        // element.
+    /// Persist the cursor to the database. By making it persistent, we ensure that
+    /// if we crash, on startup we are going to read it back from database and start
+    /// back our SubstreamsStream with it ensuring we are continuously streaming
+    /// without ever losing a single element.
+    pub async fn persist_cursor(
+        &self,
+        cursor: String,
+        starting_block: u64,
+        cli: &Cli,
+    ) -> Result<(), SubstreamError> {
+        SubstreamsCursor::builder()
+            .cursor(cursor)
+            .start_block(starting_block as i64)
+            .endpoint(cli.endpoint.clone())
+            .build()
+            .upsert(&self.pg_pool)
+            .await?;
         Ok(())
     }
     #[allow(dead_code)]

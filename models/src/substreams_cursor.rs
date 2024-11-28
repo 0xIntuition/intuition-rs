@@ -8,13 +8,16 @@ use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 /// This is the `SubstreamsSink` struct that represents a substreams sink in the database.
 #[derive(sqlx::FromRow, Debug, Builder, Serialize, Deserialize, Clone)]
+#[builder(fields(Default, Option=!))]
 #[sqlx(type_name = "substreams_cursor")]
 pub struct SubstreamsCursor {
+    #[builder(Default)]
     pub id: i32,
     pub cursor: String,
     pub endpoint: String,
     pub start_block: i64,
     pub end_block: Option<i64>,
+    #[builder(Default)]
     pub created_at: DateTime<Utc>,
 }
 
@@ -77,5 +80,31 @@ impl SimpleCrud<i32> for SubstreamsCursor {
         .fetch_optional(pool)
         .await
         .map_err(|e| ModelError::QueryError(e.to_string()))
+    }
+}
+
+impl SubstreamsCursor {
+    pub async fn insert(&self, pool: &PgPool) -> Result<Self, ModelError> {
+        sqlx::query_as!(
+            SubstreamsCursor,
+            r#"
+            INSERT INTO substreams_cursor (cursor, endpoint, start_block, end_block)
+            VALUES ($1, $2, $3, $4)
+            RETURNING 
+                id, 
+                cursor,
+                endpoint,
+                start_block,
+                end_block,
+                created_at
+            "#,
+            self.cursor,
+            self.endpoint,
+            self.start_block,
+            self.end_block,
+        )
+        .fetch_one(pool)
+        .await
+        .map_err(|e| ModelError::InsertError(e.to_string()))
     }
 }

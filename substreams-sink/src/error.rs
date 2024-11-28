@@ -12,8 +12,12 @@ pub enum SubstreamError {
     ),
     #[error(transparent)]
     Anyhow(#[from] anyhow::Error),
+    #[error("Block not found")]
+    BlockNotFound,
     #[error(transparent)]
     Envy(#[from] envy::Error),
+    #[error(transparent)]
+    Model(#[from] models::error::ModelError),
     #[error(transparent)]
     Prost(#[from] prost::DecodeError),
     #[error(transparent)]

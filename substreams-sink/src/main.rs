@@ -39,5 +39,5 @@ async fn main() -> Result<(), SubstreamError> {
     // Initialize the application
     let app = App::new().await?;
     // Create the substreams stream and process it
-    SubstreamsStream::new(&cli, &app).await?.process(&app).await
+    SubstreamsStream::new(cli, &app).await?.process(&app).await
 }

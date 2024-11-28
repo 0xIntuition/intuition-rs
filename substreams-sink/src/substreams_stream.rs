@@ -28,11 +28,13 @@ pub enum BlockResponse {
 pub struct SubstreamsStream {
     /// The stream of blocks
     stream: Pin<Box<dyn Stream<Item = Result<BlockResponse, Error>> + Send>>,
+    /// The CLI arguments
+    pub cli: Cli,
 }
 
 impl SubstreamsStream {
-    pub async fn new(cli: &Cli, app: &App) -> Result<Self, SubstreamError> {
-        let prepared_endpoint_package = PreparedEndpointAndPackage::new(cli, app).await?;
+    pub async fn new(cli: Cli, app: &App) -> Result<Self, SubstreamError> {
+        let prepared_endpoint_package = PreparedEndpointAndPackage::new(&cli, app).await?;
         Ok(Self {
             stream: Box::pin(
                 stream_blocks(
@@ -46,6 +48,7 @@ impl SubstreamsStream {
                 )
                 .await,
             ),
+            cli,
         })
     }
 
@@ -60,14 +63,23 @@ impl SubstreamsStream {
                 Some(Ok(BlockResponse::New(data))) => {
                     info!("New block: {}", data.final_block_height);
                     app.app_state.process_block_scoped_data(&data).await?;
-                    app.app_state.persist_cursor(data.cursor).await?;
+                    app.app_state
+                        .persist_cursor(data.cursor, data.final_block_height, &self.cli)
+                        .await?;
                 }
                 Some(Ok(BlockResponse::Undo(undo_signal))) => {
                     app.app_state
                         .process_block_undo_signal(&undo_signal)
                         .await?;
                     app.app_state
-                        .persist_cursor(undo_signal.last_valid_cursor)
+                        .persist_cursor(
+                            undo_signal.last_valid_cursor,
+                            undo_signal
+                                .last_valid_block
+                                .ok_or(SubstreamError::BlockNotFound)?
+                                .number,
+                            &self.cli,
+                        )
                         .await?;
                 }
                 Some(Err(err)) => {
