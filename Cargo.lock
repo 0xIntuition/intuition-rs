@@ -5025,7 +5025,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "substreams-sink-rust"
+name = "substreams-sink"
 version = "0.1.0"
 dependencies = [
  "anyhow",

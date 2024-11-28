@@ -58,6 +58,7 @@ impl SubstreamsStream {
                     break;
                 }
                 Some(Ok(BlockResponse::New(data))) => {
+                    info!("New block: {}", data.final_block_height);
                     app.app_state.process_block_scoped_data(&data).await?;
                     app.app_state.persist_cursor(data.cursor).await?;
                 }

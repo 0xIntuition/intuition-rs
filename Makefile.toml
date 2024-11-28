@@ -63,7 +63,7 @@ args = ["deploy", "--project", "hasura"]
 
 # This task remove the docker volumes, start the docker compose stack, and migrate the database
 [tasks.start-docker-and-migrate]
-dependencies = ["remove-docker-volumes", "build-docker", "build-image-guard-docker", "start-docker", "migrate-database"]
+dependencies = ["remove-docker-volumes", "build-docker", "build-image-guard-docker", "build-image-substreams-sink", "start-docker", "migrate-database"]
 
 # Run the RAW SQS consumer connected to the real SQS queue
 [tasks.raw-consumer]
@@ -120,3 +120,9 @@ args = ["build", "-t", "image-guard:latest", "-f", "image-guard/Dockerfile", "."
 [tasks.clippy]
 command = "cargo"
 args = ["clippy", "--all-features", "--all-targets", "--workspace", "--", "-Dwarnings"]
+
+
+# Build the docker image for the substreams sink
+[tasks.build-image-substreams-sink]
+command = "docker"
+args = ["build", "-t", "leboiko/substream-sink:0.1.0", "-f", "substreams-sink/Dockerfile", "."]

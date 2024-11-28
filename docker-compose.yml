@@ -208,7 +208,18 @@ services:
         # Start the IPFS daemon
         exec ipfs daemon --migrate=true --agent-version-suffix=docker
       "
-    
+  substreams-sink:
+    container_name: substreams-sink
+    image: substreams-sink:latest
+    entrypoint: ["./substreams-sink"]
+    environment:
+      SUBSTREAMS_ENDPOINT: $SUBSTREAMS_ENDPOINT
+      SUBSTREAMS_PACKAGE: $SUBSTREAMS_PACKAGE
+      SUBSTREAMS_MODULE: $SUBSTREAMS_MODULE
+      SUBSTREAMS_START_BLOCK: $SUBSTREAMS_START_BLOCK
+      SUBSTREAMS_API_TOKEN: $SUBSTREAMS_API_TOKEN
+    command: ["$SUBSTREAMS_ENDPOINT", "$SUBSTREAMS_PACKAGE", "$SUBSTREAMS_MODULE", "$SUBSTREAMS_START_BLOCK:"]
+
 networks:
   intuition-be:
     driver: bridge

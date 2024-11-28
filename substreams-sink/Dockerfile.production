@@ -1,0 +1,23 @@
+# Stage 1: Build the Rust application
+FROM rust:latest AS builder
+
+# Set the working directory
+WORKDIR /usr/src/substreams-sink
+
+# Copy the entire workspace
+COPY . .
+
+# Build the application
+RUN cargo build --release --bin substreams-sink
+
+# Stage 2: Create a minimal runtime image
+FROM debian:buster-slim
+
+# Set the working directory
+WORKDIR /usr/local/bin
+
+# Copy the compiled binary from the builder stage
+COPY --from=builder /usr/src/substreams-sink/target/release/substreams-sink .
+
+# Set the entrypoint
+ENTRYPOINT ["./substreams-sink"]

@@ -1,5 +1,5 @@
 use crate::error::LibError;
-use log::info;
+use log::{info, warn};
 use models::image_guard::ImageGuard;
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
@@ -30,7 +30,8 @@ impl Image {
     pub async fn download(&self) -> Result<Option<Vec<u8>>, LibError> {
         info!("Downloading image from URL: {}", self.url);
         let response = reqwest::get(&self.url).await?;
-        if response.status() == reqwest::StatusCode::NOT_FOUND {
+        if response.status() != reqwest::StatusCode::OK {
+            warn!("Failed to download image, status: {}", response.status());
             return Ok(None);
         }
         Ok(Some(response.bytes().await?.to_vec()))

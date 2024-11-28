@@ -8,6 +8,7 @@ use crate::{
     },
 };
 use aws_sdk_sqs::Client as AWSClient;
+use log::info;
 use models::raw_logs::RawLog;
 use prost::Message;
 use serde::Deserialize;
@@ -81,7 +82,7 @@ impl AppState {
                 .build();
 
             let message = serde_json::to_string(&raw_log)?;
-            println!("{:#?}", message);
+            info!("{:#?}", message);
 
             self.aws_sqs_client
                 .send_message()
