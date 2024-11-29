@@ -27,25 +27,16 @@ pub struct Env {
 pub struct AppState {
     pub pg_pool: PgPool,
     pub aws_sqs_client: AWSClient,
-    pub cursor: Option<String>,
     pub raw_consumer_queue_url: String,
 }
 
 impl AppState {
     pub async fn new(env: &Env) -> Self {
-        let pg_pool = connect_to_db(&env.database_url).await.unwrap_or_else(|e| {
-            panic!("Failed to connect to database: {}", e);
-        });
-
-        let cursor = SubstreamsCursor::get_last(&pg_pool)
-            .await
-            .unwrap_or(None)
-            .map(|c| c.cursor);
-
         Self {
-            pg_pool,
+            pg_pool: connect_to_db(&env.database_url).await.unwrap_or_else(|e| {
+                panic!("Failed to connect to database: {}", e);
+            }),
             aws_sqs_client: Self::get_aws_client().await,
-            cursor,
             raw_consumer_queue_url: env.raw_consumer_queue_url.clone(),
         }
     }
