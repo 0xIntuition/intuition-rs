@@ -107,4 +107,25 @@ impl SubstreamsCursor {
         .await
         .map_err(|e| ModelError::InsertError(e.to_string()))
     }
+
+    pub async fn get_last(pool: &PgPool) -> Result<Option<Self>, ModelError> {
+        sqlx::query_as!(
+            SubstreamsCursor,
+            r#"
+            SELECT 
+                id, 
+                cursor,
+                endpoint,
+                start_block,
+                end_block,
+                created_at
+            FROM substreams_cursor
+            ORDER BY created_at DESC
+            LIMIT 1
+            "#
+        )
+        .fetch_optional(pool)
+        .await
+        .map_err(|e| ModelError::QueryError(e.to_string()))
+    }
 }

@@ -33,12 +33,19 @@ pub struct AppState {
 
 impl AppState {
     pub async fn new(env: &Env) -> Self {
+        let pg_pool = connect_to_db(&env.database_url).await.unwrap_or_else(|e| {
+            panic!("Failed to connect to database: {}", e);
+        });
+
+        let cursor = SubstreamsCursor::get_last(&pg_pool)
+            .await
+            .unwrap_or(None)
+            .map(|c| c.cursor);
+
         Self {
-            pg_pool: connect_to_db(&env.database_url).await.unwrap_or_else(|e| {
-                panic!("Failed to connect to database: {}", e);
-            }),
+            pg_pool,
             aws_sqs_client: Self::get_aws_client().await,
-            cursor: None,
+            cursor,
             raw_consumer_queue_url: env.raw_consumer_queue_url.clone(),
         }
     }
@@ -128,12 +135,12 @@ impl AppState {
             .await?;
         Ok(())
     }
-    #[allow(dead_code)]
+
+    /// Load the last persisted cursor from the database. If no cursor is found,
+    /// return `None`.
     pub async fn load_persisted_cursor(&self) -> Result<Option<String>, SubstreamError> {
-        // FIXME: Handling of the cursor is missing here. It should be loaded from
-        // somewhere (local file, database, cloud storage) and then `SubstreamStream` will
-        // be able correctly resume from the right block.
-        Ok(None)
+        let cursor = SubstreamsCursor::get_last(&self.pg_pool).await?;
+        Ok(cursor.map(|c| c.cursor))
     }
 }
 

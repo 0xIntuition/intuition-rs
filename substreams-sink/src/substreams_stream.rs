@@ -39,8 +39,7 @@ impl SubstreamsStream {
             stream: Box::pin(
                 stream_blocks(
                     prepared_endpoint_package.endpoint.clone(),
-                    // FIXME: Handle cursor
-                    None,
+                    app.app_state.load_persisted_cursor().await?,
                     Some(prepared_endpoint_package.mutable_modules().await.unwrap()),
                     cli.module.to_string(),
                     prepared_endpoint_package.block_range.0,
