@@ -14,6 +14,8 @@ pub enum LibError {
     PinataError(String),
     #[error("Postgres connection error: {0}")]
     PostgresConnectError(String),
+    #[error("Resource does not exist")]
+    ResourceNotFoundError(String),
     #[error(transparent)]
     Reqwest(#[from] reqwest::Error),
     #[error(transparent)]

@@ -63,7 +63,16 @@ impl IPFSResolver {
         let response = loop {
             attempts += 1;
             match self.fetch_from_ipfs_request(cid).await {
-                Ok(resp) => break Ok(resp),
+                Ok(resp) => {
+                    // Check if the response contains the "resource does not exist" error
+                    let body = resp.text().await.unwrap_or_default();
+                    if body.contains("resource does not exist") {
+                        return Err(LibError::ResourceNotFoundError(
+                            "Resource does not exist".into(),
+                        ));
+                    }
+                    break Ok(body);
+                }
                 Err(e) => match self.handle_fetch_error(e, attempts).await {
                     Ok(()) => continue,
                     Err(e) => break Err(e),
@@ -71,10 +80,7 @@ impl IPFSResolver {
             }
         }?;
 
-        response
-            .text()
-            .await
-            .map_err(|e| LibError::NetworkError(e.to_string()))
+        Ok(response)
     }
 
     /// Sends a request to fetch IPFS data

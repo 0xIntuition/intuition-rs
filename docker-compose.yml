@@ -208,7 +208,7 @@ services:
         # Start the IPFS daemon
         exec ipfs daemon --migrate=true --agent-version-suffix=docker
       "
-      
+
   substreams-sink:
     container_name: substreams-sink
     image: substreams-sink:latest
@@ -229,6 +229,8 @@ services:
     depends_on:
       sqs:
         condition: service_healthy
+    volumes:
+      - substreams-sink-data:/data
 
 networks:
   intuition-be:
@@ -241,3 +243,4 @@ volumes:
   database-data:
   pgadmin-data:
   ipfs_data:
+  substreams-sink-data:

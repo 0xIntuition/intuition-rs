@@ -48,14 +48,19 @@ impl Image {
 
         let response = reqwest_client
             .post(endpoint)
-            .json(&Self::new(url))
+            .json(&Self::new(url.clone()))
             .send()
             .await?;
 
-        // Check if the response status is successful
-        if !response.status().is_success() {
-            info!("Failed to upload image, status: {}", response.status());
-            return Err(LibError::from(response.status()));
+        let status = response.status();
+        if !status.is_success() {
+            info!(
+                "Failed to upload image {}, status: {}, error: {}",
+                &url,
+                &status,
+                &response.text().await?
+            );
+            return Err(LibError::from(status));
         }
 
         // Log the raw response body

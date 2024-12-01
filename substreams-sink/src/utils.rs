@@ -11,7 +11,8 @@ pub fn read_block_range(pkg: &Package, module_name: &str) -> Result<(i64, u64), 
         .modules
         .iter()
         .find(|m| m.name == module_name)
-        .ok_or_else(|| format_err!("module '{}' not found in package", module_name))?;
+        .ok_or_else(|| format_err!("module '{}' not found in package", module_name))
+        .map_err(SubstreamError::from)?;
 
     let mut input: String = "".to_string();
     if let Some(range) = env::args().nth(4) {
