@@ -55,8 +55,15 @@ async fn handle_image_with_hugginface(
     multi_part_handler: &MultiPartHandler,
 ) -> Result<(ClassificationScoreParsed, ImageClassification), ApiError> {
     // Classify the image
-    let classify_images =
-        hf_classify_image(&Client::new(), &multi_part_handler.data, &state.hf_token).await?;
+    let classify_images = hf_classify_image(
+        &Client::new(),
+        &multi_part_handler.data,
+        &state
+            .hf_token
+            .clone()
+            .ok_or_else(|| ApiError::HFToken("HF token is not set".into()))?,
+    )
+    .await?;
     // Parse the scores
     let scores = ClassificationScoreParsed::from(classify_images);
     info!("Scores for image {}: {:?}", multi_part_handler.name, scores);

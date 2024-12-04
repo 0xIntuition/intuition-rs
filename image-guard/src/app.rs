@@ -5,7 +5,11 @@ use crate::{
     state::AppState,
     types::Env,
 };
-use axum::{routing::post, Router};
+use axum::{
+    routing::{get, post},
+    Router,
+};
+use axum_prometheus::PrometheusMetricLayer;
 use http::{
     header::{AUTHORIZATION, CONTENT_TYPE},
     Method,
@@ -66,9 +70,12 @@ impl App {
 
     /// Create the router for the application.
     fn router(&self) -> Router {
+        let (prometheus_layer, metric_handle) = PrometheusMetricLayer::pair();
         Router::new()
             .route("/upload", post(upload_image))
             .route("/upload_image_from_url", post(upload_image_from_url))
+            .route("/metrics", get(|| async move { metric_handle.render() }))
+            .layer(prometheus_layer)
             .with_state(self.app_state.clone())
     }
 

@@ -1,6 +1,7 @@
 use crate::{
     error::ConsumerError,
     mode::{
+        ipfs_upload::types::IpfsUploadMessage,
         resolver::{
             atom_resolver::{try_to_parse_json, try_to_resolve_ipfs_uri},
             ens_resolver::Ens,
@@ -16,7 +17,6 @@ use models::{
     traits::SimpleCrud,
 };
 use serde::{Deserialize, Serialize};
-use shared_utils::image::Image;
 use std::str::FromStr;
 
 /// This struct represents a message that is sent to the resolver
@@ -135,16 +135,13 @@ impl ResolverMessageType {
 
                 // If the atom has an image, we need to download it and classify it
                 if let Some(image) = metadata.image {
-                    // We still need to check if the image is empty because the image
-                    // could be an empty string
-                    if !image.is_empty() {
-                        Image::download_image_classify_and_store(
-                            image,
-                            resolver_consumer_context.reqwest_client.clone(),
-                            resolver_consumer_context.image_guard_url.clone(),
-                        )
+                    // If we receive an image, we send it to the IPFS upload consumer
+                    // to be classified and stored
+                    info!("Sending image to IPFS upload consumer: {}", image);
+                    resolver_consumer_context
+                        .client
+                        .send_message(serde_json::to_string(&IpfsUploadMessage { image })?)
                         .await?;
-                    }
                 }
 
                 // Mark the atom as resolved

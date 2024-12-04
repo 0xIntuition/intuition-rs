@@ -1,0 +1,12 @@
+# alert.rules
+groups:
+- name: example
+  rules:
+  - alert: HighHTTP500ErrorRate
+    expr: sum(rate(axum_http_requests_total{status="500"}[5m])) > 5
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "High rate of HTTP 500 errors"
+      description: "There is a high rate of HTTP 500 errors for the last 5 minutes."

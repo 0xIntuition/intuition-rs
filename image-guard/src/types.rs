@@ -8,7 +8,7 @@ pub struct Env {
     pub ipfs_gateway_url: String,
     pub ipfs_upload_url: String,
     pub pinata_api_jwt: String,
-    pub hf_token: String,
+    pub hf_token: Option<String>,
 }
 
 /// A multipart request with an image

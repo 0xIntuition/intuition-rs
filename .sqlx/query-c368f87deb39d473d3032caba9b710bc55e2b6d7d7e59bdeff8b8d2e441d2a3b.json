@@ -1,0 +1,57 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO substreams_cursor (id, cursor, endpoint, start_block, end_block, created_at)\n            VALUES ($1, $2, $3, $4, $5, $6)\n                ON CONFLICT (id) DO UPDATE SET\n                    cursor = EXCLUDED.cursor,\n                    endpoint = EXCLUDED.endpoint,\n                    start_block = EXCLUDED.start_block,\n                    end_block = EXCLUDED.end_block,\n                    created_at = EXCLUDED.created_at\n            RETURNING \n                id, \n                cursor,\n                endpoint,\n                start_block,\n                end_block,\n                created_at\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "cursor",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "endpoint",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "start_block",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "end_block",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Text",
+        "Text",
+        "Int8",
+        "Int8",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "c368f87deb39d473d3032caba9b710bc55e2b6d7d7e59bdeff8b8d2e441d2a3b"
+}
