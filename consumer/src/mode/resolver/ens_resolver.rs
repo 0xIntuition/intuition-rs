@@ -7,7 +7,7 @@ use alloy::{
     providers::RootProvider,
     transports::http::Http,
 };
-use log::info;
+use log::{info, warn};
 use reqwest::Client;
 use shared_utils::image::Image;
 
@@ -54,13 +54,20 @@ impl Ens {
         match reqwest::get(&url).await {
             Ok(response) => {
                 if response.status() == 200 {
-                    Image::download_image_classify_and_store(
+                    let uploaded_image = Image::download_image_classify_and_store(
                         url.clone(),
                         consumer_context.reqwest_client.clone(),
                         consumer_context.image_guard_url.clone(),
                     )
-                    .await?;
-                    Ok(Some(url))
+                    .await;
+
+                    match uploaded_image {
+                        Ok(_) => Ok(Some(url)),
+                        Err(e) => {
+                            warn!("Failed to upload image: {}", e);
+                            Ok(None)
+                        }
+                    }
                 } else {
                     Ok(None)
                 }

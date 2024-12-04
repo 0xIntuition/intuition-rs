@@ -1,7 +1,3 @@
-networks:
-  intuition-be:
-    driver: bridge
-
 services:
   database:
     container_name: database
@@ -15,9 +11,12 @@ services:
       - database-data:/var/lib/postgresql/data/
     ports:
       - $PG_PORT:$PG_PORT
-    networks:
-      - intuition-be
-  
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $PG_USER -d $PG_DB"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    
   pgadmin:
     image: dpage/pgadmin4
     container_name: pgadmin4_container
@@ -29,9 +28,7 @@ services:
       PGADMIN_DEFAULT_PASSWORD: strong-password
     volumes:
       - pgadmin-data:/var/lib/pgadmin
-    networks:
-      - intuition-be
-
+  
   resolver_consumer:
     image: consumer:latest
     command: ./consumer --mode resolver
@@ -61,9 +58,7 @@ services:
       - ~/.aws/:/root/.aws:ro
     deploy:
       replicas: 3
-    networks:
-      - intuition-be
-  
+    
   decoded_consumer:
     container_name: decoded_consumer
     image: consumer:latest
@@ -87,9 +82,7 @@ services:
         condition: service_healthy
     volumes:
       - ~/.aws/:/root/.aws:ro
-    networks:
-      - intuition-be
-
+    
   raw_consumer:
     container_name: raw_consumer
     image: consumer:latest
@@ -114,8 +107,6 @@ services:
         condition: service_healthy
     volumes:
       - ~/.aws/:/root/.aws:ro
-    networks:
-      - intuition-be
 
   sqs:
     container_name: sqs
@@ -139,9 +130,7 @@ services:
       - HOSTNAME_EXTERNAL=localstack
       - RUST_LOG=debug
       - SERVICES=sqs
-    networks:
-      - intuition-be
-
+    
   api:
     container_name: api
     image: image-guard:latest
@@ -155,17 +144,14 @@ services:
       RUST_LOG: $RUST_LOG
     ports:
       - 3000:3000
-    networks:
-      - intuition-be
+    
 
   safe-content:
     container_name: safe-content
     image: steelcityamir/safe-content-ai:latest
     ports:
       - 8000:8000
-    networks:
-      - intuition-be
-
+    
   graphql-engine:
     container_name: graphql-engine
     image: hasura/graphql-engine:v2.44.0
@@ -181,9 +167,15 @@ services:
       HASURA_GRAPHQL_ADMIN_SECRET: $HASURA_GRAPHQL_ADMIN_SECRET
       HASURA_GRAPHQL_STRINGIFY_NUMERIC_TYPES: 'true'
       PINATA_AUTH: Bearer $PINATA_API_JWT
-    networks:
-      - intuition-be
-
+    depends_on:
+      database:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    
   ipfs:
     container_name: ipfs
     image: ipfs/kubo:latest
@@ -229,9 +221,62 @@ services:
         # Start the IPFS daemon
         exec ipfs daemon --migrate=true --agent-version-suffix=docker
       "
-    networks:
-      - intuition-be
 
+  substreams-sink:
+    container_name: substreams-sink
+    image: substreams-sink:latest
+    restart: always
+    entrypoint: ["./substreams-sink"]
+    environment:
+      LOCALSTACK_URL: $LOCALSTACK_URL
+      AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
+      AWS_REGION: $AWS_REGION
+      AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
+      DATABASE_URL: $DATABASE_URL
+      RAW_CONSUMER_QUEUE_URL: $RAW_CONSUMER_QUEUE_URL
+      SUBSTREAMS_ENDPOINT: $SUBSTREAMS_ENDPOINT
+      SUBSTREAMS_PACKAGE: $SUBSTREAMS_PACKAGE
+      SUBSTREAMS_MODULE: $SUBSTREAMS_MODULE
+      SUBSTREAMS_START_BLOCK: $SUBSTREAMS_START_BLOCK
+      SUBSTREAMS_API_TOKEN: $SUBSTREAMS_API_TOKEN
+    command: ["$SUBSTREAMS_ENDPOINT", "$SUBSTREAMS_PACKAGE", "$SUBSTREAMS_MODULE", "$SUBSTREAMS_START_BLOCK:"]
+    depends_on:
+      sqs:
+        condition: service_healthy
+      hasura-migrations:
+        condition: service_started
+    volumes:
+      - substreams-sink-data:/data
+
+  hasura-migrations:
+    container_name: hasura-migrations
+    image: leboiko/hasura-migrations:0.1.0
+    environment:
+      HASURA_GRAPHQL_ENDPOINT: $HASURA_GRAPHQL_ENDPOINT
+      HASURA_GRAPHQL_ADMIN_SECRET: $HASURA_GRAPHQL_ADMIN_SECRET
+    depends_on:
+      database:
+        condition: service_healthy
+      graphql-engine:
+        condition: service_healthy
+    restart: "no"
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    depends_on:
+      - api
+
+networks:
+  intuition-be:
+    driver: bridge
+    
 volumes:
   sqs:
   raw_consumer:
@@ -239,3 +284,4 @@ volumes:
   database-data:
   pgadmin-data:
   ipfs_data:
+  substreams-sink-data:

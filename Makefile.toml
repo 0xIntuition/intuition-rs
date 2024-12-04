@@ -56,6 +56,11 @@ args = ["compose", "down", "-v"]
 command = "docker"
 args = ["compose", "up", "-d", "--force-recreate"]
 
+# Build the docker image for the hasura migrations
+[tasks.build-image-hasura-migrations]
+command = "docker"
+args = ["build", "-t", "hasura-migrations:latest", "-f", "hasura/Dockerfile", "."]
+
 # Migrate the database
 [tasks.migrate-database]
 command = "hasura"
@@ -63,7 +68,10 @@ args = ["deploy", "--project", "hasura"]
 
 # This task remove the docker volumes, start the docker compose stack, and migrate the database
 [tasks.start-docker-and-migrate]
-dependencies = ["remove-docker-volumes", "build-docker", "build-image-guard-docker", "start-docker", "migrate-database"]
+dependencies = ["remove-docker-volumes", "build-image-substreams-sink", "build-docker", "build-image-guard-docker", "build-image-hasura-migrations", "start-docker"]
+
+[tasks.restart]
+dependencies = ["remove-docker-volumes", "start-docker"]
 
 # Run the RAW SQS consumer connected to the real SQS queue
 [tasks.raw-consumer]
@@ -120,3 +128,9 @@ args = ["build", "-t", "image-guard:latest", "-f", "image-guard/Dockerfile", "."
 [tasks.clippy]
 command = "cargo"
 args = ["clippy", "--all-features", "--all-targets", "--workspace", "--", "-Dwarnings"]
+
+
+# Build the docker image for the substreams sink
+[tasks.build-image-substreams-sink]
+command = "docker"
+args = ["build", "-t", "substreams-sink:latest", "-f", "substreams-sink/Dockerfile", "."]

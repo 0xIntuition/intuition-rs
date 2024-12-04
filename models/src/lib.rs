@@ -17,6 +17,7 @@ pub mod redemption;
 pub mod signal;
 pub mod stats;
 pub mod stats_hour;
+pub mod substreams_cursor;
 pub mod test_helpers;
 pub mod thing;
 pub mod traits;

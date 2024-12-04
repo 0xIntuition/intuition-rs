@@ -9,7 +9,7 @@ use crate::{
     },
 };
 use alloy::primitives::Address;
-use log::info;
+use log::{info, warn};
 use models::{
     account::{Account, AccountType},
     atom::{Atom, AtomType},
@@ -138,12 +138,15 @@ impl ResolverMessageType {
                     // We still need to check if the image is empty because the image
                     // could be an empty string
                     if !image.is_empty() {
-                        Image::download_image_classify_and_store(
+                        let image_upload = Image::download_image_classify_and_store(
                             image,
                             resolver_consumer_context.reqwest_client.clone(),
                             resolver_consumer_context.image_guard_url.clone(),
                         )
-                        .await?;
+                        .await;
+                        if let Err(e) = image_upload {
+                            warn!("Failed to upload image: {}", e);
+                        }
                     }
                 }
 

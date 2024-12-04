@@ -11,8 +11,8 @@ use crate::{
     schemas::types::DecodedMessage,
     EthMultiVault::AtomCreated,
 };
-use alloy::{eips::BlockId, primitives::U256};
-use log::info;
+use alloy::{eips::BlockId, primitives::U256, rpc::types::error};
+use log::{info, warn};
 use models::{
     account::{Account, AccountType},
     atom::{Atom, AtomResolvingStatus, AtomType},
@@ -129,33 +129,46 @@ impl AtomCreated {
             .update_vault_current_share_price(decoded_consumer_context, decoded_message)
             .await?;
 
-        // decode the hex data from the atomData
-        let decoded_atom_data = self.decode_data()?;
-
-        // get the supported atom metadata
-        let supported_atom_metadata =
-            get_supported_atom_metadata(&mut atom, &decoded_atom_data, decoded_consumer_context)
+        // decode the hex data from the atomData. The only known problem we can have here
+        // is that it can fail to decode UTF-8 string.
+        match self.decode_data() {
+            Ok(decoded_atom_data) => {
+                // get the supported atom metadata
+                let supported_atom_metadata = get_supported_atom_metadata(
+                    &mut atom,
+                    &decoded_atom_data,
+                    decoded_consumer_context,
+                )
                 .await?;
 
-        // Handle the account type
-        let resolved_atom = ResolveAtom {
-            atom: atom.clone(),
-            decoded_atom_data,
-        };
-        supported_atom_metadata
-            .handle_account_type(&resolved_atom, decoded_consumer_context)
-            .await?;
+                // Handle the account type
+                let resolved_atom = ResolveAtom {
+                    atom: atom.clone(),
+                    decoded_atom_data,
+                };
+                supported_atom_metadata
+                    .handle_account_type(&resolved_atom, decoded_consumer_context)
+                    .await?;
 
-        // Update the atom metadata to reflect the supported atom type
-        supported_atom_metadata
-            .update_atom_metadata(&mut atom, &decoded_consumer_context.pg_pool)
-            .await?;
+                // Update the atom metadata to reflect the supported atom type
+                supported_atom_metadata
+                    .update_atom_metadata(&mut atom, &decoded_consumer_context.pg_pool)
+                    .await?;
 
-        // Create the event
-        self.create_event(decoded_message, &decoded_consumer_context.pg_pool)
-            .await?;
+                // Create the event
+                self.create_event(decoded_message, &decoded_consumer_context.pg_pool)
+                    .await?;
 
-        Ok(())
+                Ok(())
+            }
+            Err(error) => {
+                warn!(
+                    "Failed to decode atom data with error: {}. This is not a critical error, but this atom will not be created.",
+                    error
+                );
+                Ok(())
+            }
+        }
     }
 
     /// This function updates the vault current share price and it returns the vault and atom
