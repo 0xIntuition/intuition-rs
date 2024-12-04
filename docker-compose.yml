@@ -278,7 +278,7 @@ services:
 
   hasura-migrations:
     container_name: hasura-migrations
-    image: leboiko/hasura-migrations:0.1.0
+    image: hasura-migrations:latest
     environment:
       HASURA_GRAPHQL_ENDPOINT: $HASURA_GRAPHQL_ENDPOINT
       HASURA_GRAPHQL_ADMIN_SECRET: $HASURA_GRAPHQL_ADMIN_SECRET
