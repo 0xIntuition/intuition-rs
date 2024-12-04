@@ -6,8 +6,8 @@ use crate::{
             atom_resolver::{try_to_parse_json, try_to_resolve_schema_org_url},
             types::{ResolveAtom, ResolverConsumerMessage},
         },
-        types::DecodedConsumerContext,
     },
+    types::DecodedConsumerContext,
 };
 use alloy::primitives::Address;
 use log::info;

@@ -1,7 +1,8 @@
 use super::utils::get_absolute_triple_id;
 use crate::{
-    mode::{decoded::utils::get_or_create_account, types::DecodedConsumerContext},
+    mode::decoded::utils::get_or_create_account,
     schemas::types::DecodedMessage,
+    types::DecodedConsumerContext,
     ConsumerError,
     EthMultiVault::{Deposited, EthMultiVaultInstance},
 };

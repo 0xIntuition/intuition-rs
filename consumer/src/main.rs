@@ -6,12 +6,12 @@ use error::ConsumerError;
 use serde::{Deserialize, Serialize};
 
 mod app_context;
-mod config;
 mod consumer_type;
 mod error;
 mod mode;
 mod schemas;
 mod traits;
+mod types;
 
 // Codegen from ABI file to interact with the Intuition contract.
 sol!(
@@ -59,5 +59,5 @@ async fn main() -> Result<(), ConsumerError> {
     // Build the server with the basic context
     let server = Server::new(init).await?;
     // Start processing messages
-    server.consumer_mode().process_messages().await
+    server.consumer().process_messages().await
 }

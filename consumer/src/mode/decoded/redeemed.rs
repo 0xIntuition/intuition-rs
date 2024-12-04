@@ -1,8 +1,8 @@
 use super::utils::get_or_create_account;
 use crate::{
     error::ConsumerError,
-    mode::types::DecodedConsumerContext,
     schemas::types::DecodedMessage,
+    types::DecodedConsumerContext,
     EthMultiVault::{EthMultiVaultInstance, Redeemed},
 };
 use alloy::{

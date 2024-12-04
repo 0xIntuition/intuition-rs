@@ -1,4 +1,4 @@
-use crate::{error::ConsumerError, mode::types::ConsumerMode, traits::BasicConsumer};
+use crate::{error::ConsumerError, traits::BasicConsumer, types::ConsumerMode};
 use async_trait::async_trait;
 use aws_sdk_sqs::{
     operation::receive_message::ReceiveMessageOutput, types::Message, Client as AWSClient,

@@ -1,4 +1,8 @@
-use crate::{config::Env, error::ConsumerError, mode::types::ConsumerMode, ConsumerArgs};
+use crate::{
+    error::ConsumerError,
+    types::{ConsumerMode, Env},
+    ConsumerArgs,
+};
 use clap::Parser;
 use log::info;
 
@@ -9,8 +13,8 @@ pub struct Server {
 }
 
 impl Server {
-    /// Get the consumer mode
-    pub fn consumer_mode(&self) -> &ConsumerMode {
+    /// Get the consumer
+    pub fn consumer(&self) -> &ConsumerMode {
         &self.consumer_mode
     }
 

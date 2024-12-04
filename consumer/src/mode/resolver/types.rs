@@ -1,12 +1,10 @@
 use crate::{
     error::ConsumerError,
-    mode::{
-        resolver::{
-            atom_resolver::{try_to_parse_json, try_to_resolve_ipfs_uri},
-            ens_resolver::Ens,
-        },
-        types::ResolverConsumerContext,
+    mode::resolver::{
+        atom_resolver::{try_to_parse_json, try_to_resolve_ipfs_uri},
+        ens_resolver::Ens,
     },
+    types::ResolverConsumerContext,
 };
 use alloy::primitives::Address;
 use log::{info, warn};

@@ -6,12 +6,12 @@ use crate::{
             utils::{get_or_create_account, short_id},
         },
         resolver::types::ResolveAtom,
-        types::DecodedConsumerContext,
     },
     schemas::types::DecodedMessage,
+    types::DecodedConsumerContext,
     EthMultiVault::AtomCreated,
 };
-use alloy::{eips::BlockId, primitives::U256, rpc::types::error};
+use alloy::{eips::BlockId, primitives::U256};
 use log::{info, warn};
 use models::{
     account::{Account, AccountType},

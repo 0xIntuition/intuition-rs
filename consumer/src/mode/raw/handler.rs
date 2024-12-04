@@ -1,13 +1,12 @@
 use crate::{
-    config::IndexerSource,
     error::ConsumerError,
-    mode::types::{ConsumerMode, RawConsumerContext},
     schemas::{
         goldsky::{Operation, RawMessage},
         substreams::SubstreamRawLog,
         types::DecodedMessage,
     },
     traits::IntoRawMessage,
+    types::{ConsumerMode, IndexerSource, RawConsumerContext},
 };
 use log::{debug, info, warn};
 

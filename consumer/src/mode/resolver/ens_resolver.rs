@@ -1,5 +1,5 @@
 use crate::{
-    error::ConsumerError, mode::types::ResolverConsumerContext, ENSName::ENSNameInstance,
+    error::ConsumerError, types::ResolverConsumerContext, ENSName::ENSNameInstance,
     ENSRegistry::ENSRegistryInstance,
 };
 use alloy::{

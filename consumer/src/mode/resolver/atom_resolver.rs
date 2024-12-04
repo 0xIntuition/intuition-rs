@@ -1,6 +1,6 @@
 use crate::{
-    error::ConsumerError,
-    mode::{decoded::atom::atom_supported_types::AtomMetadata, types::ResolverConsumerContext},
+    error::ConsumerError, mode::decoded::atom::atom_supported_types::AtomMetadata,
+    types::ResolverConsumerContext,
 };
 use log::warn;
 use models::{

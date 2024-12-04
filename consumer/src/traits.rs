@@ -1,4 +1,4 @@
-use crate::{error::ConsumerError, mode::types::ConsumerMode, schemas::goldsky::RawMessage};
+use crate::{error::ConsumerError, schemas::goldsky::RawMessage, types::ConsumerMode};
 use async_trait::async_trait;
 use aws_sdk_sqs::{operation::receive_message::ReceiveMessageOutput, types::Message};
 
@@ -7,9 +7,6 @@ use aws_sdk_sqs::{operation::receive_message::ReceiveMessageOutput, types::Messa
 #[async_trait]
 pub trait BasicConsumer: Send + Sync {
     async fn consume_message(&self, message: Message) -> Result<(), ConsumerError>;
-    /// We are using dependency injection to inject the consumer mode, the pg pool
-    /// and the web3 client. This allows us to use the same consume method for
-    /// different modes, different data sources and different consumer types.
     async fn process_messages(&self, mode: ConsumerMode) -> Result<(), ConsumerError>;
     async fn receive_message(&self) -> Result<ReceiveMessageOutput, ConsumerError>;
     async fn send_message(&self, message: String) -> Result<(), ConsumerError>;
