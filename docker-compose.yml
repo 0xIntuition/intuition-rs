@@ -212,6 +212,7 @@ services:
   substreams-sink:
     container_name: substreams-sink
     image: substreams-sink:latest
+    restart: always
     entrypoint: ["./substreams-sink"]
     environment:
       LOCALSTACK_URL: $LOCALSTACK_URL
@@ -228,6 +229,8 @@ services:
     command: ["$SUBSTREAMS_ENDPOINT", "$SUBSTREAMS_PACKAGE", "$SUBSTREAMS_MODULE", "$SUBSTREAMS_START_BLOCK:"]
     depends_on:
       sqs:
+        condition: service_healthy
+      graphql-engine:
         condition: service_healthy
     volumes:
       - substreams-sink-data:/data
