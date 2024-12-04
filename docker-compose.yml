@@ -11,6 +11,11 @@ services:
       - database-data:/var/lib/postgresql/data/
     ports:
       - $PG_PORT:$PG_PORT
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $PG_USER -d $PG_DB"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
     
   pgadmin:
     image: dpage/pgadmin4
@@ -162,6 +167,14 @@ services:
       HASURA_GRAPHQL_ADMIN_SECRET: $HASURA_GRAPHQL_ADMIN_SECRET
       HASURA_GRAPHQL_STRINGIFY_NUMERIC_TYPES: 'true'
       PINATA_AUTH: Bearer $PINATA_API_JWT
+    depends_on:
+      database:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
     
   ipfs:
     container_name: ipfs
@@ -230,10 +243,23 @@ services:
     depends_on:
       sqs:
         condition: service_healthy
-      graphql-engine:
-        condition: service_healthy
+      hasura-migrations:
+        condition: service_started
     volumes:
       - substreams-sink-data:/data
+
+  hasura-migrations:
+    container_name: hasura-migrations
+    image: leboiko/hasura-migrations:0.1.0
+    environment:
+      HASURA_GRAPHQL_ENDPOINT: $HASURA_GRAPHQL_ENDPOINT
+      HASURA_GRAPHQL_ADMIN_SECRET: $HASURA_GRAPHQL_ADMIN_SECRET
+    depends_on:
+      database:
+        condition: service_healthy
+      graphql-engine:
+        condition: service_healthy
+    restart: "no"
 
 networks:
   intuition-be:
