@@ -295,17 +295,9 @@ services:
     ports:
       - "9090:9090"
     volumes:
-<<<<<<< HEAD
-<<<<<<< HEAD
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
       - ./prometheus/alert.rules:/etc/prometheus/alert.rules
       - ./prometheus/recording.rules:/etc/prometheus/recording.rules
-=======
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml
->>>>>>> main
-=======
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml
->>>>>>> main
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
     depends_on:
