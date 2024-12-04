@@ -15,3 +15,9 @@ groups:
     expr: axum_http_requests_duration_seconds_count
   - record: axum_http_requests_duration_seconds_sum
     expr: axum_http_requests_duration_seconds_sum
+  - record: event_processing_duration_seconds_bucket_atom_created
+    expr: event_processing_duration_seconds_bucket{event_type="AtomCreated",le="+Inf"}
+  - record: event_processing_duration_seconds_sum_atom_created
+    expr: event_processing_duration_seconds_sum{event_type="AtomCreated"}
+  - record: event_processing_duration_seconds_count_atom_created 
+    expr: event_processing_duration_seconds_count{event_type="AtomCreated"}

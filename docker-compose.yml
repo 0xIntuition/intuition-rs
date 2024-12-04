@@ -110,6 +110,8 @@ services:
         condition: service_healthy
     volumes:
       - ~/.aws/:/root/.aws:ro
+    ports:
+      - 3001:3001
     
   raw_consumer:
     container_name: raw_consumer

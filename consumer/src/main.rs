@@ -3,7 +3,10 @@ use alloy::sol;
 use app_context::Server;
 use clap::Parser;
 use error::ConsumerError;
+use prometheus::{gather, Encoder, TextEncoder};
 use serde::{Deserialize, Serialize};
+use std::convert::Infallible;
+use warp::Filter;
 
 mod app_context;
 mod config;
@@ -49,11 +52,31 @@ pub struct ConsumerArgs {
     mode: String,
 }
 
+async fn serve_metrics() -> Result<impl warp::Reply, Infallible> {
+    let encoder = TextEncoder::new();
+    let metric_families = gather();
+    let mut buffer = Vec::new();
+    encoder.encode(&metric_families, &mut buffer).unwrap();
+    Ok(warp::reply::with_header(
+        buffer,
+        "Content-Type",
+        encoder.format_type(),
+    ))
+}
+
 /// This is the main function that starts the consumer. It reads the `.env`
 /// file, parses the environment variables and the CLI arguments. It then
 /// builds the server and starts the consumer loop.
 #[tokio::main]
 async fn main() -> Result<(), ConsumerError> {
+    let metrics_route = warp::path!("metrics")
+        .and(warp::get())
+        .and_then(serve_metrics);
+
+    tokio::spawn(async move {
+        warp::serve(metrics_route).run(([0, 0, 0, 0], 3001)).await;
+    });
+
     // Initialize the server and get basic context
     let init = Server::initialize().await?;
     // Build the server with the basic context
