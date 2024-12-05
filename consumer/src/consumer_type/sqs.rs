@@ -25,10 +25,7 @@ impl Sqs {
     }
 
     /// This function returns an [`aws_sdk_sqs::Client`] based on the
-    /// environment variables and feature flag. Note that if you are
-    /// running the local development environment and wants to connect
-    /// to the local SQS, you need to turn on the `local` flag
-    #[allow(unused_variables)]
+    /// environment variables
     pub async fn get_aws_client(data: ServerInitialize) -> AWSClient {
         let shared_config = if data.args.local {
             info!("Running SQS locally {:?}", data.env.localstack_url);
