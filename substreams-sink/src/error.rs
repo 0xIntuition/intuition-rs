@@ -16,6 +16,8 @@ pub enum SubstreamError {
     BlockNotFound,
     #[error(transparent)]
     Envy(#[from] envy::Error),
+    #[error("Localstack URL not found")]
+    LocalstackUrlNotFound,
     #[error(transparent)]
     Model(#[from] models::error::ModelError),
     #[error(transparent)]

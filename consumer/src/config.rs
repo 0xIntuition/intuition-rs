@@ -5,7 +5,7 @@ use serde::Deserialize;
 
 #[derive(Clone, Deserialize, Debug)]
 pub struct Env {
-    pub consumer_metrics_api_port: u16,
+    pub consumer_metrics_api_port: Option<u16>,
     pub consumer_type: String,
     pub database_url: String,
     pub decoded_logs_queue_url: Option<String>,

@@ -81,7 +81,10 @@ async fn main() -> Result<(), ConsumerError> {
 
     tokio::spawn(async move {
         warp::serve(metrics_route)
-            .run(([0, 0, 0, 0], init.env.consumer_metrics_api_port))
+            .run((
+                [0, 0, 0, 0],
+                init.env.consumer_metrics_api_port.unwrap_or(3002),
+            ))
             .await;
     });
 
