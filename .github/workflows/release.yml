@@ -41,10 +41,10 @@ jobs:
           context: .
           file: consumer/Dockerfile.production
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: |
             ${{ env.REGISTRY }}/0xintuition/consumer:${{ steps.meta.outputs.version }}
             ${{ env.REGISTRY }}/0xintuition/consumer:latest
-
           build-args: |
             RUST_VERSION=${{ env.RUST_VERSION }}
           cache-from: type=gha
@@ -56,10 +56,10 @@ jobs:
           context: .
           file: image-guard/Dockerfile.production
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: |
             ${{ env.REGISTRY }}/0xintuition/image-guard:${{ steps.meta.outputs.version }}
             ${{ env.REGISTRY }}/0xintuition/image-guard:latest
-
           build-args: |
             RUST_VERSION=${{ env.RUST_VERSION }}
           cache-from: type=gha
@@ -71,10 +71,10 @@ jobs:
           context: .
           file: substreams-sink/Dockerfile.production
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: |
             ${{ env.REGISTRY }}/0xintuition/substreams-sink:${{ steps.meta.outputs.version }}
             ${{ env.REGISTRY }}/0xintuition/substreams-sink:latest
-
           build-args: |
             RUST_VERSION=${{ env.RUST_VERSION }}
           cache-from: type=gha
@@ -86,10 +86,10 @@ jobs:
           context: .
           file: hasura/Dockerfile
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: |
             ${{ env.REGISTRY }}/0xintuition/hasura:${{ steps.meta.outputs.version }}
             ${{ env.REGISTRY }}/0xintuition/hasura:latest
-
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
