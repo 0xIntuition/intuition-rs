@@ -31,7 +31,7 @@ services:
   
   resolver_consumer:
     image: consumer:latest
-    command: ./consumer --mode resolver
+    command: ./consumer --mode resolver --local
     environment:
       AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
       AWS_REGION: $AWS_REGION
@@ -62,7 +62,7 @@ services:
   
   ipfs_upload_consumer:
     image: consumer:latest
-    command: ./consumer --mode ipfs-upload
+    command: ./consumer --mode ipfs-upload --local
     environment:
       AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
       AWS_REGION: $AWS_REGION
@@ -90,11 +90,12 @@ services:
   decoded_consumer:
     container_name: decoded_consumer
     image: consumer:latest
-    command: ./consumer --mode decoded
+    command: ./consumer --mode decoded --local
     environment:
       AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
       AWS_REGION: $AWS_REGION
       AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
+      CONSUMER_METRICS_API_PORT: $CONSUMER_METRICS_API_PORT
       CONSUMER_TYPE: $CONSUMER_TYPE
       DATABASE_URL: $DATABASE_URL
       DECODED_LOGS_QUEUE_URL: $DECODED_LOGS_QUEUE_URL
@@ -116,7 +117,7 @@ services:
   raw_consumer:
     container_name: raw_consumer
     image: consumer:latest
-    command: ./consumer --mode raw
+    command: ./consumer --mode raw --local
     environment:
       AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
       AWS_REGION: $AWS_REGION
@@ -269,7 +270,7 @@ services:
       SUBSTREAMS_MODULE: $SUBSTREAMS_MODULE
       SUBSTREAMS_START_BLOCK: $SUBSTREAMS_START_BLOCK
       SUBSTREAMS_API_TOKEN: $SUBSTREAMS_API_TOKEN
-    command: ["$SUBSTREAMS_ENDPOINT", "$SUBSTREAMS_PACKAGE", "$SUBSTREAMS_MODULE", "$SUBSTREAMS_START_BLOCK:"]
+    command: ["$SUBSTREAMS_ENDPOINT", "$SUBSTREAMS_PACKAGE", "$SUBSTREAMS_MODULE", "$SUBSTREAMS_START_BLOCK:", "--local", "true"]
     depends_on:
       sqs:
         condition: service_healthy

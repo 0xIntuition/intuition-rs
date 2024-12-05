@@ -91,11 +91,11 @@ If you want to run the local decoded consumer connected to the real decoded SQS 
 
 If you want to run the local raw consumer connected to the local SQS queue you can run
 
-`RUST_LOG=info cargo run --bin consumer --features local --mode raw` (or `cargo make raw-consumer-local`)
+`RUST_LOG=info cargo run --bin consumer --features local --mode raw --local` (or `cargo make raw-consumer-local`)
 
 If you want to run the local decoded consumer connected to the local SQS queue you can run
 
-`RUST_LOG=info cargo run --bin consumer --features local --mode decoded` (or `cargo make decoded-consumer-local`)
+`RUST_LOG=info cargo run --bin consumer --features local --mode decoded --local` (or `cargo make decoded-consumer-local`)
 
 We use feature flags to differentiate between the local and the remote execution environment.
 

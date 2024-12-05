@@ -50,6 +50,8 @@ sol! {
 pub struct ConsumerArgs {
     #[arg(short, long)]
     mode: String,
+    #[arg(short, long, default_value_t = false)]
+    local: bool,
 }
 
 async fn serve_metrics() -> Result<impl warp::Reply, Infallible> {
@@ -69,16 +71,20 @@ async fn serve_metrics() -> Result<impl warp::Reply, Infallible> {
 /// builds the server and starts the consumer loop.
 #[tokio::main]
 async fn main() -> Result<(), ConsumerError> {
+    // Initialize the server and get basic context
+    let init = Server::initialize().await?;
+
+    // Serve the metrics endpoint
     let metrics_route = warp::path!("metrics")
         .and(warp::get())
         .and_then(serve_metrics);
 
     tokio::spawn(async move {
-        warp::serve(metrics_route).run(([0, 0, 0, 0], 3001)).await;
+        warp::serve(metrics_route)
+            .run(([0, 0, 0, 0], init.env.consumer_metrics_api_port))
+            .await;
     });
 
-    // Initialize the server and get basic context
-    let init = Server::initialize().await?;
     // Build the server with the basic context
     let server = Server::new(init).await?;
     // Start processing messages

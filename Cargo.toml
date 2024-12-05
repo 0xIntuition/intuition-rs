@@ -3,7 +3,7 @@ resolver = "2"
 members = ["cli", "consumer", "histoflux", "image-guard", "models", "shared-utils", "substreams-sink"]
 
 [workspace.dependencies]
-alloy = { version = "0.6.4", features = ["full"] }
+alloy = { version = "0.7.3", features = ["full"] }
 async-trait = "0.1.83"
 aws-config = { version = "1.0.1", features = ["behavior-version-latest"] }
 aws-sdk-sqs = { version = "1.3.0" }

@@ -1,4 +1,3 @@
-#[cfg(feature = "local")]
 use crate::config::LOCALSTACK_URL;
 use crate::{
     error::SubstreamError,
@@ -31,12 +30,12 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub async fn new(env: &Env) -> Self {
+    pub async fn new(env: &Env, local: Option<bool>) -> Self {
         Self {
             pg_pool: connect_to_db(&env.database_url).await.unwrap_or_else(|e| {
                 panic!("Failed to connect to database: {}", e);
             }),
-            aws_sqs_client: Self::get_aws_client().await,
+            aws_sqs_client: Self::get_aws_client(local).await,
             raw_consumer_queue_url: env.raw_consumer_queue_url.clone(),
         }
     }
@@ -45,15 +44,16 @@ impl AppState {
     /// running the local development environment and wants to connect
     /// to the local SQS, you need to turn on the `local` flag
     #[allow(unused_variables)]
-    pub async fn get_aws_client() -> AWSClient {
+    pub async fn get_aws_client(local: Option<bool>) -> AWSClient {
         let shared_config = aws_config::from_env().load().await;
         // When running locally we need to build the client differently
         // by providing the `endpoint_url`
-        #[cfg(feature = "local")]
-        let shared_config = aws_config::from_env()
-            .endpoint_url(LOCALSTACK_URL)
-            .load()
-            .await;
+        if let Some(true) = local {
+            let shared_config = aws_config::from_env()
+                .endpoint_url(LOCALSTACK_URL)
+                .load()
+                .await;
+        }
 
         AWSClient::new(&shared_config)
     }
@@ -143,11 +143,11 @@ pub struct App {
 }
 
 impl App {
-    pub async fn new() -> Result<Self, SubstreamError> {
+    pub async fn new(local: Option<bool>) -> Result<Self, SubstreamError> {
         // Initialize the environment variables
         let env = Self::initialize().await?;
         // Create the app state
-        let app_state = AppState::new(&env).await;
+        let app_state = AppState::new(&env, local).await;
         Ok(Self { env, app_state })
     }
     /// Initialize the environment variables.

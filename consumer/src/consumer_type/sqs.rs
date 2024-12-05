@@ -1,4 +1,7 @@
-use crate::{error::ConsumerError, mode::types::ConsumerMode, traits::BasicConsumer};
+use crate::{
+    app_context::ServerInitialize, error::ConsumerError, mode::types::ConsumerMode,
+    traits::BasicConsumer,
+};
 use async_trait::async_trait;
 use aws_sdk_sqs::{
     operation::receive_message::ReceiveMessageOutput, types::Message, Client as AWSClient,
@@ -13,9 +16,9 @@ pub struct Sqs {
 }
 
 impl Sqs {
-    pub async fn new(input_queue: String, output_queue: String, localstack_url: String) -> Self {
+    pub async fn new(input_queue: String, output_queue: String, data: ServerInitialize) -> Self {
         Self {
-            client: Self::get_aws_client(localstack_url).await,
+            client: Self::get_aws_client(data).await,
             input_queue: Arc::new(input_queue),
             output_queue: Arc::new(output_queue),
         }
@@ -26,15 +29,22 @@ impl Sqs {
     /// running the local development environment and wants to connect
     /// to the local SQS, you need to turn on the `local` flag
     #[allow(unused_variables)]
-    pub async fn get_aws_client(localstack_url: String) -> AWSClient {
-        let shared_config = aws_config::from_env().load().await;
-        // When running locally we need to build the client differently
-        // by providing the `endpoint_url`
-        #[cfg(feature = "local")]
-        let shared_config = aws_config::from_env()
-            .endpoint_url(localstack_url)
-            .load()
-            .await;
+    pub async fn get_aws_client(data: ServerInitialize) -> AWSClient {
+        let shared_config = if data.args.local {
+            info!("Running SQS locally {:?}", data.env.localstack_url);
+            let localstack_url = data
+                .env
+                .localstack_url
+                .ok_or(ConsumerError::LocalstackUrlNotFound)
+                .expect("Localstack URL not found");
+
+            aws_config::from_env()
+                .endpoint_url(localstack_url)
+                .load()
+                .await
+        } else {
+            aws_config::from_env().load().await
+        };
 
         AWSClient::new(&shared_config)
     }
