@@ -9,11 +9,10 @@ args = [
     "run",
     "--bin",
     "consumer",
-    "--features",
-    "local",
     "--",
     "--mode",
     "raw",
+    "--local"
 ]
 
 # Run the DECODED SQS consumer connected to the test queue in test mode
@@ -24,11 +23,10 @@ args = [
     "run",
     "--bin",
     "consumer",
-    "--features",
-    "local",
     "--",
     "--mode",
     "decoded",
+    "--local"
 ]
 
 # Run the RESOLVER SQS consumer connected to the test queue in test mode
@@ -39,11 +37,10 @@ args = [
     "run",
     "--bin",
     "consumer",
-    "--features",
-    "local",
     "--",
     "--mode",
     "resolver",
+    "--local"
 ]
 
 # Remove docker volumes

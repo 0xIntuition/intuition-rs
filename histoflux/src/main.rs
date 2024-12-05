@@ -16,6 +16,9 @@ pub struct Args {
     /// The name of the queue to feed
     #[arg(short, long)]
     queue_name: String,
+    /// The local flag
+    #[arg(long)]
+    local: Option<bool>,
 }
 
 #[tokio::main]

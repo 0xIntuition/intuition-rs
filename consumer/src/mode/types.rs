@@ -94,9 +94,7 @@ impl ConsumerMode {
         output_queue: String,
     ) -> Result<Arc<dyn BasicConsumer>, ConsumerError> {
         match ConsumerType::from_str(&data.env.consumer_type)? {
-            ConsumerType::Sqs => Ok(Arc::new(
-                Sqs::new(input_queue, output_queue, data.env.localstack_url.clone()).await,
-            )),
+            ConsumerType::Sqs => Ok(Arc::new(Sqs::new(input_queue, output_queue, data).await)),
         }
     }
 

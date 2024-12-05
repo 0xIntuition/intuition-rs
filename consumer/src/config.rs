@@ -5,6 +5,7 @@ use serde::Deserialize;
 
 #[derive(Clone, Deserialize, Debug)]
 pub struct Env {
+    pub consumer_metrics_api_port: Option<u16>,
     pub consumer_type: String,
     pub database_url: String,
     pub decoded_logs_queue_url: Option<String>,
@@ -15,7 +16,7 @@ pub struct Env {
     pub ipfs_gateway_url: Option<String>,
     pub ipfs_upload_queue_url: Option<String>,
     pub ipfs_upload_url: Option<String>,
-    pub localstack_url: String,
+    pub localstack_url: Option<String>,
     pub pinata_api_jwt: Option<String>,
     pub raw_consumer_queue_url: Option<String>,
     pub resolver_queue_url: Option<String>,

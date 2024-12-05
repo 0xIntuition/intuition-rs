@@ -33,7 +33,3 @@ tokio-retry = "0.3"
 tokio-stream = { version = "0.1", features = ["sync"] }
 tokio.workspace = true
 tonic = { version = "0.12", features = ["gzip", "tls-roots"] }
-
-[features]
-local = []
-default = []
