@@ -1,0 +1,83 @@
+name: Release and Publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  REGISTRY: ghcr.io
+  OWNER: ${{ github.repository_owner }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Build and push Consumer image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: consumer/Dockerfile.production
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.OWNER }}/consumer:${{ steps.meta.outputs.version }},${{ env.REGISTRY }}/${{ env.OWNER }}/consumer:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push Image Guard
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: image-guard/Dockerfile.production
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.OWNER }}/image-guard:${{ steps.meta.outputs.version }},${{ env.REGISTRY }}/${{ env.OWNER }}/image-guard:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push Substreams Sink
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: substreams-sink/Dockerfile.production
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.OWNER }}/substreams-sink:${{ steps.meta.outputs.version }},${{ env.REGISTRY }}/${{ env.OWNER }}/substreams-sink:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push Hasura
+        uses: docker/build-push-action@v5
+        with:
+          context: hasura
+          file: hasura/Dockerfile
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.OWNER }}/hasura:${{ steps.meta.outputs.version }},${{ env.REGISTRY }}/${{ env.OWNER }}/hasura:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release ${{ steps.meta.outputs.version }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true 
