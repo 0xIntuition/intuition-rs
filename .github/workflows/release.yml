@@ -8,6 +8,7 @@ on:
 env:
   REGISTRY: ghcr.io
   OWNER: ${{ github.repository_owner }}
+  RUST_VERSION: 1.75.0
 
 jobs:
   build-and-push:
@@ -41,6 +42,8 @@ jobs:
           file: consumer/Dockerfile.production
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.OWNER }}/consumer:${{ steps.meta.outputs.version }},${{ env.REGISTRY }}/${{ env.OWNER }}/consumer:latest
+          build-args: |
+            RUST_VERSION=${{ env.RUST_VERSION }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -51,6 +54,8 @@ jobs:
           file: image-guard/Dockerfile.production
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.OWNER }}/image-guard:${{ steps.meta.outputs.version }},${{ env.REGISTRY }}/${{ env.OWNER }}/image-guard:latest
+          build-args: |
+            RUST_VERSION=${{ env.RUST_VERSION }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -61,6 +66,8 @@ jobs:
           file: substreams-sink/Dockerfile.production
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.OWNER }}/substreams-sink:${{ steps.meta.outputs.version }},${{ env.REGISTRY }}/${{ env.OWNER }}/substreams-sink:latest
+          build-args: |
+            RUST_VERSION=${{ env.RUST_VERSION }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
