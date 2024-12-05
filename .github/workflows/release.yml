@@ -60,6 +60,7 @@ jobs:
             ${{ env.REGISTRY }}/0xintuition/image-guard:${{ steps.meta.outputs.version }}
             ${{ env.REGISTRY }}/0xintuition/image-guard:latest
 
+
           build-args: |
             RUST_VERSION=${{ env.RUST_VERSION }}
           cache-from: type=gha
@@ -75,6 +76,7 @@ jobs:
             ${{ env.REGISTRY }}/0xintuition/substreams-sink:${{ steps.meta.outputs.version }}
             ${{ env.REGISTRY }}/0xintuition/substreams-sink:latest
 
+
           build-args: |
             RUST_VERSION=${{ env.RUST_VERSION }}
           cache-from: type=gha
@@ -89,6 +91,7 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/0xintuition/hasura:${{ steps.meta.outputs.version }}
             ${{ env.REGISTRY }}/0xintuition/hasura:latest
+
 
           cache-from: type=gha
           cache-to: type=gha,mode=max
