@@ -42,8 +42,8 @@ jobs:
           file: consumer/Dockerfile.production
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ format(env.OWNER, 'lower') }}/consumer:${{ steps.meta.outputs.version }}
-            ${{ env.REGISTRY }}/${{ format(env.OWNER, 'lower') }}/consumer:latest
+            ${{ env.REGISTRY }}/0xintuition/consumer:${{ steps.meta.outputs.version }}
+            ${{ env.REGISTRY }}/0xintuition/consumer:latest
 
           build-args: |
             RUST_VERSION=${{ env.RUST_VERSION }}
@@ -57,8 +57,9 @@ jobs:
           file: image-guard/Dockerfile.production
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ format(github.repository_owner, 'lower') }}/image-guard:${{ steps.meta.outputs.version }}
-            ${{ env.REGISTRY }}/${{ format(github.repository_owner, 'lower') }}/image-guard:latest
+            ${{ env.REGISTRY }}/0xintuition/image-guard:${{ steps.meta.outputs.version }}
+            ${{ env.REGISTRY }}/0xintuition/image-guard:latest
+
 
           build-args: |
             RUST_VERSION=${{ env.RUST_VERSION }}
@@ -72,8 +73,9 @@ jobs:
           file: substreams-sink/Dockerfile.production
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ format(github.repository_owner, 'lower') }}/substreams-sink:${{ steps.meta.outputs.version }}
-            ${{ env.REGISTRY }}/${{ format(github.repository_owner, 'lower') }}/substreams-sink:latest
+            ${{ env.REGISTRY }}/0xintuition/substreams-sink:${{ steps.meta.outputs.version }}
+            ${{ env.REGISTRY }}/0xintuition/substreams-sink:latest
+
 
           build-args: |
             RUST_VERSION=${{ env.RUST_VERSION }}
@@ -87,8 +89,9 @@ jobs:
           file: hasura/Dockerfile
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ format(github.repository_owner, 'lower') }}/hasura:${{ steps.meta.outputs.version }}
-            ${{ env.REGISTRY }}/${{ format(github.repository_owner, 'lower') }}/hasura:latest
+            ${{ env.REGISTRY }}/0xintuition/hasura:${{ steps.meta.outputs.version }}
+            ${{ env.REGISTRY }}/0xintuition/hasura:latest
+
 
           cache-from: type=gha
           cache-to: type=gha,mode=max
