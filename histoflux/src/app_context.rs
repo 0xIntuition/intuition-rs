@@ -1,3 +1,4 @@
+#[cfg(feature = "local")]
 use crate::config::LOCALSTACK_URL;
 use crate::error::HistoFluxError;
 

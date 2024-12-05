@@ -17,4 +17,6 @@ log.workspace = true
 thiserror.workspace = true
 env_logger.workspace = true
 dotenvy.workspace = true
-
+[features]
+local = []
+default = []
