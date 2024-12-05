@@ -112,7 +112,7 @@ services:
     volumes:
       - ~/.aws/:/root/.aws:ro
     ports:
-      - 3001:3001
+      - 3002:3002
     
   raw_consumer:
     container_name: raw_consumer
