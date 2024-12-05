@@ -1,0 +1,23 @@
+groups:
+- name: example
+  rules:
+  - record: axum_http_requests_total_500
+    expr: axum_http_requests_total{status="500"}
+  - record: axum_http_requests_total_200
+    expr: axum_http_requests_total{status="200"}
+  - record: axum_http_requests_pending
+    expr: axum_http_requests_pending
+  - record: axum_http_requests_total
+    expr: axum_http_requests_total
+  - record: axum_http_requests_duration_seconds_bucket
+    expr: axum_http_requests_duration_seconds_bucket
+  - record: axum_http_requests_duration_seconds_count
+    expr: axum_http_requests_duration_seconds_count
+  - record: axum_http_requests_duration_seconds_sum
+    expr: axum_http_requests_duration_seconds_sum
+  - record: event_processing_duration_seconds_bucket_atom_created
+    expr: event_processing_duration_seconds_bucket{event_type="AtomCreated",le="+Inf"}
+  - record: event_processing_duration_seconds_sum_atom_created
+    expr: event_processing_duration_seconds_sum{event_type="AtomCreated"}
+  - record: event_processing_duration_seconds_count_atom_created 
+    expr: event_processing_duration_seconds_count{event_type="AtomCreated"}

@@ -1,5 +1,7 @@
 use crate::{
-    error::ConsumerError, mode::types::ResolverConsumerContext, ENSName::ENSNameInstance,
+    error::ConsumerError,
+    mode::{ipfs_upload::types::IpfsUploadMessage, types::ResolverConsumerContext},
+    ENSName::ENSNameInstance,
     ENSRegistry::ENSRegistryInstance,
 };
 use alloy::{
@@ -7,9 +9,8 @@ use alloy::{
     providers::RootProvider,
     transports::http::Http,
 };
-use log::{info, warn};
+use log::info;
 use reqwest::Client;
-use shared_utils::image::Image;
 
 /// This struct represents the ENS name and avatar for an address.
 #[derive(Debug)]
@@ -54,20 +55,14 @@ impl Ens {
         match reqwest::get(&url).await {
             Ok(response) => {
                 if response.status() == 200 {
-                    let uploaded_image = Image::download_image_classify_and_store(
-                        url.clone(),
-                        consumer_context.reqwest_client.clone(),
-                        consumer_context.image_guard_url.clone(),
-                    )
-                    .await;
-
-                    match uploaded_image {
-                        Ok(_) => Ok(Some(url)),
-                        Err(e) => {
-                            warn!("Failed to upload image: {}", e);
-                            Ok(None)
-                        }
-                    }
+                    info!("Sending image to IPFS upload consumer: {}", url);
+                    consumer_context
+                        .client
+                        .send_message(serde_json::to_string(&IpfsUploadMessage {
+                            image: url.clone(),
+                        })?)
+                        .await?;
+                    Ok(Some(url))
                 } else {
                     Ok(None)
                 }

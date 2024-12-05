@@ -11,7 +11,7 @@ use crate::{
     schemas::types::DecodedMessage,
     EthMultiVault::AtomCreated,
 };
-use alloy::{eips::BlockId, primitives::U256, rpc::types::error};
+use alloy::{eips::BlockId, primitives::U256};
 use log::{info, warn};
 use models::{
     account::{Account, AccountType},

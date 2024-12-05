@@ -13,6 +13,7 @@ pub struct Env {
     pub indexing_source: Option<String>,
     pub intuition_contract_address: Option<String>,
     pub ipfs_gateway_url: Option<String>,
+    pub ipfs_upload_queue_url: Option<String>,
     pub ipfs_upload_url: Option<String>,
     pub localstack_url: String,
     pub pinata_api_jwt: Option<String>,

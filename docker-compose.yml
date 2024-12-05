@@ -42,6 +42,7 @@ services:
       IMAGE_GUARD_URL: $IMAGE_GUARD_URL
       IPFS_GATEWAY_URL: $IPFS_GATEWAY_URL
       IPFS_UPLOAD_URL: $IPFS_UPLOAD_URL
+      IPFS_UPLOAD_QUEUE_URL: $IPFS_UPLOAD_QUEUE_URL
       LOCALSTACK_URL: $LOCALSTACK_URL
       PINATA_API_JWT: $PINATA_API_JWT
       PINATA_GATEWAY_TOKEN: $PINATA_GATEWAY_TOKEN
@@ -57,7 +58,34 @@ services:
     volumes:
       - ~/.aws/:/root/.aws:ro
     deploy:
-      replicas: 3
+      replicas: 2
+  
+  ipfs_upload_consumer:
+    image: consumer:latest
+    command: ./consumer --mode ipfs-upload
+    environment:
+      AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
+      AWS_REGION: $AWS_REGION
+      AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
+      CONSUMER_TYPE: $CONSUMER_TYPE
+      DATABASE_URL: $DATABASE_URL
+      IMAGE_GUARD_URL: $IMAGE_GUARD_URL
+      IPFS_GATEWAY_URL: $IPFS_GATEWAY_URL
+      IPFS_UPLOAD_URL: $IPFS_UPLOAD_URL
+      LOCALSTACK_URL: $LOCALSTACK_URL
+      PINATA_API_JWT: $PINATA_API_JWT
+      PINATA_GATEWAY_TOKEN: $PINATA_GATEWAY_TOKEN
+      PG_MIN_CONNECTIONS: $PG_MIN_CONNECTIONS
+      IPFS_UPLOAD_QUEUE_URL: $IPFS_UPLOAD_QUEUE_URL
+      RUST_LOG: $RUST_LOG
+    restart: always
+    depends_on:
+      sqs:
+        condition: service_healthy
+    volumes:
+      - ~/.aws/:/root/.aws:ro
+    deploy:
+      replicas: 2
     
   decoded_consumer:
     container_name: decoded_consumer
@@ -82,6 +110,8 @@ services:
         condition: service_healthy
     volumes:
       - ~/.aws/:/root/.aws:ro
+    ports:
+      - 3001:3001
     
   raw_consumer:
     container_name: raw_consumer
@@ -250,7 +280,7 @@ services:
 
   hasura-migrations:
     container_name: hasura-migrations
-    image: leboiko/hasura-migrations:0.1.0
+    image: hasura-migrations:latest
     environment:
       HASURA_GRAPHQL_ENDPOINT: $HASURA_GRAPHQL_ENDPOINT
       HASURA_GRAPHQL_ADMIN_SECRET: $HASURA_GRAPHQL_ADMIN_SECRET
@@ -267,7 +297,9 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus/alert.rules:/etc/prometheus/alert.rules
+      - ./prometheus/recording.rules:/etc/prometheus/recording.rules
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
     depends_on:
