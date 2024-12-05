@@ -8,7 +8,7 @@ on:
 env:
   REGISTRY: ghcr.io
   OWNER: ${{ github.repository_owner }}
-  RUST_VERSION: 1.75.0
+  RUST_VERSION: 1.81.0
 
 jobs:
   build-and-push:
@@ -41,7 +41,10 @@ jobs:
           context: .
           file: consumer/Dockerfile.production
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.OWNER }}/consumer:${{ steps.meta.outputs.version }},${{ env.REGISTRY }}/${{ env.OWNER }}/consumer:latest
+          tags: |
+            ${{ env.REGISTRY }}/${{ format(env.OWNER, 'lower') }}/consumer:${{ steps.meta.outputs.version }}
+            ${{ env.REGISTRY }}/${{ format(env.OWNER, 'lower') }}/consumer:latest
+
           build-args: |
             RUST_VERSION=${{ env.RUST_VERSION }}
           cache-from: type=gha
@@ -53,7 +56,10 @@ jobs:
           context: .
           file: image-guard/Dockerfile.production
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.OWNER }}/image-guard:${{ steps.meta.outputs.version }},${{ env.REGISTRY }}/${{ env.OWNER }}/image-guard:latest
+          tags: |
+            ${{ env.REGISTRY }}/${{ format(github.repository_owner, 'lower') }}/image-guard:${{ steps.meta.outputs.version }}
+            ${{ env.REGISTRY }}/${{ format(github.repository_owner, 'lower') }}/image-guard:latest
+
           build-args: |
             RUST_VERSION=${{ env.RUST_VERSION }}
           cache-from: type=gha
@@ -65,7 +71,10 @@ jobs:
           context: .
           file: substreams-sink/Dockerfile.production
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.OWNER }}/substreams-sink:${{ steps.meta.outputs.version }},${{ env.REGISTRY }}/${{ env.OWNER }}/substreams-sink:latest
+          tags: |
+            ${{ env.REGISTRY }}/${{ format(github.repository_owner, 'lower') }}/substreams-sink:${{ steps.meta.outputs.version }}
+            ${{ env.REGISTRY }}/${{ format(github.repository_owner, 'lower') }}/substreams-sink:latest
+
           build-args: |
             RUST_VERSION=${{ env.RUST_VERSION }}
           cache-from: type=gha
@@ -77,7 +86,10 @@ jobs:
           context: hasura
           file: hasura/Dockerfile
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.OWNER }}/hasura:${{ steps.meta.outputs.version }},${{ env.REGISTRY }}/${{ env.OWNER }}/hasura:latest
+          tags: |
+            ${{ env.REGISTRY }}/${{ format(github.repository_owner, 'lower') }}/hasura:${{ steps.meta.outputs.version }}
+            ${{ env.REGISTRY }}/${{ format(github.repository_owner, 'lower') }}/hasura:latest
+
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
