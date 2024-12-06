@@ -80,7 +80,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Build and push Hasura
+      - name: Build and push Hasura migrations
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -90,6 +90,21 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/0xintuition/hasura-migrations:${{ steps.meta.outputs.version }}
             ${{ env.REGISTRY }}/0xintuition/hasura-migrations:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push CLI TUI image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: cli/Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            ${{ env.REGISTRY }}/0xintuition/cli:${{ steps.meta.outputs.version }}
+            ${{ env.REGISTRY }}/0xintuition/cli:latest
+          build-args: |
+            RUST_VERSION=${{ env.RUST_VERSION }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
