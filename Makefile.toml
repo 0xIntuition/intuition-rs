@@ -56,7 +56,7 @@ args = ["compose", "up", "-d", "--force-recreate"]
 # Build the docker image for the hasura migrations
 [tasks.build-image-hasura-migrations]
 command = "docker"
-args = ["build", "-t", "hasura-migrations:latest", "-f", "hasura/Dockerfile", "."]
+args = ["build", "-t", "ghcr.io/0xintuition/hasura-migrations:latest", "-f", "hasura/Dockerfile", "."]
 
 # Migrate the database
 [tasks.migrate-database]
@@ -112,12 +112,12 @@ args = [
 # Build the docker image for the consumer service
 [tasks.build-docker]
 command = "docker"
-args = ["build", "-t", "consumer:latest", "-f", "consumer/Dockerfile", "."]
+args = ["build", "-t", "ghcr.io/0xintuition/consumer:latest", "-f", "consumer/Dockerfile", "."]
 
 # Build the docker image for the api service
 [tasks.build-image-guard-docker]
 command = "docker"
-args = ["build", "-t", "image-guard:latest", "-f", "image-guard/Dockerfile", "."]
+args = ["build", "-t", "ghcr.io/0xintuition/image-guard:latest", "-f", "image-guard/Dockerfile", "."]
 
 
 # Simply format and lint checking with `cargo clippy` for all targets
@@ -130,4 +130,4 @@ args = ["clippy", "--all-features", "--all-targets", "--workspace", "--", "-Dwar
 # Build the docker image for the substreams sink
 [tasks.build-image-substreams-sink]
 command = "docker"
-args = ["build", "-t", "substreams-sink:latest", "-f", "substreams-sink/Dockerfile", "."]
+args = ["build", "-t", "ghcr.io/0xintuition/substreams-sink:latest", "-f", "substreams-sink/Dockerfile", "."]

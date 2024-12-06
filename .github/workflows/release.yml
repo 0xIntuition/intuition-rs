@@ -88,8 +88,8 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ${{ env.REGISTRY }}/0xintuition/hasura:${{ steps.meta.outputs.version }}
-            ${{ env.REGISTRY }}/0xintuition/hasura:latest
+            ${{ env.REGISTRY }}/0xintuition/hasura-migrations:${{ steps.meta.outputs.version }}
+            ${{ env.REGISTRY }}/0xintuition/hasura-migrations:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
