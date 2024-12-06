@@ -23,3 +23,5 @@ groups:
     expr: event_processing_duration_seconds_count{event_type="AtomCreated"}
   - record: event_processing_duration_seconds_avg
     expr: avg(rate(event_processing_duration_seconds_sum[5m])) by (event_type) / avg(rate(event_processing_duration_seconds_count[5m])) by (event_type)
+  - record: axum_http_requests_duration_seconds_avg
+    expr: sum(rate(axum_http_requests_duration_seconds_sum[5m])) / sum(rate(axum_http_requests_duration_seconds_count[5m]))

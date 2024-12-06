@@ -3,6 +3,25 @@ use sqlx::{Pool, Postgres};
 
 use crate::types::Env;
 
+#[derive(Clone, PartialEq)]
+pub enum Flag {
+    LocalWithClassification,
+    LocalWithDbOnly,
+    HfClassification,
+}
+
+impl Flag {
+    pub fn enabled(env: &Env) -> Self {
+        if let Some(true) = env.flag_local_with_classification {
+            Flag::LocalWithClassification
+        } else if let Some(true) = env.flag_local_with_db_only {
+            Flag::LocalWithDbOnly
+        } else {
+            Flag::HfClassification
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct AppState {
     pub pg_pool: Pool<Postgres>,
@@ -10,6 +29,7 @@ pub struct AppState {
     pub ipfs_upload_url: String,
     pub ipfs_fetch_url: String,
     pub hf_token: Option<String>,
+    pub flag: Flag,
 }
 
 impl AppState {
@@ -20,6 +40,7 @@ impl AppState {
             ipfs_fetch_url: env.ipfs_gateway_url.clone(),
             ipfs_upload_url: env.ipfs_upload_url.clone(),
             hf_token: env.hf_token.clone(),
+            flag: Flag::enabled(env),
         }
     }
 }

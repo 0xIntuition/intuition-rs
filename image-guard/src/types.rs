@@ -5,10 +5,13 @@ use utoipa::ToSchema;
 pub struct Env {
     pub api_port: u16,
     pub database_url: String,
+    pub flag_hf_classification: Option<bool>,
+    pub hf_token: Option<String>,
     pub ipfs_gateway_url: String,
     pub ipfs_upload_url: String,
+    pub flag_local_with_classification: Option<bool>,
+    pub flag_local_with_db_only: Option<bool>,
     pub pinata_api_jwt: String,
-    pub hf_token: Option<String>,
 }
 
 /// A multipart request with an image
