@@ -37,8 +37,8 @@ aws_secret_access_key = YOUR_SECRET_ACCESS_KEY
 
 There is a `.env.sample` file that you need to use as a template to create the `.env` file. First, you need to set the values for following variables:
 
-* `PINATA_GATEWAY_TOKEN`: You can get the token from [Pinata](https://www.pinata.cloud/keys)
-* `PINATA_API_JWT`: You can get the token from [Pinata](https://www.pinata.cloud/keys)
+* `PINATA_GATEWAY_TOKEN`: You can get the token from [Pinata](https://app.pinata.cloud/developers/gateway-settings)
+* `PINATA_API_JWT`: You can get the token from [Pinata](https://app.pinata.cloud/developers/api-keys)
 * `RPC_URL_MAINNET`: We are currently using Alchemy. You can create new ones using the [Alchemy dashboard](https://dashboard.alchemy.com/)
 * `RPC_URL_BASE_MAINNET`: We are currently using Alchemy. You can create new ones using the [Alchemy dashboard](https://dashboard.alchemy.com/apps)
 * `AWS_ACCESS_KEY_ID`: You can get the values from your [AWS account](https://us-east-1.console.aws.amazon.com/iam/home?region=us-east-1#/users)
@@ -47,6 +47,16 @@ There is a `.env.sample` file that you need to use as a template to create the `
 * `SUBSTREAMS_API_TOKEN`: You can get the token from [Substreams](https://thegraph.market/auth/substreams-devenv)  
 
 After filling all of the variables, you can run the following commands:
+
+### Using published docker images
+
+```
+./start.sh
+```
+
+Later, you can use `./stop.sh` to stop all services or `./restart.sh` to restart all services and clear attached volumes
+
+### Building docker images from source code
 
 ```
 cp .env.sample .env

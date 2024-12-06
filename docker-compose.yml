@@ -12,10 +12,10 @@ services:
     ports:
       - $PG_PORT:$PG_PORT
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $PG_USER -d $PG_DB"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 1s
+      timeout: 5s
+      retries: 10
     
   pgadmin:
     image: dpage/pgadmin4
@@ -30,7 +30,7 @@ services:
       - pgadmin-data:/var/lib/pgadmin
   
   resolver_consumer:
-    image: consumer:latest
+    image: ghcr.io/0xintuition/consumer:latest
     command: ./consumer --mode resolver --local
     environment:
       AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
@@ -61,7 +61,7 @@ services:
       replicas: 2
   
   ipfs_upload_consumer:
-    image: consumer:latest
+    image: ghcr.io/0xintuition/consumer:latest
     command: ./consumer --mode ipfs-upload --local
     environment:
       AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
@@ -89,7 +89,7 @@ services:
     
   decoded_consumer:
     container_name: decoded_consumer
-    image: consumer:latest
+    image: ghcr.io/0xintuition/consumer:latest
     command: ./consumer --mode decoded --local
     environment:
       AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
@@ -116,7 +116,7 @@ services:
     
   raw_consumer:
     container_name: raw_consumer
-    image: consumer:latest
+    image: ghcr.io/0xintuition/consumer:latest
     command: ./consumer --mode raw --local
     environment:
       AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
@@ -164,7 +164,7 @@ services:
     
   api:
     container_name: api
-    image: image-guard:latest
+    image: ghcr.io/0xintuition/image-guard:latest
     environment:
       API_PORT: 3000
       DATABASE_URL: $DATABASE_URL
@@ -255,7 +255,7 @@ services:
 
   substreams-sink:
     container_name: substreams-sink
-    image: substreams-sink:latest
+    image: ghcr.io/0xintuition/substreams-sink:latest
     restart: always
     entrypoint: ["./substreams-sink"]
     environment:
@@ -281,7 +281,7 @@ services:
 
   hasura-migrations:
     container_name: hasura-migrations
-    image: hasura-migrations:latest
+    image: ghcr.io/0xintuition/hasura-migrations:latest
     environment:
       HASURA_GRAPHQL_ENDPOINT: $HASURA_GRAPHQL_ENDPOINT
       HASURA_GRAPHQL_ADMIN_SECRET: $HASURA_GRAPHQL_ADMIN_SECRET
@@ -305,6 +305,16 @@ services:
       - '--config.file=/etc/prometheus/prometheus.yml'
     depends_on:
       - api
+  cli:
+    container_name: cli
+    image: ghcr.io/0xintuition/cli:latest
+    environment:
+      INTUITION_URL: http://graphql-engine:8080/v1/graphql
+      RUST_LOG: info
+      TERM: xterm-256color
+    command: ["cli"]
+    stdin_open: true  # docker run -i
+    tty: true        # docker run -t
 
 networks:
   intuition-be:
