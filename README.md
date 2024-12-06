@@ -48,6 +48,16 @@ There is a `.env.sample` file that you need to use as a template to create the `
 
 After filling all of the variables, you can run the following commands:
 
+### Using published docker images
+
+```
+./start.sh
+```
+
+Later, you can use `./stop.sh` to stop all services or `./restart.sh` to restart all services and clear attached volumes
+
+### Building docker images from source code
+
 ```
 cp .env.sample .env
 source .env
