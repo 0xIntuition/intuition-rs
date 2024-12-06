@@ -305,16 +305,7 @@ services:
       - '--config.file=/etc/prometheus/prometheus.yml'
     depends_on:
       - api
-  cli:
-    container_name: cli
-    image: ghcr.io/0xintuition/cli:latest
-    environment:
-      INTUITION_URL: http://graphql-engine:8080/v1/graphql
-      RUST_LOG: info
-      TERM: xterm-256color
-    command: ["cli"]
-    stdin_open: true  # docker run -i
-    tty: true        # docker run -t
+
 
 networks:
   intuition-be:

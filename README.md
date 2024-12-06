@@ -54,6 +54,12 @@ After filling all of the variables, you can run the following commands:
 ./start.sh
 ```
 
+#### Runing cli tool to verify latest data
+
+```
+./cli.sh
+```
+
 Later, you can use `./stop.sh` to stop all services or `./restart.sh` to restart all services and clear attached volumes
 
 ### Building docker images from source code
