@@ -15,7 +15,7 @@ COPY . .
 
 # Build the specific package
 ENV SQLX_OFFLINE=true
-RUN cargo build --release -p image-guard --no-default-features --features local_with_classification
+RUN cargo build --release -p image-guard
 
 
 # Runtime stage

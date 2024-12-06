@@ -1,6 +1,7 @@
 pub mod upload_image;
 pub mod upload_image_from_url;
 
+use crate::state::Flag;
 use crate::types::{ClassificationScore, ClassificationScoreParsed, LocalClassificationScore};
 use crate::{error::ApiError, state::AppState};
 use axum::extract::multipart::Field;
@@ -17,9 +18,9 @@ async fn handle_image(
     state: &AppState,
     multi_part_handler: &MultiPartHandler,
 ) -> Result<(ClassificationScoreParsed, ImageClassification), ApiError> {
-    if cfg!(feature = "default") {
+    if state.flag == Flag::HfClassification {
         handle_image_with_hugginface(state, multi_part_handler).await
-    } else if cfg!(feature = "local_with_classification") {
+    } else if state.flag == Flag::LocalWithClassification {
         handle_local_with_classification(multi_part_handler).await
         // This is handling the case where we have the `local_with_db` feature
         // flag enabled, but no classification feature flag.

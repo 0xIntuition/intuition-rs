@@ -50,7 +50,25 @@ impl App {
         // Read the .env file from the current directory or parents
         dotenvy::dotenv().ok();
         // Load the environment variables into our struct
-        envy::from_env::<Env>().map_err(ApiError::from)
+        let mut env = envy::from_env::<Env>().map_err(ApiError::from)?;
+        Self::check_env_conditions_and_default(&mut env)?;
+        Ok(env)
+    }
+
+    /// Check the environment variables and set the default values if needed.
+    fn check_env_conditions_and_default(env: &mut Env) -> Result<(), ApiError> {
+        if env.flag_local_with_classification.is_none()
+            && env.flag_local_with_db_only.is_none()
+            && env.flag_hf_classification.is_none()
+        {
+            env.flag_local_with_classification = Some(true);
+        } else if env.flag_local_with_classification.is_some()
+            && env.flag_local_with_db_only.is_some()
+            && env.flag_hf_classification.is_some()
+        {
+            return Err(ApiError::LocalWithClassificationAndDbOnly);
+        }
+        Ok(())
     }
 
     /// Merge the router with the Swagger UI.
