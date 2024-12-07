@@ -57,6 +57,7 @@ services:
         condition: service_healthy
     volumes:
       - ~/.aws/:/root/.aws:ro
+      - ./logs:/app/logs
     deploy:
       replicas: 2
   
@@ -84,6 +85,7 @@ services:
         condition: service_healthy
     volumes:
       - ~/.aws/:/root/.aws:ro
+      - ./logs:/app/logs
     deploy:
       replicas: 2
     
@@ -111,6 +113,7 @@ services:
         condition: service_healthy
     volumes:
       - ~/.aws/:/root/.aws:ro
+      - ./logs:/app/logs
     ports:
       - 3002:3002
     
@@ -138,6 +141,7 @@ services:
         condition: service_healthy
     volumes:
       - ~/.aws/:/root/.aws:ro
+      - ./logs:/app/logs
 
   sqs:
     container_name: sqs
@@ -296,8 +300,8 @@ services:
     restart: "no"
 
   prometheus:
-    image: prom/prometheus:latest
     container_name: prometheus
+    image: prom/prometheus:latest
     ports:
       - "9090:9090"
     volumes:
@@ -309,6 +313,36 @@ services:
     depends_on:
       - api
 
+  loki:
+    container_name: loki
+    image: grafana/loki:latest
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./loki:/etc/loki:ro
+      - loki-data:/loki
+    user: "10001:10001"
+    environment:
+      - LOKI_DATA_DIR=/loki
+
+  grafana:
+    container_name: grafana
+    image: grafana/grafana:latest
+    ports:
+      - "3030:3000"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/etc/grafana/dashboards
+      - grafana-data:/var/lib/grafana
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+      - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/etc/grafana/dashboards/default/logs.json
+    depends_on:
+      - loki
+      - prometheus
 
 networks:
   intuition-be:
@@ -322,3 +356,6 @@ volumes:
   pgadmin-data:
   ipfs_data:
   substreams-sink-data:
+  grafana-data:
+  loki-data:
+    driver: local

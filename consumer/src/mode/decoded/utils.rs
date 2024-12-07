@@ -3,11 +3,11 @@ use crate::{
     mode::{resolver::types::ResolverConsumerMessage, types::DecodedConsumerContext},
 };
 use alloy::primitives::U256;
-use log::info;
 use models::{
     account::{Account, AccountType},
     traits::SimpleCrud,
 };
+use tracing::info;
 
 /// Shortens an address string by taking first 6 and last 4 chars
 pub fn short_id(address: &str) -> String {
