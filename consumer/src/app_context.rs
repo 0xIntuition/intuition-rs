@@ -1,11 +1,11 @@
+use std::convert::Infallible;
+
 use crate::{config::Env, error::ConsumerError, mode::types::ConsumerMode, ConsumerArgs};
 use clap::Parser;
 use prometheus::{gather, Encoder, TextEncoder};
-use std::convert::Infallible;
 use tracing::info;
 use tracing_appender::rolling::{RollingFileAppender, Rotation};
 use tracing_subscriber::{layer::SubscriberExt, EnvFilter};
-
 use warp::Filter;
 
 /// Represents the consumer server context. It contains the consumer mode,
@@ -27,16 +27,16 @@ impl Server {
     /// environment variables and the connection pool.
     pub async fn initialize() -> Result<ServerInitialize, ConsumerError> {
         // Parse the CLI args. We need to do this before setting up the logging
-        // because the logging depends on the consumer mode. Same for the env vars.
+        // because the logging depends on the consumer mode.
         info!("Parsing the CLI arguments");
         let args = ConsumerArgs::parse();
+        // Set up the logging
+        Self::set_up_logging(args.mode.clone()).await?;
         // Read the .env file from the current directory or parents
         dotenvy::dotenv().ok();
         // Parse the env vars
         info!("Parsing the environment variables");
         let env = envy::from_env::<Env>()?;
-        // Set up the logging
-        Self::set_up_logging(args.mode.clone()).await?;
 
         info!("Starting the activity consumer with the following args: {args:?}");
 
@@ -45,43 +45,33 @@ impl Server {
 
     /// Set up the logging
     async fn set_up_logging(consumer_mode: String) -> Result<(), ConsumerError> {
-        // Create logs directory if it doesn't exist
-        std::fs::create_dir_all("logs")?;
-
-        // Create rotating file appender
+        // Set up file appender
         let file_appender = RollingFileAppender::new(
             Rotation::DAILY,
-            "logs",
-            format!("consumer-{}.log", consumer_mode),
+            "logs",                                    // directory
+            format!("consumer-{}.log", consumer_mode), // file name
         );
 
+        // Configure subscriber with JSON formatting for production
         let subscriber = tracing_subscriber::registry()
             .with(
                 EnvFilter::from_default_env()
                     .add_directive(tracing::Level::INFO.into())
-                    .add_directive("consumer=info".parse().unwrap()),
+                    .add_directive("consumer=debug".parse().unwrap()),
             )
-            // Add stdout layer for local visibility
             .with(
                 tracing_subscriber::fmt::layer()
-                    .with_target(true)
-                    .with_thread_ids(true)
-                    .with_file(true)
-                    .with_line_number(true),
-            )
-            // Add file layer for persistent logging
-            .with(
-                tracing_subscriber::fmt::layer()
-                    .with_writer(file_appender)
                     .json()
                     .with_file(true)
                     .with_line_number(true)
                     .with_thread_ids(true)
                     .with_target(true),
-            );
+            )
+            .with(tracing_subscriber::fmt::layer().with_writer(file_appender));
 
-        tracing::subscriber::set_global_default(subscriber)?;
-        info!("Logging system initialized");
+        // Initialize the subscriber
+        tracing::subscriber::set_global_default(subscriber)
+            .expect("Failed to set tracing subscriber");
         Ok(())
     }
 

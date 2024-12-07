@@ -275,11 +275,13 @@ async fn process_substreams_response(
 
             BlockProcessedResult::Skip()
         }
+        Some(Message::FatalError(_))
+        | Some(Message::DebugSnapshotData(_))
+        | Some(Message::DebugSnapshotComplete(_)) => BlockProcessedResult::Skip(),
         None => {
             println!("Got None on substream message");
             BlockProcessedResult::Skip()
         }
-        _ => BlockProcessedResult::Skip(),
     }
 }
 
