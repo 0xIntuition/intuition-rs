@@ -10,7 +10,6 @@ use crate::{
     },
 };
 use alloy::primitives::Address;
-use log::info;
 use models::{
     account::{Account, AccountType},
     atom::{Atom, AtomType},
@@ -18,7 +17,7 @@ use models::{
 };
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
-
+use tracing::info;
 /// This struct represents a message that is sent to the resolver
 /// consumer to be processed.
 #[derive(Debug, Serialize, Deserialize)]

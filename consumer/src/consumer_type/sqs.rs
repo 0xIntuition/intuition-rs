@@ -6,8 +6,8 @@ use async_trait::async_trait;
 use aws_sdk_sqs::{
     operation::receive_message::ReceiveMessageOutput, types::Message, Client as AWSClient,
 };
-use log::{debug, info};
 use std::sync::Arc;
+use tracing::{debug, info};
 /// Represents the SQS consumer
 pub struct Sqs {
     client: AWSClient,

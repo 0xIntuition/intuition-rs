@@ -9,7 +9,7 @@ use crate::{
     },
     traits::IntoRawMessage,
 };
-use log::{debug, info, warn};
+use tracing::{debug, info, warn};
 
 impl ConsumerMode {
     /// This function stores a raw message into the database and relays it to the

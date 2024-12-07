@@ -10,7 +10,6 @@ use crate::{
     },
 };
 use alloy::primitives::Address;
-use log::info;
 use models::{
     atom::{Atom, AtomResolvingStatus, AtomType},
     atom_value::AtomValue,
@@ -19,7 +18,7 @@ use models::{
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use std::str::FromStr;
-
+use tracing::info;
 /// Represents the metadata for an atom
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AtomMetadata {
