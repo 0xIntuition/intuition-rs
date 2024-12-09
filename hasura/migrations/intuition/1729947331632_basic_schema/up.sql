@@ -218,27 +218,6 @@ CREATE TABLE signal (
   )
 );
 
-CREATE TABLE atom_value (
-  id NUMERIC(78, 0) PRIMARY KEY NOT NULL,
-  account_id TEXT REFERENCES account(id),
-  thing_id NUMERIC(78, 0),
-  person_id NUMERIC(78, 0),
-  organization_id NUMERIC(78, 0),
-  book_id NUMERIC(78, 0),
-  -- Ensure that exactly one of thing_id, person_id, organization_id, or book_id is set 
-  CONSTRAINT check_atom_value_constraints CHECK (
-    (account_id IS NOT NULL AND thing_id IS NULL AND person_id IS NULL AND organization_id IS NULL AND book_id IS NULL)
-    OR
-    (account_id IS NULL AND thing_id IS NOT NULL AND person_id IS NULL AND organization_id IS NULL AND book_id IS NULL)
-    OR
-    (account_id IS NULL AND thing_id IS NULL AND person_id IS NOT NULL AND organization_id IS NULL AND book_id IS NULL)
-    OR
-    (account_id IS NULL AND thing_id IS NULL AND person_id IS NULL AND organization_id IS NOT NULL AND book_id IS NULL)
-    OR
-    (account_id IS NULL AND thing_id IS NULL AND person_id IS NULL AND organization_id IS NULL AND book_id IS NOT NULL)
-  )
-);
-
 CREATE TABLE thing (
   id NUMERIC(78, 0) PRIMARY KEY NOT NULL,
   name TEXT,
@@ -274,14 +253,22 @@ CREATE TABLE book (
   url TEXT
 );
 
-CREATE TABLE image_guard (
+CREATE TABLE atom_value (
+  id NUMERIC(78, 0) PRIMARY KEY NOT NULL REFERENCES atom(id),
+  account_id TEXT REFERENCES account(id),
+  thing_id NUMERIC(78, 0) REFERENCES thing(id),
+  person_id NUMERIC(78, 0) REFERENCES person(id),
+  organization_id NUMERIC(78, 0) REFERENCES organization(id),
+  book_id NUMERIC(78, 0) REFERENCES book(id)
+);
+
+CREATE TABLE cached_image (
   -- id is the original name of the image in lowercase without the extension
-  id TEXT PRIMARY KEY NOT NULL,
-  ipfs_hash VARCHAR(46) NOT NULL,
-  original_name TEXT NOT NULL,
+  url TEXT PRIMARY KEY NOT NULL,
+  original_url TEXT NOT NULL,
   score JSONB,
   model TEXT,
-  classification image_classification NOT NULL DEFAULT 'Unknown',
+  safe BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -341,4 +328,5 @@ CREATE INDEX idx_raw_data_block_timestamp ON raw_data(block_timestamp);
 CREATE INDEX idx_raw_data_transaction_hash ON raw_data(transaction_hash);
 CREATE INDEX idx_raw_data_address ON raw_data(address);
 CREATE INDEX idx_raw_data_topics ON raw_data(topics);
-
+CREATE INDEX idx_cached_image_original_url ON cached_image(original_url);
+CREATE INDEX idx_cached_image_url ON cached_image(url);

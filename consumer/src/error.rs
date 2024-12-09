@@ -18,10 +18,26 @@ pub enum ConsumerError {
     #[error(transparent)]
     AlloyHex(#[from] FromHexError),
     #[error(transparent)]
+    AWSCreateBucket(
+        #[from]
+        aws_smithy_runtime_api::client::result::SdkError<
+            aws_sdk_s3::operation::create_bucket::CreateBucketError,
+            aws_smithy_runtime_api::http::Response,
+        >,
+    ),
+    #[error(transparent)]
     AWSDeleteMessage(
         #[from]
         aws_smithy_runtime_api::client::result::SdkError<
             aws_sdk_sqs::operation::delete_message::DeleteMessageError,
+            aws_smithy_runtime_api::http::Response,
+        >,
+    ),
+    #[error(transparent)]
+    AWSS3(
+        #[from]
+        aws_smithy_runtime_api::client::result::SdkError<
+            aws_sdk_s3::operation::head_bucket::HeadBucketError,
             aws_smithy_runtime_api::http::Response,
         >,
     ),
@@ -86,6 +102,8 @@ pub enum ConsumerError {
     #[error("Object atom not found")]
     ObjectAtomNotFound,
     #[error(transparent)]
+    Other(#[from] std::io::Error),
+    #[error(transparent)]
     ParseIntError(#[from] std::num::ParseIntError),
     #[error(transparent)]
     ParseBlockIdError(#[from] alloy::eips::eip1898::ParseBlockIdError),
@@ -109,6 +127,8 @@ pub enum ConsumerError {
     SubjectAtomNotFound,
     #[error("IPFS request timed out")]
     TimeoutError(String),
+    #[error(transparent)]
+    Tracing(#[from] tracing::subscriber::SetGlobalDefaultError),
     #[error("Unsuported mode")]
     UnsuportedMode,
     #[error("Triple not found")]

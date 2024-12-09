@@ -1,6 +1,6 @@
 use crate::error::LibError;
 use log::{info, warn};
-use models::image_guard::ImageGuard;
+use models::cached_image::CachedImage;
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
@@ -68,7 +68,7 @@ impl Image {
         info!("Raw response body: {}", response_text);
 
         // Attempt to parse the JSON
-        let parsed_response: Result<Vec<ImageGuard>, _> = serde_json::from_str(&response_text);
+        let parsed_response: Result<Vec<CachedImage>, _> = serde_json::from_str(&response_text);
         match parsed_response {
             Ok(data) => info!("Image classification response: {:?}", data),
             Err(e) => {

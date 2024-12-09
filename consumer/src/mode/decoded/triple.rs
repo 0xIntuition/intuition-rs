@@ -4,7 +4,6 @@ use crate::{
     EthMultiVault::{EthMultiVaultInstance, TripleCreated},
 };
 use alloy::{eips::BlockId, primitives::U256, providers::RootProvider, transports::http::Http};
-use log::info;
 use models::{
     account::{Account, AccountType},
     atom::{Atom, AtomType},
@@ -20,6 +19,7 @@ use models::{
 use reqwest::Client;
 use sqlx::PgPool;
 use std::str::FromStr;
+use tracing::info;
 
 use super::utils::short_id;
 

@@ -50,11 +50,6 @@ args = ["compose", "down", "-v"]
 command = "docker"
 args = ["compose", "up", "-d", "--force-recreate"]
 
-# Build the docker image for the hasura migrations
-[tasks.build-image-hasura-migrations]
-command = "docker"
-args = ["build", "-t", "hasura-migrations:latest", "-f", "hasura/Dockerfile", "."]
-
 # Migrate the database
 [tasks.migrate-database]
 command = "hasura"

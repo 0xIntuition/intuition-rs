@@ -57,6 +57,7 @@ services:
         condition: service_healthy
     volumes:
       - ~/.aws/:/root/.aws:ro
+      - ./logs:/app/logs
     deploy:
       replicas: 2
   
@@ -84,6 +85,7 @@ services:
         condition: service_healthy
     volumes:
       - ~/.aws/:/root/.aws:ro
+      - ./logs:/app/logs
     deploy:
       replicas: 2
     
@@ -111,6 +113,7 @@ services:
         condition: service_healthy
     volumes:
       - ~/.aws/:/root/.aws:ro
+      - ./logs:/app/logs
     ports:
       - 3002:3002
     
@@ -138,6 +141,7 @@ services:
         condition: service_healthy
     volumes:
       - ~/.aws/:/root/.aws:ro
+      - ./logs:/app/logs
 
   sqs:
     container_name: sqs
@@ -296,8 +300,8 @@ services:
     restart: "no"
 
   prometheus:
-    image: prom/prometheus:latest
     container_name: prometheus
+    image: prom/prometheus:latest
     ports:
       - "9090:9090"
     volumes:
@@ -308,7 +312,6 @@ services:
       - '--config.file=/etc/prometheus/prometheus.yml'
     depends_on:
       - api
-
 
 networks:
   intuition-be:
@@ -322,3 +325,4 @@ volumes:
   pgadmin-data:
   ipfs_data:
   substreams-sink-data:
+

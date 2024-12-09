@@ -1,5 +1,4 @@
 use crate::{error::ConsumerError, schemas::types::DecodedMessage, EthMultiVault::FeesTransferred};
-use log::info;
 use models::{
     account::{Account, AccountType},
     event::{Event, EventType},
@@ -8,6 +7,7 @@ use models::{
     types::U256Wrapper,
 };
 use sqlx::PgPool;
+use tracing::info;
 
 use super::utils::short_id;
 

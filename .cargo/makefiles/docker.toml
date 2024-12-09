@@ -17,3 +17,4 @@ args = ["build", "-t", "ghcr.io/0xintuition/substreams-sink:latest", "-f", "subs
 [tasks.build-cli]
 command = "docker"
 args = ["build", "-t", "ghcr.io/0xintuition/cli:latest", "-f", "cli/Dockerfile", "."]
+

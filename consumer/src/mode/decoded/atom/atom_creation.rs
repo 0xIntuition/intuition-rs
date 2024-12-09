@@ -12,7 +12,6 @@ use crate::{
     EthMultiVault::AtomCreated,
 };
 use alloy::{eips::BlockId, primitives::U256};
-use log::{info, warn};
 use models::{
     account::{Account, AccountType},
     atom::{Atom, AtomResolvingStatus, AtomType},
@@ -23,7 +22,7 @@ use models::{
 };
 use sqlx::PgPool;
 use std::str::FromStr;
-
+use tracing::{info, warn};
 impl AtomCreated {
     /// This function creates an `Event` for the `AtomCreated` event
     async fn create_event(
