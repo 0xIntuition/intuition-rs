@@ -25,7 +25,10 @@ services:
     region: oregon
     healthCheckPath: /healthz
     autoDeploy: false
-  
+
+  ############################################################
+  # Resolver Consumer
+  ############################################################
   - type: worker
     plan: starter
     name: resolver-consumer
@@ -34,21 +37,30 @@ services:
       url: docker.io/leboiko/intuition-be:0.2.0 
     dockerCommand: ./consumer --mode resolver
     envVars:
+      - key: CONSUMER_TYPE
+        value: sqs
       - key: DATABASE_URL
         fromDatabase:
           name: database
           property: connectionString
-      - key: CONSUMER_TYPE
-        value: sqs
-      - key: INDEXING_SOURCE
-        value: substreams
-      - key: IPFS_GATEWAY_URL
-        value: https://ipfs.io
+      - key: ENS_CONTRACT_ADDRESS
+        value: 0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e
+      - key: IMAGE_GUARD_URL
+        value: https://imageguard.io 
+      - key: IPFS_UPLOAD_QUEUE_URL
+        value: https://sqs.us-west-2.amazonaws.com/064662847354/ipfs_upload
+      - key: RESOLVER_QUEUE_URL
+        value: https://sqs.us-west-2.amazonaws.com/064662847354/resolver
       - key: RUST_LOG
         value: info
       - fromGroup: aws-credentials
       - fromGroup: pinata-secrets
+      - fromGroup: rpc-mainnet
+      - fromGroup: ipfs
 
+  ############################################################
+  # Decoded Consumer
+  ############################################################
   - type: worker
     name: decoded-consumer
     runtime: image
@@ -71,6 +83,9 @@ services:
       - fromGroup: aws-credentials
       - fromGroup: pinata-secrets
 
+  ############################################################
+  # Raw Consumer
+  ############################################################
   - type: worker
     name: raw-consumer
     runtime: image
@@ -120,6 +135,26 @@ services:
       name: ipfs-data
       mountPath: /data/ipfs
 
+  # Image Guard API
+  - type: web
+    name: image-guard
+    runtime: image
+    image:
+      url: ghcr.io/0xintuition/image-guard:latest
+    envVars:
+      - key: API_PORT
+        value: 3000
+      - key: DATABASE_URL
+        fromDatabase:
+          name: database
+          property: connectionString
+      - key: FLAG_HF_CLASSIFICATION
+        value: true
+      - key: HF_TOKEN
+        sync: false
+      - fromGroup: ipfs
+      - fromGroup: pinata-secrets
+
 databases:
   - name: database
     databaseName: storage
@@ -149,3 +184,17 @@ envVarGroups:
         sync: false
       - key: PINATA_GATEWAY_TOKEN
         sync: false
+
+  - name: rpc-mainnet
+    envVars:
+      - key: RPC_URL_BASE_MAINNET
+        sync: false
+      - key: RPC_URL_MAINNET
+        sync: false
+  
+  - name: ipfs
+    envVars:
+      - key: IPFS_GATEWAY_URL
+        value: https://ipfs.io
+      - key: IPFS_UPLOAD_URL
+        value: https://ipfs.io
