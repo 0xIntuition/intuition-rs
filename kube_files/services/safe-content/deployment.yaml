@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: safe-content
+  labels:
+    app: safe-content
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: safe-content
+  template:
+    metadata:
+      labels:
+        app: safe-content
+    spec:
+      containers:
+      - name: safe-content
+        image: steelcityamir/safe-content-ai:latest
+        ports:
+        - containerPort: 8000
+        resources:
+          requests:
+            cpu: "1000m"
+            memory: "128Mi"
+          limits:
+            cpu: "2000m"
+            memory: "1Gi"

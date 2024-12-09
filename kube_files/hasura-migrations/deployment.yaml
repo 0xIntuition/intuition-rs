@@ -1,0 +1,27 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: hasura-migrations
+spec:
+  template:
+    metadata:
+      labels:
+        app: hasura-migrations
+    spec:
+      containers:
+        - name: hasura-migrations
+          image: ghcr.io/0xintuition/hasura-migrations:latest
+          imagePullPolicy: Always
+          env:
+            - name: HASURA_GRAPHQL_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: secrets
+                  key: HASURA_GRAPHQL_ENDPOINT
+            - name: HASURA_GRAPHQL_ADMIN_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: secrets
+                  key: HASURA_GRAPHQL_ADMIN_SECRET
+      restartPolicy: OnFailure
+  backoffLimit: 20

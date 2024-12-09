@@ -11,7 +11,7 @@ use axum::{
 use axum_macros::debug_handler;
 use chrono::Utc;
 use log::{debug, info};
-use models::{image_guard::ImageGuard, traits::SimpleCrud};
+use models::{cached_image::CachedImage, traits::SimpleCrud};
 use shared_utils::types::ClassificationModel;
 
 /// Upload and classify an image
@@ -20,7 +20,7 @@ use shared_utils::types::ClassificationModel;
     path = "/upload",
     request_body = inline(MultipartRequest),
     responses(
-        (status = 200, description = "Image successfully uploaded and classified", body = Vec<ImageGuard>,
+        (status = 200, description = "Image successfully uploaded and classified", body = Vec<CachedImage>,
             example = json!({
                 "status": "Safe",
                 "score": "{\"normal\":0.82167643,\"nsfw\":0.1601617}",
@@ -38,7 +38,7 @@ use shared_utils::types::ClassificationModel;
 pub async fn upload_image(
     State(state): State<AppState>,
     mut multipart: Multipart,
-) -> Result<Json<Vec<ImageGuard>>, ApiError> {
+) -> Result<Json<Vec<CachedImage>>, ApiError> {
     let mut responses = Vec::new();
     info!("Uploading image");
 
@@ -60,13 +60,12 @@ pub async fn upload_image(
         let ipfs_response = upload_image_to_ipfs(&state, multi_part_handler).await?;
         info!("IPFS response: {:?}", ipfs_response);
 
-        let image_guard = ImageGuard::builder()
-            .id(format!("ipfs://{}", ipfs_response.hash))
-            .ipfs_hash(ipfs_response.hash)
-            .original_name(original_name)
+        let image_guard = CachedImage::builder()
+            .url(format!("ipfs://{}", ipfs_response.hash))
+            .original_url(original_name)
             .score(serde_json::to_string(&scores)?)
-            .model(ClassificationModel::Falconsai.to_string())
-            .classification(status)
+            .model(ClassificationModel::FalconsaiNsfwImageDetection.to_string())
+            .safe(status)
             .created_at(Utc::now())
             .build();
 

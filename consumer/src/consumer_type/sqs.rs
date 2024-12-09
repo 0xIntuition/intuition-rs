@@ -6,8 +6,8 @@ use async_trait::async_trait;
 use aws_sdk_sqs::{
     operation::receive_message::ReceiveMessageOutput, types::Message, Client as AWSClient,
 };
-use log::{debug, info};
 use std::sync::Arc;
+use tracing::{debug, info};
 /// Represents the SQS consumer
 pub struct Sqs {
     client: AWSClient,
@@ -27,14 +27,8 @@ impl Sqs {
     /// This function returns an [`aws_sdk_sqs::Client`] based on the
     /// environment variables
     pub async fn get_aws_client(data: ServerInitialize) -> AWSClient {
-        let shared_config = if data.args.local {
-            info!("Running SQS locally {:?}", data.env.localstack_url);
-            let localstack_url = data
-                .env
-                .localstack_url
-                .ok_or(ConsumerError::LocalstackUrlNotFound)
-                .expect("Localstack URL not found");
-
+        let shared_config = if let Some(localstack_url) = data.env.localstack_url {
+            info!("Running SQS locally {:?}", localstack_url);
             aws_config::from_env()
                 .endpoint_url(localstack_url)
                 .load()

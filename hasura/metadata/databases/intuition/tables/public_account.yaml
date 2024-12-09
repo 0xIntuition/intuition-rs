@@ -11,6 +11,15 @@ object_relationships:
   - name: atom
     using:
       foreign_key_constraint_on: atom_id
+  - name: cached_image
+    using:
+      manual_configuration:
+        column_mapping:
+          image: original_url
+        insertion_order: null
+        remote_table:
+          name: cached_image
+          schema: public
 array_relationships:
   - name: atoms
     using:

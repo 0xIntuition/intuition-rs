@@ -13,13 +13,13 @@ use alloy::{
     providers::{ProviderBuilder, RootProvider},
     transports::http::Http,
 };
-use log::{debug, info, warn};
 use once_cell::sync::OnceCell;
 use prometheus::{register_histogram_vec, HistogramVec};
 use reqwest::Client;
 use shared_utils::{ipfs::IPFSResolver, postgres::connect_to_db};
 use sqlx::PgPool;
 use std::{str::FromStr, sync::Arc};
+use tracing::{debug, info, warn};
 
 use super::{ipfs_upload::types::IpfsUploadMessage, resolver::types::ResolverConsumerMessage};
 

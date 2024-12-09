@@ -8,6 +8,15 @@ configuration:
   custom_root_fields:
     select_by_pk: atom
 object_relationships:
+  - name: cached_image
+    using:
+      manual_configuration:
+        column_mapping:
+          image: original_url
+        insertion_order: null
+        remote_table:
+          name: cached_image
+          schema: public
   - name: controler
     using:
       manual_configuration:
@@ -34,6 +43,15 @@ object_relationships:
         insertion_order: null
         remote_table:
           name: atom_value
+          schema: public
+  - name: vault
+    using:
+      manual_configuration:
+        column_mapping:
+          vault_id: id
+        insertion_order: null
+        remote_table:
+          name: vault
           schema: public
 array_relationships:
   - name: accounts

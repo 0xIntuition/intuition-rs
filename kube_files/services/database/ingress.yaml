@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: database-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    # Add your SSL cert if you have one
+    # kubernetes.io/tls-acme: "true"
+spec:
+  rules:
+  - host: localhost  # Replace with your domain
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: database
+            port:
+              number: 5435
+  # Uncomment if you have SSL cert
+  # tls:
+  # - hosts:
+  #   - db.yourdomain.com
+  #   secretName: your-tls-secret

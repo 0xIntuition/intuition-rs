@@ -27,7 +27,6 @@ pub struct RawLog {
 /// when we query the database
 #[derive(Debug, Deserialize, Serialize, sqlx::FromRow)]
 pub struct RawLogPresenter {
-    pub id: i32,
     #[serde(rename(deserialize = "id"))]
     pub gs_id: String,
     pub block_number: i64,
