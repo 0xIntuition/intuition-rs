@@ -37,7 +37,7 @@
             "uid": "loki"
           },
           "editorMode": "builder",
-          "expr": "{filename=~\".*/consumer.*\\.log.*\"} | json",
+          "expr": "{filename=~\".*/consumer.*\\.log\"} | json",
           "queryType": "range",
           "refId": "A"
         }
@@ -113,7 +113,7 @@
             "uid": "loki"
           },
           "editorMode": "builder",
-          "expr": "rate({filename=~\".*/consumer.*\\.log.*\"} | json [1m])",
+          "expr": "rate({filename=~\".*/consumer.*\\.log\"} | json [1m])",
           "legendFormat": "Logs per second",
           "queryType": "range",
           "refId": "A"
@@ -139,4 +139,4 @@
   "title": "Intuition Logs",
   "version": 1,
   "weekStart": ""
-} 
+}

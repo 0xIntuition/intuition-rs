@@ -47,7 +47,9 @@ impl Server {
     async fn set_up_logging(consumer_mode: String) -> Result<(), ConsumerError> {
         // Set up file appender
         let file_appender = RollingFileAppender::new(
-            Rotation::DAILY,
+            // We are rotating the logs hourly, but for a production environment
+            // we should rotate the logs daily.
+            Rotation::HOURLY,
             "logs",                                    // directory
             format!("consumer-{}.log", consumer_mode), // file name
         );

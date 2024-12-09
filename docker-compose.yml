@@ -322,6 +322,7 @@ services:
     volumes:
       - ./loki:/etc/loki:ro
       - loki-data:/loki
+      - ./logs:/logs
     user: "10001:10001"
     environment:
       - LOKI_DATA_DIR=/loki
@@ -340,9 +341,19 @@ services:
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
       - GF_AUTH_DISABLE_LOGIN_FORM=true
       - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/etc/grafana/dashboards/default/logs.json
+      - GF_LOG_LEVEL=debug
     depends_on:
       - loki
       - prometheus
+
+  promtail:
+    image: grafana/promtail:latest
+    volumes:
+      - ./promtail-config.yaml:/etc/promtail/config.yaml
+      - ./logs:/var/logs  # Mount your logs directory
+    command: -config.file=/etc/promtail/config.yaml
+    networks:
+      - intuition-be
 
 networks:
   intuition-be:

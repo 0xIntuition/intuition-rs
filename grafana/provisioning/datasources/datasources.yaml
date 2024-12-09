@@ -3,7 +3,7 @@ apiVersion: 1
 datasources:
   - name: Loki
     type: loki
-    uid: loki_logs
+    uid: loki
     access: proxy
     orgId: 1
     url: http://loki:3100
