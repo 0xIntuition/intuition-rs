@@ -13,39 +13,36 @@ use utoipa::ToSchema;
 /// Note that `sender_id` and `receiver_id` are foreign keys to the
 /// `account` table.
 #[derive(sqlx::FromRow, Debug, PartialEq, Clone, Builder, Serialize, Deserialize, ToSchema)]
-#[sqlx(type_name = "image_guard")]
-pub struct ImageGuard {
-    pub id: String,
-    pub ipfs_hash: String,
-    pub original_name: String,
+#[sqlx(type_name = "cached_image")]
+pub struct CachedImage {
+    pub url: String,
+    pub original_url: String,
     pub score: Option<Value>,
     pub model: Option<String>,
     pub safe: bool,
     pub created_at: DateTime<Utc>,
 }
 
-impl Model for ImageGuard {}
+impl Model for CachedImage {}
 
 #[async_trait]
-impl SimpleCrud<String> for ImageGuard {
+impl SimpleCrud<String> for CachedImage {
     async fn upsert(&self, pool: &PgPool) -> Result<Self, ModelError> {
         sqlx::query_as!(
-            ImageGuard,
+            CachedImage,
             r#"
-            INSERT INTO image_guard (id, ipfs_hash, original_name, score, model, safe, created_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
-            ON CONFLICT (id) DO UPDATE SET
-                ipfs_hash = EXCLUDED.ipfs_hash,
-                original_name = EXCLUDED.original_name,
+            INSERT INTO cached_image (url, original_url, score, model, safe, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            ON CONFLICT (url) DO UPDATE SET
+                original_url = EXCLUDED.original_url,
                 score = EXCLUDED.score,
                 model = EXCLUDED.model,
                 safe = EXCLUDED.safe,
                 created_at = EXCLUDED.created_at
-            RETURNING id, ipfs_hash, original_name, score, model, safe, created_at
+            RETURNING url, original_url, score, model, safe, created_at
             "#,
-            self.id,
-            self.ipfs_hash,
-            self.original_name,
+            self.url,
+            self.original_url,
             self.score,
             self.model,
             self.safe,
@@ -58,8 +55,8 @@ impl SimpleCrud<String> for ImageGuard {
 
     async fn find_by_id(id: String, pool: &PgPool) -> Result<Option<Self>, ModelError> {
         sqlx::query_as!(
-            ImageGuard,
-            r#"SELECT id, ipfs_hash, original_name, score, model, safe, created_at FROM image_guard WHERE id = $1"#,
+            CachedImage,
+            r#"SELECT url, original_url, score, model, safe, created_at FROM cached_image WHERE url = $1"#,
             id,
         )
         .fetch_optional(pool)

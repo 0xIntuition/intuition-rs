@@ -274,11 +274,10 @@ CREATE TABLE book (
   url TEXT
 );
 
-CREATE TABLE image_guard (
+CREATE TABLE cached_image (
   -- id is the original name of the image in lowercase without the extension
-  id TEXT PRIMARY KEY NOT NULL,
-  ipfs_hash VARCHAR(46) NOT NULL,
-  original_name TEXT NOT NULL,
+  url TEXT PRIMARY KEY NOT NULL,
+  original_url TEXT NOT NULL,
   score JSONB,
   model TEXT,
   safe BOOLEAN NOT NULL DEFAULT false,

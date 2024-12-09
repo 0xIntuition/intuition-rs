@@ -164,7 +164,7 @@ services:
       - EXTRA_CORS_ALLOWED_ORIGINS=app://.
       - HOSTNAME_EXTERNAL=localstack
       - RUST_LOG=debug
-      - SERVICES=sqs
+      - SERVICES=sqs,s3
     
   api:
     container_name: api
@@ -325,4 +325,4 @@ volumes:
   pgadmin-data:
   ipfs_data:
   substreams-sink-data:
-  
+

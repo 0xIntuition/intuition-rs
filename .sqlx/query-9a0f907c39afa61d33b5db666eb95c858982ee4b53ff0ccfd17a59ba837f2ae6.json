@@ -1,40 +1,35 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, ipfs_hash, original_name, score, model, safe, created_at FROM image_guard WHERE id = $1",
+  "query": "SELECT url, original_url, score, model, safe, created_at FROM cached_image WHERE url = $1",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "id",
+        "name": "url",
         "type_info": "Text"
       },
       {
         "ordinal": 1,
-        "name": "ipfs_hash",
-        "type_info": "Varchar"
-      },
-      {
-        "ordinal": 2,
-        "name": "original_name",
+        "name": "original_url",
         "type_info": "Text"
       },
       {
-        "ordinal": 3,
+        "ordinal": 2,
         "name": "score",
         "type_info": "Jsonb"
       },
       {
-        "ordinal": 4,
+        "ordinal": 3,
         "name": "model",
         "type_info": "Text"
       },
       {
-        "ordinal": 5,
+        "ordinal": 4,
         "name": "safe",
         "type_info": "Bool"
       },
       {
-        "ordinal": 6,
+        "ordinal": 5,
         "name": "created_at",
         "type_info": "Timestamptz"
       }
@@ -47,12 +42,11 @@
     "nullable": [
       false,
       false,
-      false,
       true,
       true,
       false,
       false
     ]
   },
-  "hash": "87b559dc24d1c6b630e93e3f4c26d18b25dd05fa3524a250226509d5af279132"
+  "hash": "9a0f907c39afa61d33b5db666eb95c858982ee4b53ff0ccfd17a59ba837f2ae6"
 }

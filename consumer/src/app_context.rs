@@ -1,11 +1,10 @@
-use std::convert::Infallible;
-
 use crate::{config::Env, error::ConsumerError, mode::types::ConsumerMode, ConsumerArgs};
 use clap::Parser;
 use prometheus::{gather, Encoder, TextEncoder};
+use std::convert::Infallible;
+use std::io::Write;
 use tracing::info;
-use tracing_appender::rolling::{RollingFileAppender, Rotation};
-use tracing_subscriber::{layer::SubscriberExt, EnvFilter};
+use tracing_subscriber::{fmt::MakeWriter, layer::SubscriberExt, EnvFilter};
 use warp::Filter;
 
 /// Represents the consumer server context. It contains the consumer mode,
@@ -13,6 +12,56 @@ use warp::Filter;
 pub struct Server {
     consumer_mode: ConsumerMode,
     consumer_metrics_api_port: Option<u16>,
+}
+
+#[derive(Clone)]
+struct S3LogWriter {
+    client: aws_sdk_s3::Client,
+    bucket: String,
+    key: String,
+    buffer: Vec<u8>,
+}
+
+impl S3LogWriter {
+    fn new(client: aws_sdk_s3::Client, bucket: &str, key: String) -> Self {
+        Self {
+            client,
+            bucket: bucket.to_string(),
+            key,
+            buffer: Vec::new(),
+        }
+    }
+}
+
+impl Write for S3LogWriter {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        self.buffer.extend_from_slice(buf);
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        let bytes = std::mem::take(&mut self.buffer);
+        let rt = tokio::runtime::Handle::current();
+        rt.block_on(async {
+            self.client
+                .put_object()
+                .bucket(&self.bucket)
+                .key(&self.key)
+                .body(bytes.into())
+                .send()
+                .await
+                .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+            Ok(())
+        })
+    }
+}
+
+impl<'a> MakeWriter<'a> for S3LogWriter {
+    type Writer = Self;
+
+    fn make_writer(&'a self) -> Self::Writer {
+        self.clone()
+    }
 }
 
 impl Server {
@@ -45,11 +94,15 @@ impl Server {
 
     /// Set up the logging
     async fn set_up_logging(consumer_mode: String) -> Result<(), ConsumerError> {
-        // Set up file appender
-        let file_appender = RollingFileAppender::new(
-            Rotation::DAILY,
-            "logs",                                    // directory
-            format!("consumer-{}.log", consumer_mode), // file name
+        // Set up S3 client
+        let config = aws_config::from_env().load().await;
+        let s3_client = aws_sdk_s3::Client::new(&config);
+
+        // Create a custom writer for S3
+        let s3_writer = S3LogWriter::new(
+            s3_client,
+            "consumer-logs",
+            format!("consumer-{}.log", consumer_mode),
         );
 
         // Configure subscriber with JSON formatting for production
@@ -67,7 +120,7 @@ impl Server {
                     .with_thread_ids(true)
                     .with_target(true),
             )
-            .with(tracing_subscriber::fmt::layer().with_writer(file_appender));
+            .with(tracing_subscriber::fmt::layer().with_writer(s3_writer));
 
         // Initialize the subscriber
         tracing::subscriber::set_global_default(subscriber)
