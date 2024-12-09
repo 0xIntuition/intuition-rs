@@ -46,7 +46,7 @@ services:
       - key: ENS_CONTRACT_ADDRESS
         value: 0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e
       - key: IMAGE_GUARD_URL
-        value: https://imageguard.io 
+        value: http://image-guard:3000
       - key: IPFS_UPLOAD_QUEUE_URL
         value: https://sqs.us-west-2.amazonaws.com/064662847354/ipfs_upload
       - key: RESOLVER_QUEUE_URL
@@ -59,6 +59,33 @@ services:
       - fromGroup: ipfs
 
   ############################################################
+  # IPFS Upload Consumer
+  ############################################################
+  - type: worker
+    plan: starter
+    name: ipfs-upload-consumer
+    runtime: image
+    image:
+      url: docker.io/leboiko/intuition-be:0.2.0 
+    dockerCommand: ./consumer --mode ipfs-upload
+    envVars:
+      - key: CONSUMER_TYPE
+        value: sqs
+      - key: DATABASE_URL
+        fromDatabase:
+          name: database
+          property: connectionString
+      - key: IMAGE_GUARD_URL
+        value: http://image-guard:3000
+      - key: IPFS_UPLOAD_QUEUE_URL
+        value: https://sqs.us-west-2.amazonaws.com/064662847354/ipfs_upload
+      - key: RUST_LOG
+        value: info
+      - fromGroup: aws-credentials
+      - fromGroup: pinata-secrets
+      - fromGroup: ipfs
+
+  ############################################################
   # Decoded Consumer
   ############################################################
   - type: worker
@@ -68,16 +95,18 @@ services:
       url: docker.io/leboiko/intuition-be:0.2.0
     dockerCommand: ./consumer --mode decoded
     envVars:
+      - key: CONSUMER_METRICS_API_PORT
+        value: 3002
+      - key: CONSUMER_TYPE
+        value: sqs
       - key: DATABASE_URL
         fromDatabase:
           name: database
           property: connectionString
-      - key: CONSUMER_TYPE
-        value: sqs
-      - key: INDEXING_SOURCE
-        value: substreams
-      - key: IPFS_GATEWAY_URL
-        value: https://ipfs.io
+      - key: DECODED_LOGS_QUEUE_URL
+        value: https://sqs.us-west-2.amazonaws.com/064662847354/decoded_logs
+      - key: INTUITION_CONTRACT_ADDRESS
+        value: 430BbF52503Bd4801E51182f4cB9f8F534225DE5
       - key: RUST_LOG
         value: info
       - fromGroup: aws-credentials
@@ -93,47 +122,54 @@ services:
       url: docker.io/leboiko/intuition-be:0.2.0
     dockerCommand: ./consumer --mode raw
     envVars:
+      - key: CONSUMER_TYPE
+        value: sqs
       - key: DATABASE_URL
         fromDatabase:
           name: database
           property: connectionString
-      - key: CONSUMER_TYPE
-        value: sqs
+      - key: DECODED_LOGS_QUEUE_URL
+        value: https://sqs.us-west-2.amazonaws.com/064662847354/decoded_logs
       - key: INDEXING_SOURCE
         value: substreams
-      - key: IPFS_GATEWAY_URL
-        value: https://ipfs.io
+      - key: RAW_CONSUMER_QUEUE_URL
+        value: https://sqs.us-west-2.amazonaws.com/064662847354/raw_logs
       - key: RUST_LOG
         value: info
       - fromGroup: aws-credentials
       - fromGroup: pinata-secrets
+      - fromGroup: rpc-mainnet
+      - fromGroup: ipfs
 
-  - type: web
-    name: ipfs
-    runtime: image
-    image:
-      url: ipfs/kubo:latest
-    dockerCommand: |
-      sh -c "
-      if [ ! -f /data/ipfs/config ]; then
-        ipfs init;
-      fi;
-      ipfs config Addresses.API /ip4/0.0.0.0/tcp/5001;
-      ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/8080;
-      ipfs pin remote service add Pinata https://api.pinata.cloud/psa $PINATA_API_JWT;
-      ipfs config --json Gateway.PublicGateways '{\"localhost\": {\"UseSubdomains\": false,\"Paths\": [\"/ipfs\", \"/ipns\"]},\"ipfs\": {\"UseSubdomains\": false,\"Paths\": [\"/ipfs\", \"/ipns\"]}}';
-      ipfs config --json Pinning.RemoteServices '[\"Pinata\"]';
-      ipfs config --json Pinning.RemoteServices.Pinata.Policies '{\"MFS\":{\"Enable\": false,\"PinName\": \"\",\"RepinInterval\": \"1m\"}}';
-      ipfs config --json Peering.Peers '[{\"ID\": \"Qma8ddFEQWEU8ijWvdxXm3nxU7oHsRtCykAaVz8WUYhiKn\", \"Addrs\": [\"/dnsaddr/bitswap.pinata.cloud\"]}]';
-      exec ipfs daemon --migrate=true --agent-version-suffix=docker"
-    envVars:
-      - key: IPFS_PATH
-        value: /data/ipfs
-      - key: PINATA_API_JWT
-        sync: false
-    disk:
-      name: ipfs-data
-      mountPath: /data/ipfs
+  ############################################################
+  # IPFS
+  ############################################################
+  # - type: web
+  #   name: ipfs
+  #   runtime: image
+  #   image:
+  #     url: ipfs/kubo:latest
+  #   dockerCommand: |
+  #     sh -c "
+  #     if [ ! -f /data/ipfs/config ]; then
+  #       ipfs init;
+  #     fi;
+  #     ipfs config Addresses.API /ip4/0.0.0.0/tcp/5001;
+  #     ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/8080;
+  #     ipfs pin remote service add Pinata https://api.pinata.cloud/psa $PINATA_API_JWT;
+  #     ipfs config --json Gateway.PublicGateways '{\"localhost\": {\"UseSubdomains\": false,\"Paths\": [\"/ipfs\", \"/ipns\"]},\"ipfs\": {\"UseSubdomains\": false,\"Paths\": [\"/ipfs\", \"/ipns\"]}}';
+  #     ipfs config --json Pinning.RemoteServices '[\"Pinata\"]';
+  #     ipfs config --json Pinning.RemoteServices.Pinata.Policies '{\"MFS\":{\"Enable\": false,\"PinName\": \"\",\"RepinInterval\": \"1m\"}}';
+  #     ipfs config --json Peering.Peers '[{\"ID\": \"Qma8ddFEQWEU8ijWvdxXm3nxU7oHsRtCykAaVz8WUYhiKn\", \"Addrs\": [\"/dnsaddr/bitswap.pinata.cloud\"]}]';
+  #     exec ipfs daemon --migrate=true --agent-version-suffix=docker"
+  #   envVars:
+  #     - key: IPFS_PATH
+  #       value: /data/ipfs
+  #     - key: PINATA_API_JWT
+  #       sync: false
+  #   disk:
+  #     name: ipfs-data
+  #     mountPath: /data/ipfs
 
   # Image Guard API
   - type: web
