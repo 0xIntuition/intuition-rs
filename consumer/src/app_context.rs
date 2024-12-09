@@ -57,7 +57,7 @@ impl Server {
             .with(
                 EnvFilter::from_default_env()
                     .add_directive(tracing::Level::INFO.into())
-                    .add_directive("consumer=debug".parse().unwrap()),
+                    .add_directive("consumer=info".parse().unwrap()),
             )
             .with(
                 tracing_subscriber::fmt::layer()
