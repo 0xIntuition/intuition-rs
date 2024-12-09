@@ -4,6 +4,7 @@ use crate::{
 };
 use models::{
     atom::{Atom, AtomType},
+    atom_value::AtomValue,
     book::Book,
     organization::Organization,
     person::Person,
@@ -94,6 +95,67 @@ pub async fn try_to_parse_json(
         Ok(AtomMetadata::unknown())
     }
 }
+
+/// Creates an atom value for a thing
+pub async fn create_thing_atom_value(
+    atom: &Atom,
+    thing: &Thing,
+    pg_pool: &PgPool,
+) -> Result<(), ConsumerError> {
+    AtomValue::builder()
+        .id(atom.id.clone())
+        .thing_id(thing.id.clone())
+        .build()
+        .upsert(pg_pool)
+        .await?;
+    Ok(())
+}
+
+/// Creates an atom value for a person
+pub async fn create_person_atom_value(
+    atom: &Atom,
+    person: &Person,
+    pg_pool: &PgPool,
+) -> Result<(), ConsumerError> {
+    AtomValue::builder()
+        .id(atom.id.clone())
+        .person_id(person.id.clone())
+        .build()
+        .upsert(pg_pool)
+        .await?;
+    Ok(())
+}
+
+/// Creates an atom value for an organization
+pub async fn create_organization_atom_value(
+    atom: &Atom,
+    organization: &Organization,
+    pg_pool: &PgPool,
+) -> Result<(), ConsumerError> {
+    AtomValue::builder()
+        .id(atom.id.clone())
+        .organization_id(organization.id.clone())
+        .build()
+        .upsert(pg_pool)
+        .await?;
+    Ok(())
+}
+
+/// Creates an atom value for a book
+pub async fn create_book_atom_value(
+    atom: &Atom,
+    book: &Book,
+    pg_pool: &PgPool,
+) -> Result<(), ConsumerError> {
+    AtomValue::builder()
+        .id(atom.id.clone())
+        .book_id(book.id.clone())
+        .build()
+        .upsert(pg_pool)
+        .await?;
+    Ok(())
+}
+
 /// Resolves schema.org properties
 async fn try_to_resolve_schema_org_properties(
     pg_pool: &PgPool,
@@ -104,6 +166,7 @@ async fn try_to_resolve_schema_org_properties(
         match AtomType::from_str(obj_type)? {
             AtomType::Thing => {
                 let thing = create_thing_from_obj(atom, obj).upsert(pg_pool).await?;
+                create_thing_atom_value(atom, &thing, pg_pool).await?;
                 Ok(AtomMetadata::thing(
                     thing.name.unwrap_or_default(),
                     thing.image.clone(),
@@ -111,6 +174,7 @@ async fn try_to_resolve_schema_org_properties(
             }
             AtomType::Person => {
                 let person = create_person_from_obj(atom, obj).upsert(pg_pool).await?;
+                create_person_atom_value(atom, &person, pg_pool).await?;
                 Ok(AtomMetadata::person(
                     person.name.unwrap_or_default(),
                     person.image.clone(),
@@ -120,6 +184,7 @@ async fn try_to_resolve_schema_org_properties(
                 let organization = create_organization_from_obj(atom, obj)
                     .upsert(pg_pool)
                     .await?;
+                create_organization_atom_value(atom, &organization, pg_pool).await?;
                 Ok(AtomMetadata::organization(
                     organization.name.unwrap_or_default(),
                     organization.image.clone(),
@@ -127,6 +192,7 @@ async fn try_to_resolve_schema_org_properties(
             }
             AtomType::Book => {
                 let book = create_book_from_obj(atom, obj).upsert(pg_pool).await?;
+                create_book_atom_value(atom, &book, pg_pool).await?;
                 Ok(AtomMetadata::book(book.name.unwrap_or_default()))
             }
             _ => {
