@@ -2,7 +2,6 @@ use crate::{
     error::ConsumerError,
     mode::{decoded::atom::atom_supported_types::AtomMetadata, types::ResolverConsumerContext},
 };
-use log::warn;
 use models::{
     atom::{Atom, AtomType},
     book::Book,
@@ -14,6 +13,7 @@ use models::{
 use serde_json::Value;
 use sqlx::PgPool;
 use std::str::FromStr;
+use tracing::warn;
 
 /// Supported schema.org contexts
 pub const SCHEMA_ORG_CONTEXTS: [&str; 4] = [

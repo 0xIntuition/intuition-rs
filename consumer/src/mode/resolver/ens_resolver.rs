@@ -9,8 +9,8 @@ use alloy::{
     providers::RootProvider,
     transports::http::Http,
 };
-use log::info;
 use reqwest::Client;
+use tracing::info;
 
 /// This struct represents the ENS name and avatar for an address.
 #[derive(Debug)]

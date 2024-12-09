@@ -1,5 +1,5 @@
-use log::warn;
 use shared_utils::image::Image;
+use tracing::warn;
 
 use crate::{error::ConsumerError, mode::types::IpfsUploadConsumerContext};
 
