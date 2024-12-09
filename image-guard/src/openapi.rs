@@ -2,7 +2,7 @@ use crate::{
     endpoints,
     types::{ClassificationScoreParsed, LocalClassificationScore},
 };
-use models::image_guard::{ImageClassification, ImageGuard};
+use models::image_guard::ImageGuard;
 use shared_utils::{image::Image, types::ClassificationModel};
 use utoipa::OpenApi;
 
@@ -16,7 +16,6 @@ use utoipa::OpenApi;
         schemas(
             Image,
             ImageGuard,
-            ImageClassification,
             ClassificationModel,
             ClassificationScoreParsed,
             LocalClassificationScore,

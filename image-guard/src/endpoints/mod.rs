@@ -6,7 +6,6 @@ use crate::types::{ClassificationScore, ClassificationScoreParsed, LocalClassifi
 use crate::{error::ApiError, state::AppState};
 use axum::extract::multipart::Field;
 use log::info;
-use models::image_guard::ImageClassification;
 use reqwest::Client;
 use shared_utils::{
     ipfs::{IPFSResolver, IpfsResponse},
@@ -17,7 +16,7 @@ use shared_utils::{
 async fn handle_image(
     state: &AppState,
     multi_part_handler: &MultiPartHandler,
-) -> Result<(ClassificationScoreParsed, ImageClassification), ApiError> {
+) -> Result<(ClassificationScoreParsed, bool), ApiError> {
     if state.flag == Flag::HfClassification {
         handle_image_with_hugginface(state, multi_part_handler).await
     } else if state.flag == Flag::LocalWithClassification {
@@ -25,10 +24,7 @@ async fn handle_image(
         // This is handling the case where we have the `local_with_db` feature
         // flag enabled, but no classification feature flag.
     } else {
-        return Ok((
-            ClassificationScoreParsed::unknown(),
-            ImageClassification::Unknown,
-        ));
+        return Ok((ClassificationScoreParsed::unknown(), false));
     }
 }
 
@@ -36,7 +32,7 @@ async fn handle_image(
 #[allow(dead_code)]
 async fn handle_local_with_classification(
     multi_part_handler: &MultiPartHandler,
-) -> Result<(ClassificationScoreParsed, ImageClassification), ApiError> {
+) -> Result<(ClassificationScoreParsed, bool), ApiError> {
     // Classify the image
     let classify_images = local_classify_image(&Client::new(), multi_part_handler).await?;
     info!("Image classified");
@@ -54,7 +50,7 @@ async fn handle_local_with_classification(
 async fn handle_image_with_hugginface(
     state: &AppState,
     multi_part_handler: &MultiPartHandler,
-) -> Result<(ClassificationScoreParsed, ImageClassification), ApiError> {
+) -> Result<(ClassificationScoreParsed, bool), ApiError> {
     // Classify the image
     let classify_images = hf_classify_image(
         &Client::new(),
@@ -90,12 +86,8 @@ async fn upload_image_to_ipfs(
 }
 
 /// Determines the classification status based on the scores
-fn determine_classification_status(scores: &ClassificationScoreParsed) -> ImageClassification {
-    if scores.nsfw > 0.6 {
-        ImageClassification::Unsafe
-    } else {
-        ImageClassification::Safe
-    }
+fn determine_classification_status(scores: &ClassificationScoreParsed) -> bool {
+    scores.nsfw <= 0.6
 }
 
 /// Checks the image format and returns a [`MultiPartHandler`]

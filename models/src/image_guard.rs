@@ -9,15 +9,6 @@ use serde_json::Value;
 use sqlx::PgPool;
 use utoipa::ToSchema;
 
-#[derive(sqlx::Type, Debug, Clone, PartialEq, Serialize, Deserialize, Default, ToSchema)]
-#[sqlx(type_name = "image_classification")]
-pub enum ImageClassification {
-    Safe,
-    Unsafe,
-    #[default]
-    Unknown,
-}
-
 /// This struct represents a fee transfer in the database.
 /// Note that `sender_id` and `receiver_id` are foreign keys to the
 /// `account` table.
@@ -29,7 +20,7 @@ pub struct ImageGuard {
     pub original_name: String,
     pub score: Option<Value>,
     pub model: Option<String>,
-    pub classification: ImageClassification,
+    pub safe: bool,
     pub created_at: DateTime<Utc>,
 }
 
@@ -41,23 +32,23 @@ impl SimpleCrud<String> for ImageGuard {
         sqlx::query_as!(
             ImageGuard,
             r#"
-            INSERT INTO image_guard (id, ipfs_hash, original_name, score, model, classification, created_at)
+            INSERT INTO image_guard (id, ipfs_hash, original_name, score, model, safe, created_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             ON CONFLICT (id) DO UPDATE SET
                 ipfs_hash = EXCLUDED.ipfs_hash,
                 original_name = EXCLUDED.original_name,
                 score = EXCLUDED.score,
                 model = EXCLUDED.model,
-                classification = EXCLUDED.classification,
+                safe = EXCLUDED.safe,
                 created_at = EXCLUDED.created_at
-            RETURNING id, ipfs_hash, original_name, score, model, classification as "classification: ImageClassification", created_at
+            RETURNING id, ipfs_hash, original_name, score, model, safe, created_at
             "#,
             self.id,
             self.ipfs_hash,
             self.original_name,
             self.score,
             self.model,
-            self.classification.clone() as ImageClassification,
+            self.safe,
             self.created_at,
         )
         .fetch_one(pool)
@@ -68,7 +59,7 @@ impl SimpleCrud<String> for ImageGuard {
     async fn find_by_id(id: String, pool: &PgPool) -> Result<Option<Self>, ModelError> {
         sqlx::query_as!(
             ImageGuard,
-            r#"SELECT id, ipfs_hash, original_name, score, model, classification as "classification: ImageClassification", created_at FROM image_guard WHERE id = $1"#,
+            r#"SELECT id, ipfs_hash, original_name, score, model, safe, created_at FROM image_guard WHERE id = $1"#,
             id,
         )
         .fetch_optional(pool)

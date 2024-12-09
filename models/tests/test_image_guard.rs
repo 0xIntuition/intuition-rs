@@ -2,7 +2,7 @@
 mod tests {
     use chrono::Utc;
     use models::{
-        image_guard::{ImageClassification, ImageGuard},
+        image_guard::ImageGuard,
         test_helpers::{create_random_string, setup_test_db},
         traits::SimpleCrud,
     };
@@ -17,21 +17,21 @@ mod tests {
             original_name: "test.png".to_string(),
             score: None,
             model: None,
-            classification: ImageClassification::Unknown,
+            safe: false,
             created_at: Utc::now(),
         };
 
         // Insert with Unknown classification
         let inserted = guard.upsert(&pool).await.unwrap();
-        assert_eq!(inserted.classification, ImageClassification::Unknown);
+        assert!(!inserted.safe);
 
         // Update to Safe
-        guard.classification = ImageClassification::Safe;
+        guard.safe = true;
         let updated = guard.upsert(&pool).await.unwrap();
-        assert_eq!(updated.classification, ImageClassification::Safe);
+        assert!(updated.safe);
 
         // Find and verify
         let found = ImageGuard::find_by_id(id, &pool).await.unwrap().unwrap();
-        assert_eq!(found.classification, ImageClassification::Safe);
+        assert!(found.safe);
     }
 }

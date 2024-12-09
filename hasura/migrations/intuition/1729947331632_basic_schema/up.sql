@@ -281,7 +281,7 @@ CREATE TABLE image_guard (
   original_name TEXT NOT NULL,
   score JSONB,
   model TEXT,
-  classification image_classification NOT NULL DEFAULT 'Unknown',
+  safe BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 

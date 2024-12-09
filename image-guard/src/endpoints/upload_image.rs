@@ -65,8 +65,8 @@ pub async fn upload_image(
             .ipfs_hash(ipfs_response.hash)
             .original_name(original_name)
             .score(serde_json::to_string(&scores)?)
-            .model(ClassificationModel::Falconsai.to_string())
-            .classification(status)
+            .model(ClassificationModel::FalconsaiNsfwImageDetection.to_string())
+            .safe(status)
             .created_at(Utc::now())
             .build();
 
