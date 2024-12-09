@@ -164,7 +164,7 @@ services:
       - EXTRA_CORS_ALLOWED_ORIGINS=app://.
       - HOSTNAME_EXTERNAL=localstack
       - RUST_LOG=debug
-      - SERVICES=sqs,s3
+      - SERVICES=sqs
     
   api:
     container_name: api

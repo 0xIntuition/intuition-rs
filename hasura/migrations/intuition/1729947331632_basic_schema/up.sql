@@ -340,4 +340,5 @@ CREATE INDEX idx_raw_data_block_timestamp ON raw_data(block_timestamp);
 CREATE INDEX idx_raw_data_transaction_hash ON raw_data(transaction_hash);
 CREATE INDEX idx_raw_data_address ON raw_data(address);
 CREATE INDEX idx_raw_data_topics ON raw_data(topics);
-
+CREATE INDEX idx_cached_image_original_url ON cached_image(original_url);
+CREATE INDEX idx_cached_image_url ON cached_image(url);
