@@ -255,23 +255,11 @@ CREATE TABLE book (
 
 CREATE TABLE atom_value (
   id NUMERIC(78, 0) PRIMARY KEY NOT NULL REFERENCES atom(id),
-  account_id TEXT REFERENCES account(id) NOT NULL,
+  account_id TEXT REFERENCES account(id),
   thing_id NUMERIC(78, 0) REFERENCES thing(id),
   person_id NUMERIC(78, 0) REFERENCES person(id),
   organization_id NUMERIC(78, 0) REFERENCES organization(id),
-  book_id NUMERIC(78, 0) REFERENCES book(id),
-  -- Ensure that exactly one of thing_id, person_id, organization_id, or book_id is set 
-  CONSTRAINT check_atom_value_constraints CHECK (
-    (account_id IS NOT NULL AND thing_id IS NULL AND person_id IS NULL AND organization_id IS NULL AND book_id IS NULL)
-    OR
-    (account_id IS NULL AND thing_id IS NOT NULL AND person_id IS NULL AND organization_id IS NULL AND book_id IS NULL)
-    OR
-    (account_id IS NULL AND thing_id IS NULL AND person_id IS NOT NULL AND organization_id IS NULL AND book_id IS NULL)
-    OR
-    (account_id IS NULL AND thing_id IS NULL AND person_id IS NULL AND organization_id IS NOT NULL AND book_id IS NULL)
-    OR
-    (account_id IS NULL AND thing_id IS NULL AND person_id IS NULL AND organization_id IS NULL AND book_id IS NOT NULL)
-  )
+  book_id NUMERIC(78, 0) REFERENCES book(id)
 );
 
 CREATE TABLE cached_image (
