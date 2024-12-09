@@ -12,7 +12,6 @@ mod error;
 mod mode;
 mod schemas;
 mod traits;
-mod utils;
 
 // Codegen from ABI file to interact with the Intuition contract.
 sol!(
@@ -48,6 +47,8 @@ sol! {
 pub struct ConsumerArgs {
     #[arg(short, long)]
     mode: String,
+    #[arg(short, long, default_value_t = false)]
+    local: bool,
 }
 
 /// This is the main function that starts the consumer. It reads the `.env`
@@ -55,10 +56,13 @@ pub struct ConsumerArgs {
 /// builds the server and starts the consumer loop.
 #[tokio::main]
 async fn main() -> Result<(), ConsumerError> {
-    // Initialize the server and get basic context
+    // Initialize the server, getting the environment variables, the CLI args and
+    // sets up the logging
     let init = Server::initialize().await?;
     // Build the server with the basic context
     let server = Server::new(init).await?;
+    // Spawn the warp server
+    server.spawn_warp_server().await?;
     // Start processing messages
     server.consumer_mode().process_messages().await
 }

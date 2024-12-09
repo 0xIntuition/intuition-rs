@@ -5,7 +5,6 @@ use crate::{
     error::ConsumerError,
     schemas::types::DecodedMessage,
     traits::BasicConsumer,
-    utils::connect_to_db,
     ENSRegistry::{self, ENSRegistryInstance},
     EthMultiVault::{self, EthMultiVaultEvents, EthMultiVaultInstance},
 };
@@ -14,12 +13,29 @@ use alloy::{
     providers::{ProviderBuilder, RootProvider},
     transports::http::Http,
 };
-use log::{debug, info, warn};
+use once_cell::sync::OnceCell;
+use prometheus::{register_histogram_vec, HistogramVec};
 use reqwest::Client;
+use shared_utils::{ipfs::IPFSResolver, postgres::connect_to_db};
 use sqlx::PgPool;
 use std::{str::FromStr, sync::Arc};
+use tracing::{debug, info, warn};
 
-use super::resolver::{ipfs_resolver::IPFSResolver, types::ResolverConsumerMessage};
+use super::{ipfs_upload::types::IpfsUploadMessage, resolver::types::ResolverConsumerMessage};
+
+// Create a OnceCell to hold the histogram
+static EVENT_PROCESSING_HISTOGRAM: OnceCell<HistogramVec> = OnceCell::new();
+
+fn get_event_processing_histogram() -> &'static HistogramVec {
+    EVENT_PROCESSING_HISTOGRAM.get_or_init(|| {
+        register_histogram_vec!(
+            "event_processing_duration_seconds",
+            "Time taken to process each event type",
+            &["event_type"]
+        )
+        .unwrap()
+    })
+}
 
 /// This enum describes the possible modes that the consumer
 /// can be executed on. At each mode the consumer is going
@@ -29,6 +45,7 @@ pub enum ConsumerMode {
     Decoded(DecodedConsumerContext),
     Raw(RawConsumerContext),
     Resolver(ResolverConsumerContext),
+    IpfsUpload(IpfsUploadConsumerContext),
 }
 
 /// Represents the decoded consumer context
@@ -37,6 +54,16 @@ pub struct DecodedConsumerContext {
     pub client: Arc<dyn BasicConsumer>,
     pub base_client: Arc<EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>>>,
     pub pg_pool: PgPool,
+}
+
+/// Represents the ipfs upload consumer context
+#[derive(Clone)]
+pub struct IpfsUploadConsumerContext {
+    pub client: Arc<dyn BasicConsumer>,
+    pub image_guard_url: String,
+    pub ipfs_resolver: IPFSResolver,
+    pub pg_pool: PgPool,
+    pub reqwest_client: reqwest::Client,
 }
 
 /// Represents the raw consumer context
@@ -51,9 +78,11 @@ pub struct RawConsumerContext {
 #[derive(Clone)]
 pub struct ResolverConsumerContext {
     pub client: Arc<dyn BasicConsumer>,
+    pub image_guard_url: String,
     pub ipfs_resolver: IPFSResolver,
     pub mainnet_client: Arc<ENSRegistryInstance<Http<Client>, RootProvider<Http<Client>>>>,
     pub pg_pool: PgPool,
+    pub reqwest_client: reqwest::Client,
     pub server_initialize: ServerInitialize,
 }
 
@@ -65,9 +94,7 @@ impl ConsumerMode {
         output_queue: String,
     ) -> Result<Arc<dyn BasicConsumer>, ConsumerError> {
         match ConsumerType::from_str(&data.env.consumer_type)? {
-            ConsumerType::Sqs => Ok(Arc::new(
-                Sqs::new(input_queue, output_queue, data.env.localstack_url.clone()).await,
-            )),
+            ConsumerType::Sqs => Ok(Arc::new(Sqs::new(input_queue, output_queue, data).await)),
         }
     }
 
@@ -110,13 +137,27 @@ impl ConsumerMode {
         pg_pool: PgPool,
     ) -> Result<ConsumerMode, ConsumerError> {
         let base_client = Arc::new(Self::build_intuition_client(
-            &data.env.rpc_url_base_mainnet,
-            &data.env.intuition_contract_address,
+            &data
+                .clone()
+                .env
+                .rpc_url_base_mainnet
+                .unwrap_or_else(|| panic!("RPC URL base mainnet is not set")),
+            &data
+                .clone()
+                .env
+                .intuition_contract_address
+                .unwrap_or_else(|| panic!("Intuition contract address is not set")),
         )?);
         let client = Self::build_client(
             data.clone(),
-            data.env.decoded_logs_queue_url.clone(),
-            data.env.resolver_queue_url.clone(),
+            data.env
+                .decoded_logs_queue_url
+                .clone()
+                .unwrap_or_else(|| panic!("Decoded logs queue URL is not set")),
+            data.env
+                .resolver_queue_url
+                .clone()
+                .unwrap_or_else(|| panic!("Resolver queue URL is not set")),
         )
         .await?;
 
@@ -127,20 +168,98 @@ impl ConsumerMode {
         }))
     }
 
+    /// This function creates a image guard URL
+    async fn create_image_guard(data: ServerInitialize) -> Result<String, ConsumerError> {
+        Ok(data
+            .env
+            .image_guard_url
+            .clone()
+            .unwrap_or_else(|| panic!("Image guard URL is not set")))
+    }
+
+    /// This function creates a ipfs resolver
+    async fn create_ipfs_resolver(data: ServerInitialize) -> Result<IPFSResolver, ConsumerError> {
+        Ok(IPFSResolver::builder()
+            .http_client(Client::new())
+            .ipfs_upload_url(
+                data.env
+                    .ipfs_upload_url
+                    .clone()
+                    .unwrap_or_else(|| panic!("IPFS upload URL is not set")),
+            )
+            .ipfs_fetch_url(
+                data.env
+                    .ipfs_gateway_url
+                    .clone()
+                    .unwrap_or_else(|| panic!("IPFS gateway URL is not set")),
+            )
+            .pinata_jwt(
+                data.env
+                    .pinata_api_jwt
+                    .clone()
+                    .unwrap_or_else(|| panic!("Pinata API JWT is not set")),
+            )
+            .build())
+    }
+
+    /// This function creates a ipfs upload consumer
+    async fn create_ipfs_upload_consumer(
+        data: ServerInitialize,
+        pg_pool: PgPool,
+    ) -> Result<ConsumerMode, ConsumerError> {
+        let client = Self::build_client(
+            data.clone(),
+            data.env
+                .ipfs_upload_queue_url
+                .clone()
+                .unwrap_or_else(|| panic!("IPFS upload queue URL is not set")),
+            data.env
+                .ipfs_upload_queue_url
+                .clone()
+                .unwrap_or_else(|| panic!("IPFS upload queue URL is not set")),
+        )
+        .await?;
+
+        let ipfs_resolver = Self::create_ipfs_resolver(data.clone()).await?;
+
+        let image_guard_url = Self::create_image_guard(data.clone()).await?;
+
+        let reqwest_client = reqwest::Client::new();
+        Ok(ConsumerMode::IpfsUpload(IpfsUploadConsumerContext {
+            client,
+            image_guard_url,
+            ipfs_resolver,
+            pg_pool,
+            reqwest_client,
+        }))
+    }
+
     /// This function creates a raw consumer
     async fn create_raw_consumer(
         data: ServerInitialize,
         pg_pool: PgPool,
     ) -> Result<ConsumerMode, ConsumerError> {
-        let indexing_source = match IndexerSource::from_str(&data.env.indexing_source)? {
+        let indexing_source = match IndexerSource::from_str(
+            &data
+                .env
+                .indexing_source
+                .clone()
+                .unwrap_or_else(|| panic!("Indexing source is not set")),
+        )? {
             IndexerSource::GoldSky => Arc::new(IndexerSource::GoldSky),
             IndexerSource::Substreams => Arc::new(IndexerSource::Substreams),
         };
 
         let client = Self::build_client(
             data.clone(),
-            data.env.raw_consumer_queue_url.clone(),
-            data.env.decoded_logs_queue_url.clone(),
+            data.env
+                .raw_consumer_queue_url
+                .clone()
+                .unwrap_or_else(|| panic!("Raw consumer queue URL is not set")),
+            data.env
+                .decoded_logs_queue_url
+                .clone()
+                .unwrap_or_else(|| panic!("Decoded logs queue URL is not set")),
         )
         .await?;
 
@@ -157,24 +276,43 @@ impl ConsumerMode {
         pg_pool: PgPool,
     ) -> Result<ConsumerMode, ConsumerError> {
         let mainnet_client = Arc::new(Self::build_ens_client(
-            &data.env.rpc_url_mainnet,
-            &data.env.ens_contract_address,
+            &data
+                .clone()
+                .env
+                .rpc_url_mainnet
+                .unwrap_or_else(|| panic!("RPC URL mainnet is not set")),
+            &data
+                .clone()
+                .env
+                .ens_contract_address
+                .unwrap_or_else(|| panic!("ENS contract address is not set")),
         )?);
 
         let client = Self::build_client(
             data.clone(),
-            data.env.resolver_queue_url.clone(),
-            data.env.resolver_queue_url.clone(),
+            data.env
+                .resolver_queue_url
+                .clone()
+                .unwrap_or_else(|| panic!("Resolver queue URL is not set")),
+            data.env
+                .ipfs_upload_queue_url
+                .clone()
+                .unwrap_or_else(|| panic!("IPFS upload queue URL is not set")),
         )
         .await?;
 
-        let ipfs_resolver = IPFSResolver::new(Client::new(), data.env.ipfs_gateway_url.clone());
+        let ipfs_resolver = Self::create_ipfs_resolver(data.clone()).await?;
 
+        let image_guard_url = Self::create_image_guard(data.clone()).await?;
+
+        let reqwest_client = reqwest::Client::new();
         Ok(ConsumerMode::Resolver(ResolverConsumerContext {
             client,
+            image_guard_url,
             ipfs_resolver,
             mainnet_client,
             pg_pool,
+            reqwest_client,
             server_initialize: data,
         }))
     }
@@ -182,13 +320,16 @@ impl ConsumerMode {
     /// We need to implement this convenience so we can transform
     /// the [`String`] received by the CLI into an actual [`ConsumerMode`]
     pub async fn from_str(data: ServerInitialize) -> Result<ConsumerMode, ConsumerError> {
-        let pg_pool = connect_to_db(&data.env).await?;
+        let pg_pool = connect_to_db(&data.env.database_url).await?;
 
         match data.args.mode.as_str() {
             "Raw" | "raw" | "RAW" => Self::create_raw_consumer(data, pg_pool).await,
             "Decoded" | "decoded" | "DECODED" => Self::create_decoded_consumer(data, pg_pool).await,
             "Resolver" | "resolver" | "RESOLVER" => {
                 Self::create_resolver_consumer(data, pg_pool).await
+            }
+            "IpfsUpload" | "ipfs-upload" | "IPFS_UPLOAD" => {
+                Self::create_ipfs_upload_consumer(data, pg_pool).await
             }
             _ => Err(ConsumerError::UnsuportedMode),
         }
@@ -208,6 +349,10 @@ impl ConsumerMode {
             }
             ConsumerMode::Resolver(resolver_consumer_context) => {
                 self.handle_resolved_message(message, resolver_consumer_context)
+                    .await
+            }
+            ConsumerMode::IpfsUpload(ipfs_upload_consumer_context) => {
+                self.handle_ipfs_upload_message(message, ipfs_upload_consumer_context)
                     .await
             }
         }
@@ -235,6 +380,12 @@ impl ConsumerMode {
                     .process_messages(self.clone())
                     .await
             }
+            ConsumerMode::IpfsUpload(ipfs_upload_consumer_context) => {
+                ipfs_upload_consumer_context
+                    .client
+                    .process_messages(self.clone())
+                    .await
+            }
         }
     }
 
@@ -245,17 +396,23 @@ impl ConsumerMode {
         decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<(), ConsumerError> {
         debug!("Processing a decoded message: {message:?}");
-        // Deserialize the message into an `Event`
         let decoded_message: DecodedMessage = serde_json::from_str(&message)?;
-        // Match the event type and process it accordingly
+
         match &decoded_message.body {
             EthMultiVaultEvents::AtomCreated(atom_data) => {
+                let timer = get_event_processing_histogram()
+                    .with_label_values(&["AtomCreated"])
+                    .start_timer();
                 info!("Received: {atom_data:#?}");
                 atom_data
                     .handle_atom_creation(decoded_consumer_context, &decoded_message)
                     .await?;
+                timer.observe_duration();
             }
             EthMultiVaultEvents::FeesTransferred(fees_data) => {
+                let timer = get_event_processing_histogram()
+                    .with_label_values(&["FeesTransferred"])
+                    .start_timer();
                 info!("Received: {fees_data:#?}");
                 fees_data
                     .handle_fees_transferred_creation(
@@ -263,8 +420,12 @@ impl ConsumerMode {
                         &decoded_message,
                     )
                     .await?;
+                timer.observe_duration();
             }
             EthMultiVaultEvents::TripleCreated(triple_data) => {
+                let timer = get_event_processing_histogram()
+                    .with_label_values(&["TripleCreated"])
+                    .start_timer();
                 info!("Received: {triple_data:#?}");
                 triple_data
                     .handle_triple_creation(
@@ -273,18 +434,27 @@ impl ConsumerMode {
                         &decoded_message,
                     )
                     .await?;
+                timer.observe_duration();
             }
             EthMultiVaultEvents::Deposited(deposited_data) => {
+                let timer = get_event_processing_histogram()
+                    .with_label_values(&["Deposited"])
+                    .start_timer();
                 info!("Received: {deposited_data:#?}");
                 deposited_data
                     .handle_deposit_creation(decoded_consumer_context, &decoded_message)
                     .await?;
+                timer.observe_duration();
             }
             EthMultiVaultEvents::Redeemed(redeemed_data) => {
+                let timer = get_event_processing_histogram()
+                    .with_label_values(&["Redeemed"])
+                    .start_timer();
                 info!("Received: {redeemed_data:#?}");
                 redeemed_data
                     .handle_redeemed_creation(decoded_consumer_context, &decoded_message)
                     .await?;
+                timer.observe_duration();
             }
             _ => {
                 warn!("Received event: {decoded_message:#?}");
@@ -305,6 +475,22 @@ impl ConsumerMode {
         resolver_message
             .message
             .process(resolver_consumer_context)
+            .await?;
+
+        Ok(())
+    }
+
+    /// This function process a ipfs upload message.
+    async fn handle_ipfs_upload_message(
+        &self,
+        message: String,
+        ipfs_upload_consumer_context: &IpfsUploadConsumerContext,
+    ) -> Result<(), ConsumerError> {
+        // Deserialize the message into an `Event`
+        let resolver_message: IpfsUploadMessage = serde_json::from_str(&message)?;
+        // We need to match the message type and process it accordingly
+        resolver_message
+            .process(ipfs_upload_consumer_context)
             .await?;
 
         Ok(())

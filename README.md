@@ -7,6 +7,7 @@ This workspace contains the following crates:
 * `consumer`: contains the code to RAW, DECODED and RESOLVER consumers.
 * `hasura`: contains the migrations and hasura config.
 * `histoflux`: streams historical data from our contracts to a queue. Currently supports SQS queues.
+* `image-guard`: contains the code to guard the images.
 * `models`: contains the domain models for the intuition data as basic traits for the data.
 * `substreams-sink`: contains the code to consume the Substreams events.
 
@@ -34,11 +35,38 @@ aws_secret_access_key = YOUR_SECRET_ACCESS_KEY
 
 ## Running the local pipeline
 
-You need to copy the `.env.sample.docker` file to `.env.docker` and set the correct values. Note that some of the values need to be set manually, such as the `PINATA_GATEWAY_TOKEN`, `PINATA_API_JWT`, the `RPC_URL` and the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`. If values are not set, the pipeline will not work.
+There is a `.env.sample` file that you need to use as a template to create the `.env` file. First, you need to set the values for following variables:
+
+* `PINATA_GATEWAY_TOKEN`: You can get the token from [Pinata](https://app.pinata.cloud/developers/gateway-settings)
+* `PINATA_API_JWT`: You can get the token from [Pinata](https://app.pinata.cloud/developers/api-keys)
+* `RPC_URL_MAINNET`: We are currently using Alchemy. You can create new ones using the [Alchemy dashboard](https://dashboard.alchemy.com/)
+* `RPC_URL_BASE_MAINNET`: We are currently using Alchemy. You can create new ones using the [Alchemy dashboard](https://dashboard.alchemy.com/apps)
+* `AWS_ACCESS_KEY_ID`: You can get the values from your [AWS account](https://us-east-1.console.aws.amazon.com/iam/home?region=us-east-1#/users)
+* `AWS_SECRET_ACCESS_KEY`: You can get the values from your [AWS account](https://us-east-1.console.aws.amazon.com/iam/home?region=us-east-1#/users)
+* `HF_TOKEN`: You can get the token from [Hugging Face](https://huggingface.co/settings/tokens)
+* `SUBSTREAMS_API_TOKEN`: You can get the token from [Substreams](https://thegraph.market/auth/substreams-devenv)  
+
+After filling all of the variables, you can run the following commands:
+
+### Using published docker images
 
 ```
-cp .env.sample.docker .env.docker
-source .env.docker
+./start.sh
+```
+
+#### Runing cli tool to verify latest data
+
+```
+./cli.sh
+```
+
+Later, you can use `./stop.sh` to stop all services or `./restart.sh` to restart all services and clear attached volumes
+
+### Building docker images from source code
+
+```
+cp .env.sample .env
+source .env
 cargo make start-docker-and-migrate
 
 ```
@@ -79,11 +107,11 @@ If you want to run the local decoded consumer connected to the real decoded SQS 
 
 If you want to run the local raw consumer connected to the local SQS queue you can run
 
-`RUST_LOG=info cargo run --bin consumer --features local --mode raw` (or `cargo make raw-consumer-local`)
+`RUST_LOG=info cargo run --bin consumer --features local --mode raw --local` (or `cargo make raw-consumer-local`)
 
 If you want to run the local decoded consumer connected to the local SQS queue you can run
 
-`RUST_LOG=info cargo run --bin consumer --features local --mode decoded` (or `cargo make decoded-consumer-local`)
+`RUST_LOG=info cargo run --bin consumer --features local --mode decoded --local` (or `cargo make decoded-consumer-local`)
 
 We use feature flags to differentiate between the local and the remote execution environment.
 

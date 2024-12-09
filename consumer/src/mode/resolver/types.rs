@@ -1,15 +1,15 @@
 use crate::{
     error::ConsumerError,
     mode::{
+        ipfs_upload::types::IpfsUploadMessage,
         resolver::{
             atom_resolver::{try_to_parse_json, try_to_resolve_ipfs_uri},
-            ens_resolver::get_ens,
+            ens_resolver::Ens,
         },
         types::ResolverConsumerContext,
     },
 };
 use alloy::primitives::Address;
-use log::info;
 use models::{
     account::{Account, AccountType},
     atom::{Atom, AtomType},
@@ -17,7 +17,7 @@ use models::{
 };
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
-
+use tracing::info;
 /// This struct represents a message that is sent to the resolver
 /// consumer to be processed.
 #[derive(Debug, Serialize, Deserialize)]
@@ -67,11 +67,7 @@ impl ResolverMessageType {
         resolver_consumer_context: &ResolverConsumerContext,
         account: &Account,
     ) -> Result<(), ConsumerError> {
-        let ens = get_ens(
-            Address::from_str(&account.id)?,
-            &resolver_consumer_context.mainnet_client,
-        )
-        .await?;
+        let ens = Ens::get_ens(Address::from_str(&account.id)?, resolver_consumer_context).await?;
         if let Some(name) = ens.name.clone() {
             info!("ENS for account: {:?}", ens);
             Account::builder()
@@ -135,6 +131,18 @@ impl ResolverMessageType {
                 metadata
                     .update_atom_metadata(&mut atom, &resolver_consumer_context.pg_pool)
                     .await?;
+
+                // If the atom has an image, we need to download it and classify it
+                if let Some(image) = metadata.image {
+                    // If we receive an image, we send it to the IPFS upload consumer
+                    // to be classified and stored
+                    info!("Sending image to IPFS upload consumer: {}", image);
+                    resolver_consumer_context
+                        .client
+                        .send_message(serde_json::to_string(&IpfsUploadMessage { image })?)
+                        .await?;
+                }
+
                 // Mark the atom as resolved
                 resolver_message
                     .atom

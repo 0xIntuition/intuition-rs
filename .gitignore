@@ -3,3 +3,5 @@ volume
 .DS_store
 .env
 .env.docker
+.env.dump
+logs/*

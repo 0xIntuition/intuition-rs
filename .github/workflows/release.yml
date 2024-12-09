@@ -1,0 +1,126 @@
+name: Release and Publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  REGISTRY: ghcr.io
+  OWNER: ${{ github.repository_owner }}
+  RUST_VERSION: 1.81.0
+
+jobs:
+  build-and-push:
+    runs-on: self-hosted
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Build and push Consumer image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: consumer/Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            ${{ env.REGISTRY }}/0xintuition/consumer:${{ steps.meta.outputs.version }}
+            ${{ env.REGISTRY }}/0xintuition/consumer:latest
+          build-args: |
+            RUST_VERSION=${{ env.RUST_VERSION }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push Image Guard
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: image-guard/Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            ${{ env.REGISTRY }}/0xintuition/image-guard:${{ steps.meta.outputs.version }}
+            ${{ env.REGISTRY }}/0xintuition/image-guard:latest
+          build-args: |
+            RUST_VERSION=${{ env.RUST_VERSION }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push Substreams Sink
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: substreams-sink/Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            ${{ env.REGISTRY }}/0xintuition/substreams-sink:${{ steps.meta.outputs.version }}
+            ${{ env.REGISTRY }}/0xintuition/substreams-sink:latest
+          build-args: |
+            RUST_VERSION=${{ env.RUST_VERSION }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push Hasura migrations
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: hasura/Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            ${{ env.REGISTRY }}/0xintuition/hasura-migrations:${{ steps.meta.outputs.version }}
+            ${{ env.REGISTRY }}/0xintuition/hasura-migrations:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push CLI TUI image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: cli/Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            ${{ env.REGISTRY }}/0xintuition/cli:${{ steps.meta.outputs.version }}
+            ${{ env.REGISTRY }}/0xintuition/cli:latest
+          build-args: |
+            RUST_VERSION=${{ env.RUST_VERSION }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Check permissions
+        run: |
+          curl -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/${{ github.repository }}
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release ${{ steps.meta.outputs.version }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true 
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

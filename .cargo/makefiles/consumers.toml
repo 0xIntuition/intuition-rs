@@ -1,0 +1,14 @@
+[tasks.raw-consumer]
+env = { "RUST_LOG" = "info" }
+command = "cargo"
+args = ["run", "--bin", "consumer", "--", "--mode", "raw"]
+
+[tasks.decoded-consumer]
+env = { "RUST_LOG" = "info" }
+command = "cargo"
+args = ["run", "--bin", "consumer", "--", "--mode", "decoded"]
+
+[tasks.resolver-consumer]
+env = { "RUST_LOG" = "info" }
+command = "cargo"
+args = ["run", "--bin", "consumer", "--", "--mode", "resolver"] 

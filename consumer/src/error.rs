@@ -73,6 +73,8 @@ pub enum ConsumerError {
     InvalidJson,
     #[error("Failed to parse indexer source: {0}")]
     IndexerSourceParse(String),
+    #[error("Missing localstack env variable")]
+    LocalstackUrlNotFound,
     #[error("Failed to decode log: {0}")]
     LogDecodingError(String),
     #[error(transparent)]
@@ -94,11 +96,13 @@ pub enum ConsumerError {
     #[error(transparent)]
     Regex(#[from] regex::Error),
     #[error(transparent)]
+    Reqwest(#[from] reqwest::Error),
+    #[error(transparent)]
     SerdeJson(#[from] serde_json::Error),
     #[error(transparent)]
-    SqlError(#[from] sqlx::Error),
+    SharedUtils(#[from] shared_utils::error::LibError),
     #[error(transparent)]
-    SQLXCore(#[from] sqlx_core::error::Error),
+    SqlError(#[from] sqlx::Error),
     #[error(transparent)]
     Strum(#[from] strum::ParseError),
     #[error("Subject atom not found")]

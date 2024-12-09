@@ -1,0 +1,19 @@
+[tasks.build-consumer]
+command = "docker"
+args = ["build", "-t", "ghcr.io/0xintuition/consumer:latest", "-f", "consumer/Dockerfile", "."]
+
+[tasks.build-image-guard]
+command = "docker"
+args = ["build", "-t", "ghcr.io/0xintuition/image-guard:latest", "-f", "image-guard/Dockerfile", "."]
+
+[tasks.build-image-hasura-migrations]
+command = "docker"
+args = ["build", "-t", "ghcr.io/0xintuition/hasura-migrations:latest", "-f", "hasura/Dockerfile", "."]
+
+[tasks.build-image-substreams-sink]
+command = "docker"
+args = ["build", "-t", "ghcr.io/0xintuition/substreams-sink:latest", "-f", "substreams-sink/Dockerfile", "."] 
+
+[tasks.build-cli]
+command = "docker"
+args = ["build", "-t", "ghcr.io/0xintuition/cli:latest", "-f", "cli/Dockerfile", "."]

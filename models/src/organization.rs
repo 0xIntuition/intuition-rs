@@ -1,13 +1,4 @@
 use crate::error::ModelError;
-// CREATE TABLE organization (
-//     id NUMERIC(78, 0) PRIMARY KEY NOT NULL,
-//     atom_id NUMERIC(78, 0) REFERENCES atom(id),
-//     name TEXT,
-//     description TEXT,
-//     image TEXT,
-//     url TEXT,
-//     email TEXT
-//   );
 use crate::traits::{Model, SimpleCrud};
 use crate::types::U256Wrapper;
 use async_trait::async_trait;
