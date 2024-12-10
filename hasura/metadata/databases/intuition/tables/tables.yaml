@@ -2,6 +2,7 @@
 - "!include public_atom.yaml"
 - "!include public_atom_value.yaml"
 - "!include public_book.yaml"
+- "!include public_cached_image.yaml"
 - "!include public_chainlink_price.yaml"
 - "!include public_claim.yaml"
 - "!include public_deposit.yaml"
