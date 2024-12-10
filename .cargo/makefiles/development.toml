@@ -59,6 +59,9 @@ args = ["deploy", "--project", "hasura"]
 [tasks.start-docker-and-migrate]
 dependencies = ["remove-docker-volumes", "build-cli", "build-image-substreams-sink", "build-consumer", "build-image-guard", "build-image-hasura-migrations", "start-docker"]
 
+[tasks.build-docker-images]
+dependencies = [ "build-cli", "build-image-substreams-sink", "build-consumer", "build-image-guard", "build-image-hasura-migrations"]
+
 
 # This task remove the docker volumes, start the docker compose stack
 [tasks.restart]
