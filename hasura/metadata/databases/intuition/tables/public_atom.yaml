@@ -44,6 +44,15 @@ object_relationships:
         remote_table:
           name: atom_value
           schema: public
+  - name: vault
+    using:
+      manual_configuration:
+        column_mapping:
+          vault_id: id
+        insertion_order: null
+        remote_table:
+          name: vault
+          schema: public
 array_relationships:
   - name: accounts
     using:
