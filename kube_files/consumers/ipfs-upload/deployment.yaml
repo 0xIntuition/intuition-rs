@@ -1,0 +1,122 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    io.kompose.service: ipfs-upload-consumer
+  name: ipfs-upload-consumer
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      io.kompose.service: ipfs-upload-consumer
+  template:
+    metadata:
+      labels:
+        io.kompose.service: ipfs-upload-consumer
+    spec:
+      securityContext:
+        runAsUser: 0
+        runAsGroup: 0
+      initContainers:
+        - name: volume-permissions
+          image: alpine:latest
+          command: ["sh", "-c", "mkdir -p /var/log/app/logs && chown -R 1000:1000 /var/log/app && chmod -R 777 /var/log/app && ls -la /var/log/app && ls -la /var/log/app/logs"]
+          volumeMounts:
+            - mountPath: /var/log/app
+              name: ipfs-upload-logs
+          securityContext:
+            runAsUser: 0
+            allowPrivilegeEscalation: true
+            privileged: true
+      containers:
+        - name: ipfs-upload-consumer
+          image: ghcr.io/0xintuition/consumer:latest
+          args:
+            - ./consumer
+            - --mode
+            - ipfs-upload
+            - --local
+          env:
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: secrets
+                  key: AWS_ACCESS_KEY_ID
+            - name: AWS_REGION
+              valueFrom:
+                secretKeyRef:
+                  name: secrets
+                  key: AWS_REGION
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: secrets
+                  key: AWS_SECRET_ACCESS_KEY
+            - name: CONSUMER_TYPE
+              valueFrom:
+                secretKeyRef:
+                  name: secrets
+                  key: CONSUMER_TYPE
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: secrets
+                  key: DATABASE_URL
+            - name: FLAG_LOCAL_WITH_CLASSIFICATION
+              valueFrom:
+                secretKeyRef:
+                  name: secrets
+                  key: FLAG_LOCAL_WITH_CLASSIFICATION
+            - name: IMAGE_GUARD_URL
+              valueFrom:
+                secretKeyRef:
+                  name: secrets
+                  key: IMAGE_GUARD_URL
+            - name: IPFS_GATEWAY_URL
+              valueFrom:
+                secretKeyRef:
+                  name: secrets
+                  key: IPFS_GATEWAY_URL
+            - name: IPFS_UPLOAD_QUEUE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: secrets
+                  key: IPFS_UPLOAD_QUEUE_URL
+            - name: IPFS_UPLOAD_URL
+              valueFrom:
+                secretKeyRef:
+                  name: secrets
+                  key: IPFS_UPLOAD_URL
+            - name: LOCALSTACK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: secrets
+                  key: LOCALSTACK_URL
+            - name: PINATA_API_JWT
+              valueFrom:
+                secretKeyRef:
+                  name: secrets
+                  key: PINATA_API_JWT
+            - name: PINATA_GATEWAY_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: secrets
+                  key: PINATA_GATEWAY_TOKEN
+            - name: RUST_LOG
+              valueFrom:
+                secretKeyRef:
+                  name: secrets
+                  key: RUST_LOG
+          ports:
+            - containerPort: 8002
+              protocol: TCP
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+          volumeMounts:
+            - mountPath: /var/log/app
+              name: ipfs-upload-logs
+      volumes:
+        - name: ipfs-upload-logs
+          persistentVolumeClaim:
+            claimName: ipfs-upload-logs

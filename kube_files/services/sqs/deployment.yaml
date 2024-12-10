@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    io.kompose.service: sqs
+  name: sqs
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: sqs
+  template:
+    metadata:
+      labels:
+        io.kompose.service: sqs
+    spec:
+      containers:
+        - name: sqs
+          image: localstack/localstack:latest
+          ports:
+            - containerPort: 4566
+          env:
+            - name: ALLOW_NONSTANDARD_REGIONS
+              value: "1"
+            - name: AWS_DEFAULT_REGION
+              value: "us-east-1"
+            - name: AWS_ENDPOINT
+              value: "http://localstack:4566"
+            - name: DEBUG
+              value: "1"
+            - name: DOCKER_HOST
+              value: "0.0.0.0"
+            - name: EXTRA_CORS_ALLOWED_ORIGINS
+              value: "app://."
+            - name: HOSTNAME_EXTERNAL
+              value: "localstack"
+            - name: SERVICES
+              value: "sqs"
+            - name: SKIP_SSL_CERT_DOWNLOAD
+              value: "1"
+            - name: DISABLE_DNS_UPDATE
+              value: "1"
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                  - "/bin/sh"
+                  - "-c"
+                  - |
+                    sleep 10
+                    awslocal sqs create-queue --queue-name raw_logs
+                    awslocal sqs create-queue --queue-name decoded_logs
+                    awslocal sqs create-queue --queue-name resolver
+                    awslocal sqs create-queue --queue-name ipfs_upload
+          livenessProbe:
+            httpGet:
+              path: /_localstack/health
+              port: 4566
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          volumeMounts:
+            - name: localstack-data
+              mountPath: /var/lib/localstack
+            - name: docker-sock
+              mountPath: /var/run/docker.sock
+          securityContext:
+            privileged: true
+      volumes:
+        - name: localstack-data
+          emptyDir: {}
+        - name: docker-sock
+          hostPath:
+            path: /var/run/docker.sock 

@@ -1,0 +1,113 @@
+services:      
+  resolver_consumer:
+    image: ghcr.io/0xintuition/consumer:latest
+    command: ["./consumer", "--mode", "resolver", "--local"]
+    ports:
+      - "8001:8001"
+    environment:
+      AWS_ACCESS_KEY_ID: dummy-key
+      AWS_REGION: us-east-1
+      AWS_SECRET_ACCESS_KEY: dummy-secret
+      CONSUMER_TYPE: resolver
+      DATABASE_URL: postgresql://user:pass@db:5432/db
+      ENS_CONTRACT_ADDRESS: dummy-address
+      IMAGE_GUARD_URL: http://image-guard
+      IPFS_GATEWAY_URL: http://ipfs:8080
+      IPFS_UPLOAD_URL: http://ipfs:5001
+      IPFS_UPLOAD_QUEUE_URL: http://sqs:4566/queue
+      LOCALSTACK_URL: http://localstack:4566
+      PINATA_API_JWT: dummy-jwt
+      PINATA_GATEWAY_TOKEN: dummy-token
+      PG_MIN_CONNECTIONS: "1"
+      RESOLVER_QUEUE_URL: http://sqs:4566/queue
+      RPC_URL_BASE_MAINNET: http://eth:8545
+      RPC_URL_MAINNET: http://eth:8545
+      RUST_LOG: info
+    volumes:
+      - resolver-logs:/var/log/app
+    deploy:
+      replicas: 2
+  
+  ipfs_upload_consumer:
+    image: ghcr.io/0xintuition/consumer:latest
+    command: ["./consumer", "--mode", "ipfs-upload", "--local"]
+    ports:
+      - "8002:8002"
+    environment:
+      AWS_ACCESS_KEY_ID: dummy-key
+      AWS_REGION: us-east-1
+      AWS_SECRET_ACCESS_KEY: dummy-secret
+      CONSUMER_TYPE: ipfs-upload
+      DATABASE_URL: postgresql://user:pass@db:5432/db
+      IMAGE_GUARD_URL: http://image-guard
+      IPFS_GATEWAY_URL: http://ipfs:8080
+      IPFS_UPLOAD_URL: http://ipfs:5001
+      LOCALSTACK_URL: http://localstack:4566
+      PINATA_API_JWT: dummy-jwt
+      PINATA_GATEWAY_TOKEN: dummy-token
+      PG_MIN_CONNECTIONS: "1"
+      IPFS_UPLOAD_QUEUE_URL: http://sqs:4566/queue
+      RUST_LOG: info
+    volumes:
+      - ipfs-upload-logs:/var/log/app
+    deploy:
+      replicas: 2
+    
+  raw_consumer:
+    image: ghcr.io/0xintuition/consumer:latest
+    command: ["./consumer", "--mode", "raw", "--local"]
+    ports:
+      - "8003:8003"
+    environment:
+      AWS_ACCESS_KEY_ID: dummy-key
+      AWS_REGION: us-east-1
+      AWS_SECRET_ACCESS_KEY: dummy-secret
+      CONSUMER_TYPE: raw
+      DATABASE_URL: postgresql://user:pass@db:5432/db
+      DECODED_LOGS_QUEUE_URL: http://sqs:4566/queue
+      LOCALSTACK_URL: http://localstack:4566
+      PG_MIN_CONNECTIONS: "1"
+      RAW_CONSUMER_QUEUE_URL: http://sqs:4566/queue
+      RPC_URL_BASE_MAINNET: http://eth:8545
+      RPC_URL_MAINNET: http://eth:8545
+      RUST_LOG: info
+    volumes:
+      - raw-logs:/var/log/app
+
+  substreams-sink:
+    image: ghcr.io/0xintuition/substreams-sink:latest
+    ports:
+      - "8004:8004"
+    environment:
+      LOCALSTACK_URL: http://localstack:4566
+      AWS_ACCESS_KEY_ID: dummy-key
+      AWS_REGION: us-east-1
+      AWS_SECRET_ACCESS_KEY: dummy-secret
+      DATABASE_URL: postgresql://user:pass@db:5432/db
+      RAW_CONSUMER_QUEUE_URL: http://sqs:4566/queue
+      SUBSTREAMS_ENDPOINT: http://substreams
+      SUBSTREAMS_PACKAGE: dummy-package
+      SUBSTREAMS_MODULE: dummy-module
+      SUBSTREAMS_START_BLOCK: "0"
+      SUBSTREAMS_API_TOKEN: dummy-token
+    command: ["dummy-endpoint", "dummy-package", "dummy-module", "0:", "--local", "true"]
+    volumes:
+      - substreams-data:/var/lib/data
+
+  hasura-migrations:
+    image: ghcr.io/0xintuition/hasura-migrations:latest
+    ports:
+      - "8005:8005"
+    environment:
+      HASURA_GRAPHQL_ENDPOINT: http://graphql-engine:8080
+      HASURA_GRAPHQL_ADMIN_SECRET: dummy-secret
+
+volumes:
+  resolver-logs:
+    driver: local
+  ipfs-upload-logs:
+    driver: local
+  raw-logs:
+    driver: local
+  substreams-data:
+    driver: local
