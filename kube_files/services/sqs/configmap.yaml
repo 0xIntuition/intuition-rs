@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sqs-init
+data:
+  script.sh: |
+    #!/bin/bash
+    set -e
+    
+    echo "Creating SQS queues..."
+    # Store queue URLs in variables
+    RAW_QUEUE=$(awslocal sqs create-queue --queue-name raw_logs --output text --query 'QueueUrl')
+    DECODED_QUEUE=$(awslocal sqs create-queue --queue-name decoded_logs --output text --query 'QueueUrl')
+    RESOLVER_QUEUE=$(awslocal sqs create-queue --queue-name resolver --output text --query 'QueueUrl')
+    IPFS_QUEUE=$(awslocal sqs create-queue --queue-name ipfs_upload --output text --query 'QueueUrl')
+    
+    # Wait for queues to be fully available
+    sleep 2
+    
+    echo "All SQS queues created successfully"
+    echo "Listing all queues:"
+    awslocal sqs list-queues

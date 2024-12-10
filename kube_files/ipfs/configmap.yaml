@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ipfs-scripts
+data:
+  entrypoint.sh: |
+    #!/bin/sh
+    
+    echo "Starting IPFS daemon..."
+    
+    /sbin/tini -- /usr/local/bin/start_ipfs &
+    
+    sleep 5  # Give IPFS daemon time to start
+    
+    ipfs config Addresses.API /ip4/0.0.0.0/tcp/5001
+    ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/8080
+    
+    ipfs pin remote service add Pinata https://api.pinata.cloud/psa $PINATA_API_JWT
+    
+    ipfs config --json Gateway.PublicGateways '{"localhost": {"UseSubdomains": false,"Paths": ["/ipfs", "/ipns"]},"ipfs": {"UseSubdomains": false,"Paths": ["/ipfs", "/ipns"]}}'
+    
+    ipfs config --json Pinning.RemoteServices '["Pinata"]'
+    
+    ipfs config --json Pinning.RemoteServices.Pinata.Policies '{"MFS":{"Enable": false,"PinName": "","RepinInterval": "1m"}}'
+    
+    ipfs config --json Peering.Peers '[{"ID": "Qma8ddFEQWEU8ijWvdxXm3nxU7oHsRtCykAaVz8WUYhiKn", "Addrs": ["/dnsaddr/bitswap.pinata.cloud"]}]'
+    
+    # Keep container running
+    tail -f /dev/null 

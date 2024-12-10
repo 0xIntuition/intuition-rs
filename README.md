@@ -122,3 +122,48 @@ Also note that you need to set the right environment variables for the queues (`
 * `cargo make start-docker-and-migrate` to start the docker compose and run the migrations.
 * `cargo make clippy` to run clippy
 * `cargo make fmt` to run rustfmt
+
+
+## Running with kubernetes (on macos)
+
+First you need to install `minikube`:
+
+```
+brew install minikube
+```
+
+Install k9s
+
+```
+brew install k9s
+```
+
+Then we need to create the secrets. At this step it's expected that you have a `.env` file with the correct values set. The only thing you need to keep in mind is that we need to remove the `"` from the values, e.g., `DATABASE_URL="postgres://testuser:test@database:5435/storage"` should be `DATABASE_URL=postgres://testuser:test@database:5435/storage`.
+
+```
+kubectl create secret generic secrets --from-env-file=.env
+```
+
+Then you can start the minikube cluster:
+
+```
+minikube start
+```
+
+Then you can apply the kubernetes manifests:
+
+```
+kubectl apply -k kube_files/
+```
+
+To restart the services you can run:
+
+```
+kubectl rollout restart deployment
+```
+
+or 
+
+```
+kubectl delete deployment --all 
+```
