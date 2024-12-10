@@ -22,6 +22,16 @@ spec:
       labels:
         io.kompose.service: database
     spec:
+      initContainers:
+        - name: init-db
+          image: postgres
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              rm -rf /var/lib/postgresql/data/*
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: database-data
       containers:
         - env:
             - name: PGPORT
@@ -67,8 +77,14 @@ spec:
             - mountPath: /var/lib/postgresql/data
               name: database-data
           args:
-            - -c
-            - listen_addresses=*
+            - "-c"
+            - "listen_addresses=*"
+            - "-c"
+            - "wal_level=minimal"
+            - "-c"
+            - "archive_mode=off"
+            - "-c"
+            - "max_wal_senders=0"
       restartPolicy: Always
       volumes:
         - name: database-data
