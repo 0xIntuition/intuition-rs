@@ -8,6 +8,7 @@ metadata:
     app: ipfs
   name: ipfs
 spec:
+  type: LoadBalancer
   ports:
     - name: "4001"
       port: 4001
@@ -22,8 +23,8 @@ spec:
     - name: "5001"
       port: 5001
       targetPort: 5001
-    - name: "8081"
-      port: 8081
+    - name: "8080"
+      port: 8080
       targetPort: 8080
   selector:
     app: ipfs
