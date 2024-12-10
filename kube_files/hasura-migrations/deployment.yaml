@@ -23,4 +23,4 @@ spec:
                   name: secrets
                   key: HASURA_GRAPHQL_ADMIN_SECRET
       restartPolicy: Never
-  backoffLimit: 4
+  backoffLimit: 20
