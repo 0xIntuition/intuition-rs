@@ -9,7 +9,7 @@ resources:
   - consumers/raw
   - consumers/resolver-consumer
   - ipfs
-  - monitoring/log-cleanup-cronjob
+  - monitoring/log-cleanup
   - monitoring/prometheus
   - services/database
   - services/graphql
