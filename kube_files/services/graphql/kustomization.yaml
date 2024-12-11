@@ -3,9 +3,9 @@ kind: Kustomization
 
 resources:
   - deployment.yaml
-  - service.yaml
   - migrations-deployment.yaml
   - migrations-pod.yaml
+  - service.yaml
 
 commonLabels:
   component: graphql 

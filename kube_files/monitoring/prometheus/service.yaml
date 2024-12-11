@@ -8,6 +8,7 @@ metadata:
     io.kompose.service: prometheus
   name: prometheus
 spec:
+  type: ClusterIP 
   ports:
     - name: "9090"
       port: 9090
