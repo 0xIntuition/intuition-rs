@@ -96,8 +96,15 @@ spec:
               protocol: TCP
           securityContext:
             runAsUser: 0
+          resources:
+            requests:
+              cpu: "2000m"
+              memory: "128Mi"
+            limits:
+              memory: "1Gi"
       restartPolicy: Always
       volumes:
         - name: decoded-logs
           persistentVolumeClaim:
             claimName: decoded-logs
+    

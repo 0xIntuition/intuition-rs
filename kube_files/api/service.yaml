@@ -8,6 +8,7 @@ metadata:
     io.kompose.service: api
   name: api
 spec:
+  type: ClusterIP 
   ports:
     - name: "3000"
       port: 3000

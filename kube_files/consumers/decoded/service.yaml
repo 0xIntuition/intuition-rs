@@ -4,6 +4,9 @@ metadata:
   annotations:
     kompose.cmd: kompose convert -f docker-compose-kompose.yml
     kompose.version: 1.34.0 (HEAD)
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "3002"
+    prometheus.io/path: "/metrics"
   labels:
     io.kompose.service: decoded-consumer
   name: decoded-consumer
@@ -14,4 +17,4 @@ spec:
       port: 3002
       targetPort: 3002
   selector:
-    io.kompose.service: decoded-consumer
+    app: decoded-consumer
