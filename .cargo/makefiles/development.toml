@@ -8,8 +8,7 @@ args = [
     "consumer",
     "--",
     "--mode",
-    "raw",
-    "--local"
+    "raw"
 ]
 
 # Run the DECODED SQS consumer connected to the test queue in test mode
@@ -22,8 +21,7 @@ args = [
     "consumer",
     "--",
     "--mode",
-    "decoded",
-    "--local"
+    "decoded"
 ]
 
 # Run the RESOLVER SQS consumer connected to the test queue in test mode
@@ -36,8 +34,20 @@ args = [
     "consumer",
     "--",
     "--mode",
-    "resolver",
-    "--local"
+    "resolver"
+]
+
+# Run the IPFS UPLOAD consumer connected to the test queue in test mode
+[tasks.ipfs-upload-consumer-local]
+env = { "RUST_LOG" = "info" }
+command = "cargo"
+args = [
+    "run",
+    "--bin",
+    "consumer",
+    "--",
+    "--mode",
+    "ipfs-upload"
 ]
 
 # Remove docker volumes
@@ -58,6 +68,9 @@ args = ["deploy", "--project", "hasura"]
 # This task remove the docker volumes, start the docker compose stack, and migrate the database
 [tasks.start-docker-and-migrate]
 dependencies = ["remove-docker-volumes", "build-cli", "build-image-substreams-sink", "build-consumer", "build-image-guard", "build-image-hasura-migrations", "start-docker"]
+
+[tasks.build-docker-images]
+dependencies = [ "build-cli", "build-image-substreams-sink", "build-consumer", "build-image-guard", "build-image-hasura-migrations"]
 
 
 # This task remove the docker volumes, start the docker compose stack

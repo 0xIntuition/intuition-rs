@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: safe-content
+spec:
+  selector:
+    app: safe-content
+  ports:
+  - port: 8000
+    targetPort: 8000
+  type: ClusterIP
