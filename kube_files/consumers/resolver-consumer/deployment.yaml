@@ -117,7 +117,7 @@ spec:
                   name: secrets
                   key: RUST_LOG
           image: ghcr.io/0xintuition/consumer:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           name: resolver-consumer
           ports:
             - containerPort: 8001

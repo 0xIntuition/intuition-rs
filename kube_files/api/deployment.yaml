@@ -20,7 +20,7 @@ spec:
       containers:
       - name: api
         image: ghcr.io/0xintuition/image-guard:latest
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         ports:
         - containerPort: 3000
           protocol: TCP

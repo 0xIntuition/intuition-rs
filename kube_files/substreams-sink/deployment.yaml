@@ -85,7 +85,7 @@ spec:
                   name: secrets
                   key: SUBSTREAMS_START_BLOCK
           image: ghcr.io/0xintuition/substreams-sink:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           name: substreams-sink
           volumeMounts:
             - mountPath: /var/lib/data

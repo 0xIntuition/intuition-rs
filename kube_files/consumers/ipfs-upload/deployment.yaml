@@ -31,7 +31,7 @@ spec:
       containers:
         - name: ipfs-upload-consumer
           image: ghcr.io/0xintuition/consumer:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           args:
             - ./consumer
             - --mode

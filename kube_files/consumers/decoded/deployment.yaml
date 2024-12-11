@@ -89,7 +89,7 @@ spec:
                   name: secrets
                   key: RUST_LOG
           image: ghcr.io/0xintuition/consumer:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           name: decoded-consumer
           ports:
             - containerPort: 3002

@@ -13,6 +13,6 @@ spec:
     - name: "postgres"
       port: 5435
       targetPort: 5435
-      nodePort: 30432
+      nodePort: 30435
   selector:
     io.kompose.service: database

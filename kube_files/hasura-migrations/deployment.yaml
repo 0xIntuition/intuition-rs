@@ -11,7 +11,7 @@ spec:
       containers:
         - name: hasura-migrations
           image: ghcr.io/0xintuition/hasura-migrations:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           env:
             - name: HASURA_GRAPHQL_ENDPOINT
               valueFrom:
