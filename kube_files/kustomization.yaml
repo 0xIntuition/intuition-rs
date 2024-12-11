@@ -2,19 +2,20 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
+  - api
   - base/namespaces.yaml
-  - services/database
-  - services/sqs
-  - services/graphql
-  - services/safe-content
-  - consumers/raw
   - consumers/decoded
   - consumers/ipfs-upload
-  - consumers/resolver_consumer
-  - monitoring/prometheus
-  - substreams-sink
+  - consumers/raw
+  - consumers/resolver-consumer
   - ipfs
-  - api
+  - monitoring/log-cleanup-cronjob
+  - monitoring/prometheus
+  - services/database
+  - services/graphql
+  - services/safe-content
+  - services/sqs
+  - substreams-sink
 
 commonLabels:
   app: intuition

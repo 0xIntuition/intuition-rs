@@ -23,5 +23,5 @@ spec:
                 secretKeyRef:
                   name: secrets
                   key: HASURA_GRAPHQL_ADMIN_SECRET
-      restartPolicy: Never
+      restartPolicy: OnFailure
   backoffLimit: 20
