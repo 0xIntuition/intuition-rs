@@ -16,22 +16,10 @@ services:
       interval: 1s
       timeout: 5s
       retries: 10
-    
-  # pgadmin:
-  #   image: dpage/pgadmin4
-  #   container_name: pgadmin4_container
-  #   restart: always
-  #   ports:
-  #     - "8888:80"
-  #   environment:
-  #     PGADMIN_DEFAULT_EMAIL: user-name@domain-name.com
-  #     PGADMIN_DEFAULT_PASSWORD: strong-password
-  #   volumes:
-  #     - pgadmin-data:/var/lib/pgadmin
   
   resolver_consumer:
     image: ghcr.io/0xintuition/consumer:latest
-    command: ./consumer --mode resolver --local
+    command: ./consumer --mode resolver
     environment:
       AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
       AWS_REGION: $AWS_REGION
@@ -63,7 +51,7 @@ services:
   
   ipfs_upload_consumer:
     image: ghcr.io/0xintuition/consumer:latest
-    command: ./consumer --mode ipfs-upload --local
+    command: ./consumer --mode ipfs-upload
     environment:
       AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
       AWS_REGION: $AWS_REGION
@@ -92,7 +80,7 @@ services:
   decoded_consumer:
     container_name: decoded_consumer
     image: ghcr.io/0xintuition/consumer:latest
-    command: ./consumer --mode decoded --local
+    command: ./consumer --mode decoded
     environment:
       AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
       AWS_REGION: $AWS_REGION
@@ -120,7 +108,7 @@ services:
   raw_consumer:
     container_name: raw_consumer
     image: ghcr.io/0xintuition/consumer:latest
-    command: ./consumer --mode raw --local
+    command: ./consumer --mode raw
     environment:
       AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
       AWS_REGION: $AWS_REGION
@@ -277,7 +265,7 @@ services:
       SUBSTREAMS_MODULE: $SUBSTREAMS_MODULE
       SUBSTREAMS_START_BLOCK: $SUBSTREAMS_START_BLOCK
       SUBSTREAMS_API_TOKEN: $SUBSTREAMS_API_TOKEN
-    command: ["$SUBSTREAMS_ENDPOINT", "$SUBSTREAMS_PACKAGE", "$SUBSTREAMS_MODULE", "$SUBSTREAMS_START_BLOCK:", "--local", "true"]
+    command: ["$SUBSTREAMS_ENDPOINT", "$SUBSTREAMS_PACKAGE", "$SUBSTREAMS_MODULE", "$SUBSTREAMS_START_BLOCK:"]
     depends_on:
       sqs:
         condition: service_healthy

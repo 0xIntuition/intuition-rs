@@ -30,7 +30,6 @@ spec:
             - ./consumer
             - --mode
             - resolver
-            - --local
           env:
             - name: AWS_ACCESS_KEY_ID
               valueFrom:

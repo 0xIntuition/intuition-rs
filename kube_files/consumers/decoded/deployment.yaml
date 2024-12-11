@@ -27,7 +27,6 @@ spec:
             - ./consumer
             - --mode
             - decoded
-            - --local
           env:
             - name: AWS_ACCESS_KEY_ID
               valueFrom:

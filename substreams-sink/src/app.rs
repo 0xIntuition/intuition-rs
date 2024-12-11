@@ -20,6 +20,7 @@ pub struct Env {
     pub substreams_api_token: String,
     pub database_url: String,
     pub raw_consumer_queue_url: String,
+    pub localstack_url: Option<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -30,23 +31,23 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub async fn new(env: &Env, local: Option<bool>) -> Self {
+    pub async fn new(env: &Env) -> Self {
         Self {
             pg_pool: connect_to_db(&env.database_url).await.unwrap_or_else(|e| {
                 panic!("Failed to connect to database: {}", e);
             }),
-            aws_sqs_client: Self::get_aws_client(local).await,
+            aws_sqs_client: Self::get_aws_client(env.localstack_url.clone()).await,
             raw_consumer_queue_url: env.raw_consumer_queue_url.clone(),
         }
     }
     /// This function returns an [`aws_sdk_sqs::Client`] based on the
     /// environment variables
-    pub async fn get_aws_client(local: Option<bool>) -> AWSClient {
-        let shared_config = if let Some(true) = local {
-            info!("Running SQS locally {:?}", LOCALSTACK_URL);
+    pub async fn get_aws_client(localstack_url: Option<String>) -> AWSClient {
+        let shared_config = if let Some(localstack_url) = localstack_url {
+            info!("Running SQS locally {:?}", localstack_url);
 
             aws_config::from_env()
-                .endpoint_url(LOCALSTACK_URL)
+                .endpoint_url(localstack_url)
                 .load()
                 .await
         } else {
@@ -141,11 +142,11 @@ pub struct App {
 }
 
 impl App {
-    pub async fn new(local: Option<bool>) -> Result<Self, SubstreamError> {
+    pub async fn new() -> Result<Self, SubstreamError> {
         // Initialize the environment variables
         let env = Self::initialize().await?;
         // Create the app state
-        let app_state = AppState::new(&env, local).await;
+        let app_state = AppState::new(&env).await;
         Ok(Self { env, app_state })
     }
     /// Initialize the environment variables.

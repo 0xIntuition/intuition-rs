@@ -27,7 +27,6 @@ spec:
             - ./consumer
             - --mode
             - raw
-            - --local
           env:
             - name: AWS_ACCESS_KEY_ID
               valueFrom:

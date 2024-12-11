@@ -28,8 +28,6 @@ spec:
             - $(SUBSTREAMS_PACKAGE)
             - $(SUBSTREAMS_MODULE)
             - "$(SUBSTREAMS_START_BLOCK):"
-            - --local
-            - "true"
           env:
             - name: AWS_ACCESS_KEY_ID
               valueFrom:

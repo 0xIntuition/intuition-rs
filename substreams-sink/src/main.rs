@@ -30,10 +30,6 @@ pub struct Cli {
     /// The block range in the format <start>:<stop>
     #[arg(index = 4)]
     range: Option<String>,
-
-    /// The local flag
-    #[arg(long)]
-    local: Option<bool>,
 }
 
 #[tokio::main]
@@ -41,7 +37,7 @@ async fn main() -> Result<(), SubstreamError> {
     // Parse the CLI arguments
     let cli = Cli::parse();
     // Initialize the application
-    let app = App::new(cli.local).await?;
+    let app = App::new().await?;
     // Create the substreams stream and process it
     SubstreamsStream::new(cli, &app).await?.process(&app).await
 }

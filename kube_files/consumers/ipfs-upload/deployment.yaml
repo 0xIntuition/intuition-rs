@@ -36,7 +36,6 @@ spec:
             - ./consumer
             - --mode
             - ipfs-upload
-            - --local
           env:
             - name: AWS_ACCESS_KEY_ID
               valueFrom:

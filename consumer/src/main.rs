@@ -47,8 +47,6 @@ sol! {
 pub struct ConsumerArgs {
     #[arg(short, long)]
     mode: String,
-    #[arg(short, long, default_value_t = false)]
-    local: bool,
 }
 
 /// This is the main function that starts the consumer. It reads the `.env`
