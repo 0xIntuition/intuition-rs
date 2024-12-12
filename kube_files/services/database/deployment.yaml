@@ -37,29 +37,29 @@ spec:
             - name: PGPORT
               valueFrom:
                 secretKeyRef:
-                  name: secrets
+                  name: aws-secrets
                   key: PG_PORT
             - name: POSTGRES_DB
               valueFrom:
                 secretKeyRef:
-                  name: secrets
+                  name: aws-secrets
                   key: PG_DB
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: secrets
+                  name: aws-secrets
                   key: PG_PASSWORD
             - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
-                  name: secrets
+                  name: aws-secrets
                   key: PG_USER
             - name: POSTGRES_HOST_AUTH_METHOD
               value: trust
             - name: POSTGRES_HOST
               valueFrom:
                 secretKeyRef:
-                  name: secrets
+                  name: aws-secrets
                   key: PG_HOST
           image: postgres
           livenessProbe:
@@ -74,6 +74,9 @@ spec:
             - containerPort: 5435
               protocol: TCP
           volumeMounts:
+            - name: secrets-store
+              mountPath: "/mnt/secrets"
+              readOnly: true
             - mountPath: /var/lib/postgresql/data
               name: database-data
           args:
@@ -87,6 +90,12 @@ spec:
             - "max_wal_senders=0"
       restartPolicy: Always
       volumes:
+        - name: secrets-store
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: aws-secrets
         - name: database-data
           persistentVolumeClaim:
             claimName: database-data

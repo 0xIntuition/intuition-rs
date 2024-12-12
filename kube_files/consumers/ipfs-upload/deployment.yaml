@@ -40,72 +40,72 @@ spec:
             - name: AWS_ACCESS_KEY_ID
               valueFrom:
                 secretKeyRef:
-                  name: secrets
+                  name: aws-secrets
                   key: AWS_ACCESS_KEY_ID
             - name: AWS_REGION
               valueFrom:
                 secretKeyRef:
-                  name: secrets
+                  name: aws-secrets
                   key: AWS_REGION
             - name: AWS_SECRET_ACCESS_KEY
               valueFrom:
                 secretKeyRef:
-                  name: secrets
+                  name: aws-secrets
                   key: AWS_SECRET_ACCESS_KEY
             - name: CONSUMER_TYPE
               valueFrom:
                 secretKeyRef:
-                  name: secrets
+                  name: aws-secrets
                   key: CONSUMER_TYPE
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
-                  name: secrets
+                  name: aws-secrets
                   key: DATABASE_URL
             - name: FLAG_LOCAL_WITH_CLASSIFICATION
               valueFrom:
                 secretKeyRef:
-                  name: secrets
+                  name: aws-secrets
                   key: FLAG_LOCAL_WITH_CLASSIFICATION
             - name: IMAGE_GUARD_URL
               valueFrom:
                 secretKeyRef:
-                  name: secrets
+                  name: aws-secrets
                   key: IMAGE_GUARD_URL
             - name: IPFS_GATEWAY_URL
               valueFrom:
                 secretKeyRef:
-                  name: secrets
+                  name: aws-secrets
                   key: IPFS_GATEWAY_URL
             - name: IPFS_UPLOAD_QUEUE_URL
               valueFrom:
                 secretKeyRef:
-                  name: secrets
+                  name: aws-secrets
                   key: IPFS_UPLOAD_QUEUE_URL
             - name: IPFS_UPLOAD_URL
               valueFrom:
                 secretKeyRef:
-                  name: secrets
+                  name: aws-secrets
                   key: IPFS_UPLOAD_URL
             - name: LOCALSTACK_URL
               valueFrom:
                 secretKeyRef:
-                  name: secrets
+                  name: aws-secrets
                   key: LOCALSTACK_URL
             - name: PINATA_API_JWT
               valueFrom:
                 secretKeyRef:
-                  name: secrets
+                  name: aws-secrets
                   key: PINATA_API_JWT
             - name: PINATA_GATEWAY_TOKEN
               valueFrom:
                 secretKeyRef:
-                  name: secrets
+                  name: aws-secrets
                   key: PINATA_GATEWAY_TOKEN
             - name: RUST_LOG
               valueFrom:
                 secretKeyRef:
-                  name: secrets
+                  name: aws-secrets
                   key: RUST_LOG
           ports:
             - containerPort: 8002
@@ -114,9 +114,18 @@ spec:
             runAsUser: 0
             runAsGroup: 0
           volumeMounts:
+            - name: secrets-store
+              mountPath: "/mnt/secrets"
+              readOnly: true
             - mountPath: /var/log/app
               name: ipfs-upload-logs
       volumes:
+        - name: secrets-store
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: aws-secrets
         - name: ipfs-upload-logs
           persistentVolumeClaim:
             claimName: ipfs-upload-logs

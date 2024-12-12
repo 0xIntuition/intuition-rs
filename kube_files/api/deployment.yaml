@@ -17,6 +17,13 @@ spec:
       labels:
         io.kompose.service: api
     spec:
+      volumes:
+        - name: secrets-store
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: aws-secrets
       containers:
       - name: api
         image: ghcr.io/0xintuition/image-guard:latest
@@ -28,38 +35,42 @@ spec:
         - name: API_PORT
           valueFrom:
             secretKeyRef:
-              name: secrets
+              name: aws-secrets
               key: API_PORT
         - name: DATABASE_URL
           valueFrom:
             secretKeyRef:
-              name: secrets
+              name: aws-secrets
               key: DATABASE_URL
         - name: FLAG_LOCAL_WITH_CLASSIFICATION
           valueFrom:
             secretKeyRef:
-              name: secrets
+              name: aws-secrets
               key: FLAG_LOCAL_WITH_CLASSIFICATION
         - name: HF_TOKEN
           valueFrom:
             secretKeyRef:
-              name: secrets
+              name: aws-secrets
               key: HF_TOKEN
         - name: IPFS_GATEWAY_URL
           valueFrom:
             secretKeyRef:
-              name: secrets
+              name: aws-secrets
               key: IPFS_GATEWAY_URL
         - name: IPFS_UPLOAD_URL
           valueFrom:
             secretKeyRef:
-              name: secrets
+              name: aws-secrets
               key: IPFS_UPLOAD_URL
         - name: PINATA_API_JWT
           valueFrom:
             secretKeyRef:
-              name: secrets
+              name: aws-secrets
               key: PINATA_API_JWT
         - name: RUST_LOG
           value: info
+        volumeMounts:
+          - name: secrets-store
+            mountPath: "/mnt/secrets"
+            readOnly: true
       restartPolicy: Always

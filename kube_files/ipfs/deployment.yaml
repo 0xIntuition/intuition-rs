@@ -28,7 +28,7 @@ spec:
             - name: PINATA_API_JWT
               valueFrom:
                 secretKeyRef:
-                  name: secrets
+                  name: aws-secrets
                   key: PINATA_API_JWT
           volumeMounts:
             - name: ipfs-data
@@ -36,6 +36,9 @@ spec:
             - name: ipfs-scripts
               mountPath: /usr/local/bin/entrypoint.sh
               subPath: entrypoint.sh
+            - name: secrets-store
+              mountPath: "/mnt/secrets"
+              readOnly: true
       volumes:
         - name: ipfs-data
           persistentVolumeClaim:
@@ -44,3 +47,9 @@ spec:
           configMap:
             name: ipfs-scripts
             defaultMode: 0755
+        - name: secrets-store
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: aws-secrets

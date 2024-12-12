@@ -5,6 +5,5 @@ resources:
   - configmap.yaml
   - deployment.yaml
   - service.yaml
-
 commonLabels:
   component: prometheus 

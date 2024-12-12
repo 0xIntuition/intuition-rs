@@ -32,57 +32,57 @@ spec:
             - name: AWS_ACCESS_KEY_ID
               valueFrom:
                 secretKeyRef:
-                  name: secrets
+                  name: aws-secrets
                   key: AWS_ACCESS_KEY_ID
             - name: AWS_REGION
               valueFrom:
                 secretKeyRef:
-                  name: secrets
+                  name: aws-secrets
                   key: AWS_REGION
             - name: AWS_SECRET_ACCESS_KEY
               valueFrom:
                 secretKeyRef:
-                  name: secrets
+                  name: aws-secrets
                   key: AWS_SECRET_ACCESS_KEY
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
-                  name: secrets
+                  name: aws-secrets
                   key: DATABASE_URL
             - name: LOCALSTACK_URL
               valueFrom:
                 secretKeyRef:
-                  name: secrets
+                  name: aws-secrets
                   key: LOCALSTACK_URL
             - name: RAW_CONSUMER_QUEUE_URL
               valueFrom:
                 secretKeyRef:
-                  name: secrets
+                  name: aws-secrets
                   key: RAW_CONSUMER_QUEUE_URL
             - name: SUBSTREAMS_API_TOKEN
               valueFrom:
                 secretKeyRef:
-                  name: secrets
+                  name: aws-secrets
                   key: SUBSTREAMS_API_TOKEN
             - name: SUBSTREAMS_ENDPOINT
               valueFrom:
                 secretKeyRef:
-                  name: secrets
+                  name: aws-secrets
                   key: SUBSTREAMS_ENDPOINT
             - name: SUBSTREAMS_MODULE
               valueFrom:
                 secretKeyRef:
-                  name: secrets
+                  name: aws-secrets
                   key: SUBSTREAMS_MODULE
             - name: SUBSTREAMS_PACKAGE
               valueFrom:
                 secretKeyRef:
-                  name: secrets
+                  name: aws-secrets
                   key: SUBSTREAMS_PACKAGE
             - name: SUBSTREAMS_START_BLOCK
               valueFrom:
                 secretKeyRef:
-                  name: secrets
+                  name: aws-secrets
                   key: SUBSTREAMS_START_BLOCK
           image: ghcr.io/0xintuition/substreams-sink:latest
           imagePullPolicy: Always
@@ -90,8 +90,17 @@ spec:
           volumeMounts:
             - mountPath: /var/lib/data
               name: substreams-data
+            - name: secrets-store
+              mountPath: "/mnt/secrets"
+              readOnly: true
       restartPolicy: Always
       volumes:
         - name: substreams-data
           persistentVolumeClaim:
             claimName: substreams-data
+        - name: secrets-store
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: aws-secrets

@@ -3,7 +3,6 @@ kind: Kustomization
 
 resources:
   - deployment.yaml
-  - ingress.yaml
   - migrations-deployment.yaml
   - migrations-pod.yaml
   - service.yaml

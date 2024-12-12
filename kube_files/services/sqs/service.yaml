@@ -8,12 +8,12 @@ metadata:
     io.kompose.service: sqs
   name: sqs
 spec:
-  type: NodePort 
+  type: ClusterIP
   ports:
-    - name: "4566"
+    - name: sqs-main
       port: 4566
       targetPort: 4566
-    - name: "4571"
+    - name: sqs-alt
       port: 4571
       targetPort: 4571
   selector:
