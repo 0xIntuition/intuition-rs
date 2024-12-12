@@ -5,25 +5,32 @@ metadata:
 data:
   entrypoint.sh: |
     #!/bin/sh
+    set -e
     
     echo "Starting IPFS daemon..."
     
-    /sbin/tini -- /usr/local/bin/start_ipfs &
+    # Wait for secret to be available (max 30 seconds)
+    for i in $(seq 1 30); do
+      if [ -f /mnt/secrets/PINATA_API_JWT ]; then
+        break
+      fi
+      echo "Waiting for secret file..."
+      sleep 1
+    done
     
-    sleep 5  # Give IPFS daemon time to start
+    # Read the secret from mounted volume
+    PINATA_API_JWT=$(cat /mnt/secrets/PINATA_API_JWT)
+    export PINATA_API_JWT
     
+    # Initialize IPFS if not already initialized
+    if [ ! -f /data/ipfs/config ]; then
+      ipfs init
+    fi
+    
+    # Configure IPFS before starting daemon
     ipfs config Addresses.API /ip4/0.0.0.0/tcp/5001
     ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/8080
-    
-    ipfs pin remote service add Pinata https://api.pinata.cloud/psa $PINATA_API_JWT
-    
     ipfs config --json Gateway.PublicGateways '{"localhost": {"UseSubdomains": false,"Paths": ["/ipfs", "/ipns"]},"ipfs": {"UseSubdomains": false,"Paths": ["/ipfs", "/ipns"]}}'
     
-    ipfs config --json Pinning.RemoteServices '["Pinata"]'
-    
-    ipfs config --json Pinning.RemoteServices.Pinata.Policies '{"MFS":{"Enable": false,"PinName": "","RepinInterval": "1m"}}'
-    
-    ipfs config --json Peering.Peers '[{"ID": "Qma8ddFEQWEU8ijWvdxXm3nxU7oHsRtCykAaVz8WUYhiKn", "Addrs": ["/dnsaddr/bitswap.pinata.cloud"]}]'
-    
-    # Keep container running
-    tail -f /dev/null 
+    # Start the daemon in the foreground
+    exec ipfs daemon --migrate 

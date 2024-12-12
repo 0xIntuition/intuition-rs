@@ -12,9 +12,11 @@ spec:
       labels:
         app: ipfs
     spec:
+      serviceAccountName: secrets-access-sa
       containers:
         - name: ipfs
           image: ipfs/kubo:latest
+          command: ["/usr/local/bin/entrypoint.sh"]
           ports:
             - containerPort: 4001
             - containerPort: 4002
@@ -25,19 +27,25 @@ spec:
           env:
             - name: IPFS_PATH
               value: /data/ipfs
-            - name: PINATA_API_JWT
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: PINATA_API_JWT
+            - name: AWS_REGION
+              value: "us-west-2"
+            - name: AWS_STS_REGIONAL_ENDPOINTS
+              value: "regional"
+            - name: AWS_ROLE_ARN
+              value: "arn:aws:iam::064662847354:role/aws-secrets"
+            - name: AWS_WEB_IDENTITY_TOKEN_FILE
+              value: "/var/run/secrets/eks.amazonaws.com/serviceaccount/token"
           volumeMounts:
             - name: ipfs-data
               mountPath: /data/ipfs
             - name: ipfs-scripts
               mountPath: /usr/local/bin/entrypoint.sh
               subPath: entrypoint.sh
-            - name: secrets-store
+            - name: secrets-store-inline
               mountPath: "/mnt/secrets"
+              readOnly: true
+            - name: aws-iam-token
+              mountPath: "/var/run/secrets/eks.amazonaws.com/serviceaccount"
               readOnly: true
       volumes:
         - name: ipfs-data
@@ -47,9 +55,15 @@ spec:
           configMap:
             name: ipfs-scripts
             defaultMode: 0755
-        - name: secrets-store
+        - name: secrets-store-inline
           csi:
             driver: secrets-store.csi.k8s.io
             readOnly: true
             volumeAttributes:
-              secretProviderClass: aws-secrets
+              secretProviderClass: "aws-secrets"
+        - name: aws-iam-token
+          projected:
+            sources:
+            - serviceAccountToken:
+                path: token
+                expirationSeconds: 86400

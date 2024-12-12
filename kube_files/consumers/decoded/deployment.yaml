@@ -1,155 +1,56 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  annotations:
-    kompose.cmd: kompose convert -f docker-compose-kompose.yml
-    kompose.version: 1.34.0 (HEAD)
-  labels:
-    app: decoded-consumer
   name: decoded-consumer
 spec:
-  replicas: 1
   selector:
     matchLabels:
       app: decoded-consumer
-  strategy:
-    type: Recreate
   template:
     metadata:
-      annotations:
-        kompose.cmd: kompose convert -f docker-compose-kompose.yml
-        kompose.version: 1.34.0 (HEAD)
       labels:
         app: decoded-consumer
     spec:
       serviceAccountName: secrets-access-sa
       containers:
-        - args:
-            - ./consumer
-            - --mode
-            - decoded
-          env:
-            - name: AWS_ACCESS_KEY_ID
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: AWS_ACCESS_KEY_ID
-            - name: AWS_REGION
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: AWS_REGION
-            - name: AWS_SECRET_ACCESS_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: AWS_SECRET_ACCESS_KEY
-            - name: CONSUMER_METRICS_API_PORT
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: CONSUMER_METRICS_API_PORT
-            - name: CONSUMER_TYPE
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: CONSUMER_TYPE
-            - name: DATABASE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: DATABASE_URL
-            - name: DECODED_LOGS_QUEUE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: DECODED_LOGS_QUEUE_URL
-            - name: INTUITION_CONTRACT_ADDRESS
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: INTUITION_CONTRACT_ADDRESS
-            - name: LOCALSTACK_URL
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: LOCALSTACK_URL
-            - name: RESOLVER_QUEUE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: RESOLVER_QUEUE_URL
-            - name: RPC_URL_BASE_MAINNET
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: RPC_URL_BASE_MAINNET
-            - name: RUST_LOG
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: RUST_LOG
-          image: ghcr.io/0xintuition/consumer:latest
-          imagePullPolicy: Always
-          name: decoded-consumer
-          ports:
-            - containerPort: 3002
-              protocol: TCP
-          securityContext:
-            runAsUser: 0
-          resources:
-            requests:
-              cpu: "500m"
-              memory: "128Mi"
-            limits:
-              cpu: "1000m"
-              memory: "1Gi"
-          volumeMounts:
-            - name: secrets-store
-              mountPath: "/mnt/secrets"
-              readOnly: true
-            - mountPath: /var/log/app
-              name: decoded-logs
-      restartPolicy: Always
-      volumes:
-        - name: secrets-store
-          csi:
-            driver: secrets-store.csi.k8s.io
-            readOnly: true
-            volumeAttributes:
-              secretProviderClass: aws-secrets
+      - name: decoded-consumer
+        image: ghcr.io/0xintuition/consumer:latest
+        args: ["./consumer", "--mode", "decoded"]
+        ports:
+        - containerPort: 3002
+        env:
+        - name: AWS_REGION
+          value: "us-west-2"
+        - name: AWS_STS_REGIONAL_ENDPOINTS
+          value: "regional"
+        - name: AWS_ROLE_ARN
+          value: "arn:aws:iam::064662847354:role/aws-secrets"
+        - name: AWS_WEB_IDENTITY_TOKEN_FILE
+          value: "/var/run/secrets/eks.amazonaws.com/serviceaccount/token"
+        volumeMounts:
+        - name: secrets-store-inline
+          mountPath: "/mnt/secrets"
+          readOnly: true
         - name: decoded-logs
-          persistentVolumeClaim:
-            claimName: decoded-logs
-
----
-
-# Role to allow token creation
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: secrets-access-role
-  namespace: default
-rules:
-  - apiGroups: [""]
-    resources: ["serviceaccounts/token"]
-    verbs: ["create"]
-
----
-
-# RoleBinding to bind the role to the CSI driver service account
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: secrets-access-rolebinding
-  namespace: default
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: secrets-access-role
-subjects:
-  - kind: ServiceAccount
-    name: secrets-store-csi-driver
-    namespace: kube-system
+          mountPath: "/var/log/app"
+        - name: aws-iam-token
+          mountPath: "/var/run/secrets/eks.amazonaws.com/serviceaccount"
+          readOnly: true
+      volumes:
+      - name: secrets-store-inline
+        csi:
+          driver: secrets-store.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: "aws-secrets"
+      - name: decoded-logs
+        persistentVolumeClaim:
+          claimName: decoded-logs
+      - name: aws-iam-token
+        projected:
+          sources:
+          - serviceAccountToken:
+              path: token
+              expirationSeconds: 86400
     
     
