@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: postgres-client
+  namespace: default
+spec:
+  containers:
+    - name: postgres-client
+      image: postgres:latest
+      command: ['sh', '-c', 'while true; do sleep 30; done;']

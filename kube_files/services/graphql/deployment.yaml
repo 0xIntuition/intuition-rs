@@ -34,7 +34,6 @@ spec:
             - name: HASURA_GRAPHQL_UNAUTHORIZED_ROLE
               value: anonymous
           image: hasura/graphql-engine:v2.44.0
-          command: ["sh", "-c", "echo $HASURA_GRAPHQL_METADATA_DATABASE_URL && sleep 3600"]
           livenessProbe:
             exec:
               command:

@@ -16,7 +16,7 @@ spec:
         - name: api
           image: ghcr.io/0xintuition/image-guard:latest
           imagePullPolicy: Always 
-          # command: ["sh", "-c", "echo $DATABASE_URL && sleep 3600"]
+          # command: ["sh", "-c", "echo $HASURA_GRAPHQL_ADMIN_SECRET && sleep 3600"]
           ports:
           - containerPort: 3000
             protocol: TCP
