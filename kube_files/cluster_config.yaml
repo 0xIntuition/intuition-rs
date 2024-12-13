@@ -2,8 +2,22 @@ apiVersion: eksctl.io/v1alpha5
 kind: ClusterConfig
 
 metadata:
-  name: intuition-cluster
+  name: intuition-cluster-new-be
   region: us-west-2
+
+vpc:
+  id: vpc-0b69a709cca08a73b
+  subnets:
+    private:
+      us-west-2a:
+        id: subnet-0de9745661420bfd5
+      us-west-2c:
+        id: subnet-07c99dd7a2eda1ac6
+    public:
+      us-west-2a:
+        id: subnet-0fbb1ac4690fcc72a
+      us-west-2c:
+        id: subnet-0b93576713d6e8318
 
 nodeGroups:
   - name: ng-1
@@ -16,6 +30,13 @@ nodeGroups:
         - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
         - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
         - arn:aws:iam::aws:policy/SecretsManagerReadWrite
+        - arn:aws:iam::aws:policy/AmazonRDSFullAccess
+        - arn:aws:iam::aws:policy/AmazonSQSFullAccess
 
 iam:
   withOIDC: true
+
+addons:
+- name: vpc-cni
+- name: coredns
+- name: kube-proxy

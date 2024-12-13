@@ -20,34 +20,21 @@ spec:
       labels:
         io.kompose.service: graphql-engine
     spec:
+      serviceAccountName: secrets-access-sa
       containers:
         - env:
-            - name: HASURA_GRAPHQL_ADMIN_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: HASURA_GRAPHQL_ADMIN_SECRET
             - name: HASURA_GRAPHQL_DEV_MODE
               value: "true"
             - name: HASURA_GRAPHQL_ENABLED_LOG_TYPES
               value: startup, http-log, webhook-log, websocket-log, query-log
             - name: HASURA_GRAPHQL_ENABLE_CONSOLE
               value: "true"
-            - name: HASURA_GRAPHQL_METADATA_DATABASE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: DATABASE_URL
             - name: HASURA_GRAPHQL_STRINGIFY_NUMERIC_TYPES
               value: "true"
             - name: HASURA_GRAPHQL_UNAUTHORIZED_ROLE
               value: anonymous
-            - name: PINATA_AUTH
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: PINATA_API_JWT
           image: hasura/graphql-engine:v2.44.0
+          command: ["sh", "-c", "echo $HASURA_GRAPHQL_METADATA_DATABASE_URL && sleep 3600"]
           livenessProbe:
             exec:
               command:
@@ -62,14 +49,24 @@ spec:
             - containerPort: 8080
               protocol: TCP
           volumeMounts:
-            - name: secrets-store
+            - name: secrets-store-inline
               mountPath: "/mnt/secrets"
               readOnly: true
+          envFrom:
+            - secretRef:
+                name: aws-secrets
       restartPolicy: Always
       volumes:
-        - name: secrets-store
+        - name: secrets-store-inline
           csi:
             driver: secrets-store.csi.k8s.io
             readOnly: true
             volumeAttributes:
-              secretProviderClass: aws-secrets
+              secretProviderClass: "aws-secrets"
+        - name: aws-iam-token
+          projected:
+            sources:
+            - serviceAccountToken:
+                path: token
+                expirationSeconds: 86400
+      

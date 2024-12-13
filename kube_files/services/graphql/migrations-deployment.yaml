@@ -20,17 +20,18 @@ spec:
       labels:
         io.kompose.service: hasura-migrations
     spec:
+      serviceAccountName: secrets-access-sa
       containers:
         - env:
             - name: HASURA_GRAPHQL_ADMIN_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: secrets
+                  name: aws-secrets
                   key: HASURA_GRAPHQL_ADMIN_SECRET
             - name: HASURA_GRAPHQL_ENDPOINT
               valueFrom:
                 secretKeyRef:
-                  name: secrets
+                  name: aws-secrets
                   key: HASURA_GRAPHQL_ENDPOINT
           image: ghcr.io/0xintuition/hasura-migrations:latest
           name: hasura-migrations

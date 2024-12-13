@@ -13,16 +13,20 @@ spec:
     spec:
       serviceAccountName: secrets-access-sa
       containers:
-      - name: api
-        image: ghcr.io/0xintuition/image-guard:latest
-        imagePullPolicy: Always
-        ports:
-        - containerPort: 3000
-          protocol: TCP
-        volumeMounts:
-        - name: secrets-store-inline
-          mountPath: "/mnt/secrets"
-          readOnly: true
+        - name: api
+          image: ghcr.io/0xintuition/image-guard:latest
+          imagePullPolicy: Always 
+          # command: ["sh", "-c", "echo $DATABASE_URL && sleep 3600"]
+          ports:
+          - containerPort: 3000
+            protocol: TCP
+          volumeMounts:
+          - name: secrets-store-inline
+            mountPath: "/mnt/secrets"
+            readOnly: true
+          envFrom:
+            - secretRef:
+                name: aws-secrets
       volumes:
       - name: secrets-store-inline
         csi:
@@ -30,3 +34,4 @@ spec:
           readOnly: true
           volumeAttributes:
             secretProviderClass: "aws-secrets"
+      
