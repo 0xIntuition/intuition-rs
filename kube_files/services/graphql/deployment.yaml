@@ -53,7 +53,7 @@ spec:
               readOnly: true
           envFrom:
             - secretRef:
-                name: aws-secrets
+                name: hasura-aws-secrets
       restartPolicy: Always
       volumes:
         - name: secrets-store-inline
@@ -61,11 +61,11 @@ spec:
             driver: secrets-store.csi.k8s.io
             readOnly: true
             volumeAttributes:
-              secretProviderClass: "aws-secrets"
-        - name: aws-iam-token
-          projected:
-            sources:
-            - serviceAccountToken:
-                path: token
-                expirationSeconds: 86400
+              secretProviderClass: "hasura-aws-secrets"
+        # - name: aws-iam-token
+        #   projected:
+        #     sources:
+        #     - serviceAccountToken:
+        #         path: token
+        #         expirationSeconds: 86400
       

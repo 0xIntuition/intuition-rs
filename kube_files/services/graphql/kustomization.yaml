@@ -1,13 +1,12 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
-kind: kustomization
+kind: Kustomization
 
 resources:
+  - service-account.yaml
+  - service.yaml
   - deployment.yaml
+  - secret-provider.yaml
   - migrations-deployment.yaml
   - migrations-pod.yaml
-  - service.yaml
-  - service-account.yaml
-  - secret-provider.yaml
-  
 commonLabels:
   component: graphql 

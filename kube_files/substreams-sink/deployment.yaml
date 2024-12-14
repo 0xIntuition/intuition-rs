@@ -22,68 +22,16 @@ spec:
       labels:
         app: substreams-sink
     spec:
+      serviceAccountName: secrets-access-sa
       containers:
         - args:
             - $(SUBSTREAMS_ENDPOINT)
             - $(SUBSTREAMS_PACKAGE)
             - $(SUBSTREAMS_MODULE)
             - "$(SUBSTREAMS_START_BLOCK):"
-          env:
-            - name: AWS_ACCESS_KEY_ID
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: AWS_ACCESS_KEY_ID
-            - name: AWS_REGION
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: AWS_REGION
-            - name: AWS_SECRET_ACCESS_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: AWS_SECRET_ACCESS_KEY
-            - name: DATABASE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: DATABASE_URL
-            - name: LOCALSTACK_URL
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: LOCALSTACK_URL
-            - name: RAW_CONSUMER_QUEUE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: RAW_CONSUMER_QUEUE_URL
-            - name: SUBSTREAMS_API_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: SUBSTREAMS_API_TOKEN
-            - name: SUBSTREAMS_ENDPOINT
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: SUBSTREAMS_ENDPOINT
-            - name: SUBSTREAMS_MODULE
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: SUBSTREAMS_MODULE
-            - name: SUBSTREAMS_PACKAGE
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: SUBSTREAMS_PACKAGE
-            - name: SUBSTREAMS_START_BLOCK
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: SUBSTREAMS_START_BLOCK
+          envFrom:
+            - secretRef:
+                name: aws-secrets
           image: ghcr.io/0xintuition/substreams-sink:latest
           imagePullPolicy: Always
           name: substreams-sink

@@ -3,8 +3,8 @@ kind: Kustomization
 
 resources:
   - deployment.yaml
+  - pvc.yaml
   - service.yaml
-  - volume.yaml
-
+  - secret-provider.yaml
 commonLabels:
   component: substreams-sink 

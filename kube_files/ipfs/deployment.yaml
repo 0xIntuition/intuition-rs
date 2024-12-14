@@ -27,14 +27,6 @@ spec:
           env:
             - name: IPFS_PATH
               value: /data/ipfs
-            - name: AWS_REGION
-              value: "us-west-2"
-            - name: AWS_STS_REGIONAL_ENDPOINTS
-              value: "regional"
-            - name: AWS_ROLE_ARN
-              value: "arn:aws:iam::064662847354:role/aws-secrets"
-            - name: AWS_WEB_IDENTITY_TOKEN_FILE
-              value: "/var/run/secrets/eks.amazonaws.com/serviceaccount/token"
           volumeMounts:
             - name: ipfs-data
               mountPath: /data/ipfs

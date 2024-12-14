@@ -3,8 +3,9 @@ kind: Kustomization
 
 resources:
   - service-account.yaml
-  - deployment.yaml
   - service.yaml
+  - deployment.yaml
   - secret-provider.yaml
+
 commonLabels:
   component: api 
