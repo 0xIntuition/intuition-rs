@@ -5,3 +5,4 @@ volume
 .env.docker
 .env.dump
 logs/*
+kube_files/test_postgres.yaml

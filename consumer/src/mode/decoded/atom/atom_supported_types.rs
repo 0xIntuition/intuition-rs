@@ -280,7 +280,10 @@ pub async fn get_supported_atom_metadata(
             ResolverConsumerMessage::new_atom(atom.clone(), decoded_atom_data.to_string());
         decoded_consumer_context
             .client
-            .send_message(serde_json::to_string(&message)?)
+            .send_message(
+                serde_json::to_string(&message)?,
+                Some("decoded".to_string()),
+            )
             .await?;
 
         // Now we try to parse the JSON and return the metadata. At this point

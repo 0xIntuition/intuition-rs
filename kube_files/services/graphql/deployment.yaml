@@ -62,10 +62,4 @@ spec:
             readOnly: true
             volumeAttributes:
               secretProviderClass: "hasura-aws-secrets"
-        # - name: aws-iam-token
-        #   projected:
-        #     sources:
-        #     - serviceAccountToken:
-        #         path: token
-        #         expirationSeconds: 86400
       

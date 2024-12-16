@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: safe-content-api
+spec:
+  selector:
+    matchLabels:
+      io.kompose.service: safe-content-api
+  template:
+    metadata:
+      labels:
+        io.kompose.service: safe-content-api
+    spec:
+      serviceAccountName: secrets-access-sa
+      containers:
+        - name: safe-content-api
+          image: steelcityamir/safe-content-ai:latest
+          imagePullPolicy: Always 
+          ports:
+          - containerPort: 8000
+            protocol: TCP
+      
+      

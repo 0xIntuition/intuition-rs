@@ -22,100 +22,15 @@ spec:
       labels:
         io.kompose.service: resolver-consumer
     spec:
-      securityContext:
-        runAsUser: 0
-        runAsGroup: 0
+      serviceAccountName: secrets-access-sa
       containers:
         - args:
             - ./consumer
             - --mode
             - resolver
-          env:
-            - name: AWS_ACCESS_KEY_ID
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: AWS_ACCESS_KEY_ID
-            - name: AWS_REGION
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: AWS_REGION
-            - name: AWS_SECRET_ACCESS_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: AWS_SECRET_ACCESS_KEY
-            - name: CONSUMER_TYPE
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: CONSUMER_TYPE
-            - name: DATABASE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: DATABASE_URL
-            - name: ENS_CONTRACT_ADDRESS
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: ENS_CONTRACT_ADDRESS
-            - name: IMAGE_GUARD_URL
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: IMAGE_GUARD_URL
-            - name: IPFS_GATEWAY_URL
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: IPFS_GATEWAY_URL
-            - name: IPFS_UPLOAD_QUEUE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: IPFS_UPLOAD_QUEUE_URL
-            - name: IPFS_UPLOAD_URL
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: IPFS_UPLOAD_URL
-            - name: LOCALSTACK_URL
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: LOCALSTACK_URL
-            - name: PINATA_API_JWT
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: PINATA_API_JWT
-            - name: PINATA_GATEWAY_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: PINATA_GATEWAY_TOKEN
-            - name: RESOLVER_QUEUE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: RESOLVER_QUEUE_URL
-            - name: RPC_URL_BASE_MAINNET
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: RPC_URL_BASE_MAINNET
-            - name: RPC_URL_MAINNET
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: RPC_URL_MAINNET
-            - name: RUST_LOG
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: RUST_LOG
+          envFrom:
+            - secretRef:
+                name: resolver-aws-secrets
           image: ghcr.io/0xintuition/consumer:latest
           imagePullPolicy: Always
           name: resolver-consumer
@@ -138,7 +53,7 @@ spec:
             driver: secrets-store.csi.k8s.io
             readOnly: true
             volumeAttributes:
-              secretProviderClass: aws-secrets
+              secretProviderClass: resolver-aws-secrets
         - name: resolver-logs
           persistentVolumeClaim:
             claimName: resolver-logs

@@ -2,11 +2,10 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: decoded-logs
-  namespace: default
 spec:
+  storageClassName: gp2
   accessModes:
     - ReadWriteOnce
-  storageClassName: gp2-immediate
   resources:
     requests:
-      storage: 1Gi
+      storage: 2Gi

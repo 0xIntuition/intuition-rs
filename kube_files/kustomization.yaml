@@ -3,9 +3,6 @@ kind: Kustomization
 
 resources:
   - api
-  - base/aws-secrets/secrets-store.yaml
-  - base/aws-secrets/service-account.yaml
-  - base/namespaces.yaml
   - consumers/decoded
   - consumers/ipfs-upload
   - consumers/raw
@@ -14,10 +11,8 @@ resources:
   - monitoring/log-cleanup
   - monitoring/prometheus
   - rbac/secrets-store-csi-driver-rbac.yaml
-  - services/database
   - services/graphql
-  - services/safe-content
-  - services/sqs
+  - services/safe-content-api
   - substreams-sink
 
 commonLabels:

@@ -5,6 +5,7 @@ resources:
   - deployment.yaml
   - pvc.yaml
   - service.yaml
+  - secret-provider.yaml
 
 commonLabels:
   component: resolver-consumer 

@@ -15,7 +15,6 @@ spec:
       containers:
         - name: api
           image: ghcr.io/0xintuition/image-guard:latest
-          command: ["sh", "-c", "echo $DATABASE_URL && sleep 3600"]
           imagePullPolicy: Always 
           ports:
           - containerPort: 3000
@@ -26,12 +25,12 @@ spec:
             readOnly: true
           envFrom:
             - secretRef:
-                name: aws-secrets
+                name: api-aws-secrets
       volumes:
       - name: secrets-store-inline
         csi:
           driver: secrets-store.csi.k8s.io
           readOnly: true
           volumeAttributes:
-            secretProviderClass: "aws-secrets"
+            secretProviderClass: "api-aws-secrets"
       
