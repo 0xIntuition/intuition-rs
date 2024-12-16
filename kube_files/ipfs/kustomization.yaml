@@ -3,12 +3,12 @@ kind: Kustomization
 
 resources:
   - storage-class.yaml
-  - configmap.yaml
   - deployment.yaml
   - pvc.yaml
   - service.yaml
   - service-account.yaml
   - secret-provider.yaml
+  - configmap.yaml
 
 commonLabels:
   component: ipfs 

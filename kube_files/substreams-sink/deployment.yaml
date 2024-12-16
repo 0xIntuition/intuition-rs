@@ -29,9 +29,6 @@ spec:
             - $(SUBSTREAMS_PACKAGE)
             - $(SUBSTREAMS_MODULE)
             - "$(SUBSTREAMS_START_BLOCK):"
-          envFrom:
-            - secretRef:
-                name: aws-secrets
           image: ghcr.io/0xintuition/substreams-sink:latest
           imagePullPolicy: Always
           name: substreams-sink
@@ -41,6 +38,9 @@ spec:
             - name: secrets-store
               mountPath: "/mnt/secrets"
               readOnly: true
+          envFrom:
+            - secretRef:
+                name: substreams-aws-secrets
       restartPolicy: Always
       volumes:
         - name: substreams-data
@@ -51,4 +51,4 @@ spec:
             driver: secrets-store.csi.k8s.io
             readOnly: true
             volumeAttributes:
-              secretProviderClass: aws-secrets
+              secretProviderClass: substreams-aws-secrets

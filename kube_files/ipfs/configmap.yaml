@@ -7,30 +7,37 @@ data:
     #!/bin/sh
     set -e
     
-    echo "Starting IPFS daemon..."
-    
-    # Wait for secret to be available (max 30 seconds)
-    for i in $(seq 1 30); do
-      if [ -f /mnt/secrets/PINATA_API_JWT ]; then
-        break
-      fi
-      echo "Waiting for secret file..."
-      sleep 1
-    done
-    
-    # Read the secret from mounted volume
-    PINATA_API_JWT=$(cat /mnt/secrets/PINATA_API_JWT)
-    export PINATA_API_JWT
-    
-    # Initialize IPFS if not already initialized
+     # Initialize IPFS if not initialized
     if [ ! -f /data/ipfs/config ]; then
-      ipfs init
+      ipfs init;
+    fi;
+
+    # Configure IPFS to listen on all interfaces for API and Gateway
+    ipfs config Addresses.API /ip4/0.0.0.0/tcp/5001;
+    ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/8080;
+
+    # Check if PINATA_API_JWT is set
+    if [ -z "${PINATA_API_JWT}" ]; then
+      echo "Error: PINATA_API_JWT is not set."
+      exit 1
     fi
-    
-    # Configure IPFS before starting daemon
-    ipfs config Addresses.API /ip4/0.0.0.0/tcp/5001
-    ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/8080
-    ipfs config --json Gateway.PublicGateways '{"localhost": {"UseSubdomains": false,"Paths": ["/ipfs", "/ipns"]},"ipfs": {"UseSubdomains": false,"Paths": ["/ipfs", "/ipns"]}}'
-    
-    # Start the daemon in the foreground
-    exec ipfs daemon --migrate 
+
+    # Add Pinata as a remote pinning service
+    if ! ipfs pin remote service ls | grep -q "Pinata"; then
+      ipfs pin remote service add Pinata https://api.pinata.cloud/psa "${PINATA_API_JWT}"
+    fi
+
+    # Configure Pinata gateway and use subdomains
+    ipfs config --json Gateway.PublicGateways "{\"${IPFS_GATEWAY_HOST}\": {\"UseSubdomains\": false, \"Paths\": [\"/ipfs\", \"/ipns\"]}, \"ipfs\": {\"UseSubdomains\": false, \"Paths\": [\"/ipfs\", \"/ipns\"]}}";
+
+    # Set Pinata as the default remote pinning service
+    # ipfs config --json Pinning.RemoteServices '{"Pinata": {}}';
+
+    # Configure policy to automatically pin all files to Pinata (MFS policy)
+    ipfs config --json Pinning.RemoteServices.Pinata.Policies '{"MFS": {"Enable": false, "PinName": "", "RepinInterval": "1m"}}';
+
+    # Add Peering to Pinata (optional)
+    ipfs config --json Peering.Peers '[{"ID": "Qma8ddFEQWEU8ijWvdxXm3nxU7oHsRtCykAaVz8WUYhiKn", "Addrs": ["/dnsaddr/bitswap.pinata.cloud"]}]';
+
+    # Start the IPFS daemon
+    exec ipfs daemon --migrate=true

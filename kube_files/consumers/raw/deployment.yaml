@@ -22,72 +22,15 @@ spec:
       labels:
         io.kompose.service: raw-consumer
     spec:
+      serviceAccountName: secrets-access-sa
       containers:
         - args:
             - ./consumer
             - --mode
             - raw
-          env:
-            - name: AWS_ACCESS_KEY_ID
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: AWS_ACCESS_KEY_ID
-            - name: AWS_REGION
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: AWS_REGION
-            - name: AWS_SECRET_ACCESS_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: AWS_SECRET_ACCESS_KEY
-            - name: CONSUMER_TYPE
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: CONSUMER_TYPE
-            - name: DATABASE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: DATABASE_URL
-            - name: DECODED_LOGS_QUEUE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: DECODED_LOGS_QUEUE_URL
-            - name: INDEXING_SOURCE
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: INDEXING_SOURCE
-            - name: LOCALSTACK_URL
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: LOCALSTACK_URL
-            - name: RAW_CONSUMER_QUEUE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: RAW_CONSUMER_QUEUE_URL
-            - name: RPC_URL_BASE_MAINNET
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: RPC_URL_BASE_MAINNET
-            - name: RPC_URL_MAINNET
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: RPC_URL_MAINNET
-            - name: RUST_LOG
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: RUST_LOG
+          envFrom:
+            - secretRef:
+                name: raw-aws-secrets
           image: ghcr.io/0xintuition/consumer:latest
           imagePullPolicy: Always
           name: raw-consumer
@@ -98,8 +41,9 @@ spec:
             - name: secrets-store
               mountPath: "/mnt/secrets"
               readOnly: true
-            - mountPath: /var/log/app
-              name: raw-logs
+            - name: raw-logs
+              mountPath: /logs
+              readOnly: false
           securityContext:
             runAsUser: 0
             runAsGroup: 0
@@ -110,7 +54,7 @@ spec:
             driver: secrets-store.csi.k8s.io
             readOnly: true
             volumeAttributes:
-              secretProviderClass: aws-secrets
+              secretProviderClass: raw-aws-secrets
         - name: raw-logs
           persistentVolumeClaim:
             claimName: raw-logs

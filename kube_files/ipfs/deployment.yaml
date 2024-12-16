@@ -39,6 +39,9 @@ spec:
             - name: aws-iam-token
               mountPath: "/var/run/secrets/eks.amazonaws.com/serviceaccount"
               readOnly: true
+          envFrom:
+            - secretRef:
+                name: ipfs-aws-secrets
       volumes:
         - name: ipfs-data
           persistentVolumeClaim:
@@ -46,13 +49,13 @@ spec:
         - name: ipfs-scripts
           configMap:
             name: ipfs-scripts
-            defaultMode: 0755
+            defaultMode: 0777
         - name: secrets-store-inline
           csi:
             driver: secrets-store.csi.k8s.io
             readOnly: true
             volumeAttributes:
-              secretProviderClass: "aws-secrets"
+              secretProviderClass: "ipfs-aws-secrets"
         - name: aws-iam-token
           projected:
             sources:
