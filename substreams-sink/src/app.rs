@@ -1,4 +1,3 @@
-use crate::config::LOCALSTACK_URL;
 use crate::{
     error::SubstreamError,
     pb::sf::substreams::{

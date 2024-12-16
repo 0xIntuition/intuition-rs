@@ -3,7 +3,7 @@ use utoipa::ToSchema;
 
 #[derive(Deserialize)]
 pub struct Env {
-    pub api_port: u16,
+    pub classification_api_port: u16,
     pub database_url: String,
     pub flag_hf_classification: Option<bool>,
     pub hf_token: Option<String>,
