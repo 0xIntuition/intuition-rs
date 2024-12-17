@@ -29,13 +29,13 @@ spec:
               - -c
               - |
                 find /decoded-logs -type f -mtime +2 -delete
-                find /ipfs-logs -type f -mtime +2 -delete
+                find /ipfs-upload-logs -type f -mtime +2 -delete
                 find /raw-logs -type f -mtime +2 -delete
                 find /resolver-logs -type f -mtime +2 -delete
               volumeMounts:
                 - mountPath: /decoded-logs
                   name: decoded-logs
-                - mountPath: /ipfs-logs
+                - mountPath: /ipfs-upload-logs
                   name: ipfs-upload-logs
                 - mountPath: /raw-logs
                   name: raw-logs
