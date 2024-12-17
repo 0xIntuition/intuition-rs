@@ -7,8 +7,8 @@ rules:
     resources: ["secretproviderclasspodstatuses", "secretproviderclasses"]
     verbs: ["create", "get", "list", "watch"]
   - apiGroups: [""]
-    resources: ["pods", "secrets", "events"]  # Added events resource
-    verbs: ["list", "get", "watch", "create"]  # Added create verb
+    resources: ["pods", "secrets", "events", "services"]
+    verbs: ["list", "get", "watch", "create"]
   - apiGroups: ["storage.k8s.io"]
     resources: ["csidrivers"]
     verbs: ["list", "get", "watch"]
