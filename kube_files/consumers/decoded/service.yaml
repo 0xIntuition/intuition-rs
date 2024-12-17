@@ -17,4 +17,4 @@ spec:
       port: 3002
       targetPort: 3002
   selector:
-    app: decoded-consumer
+    io.kompose.service: decoded-consumer
