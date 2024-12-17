@@ -58,10 +58,7 @@ pub async fn get_or_create_account(
         let message = ResolverConsumerMessage::new_account(account.clone());
         decoded_consumer_context
             .client
-            .send_message(
-                serde_json::to_string(&message)?,
-                Some("decoded".to_string()),
-            )
+            .send_message(serde_json::to_string(&message)?, None)
             .await?;
         Ok(account)
     }
