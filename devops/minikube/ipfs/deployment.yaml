@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ipfs
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ipfs
+  template:
+    metadata:
+      labels:
+        app: ipfs
+    spec:
+      containers:
+        - name: ipfs
+          image: ipfs/kubo:latest
+          ports:
+            - containerPort: 4001
+            - containerPort: 4002
+              protocol: UDP
+            - containerPort: 4003
+            - containerPort: 5001
+            - containerPort: 8080
+          env:
+            - name: IPFS_PATH
+              value: /data/ipfs
+            - name: PINATA_API_JWT
+              valueFrom:
+                secretKeyRef:
+                  name: secrets
+                  key: PINATA_API_JWT
+          volumeMounts:
+            - name: ipfs-data
+              mountPath: /data/ipfs
+            - name: ipfs-scripts
+              mountPath: /usr/local/bin/entrypoint.sh
+              subPath: entrypoint.sh
+      volumes:
+        - name: ipfs-data
+          persistentVolumeClaim:
+            claimName: ipfs-data
+        - name: ipfs-scripts
+          configMap:
+            name: ipfs-scripts
+            defaultMode: 0755
