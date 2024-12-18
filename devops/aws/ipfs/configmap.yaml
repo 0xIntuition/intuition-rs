@@ -39,5 +39,8 @@ data:
     # Add Peering to Pinata (optional)
     ipfs config --json Peering.Peers '[{"ID": "Qma8ddFEQWEU8ijWvdxXm3nxU7oHsRtCykAaVz8WUYhiKn", "Addrs": ["/dnsaddr/bitswap.pinata.cloud"]}]';
 
+    # Configure IPFS to use the Accelerated DHT
+    ipfs config Routing.Type dht
+
     # Start the IPFS daemon
     exec ipfs daemon --migrate=true
