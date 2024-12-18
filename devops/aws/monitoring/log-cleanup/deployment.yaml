@@ -20,7 +20,7 @@ spec:
                 claimName: raw-logs
             - name: resolver-logs
               persistentVolumeClaim:
-                claimName: resolver-consumer-logs
+                claimName: resolver-logs
           containers:
             - name: cleanup
               image: busybox
