@@ -4,11 +4,16 @@ metadata:
   name: graphql-engine
   labels:
     io.kompose.service: graphql-engine
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: "arn:aws:acm:us-west-2:064662847354:certificate/30449de3-e446-4994-a4be-c350d2345a4a"
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "http"
+    service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "443"
 spec:
   type: LoadBalancer
   ports:
-    - port: 8081
+    - port: 443
       targetPort: 8080
       protocol: TCP
+      name: https
   selector:
     io.kompose.service: graphql-engine
