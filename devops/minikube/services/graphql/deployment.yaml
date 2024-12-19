@@ -46,7 +46,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: secrets
-                  key: PINATA_API_JWT
+                  key: PINATA_AUTH
           image: hasura/graphql-engine:v2.44.0
           livenessProbe:
             exec:

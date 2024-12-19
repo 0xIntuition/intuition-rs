@@ -5,8 +5,8 @@ metadata:
     kompose.cmd: kompose convert -f docker-compose-kompose.yml
     kompose.version: 1.34.0 (HEAD)
   labels:
-    io.kompose.service: safe-content-api
-  name: safe-content-api
+    io.kompose.service: safe-content
+  name: safe-content
 spec:
   type: ClusterIP 
   ports:
@@ -14,4 +14,4 @@ spec:
       port: 8000
       targetPort: 8000
   selector:
-    io.kompose.service: safe-content-api
+    io.kompose.service: safe-content
