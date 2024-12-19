@@ -21,7 +21,7 @@ spec:
             name: graphql-engine
             port:
               number: 8080
-      - path: /upload_image
+      - path: /upload_image_from_url
         pathType: Prefix
         backend:
           service:
