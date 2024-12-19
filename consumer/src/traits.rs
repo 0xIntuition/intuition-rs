@@ -12,7 +12,11 @@ pub trait BasicConsumer: Send + Sync {
     /// different modes, different data sources and different consumer types.
     async fn process_messages(&self, mode: ConsumerMode) -> Result<(), ConsumerError>;
     async fn receive_message(&self) -> Result<ReceiveMessageOutput, ConsumerError>;
-    async fn send_message(&self, message: String) -> Result<(), ConsumerError>;
+    async fn send_message(
+        &self,
+        message: String,
+        group_id: Option<String>,
+    ) -> Result<(), ConsumerError>;
 }
 
 /// This trait needs to be implemented by every new data source that we want to

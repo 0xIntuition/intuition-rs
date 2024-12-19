@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -f docker-compose-kompose.yml
+    kompose.version: 1.34.0 (HEAD)
+  labels:
+    app: substreams-sink
+  name: substreams-sink
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: substreams-sink
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f docker-compose-kompose.yml
+        kompose.version: 1.34.0 (HEAD)
+      labels:
+        app: substreams-sink
+    spec:
+      serviceAccountName: secrets-access-sa
+      containers:
+        - args:
+            - $(SUBSTREAMS_ENDPOINT)
+            - $(SUBSTREAMS_PACKAGE)
+            - $(SUBSTREAMS_MODULE)
+            - "$(SUBSTREAMS_START_BLOCK):"
+          image: ghcr.io/0xintuition/substreams-sink:latest
+          imagePullPolicy: Always
+          name: substreams-sink
+          volumeMounts:
+            - mountPath: /var/lib/data
+              name: substreams-data
+            - name: secrets-store
+              mountPath: "/mnt/secrets"
+              readOnly: true
+          envFrom:
+            - secretRef:
+                name: substreams-aws-secrets
+      restartPolicy: Always
+      volumes:
+        - name: substreams-data
+          persistentVolumeClaim:
+            claimName: substreams-data
+        - name: secrets-store
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: substreams-aws-secrets

@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+spec:
+  selector:
+    matchLabels:
+      io.kompose.service: api
+  template:
+    metadata:
+      labels:
+        io.kompose.service: api
+    spec:
+      serviceAccountName: secrets-access-sa
+      containers:
+        - name: api
+          image: ghcr.io/0xintuition/image-guard:latest
+          imagePullPolicy: Always 
+          ports:
+          - containerPort: 3000
+            protocol: TCP
+          volumeMounts:
+          - name: secrets-store-inline
+            mountPath: "/mnt/secrets"
+            readOnly: true
+          envFrom:
+            - secretRef:
+                name: api-aws-secrets
+      volumes:
+      - name: secrets-store-inline
+        csi:
+          driver: secrets-store.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: "api-aws-secrets"
+      

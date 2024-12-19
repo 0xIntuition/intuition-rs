@@ -52,7 +52,7 @@ impl ConsumerMode {
                         let message = DecodedMessage::new(event, raw_message.body);
                         raw_consumer_context
                             .client
-                            .send_message(serde_json::to_string(&message)?)
+                            .send_message(serde_json::to_string(&message)?, Some("raw".to_string()))
                             .await?;
                         info!("Sent a decoded message to the queue!");
                     }

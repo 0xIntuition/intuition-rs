@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -f docker-compose-kompose.yml
+    kompose.version: 1.34.0 (HEAD)
+  labels:
+    io.kompose.service: graphql-engine
+  name: graphql-engine
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: graphql-engine
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f docker-compose-kompose.yml
+        kompose.version: 1.34.0 (HEAD)
+      labels:
+        io.kompose.service: graphql-engine
+    spec:
+      serviceAccountName: secrets-access-sa
+      containers:
+        - env:
+          - name: HASURA_GRAPHQL_CORS_DOMAIN
+            value: "*"
+          - name: HASURA_GRAPHQL_DEV_MODE
+            value: "true"
+          - name: HASURA_GRAPHQL_ENABLED_LOG_TYPES
+            value: startup, http-log, webhook-log, websocket-log, query-log
+          - name: HASURA_GRAPHQL_ENABLE_CONSOLE
+            value: "true"
+          - name: HASURA_GRAPHQL_STRINGIFY_NUMERIC_TYPES
+            value: "true"
+          - name: HASURA_GRAPHQL_UNAUTHORIZED_ROLE
+            value: anonymous
+          - name: HASURA_GRAPHQL_ENABLE_PERSISTED_QUERIES
+            value: "true"
+          - name: HASURA_GRAPHQL_PERSISTED_QUERIES_TTL
+            value: "300"
+          image: hasura/graphql-engine:v2.44.0
+          livenessProbe:
+            exec:
+              command:
+                - curl
+                - -f
+                - http://localhost:8080/healthz
+            failureThreshold: 5
+            periodSeconds: 30
+            timeoutSeconds: 10
+          name: graphql-engine
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          volumeMounts:
+            - name: secrets-store-inline
+              mountPath: "/mnt/secrets"
+              readOnly: true
+          envFrom:
+            - secretRef:
+                name: hasura-aws-secrets
+      restartPolicy: Always
+      volumes:
+        - name: secrets-store-inline
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: "hasura-aws-secrets"
+      

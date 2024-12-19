@@ -139,7 +139,7 @@ impl ResolverMessageType {
                     info!("Sending image to IPFS upload consumer: {}", image);
                     resolver_consumer_context
                         .client
-                        .send_message(serde_json::to_string(&IpfsUploadMessage { image })?)
+                        .send_message(serde_json::to_string(&IpfsUploadMessage { image })?, None)
                         .await?;
                 }
 

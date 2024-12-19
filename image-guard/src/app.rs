@@ -29,7 +29,7 @@ pub struct App {
 impl App {
     /// Build a TCP listener for the application.
     async fn build_listener(&self) -> Result<TcpListener, ApiError> {
-        TcpListener::bind(format!("0.0.0.0:{}", self.env.api_port))
+        TcpListener::bind(format!("0.0.0.0:{}", self.env.classification_api_port))
             .await
             .map_err(ApiError::from)
     }
@@ -101,7 +101,7 @@ impl App {
     pub async fn serve(&self) -> Result<(), ApiError> {
         info!(
             "Starting image-guard server on port {}...",
-            self.env.api_port
+            self.env.classification_api_port
         );
         let listener = self.build_listener().await?;
         info!("Ready to receive requests");

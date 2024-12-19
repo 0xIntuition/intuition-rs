@@ -4,7 +4,6 @@ use error::SubstreamError;
 use substreams_stream::SubstreamsStream;
 
 mod app;
-mod config;
 mod error;
 mod pb;
 mod substreams;

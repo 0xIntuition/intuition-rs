@@ -58,9 +58,10 @@ impl Ens {
                     info!("Sending image to IPFS upload consumer: {}", url);
                     consumer_context
                         .client
-                        .send_message(serde_json::to_string(&IpfsUploadMessage {
-                            image: url.clone(),
-                        })?)
+                        .send_message(
+                            serde_json::to_string(&IpfsUploadMessage { image: url.clone() })?,
+                            None,
+                        )
                         .await?;
                     Ok(Some(url))
                 } else {

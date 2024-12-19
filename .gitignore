@@ -5,3 +5,4 @@ volume
 .env.docker
 .env.dump
 logs/*
+devops/aws/test_postgres.yaml

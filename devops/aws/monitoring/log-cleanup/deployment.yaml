@@ -1,0 +1,44 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: consumer-logs-cleanup
+spec:
+  schedule: "0 0 * * *"  # Daily at midnight
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          volumes:
+            - name: decoded-logs
+              persistentVolumeClaim:
+                claimName: decoded-logs
+            - name: ipfs-upload-logs
+              persistentVolumeClaim:
+                claimName: ipfs-upload-logs
+            - name: raw-logs
+              persistentVolumeClaim:
+                claimName: raw-logs
+            - name: resolver-logs
+              persistentVolumeClaim:
+                claimName: resolver-logs
+          containers:
+            - name: cleanup
+              image: busybox
+              command:
+              - /bin/sh
+              - -c
+              - |
+                find /decoded-logs -type f -mtime +2 -delete
+                find /ipfs-upload-logs -type f -mtime +2 -delete
+                find /raw-logs -type f -mtime +2 -delete
+                find /resolver-logs -type f -mtime +2 -delete
+              volumeMounts:
+                - mountPath: /decoded-logs
+                  name: decoded-logs
+                - mountPath: /ipfs-upload-logs
+                  name: ipfs-upload-logs
+                - mountPath: /raw-logs
+                  name: raw-logs
+                - mountPath: /resolver-logs
+                  name: resolver-logs
+          restartPolicy: OnFailure 

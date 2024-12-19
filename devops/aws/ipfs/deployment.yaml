@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ipfs
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ipfs
+  template:
+    metadata:
+      labels:
+        app: ipfs
+    spec:
+      serviceAccountName: secrets-access-sa
+      containers:
+        - name: ipfs
+          image: ipfs/kubo:latest
+          command: ["/usr/local/bin/entrypoint.sh"]
+          ports:
+            - containerPort: 4001
+            - containerPort: 4002
+              protocol: UDP
+            - containerPort: 4003
+            - containerPort: 5001
+            - containerPort: 8080
+          env:
+            - name: IPFS_PATH
+              value: /data/ipfs
+          volumeMounts:
+            - name: ipfs-data
+              mountPath: /data/ipfs
+            - name: ipfs-scripts
+              mountPath: /usr/local/bin/entrypoint.sh
+              subPath: entrypoint.sh
+            - name: secrets-store-inline
+              mountPath: "/mnt/secrets"
+              readOnly: true
+            - name: aws-iam-token
+              mountPath: "/var/run/secrets/eks.amazonaws.com/serviceaccount"
+              readOnly: true
+          envFrom:
+            - secretRef:
+                name: ipfs-aws-secrets
+      volumes:
+        - name: ipfs-data
+          persistentVolumeClaim:
+            claimName: ipfs-data
+        - name: ipfs-scripts
+          configMap:
+            name: ipfs-scripts
+            defaultMode: 0777
+        - name: secrets-store-inline
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: "ipfs-aws-secrets"
+        - name: aws-iam-token
+          projected:
+            sources:
+            - serviceAccountToken:
+                path: token
+                expirationSeconds: 86400
