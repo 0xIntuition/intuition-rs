@@ -15,5 +15,9 @@ spec:
       targetPort: 8080
       protocol: TCP
       name: https
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+      name: http
   selector:
     io.kompose.service: graphql-engine
