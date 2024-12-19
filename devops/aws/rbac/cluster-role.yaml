@@ -1,0 +1,17 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: secrets-store-csi-driver-cluster-role
+rules:
+  - apiGroups: ["secrets-store.csi.x-k8s.io"]
+    resources: ["secretproviderclasspodstatuses", "secretproviderclasses"]
+    verbs: ["create", "get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods", "secrets", "events", "services", "services/status"]
+    verbs: ["list", "get", "watch", "create", "update", "patch"]
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["csidrivers"]
+    verbs: ["list", "get", "watch"]
+  - apiGroups: ["elasticloadbalancing.amazonaws.com"]
+    resources: ["loadbalancers"]
+    verbs: ["get", "list", "watch", "describe", "create", "update", "delete"]

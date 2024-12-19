@@ -1,0 +1,37 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: api-ingress
+  annotations:
+    alb.ingress.kubernetes.io/scheme: "internet-facing"
+    alb.ingress.kubernetes.io/target-type: "ip"
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/certificate-arn: "arn:aws:acm:us-west-2:064662847354:certificate/30449de3-e446-4994-a4be-c350d2345a4a"
+    external-dns.alpha.kubernetes.io/hostname: graphql.intuition-api.com
+spec:
+  ingressClassName: alb
+  rules:
+  - host: graphql.intuition-api.com
+    http:
+      paths:
+      - path: /v1/graphql
+        pathType: Prefix
+        backend:
+          service:
+            name: graphql-engine
+            port:
+              number: 8080
+      - path: /upload_image_from_url
+        pathType: Prefix
+        backend:
+          service:
+            name: api
+            port:
+              number: 3000
+      - path: /upload
+        pathType: Prefix
+        backend:
+          service:
+            name: api
+            port:
+              number: 3000

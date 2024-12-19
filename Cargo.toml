@@ -26,6 +26,7 @@ sqlx = { version = "0.7.2", features = [
     "chrono",
     "bigdecimal",
     "rust_decimal",
+    "tls-rustls"
 ] }
 strum = "0.26.3"
 strum_macros = "0.26.4"

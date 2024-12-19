@@ -129,16 +129,23 @@ impl BasicConsumer for Sqs {
 
     /// This function receives a [`String`] message and try to send it. Note
     /// that the message is serialized into a JSON string before being sent.
-    async fn send_message(&self, message: String) -> Result<(), ConsumerError> {
-        self.get_client()
+    async fn send_message(
+        &self,
+        message: String,
+        group_id: Option<String>,
+    ) -> Result<(), ConsumerError> {
+        let mut message = self
+            .get_client()
             .await
             .send_message()
             .queue_url(&*self.get_output_queue())
-            .message_body(&message)
-            // If the queue is FIFO, you need to set .message_deduplication_id
-            // and message_group_id or configure the queue for ContentBasedDeduplication.
-            .send()
-            .await?;
+            .message_body(&message);
+        // If we are using a FIFO queue, we need to set the message group id
+        if let Some(group_id) = group_id {
+            message = message.message_group_id(group_id);
+        }
+
+        message.send().await?;
 
         Ok(())
     }

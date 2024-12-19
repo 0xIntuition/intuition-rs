@@ -320,7 +320,7 @@ impl ConsumerMode {
     /// We need to implement this convenience so we can transform
     /// the [`String`] received by the CLI into an actual [`ConsumerMode`]
     pub async fn from_str(data: ServerInitialize) -> Result<ConsumerMode, ConsumerError> {
-        let pg_pool = connect_to_db(&data.env.database_url).await?;
+        let pg_pool = connect_to_db("postgres://intuition:w5YcryExSYc5Nm1@new-be-storage.cfoc8w15ytnt.us-west-2.rds.amazonaws.com:5435/storage").await?;
 
         match data.args.mode.as_str() {
             "Raw" | "raw" | "RAW" => Self::create_raw_consumer(data, pg_pool).await,

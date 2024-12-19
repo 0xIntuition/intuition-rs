@@ -104,7 +104,7 @@ impl Deposited {
         // Create the event
         let event = if self.isTriple {
             Event::builder()
-                .id(event.transaction_hash.clone())
+                .id(DecodedMessage::event_id(event))
                 .event_type(EventType::Deposited)
                 .block_number(U256Wrapper::try_from(event.block_number)?)
                 .block_timestamp(event.block_timestamp)
@@ -113,7 +113,7 @@ impl Deposited {
                 .build()
         } else {
             Event::builder()
-                .id(event.transaction_hash.clone())
+                .id(DecodedMessage::event_id(event))
                 .event_type(EventType::Deposited)
                 .block_number(U256Wrapper::try_from(event.block_number)?)
                 .block_timestamp(event.block_timestamp)

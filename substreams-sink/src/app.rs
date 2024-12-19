@@ -1,4 +1,3 @@
-use crate::config::LOCALSTACK_URL;
 use crate::{
     error::SubstreamError,
     pb::sf::substreams::{
@@ -85,6 +84,7 @@ impl AppState {
             self.aws_sqs_client
                 .send_message()
                 .queue_url(&self.raw_consumer_queue_url)
+                .message_group_id("raw")
                 .message_body(message)
                 .send()
                 .await?;

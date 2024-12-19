@@ -39,7 +39,7 @@ impl Redeemed {
     ) -> Result<(), ConsumerError> {
         if let Some(triple_id) = vault.triple_id.clone() {
             Event::builder()
-                .id(event.transaction_hash.clone())
+                .id(DecodedMessage::event_id(event))
                 .event_type(EventType::Redeemed)
                 .block_number(U256Wrapper::try_from(event.block_number)?)
                 .block_timestamp(event.block_timestamp)
@@ -51,7 +51,7 @@ impl Redeemed {
                 .await?;
         } else {
             Event::builder()
-                .id(event.transaction_hash.clone())
+                .id(DecodedMessage::event_id(event))
                 .event_type(EventType::Redeemed)
                 .block_number(U256Wrapper::try_from(event.block_number)?)
                 .block_timestamp(event.block_timestamp)

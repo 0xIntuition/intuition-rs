@@ -20,7 +20,7 @@ impl FeesTransferred {
     ) -> Result<Event, ConsumerError> {
         // Create the event
         Event::builder()
-            .id(event.transaction_hash.clone())
+            .id(DecodedMessage::event_id(event))
             .event_type(EventType::FeesTransfered)
             .fee_transfer_id(event.transaction_hash.clone())
             .block_number(U256Wrapper::try_from(event.block_number)?)
