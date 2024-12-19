@@ -28,3 +28,10 @@ spec:
             name: api
             port:
               number: 3000
+      - path: /upload
+        pathType: Prefix
+        backend:
+          service:
+            name: api
+            port:
+              number: 3000
