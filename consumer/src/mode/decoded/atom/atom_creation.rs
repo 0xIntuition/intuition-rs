@@ -32,7 +32,7 @@ impl AtomCreated {
     ) -> Result<Event, ConsumerError> {
         // Create the event
         Event::builder()
-            .id(event.transaction_hash.clone())
+            .id(DecodedMessage::event_id(event))
             .event_type(EventType::AtomCreated)
             .atom_id(self.vaultID)
             .block_number(U256Wrapper::from_str(&event.block_number.to_string())?)
