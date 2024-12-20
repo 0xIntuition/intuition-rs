@@ -45,6 +45,29 @@ impl AtomCreated {
     }
 
     /// This function decodes the atom data
+    async fn decode_atom_data_and_update_atom(
+        &self,
+        atom: &mut Atom,
+        decoded_consumer_context: &DecodedConsumerContext,
+    ) -> Result<String, ConsumerError> {
+        // decode the hex data from the atomData.
+        let decoded_atom_data = if let Ok(decoded_atom_data) = self.decode_data() {
+            decoded_atom_data
+        } else {
+            warn!(
+                "Failed to decode atom data. This is not a critical error, but this atom will be created with empty data and `Unknown` type.",
+                );
+            // return an empty string
+            String::new()
+        };
+
+        // Update the atom with the decoded data
+        atom.data = Some(decoded_atom_data.clone());
+        atom.upsert(&decoded_consumer_context.pg_pool).await?;
+        Ok(decoded_atom_data)
+    }
+
+    /// This function decodes the atom data
     fn decode_data(&self) -> Result<String, ConsumerError> {
         Ok(String::from_utf8(self.atomData.clone().to_vec())?)
     }
@@ -131,19 +154,9 @@ impl AtomCreated {
             .await?;
 
         // decode the hex data from the atomData.
-        let decoded_atom_data = if let Ok(decoded_atom_data) = self.decode_data() {
-            decoded_atom_data
-        } else {
-            warn!(
-                "Failed to decode atom data. This is not a critical error, but this atom will be created with empty data and `Unknown` type.",
-                );
-            // return an empty string
-            String::new()
-        };
-
-        // Update the atom with the decoded data
-        atom.data = Some(decoded_atom_data.clone());
-        atom.upsert(&decoded_consumer_context.pg_pool).await?;
+        let decoded_atom_data = self
+            .decode_atom_data_and_update_atom(&mut atom, decoded_consumer_context)
+            .await?;
 
         // get the supported atom metadata
         let supported_atom_metadata =
