@@ -15,7 +15,7 @@ object_relationships:
           id: id
         insertion_order: null
         remote_table:
-          name: thing
+          name: atom
           schema: public
   - name: cached_image
     using:
