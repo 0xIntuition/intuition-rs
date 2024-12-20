@@ -11,7 +11,7 @@ use crate::{
 };
 use alloy::primitives::Address;
 use models::{
-    account::{Account, AccountType},
+    account::Account,
     atom::{Atom, AtomType},
     traits::SimpleCrud,
 };
@@ -54,7 +54,7 @@ impl ResolverMessageType {
             }
             ResolverMessageType::Account(account) => {
                 info!("Processing a resolved account: {account:?}");
-                self.process_account(resolver_consumer_context, account)
+                self.process_account(resolver_consumer_context, &mut account.clone())
                     .await
             }
         }
@@ -64,20 +64,14 @@ impl ResolverMessageType {
     async fn process_account(
         &self,
         resolver_consumer_context: &ResolverConsumerContext,
-        account: &Account,
+        account: &mut Account,
     ) -> Result<(), ConsumerError> {
         let ens = Ens::get_ens(Address::from_str(&account.id)?, resolver_consumer_context).await?;
         if let Some(name) = ens.name.clone() {
             info!("ENS for account: {:?}", ens);
-            Account::builder()
-                .id(account.id.clone())
-                .label(name.clone())
-                .image(ens.image.unwrap_or_default())
-                .account_type(AccountType::Default)
-                .build()
-                .upsert(&resolver_consumer_context.pg_pool)
-                .await
-                .map_err(ConsumerError::ModelError)?;
+            account.label = name.clone();
+            account.image = ens.image.clone();
+            account.upsert(&resolver_consumer_context.pg_pool).await?;
         } else {
             info!("No ENS found for account: {:?}", account);
         }
