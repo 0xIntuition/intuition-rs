@@ -30,7 +30,6 @@ pub struct ResolverConsumerMessage {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ResolveAtom {
     pub atom: Atom,
-    pub decoded_atom_data: String,
 }
 
 /// This enum represents the possible types of messages that can be sent to the
@@ -92,7 +91,11 @@ impl ResolverMessageType {
         resolver_message: &ResolveAtom,
     ) -> Result<(), ConsumerError> {
         let data = try_to_resolve_ipfs_uri(
-            &resolver_message.decoded_atom_data,
+            &resolver_message
+                .atom
+                .data
+                .clone()
+                .ok_or(ConsumerError::AtomDataNotFound)?,
             resolver_consumer_context,
         )
         .await?;
@@ -111,7 +114,11 @@ impl ResolverMessageType {
             // even if it's not a valid IPFS URI. This is useful for cases where the
             // atom data is a JSON object that is not a schema.org URL.
             try_to_parse_json(
-                &resolver_message.decoded_atom_data,
+                &resolver_message
+                    .atom
+                    .data
+                    .clone()
+                    .ok_or(ConsumerError::AtomDataNotFound)?,
                 &resolver_message.atom,
                 &resolver_consumer_context.pg_pool,
             )
@@ -163,12 +170,9 @@ impl ResolverMessageType {
 
 impl ResolverConsumerMessage {
     /// This function creates a new atom message
-    pub fn new_atom(atom: Atom, decoded_atom_data: String) -> Self {
+    pub fn new_atom(atom: Atom) -> Self {
         Self {
-            message: ResolverMessageType::Atom(Box::new(ResolveAtom {
-                atom,
-                decoded_atom_data,
-            })),
+            message: ResolverMessageType::Atom(Box::new(ResolveAtom { atom })),
         }
     }
 

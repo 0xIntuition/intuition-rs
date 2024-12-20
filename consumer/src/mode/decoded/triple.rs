@@ -203,8 +203,14 @@ impl TripleCreated {
         object_atom: &Atom,
         pg_pool: &PgPool,
     ) -> Result<(), ConsumerError> {
-        if let Some(mut account) =
-            Account::find_by_id(subject_atom.data.to_lowercase(), pg_pool).await?
+        if let Some(mut account) = Account::find_by_id(
+            subject_atom
+                .data
+                .clone()
+                .ok_or(ConsumerError::AtomDataNotFound)?,
+            pg_pool,
+        )
+        .await?
         {
             account.label = object_atom.label.clone().unwrap_or_default();
             account.image = object_atom.image.clone();

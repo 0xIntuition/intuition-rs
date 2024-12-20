@@ -1,7 +1,7 @@
 use crate::{
     error::ConsumerError,
     mode::{
-        decoded::utils::{get_or_create_account, short_id},
+        decoded::utils::{get_or_create_account_with_atom_id, short_id},
         resolver::{
             atom_resolver::{try_to_parse_json, try_to_resolve_schema_org_url},
             types::{ResolveAtom, ResolverConsumerMessage},
@@ -59,8 +59,13 @@ impl AtomMetadata {
             return Ok(());
         }
 
-        let account = get_or_create_account(
-            resolved_atom.decoded_atom_data.to_string(),
+        let account = get_or_create_account_with_atom_id(
+            resolved_atom
+                .atom
+                .data
+                .clone()
+                .ok_or(ConsumerError::AtomDataNotFound)?,
+            resolved_atom.atom.id.clone(),
             decoded_consumer_context,
         )
         .await?;
@@ -276,8 +281,7 @@ pub async fn get_supported_atom_metadata(
     } else {
         info!("Atom data is not an address, verifying if it's an IPFS URI...");
         // 3. Now we need to enqueue the message to be processed by the resolver
-        let message =
-            ResolverConsumerMessage::new_atom(atom.clone(), decoded_atom_data.to_string());
+        let message = ResolverConsumerMessage::new_atom(atom.clone());
         decoded_consumer_context
             .client
             .send_message(serde_json::to_string(&message)?, None)

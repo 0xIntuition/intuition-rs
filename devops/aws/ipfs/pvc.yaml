@@ -8,4 +8,4 @@ spec:
   storageClassName: gp2-immediate
   resources:
     requests:
-      storage: 1Gi 
+      storage: 20Gi 

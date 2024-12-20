@@ -62,6 +62,7 @@ impl AtomCreated {
                     .id(self.atomWallet.to_string())
                     .label(short_id(&self.atomWallet.to_string()))
                     .account_type(AccountType::AtomWallet)
+                    .atom_id(U256Wrapper::from_str(&self.vaultID.to_string()).unwrap_or_default())
                     .build()
             })
             .upsert(pg_pool)
@@ -92,7 +93,8 @@ impl AtomCreated {
                 .await?;
             let creator_account =
                 get_or_create_account(self.creator.to_string(), decoded_consumer_context).await?;
-            // Create the `Atom` and upsert it
+            // Create the `Atom` and upsert it. Note that we are using the raw_data as the data
+            // for now, this will be updated later with the resolver consumer.
             Atom::builder()
                 .id(U256Wrapper::from_str(
                     &self.vaultID.to_string().to_lowercase(),
@@ -101,7 +103,7 @@ impl AtomCreated {
                 .creator_id(creator_account.id)
                 .vault_id(U256Wrapper::from_str(&self.vaultID.to_string())?)
                 .value_id(U256Wrapper::from_str(&self.vaultID.to_string())?)
-                .data(self.atomData.to_string())
+                .raw_data(self.atomData.to_string())
                 .atom_type(AtomType::Unknown)
                 .block_number(U256Wrapper::from_str(&event.block_number.to_string())?)
                 .block_timestamp(event.block_timestamp)
@@ -128,46 +130,41 @@ impl AtomCreated {
             .update_vault_current_share_price(decoded_consumer_context, decoded_message)
             .await?;
 
-        // decode the hex data from the atomData. The only known problem we can have here
-        // is that it can fail to decode UTF-8 string.
-        match self.decode_data() {
-            Ok(decoded_atom_data) => {
-                // get the supported atom metadata
-                let supported_atom_metadata = get_supported_atom_metadata(
-                    &mut atom,
-                    &decoded_atom_data,
-                    decoded_consumer_context,
-                )
+        // decode the hex data from the atomData.
+        let decoded_atom_data = if let Ok(decoded_atom_data) = self.decode_data() {
+            decoded_atom_data
+        } else {
+            warn!(
+                "Failed to decode atom data. This is not a critical error, but this atom will be created with empty data and `Unknown` type.",
+                );
+            // return an empty string
+            String::new()
+        };
+
+        // Update the atom with the decoded data
+        atom.data = Some(decoded_atom_data.clone());
+        atom.upsert(&decoded_consumer_context.pg_pool).await?;
+
+        // get the supported atom metadata
+        let supported_atom_metadata =
+            get_supported_atom_metadata(&mut atom, &decoded_atom_data, decoded_consumer_context)
                 .await?;
 
-                // Handle the account type
-                let resolved_atom = ResolveAtom {
-                    atom: atom.clone(),
-                    decoded_atom_data,
-                };
-                supported_atom_metadata
-                    .handle_account_type(&resolved_atom, decoded_consumer_context)
-                    .await?;
+        // Handle the account type
+        let resolved_atom = ResolveAtom { atom: atom.clone() };
+        supported_atom_metadata
+            .handle_account_type(&resolved_atom, decoded_consumer_context)
+            .await?;
 
-                // Update the atom metadata to reflect the supported atom type
-                supported_atom_metadata
-                    .update_atom_metadata(&mut atom, &decoded_consumer_context.pg_pool)
-                    .await?;
+        // Update the atom metadata to reflect the supported atom type
+        supported_atom_metadata
+            .update_atom_metadata(&mut atom, &decoded_consumer_context.pg_pool)
+            .await?;
+        // Create the event
+        self.create_event(decoded_message, &decoded_consumer_context.pg_pool)
+            .await?;
 
-                // Create the event
-                self.create_event(decoded_message, &decoded_consumer_context.pg_pool)
-                    .await?;
-
-                Ok(())
-            }
-            Err(error) => {
-                warn!(
-                    "Failed to decode atom data with error: {}. This is not a critical error, but this atom will not be created.",
-                    error
-                );
-                Ok(())
-            }
-        }
+        Ok(())
     }
 
     /// This function updates the vault current share price and it returns the vault and atom

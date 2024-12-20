@@ -6,6 +6,7 @@ use alloy::primitives::U256;
 use models::{
     account::{Account, AccountType},
     traits::SimpleCrud,
+    types::U256Wrapper,
 };
 use tracing::info;
 
@@ -47,6 +48,40 @@ pub async fn get_or_create_account(
             .id(id.clone())
             .label(short_id(&id))
             .account_type(AccountType::Default)
+            .build()
+            .upsert(&decoded_consumer_context.pg_pool)
+            .await
+            .map_err(ConsumerError::ModelError)?;
+
+        // Now we need to enqueue the message to be processed by the resolver. In this
+        // process we check if the account has ENS data associated, and if it does, we
+        // update the account with the ENS data (name [label] and image)
+        let message = ResolverConsumerMessage::new_account(account.clone());
+        decoded_consumer_context
+            .client
+            .send_message(serde_json::to_string(&message)?, None)
+            .await?;
+        Ok(account)
+    }
+}
+
+pub async fn get_or_create_account_with_atom_id(
+    id: String,
+    atom_id: U256Wrapper,
+    decoded_consumer_context: &DecodedConsumerContext,
+) -> Result<Account, ConsumerError> {
+    if let Some(account) =
+        Account::find_by_id(id.clone(), &decoded_consumer_context.pg_pool).await?
+    {
+        info!("Returning existing account for: {}", id);
+        Ok(account)
+    } else {
+        info!("Creating account for: {}", id);
+        let account = Account::builder()
+            .id(id.clone())
+            .label(short_id(&id))
+            .account_type(AccountType::Default)
+            .atom_id(atom_id)
             .build()
             .upsert(&decoded_consumer_context.pg_pool)
             .await
