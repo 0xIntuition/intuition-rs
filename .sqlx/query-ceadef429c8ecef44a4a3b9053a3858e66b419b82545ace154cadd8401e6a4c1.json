@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT id as \"id: U256Wrapper\", \n                   wallet_id, \n                   creator_id, \n                   vault_id as \"vault_id: U256Wrapper\", \n                   data, \n                   type as \"atom_type: AtomType\", \n                   emoji, \n                   label, \n                   image, \n                   value_id as \"value_id: U256Wrapper\",\n                   block_number as \"block_number: U256Wrapper\",\n                   block_timestamp,\n                   transaction_hash,\n                   resolving_status as \"resolving_status: AtomResolvingStatus\"\n            FROM atom\n            WHERE id = $1\n            ",
+  "query": "\n            SELECT id as \"id: U256Wrapper\", \n                   wallet_id, \n                   creator_id, \n                   vault_id as \"vault_id: U256Wrapper\", \n                   data, \n                   raw_data,\n                   type as \"atom_type: AtomType\", \n                   emoji, \n                   label, \n                   image, \n                   value_id as \"value_id: U256Wrapper\",\n                   block_number as \"block_number: U256Wrapper\",\n                   block_timestamp,\n                   transaction_hash,\n                   resolving_status as \"resolving_status: AtomResolvingStatus\"\n            FROM atom\n            WHERE id = $1\n            ",
   "describe": {
     "columns": [
       {
@@ -30,6 +30,11 @@
       },
       {
         "ordinal": 5,
+        "name": "raw_data",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
         "name": "atom_type: AtomType",
         "type_info": {
           "Custom": {
@@ -54,42 +59,42 @@
         }
       },
       {
-        "ordinal": 6,
+        "ordinal": 7,
         "name": "emoji",
         "type_info": "Text"
       },
       {
-        "ordinal": 7,
+        "ordinal": 8,
         "name": "label",
         "type_info": "Text"
       },
       {
-        "ordinal": 8,
+        "ordinal": 9,
         "name": "image",
         "type_info": "Text"
       },
       {
-        "ordinal": 9,
+        "ordinal": 10,
         "name": "value_id: U256Wrapper",
         "type_info": "Numeric"
       },
       {
-        "ordinal": 10,
+        "ordinal": 11,
         "name": "block_number: U256Wrapper",
         "type_info": "Numeric"
       },
       {
-        "ordinal": 11,
+        "ordinal": 12,
         "name": "block_timestamp",
         "type_info": "Int8"
       },
       {
-        "ordinal": 12,
+        "ordinal": 13,
         "name": "transaction_hash",
         "type_info": "Bytea"
       },
       {
-        "ordinal": 13,
+        "ordinal": 14,
         "name": "resolving_status: AtomResolvingStatus",
         "type_info": {
           "Custom": {
@@ -115,6 +120,7 @@
       false,
       false,
       false,
+      true,
       false,
       false,
       true,
@@ -127,5 +133,5 @@
       false
     ]
   },
-  "hash": "96db8d67add81e30be66b0b4afb6d45f181e724714f28a37d155ee677b5ab000"
+  "hash": "ceadef429c8ecef44a4a3b9053a3858e66b419b82545ace154cadd8401e6a4c1"
 }
