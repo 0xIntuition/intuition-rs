@@ -6,12 +6,12 @@ metadata:
     alb.ingress.kubernetes.io/scheme: "internet-facing"
     alb.ingress.kubernetes.io/target-type: "ip"
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
-    alb.ingress.kubernetes.io/certificate-arn: "arn:aws:acm:us-west-2:064662847354:certificate/30449de3-e446-4994-a4be-c350d2345a4a"
-    external-dns.alpha.kubernetes.io/hostname: graphql.intuition-api.com
+    alb.ingress.kubernetes.io/certificate-arn: "arn:aws:acm:us-west-2:064662847354:certificate/b215fd3c-92e2-4260-b4f4-2c2a3f1fabdc"
+    external-dns.alpha.kubernetes.io/hostname: dev.base.intuition-api.com
 spec:
   ingressClassName: alb
   rules:
-  - host: graphql.intuition-api.com
+  - host: dev.base.intuition-api.com
     http:
       paths:
       - path: /v1/graphql
