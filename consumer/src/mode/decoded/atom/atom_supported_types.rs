@@ -56,6 +56,7 @@ impl AtomMetadata {
         decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<(), ConsumerError> {
         if self.atom_type != "Account" {
+            info!("Skipping account creation for: {}", self.atom_type);
             return Ok(());
         }
 
@@ -110,6 +111,10 @@ impl AtomMetadata {
     ) -> Result<(), ConsumerError> {
         match AtomType::from_str(self.atom_type.as_str())? {
             AtomType::Account => {
+                info!(
+                    "Creating account for 1234: {}",
+                    resolved_atom.atom.data.clone().unwrap()
+                );
                 self.create_account_and_atom_value(resolved_atom, decoded_consumer_context)
                     .await
             }

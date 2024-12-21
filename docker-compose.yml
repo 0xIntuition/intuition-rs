@@ -158,7 +158,7 @@ services:
     container_name: api
     image: ghcr.io/0xintuition/image-guard:latest
     environment:
-      API_PORT: 3000
+      CLASSIFICATION_API_PORT: $CLASSIFICATION_API_PORT
       DATABASE_URL: $DATABASE_URL
       HF_TOKEN: $HF_TOKEN
       IPFS_GATEWAY_URL: $IPFS_GATEWAY_URL
