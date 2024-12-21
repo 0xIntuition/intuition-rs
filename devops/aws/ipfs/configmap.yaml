@@ -39,8 +39,13 @@ data:
     # Add Peering to Pinata (optional)
     ipfs config --json Peering.Peers '[{"ID": "Qma8ddFEQWEU8ijWvdxXm3nxU7oHsRtCykAaVz8WUYhiKn", "Addrs": ["/dnsaddr/bitswap.pinata.cloud"]}]';
 
-    # Configure IPFS to use the Accelerated DHT
-    ipfs config Routing.Type dht
+    # Configure IPFS to use the Accelerated DHT with optimized settings
+    ipfs config Routing.Type dhtclient
+    ipfs config --json Routing.AcceleratedDHTClient true
+    
+    # Increase the reprovide interval to reduce load
+    ipfs config Reprovider.Interval "48h"
+    ipfs config --json Reprovider.Strategy '"roots"'
 
     # Start the IPFS daemon
     exec ipfs daemon --migrate=true

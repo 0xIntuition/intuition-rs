@@ -43,7 +43,7 @@ mod tests {
 
         // Step 7: Update the Atom
         let mut updated_atom = test_atom.clone();
-        updated_atom.data = "updated_data".to_string();
+        updated_atom.data = Some("updated_data".to_string());
         updated_atom.emoji = Some("🔬".to_string());
         updated_atom.label = Some("Updated Test Atom".to_string());
         updated_atom.image = Some("https://example.com/image.jpg".to_string());

@@ -1,7 +1,7 @@
 use crate::{
     error::ConsumerError,
     mode::{
-        decoded::utils::{get_or_create_account, short_id},
+        decoded::utils::{short_id, update_account_with_atom_id},
         resolver::{
             atom_resolver::{try_to_parse_json, try_to_resolve_schema_org_url},
             types::{ResolveAtom, ResolverConsumerMessage},
@@ -50,17 +50,23 @@ impl AtomMetadata {
     }
 
     /// Creates an account and an atom value
-    pub async fn create_account_and_atom_value(
+    pub async fn update_account_and_atom_value(
         &self,
         resolved_atom: &ResolveAtom,
         decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<(), ConsumerError> {
         if self.atom_type != "Account" {
+            info!("Skipping account creation for: {}", self.atom_type);
             return Ok(());
         }
 
-        let account = get_or_create_account(
-            resolved_atom.decoded_atom_data.to_string(),
+        let account = update_account_with_atom_id(
+            resolved_atom
+                .atom
+                .data
+                .clone()
+                .ok_or(ConsumerError::AtomDataNotFound)?,
+            resolved_atom.atom.id.clone(),
             decoded_consumer_context,
         )
         .await?;
@@ -105,7 +111,11 @@ impl AtomMetadata {
     ) -> Result<(), ConsumerError> {
         match AtomType::from_str(self.atom_type.as_str())? {
             AtomType::Account => {
-                self.create_account_and_atom_value(resolved_atom, decoded_consumer_context)
+                info!(
+                    "Updating account for: {}",
+                    resolved_atom.atom.data.clone().unwrap()
+                );
+                self.update_account_and_atom_value(resolved_atom, decoded_consumer_context)
                     .await
             }
 
@@ -276,8 +286,7 @@ pub async fn get_supported_atom_metadata(
     } else {
         info!("Atom data is not an address, verifying if it's an IPFS URI...");
         // 3. Now we need to enqueue the message to be processed by the resolver
-        let message =
-            ResolverConsumerMessage::new_atom(atom.clone(), decoded_atom_data.to_string());
+        let message = ResolverConsumerMessage::new_atom(atom.clone());
         decoded_consumer_context
             .client
             .send_message(serde_json::to_string(&message)?, None)

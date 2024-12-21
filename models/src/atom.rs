@@ -16,7 +16,8 @@ pub struct Atom {
     pub wallet_id: String,
     pub creator_id: String,
     pub vault_id: U256Wrapper,
-    pub data: String,
+    pub data: Option<String>,
+    pub raw_data: String,
     pub atom_type: AtomType,
     pub emoji: Option<String>,
     pub label: Option<String>,
@@ -69,13 +70,14 @@ impl SimpleCrud<U256Wrapper> for Atom {
             Atom,
             r#"
             INSERT INTO atom 
-                (id, wallet_id, creator_id, vault_id, data, type, emoji, label, image, value_id, block_number, block_timestamp, transaction_hash, resolving_status)
-            VALUES ($1, $2, $3, $4, $5, $6::text::atom_type, $7, $8, $9, $10, $11, $12, $13, $14::text::atom_resolving_status)
+                (id, wallet_id, creator_id, vault_id, data, raw_data, type, emoji, label, image, value_id, block_number, block_timestamp, transaction_hash, resolving_status)
+            VALUES ($1, $2, $3, $4, $5, $6, $7::text::atom_type, $8, $9, $10, $11, $12, $13, $14, $15::text::atom_resolving_status)
             ON CONFLICT (id) DO UPDATE SET
                 wallet_id = EXCLUDED.wallet_id,
                 creator_id = EXCLUDED.creator_id,
                 vault_id = EXCLUDED.vault_id,
                 data = EXCLUDED.data,
+                raw_data = EXCLUDED.raw_data,
                 type = EXCLUDED.type,
                 emoji = EXCLUDED.emoji,
                 label = EXCLUDED.label,
@@ -90,6 +92,7 @@ impl SimpleCrud<U256Wrapper> for Atom {
                       creator_id, 
                       vault_id as "vault_id: U256Wrapper", 
                       data, 
+                      raw_data,
                       type as "atom_type: AtomType", 
                       emoji, 
                       label, 
@@ -105,6 +108,7 @@ impl SimpleCrud<U256Wrapper> for Atom {
             self.creator_id.to_lowercase(),
             self.vault_id.to_big_decimal()?,
             self.data,
+            self.raw_data,
             self.atom_type.to_string(),
             self.emoji,
             self.label,
@@ -142,6 +146,7 @@ impl SimpleCrud<U256Wrapper> for Atom {
                    creator_id, 
                    vault_id as "vault_id: U256Wrapper", 
                    data, 
+                   raw_data,
                    type as "atom_type: AtomType", 
                    emoji, 
                    label, 

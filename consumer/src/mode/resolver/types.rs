@@ -11,7 +11,7 @@ use crate::{
 };
 use alloy::primitives::Address;
 use models::{
-    account::{Account, AccountType},
+    account::Account,
     atom::{Atom, AtomType},
     traits::SimpleCrud,
 };
@@ -30,7 +30,6 @@ pub struct ResolverConsumerMessage {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ResolveAtom {
     pub atom: Atom,
-    pub decoded_atom_data: String,
 }
 
 /// This enum represents the possible types of messages that can be sent to the
@@ -55,7 +54,7 @@ impl ResolverMessageType {
             }
             ResolverMessageType::Account(account) => {
                 info!("Processing a resolved account: {account:?}");
-                self.process_account(resolver_consumer_context, account)
+                self.process_account(resolver_consumer_context, &mut account.clone())
                     .await
             }
         }
@@ -65,20 +64,18 @@ impl ResolverMessageType {
     async fn process_account(
         &self,
         resolver_consumer_context: &ResolverConsumerContext,
-        account: &Account,
+        account: &mut Account,
     ) -> Result<(), ConsumerError> {
         let ens = Ens::get_ens(Address::from_str(&account.id)?, resolver_consumer_context).await?;
         if let Some(name) = ens.name.clone() {
             info!("ENS for account: {:?}", ens);
-            Account::builder()
-                .id(account.id.clone())
-                .label(name.clone())
-                .image(ens.image.unwrap_or_default())
-                .account_type(AccountType::Default)
-                .build()
-                .upsert(&resolver_consumer_context.pg_pool)
-                .await
-                .map_err(ConsumerError::ModelError)?;
+            let mut account =
+                Account::find_by_id(account.id.clone(), &resolver_consumer_context.pg_pool)
+                    .await?
+                    .ok_or(ConsumerError::AccountNotFound)?;
+            account.label = name;
+            account.image = ens.image.clone();
+            account.upsert(&resolver_consumer_context.pg_pool).await?;
         } else {
             info!("No ENS found for account: {:?}", account);
         }
@@ -92,7 +89,11 @@ impl ResolverMessageType {
         resolver_message: &ResolveAtom,
     ) -> Result<(), ConsumerError> {
         let data = try_to_resolve_ipfs_uri(
-            &resolver_message.decoded_atom_data,
+            &resolver_message
+                .atom
+                .data
+                .clone()
+                .ok_or(ConsumerError::AtomDataNotFound)?,
             resolver_consumer_context,
         )
         .await?;
@@ -111,7 +112,11 @@ impl ResolverMessageType {
             // even if it's not a valid IPFS URI. This is useful for cases where the
             // atom data is a JSON object that is not a schema.org URL.
             try_to_parse_json(
-                &resolver_message.decoded_atom_data,
+                &resolver_message
+                    .atom
+                    .data
+                    .clone()
+                    .ok_or(ConsumerError::AtomDataNotFound)?,
                 &resolver_message.atom,
                 &resolver_consumer_context.pg_pool,
             )
@@ -163,12 +168,9 @@ impl ResolverMessageType {
 
 impl ResolverConsumerMessage {
     /// This function creates a new atom message
-    pub fn new_atom(atom: Atom, decoded_atom_data: String) -> Self {
+    pub fn new_atom(atom: Atom) -> Self {
         Self {
-            message: ResolverMessageType::Atom(Box::new(ResolveAtom {
-                atom,
-                decoded_atom_data,
-            })),
+            message: ResolverMessageType::Atom(Box::new(ResolveAtom { atom })),
         }
     }
 

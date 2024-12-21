@@ -11,6 +11,8 @@ pub enum ConsumerError {
     AccountNotFound,
     #[error("Atom not found")]
     AtomNotFound,
+    #[error("Atom data not found")]
+    AtomDataNotFound,
     #[error("Failed to parse address: {0}")]
     AddressParse(String),
     #[error(transparent)]
