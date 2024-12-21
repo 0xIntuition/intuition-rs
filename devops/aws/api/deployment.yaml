@@ -3,6 +3,7 @@ kind: Deployment
 metadata:
   name: api
 spec:
+  replicas: 3
   selector:
     matchLabels:
       io.kompose.service: api
