@@ -79,7 +79,13 @@ impl AtomCreated {
         pg_pool: &PgPool,
     ) -> Result<Account, ConsumerError> {
         // First try to find existing account
-        if let Some(account) = Account::find_by_id(self.atomWallet.to_string(), pg_pool).await? {
+        if let Some(mut account) = Account::find_by_id(self.atomWallet.to_string(), pg_pool).await?
+        {
+            // We update the account type to `AtomWallet` if it is not already set
+            if account.account_type != AccountType::AtomWallet {
+                account.account_type = AccountType::AtomWallet;
+                account.upsert(pg_pool).await?;
+            }
             return Ok(account);
         }
 

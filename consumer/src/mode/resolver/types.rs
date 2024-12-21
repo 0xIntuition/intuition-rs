@@ -11,7 +11,7 @@ use crate::{
 };
 use alloy::primitives::Address;
 use models::{
-    account::{Account, AccountType},
+    account::Account,
     atom::{Atom, AtomType},
     traits::SimpleCrud,
 };
