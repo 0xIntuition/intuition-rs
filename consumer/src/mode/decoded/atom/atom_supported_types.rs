@@ -1,7 +1,7 @@
 use crate::{
     error::ConsumerError,
     mode::{
-        decoded::utils::{get_or_create_account_with_atom_id, short_id},
+        decoded::utils::{short_id, update_account_with_atom_id},
         resolver::{
             atom_resolver::{try_to_parse_json, try_to_resolve_schema_org_url},
             types::{ResolveAtom, ResolverConsumerMessage},
@@ -50,7 +50,7 @@ impl AtomMetadata {
     }
 
     /// Creates an account and an atom value
-    pub async fn create_account_and_atom_value(
+    pub async fn update_account_and_atom_value(
         &self,
         resolved_atom: &ResolveAtom,
         decoded_consumer_context: &DecodedConsumerContext,
@@ -60,7 +60,7 @@ impl AtomMetadata {
             return Ok(());
         }
 
-        let account = get_or_create_account_with_atom_id(
+        let account = update_account_with_atom_id(
             resolved_atom
                 .atom
                 .data
@@ -115,7 +115,7 @@ impl AtomMetadata {
                     "Creating account for 1234: {}",
                     resolved_atom.atom.data.clone().unwrap()
                 );
-                self.create_account_and_atom_value(resolved_atom, decoded_consumer_context)
+                self.update_account_and_atom_value(resolved_atom, decoded_consumer_context)
                     .await
             }
 

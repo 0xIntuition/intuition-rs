@@ -65,50 +65,26 @@ pub async fn get_or_create_account(
     }
 }
 
-pub async fn get_or_create_account_with_atom_id(
+pub async fn update_account_with_atom_id(
     id: String,
     atom_id: U256Wrapper,
     decoded_consumer_context: &DecodedConsumerContext,
 ) -> Result<Account, ConsumerError> {
-    if let Some(account) =
-        Account::find_by_id(id.clone(), &decoded_consumer_context.pg_pool).await?
-    {
-        if account.account_type == AccountType::AtomWallet {
-            info!("Account already exists and is an atom wallet, nothing to do...");
-            Ok(account)
-        } else {
-            info!("Account already exists but is not an atom wallet, updating...");
-            let updated_account = Account::builder()
-                .id(account.id)
-                .account_type(AccountType::AtomWallet)
-                .label(short_id(&id))
-                .atom_id(atom_id)
-                .build()
-                .upsert(&decoded_consumer_context.pg_pool)
-                .await?;
-            info!("Updated account: {:?}", updated_account);
-            Ok(updated_account)
-        }
-    } else {
-        info!("Creating account with atom_id for: {}, {}", id, atom_id);
-        let account = Account::builder()
-            .id(id.clone())
-            .label(short_id(&id))
-            .account_type(AccountType::AtomWallet)
-            .atom_id(atom_id)
-            .build()
-            .upsert(&decoded_consumer_context.pg_pool)
-            .await
-            .map_err(ConsumerError::ModelError)?;
+    let mut account = Account::find_by_id(id.clone(), &decoded_consumer_context.pg_pool)
+        .await?
+        .ok_or(ConsumerError::AccountNotFound)?;
 
-        // Now we need to enqueue the message to be processed by the resolver. In this
-        // process we check if the account has ENS data associated, and if it does, we
-        // update the account with the ENS data (name [label] and image)
-        let message = ResolverConsumerMessage::new_account(account.clone());
-        decoded_consumer_context
-            .client
-            .send_message(serde_json::to_string(&message)?, None)
-            .await?;
-        Ok(account)
-    }
+    account.atom_id = Some(atom_id);
+    account.upsert(&decoded_consumer_context.pg_pool).await?;
+    info!("Updated account: {:?}", account);
+
+    // Now we need to enqueue the message to be processed by the resolver. In this
+    // process we check if the account has ENS data associated, and if it does, we
+    // update the account with the ENS data (name [label] and image)
+    let message = ResolverConsumerMessage::new_account(account.clone());
+    decoded_consumer_context
+        .client
+        .send_message(serde_json::to_string(&message)?, None)
+        .await?;
+    Ok(account)
 }
