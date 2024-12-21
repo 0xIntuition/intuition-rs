@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: ipfs
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: ipfs
@@ -45,7 +45,7 @@ spec:
       volumes:
         - name: ipfs-data
           persistentVolumeClaim:
-            claimName: ipfs-data
+            claimName: ipfs-data-new
         - name: ipfs-scripts
           configMap:
             name: ipfs-scripts

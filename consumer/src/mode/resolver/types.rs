@@ -69,15 +69,23 @@ impl ResolverMessageType {
         let ens = Ens::get_ens(Address::from_str(&account.id)?, resolver_consumer_context).await?;
         if let Some(name) = ens.name.clone() {
             info!("ENS for account: {:?}", ens);
-            Account::builder()
+            let updated_account = Account::builder()
                 .id(account.id.clone())
                 .label(name.clone())
                 .image(ens.image.clone().unwrap_or_default())
-                .account_type(account.account_type.clone())
-                .atom_id(account.atom_id.clone().unwrap_or_default())
-                .build()
-                .upsert(&resolver_consumer_context.pg_pool)
-                .await?;
+                .account_type(account.account_type.clone());
+            if let Some(atom_id) = account.atom_id.clone() {
+                updated_account
+                    .atom_id(atom_id)
+                    .build()
+                    .upsert(&resolver_consumer_context.pg_pool)
+                    .await?;
+            } else {
+                updated_account
+                    .build()
+                    .upsert(&resolver_consumer_context.pg_pool)
+                    .await?;
+            }
         } else {
             info!("No ENS found for account: {:?}", account);
         }
