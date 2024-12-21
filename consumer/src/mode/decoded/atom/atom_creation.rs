@@ -3,7 +3,7 @@ use crate::{
     mode::{
         decoded::{
             atom::atom_supported_types::get_supported_atom_metadata,
-            utils::{get_or_create_account, short_id},
+            utils::{get_or_create_account, short_id, update_account_with_atom_id},
         },
         resolver::types::ResolveAtom,
         types::DecodedConsumerContext,
@@ -78,16 +78,17 @@ impl AtomCreated {
         &self,
         pg_pool: &PgPool,
     ) -> Result<Account, ConsumerError> {
-        Account::find_by_id(self.atomWallet.to_string(), pg_pool)
-            .await?
-            .unwrap_or_else(|| {
-                Account::builder()
-                    .id(self.atomWallet.to_string())
-                    .label(short_id(&self.atomWallet.to_string()))
-                    .account_type(AccountType::AtomWallet)
-                    .atom_id(U256Wrapper::from_str(&self.vaultID.to_string()).unwrap_or_default())
-                    .build()
-            })
+        // First try to find existing account
+        if let Some(account) = Account::find_by_id(self.atomWallet.to_string(), pg_pool).await? {
+            return Ok(account);
+        }
+
+        // Only create new account if none exists
+        Account::builder()
+            .id(self.atomWallet.to_string())
+            .label(short_id(&self.atomWallet.to_string()))
+            .account_type(AccountType::AtomWallet)
+            .build()
             .upsert(pg_pool)
             .await
             .map_err(ConsumerError::ModelError)
@@ -118,11 +119,11 @@ impl AtomCreated {
                 get_or_create_account(self.creator.to_string(), decoded_consumer_context).await?;
             // Create the `Atom` and upsert it. Note that we are using the raw_data as the data
             // for now, this will be updated later with the resolver consumer.
-            Atom::builder()
+            let atom = Atom::builder()
                 .id(U256Wrapper::from_str(
                     &self.vaultID.to_string().to_lowercase(),
                 )?)
-                .wallet_id(atom_wallet_account.id)
+                .wallet_id(atom_wallet_account.id.clone())
                 .creator_id(creator_account.id)
                 .vault_id(U256Wrapper::from_str(&self.vaultID.to_string())?)
                 .value_id(U256Wrapper::from_str(&self.vaultID.to_string())?)
@@ -134,8 +135,15 @@ impl AtomCreated {
                 .resolving_status(AtomResolvingStatus::Pending)
                 .build()
                 .upsert(&decoded_consumer_context.pg_pool)
-                .await
-                .map_err(ConsumerError::ModelError)
+                .await?;
+            //updating the account with the atom id
+            update_account_with_atom_id(
+                atom_wallet_account.id,
+                atom.id.clone(),
+                decoded_consumer_context,
+            )
+            .await?;
+            Ok(atom)
         }
     }
 
