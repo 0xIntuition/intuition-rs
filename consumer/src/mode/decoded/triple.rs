@@ -67,15 +67,17 @@ impl TripleCreated {
         &self,
         pg_pool: &PgPool,
     ) -> Result<Account, ConsumerError> {
-        Account::find_by_id(self.creator.to_string().to_lowercase(), pg_pool)
-            .await?
-            .unwrap_or_else(|| {
-                Account::builder()
-                    .id(self.creator.to_string().to_lowercase())
-                    .label(short_id(&self.creator.to_string()))
-                    .account_type(AccountType::Default)
-                    .build()
-            })
+        // First try to find existing account
+        if let Some(account) = Account::find_by_id(self.creator.to_string(), pg_pool).await? {
+            return Ok(account);
+        }
+
+        // Only create new account if none exists
+        Account::builder()
+            .id(self.creator.to_string())
+            .label(short_id(&self.creator.to_string()))
+            .account_type(AccountType::Default)
+            .build()
             .upsert(pg_pool)
             .await
             .map_err(ConsumerError::ModelError)
@@ -203,8 +205,14 @@ impl TripleCreated {
         object_atom: &Atom,
         pg_pool: &PgPool,
     ) -> Result<(), ConsumerError> {
-        if let Some(mut account) =
-            Account::find_by_id(subject_atom.data.to_lowercase(), pg_pool).await?
+        if let Some(mut account) = Account::find_by_id(
+            subject_atom
+                .data
+                .clone()
+                .ok_or(ConsumerError::AtomDataNotFound)?,
+            pg_pool,
+        )
+        .await?
         {
             account.label = object_atom.label.clone().unwrap_or_default();
             account.image = object_atom.image.clone();

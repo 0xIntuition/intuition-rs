@@ -3,6 +3,7 @@ kind: Deployment
 metadata:
   name: safe-content
 spec:
+  replicas: 2
   selector:
     matchLabels:
       io.kompose.service: safe-content

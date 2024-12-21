@@ -75,6 +75,7 @@ pub fn create_test_atom(wallet_id: String, creator_id: String) -> Atom {
         .creator_id(creator_id)
         .vault_id(create_random_u256wrapper())
         .data(create_random_string())
+        .raw_data(create_random_string())
         .atom_type(AtomType::Thing)
         .emoji("🧪".to_string())
         .label(create_random_string())

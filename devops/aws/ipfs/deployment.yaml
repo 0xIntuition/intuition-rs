@@ -45,7 +45,7 @@ spec:
       volumes:
         - name: ipfs-data
           persistentVolumeClaim:
-            claimName: ipfs-data
+            claimName: ipfs-data-new
         - name: ipfs-scripts
           configMap:
             name: ipfs-scripts

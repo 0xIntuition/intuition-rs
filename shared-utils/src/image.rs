@@ -48,6 +48,7 @@ impl Image {
 
         let response = reqwest_client
             .post(endpoint)
+            .timeout(std::time::Duration::from_secs(120))
             .json(&Self::new(url.clone()))
             .send()
             .await?;

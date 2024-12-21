@@ -20,7 +20,7 @@ pub struct Account {
 }
 
 /// This is the `AccountType` enum that represents the type of an account.
-#[derive(sqlx::Type, Clone, Debug, Display, EnumString, Serialize, Deserialize)]
+#[derive(sqlx::Type, Clone, Debug, Display, EnumString, Serialize, Deserialize, PartialEq)]
 #[sqlx(type_name = "account_type")]
 pub enum AccountType {
     AtomWallet,
