@@ -70,7 +70,7 @@ pub async fn get_or_create_account_with_atom_id(
     atom_id: U256Wrapper,
     decoded_consumer_context: &DecodedConsumerContext,
 ) -> Result<Account, ConsumerError> {
-    if let Some(mut account) =
+    if let Some(account) =
         Account::find_by_id(id.clone(), &decoded_consumer_context.pg_pool).await?
     {
         if account.account_type == AccountType::AtomWallet {
@@ -78,11 +78,16 @@ pub async fn get_or_create_account_with_atom_id(
             Ok(account)
         } else {
             info!("Account already exists but is not an atom wallet, updating...");
-            account.atom_id = Some(atom_id);
-            account.account_type = AccountType::AtomWallet;
-            account.label = short_id(&id);
-            account.upsert(&decoded_consumer_context.pg_pool).await?;
-            Ok(account)
+            let updated_account = Account::builder()
+                .id(account.id)
+                .account_type(AccountType::AtomWallet)
+                .label(short_id(&id))
+                .atom_id(atom_id)
+                .build()
+                .upsert(&decoded_consumer_context.pg_pool)
+                .await?;
+            info!("Updated account: {:?}", updated_account);
+            Ok(updated_account)
         }
     } else {
         info!("Creating account with atom_id for: {}, {}", id, atom_id);

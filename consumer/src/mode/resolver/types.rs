@@ -11,7 +11,7 @@ use crate::{
 };
 use alloy::primitives::Address;
 use models::{
-    account::Account,
+    account::{Account, AccountType},
     atom::{Atom, AtomType},
     traits::SimpleCrud,
 };
@@ -69,9 +69,15 @@ impl ResolverMessageType {
         let ens = Ens::get_ens(Address::from_str(&account.id)?, resolver_consumer_context).await?;
         if let Some(name) = ens.name.clone() {
             info!("ENS for account: {:?}", ens);
-            account.label = name.clone();
-            account.image = ens.image.clone();
-            account.upsert(&resolver_consumer_context.pg_pool).await?;
+            Account::builder()
+                .id(account.id.clone())
+                .label(name.clone())
+                .image(ens.image.clone().unwrap_or_default())
+                .account_type(account.account_type.clone())
+                .atom_id(account.atom_id.clone().unwrap_or_default())
+                .build()
+                .upsert(&resolver_consumer_context.pg_pool)
+                .await?;
         } else {
             info!("No ENS found for account: {:?}", account);
         }
