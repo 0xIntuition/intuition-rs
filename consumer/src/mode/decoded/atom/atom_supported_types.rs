@@ -112,7 +112,7 @@ impl AtomMetadata {
         match AtomType::from_str(self.atom_type.as_str())? {
             AtomType::Account => {
                 info!(
-                    "Creating account for 1234: {}",
+                    "Updating account for: {}",
                     resolved_atom.atom.data.clone().unwrap()
                 );
                 self.update_account_and_atom_value(resolved_atom, decoded_consumer_context)
