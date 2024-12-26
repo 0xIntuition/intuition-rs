@@ -82,6 +82,9 @@ impl ResolverMessageType {
                 self.update_atom_metadata(resolver_consumer_context, &atom_id, ens)
                     .await?;
             } else {
+                // We deal with the case where the account atom_id was not set
+                // when the account was created. In this case, we need to query the DB
+                // to find the atom_id, as this update happens in another consumer
                 info!(
                     "No atom found for account: {:?}, querying the DB...",
                     account
