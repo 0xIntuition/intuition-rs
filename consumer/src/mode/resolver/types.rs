@@ -68,27 +68,35 @@ impl ResolverMessageType {
         account: &mut Account,
     ) -> Result<(), ConsumerError> {
         let ens = Ens::get_ens(Address::from_str(&account.id)?, resolver_consumer_context).await?;
-        if let Some(name) = ens.name.clone() {
+        if let Some(_name) = ens.name.clone() {
             info!("ENS for account: {:?}", ens);
             // We need to update the account metadata
             self.update_account_metadata(
                 resolver_consumer_context,
                 account.id.clone(),
-                &name,
-                ens.image.clone(),
+                ens.clone(),
             )
             .await?;
             // We also need to update the atom
-            self.update_atom_metadata(
-                resolver_consumer_context,
-                account
-                    .atom_id
-                    .as_ref()
-                    .ok_or(ConsumerError::AtomNotFound)?,
-                &name,
-                ens.image,
-            )
-            .await?;
+            if let Some(atom_id) = account.atom_id.clone() {
+                self.update_atom_metadata(resolver_consumer_context, &atom_id, ens)
+                    .await?;
+            } else {
+                info!(
+                    "No atom found for account: {:?}, querying the DB...",
+                    account
+                );
+                let account =
+                    Account::find_by_id(account.id.clone(), &resolver_consumer_context.pg_pool)
+                        .await?
+                        .ok_or(ConsumerError::AccountNotFound)?;
+                if let Some(atom_id) = account.atom_id {
+                    self.update_atom_metadata(resolver_consumer_context, &atom_id, ens)
+                        .await?;
+                } else {
+                    info!("No atom found for account: {:?}", account);
+                }
+            }
         } else {
             info!("No ENS found for account: {:?}", account);
         }
@@ -183,14 +191,13 @@ impl ResolverMessageType {
         &self,
         resolver_consumer_context: &ResolverConsumerContext,
         account_id: String,
-        name: &str,
-        image: Option<String>,
+        ens: Ens,
     ) -> Result<(), ConsumerError> {
         let mut account = Account::find_by_id(account_id, &resolver_consumer_context.pg_pool)
             .await?
             .ok_or(ConsumerError::AccountNotFound)?;
-        account.label = name.to_string();
-        account.image = image;
+        account.label = ens.name.ok_or(ConsumerError::LabelNotFound)?;
+        account.image = ens.image;
         account.upsert(&resolver_consumer_context.pg_pool).await?;
         Ok(())
     }
@@ -200,14 +207,13 @@ impl ResolverMessageType {
         &self,
         resolver_consumer_context: &ResolverConsumerContext,
         atom_id: &U256Wrapper,
-        name: &str,
-        image: Option<String>,
+        ens: Ens,
     ) -> Result<(), ConsumerError> {
         let mut atom = Atom::find_by_id(atom_id.clone(), &resolver_consumer_context.pg_pool)
             .await?
             .ok_or(ConsumerError::AtomNotFound)?;
-        atom.label = Some(name.to_string());
-        atom.image = image;
+        atom.label = ens.name;
+        atom.image = ens.image;
         atom.upsert(&resolver_consumer_context.pg_pool).await?;
         Ok(())
     }

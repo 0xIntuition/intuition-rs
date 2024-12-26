@@ -22,7 +22,7 @@ sol!(
     "contracts/EthMultiVault.json"
 );
 
-// Codegen from ABI file to interact with the ENS contract.
+// Codegen to interact with the ENS contract.
 sol!(
     #[derive(Debug, Deserialize, Serialize)]
     #[allow(missing_docs)]
@@ -32,7 +32,7 @@ sol!(
     }
 );
 
-// Codegen from ABI file to interact with the ENSName contract.
+// Codegen to interact with the ENSName contract.
 sol! {
     #[allow(missing_docs)]
     #[sol(rpc)]
