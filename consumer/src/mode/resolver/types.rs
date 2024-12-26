@@ -14,6 +14,7 @@ use models::{
     account::Account,
     atom::{Atom, AtomType},
     traits::SimpleCrud,
+    types::U256Wrapper,
 };
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
@@ -70,11 +71,24 @@ impl ResolverMessageType {
         if let Some(name) = ens.name.clone() {
             info!("ENS for account: {:?}", ens);
             // We need to update the account metadata
-            self.update_account_metadata(resolver_consumer_context, account)
-                .await?;
+            self.update_account_metadata(
+                resolver_consumer_context,
+                account.id.clone(),
+                &name,
+                ens.image.clone(),
+            )
+            .await?;
             // We also need to update the atom
-            self.update_atom_metadata(resolver_consumer_context, &account)
-                .await?;
+            self.update_atom_metadata(
+                resolver_consumer_context,
+                account
+                    .atom_id
+                    .as_ref()
+                    .ok_or(ConsumerError::AtomNotFound)?,
+                &name,
+                ens.image,
+            )
+            .await?;
         } else {
             info!("No ENS found for account: {:?}", account);
         }
@@ -168,14 +182,15 @@ impl ResolverMessageType {
     async fn update_account_metadata(
         &self,
         resolver_consumer_context: &ResolverConsumerContext,
-        account: &Account,
+        account_id: String,
+        name: &str,
+        image: Option<String>,
     ) -> Result<(), ConsumerError> {
-        let mut account =
-            Account::find_by_id(account.id.clone(), &resolver_consumer_context.pg_pool)
-                .await?
-                .ok_or(ConsumerError::AccountNotFound)?;
-        account.label = name;
-        account.image = ens.image.clone();
+        let mut account = Account::find_by_id(account_id, &resolver_consumer_context.pg_pool)
+            .await?
+            .ok_or(ConsumerError::AccountNotFound)?;
+        account.label = name.to_string();
+        account.image = image;
         account.upsert(&resolver_consumer_context.pg_pool).await?;
         Ok(())
     }
@@ -184,13 +199,15 @@ impl ResolverMessageType {
     async fn update_atom_metadata(
         &self,
         resolver_consumer_context: &ResolverConsumerContext,
-        atom: &Atom,
+        atom_id: &U256Wrapper,
+        name: &str,
+        image: Option<String>,
     ) -> Result<(), ConsumerError> {
-        let atom = Atom::find_by_id(account.atom_id, &resolver_consumer_context.pg_pool)
+        let mut atom = Atom::find_by_id(atom_id.clone(), &resolver_consumer_context.pg_pool)
             .await?
             .ok_or(ConsumerError::AtomNotFound)?;
-        atom.label = Some(name);
-        atom.image = ens.image.clone();
+        atom.label = Some(name.to_string());
+        atom.image = image;
         atom.upsert(&resolver_consumer_context.pg_pool).await?;
         Ok(())
     }
