@@ -69,13 +69,12 @@ impl ResolverMessageType {
         let ens = Ens::get_ens(Address::from_str(&account.id)?, resolver_consumer_context).await?;
         if let Some(name) = ens.name.clone() {
             info!("ENS for account: {:?}", ens);
-            let mut account =
-                Account::find_by_id(account.id.clone(), &resolver_consumer_context.pg_pool)
-                    .await?
-                    .ok_or(ConsumerError::AccountNotFound)?;
-            account.label = name;
-            account.image = ens.image.clone();
-            account.upsert(&resolver_consumer_context.pg_pool).await?;
+            // We need to update the account metadata
+            self.update_account_metadata(resolver_consumer_context, account)
+                .await?;
+            // We also need to update the atom
+            self.update_atom_metadata(resolver_consumer_context, &account)
+                .await?;
         } else {
             info!("No ENS found for account: {:?}", account);
         }
@@ -162,6 +161,37 @@ impl ResolverMessageType {
                 .mark_as_failed(&resolver_consumer_context.pg_pool)
                 .await?;
         }
+        Ok(())
+    }
+
+    /// This function updates the account metadata
+    async fn update_account_metadata(
+        &self,
+        resolver_consumer_context: &ResolverConsumerContext,
+        account: &Account,
+    ) -> Result<(), ConsumerError> {
+        let mut account =
+            Account::find_by_id(account.id.clone(), &resolver_consumer_context.pg_pool)
+                .await?
+                .ok_or(ConsumerError::AccountNotFound)?;
+        account.label = name;
+        account.image = ens.image.clone();
+        account.upsert(&resolver_consumer_context.pg_pool).await?;
+        Ok(())
+    }
+
+    /// This function updates the atom metadata
+    async fn update_atom_metadata(
+        &self,
+        resolver_consumer_context: &ResolverConsumerContext,
+        atom: &Atom,
+    ) -> Result<(), ConsumerError> {
+        let atom = Atom::find_by_id(account.atom_id, &resolver_consumer_context.pg_pool)
+            .await?
+            .ok_or(ConsumerError::AtomNotFound)?;
+        atom.label = Some(name);
+        atom.image = ens.image.clone();
+        atom.upsert(&resolver_consumer_context.pg_pool).await?;
         Ok(())
     }
 }
