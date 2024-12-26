@@ -13,7 +13,7 @@ use reqwest::Client;
 use tracing::info;
 
 /// This struct represents the ENS name and avatar for an address.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Ens {
     pub name: Option<String>,
     pub image: Option<String>,

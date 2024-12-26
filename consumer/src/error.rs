@@ -91,6 +91,8 @@ pub enum ConsumerError {
     InvalidJson,
     #[error("Failed to parse indexer source: {0}")]
     IndexerSourceParse(String),
+    #[error("Label not found")]
+    LabelNotFound,
     #[error("Missing localstack env variable")]
     LocalstackUrlNotFound,
     #[error("Failed to decode log: {0}")]
