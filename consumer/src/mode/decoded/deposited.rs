@@ -229,9 +229,7 @@ impl Deposited {
         match Vault::find_by_id(U256Wrapper::from_str(&id.to_string())?, pg_pool).await? {
             Some(mut vault) => {
                 vault.current_share_price = U256Wrapper::from(current_share_price);
-                info!("Updating vault total shares: {}", vault.total_shares);
                 vault.total_shares = vault.total_shares + U256Wrapper::from(self.sharesForReceiver);
-                info!("New vault total shares: {}", vault.total_shares);
                 vault
                     .upsert(pg_pool)
                     .await
