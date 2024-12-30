@@ -105,14 +105,14 @@ impl Redeemed {
     ) -> Result<(), ConsumerError> {
         if let Some(triple_id) = vault.triple_id.clone() {
             Signal::builder()
-                .id(event.transaction_hash.clone())
+                .id(DecodedMessage::event_id(event))
                 .account_id(self.sender.to_string().to_lowercase())
                 // This is the equivalent of multiplying the assets for receiver by -1
                 .delta(U256Wrapper::from(
                     U256::ZERO.saturating_sub(self.assetsForReceiver),
                 ))
                 .triple_id(triple_id)
-                .redemption_id(event.transaction_hash.clone())
+                .redemption_id(event.log_index.to_string())
                 .block_number(U256Wrapper::try_from(event.block_number)?)
                 .block_timestamp(event.block_timestamp)
                 .transaction_hash(event.transaction_hash.clone())
@@ -121,7 +121,7 @@ impl Redeemed {
                 .await?;
         } else {
             Signal::builder()
-                .id(event.transaction_hash.clone())
+                .id(DecodedMessage::event_id(event))
                 .account_id(self.sender.to_string().to_lowercase())
                 // This is the equivalent of multiplying the assets for receiver by -1
                 .delta(U256Wrapper::from(
@@ -133,7 +133,7 @@ impl Redeemed {
                         .clone()
                         .ok_or(ConsumerError::VaultAtomNotFound)?,
                 )
-                .redemption_id(event.transaction_hash.clone())
+                .redemption_id(event.log_index.to_string())
                 .block_number(U256Wrapper::try_from(event.block_number)?)
                 .block_timestamp(event.block_timestamp)
                 .transaction_hash(event.transaction_hash.clone())

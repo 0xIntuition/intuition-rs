@@ -22,7 +22,7 @@ use models::{
 use reqwest::Client;
 use sqlx::PgPool;
 use std::str::FromStr;
-
+use tracing::info;
 impl Deposited {
     /// This function creates a claim and predicate object
     async fn create_claim_and_predicate_object(
@@ -154,7 +154,7 @@ impl Deposited {
     ) -> Result<(), ConsumerError> {
         if let Some(atom_id) = vault.atom_id.clone() {
             Signal::builder()
-                .id(event.transaction_hash.clone())
+                .id(DecodedMessage::event_id(event))
                 .account_id(self.sender.to_string().to_lowercase())
                 .delta(U256Wrapper::from(self.senderAssetsAfterTotalFees))
                 .atom_id(atom_id)
@@ -167,7 +167,7 @@ impl Deposited {
                 .await?;
         } else {
             Signal::builder()
-                .id(event.transaction_hash.clone())
+                .id(DecodedMessage::event_id(event))
                 .account_id(self.sender.to_string().to_lowercase())
                 .delta(U256Wrapper::from(self.senderAssetsAfterTotalFees))
                 .triple_id(
@@ -226,13 +226,16 @@ impl Deposited {
         id: U256,
         current_share_price: U256,
     ) -> Result<Vault, ConsumerError> {
-        let vault = match Vault::find_by_id(U256Wrapper::from_str(&id.to_string())?, pg_pool)
-            .await?
-        {
+        match Vault::find_by_id(U256Wrapper::from_str(&id.to_string())?, pg_pool).await? {
             Some(mut vault) => {
                 vault.current_share_price = U256Wrapper::from(current_share_price);
+                info!("Updating vault total shares: {}", vault.total_shares);
                 vault.total_shares = vault.total_shares + U256Wrapper::from(self.sharesForReceiver);
+                info!("New vault total shares: {}", vault.total_shares);
                 vault
+                    .upsert(pg_pool)
+                    .await
+                    .map_err(ConsumerError::ModelError)
             }
             None => {
                 if self.isTriple {
@@ -244,7 +247,8 @@ impl Deposited {
                         .total_shares(U256Wrapper::from(self.sharesForReceiver))
                         .build()
                         .upsert(pg_pool)
-                        .await?
+                        .await
+                        .map_err(ConsumerError::ModelError)
                 } else {
                     Vault::builder()
                         .id(id)
@@ -254,15 +258,11 @@ impl Deposited {
                         .total_shares(U256Wrapper::from(U256::from(0)))
                         .build()
                         .upsert(pg_pool)
-                        .await?
+                        .await
+                        .map_err(ConsumerError::ModelError)
                 }
             }
-        };
-
-        vault
-            .upsert(pg_pool)
-            .await
-            .map_err(ConsumerError::ModelError)
+        }
     }
 
     /// This function handles the creation of a `Deposit`
