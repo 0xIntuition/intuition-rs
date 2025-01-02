@@ -22,6 +22,7 @@ use models::{
 use reqwest::Client;
 use sqlx::PgPool;
 use std::str::FromStr;
+use tracing::info;
 impl Deposited {
     /// This function creates a claim and predicate object
     async fn create_claim_and_predicate_object(
