@@ -151,37 +151,41 @@ impl Deposited {
         event: &DecodedMessage,
         vault: &Vault,
     ) -> Result<(), ConsumerError> {
-        if let Some(atom_id) = vault.atom_id.clone() {
-            Signal::builder()
-                .id(DecodedMessage::event_id(event))
-                .account_id(self.sender.to_string().to_lowercase())
-                .delta(U256Wrapper::from(self.senderAssetsAfterTotalFees))
-                .atom_id(atom_id)
-                .deposit_id(event.transaction_hash.clone())
-                .block_number(U256Wrapper::try_from(event.block_number)?)
-                .block_timestamp(event.block_timestamp)
-                .transaction_hash(event.transaction_hash.clone())
-                .build()
-                .upsert(pg_pool)
-                .await?;
+        if self.senderAssetsAfterTotalFees > U256::from(0) {
+            if let Some(atom_id) = vault.atom_id.clone() {
+                Signal::builder()
+                    .id(DecodedMessage::event_id(event))
+                    .account_id(self.sender.to_string().to_lowercase())
+                    .delta(U256Wrapper::from(self.senderAssetsAfterTotalFees))
+                    .atom_id(atom_id)
+                    .deposit_id(event.transaction_hash.clone())
+                    .block_number(U256Wrapper::try_from(event.block_number)?)
+                    .block_timestamp(event.block_timestamp)
+                    .transaction_hash(event.transaction_hash.clone())
+                    .build()
+                    .upsert(pg_pool)
+                    .await?;
+            } else {
+                Signal::builder()
+                    .id(DecodedMessage::event_id(event))
+                    .account_id(self.sender.to_string().to_lowercase())
+                    .delta(U256Wrapper::from(self.senderAssetsAfterTotalFees))
+                    .triple_id(
+                        vault
+                            .triple_id
+                            .clone()
+                            .ok_or(ConsumerError::TripleNotFound)?,
+                    )
+                    .deposit_id(event.transaction_hash.clone())
+                    .block_number(U256Wrapper::try_from(event.block_number)?)
+                    .block_timestamp(event.block_timestamp)
+                    .transaction_hash(event.transaction_hash.clone())
+                    .build()
+                    .upsert(pg_pool)
+                    .await?;
+            }
         } else {
-            Signal::builder()
-                .id(DecodedMessage::event_id(event))
-                .account_id(self.sender.to_string().to_lowercase())
-                .delta(U256Wrapper::from(self.senderAssetsAfterTotalFees))
-                .triple_id(
-                    vault
-                        .triple_id
-                        .clone()
-                        .ok_or(ConsumerError::TripleNotFound)?,
-                )
-                .deposit_id(event.transaction_hash.clone())
-                .block_number(U256Wrapper::try_from(event.block_number)?)
-                .block_timestamp(event.block_timestamp)
-                .transaction_hash(event.transaction_hash.clone())
-                .build()
-                .upsert(pg_pool)
-                .await?;
+            info!("Sender assets after total fees is 0, nothing to do.");
         }
         Ok(())
     }
