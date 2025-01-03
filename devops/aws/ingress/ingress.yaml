@@ -6,8 +6,10 @@ metadata:
     alb.ingress.kubernetes.io/scheme: "internet-facing"
     alb.ingress.kubernetes.io/target-type: "ip"
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
-    alb.ingress.kubernetes.io/certificate-arn: "arn:aws:acm:us-west-2:064662847354:certificate/b215fd3c-92e2-4260-b4f4-2c2a3f1fabdc"
-    external-dns.alpha.kubernetes.io/hostname: dev.base.intuition-api.com
+    alb.ingress.kubernetes.io/certificate-arn: >-
+      arn:aws:acm:us-west-2:064662847354:certificate/b215fd3c-92e2-4260-b4f4-2c2a3f1fabdc,
+      arn:aws:acm:us-west-2:064662847354:certificate/fcea5e13-0920-4066-9a1d-e9dc6b394101
+    external-dns.alpha.kubernetes.io/hostname: dev.base.intuition-api.com,dev.base-sepolia.intuition-api.com
 spec:
   ingressClassName: alb
   rules:
@@ -35,3 +37,13 @@ spec:
             name: api
             port:
               number: 3000
+  - host: dev.base-sepolia.intuition-api.com
+    http:
+      paths:
+      - path: /v1/graphql
+        pathType: Prefix
+        backend:
+          service:
+            name: base-sepolia-graphql-engine
+            port:
+              number: 8080

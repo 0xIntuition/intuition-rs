@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: base-sepolia-graphql-engine
+  name: graphql-engine
   labels:
     io.kompose.service: base-sepolia-graphql-engine
 spec:
