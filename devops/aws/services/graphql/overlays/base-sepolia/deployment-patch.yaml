@@ -1,15 +1,17 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: dev-graphql-engine
+  name: base-sepolia-graphql-engine
+  labels:
+    io.kompose.service: base-sepolia-graphql-engine
 spec:
   selector:
     matchLabels:
-      app: dev-graphql-engine
+      io.kompose.service: base-sepolia-graphql-engine
   template:
     metadata:
       labels:
-        app: dev-graphql-engine
+        io.kompose.service: base-sepolia-graphql-engine
     spec:
       serviceAccountName: secrets-access-sa
       containers:
