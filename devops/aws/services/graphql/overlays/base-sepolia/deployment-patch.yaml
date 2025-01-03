@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: base-sepolia-graphql-engine
+  labels:
+    io.kompose.service: base-sepolia-graphql-engine
+spec:
+  selector:
+    matchLabels:
+      io.kompose.service: base-sepolia-graphql-engine
+  template:
+    metadata:
+      labels:
+        io.kompose.service: base-sepolia-graphql-engine
+    spec:
+      serviceAccountName: secrets-access-sa
+      containers:
+        - name: graphql-engine
+          volumeMounts:
+            - name: secrets-store-inline
+              mountPath: "/mnt/secrets"
+              readOnly: true
+          envFrom:
+            - secretRef:
+                name: graphql-aws-secrets
+      volumes:
+        - name: secrets-store-inline
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: "base-sepolia-graphql-aws-secrets"

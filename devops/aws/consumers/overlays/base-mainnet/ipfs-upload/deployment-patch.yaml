@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ipfs-upload-consumer
+spec:
+  template:
+    spec:
+      serviceAccountName: secrets-access-sa
+      containers:
+        - name: ipfs-upload-consumer
+          volumeMounts:
+            - name: secrets-store-inline
+              mountPath: "/mnt/secrets"
+              readOnly: true
+          envFrom:
+            - secretRef:
+                name: dev-ipfs-upload-consumer-secrets
+      volumes:
+        - name: secrets-store-inline
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: "base-mainnet-dev-ipfs-upload-consumer-secrets"
