@@ -53,19 +53,5 @@ spec:
           ports:
             - containerPort: 8080
               protocol: TCP
-          # volumeMounts:
-          #   - name: secrets-store-inline
-          #     mountPath: "/mnt/secrets"
-          #     readOnly: true
-      #     envFrom:
-      #       - secretRef:
-      #           name: hasura-aws-secrets
       restartPolicy: Always
-      # volumes:
-      #   - name: secrets-store-inline
-      #     csi:
-      #       driver: secrets-store.csi.k8s.io
-      #       readOnly: true
-      #       volumeAttributes:
-      #         secretProviderClass: "hasura-aws-secrets"
       
