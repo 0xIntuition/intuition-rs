@@ -3,8 +3,14 @@ kind: Kustomization
 
 resources:
   - ../../../base/ipfs-upload
-
+  - secret-provider.yaml
 namePrefix: "base-mainnet-" 
+
+patches:
+  - path: deployment-patch.yaml
+    target:
+      kind: Deployment
+      name: ipfs-upload-consumer
 
 commonLabels:
   network: base-mainnet

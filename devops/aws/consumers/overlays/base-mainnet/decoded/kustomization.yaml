@@ -3,8 +3,15 @@ kind: Kustomization
 
 resources:
   - ../../../base/decoded
+  - secret-provider.yaml
 
 namePrefix: "base-mainnet-" 
+
+patches:
+  - path: deployment-patch.yaml
+    target:
+      kind: Deployment
+      name: decoded-consumer
 
 commonLabels:
   network: base-mainnet
