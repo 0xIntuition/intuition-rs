@@ -7,6 +7,9 @@ resources:
 
 namePrefix: base-sepolia-
 
+commonLabels:
+  network: base-sepolia
+  io.kompose.service: base-sepolia-graphql-engine
 
 patches:
 - path: deployment-patch.yaml
@@ -17,8 +20,3 @@ patches:
   target:
     kind: Deployment
     name: hasura-migrations
-
-labels:
-- includeSelectors: true
-  pairs:
-    network: base-sepolia
