@@ -40,8 +40,18 @@ impl Deposited {
             .object_id(triple.object_id.clone())
             .vault_id(triple.vault_id.clone())
             .counter_vault_id(triple.counter_vault_id.clone())
-            .shares(self.sharesForReceiver)
-            .counter_shares(self.sharesForReceiver)
+            .shares(if U256Wrapper::from(self.vaultId) == triple.vault_id {
+                self.receiverTotalSharesInVault
+            } else {
+                U256::from(0)
+            })
+            .counter_shares(
+                if U256Wrapper::from(self.vaultId) == triple.counter_vault_id {
+                    self.receiverTotalSharesInVault
+                } else {
+                    U256::from(0)
+                },
+            )
             .build()
             .upsert(pg_pool)
             .await?;
