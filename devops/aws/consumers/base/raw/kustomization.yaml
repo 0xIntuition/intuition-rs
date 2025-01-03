@@ -5,7 +5,6 @@ resources:
   - pvc.yaml
   - deployment.yaml
   - service.yaml
-  - secret-provider.yaml
 
 commonLabels:
   component: raw-consumer 

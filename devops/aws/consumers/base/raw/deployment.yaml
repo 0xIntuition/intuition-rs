@@ -38,9 +38,6 @@ spec:
             - containerPort: 8003
               protocol: TCP
           volumeMounts:
-            - name: secrets-store
-              mountPath: "/mnt/secrets"
-              readOnly: true
             - name: raw-logs
               mountPath: /logs
               readOnly: false
@@ -49,12 +46,6 @@ spec:
             runAsGroup: 0
       restartPolicy: Always
       volumes:
-        - name: secrets-store
-          csi:
-            driver: secrets-store.csi.k8s.io
-            readOnly: true
-            volumeAttributes:
-              secretProviderClass: raw-aws-secrets
         - name: raw-logs
           persistentVolumeClaim:
             claimName: raw-logs

@@ -38,9 +38,6 @@ spec:
             - containerPort: 3002
               protocol: TCP
           volumeMounts:
-          #   - name: secrets-store
-          #     mountPath: "/mnt/secrets"
-          #     readOnly: true
             - name: decoded-logs
               mountPath: /logs
               readOnly: false
@@ -48,12 +45,6 @@ spec:
             runAsUser: 0
             runAsGroup: 0
       volumes:
-        # - name: secrets-store
-        #   csi:
-        #     driver: secrets-store.csi.k8s.io
-        #     readOnly: true
-        #     volumeAttributes:
-        #       secretProviderClass: decoded-aws-secrets
         - name: decoded-logs
           persistentVolumeClaim:
             claimName: decoded-logs
