@@ -38,9 +38,6 @@ spec:
             - containerPort: 8002
               protocol: TCP
           volumeMounts:
-            - name: secrets-store
-              mountPath: "/mnt/secrets"
-              readOnly: true
             - name: ipfs-upload-logs
               mountPath: /logs
               readOnly: false
@@ -48,12 +45,6 @@ spec:
             runAsUser: 0
             runAsGroup: 0
       volumes:
-        - name: secrets-store
-          csi:
-            driver: secrets-store.csi.k8s.io
-            readOnly: true
-            volumeAttributes:
-              secretProviderClass: ipfs-upload-aws-secrets
         - name: ipfs-upload-logs
           persistentVolumeClaim:
             claimName: ipfs-upload-logs
