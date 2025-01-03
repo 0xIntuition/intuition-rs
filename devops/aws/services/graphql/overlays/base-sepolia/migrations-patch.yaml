@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hasura-migrations
+spec:
+  template:
+    spec:
+      containers:
+        - name: hasura-migrations
+          volumeMounts:
+            - name: secrets-store-inline
+              mountPath: "/mnt/secrets"
+              readOnly: true
+          envFrom:
+            - secretRef:
+                name: base-sepolia-hasura-aws-secrets
+      volumes:
+        - name: secrets-store-inline
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: "base-sepolia-hasura-aws-secrets"

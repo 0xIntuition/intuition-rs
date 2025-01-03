@@ -1,0 +1,17 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: graphql-engine
+spec:
+  template:
+    spec:
+      containers:
+        - name: graphql-engine
+          envFrom:
+            - secretRef:
+                name: hasura-aws-secrets
+      volumes:
+        - name: secrets-store-inline
+          csi:
+            volumeAttributes:
+              secretProviderClass: "hasura-aws-secrets"
