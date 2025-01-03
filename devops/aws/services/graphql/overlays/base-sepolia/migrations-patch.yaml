@@ -13,11 +13,11 @@ spec:
               readOnly: true
           envFrom:
             - secretRef:
-                name: base-sepolia-hasura-aws-secrets
+                name: graphql-aws-secrets
       volumes:
         - name: secrets-store-inline
           csi:
             driver: secrets-store.csi.k8s.io
             readOnly: true
             volumeAttributes:
-              secretProviderClass: "base-sepolia-hasura-aws-secrets"
+              secretProviderClass: "base-sepolia-graphql-aws-secrets"

@@ -1,20 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: graphql-engine
+  name: hasura-migrations
 spec:
   template:
     spec:
-      serviceAccountName: secrets-access-sa
       containers:
-        - name: graphql-engine
+        - name: hasura-migrations
           volumeMounts:
             - name: secrets-store-inline
               mountPath: "/mnt/secrets"
               readOnly: true
           envFrom:
             - secretRef:
-                name: hasura-aws-secrets
+                name: graphql-aws-secrets
       volumes:
         - name: secrets-store-inline
           csi:
