@@ -1,9 +1,15 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: graphql-engine
+  name: dev-graphql-engine
 spec:
+  selector:
+    matchLabels:
+      app: dev-graphql-engine
   template:
+    metadata:
+      labels:
+        app: dev-graphql-engine
     spec:
       serviceAccountName: secrets-access-sa
       containers:
