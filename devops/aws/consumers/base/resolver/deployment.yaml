@@ -41,19 +41,10 @@ spec:
             runAsUser: 0
             runAsGroup: 0
           volumeMounts:
-            - name: secrets-store
-              mountPath: "/mnt/secrets"
-              readOnly: true
             - mountPath: /var/log/app
               name: resolver-logs
       restartPolicy: Always
       volumes:
-        - name: secrets-store
-          csi:
-            driver: secrets-store.csi.k8s.io
-            readOnly: true
-            volumeAttributes:
-              secretProviderClass: resolver-aws-secrets
         - name: resolver-logs
           persistentVolumeClaim:
             claimName: resolver-logs
