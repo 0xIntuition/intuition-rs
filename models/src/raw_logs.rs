@@ -1,6 +1,8 @@
 use chrono::{DateTime, Utc};
+use hypersync_client::simple_types::Event;
 use serde::{Deserialize, Deserializer, Serialize};
 use sqlx::PgPool;
+use std::convert::TryFrom;
 
 use crate::error::ModelError;
 
@@ -76,5 +78,90 @@ impl RawLog {
         .fetch_one(pg_pool)
         .await
         .map_err(|error| ModelError::InsertError(error.to_string()))
+    }
+}
+
+/// We use this to convert an event from the hypersync client to a raw log.
+/// This is a try from because we want to handle errors gracefully. Currently
+/// we are using this in the envio-indexer to convert events to raw logs.
+impl TryFrom<Event> for RawLog {
+    type Error = ModelError;
+
+    /// This is the implementation of the try from trait.
+    fn try_from(event: Event) -> Result<Self, Self::Error> {
+        /// This is a helper function to parse a hex string to an i64.
+        fn parse_hex_to_i64(hex_str: &str, field_name: &str) -> Result<i64, ModelError> {
+            i64::from_str_radix(hex_str.trim_start_matches("0x"), 16)
+                .map_err(|e| ModelError::ParseError(format!("Error parsing {}: {}", field_name, e)))
+        }
+
+        /// This is a helper function to serialize a value to a string.
+        fn serialize_to_string<T: serde::Serialize>(value: &T) -> Result<String, ModelError> {
+            serde_json::to_string(value).map_err(|e| ModelError::SerializeError(e.to_string()))
+        }
+
+        let block_number = parse_hex_to_i64(
+            &event
+                .log
+                .block_number
+                .ok_or(ModelError::MissingField("block number".to_string()))?
+                .to_string(),
+            "block number",
+        )?;
+
+        let transaction_index = parse_hex_to_i64(
+            &event
+                .log
+                .transaction_index
+                .ok_or(ModelError::MissingField("transaction index".to_string()))?
+                .to_string(),
+            "transaction index",
+        )?;
+
+        let log_index = parse_hex_to_i64(
+            &event
+                .log
+                .log_index
+                .ok_or(ModelError::MissingField("log index".to_string()))?
+                .to_string(),
+            "log index",
+        )?;
+
+        let block_timestamp = parse_hex_to_i64(
+            &hex::encode(
+                event
+                    .block
+                    .as_ref()
+                    .ok_or(ModelError::MissingField("block".to_string()))?
+                    .timestamp
+                    .clone()
+                    .ok_or(ModelError::MissingField("timestamp".to_string()))?
+                    .as_ref(),
+            ),
+            "block timestamp",
+        )?;
+
+        let block_hash = serialize_to_string(&event.log.block_hash)?;
+        let transaction_hash = serialize_to_string(&event.log.transaction_hash)?;
+        let address = serialize_to_string(&event.log.address)?;
+        let data = serialize_to_string(&event.log.data)?;
+        let topics: Vec<String> = event
+            .log
+            .topics
+            .iter()
+            .map(serialize_to_string)
+            .collect::<Result<_, _>>()?;
+
+        Ok(RawLog::builder()
+            .block_number(block_number)
+            .block_hash(block_hash)
+            .block_timestamp(block_timestamp)
+            .transaction_hash(transaction_hash)
+            .transaction_index(transaction_index)
+            .log_index(log_index)
+            .address(address)
+            .data(data)
+            .topics(topics)
+            .build())
     }
 }
