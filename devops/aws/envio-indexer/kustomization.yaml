@@ -7,4 +7,4 @@ resources:
   - service.yaml
   - secret-provider.yaml
 commonLabels:
-  component: substreams-sink 
+  component: envio-indexer 
