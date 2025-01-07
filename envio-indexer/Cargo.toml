@@ -5,19 +5,19 @@ edition = "2021"
 
 [dependencies]
 alloy.workspace = true
+anyhow.workspace = true
 aws-config.workspace = true
 aws-sdk-sqs.workspace = true
 aws-smithy-runtime-api.workspace = true
+clap.workspace = true
+dotenvy.workspace = true
 env_logger.workspace = true
+envy.workspace = true
+hypersync-client.workspace = true
+log.workspace = true
+models = { path = "../models" }
 serde.workspace = true
 serde_json.workspace = true
-tokio.workspace = true
-models = { path = "../models" }
-hypersync-client.workspace = true
 thiserror.workspace = true
+tokio.workspace = true
 url.workspace = true
-anyhow.workspace = true
-dotenvy.workspace = true
-clap.workspace = true
-envy.workspace = true
-log.workspace = true

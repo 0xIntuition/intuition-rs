@@ -1,7 +1,7 @@
 use crate::{error::IndexerError, Args, Network};
 use aws_sdk_sqs::Client as AWSClient;
 use clap::Parser;
-use hypersync_client::{net_types::Query, Client, ClientConfig};
+use hypersync_client::{net_types::Query, simple_types::Event, Client, ClientConfig};
 use log::info;
 use models::raw_logs::RawLog;
 use serde::Deserialize;
@@ -94,6 +94,24 @@ impl App {
         AWSClient::new(&shared_config)
     }
 
+    /// Process a batch of events
+    async fn process_events(&self, events: Vec<Event>) -> Result<(), IndexerError> {
+        for event in events {
+            let raw_log = RawLog::try_from(event)?;
+            let message = serde_json::to_string(&raw_log)?;
+            info!("{:#?}", message);
+
+            self.aws_sqs_client
+                .send_message()
+                .queue_url(&self.raw_consumer_queue_url)
+                .message_group_id("raw")
+                .message_body(message)
+                .send()
+                .await?;
+        }
+        Ok(())
+    }
+
     /// Start the indexer
     pub async fn start_indexer(&self) -> Result<(), IndexerError> {
         // Get the query for the given network
@@ -102,24 +120,12 @@ impl App {
         loop {
             let res = self.client.get_events(query.clone()).await?;
 
+            // We can optimize this by processing the events in batches
             for batch in res.data {
-                for event in batch {
-                    let raw_log = RawLog::try_from(event)?;
-                    println!("{:?}", raw_log);
-                    let message = serde_json::to_string(&raw_log)?;
-                    info!("{:#?}", message);
-
-                    self.aws_sqs_client
-                        .send_message()
-                        .queue_url(&self.raw_consumer_queue_url)
-                        .message_group_id("raw")
-                        .message_body(message)
-                        .send()
-                        .await?;
-                }
+                self.process_events(batch).await?;
             }
 
-            println!("scanned up to block {}", res.next_block);
+            info!("scanned up to block {}", res.next_block);
 
             if let Some(archive_height) = res.archive_height {
                 if archive_height < res.next_block {
