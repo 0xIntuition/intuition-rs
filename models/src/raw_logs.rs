@@ -97,17 +97,17 @@ impl TryFrom<Event> for RawLog {
 
         /// This is a helper function to serialize a value to a string.
         fn serialize_to_string<T: serde::Serialize>(value: &T) -> Result<String, ModelError> {
-            serde_json::to_string(value).map_err(|e| ModelError::SerializeError(e.to_string()))
+            serde_json::to_string(value)
+                .map(|s| s.trim_matches('"').to_string())
+                .map_err(|e| ModelError::SerializeError(e.to_string()))
         }
 
-        let block_number = parse_hex_to_i64(
-            &event
-                .log
-                .block_number
-                .ok_or(ModelError::MissingField("block number".to_string()))?
-                .to_string(),
-            "block number",
-        )?;
+        let block_number = event
+            .block
+            .as_ref()
+            .ok_or(ModelError::MissingField("block number".to_string()))?
+            .number
+            .ok_or(ModelError::MissingField("block number".to_string()))?;
 
         let transaction_index = parse_hex_to_i64(
             &event
@@ -141,7 +141,12 @@ impl TryFrom<Event> for RawLog {
             "block timestamp",
         )?;
 
-        let block_hash = serialize_to_string(&event.log.block_hash)?;
+        let block_hash = serialize_to_string(
+            &event
+                .block
+                .ok_or(ModelError::MissingField("block".to_string()))?
+                .hash,
+        )?;
         let transaction_hash = serialize_to_string(&event.log.transaction_hash)?;
         let address = serialize_to_string(&event.log.address)?;
         let data = serialize_to_string(&event.log.data)?;
@@ -153,7 +158,7 @@ impl TryFrom<Event> for RawLog {
             .collect::<Result<_, _>>()?;
 
         Ok(RawLog::builder()
-            .block_number(block_number)
+            .block_number(block_number as i64)
             .block_hash(block_hash)
             .block_timestamp(block_timestamp)
             .transaction_hash(transaction_hash)

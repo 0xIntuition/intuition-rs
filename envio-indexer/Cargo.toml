@@ -20,3 +20,4 @@ anyhow.workspace = true
 dotenvy.workspace = true
 clap.workspace = true
 envy.workspace = true
+log.workspace = true

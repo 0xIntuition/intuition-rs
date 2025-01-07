@@ -2557,6 +2557,7 @@ dependencies = [
  "env_logger",
  "envy",
  "hypersync-client",
+ "log",
  "models",
  "serde",
  "serde_json",

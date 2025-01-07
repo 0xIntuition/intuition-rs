@@ -248,31 +248,46 @@ services:
         exec ipfs daemon --migrate=true --agent-version-suffix=docker
       "
 
-  substreams-sink:
-    container_name: substreams-sink
-    image: ghcr.io/0xintuition/substreams-sink:latest
-    restart: always
-    entrypoint: ["./substreams-sink"]
+  # substreams-sink:
+  #   container_name: substreams-sink
+  #   image: ghcr.io/0xintuition/substreams-sink:latest
+  #   restart: always
+  #   entrypoint: ["./substreams-sink"]
+  #   environment:
+  #     LOCALSTACK_URL: $LOCALSTACK_URL
+  #     AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
+  #     AWS_REGION: $AWS_REGION
+  #     AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
+  #     DATABASE_URL: $DATABASE_URL
+  #     RAW_CONSUMER_QUEUE_URL: $RAW_CONSUMER_QUEUE_URL
+  #     SUBSTREAMS_ENDPOINT: $SUBSTREAMS_ENDPOINT
+  #     SUBSTREAMS_PACKAGE: $SUBSTREAMS_PACKAGE
+  #     SUBSTREAMS_MODULE: $SUBSTREAMS_MODULE
+  #     SUBSTREAMS_START_BLOCK: $SUBSTREAMS_START_BLOCK
+  #     SUBSTREAMS_API_TOKEN: $SUBSTREAMS_API_TOKEN
+  #   command: ["$SUBSTREAMS_ENDPOINT", "$SUBSTREAMS_PACKAGE", "$SUBSTREAMS_MODULE", "$SUBSTREAMS_START_BLOCK:"]
+  #   depends_on:
+  #     sqs:
+  #       condition: service_healthy
+  #     hasura-migrations:
+  #       condition: service_started
+  #   volumes:
+  #     - substreams-sink-data:/data
+
+  envio-indexer:
+    container_name: envio-indexer
+    image: ghcr.io/0xintuition/envio-indexer:latest
     environment:
       LOCALSTACK_URL: $LOCALSTACK_URL
       AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
       AWS_REGION: $AWS_REGION
       AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
-      DATABASE_URL: $DATABASE_URL
       RAW_CONSUMER_QUEUE_URL: $RAW_CONSUMER_QUEUE_URL
-      SUBSTREAMS_ENDPOINT: $SUBSTREAMS_ENDPOINT
-      SUBSTREAMS_PACKAGE: $SUBSTREAMS_PACKAGE
-      SUBSTREAMS_MODULE: $SUBSTREAMS_MODULE
-      SUBSTREAMS_START_BLOCK: $SUBSTREAMS_START_BLOCK
-      SUBSTREAMS_API_TOKEN: $SUBSTREAMS_API_TOKEN
-    command: ["$SUBSTREAMS_ENDPOINT", "$SUBSTREAMS_PACKAGE", "$SUBSTREAMS_MODULE", "$SUBSTREAMS_START_BLOCK:"]
+      HYPERSYNC_TOKEN: $HYPERSYNC_TOKEN
     depends_on:
       sqs:
         condition: service_healthy
-      hasura-migrations:
-        condition: service_started
-    volumes:
-      - substreams-sink-data:/data
+    command: ["--network", "base-sepolia"]
 
   hasura-migrations:
     container_name: hasura-migrations
