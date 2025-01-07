@@ -108,6 +108,21 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Build and push Envio Indexer
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: envio-indexer/Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            ${{ env.REGISTRY }}/0xintuition/envio-indexer:${{ steps.meta.outputs.version }}
+            ${{ env.REGISTRY }}/0xintuition/envio-indexer:latest
+          build-args: |
+            RUST_VERSION=${{ env.RUST_VERSION }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
       - name: Check permissions
         run: |
           curl -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \

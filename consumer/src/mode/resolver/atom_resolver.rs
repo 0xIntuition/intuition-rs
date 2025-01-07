@@ -36,7 +36,6 @@ pub async fn try_to_resolve_ipfs_uri(
             .fetch_from_ipfs(ipfs_hash)
             .await
         {
-            println!("IPFS data: {:?}", ipfs_data);
             // Remove UTF-8 BOM if present
             let data = ipfs_data.replace('\u{feff}', "");
             Ok(Some(data))
