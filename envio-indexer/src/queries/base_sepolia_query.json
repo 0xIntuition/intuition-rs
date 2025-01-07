@@ -1,0 +1,31 @@
+{
+    "from_block": 0,
+    "logs": [
+        {
+            "address": ["0x1A6950807E33d5bC9975067e6D6b5Ea4cD661665"]
+        }
+    ],
+    "field_selection": {
+        "block": [
+            "number",
+            "timestamp",
+            "hash"
+        ],
+        "log": [
+            "block_number",
+            "log_index",
+            "transaction_index",
+            "data",
+            "address",
+            "topic0",
+            "topic1",
+            "topic2",
+            "topic3"
+        ],
+        "transaction": [
+            "block_number",
+            "transaction_index",
+            "hash"
+        ]
+    }
+  }

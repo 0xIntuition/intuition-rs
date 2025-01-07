@@ -18,3 +18,6 @@ args = ["build", "-t", "ghcr.io/0xintuition/substreams-sink:latest", "-f", "subs
 command = "docker"
 args = ["build", "-t", "ghcr.io/0xintuition/cli:latest", "-f", "cli/Dockerfile", "."]
 
+[tasks.build-envio-indexer]
+command = "docker"
+args = ["build", "-t", "ghcr.io/0xintuition/envio-indexer:latest", "-f", "envio-indexer/Dockerfile", "."]

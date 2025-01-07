@@ -12,8 +12,14 @@ pub enum ModelError {
     InsertError(String),
     #[error("Invalid atom type: {0}")]
     InvalidAtomType(String),
+    #[error("Missing field: {0}")]
+    MissingField(String),
     #[error("Failed to query data: {0}")]
     QueryError(String),
+    #[error("Failed to parse data: {0}")]
+    ParseError(String),
+    #[error("Failed to serialize data: {0}")]
+    SerializeError(String),
     #[error(transparent)]
     SqlError(#[from] sqlx::Error),
     #[error("Unexpected null value: {0}")]

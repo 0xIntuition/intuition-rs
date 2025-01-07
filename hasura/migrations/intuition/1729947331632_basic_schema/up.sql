@@ -211,7 +211,7 @@ CREATE TABLE signal (
   block_number NUMERIC(78, 0) NOT NULL,
   block_timestamp BIGINT NOT NULL,
   transaction_hash BYTEA NOT NULL,
-  -- Ensure that exactly one of atom_id, triple_id, deposit_id, or redemption_id is set
+  -- Ensure that exactly one of atom_id or triple_id is set
   CONSTRAINT check_signal_constraints CHECK (
     ((atom_id IS NOT NULL AND triple_id IS NULL)
     OR

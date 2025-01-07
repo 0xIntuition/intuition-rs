@@ -34,7 +34,6 @@ impl Redeemed {
         &self,
         pg_pool: &PgPool,
         event: &DecodedMessage,
-        redemption_id: String,
         vault: &Vault,
     ) -> Result<(), ConsumerError> {
         if let Some(triple_id) = vault.triple_id.clone() {
@@ -44,7 +43,7 @@ impl Redeemed {
                 .block_number(U256Wrapper::try_from(event.block_number)?)
                 .block_timestamp(event.block_timestamp)
                 .transaction_hash(event.transaction_hash.clone())
-                .redemption_id(redemption_id)
+                .redemption_id(DecodedMessage::event_id(event))
                 .triple_id(triple_id)
                 .build()
                 .upsert(pg_pool)
@@ -56,7 +55,7 @@ impl Redeemed {
                 .block_number(U256Wrapper::try_from(event.block_number)?)
                 .block_timestamp(event.block_timestamp)
                 .transaction_hash(event.transaction_hash.clone())
-                .redemption_id(redemption_id)
+                .redemption_id(DecodedMessage::event_id(event))
                 .atom_id(
                     vault
                         .atom_id
@@ -79,7 +78,7 @@ impl Redeemed {
         event: &DecodedMessage,
     ) -> Result<Redemption, ConsumerError> {
         Redemption::builder()
-            .id(event.transaction_hash.clone())
+            .id(DecodedMessage::event_id(event))
             .sender_id(sender_account.id.clone())
             .receiver_id(receiver_account.id.clone())
             .sender_total_shares_in_vault(self.senderTotalSharesInVault)
@@ -112,7 +111,7 @@ impl Redeemed {
                     U256::ZERO.saturating_sub(self.assetsForReceiver),
                 ))
                 .triple_id(triple_id)
-                .redemption_id(event.log_index.to_string())
+                .redemption_id(DecodedMessage::event_id(event))
                 .block_number(U256Wrapper::try_from(event.block_number)?)
                 .block_timestamp(event.block_timestamp)
                 .transaction_hash(event.transaction_hash.clone())
@@ -133,7 +132,7 @@ impl Redeemed {
                         .clone()
                         .ok_or(ConsumerError::VaultAtomNotFound)?,
                 )
-                .redemption_id(event.log_index.to_string())
+                .redemption_id(DecodedMessage::event_id(event))
                 .block_number(U256Wrapper::try_from(event.block_number)?)
                 .block_timestamp(event.block_timestamp)
                 .transaction_hash(event.transaction_hash.clone())
@@ -171,14 +170,13 @@ impl Redeemed {
             get_or_create_account(self.receiver.to_string(), decoded_consumer_context).await?;
 
         // 2. Create redemption record
-        let redemption = self
-            .create_redemption_record(
-                &decoded_consumer_context.pg_pool,
-                &sender_account,
-                &receiver_account,
-                event,
-            )
-            .await?;
+        self.create_redemption_record(
+            &decoded_consumer_context.pg_pool,
+            &sender_account,
+            &receiver_account,
+            event,
+        )
+        .await?;
 
         // 3. Get vault and current share price
         let current_share_price = self
@@ -209,13 +207,8 @@ impl Redeemed {
             .await?;
 
         // 6. Create event record
-        self.create_event(
-            &decoded_consumer_context.pg_pool,
-            event,
-            redemption.id,
-            &vault,
-        )
-        .await?;
+        self.create_event(&decoded_consumer_context.pg_pool, event, &vault)
+            .await?;
 
         // 7. Create signal record
         self.create_signal(&decoded_consumer_context.pg_pool, event, &vault)
