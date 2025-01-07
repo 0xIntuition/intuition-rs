@@ -18,6 +18,7 @@ RUN apt-get update && \
     libssl-dev \
     pkg-config \
     curl \
+    capnproto \
     && rm -rf /var/lib/apt/lists/*
 
 RUN cargo chef cook --release --recipe-path recipe.json
@@ -37,6 +38,7 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     ca-certificates \
     libssl3 \
+    capnproto \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy binary from builder

@@ -8,6 +8,7 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     pkg-config \
     libssl-dev \
+    capnproto \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy the entire workspace
@@ -24,6 +25,7 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     ca-certificates \
     libssl1.1 \
+    capnproto \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy the binary from builder

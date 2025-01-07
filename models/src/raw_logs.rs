@@ -149,13 +149,20 @@ impl TryFrom<Event> for RawLog {
         )?;
         let transaction_hash = serialize_to_string(&event.log.transaction_hash)?;
         let address = serialize_to_string(&event.log.address)?;
-        let data = serialize_to_string(&event.log.data)?;
-        let topics: Vec<String> = event
+        let data = hex::encode(
+            event
+                .log
+                .data
+                .ok_or(ModelError::MissingField("data".to_string()))?
+                .as_ref(),
+        );
+        let topics = event
             .log
             .topics
             .iter()
-            .map(serialize_to_string)
-            .collect::<Result<_, _>>()?;
+            .map(|t| hex::encode(t.as_ref().map(|d| d.as_ref()).unwrap_or_default()))
+            .filter(|s| s != "null" && !s.is_empty())
+            .collect::<Vec<String>>();
 
         Ok(RawLog::builder()
             .block_number(block_number as i64)

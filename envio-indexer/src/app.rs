@@ -105,7 +105,7 @@ impl App {
             for batch in res.data {
                 for event in batch {
                     let raw_log = RawLog::try_from(event)?;
-                    println!("{:#?}", raw_log);
+                    println!("{:?}", raw_log);
                     let message = serde_json::to_string(&raw_log)?;
                     info!("{:#?}", message);
 

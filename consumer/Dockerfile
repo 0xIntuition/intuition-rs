@@ -18,6 +18,7 @@ RUN apt-get update && \
     libssl-dev \
     pkg-config \
     curl \
+    capnproto \
     && rm -rf /var/lib/apt/lists/*
 
 RUN cargo chef cook --release --recipe-path recipe.json
