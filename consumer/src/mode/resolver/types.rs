@@ -131,7 +131,9 @@ impl ResolverMessageType {
             )
             .await?
         } else {
-            info!("No IPFS URI found, trying to parse atom data as JSON...");
+            info!(
+                "No IPFS URI found or IPFS URI is not valid, trying to parse atom data as JSON..."
+            );
             // This is the fallback case, where we try to parse the atom data as JSON
             // even if it's not a valid IPFS URI. This is useful for cases where the
             // atom data is a JSON object that is not a schema.org URL.
