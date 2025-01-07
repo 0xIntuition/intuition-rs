@@ -40,9 +40,8 @@ pub async fn try_to_resolve_ipfs_uri(
             let data = ipfs_data.replace('\u{feff}', "");
             Ok(Some(data))
         } else {
-            Err(ConsumerError::NetworkError(
-                "Failed to fetch IPFS data".into(),
-            ))
+            warn!("Failed to fetch IPFS data, atom data: {}", atom_data);
+            Ok(None)
         }
     } else {
         Ok(None)
