@@ -69,7 +69,9 @@ impl AtomCreated {
 
     /// This function decodes the atom data
     fn decode_data(&self) -> Result<String, ConsumerError> {
-        Ok(String::from_utf8(self.atomData.clone().to_vec())?)
+        let filtered_bytes: Vec<u8> = self.atomData.iter().filter(|&&b| b != 0).cloned().collect();
+
+        Ok(String::from_utf8(filtered_bytes)?)
     }
 
     /// This function verifies if the atom wallet account exists in our DB. If it does, it returns it.
