@@ -13,7 +13,9 @@ use alloy::primitives::Address;
 use models::{
     atom::{Atom, AtomResolvingStatus, AtomType},
     atom_value::AtomValue,
+    caip10::Caip10,
     traits::SimpleCrud,
+    types::U256Wrapper,
 };
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
@@ -59,6 +61,32 @@ impl AtomMetadata {
         }
     }
 
+    /// Creates a new caip10
+    pub async fn create_caip10(
+        atom_id: U256Wrapper,
+        caip10: String,
+        decoded_consumer_context: &DecodedConsumerContext,
+    ) -> Result<Caip10, ConsumerError> {
+        let caip10_parts = caip10.split(':').collect::<Vec<&str>>();
+        if caip10_parts.len() != 4 {
+            return Err(ConsumerError::InvalidCaip10);
+        }
+
+        let namespace = caip10_parts[1];
+        let chain_id = caip10_parts[2].parse::<i32>()?;
+        let account_address = caip10_parts[3];
+
+        Caip10::builder()
+            .id(atom_id)
+            .namespace(namespace)
+            .chain_id(chain_id)
+            .account_address(account_address)
+            .build()
+            .upsert(&decoded_consumer_context.pg_pool)
+            .await
+            .map_err(ConsumerError::ModelError)
+    }
+
     /// Creates a new atom metadata for a follow action
     pub fn follow_action(image: Option<String>) -> Self {
         Self {
@@ -70,7 +98,7 @@ impl AtomMetadata {
     }
 
     /// Stores the atom data in the database based on the atom type
-    pub async fn handle_account_type(
+    pub async fn handle_account_or_caip10_type(
         &self,
         resolved_atom: &ResolveAtom,
         decoded_consumer_context: &DecodedConsumerContext,
@@ -84,7 +112,19 @@ impl AtomMetadata {
                 self.update_account_and_atom_value(resolved_atom, decoded_consumer_context)
                     .await
             }
-
+            AtomType::Caip10 => {
+                info!(
+                    "Creating caip10 for: {}",
+                    resolved_atom.atom.data.clone().unwrap()
+                );
+                Self::create_caip10(
+                    resolved_atom.atom.id.clone(),
+                    resolved_atom.atom.data.clone().unwrap(),
+                    decoded_consumer_context,
+                )
+                .await?;
+                Ok(())
+            }
             _ => {
                 info!(
                     "This atom type is updated at the end of processing: {}",

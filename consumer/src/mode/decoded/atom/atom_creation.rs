@@ -179,10 +179,10 @@ impl AtomCreated {
             get_supported_atom_metadata(&mut atom, &decoded_atom_data, decoded_consumer_context)
                 .await?;
 
-        // Handle the account type
+        // Handle the account or caip10 type
         let resolved_atom = ResolveAtom { atom: atom.clone() };
         supported_atom_metadata
-            .handle_account_type(&resolved_atom, decoded_consumer_context)
+            .handle_account_or_caip10_type(&resolved_atom, decoded_consumer_context)
             .await?;
 
         // Update the atom metadata to reflect the supported atom type
