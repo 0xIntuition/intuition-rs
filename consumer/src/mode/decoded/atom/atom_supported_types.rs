@@ -49,48 +49,14 @@ impl AtomMetadata {
         }
     }
 
-    /// Creates an account and an atom value
-    pub async fn update_account_and_atom_value(
-        &self,
-        resolved_atom: &ResolveAtom,
-        decoded_consumer_context: &DecodedConsumerContext,
-    ) -> Result<(), ConsumerError> {
-        if self.atom_type != "Account" {
-            info!("Skipping account creation for: {}", self.atom_type);
-            return Ok(());
+    /// Creates a new atom metadata for a caip10
+    pub fn caip10(caip10: String) -> Self {
+        Self {
+            label: caip10,
+            emoji: "🔗".to_string(),
+            atom_type: "Caip10".to_string(),
+            image: None,
         }
-
-        let account = update_account_with_atom_id(
-            resolved_atom
-                .atom
-                .data
-                .clone()
-                .ok_or(ConsumerError::AtomDataNotFound)?,
-            resolved_atom.atom.id.clone(),
-            decoded_consumer_context,
-        )
-        .await?;
-
-        // Skip if atom value already exists
-        if AtomValue::find_by_id(
-            resolved_atom.atom.vault_id.clone(),
-            &decoded_consumer_context.pg_pool,
-        )
-        .await?
-        .is_some()
-        {
-            info!("Atom value already exists, skipping...");
-            return Ok(());
-        }
-
-        AtomValue::builder()
-            .id(resolved_atom.atom.vault_id.clone())
-            .account_id(account.id)
-            .build()
-            .upsert(&decoded_consumer_context.pg_pool)
-            .await?;
-
-        Ok(())
     }
 
     /// Creates a new atom metadata for a follow action
@@ -218,6 +184,50 @@ impl AtomMetadata {
         }
     }
 
+    /// Creates an account and an atom value
+    pub async fn update_account_and_atom_value(
+        &self,
+        resolved_atom: &ResolveAtom,
+        decoded_consumer_context: &DecodedConsumerContext,
+    ) -> Result<(), ConsumerError> {
+        if self.atom_type != "Account" {
+            info!("Skipping account creation for: {}", self.atom_type);
+            return Ok(());
+        }
+
+        let account = update_account_with_atom_id(
+            resolved_atom
+                .atom
+                .data
+                .clone()
+                .ok_or(ConsumerError::AtomDataNotFound)?,
+            resolved_atom.atom.id.clone(),
+            decoded_consumer_context,
+        )
+        .await?;
+
+        // Skip if atom value already exists
+        if AtomValue::find_by_id(
+            resolved_atom.atom.vault_id.clone(),
+            &decoded_consumer_context.pg_pool,
+        )
+        .await?
+        .is_some()
+        {
+            info!("Atom value already exists, skipping...");
+            return Ok(());
+        }
+
+        AtomValue::builder()
+            .id(resolved_atom.atom.vault_id.clone())
+            .account_id(account.id)
+            .build()
+            .upsert(&decoded_consumer_context.pg_pool)
+            .await?;
+
+        Ok(())
+    }
+
     /// Updates the atom metadata
     pub async fn update_atom_metadata(
         &self,
@@ -248,19 +258,54 @@ pub fn is_valid_address(address: &str) -> Result<bool, ConsumerError> {
     }
 }
 
+/// Validates if a string is a valid CAIP10
+///
+/// # Arguments
+/// * `caip10` - The CAIP10 string to validate
+///
+/// # Returns
+/// * `bool` - True if valid CAIP10, false otherwise
+///
+/// A `caip10` looks like: `caip10:eip155:8453:0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70`
+/// where the first part is the `caip10` prefix, the second part is the `eip155` namespace,
+/// the third part is the `chain_id` and the last part is the `address`.
+pub fn is_valid_caip10(caip10: &str) -> Result<bool, ConsumerError> {
+    // Check if the string starts with "caip10:"
+    if !caip10.starts_with("caip10:") {
+        return Ok(false);
+    }
+
+    // Check if the string has at least 4 parts
+    let parts = caip10.split(':').collect::<Vec<&str>>();
+    if parts.len() < 4 {
+        return Ok(false);
+    }
+
+    // Check if the last part is a valid Ethereum address
+    let address = parts.last().unwrap();
+    if !is_valid_address(address)? {
+        return Ok(false);
+    }
+
+    Ok(true)
+}
+
 /// Gets the metadata for a supported atom type based on the atom data.
 /// So when we receive the the atom data, there are some situations
 /// we need to handle:
-/// 1. The atom data is a schema.org URL. This is the "happy path", since
+/// 1. The atom data is a schema.org URL. This is one of the "happy paths", since
 ///    we can directly map it to an atom metadata and dont need to resolve
 ///    anything.
-/// 2. The atom data is an address. This is also some sort of "happy path",
+/// 2. The atom data is an address. This is also one of the "happy paths",
 ///    since we can directly map it to an account and dont need to resolve
 ///    anything.
-/// 3. The atom data is an IPFS URI. We need to fetch the data from IPFS
+/// 3. The atom data is a CAIP10. This is also one of the "happy paths",
+///    since we can directly map it to an account and dont need to resolve
+///    anything.
+/// 4. The atom data is an IPFS URI. We need to fetch the data from IPFS
 ///    and then resolve it. Keep in mind that if we are parsing an IPFS URI,
 ///    we need to fetch the data from IPFS and then parse it as JSON.
-/// 4. The atom data is a JSON object. We need to resolve the properties
+/// 5. The atom data is a JSON object. We need to resolve the properties
 ///    of the JSON object and then map it to an atom.
 pub async fn get_supported_atom_metadata(
     atom: &mut Atom,
@@ -283,16 +328,22 @@ pub async fn get_supported_atom_metadata(
         // As we dont need to resolve anything, we can mark the atom as resolved
         atom.resolving_status = AtomResolvingStatus::Resolved;
         Ok(AtomMetadata::address(decoded_atom_data, atom.image.clone()))
+    // 3. Handling the happy path (CAIP10)
+    } else if is_valid_caip10(decoded_atom_data)? {
+        info!("Atom data is a CAIP10, returning account metadata...");
+        // As we dont need to resolve anything, we can mark the atom as resolved
+        atom.resolving_status = AtomResolvingStatus::Resolved;
+        Ok(AtomMetadata::caip10(decoded_atom_data.to_string()))
     } else {
         info!("Atom data is not an address, verifying if it's an IPFS URI...");
-        // 3. Now we need to enqueue the message to be processed by the resolver
+        // 4. Now we need to enqueue the message to be processed by the resolver
         let message = ResolverConsumerMessage::new_atom(atom.clone());
         decoded_consumer_context
             .client
             .send_message(serde_json::to_string(&message)?, None)
             .await?;
 
-        // Now we try to parse the JSON and return the metadata. At this point
+        // 5. Now we try to parse the JSON and return the metadata. At this point
         // the resolver will handle the rest of the cases.
         let metadata =
             try_to_parse_json(decoded_atom_data, atom, &decoded_consumer_context.pg_pool).await?;
@@ -314,5 +365,26 @@ pub fn get_predicate_metadata(
         "LikeAction" => AtomMetadata::like_action(image),
         "FollowAction" => AtomMetadata::follow_action(image),
         _ => AtomMetadata::unknown(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_is_valid_caip10() -> Result<(), ConsumerError> {
+        // Valid CAIP10
+        assert!(is_valid_caip10(
+            "caip10:eip155:8453:0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70"
+        )?);
+
+        // Invalid cases
+        assert!(!is_valid_caip10("not_caip10:eip155:1:0x123")?);
+        assert!(!is_valid_caip10("caip10:eip155:1")?); // Missing address
+        assert!(!is_valid_caip10("caip10:eip155:1:not_an_address")?);
+        assert!(!is_valid_caip10("")?);
+
+        Ok(())
     }
 }

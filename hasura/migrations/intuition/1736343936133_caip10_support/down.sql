@@ -10,3 +10,5 @@ ALTER TABLE atoms
 
 DROP TYPE atom_type;
 ALTER TYPE atom_type_new RENAME TO atom_type;
+
+DROP TABLE caip10;
