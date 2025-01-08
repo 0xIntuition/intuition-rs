@@ -43,6 +43,7 @@ pub enum AtomResolvingStatus {
 pub enum AtomType {
     Account,
     Book,
+    Caip10,
     FollowAction,
     Keywords,
     LikeAction,

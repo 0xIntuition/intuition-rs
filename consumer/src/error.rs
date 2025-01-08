@@ -87,6 +87,8 @@ pub enum ConsumerError {
     HexConversion(#[from] rustc_hex::FromHexError),
     #[error("Failed to resolve IPFS data: {0}")]
     Ipfs(String),
+    #[error("Invalid CAIP10")]
+    InvalidCaip10,
     #[error("Invalid JSON")]
     InvalidJson,
     #[error("Failed to parse indexer source: {0}")]

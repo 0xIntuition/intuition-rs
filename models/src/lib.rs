@@ -3,6 +3,7 @@ pub mod atom;
 pub mod atom_value;
 pub mod book;
 pub mod cached_image;
+pub mod caip10;
 pub mod claim;
 pub mod deposit;
 pub mod error;
