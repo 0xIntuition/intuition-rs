@@ -14,7 +14,7 @@ use models::{
 use serde_json::Value;
 use sqlx::PgPool;
 use std::str::FromStr;
-use tracing::{info, warn};
+use tracing::warn;
 
 /// Supported schema.org contexts
 pub const SCHEMA_ORG_CONTEXTS: [&str; 4] = [
