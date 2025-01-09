@@ -5,6 +5,7 @@ This workspace contains the following crates:
 
 * `cli`: contains the code to run the intuition TUI client.
 * `consumer`: contains the code to RAW, DECODED and RESOLVER consumers.
+* `envio-indexer`: contains the code to index the base-sepolia events of our contract using envio.
 * `hasura`: contains the migrations and hasura config.
 * `histoflux`: streams historical data from our contracts to a queue. Currently supports SQS queues.
 * `image-guard`: contains the code to guard the images.
@@ -14,7 +15,8 @@ This workspace contains the following crates:
 
 Besides that, we have a `docker-compose.yml` file to run the full pipeline locally, a `Makefile` to run some commands using `cargo make` and the `LICENSE` file.
 
-Note that all of the crates are under intensive development, so the code is subject to change.
+Note that all of the crates are under intensive development, so the code is subject to change. Also, notice that if you want to index base events you need to 
+uncomment the `substreams-sink` crate in the `docker-compose.yml` file and comment the `envio-indexer` crate. We are figuring out the best process to handle this.
 
 
 ## First steps
@@ -45,6 +47,7 @@ There is a `.env.sample` file that you need to use as a template to create the `
 * `AWS_SECRET_ACCESS_KEY`: You can get the values from your [AWS account](https://us-east-1.console.aws.amazon.com/iam/home?region=us-east-1#/users)
 * `HF_TOKEN`: You can get the token from [Hugging Face](https://huggingface.co/settings/tokens)
 * `SUBSTREAMS_API_TOKEN`: You can get the token from [Substreams](https://thegraph.market/auth/substreams-devenv)  
+* `HYPERSYNC_TOKEN`: You can get the token from [Envio](https://envio.dev/app/api-tokens)
 
 After filling all of the variables, you can run the following commands:
 
@@ -123,6 +126,7 @@ Also note that you need to set the right environment variables for the queues (`
 * `cargo make clippy` to run clippy
 * `cargo make fmt` to run rustfmt
 
+You can check all of the available commands in `.cargo/makefiles`. 
 
 ## Running with kubernetes (on macos)
 
@@ -167,3 +171,5 @@ or
 ```
 kubectl delete deployment --all 
 ```
+
+There is a `devops` folder that contains yaml files to deploy our stack to both Minikube and AWS EKS.
