@@ -14,7 +14,7 @@ use models::{
 use serde_json::Value;
 use sqlx::PgPool;
 use std::str::FromStr;
-use tracing::warn;
+use tracing::{info, warn};
 
 /// Supported schema.org contexts
 pub const SCHEMA_ORG_CONTEXTS: [&str; 4] = [
@@ -161,42 +161,49 @@ async fn try_to_resolve_schema_org_properties(
     obj: &Value,
 ) -> Result<AtomMetadata, ConsumerError> {
     if let Some(obj_type) = obj.get("@type").and_then(|t| t.as_str()) {
-        match AtomType::from_str(obj_type)? {
-            AtomType::Thing => {
-                let thing = create_thing_from_obj(atom, obj).upsert(pg_pool).await?;
-                create_thing_atom_value(atom, &thing, pg_pool).await?;
-                Ok(AtomMetadata::thing(
-                    thing.name.unwrap_or_default(),
-                    thing.image.clone(),
-                ))
+        // This will fail if the atom type is not supported, i.e. it's not part of
+        // the [`AtomType`] enum.
+        if let Ok(atom_type) = AtomType::from_str(obj_type) {
+            match atom_type {
+                AtomType::Thing => {
+                    let thing = create_thing_from_obj(atom, obj).upsert(pg_pool).await?;
+                    create_thing_atom_value(atom, &thing, pg_pool).await?;
+                    Ok(AtomMetadata::thing(
+                        thing.name.unwrap_or_default(),
+                        thing.image.clone(),
+                    ))
+                }
+                AtomType::Person => {
+                    let person = create_person_from_obj(atom, obj).upsert(pg_pool).await?;
+                    create_person_atom_value(atom, &person, pg_pool).await?;
+                    Ok(AtomMetadata::person(
+                        person.name.unwrap_or_default(),
+                        person.image.clone(),
+                    ))
+                }
+                AtomType::Organization => {
+                    let organization = create_organization_from_obj(atom, obj)
+                        .upsert(pg_pool)
+                        .await?;
+                    create_organization_atom_value(atom, &organization, pg_pool).await?;
+                    Ok(AtomMetadata::organization(
+                        organization.name.unwrap_or_default(),
+                        organization.image.clone(),
+                    ))
+                }
+                AtomType::Book => {
+                    let book = create_book_from_obj(atom, obj).upsert(pg_pool).await?;
+                    create_book_atom_value(atom, &book, pg_pool).await?;
+                    Ok(AtomMetadata::book(book.name.unwrap_or_default()))
+                }
+                _ => {
+                    warn!("Unsupported schema.org type: {}", obj_type);
+                    Ok(AtomMetadata::unknown())
+                }
             }
-            AtomType::Person => {
-                let person = create_person_from_obj(atom, obj).upsert(pg_pool).await?;
-                create_person_atom_value(atom, &person, pg_pool).await?;
-                Ok(AtomMetadata::person(
-                    person.name.unwrap_or_default(),
-                    person.image.clone(),
-                ))
-            }
-            AtomType::Organization => {
-                let organization = create_organization_from_obj(atom, obj)
-                    .upsert(pg_pool)
-                    .await?;
-                create_organization_atom_value(atom, &organization, pg_pool).await?;
-                Ok(AtomMetadata::organization(
-                    organization.name.unwrap_or_default(),
-                    organization.image.clone(),
-                ))
-            }
-            AtomType::Book => {
-                let book = create_book_from_obj(atom, obj).upsert(pg_pool).await?;
-                create_book_atom_value(atom, &book, pg_pool).await?;
-                Ok(AtomMetadata::book(book.name.unwrap_or_default()))
-            }
-            _ => {
-                warn!("Unsupported schema.org type: {}", obj_type);
-                Ok(AtomMetadata::unknown())
-            }
+        } else {
+            warn!("Unsupported schema.org type: {}", obj_type);
+            Ok(AtomMetadata::unknown())
         }
     } else {
         Ok(AtomMetadata::unknown())

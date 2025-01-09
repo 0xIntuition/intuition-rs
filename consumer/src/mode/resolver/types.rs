@@ -149,6 +149,7 @@ impl ResolverMessageType {
             .await?
         };
 
+        info!("Metadata: {:?}", metadata);
         // If at this point we have an atom type that is not unknown (it means it changes it state),
         // we need to update the atom metadata
         if AtomType::from_str(&metadata.atom_type)? != AtomType::Unknown {
