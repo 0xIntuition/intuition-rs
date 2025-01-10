@@ -12,12 +12,21 @@ enum Network {
     BaseSepolia,
 }
 
+#[derive(ValueEnum, Clone, Debug, PartialEq, Eq)]
+pub enum Output {
+    Sqs,
+    Postgres,
+}
+
 /// The CLI arguments
 #[derive(Parser)]
 pub struct Args {
     /// The network to index
     #[arg(short, long)]
     network: Network,
+    /// The output to use
+    #[arg(short, long)]
+    output: Output,
 }
 
 #[tokio::main]

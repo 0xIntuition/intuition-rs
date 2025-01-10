@@ -33,11 +33,6 @@ impl ConsumerMode {
 
         match raw_message.op {
             Operation::C => {
-                // Insert it into the DB
-                raw_message
-                    .body
-                    .insert(&raw_consumer_context.pg_pool)
-                    .await?;
                 // Decode the log using Alloy's built-in decoder
                 // Decode the log using Alloy's built-in decoder
                 let event = Self::decode_raw_log(

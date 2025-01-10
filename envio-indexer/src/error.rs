@@ -3,8 +3,6 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum IndexerError {
     #[error(transparent)]
-    AnyhowError(#[from] anyhow::Error),
-    #[error(transparent)]
     AWSSendMessage(
         #[from]
         aws_smithy_runtime_api::client::result::SdkError<
@@ -13,11 +11,17 @@ pub enum IndexerError {
         >,
     ),
     #[error(transparent)]
-    EnvError(#[from] envy::Error),
+    Anyhow(#[from] anyhow::Error),
     #[error(transparent)]
-    ModelError(#[from] models::error::ModelError),
+    Env(#[from] envy::Error),
     #[error(transparent)]
-    ParseError(#[from] url::ParseError),
+    Model(#[from] models::error::ModelError),
     #[error(transparent)]
-    SerdeJsonError(#[from] serde_json::Error),
+    Parse(#[from] url::ParseError),
+    #[error(transparent)]
+    SerdeJson(#[from] serde_json::Error),
+    #[error(transparent)]
+    Sqlx(#[from] sqlx::Error),
+    #[error(transparent)]
+    SharedUtils(#[from] shared_utils::error::LibError),
 }

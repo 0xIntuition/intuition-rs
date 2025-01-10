@@ -1,10 +1,12 @@
-use crate::{error::IndexerError, Args, Network};
+use crate::{error::IndexerError, Args, Network, Output};
 use aws_sdk_sqs::Client as AWSClient;
 use clap::Parser;
 use hypersync_client::{net_types::Query, simple_types::Event, Client, ClientConfig};
 use log::info;
 use models::raw_logs::RawLog;
 use serde::Deserialize;
+use shared_utils::postgres::connect_to_db;
+use sqlx::PgPool;
 use tokio::time::{sleep, Duration};
 use url::Url;
 
@@ -14,6 +16,7 @@ pub struct Env {
     pub hypersync_token: String,
     pub localstack_url: Option<String>,
     pub raw_consumer_queue_url: String,
+    pub database_url: String,
 }
 
 /// The application
@@ -22,6 +25,7 @@ pub struct App {
     pub args: Args,
     pub aws_sqs_client: AWSClient,
     pub raw_consumer_queue_url: String,
+    pub pg_pool: PgPool,
 }
 
 impl App {
@@ -44,12 +48,15 @@ impl App {
         let aws_sqs_client = Self::get_aws_client(env.localstack_url.clone()).await;
         // Get the raw consumer queue url
         let raw_consumer_queue_url = env.raw_consumer_queue_url;
+        // Connect to the database
+        let pg_pool = connect_to_db(&env.database_url).await?;
 
         Ok(Self {
             client,
             args,
             aws_sqs_client,
             raw_consumer_queue_url,
+            pg_pool,
         })
     }
 
@@ -71,9 +78,7 @@ impl App {
                 "queries/base_sepolia_query.json"
             ))?)
         } else {
-            Err(IndexerError::AnyhowError(anyhow::anyhow!(
-                "Invalid network"
-            )))
+            Err(IndexerError::Anyhow(anyhow::anyhow!("Invalid network")))
         }
     }
 
@@ -97,17 +102,7 @@ impl App {
     /// Process a batch of events
     async fn process_events(&self, events: Vec<Event>) -> Result<(), IndexerError> {
         for event in events {
-            let raw_log = RawLog::try_from(event)?;
-            let message = serde_json::to_string(&raw_log)?;
-            info!("{:#?}", message);
-
-            self.aws_sqs_client
-                .send_message()
-                .queue_url(&self.raw_consumer_queue_url)
-                .message_group_id("raw")
-                .message_body(message)
-                .send()
-                .await?;
+            self.store_events(event).await?;
         }
         Ok(())
     }
@@ -141,5 +136,24 @@ impl App {
             // continue query from next_block
             query.from_block = res.next_block;
         }
+    }
+
+    /// Store events in the given output. Current supported outputs are SQS and Postgres.
+    async fn store_events(&self, event: Event) -> Result<(), IndexerError> {
+        let raw_log = RawLog::try_from(event)?;
+        let message = serde_json::to_string(&raw_log)?;
+        info!("{:#?}", message);
+        if self.args.output == Output::Sqs {
+            self.aws_sqs_client
+                .send_message()
+                .queue_url(&self.raw_consumer_queue_url)
+                .message_group_id("raw")
+                .message_body(message)
+                .send()
+                .await?;
+        } else if self.args.output == Output::Postgres {
+            raw_log.insert(&self.pg_pool).await?;
+        }
+        Ok(())
     }
 }

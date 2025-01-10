@@ -21,3 +21,7 @@ args = ["build", "-t", "ghcr.io/0xintuition/cli:latest", "-f", "cli/Dockerfile",
 [tasks.build-envio-indexer]
 command = "docker"
 args = ["build", "-t", "ghcr.io/0xintuition/envio-indexer:latest", "-f", "envio-indexer/Dockerfile", "."]
+
+[tasks.build-indexer-migrations]
+command = "docker"
+args = ["build", "-t", "ghcr.io/0xintuition/indexer-migrations:latest", "-f", "migrations/Dockerfile", "."]

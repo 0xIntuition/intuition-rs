@@ -2562,6 +2562,8 @@ dependencies = [
  "models",
  "serde",
  "serde_json",
+ "shared-utils",
+ "sqlx",
  "thiserror 2.0.6",
  "tokio",
  "url",

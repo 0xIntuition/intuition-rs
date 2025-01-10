@@ -2,21 +2,6 @@ SET check_function_bodies = false;
 CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
 COMMENT ON EXTENSION pgcrypto IS 'cryptographic functions';
 
-CREATE TABLE raw_data (
-  id SERIAL PRIMARY KEY NOT NULL,
-  gs_id varchar(200),
-  block_number bigint,
-  block_hash varchar(200),
-  transaction_hash varchar(200),
-  transaction_index bigint,
-  log_index bigint,
-  address varchar(42),
-  data text,
-  topics text[],
-  block_timestamp bigint,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
 -- Create custom enum types
 CREATE TYPE account_type AS ENUM ('Default', 'AtomWallet', 'ProtocolVault');
 CREATE TYPE event_type AS ENUM ('AtomCreated', 'TripleCreated', 'Deposited', 'Redeemed', 'FeesTransfered');
@@ -324,10 +309,5 @@ CREATE INDEX idx_event_triple ON event(triple_id);
 CREATE INDEX idx_event_block_number ON event(block_number);
 CREATE INDEX idx_event_block_timestamp ON event(block_timestamp);
 CREATE INDEX idx_event_transaction_hash ON event(transaction_hash);
-CREATE INDEX idx_raw_data_block_number ON raw_data(block_number);
-CREATE INDEX idx_raw_data_block_timestamp ON raw_data(block_timestamp);
-CREATE INDEX idx_raw_data_transaction_hash ON raw_data(transaction_hash);
-CREATE INDEX idx_raw_data_address ON raw_data(address);
-CREATE INDEX idx_raw_data_topics ON raw_data(topics);
 CREATE INDEX idx_cached_image_original_url ON cached_image(original_url);
 CREATE INDEX idx_cached_image_url ON cached_image(url);
