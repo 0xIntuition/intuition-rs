@@ -138,7 +138,7 @@ impl SqsProducer {
         let start_time = chrono::Utc::now();
 
         info!("Start pulling historical records");
-        // self.process_historical_records().await?;
+        self.process_historical_records().await?;
         info!("Processed historical records");
 
         // Process any notifications that arrived during historical processing
