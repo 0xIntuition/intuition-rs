@@ -30,7 +30,7 @@ pub struct RawLog {
 #[derive(Debug, Deserialize, Serialize, sqlx::FromRow)]
 pub struct RawLogPresenter {
     #[serde(rename(deserialize = "id"))]
-    pub gs_id: i64,
+    pub gs_id: String,
     pub block_number: i64,
     pub block_hash: String,
     pub transaction_hash: String,

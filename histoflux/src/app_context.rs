@@ -2,10 +2,10 @@ use crate::error::HistoFluxError;
 
 use aws_sdk_sqs::Client as AWSClient;
 use log::info;
-use models::raw_logs::{RawLog, RawLogPresenter};
+use models::raw_logs::RawLog;
 use serde::Deserialize;
 use shared_utils::postgres::connect_to_db;
-use sqlx::postgres::PgListener;
+use sqlx::postgres::{PgListener, PgNotification};
 use sqlx::PgPool;
 /// The environment variables
 #[derive(Clone, Deserialize, Debug)]
@@ -20,6 +20,28 @@ pub struct SqsProducer {
     client: AWSClient,
     pg_pool: PgPool,
     env: Env,
+}
+
+#[derive(Debug, Deserialize)]
+struct DbRawLog {
+    id: i32,
+    gs_id: String,
+    block_number: i64,
+    block_hash: String,
+    transaction_hash: String,
+    transaction_index: i64,
+    log_index: i64,
+    address: String,
+    data: String,
+    topics: Vec<String>,
+    block_timestamp: i64,
+}
+
+#[derive(Debug, Deserialize)]
+struct NotificationPayload {
+    #[serde(flatten)]
+    raw_log: DbRawLog,
+    created_at: chrono::DateTime<chrono::Utc>,
 }
 
 impl SqsProducer {
@@ -116,20 +138,12 @@ impl SqsProducer {
         let start_time = chrono::Utc::now();
 
         info!("Start pulling historical records");
-        self.process_historical_records().await?;
+        // self.process_historical_records().await?;
         info!("Processed historical records");
 
         // Process any notifications that arrived during historical processing
         while let Ok(notification) = listener.recv().await {
-            info!("Processing notification: {:?}", notification);
-            let payload: RawLogPresenter = serde_json::from_str(notification.payload())?;
-            info!("Payload: {:?}", payload);
-            // Only process if it's an old record we might have missed
-            if payload.block_timestamp < start_time.timestamp() {
-                let message = serde_json::to_string(&payload)?;
-                self.send_message(message).await?;
-                info!("Sent message to SQS");
-            }
+            self.process_notification(notification, start_time).await?;
         }
 
         // Continue with normal listening
@@ -141,5 +155,37 @@ impl SqsProducer {
             self.send_message(message).await?;
             info!("Sent message to SQS");
         }
+    }
+
+    /// This function processes a notification and sends it to the SQS queue if
+    /// it is newer than the start time.
+    async fn process_notification(
+        &self,
+        notification: PgNotification,
+        start_time: chrono::DateTime<chrono::Utc>,
+    ) -> Result<(), HistoFluxError> {
+        info!("Processing notification: {:?}", notification);
+        let payload: NotificationPayload = serde_json::from_str(notification.payload())?;
+        info!("Payload: {:?}", payload);
+
+        if payload.raw_log.block_timestamp < start_time.timestamp() {
+            // Convert numeric fields to strings if RawLog expects them as strings
+            let raw_log = RawLog::builder()
+                .gs_id(payload.raw_log.gs_id.to_string())
+                .block_number(payload.raw_log.block_number)
+                .block_hash(payload.raw_log.block_hash)
+                .transaction_hash(payload.raw_log.transaction_hash)
+                .transaction_index(payload.raw_log.transaction_index)
+                .log_index(payload.raw_log.log_index)
+                .address(payload.raw_log.address)
+                .data(payload.raw_log.data)
+                .topics(payload.raw_log.topics)
+                .block_timestamp(payload.raw_log.block_timestamp)
+                .build();
+            let message = serde_json::to_string(&raw_log)?;
+            self.send_message(message).await?;
+            info!("Sent message to SQS");
+        }
+        Ok(())
     }
 }
