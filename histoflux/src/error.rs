@@ -11,5 +11,17 @@ pub enum HistoFluxError {
         >,
     ),
     #[error(transparent)]
+    EnvError(#[from] envy::Error),
+    #[error(transparent)]
+    LibError(#[from] shared_utils::error::LibError),
+    #[error(transparent)]
+    ModelError(#[from] models::error::ModelError),
+    #[error(transparent)]
+    ParseIntError(#[from] std::num::ParseIntError),
+    #[error(transparent)]
     SQSError(#[from] aws_sdk_sqs::Error),
+    #[error(transparent)]
+    SerdeJsonError(#[from] serde_json::Error),
+    #[error(transparent)]
+    SQLXError(#[from] sqlx::Error),
 }

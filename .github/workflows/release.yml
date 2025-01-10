@@ -123,6 +123,28 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Build and push Indexer Migrations
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: migrations/Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            ${{ env.REGISTRY }}/0xintuition/indexer-migrations:${{ steps.meta.outputs.version }}
+            ${{ env.REGISTRY }}/0xintuition/indexer-migrations:latest
+
+      - name: Build and push Histoflux
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: histoflux/Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            ${{ env.REGISTRY }}/0xintuition/histoflux:${{ steps.meta.outputs.version }}
+            ${{ env.REGISTRY }}/0xintuition/histoflux:latest
+
       - name: Check permissions
         run: |
           curl -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \

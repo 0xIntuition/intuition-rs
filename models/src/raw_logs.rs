@@ -29,7 +29,7 @@ pub struct RawLog {
 /// when we query the database
 #[derive(Debug, Deserialize, Serialize, sqlx::FromRow)]
 pub struct RawLogPresenter {
-    #[serde(rename(deserialize = "id"))]
+    pub id: i32,
     pub gs_id: String,
     pub block_number: i64,
     pub block_hash: String,
@@ -78,6 +78,69 @@ impl RawLog {
         .fetch_one(pg_pool)
         .await
         .map_err(|error| ModelError::InsertError(error.to_string()))
+    }
+
+    /// This is a method to get paginated raw logs from the database.
+    pub async fn get_paginated(
+        pg_pool: &PgPool,
+        page: i64,
+        page_size: i64,
+    ) -> Result<Vec<RawLogPresenter>, ModelError> {
+        sqlx::query_as::<_, RawLogPresenter>(
+            r#"
+            SELECT *
+            FROM raw_data
+            ORDER BY block_timestamp ASC
+            LIMIT $1 OFFSET $2
+            "#,
+        )
+        .bind(page_size)
+        .bind((page - 1) * page_size)
+        .fetch_all(pg_pool)
+        .await
+        .map_err(|error| ModelError::QueryError(error.to_string()))
+    }
+
+    /// This is a method to get the total count of raw logs in the database.
+    pub async fn get_total_count(pg_pool: &PgPool) -> Result<i64, ModelError> {
+        sqlx::query_scalar("SELECT COUNT(*) FROM raw_data")
+            .fetch_one(pg_pool)
+            .await
+            .map_err(|error| ModelError::QueryError(error.to_string()))
+    }
+
+    /// This is a method to get paginated raw logs from the database after a
+    /// given block timestamp.
+    pub async fn get_paginated_after_block_timestamp(
+        pool: &PgPool,
+        last_block_timestamp: i64,
+        limit: i64,
+    ) -> Result<Vec<RawLogPresenter>, ModelError> {
+        sqlx::query_as::<_, RawLogPresenter>(
+            r#"SELECT * FROM raw_data WHERE block_timestamp > $1 ORDER BY block_timestamp ASC LIMIT $2"#,
+        )
+        .bind(last_block_timestamp)
+        .bind(limit)
+        .fetch_all(pool)
+        .await
+        .map_err(ModelError::from)
+    }
+
+    /// This is a method to get paginated raw logs from the database after a
+    /// given id.
+    pub async fn get_paginated_after_id(
+        pool: &PgPool,
+        last_id: i32,
+        limit: i64,
+    ) -> Result<Vec<RawLogPresenter>, ModelError> {
+        sqlx::query_as::<_, RawLogPresenter>(
+            r#"SELECT * FROM raw_data WHERE id > $1 ORDER BY id ASC LIMIT $2"#,
+        )
+        .bind(last_id)
+        .bind(limit)
+        .fetch_all(pool)
+        .await
+        .map_err(ModelError::from)
     }
 }
 

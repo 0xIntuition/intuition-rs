@@ -7,7 +7,7 @@ This workspace contains the following crates:
 * `consumer`: contains the code to RAW, DECODED and RESOLVER consumers.
 * `envio-indexer`: contains the code to index the base-sepolia events of our contract using envio.
 * `hasura`: contains the migrations and hasura config.
-* `histoflux`: streams historical data from our contracts to a queue. Currently supports SQS queues.
+* `histoflux`: streams historical/live events from the database to an SQS queue.
 * `image-guard`: contains the code to guard the images.
 * `models`: contains the domain models for the intuition data as basic traits for the data.
 * `substreams-sink`: contains the code to consume the Substreams events.
