@@ -70,7 +70,7 @@ args = ["deploy", "--project", "hasura"]
 dependencies = ["remove-docker-volumes", "build-cli", "build-image-substreams-sink", "build-consumer", "build-image-guard", "build-image-hasura-migrations", "start-docker"]
 
 [tasks.build-docker-images]
-dependencies = [ "build-cli", "build-image-substreams-sink", "build-consumer", "build-image-guard", "build-image-hasura-migrations"]
+dependencies = [ "build-cli", "build-image-substreams-sink", "build-consumer", "build-image-guard", "build-image-hasura-migrations", "build-envio-indexer", "build-indexer-migrations", "build-histoflux"]
 
 
 # This task remove the docker volumes, start the docker compose stack
