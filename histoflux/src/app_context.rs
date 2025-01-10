@@ -2,7 +2,7 @@ use crate::error::HistoFluxError;
 
 use aws_sdk_sqs::Client as AWSClient;
 use log::info;
-use models::raw_logs::RawLog;
+use models::raw_logs::{RawLog, RawLogPresenter};
 use serde::Deserialize;
 use shared_utils::postgres::connect_to_db;
 use sqlx::postgres::PgListener;
@@ -107,21 +107,39 @@ impl SqsProducer {
     /// the SQS queue.
     pub async fn start_pooling_events(&self) -> Result<(), HistoFluxError> {
         info!("Starting polling events");
-        info!("Start pulling historical records");
-        // Process historical records first
-        self.process_historical_records().await?;
-        info!("Processed historical records");
-        info!("Start polling for new records");
-        // Then start polling for new records
+
+        // Start listening BEFORE processing historical records
         let mut listener = PgListener::connect(&self.env.indexer_db_url).await?;
         listener.listen("raw_logs_channel").await?;
 
-        loop {
-            if let Some(notification) = listener.try_recv().await? {
-                let payload: RawLog = serde_json::from_str(notification.payload())?;
+        // Get current timestamp before processing historical
+        let start_time = chrono::Utc::now();
+
+        info!("Start pulling historical records");
+        self.process_historical_records().await?;
+        info!("Processed historical records");
+
+        // Process any notifications that arrived during historical processing
+        while let Ok(notification) = listener.recv().await {
+            info!("Processing notification: {:?}", notification);
+            let payload: RawLogPresenter = serde_json::from_str(notification.payload())?;
+            info!("Payload: {:?}", payload);
+            // Only process if it's an old record we might have missed
+            if payload.block_timestamp < start_time.timestamp() {
                 let message = serde_json::to_string(&payload)?;
                 self.send_message(message).await?;
+                info!("Sent message to SQS");
             }
+        }
+
+        // Continue with normal listening
+        loop {
+            let notification = listener.recv().await?;
+            info!("Processing notification: {:?}", notification);
+            let payload: RawLog = serde_json::from_str(notification.payload())?;
+            let message = serde_json::to_string(&payload)?;
+            self.send_message(message).await?;
+            info!("Sent message to SQS");
         }
     }
 }

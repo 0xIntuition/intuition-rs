@@ -22,7 +22,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER raw_logs_notify_trigger
-    AFTER INSERT ON raw_logs
+    AFTER INSERT ON raw_data
     FOR EACH ROW
     EXECUTE FUNCTION notify_raw_logs();
     

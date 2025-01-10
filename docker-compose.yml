@@ -310,14 +310,17 @@ services:
       AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
       AWS_REGION: $AWS_REGION
       AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY 
-      DATABASE_URL: $INDEXER_DB_URL
+      INDEXER_DB_URL: $INDEXER_DB_URL
       LOCALSTACK_URL: $LOCALSTACK_URL
       RAW_CONSUMER_QUEUE_URL: $RAW_CONSUMER_QUEUE_URL
     depends_on:
       database:
         condition: service_healthy
       sqs:
-        condition: service_healthy  
+        condition: service_healthy
+      envio-indexer:
+        condition: service_started
+          
 
   hasura-migrations:
     container_name: hasura-migrations

@@ -3105,6 +3105,7 @@ dependencies = [
  "aws-config",
  "aws-sdk-sqs",
  "aws-smithy-runtime-api",
+ "chrono",
  "dotenvy",
  "env_logger",
  "envy",
