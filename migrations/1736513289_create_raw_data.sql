@@ -13,6 +13,19 @@ CREATE TABLE IF NOT EXISTS raw_data (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE OR REPLACE FUNCTION notify_raw_logs()
+RETURNS trigger AS $$
+BEGIN
+    PERFORM pg_notify('raw_logs_channel', row_to_json(NEW)::text);
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER raw_logs_notify_trigger
+    AFTER INSERT ON raw_logs
+    FOR EACH ROW
+    EXECUTE FUNCTION notify_raw_logs();
+    
 CREATE INDEX idx_raw_data_block_number ON raw_data(block_number);
 CREATE INDEX idx_raw_data_block_timestamp ON raw_data(block_timestamp);
 CREATE INDEX idx_raw_data_transaction_hash ON raw_data(transaction_hash);

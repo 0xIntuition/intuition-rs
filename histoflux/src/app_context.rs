@@ -1,64 +1,127 @@
-#[cfg(feature = "local")]
-use crate::config::LOCALSTACK_URL;
 use crate::error::HistoFluxError;
 
 use aws_sdk_sqs::Client as AWSClient;
-use std::sync::Arc;
+use log::info;
+use models::raw_logs::RawLog;
+use serde::Deserialize;
+use shared_utils::postgres::connect_to_db;
+use sqlx::postgres::PgListener;
+use sqlx::PgPool;
+/// The environment variables
+#[derive(Clone, Deserialize, Debug)]
+pub struct Env {
+    pub localstack_url: Option<String>,
+    pub raw_consumer_queue_url: String,
+    pub indexer_db_url: String,
+}
+
 /// Represents the SQS consumer
 pub struct SqsProducer {
     client: AWSClient,
-    input_queue: Arc<String>,
+    pg_pool: PgPool,
+    env: Env,
 }
 
 impl SqsProducer {
-    pub async fn new(input_queue: String) -> Self {
-        Self {
-            client: Self::get_aws_client().await,
-            input_queue: Arc::new(input_queue),
-        }
+    /// Initialize the application
+    pub async fn init() -> Result<Self, HistoFluxError> {
+        // Initialize the logger
+        env_logger::init();
+        // Read the .env file from the current directory or parents
+        dotenvy::dotenv().ok();
+        // Parse the .env file
+        let env = envy::from_env::<Env>()?;
+        // Create the SQS client
+        let client = Self::get_aws_client(env.localstack_url.clone()).await;
+        // Connect to the database
+        let pg_pool = connect_to_db(&env.indexer_db_url).await?;
+
+        Ok(Self {
+            client,
+            pg_pool,
+            env,
+        })
     }
 
     /// This function returns an [`aws_sdk_sqs::Client`] based on the
-    /// environment variables and feature flag. Note that if you are
-    /// running the local development environment and wants to connect
-    /// to the local SQS, you need to turn on the `local` flag
-    #[allow(unused_variables)]
-    pub async fn get_aws_client() -> AWSClient {
-        let shared_config = aws_config::from_env().load().await;
-        // When running locally we need to build the client differently
-        // by providing the `endpoint_url`
-        #[cfg(feature = "local")]
-        let shared_config = aws_config::from_env()
-            .endpoint_url(LOCALSTACK_URL)
-            .load()
-            .await;
+    /// environment variables
+    pub async fn get_aws_client(localstack_url: Option<String>) -> AWSClient {
+        let shared_config = if let Some(localstack_url) = localstack_url {
+            info!("Running SQS locally {:?}", localstack_url);
+
+            aws_config::from_env()
+                .endpoint_url(localstack_url)
+                .load()
+                .await
+        } else {
+            aws_config::from_env().load().await
+        };
 
         AWSClient::new(&shared_config)
     }
-
-    /// Get the AWS client
-    pub async fn get_client(&self) -> AWSClient {
-        self.client.clone()
-    }
-
-    /// Get the input queue
-    pub fn get_input_queue(&self) -> Arc<String> {
-        self.input_queue.clone()
-    }
-
     /// This function receives a [`String`] message and try to send it. Note
     /// that the message is serialized into a JSON string before being sent.
     pub async fn send_message(&self, message: String) -> Result<(), HistoFluxError> {
-        self.get_client()
-            .await
+        self.client
             .send_message()
-            .queue_url(&*self.get_input_queue())
+            .queue_url(&self.env.raw_consumer_queue_url)
             .message_body(&message)
+            .message_group_id("raw")
             // If the queue is FIFO, you need to set .message_deduplication_id
             // and message_group_id or configure the queue for ContentBasedDeduplication.
             .send()
             .await?;
 
         Ok(())
+    }
+
+    /// This function processes all existing records in the database and sends
+    /// them to the SQS queue.
+    pub async fn process_historical_records(&self) -> Result<(), HistoFluxError> {
+        let page_size = 100;
+        let mut last_processed_block_timestamp = 0;
+        // First, process all existing records
+        loop {
+            let logs = RawLog::get_paginated_after_block_timestamp(
+                &self.pg_pool,
+                last_processed_block_timestamp,
+                page_size,
+            )
+            .await?;
+
+            if logs.is_empty() {
+                break;
+            }
+
+            for log in logs {
+                info!("Processing log: {:?}", log);
+                last_processed_block_timestamp = log.block_timestamp;
+                let message = serde_json::to_string(&log)?;
+                self.send_message(message).await?;
+            }
+        }
+
+        Ok(())
+    }
+    /// This function starts polling the database for raw logs and sends them to
+    /// the SQS queue.
+    pub async fn start_pooling_events(&self) -> Result<(), HistoFluxError> {
+        info!("Starting polling events");
+        info!("Start pulling historical records");
+        // Process historical records first
+        self.process_historical_records().await?;
+        info!("Processed historical records");
+        info!("Start polling for new records");
+        // Then start polling for new records
+        let mut listener = PgListener::connect(&self.env.indexer_db_url).await?;
+        listener.listen("raw_logs_channel").await?;
+
+        loop {
+            if let Some(notification) = listener.try_recv().await? {
+                let payload: RawLog = serde_json::from_str(notification.payload())?;
+                let message = serde_json::to_string(&payload)?;
+                self.send_message(message).await?;
+            }
+        }
     }
 }
