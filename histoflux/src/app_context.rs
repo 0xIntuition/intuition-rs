@@ -1,5 +1,4 @@
 use crate::error::HistoFluxError;
-
 use aws_sdk_sqs::Client as AWSClient;
 use log::info;
 use models::raw_logs::RawLog;
@@ -24,7 +23,6 @@ pub struct SqsProducer {
 
 #[derive(Debug, Deserialize)]
 struct DbRawLog {
-    id: i32,
     gs_id: String,
     block_number: i64,
     block_hash: String,
@@ -41,7 +39,6 @@ struct DbRawLog {
 struct NotificationPayload {
     #[serde(flatten)]
     raw_log: DbRawLog,
-    created_at: chrono::DateTime<chrono::Utc>,
 }
 
 impl SqsProducer {
@@ -97,27 +94,60 @@ impl SqsProducer {
         Ok(())
     }
 
+    /// This function returns the page size based on the amount of logs. If the
+    /// amount of logs is less than 100, it returns the amount of logs. Otherwise,
+    /// it returns 100.
+    fn get_page_size(amount_of_logs: i64) -> i64 {
+        if amount_of_logs < 100 {
+            amount_of_logs
+        } else {
+            100
+        }
+    }
+
+    /// This function returns the ceiling division of two numbers.
+    fn ceiling_div(a: i64, b: i64) -> i64 {
+        if (a > 0) == (b > 0) {
+            // Same signs: use regular ceiling division
+            let result = (a.abs() + b.abs() - 1) / b.abs();
+            if a < 0 && b < 0 {
+                result // When both negative, result is positive
+            } else {
+                result * if a < 0 { -1 } else { 1 }
+            }
+        } else {
+            // Different signs: use floor division
+            a / b
+        }
+    }
+
     /// This function processes all existing records in the database and sends
     /// them to the SQS queue.
     pub async fn process_historical_records(&self) -> Result<(), HistoFluxError> {
-        let page_size = 100;
-        let mut last_processed_block_timestamp = 0;
-        // First, process all existing records
-        loop {
-            let logs = RawLog::get_paginated_after_block_timestamp(
-                &self.pg_pool,
-                last_processed_block_timestamp,
-                page_size,
-            )
-            .await?;
+        let mut last_processed_id = 0;
+        let amount_of_logs = RawLog::get_total_count(&self.pg_pool).await?;
+        // If there are no logs, we dont need to process anything
+        if amount_of_logs == 0 {
+            return Ok(());
+        }
+        let page_size = Self::get_page_size(amount_of_logs);
+        let pages = Self::ceiling_div(amount_of_logs, page_size);
+        info!("Processing {} pages with page size {}", pages, page_size);
 
-            if logs.is_empty() {
-                break;
-            }
+        'outer_loop: for _page in 0..pages {
+            let logs =
+                RawLog::get_paginated_after_id(&self.pg_pool, last_processed_id, page_size).await?;
 
+            info!("Processing {} logs", logs.len());
             for log in logs {
                 info!("Processing log: {:?}", log);
-                last_processed_block_timestamp = log.block_timestamp;
+                last_processed_id = log.id;
+                // This is added because we dont want to process more logs than
+                // the total amount we initially got. We have a listener that
+                // will send us new logs, so we dont need to process all logs.
+                if last_processed_id as i64 >= amount_of_logs {
+                    break 'outer_loop;
+                }
                 let message = serde_json::to_string(&log)?;
                 self.send_message(message).await?;
             }
@@ -139,6 +169,7 @@ impl SqsProducer {
 
         info!("Start pulling historical records");
         self.process_historical_records().await?;
+
         info!("Processed historical records");
 
         // Process any notifications that arrived during historical processing
@@ -187,5 +218,34 @@ impl SqsProducer {
             info!("Sent message to SQS");
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_ceiling_div() {
+        // Even division cases
+        assert_eq!(SqsProducer::ceiling_div(10, 2), 5);
+        assert_eq!(SqsProducer::ceiling_div(100, 10), 10);
+        assert_eq!(SqsProducer::ceiling_div(2, 100), 1);
+
+        // Uneven division cases (should round up)
+        assert_eq!(SqsProducer::ceiling_div(11, 2), 6);
+        assert_eq!(SqsProducer::ceiling_div(99, 10), 10);
+
+        // Edge cases
+        assert_eq!(SqsProducer::ceiling_div(1, 1), 1);
+        assert_eq!(SqsProducer::ceiling_div(0, 5), 0);
+
+        // Large numbers
+        assert_eq!(SqsProducer::ceiling_div(1000000, 3), 333334);
+
+        // Negative numbers (following integer division rules)
+        assert_eq!(SqsProducer::ceiling_div(-10, 3), -3);
+        assert_eq!(SqsProducer::ceiling_div(10, -3), -3);
+        assert_eq!(SqsProducer::ceiling_div(-10, -3), 4);
     }
 }

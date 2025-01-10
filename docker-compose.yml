@@ -320,7 +320,6 @@ services:
         condition: service_healthy
       envio-indexer:
         condition: service_started
-          
 
   hasura-migrations:
     container_name: hasura-migrations

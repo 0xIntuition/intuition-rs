@@ -29,7 +29,7 @@ pub struct RawLog {
 /// when we query the database
 #[derive(Debug, Deserialize, Serialize, sqlx::FromRow)]
 pub struct RawLogPresenter {
-    #[serde(rename(deserialize = "id"))]
+    pub id: i32,
     pub gs_id: String,
     pub block_number: i64,
     pub block_hash: String,
@@ -120,6 +120,23 @@ impl RawLog {
             r#"SELECT * FROM raw_data WHERE block_timestamp > $1 ORDER BY block_timestamp ASC LIMIT $2"#,
         )
         .bind(last_block_timestamp)
+        .bind(limit)
+        .fetch_all(pool)
+        .await
+        .map_err(ModelError::from)
+    }
+
+    /// This is a method to get paginated raw logs from the database after a
+    /// given id.
+    pub async fn get_paginated_after_id(
+        pool: &PgPool,
+        last_id: i32,
+        limit: i64,
+    ) -> Result<Vec<RawLogPresenter>, ModelError> {
+        sqlx::query_as::<_, RawLogPresenter>(
+            r#"SELECT * FROM raw_data WHERE id > $1 ORDER BY id ASC LIMIT $2"#,
+        )
+        .bind(last_id)
         .bind(limit)
         .fetch_all(pool)
         .await
