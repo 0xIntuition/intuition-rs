@@ -57,7 +57,9 @@ pub async fn current_share_price(State(_state): State<App>, value: JsonRpcExtrac
 
             // Handle the decoded call based on the function signature
             match decoded {
-                EthMultiVaultCalls::currentSharePrice(_) => {
+                EthMultiVaultCalls::currentSharePrice(event) => {
+                    println!("Event: {:?}", event);
+                    println!("Block number: {:?}", request.block_number);
                     // Process current share price call
                     Ok(JsonRpcResponse::success(
                         value.id,
