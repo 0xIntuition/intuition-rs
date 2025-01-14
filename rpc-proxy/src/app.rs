@@ -35,13 +35,14 @@ pub struct Env {
     pub proxy_database_url: String,
     pub proxy_rpc_url: String,
     pub proxy_contract_address: String,
+    pub proxy_schema: String,
 }
 
 #[derive(Clone)]
 pub struct App {
-    env: Env,
-    pg_pool: PgPool,
-    rpc_client: Arc<EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>>>,
+    pub env: Env,
+    pub pg_pool: PgPool,
+    pub rpc_client: Arc<EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>>>,
 }
 
 impl App {
