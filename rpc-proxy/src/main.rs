@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 mod app;
 mod endpoints;
 mod error;
+mod models;
 mod openapi;
 
 // Codegen from ABI file to interact with the Intuition contract.

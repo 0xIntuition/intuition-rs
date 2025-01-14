@@ -1,4 +1,3 @@
-use crate::EthMultiVault;
 use crate::{app::App, EthMultiVault::EthMultiVaultCalls};
 use alloy::primitives::Address;
 use alloy::sol_types::SolInterface;

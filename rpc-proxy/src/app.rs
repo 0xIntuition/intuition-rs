@@ -81,7 +81,7 @@ impl App {
     /// Serve the application.
     pub async fn serve(&self) -> Result<(), ApiError> {
         info!(
-            "Starting image-guard server on port {}...",
+            "Starting rpc-proxy server on port {}...",
             self.env.proxy_api_port
         );
         let listener = self.build_listener().await?;

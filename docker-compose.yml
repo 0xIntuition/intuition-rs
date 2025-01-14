@@ -9,7 +9,7 @@ services:
       PGPORT: $PG_PORT
     volumes:
       - database-data:/var/lib/postgresql/data/
-      - ./init-dbs.sh:/docker-entrypoint-initdb.d/init-dbs.sh
+      # - ./init-dbs.sh:/docker-entrypoint-initdb.d/init-dbs.sh
     ports:
       - $PG_PORT:$PG_PORT
     healthcheck:

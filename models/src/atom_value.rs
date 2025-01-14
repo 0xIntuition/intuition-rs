@@ -23,11 +23,10 @@ impl Model for AtomValue {}
 #[async_trait]
 impl SimpleCrud<U256Wrapper> for AtomValue {
     /// This is a method to upsert an atom value into the database.
-    async fn upsert(&self, pool: &PgPool) -> Result<Self, ModelError> {
-        sqlx::query_as!(
-            AtomValue,
+    async fn upsert(&self, pool: &PgPool, schema: &str) -> Result<Self, ModelError> {
+        let query = format!(
             r#"
-            INSERT INTO atom_value (id, account_id, thing_id, person_id, organization_id, book_id)
+            INSERT INTO {}.atom_value (id, account_id, thing_id, person_id, organization_id, book_id)
             VALUES ($1, $2, $3, $4, $5, $6)
             ON CONFLICT (id) DO UPDATE SET
                 account_id = EXCLUDED.account_id,
@@ -43,26 +42,36 @@ impl SimpleCrud<U256Wrapper> for AtomValue {
                 organization_id as "organization_id: U256Wrapper", 
                 book_id as "book_id: U256Wrapper"
             "#,
-            self.id.to_big_decimal()?,
-            self.account_id,
-            self.thing_id.as_ref().and_then(|w| w.to_big_decimal().ok()),
-            self.person_id
-                .as_ref()
-                .and_then(|w| w.to_big_decimal().ok()),
-            self.organization_id
-                .as_ref()
-                .and_then(|w| w.to_big_decimal().ok()),
-            self.book_id.as_ref().and_then(|w| w.to_big_decimal().ok()),
-        )
-        .fetch_one(pool)
-        .await
-        .map_err(|e| ModelError::InsertError(e.to_string()))
+            schema
+        );
+
+        sqlx::query_as::<_, AtomValue>(&query)
+            .bind(self.id.to_big_decimal()?)
+            .bind(self.account_id.clone())
+            .bind(self.thing_id.as_ref().and_then(|w| w.to_big_decimal().ok()))
+            .bind(
+                self.person_id
+                    .as_ref()
+                    .and_then(|w| w.to_big_decimal().ok()),
+            )
+            .bind(
+                self.organization_id
+                    .as_ref()
+                    .and_then(|w| w.to_big_decimal().ok()),
+            )
+            .bind(self.book_id.as_ref().and_then(|w| w.to_big_decimal().ok()))
+            .fetch_one(pool)
+            .await
+            .map_err(|e| ModelError::InsertError(e.to_string()))
     }
 
     /// This is a method to find an atom value by its id.
-    async fn find_by_id(id: U256Wrapper, pool: &PgPool) -> Result<Option<Self>, ModelError> {
-        sqlx::query_as!(
-            AtomValue,
+    async fn find_by_id(
+        id: U256Wrapper,
+        pool: &PgPool,
+        schema: &str,
+    ) -> Result<Option<Self>, ModelError> {
+        let query = format!(
             r#"
             SELECT 
                 id as "id: U256Wrapper", 
@@ -71,13 +80,16 @@ impl SimpleCrud<U256Wrapper> for AtomValue {
                 person_id as "person_id: U256Wrapper", 
                 organization_id as "organization_id: U256Wrapper", 
                 book_id as "book_id: U256Wrapper"
-            FROM atom_value
+            FROM {}.atom_value
             WHERE id = $1
             "#,
-            id.to_big_decimal()?
-        )
-        .fetch_optional(pool)
-        .await
-        .map_err(|e| ModelError::QueryError(e.to_string()))
+            schema
+        );
+
+        sqlx::query_as::<_, AtomValue>(&query)
+            .bind(id.to_big_decimal()?)
+            .fetch_optional(pool)
+            .await
+            .map_err(|e| ModelError::QueryError(e.to_string()))
     }
 }

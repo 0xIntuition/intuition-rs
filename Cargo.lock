@@ -5340,6 +5340,7 @@ dependencies = [
  "hex",
  "http 1.2.0",
  "log",
+ "macon",
  "models",
  "reqwest 0.12.9",
  "serde",
