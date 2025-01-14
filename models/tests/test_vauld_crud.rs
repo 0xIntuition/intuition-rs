@@ -5,7 +5,7 @@ mod tests {
         error::ModelError,
         test_helpers::{
             create_test_account_db, create_test_atom_db, create_test_triple,
-            create_test_vault_with_atom, create_test_vault_with_triple, setup_test_db,
+            create_test_vault_with_atom, create_test_vault_with_triple, setup_test_db, TEST_SCHEMA,
         },
         traits::SimpleCrud,
         types::U256Wrapper,
@@ -23,10 +23,10 @@ mod tests {
 
         // Create and store a test Vault
         let test_vault = create_test_vault_with_atom(test_atom.id);
-        let stored_vault = test_vault.upsert(&pool).await?;
+        let stored_vault = test_vault.upsert(&pool, TEST_SCHEMA).await?;
 
         // Test find_by_id
-        let found_vault = Vault::find_by_id(stored_vault.id.clone(), &pool).await?;
+        let found_vault = Vault::find_by_id(stored_vault.id.clone(), &pool, TEST_SCHEMA).await?;
         assert!(found_vault.is_some());
         let found_vault = found_vault.unwrap();
         assert_eq!(found_vault.id, stored_vault.id);
@@ -52,7 +52,7 @@ mod tests {
         let mut vault = create_test_vault_with_atom(test_atom.id);
 
         // Insert the vault
-        let inserted_vault = vault.upsert(&pool).await?;
+        let inserted_vault = vault.upsert(&pool, TEST_SCHEMA).await?;
 
         // Check if the inserted vault matches the original
         assert_eq!(inserted_vault.id, vault.id);
@@ -70,7 +70,7 @@ mod tests {
         vault.position_count = 10;
 
         // Upsert the updated vault
-        let updated_vault = vault.upsert(&pool).await?;
+        let updated_vault = vault.upsert(&pool, TEST_SCHEMA).await?;
 
         // Check if the updated vault matches the changes
         assert_eq!(updated_vault.id, vault.id);
@@ -87,13 +87,13 @@ mod tests {
 
         // Create a test Triple
         let test_triple = create_test_triple(creator.id, subject.id, predicate.id, object.id);
-        let stored_triple = test_triple.upsert(&pool).await?;
+        let stored_triple = test_triple.upsert(&pool, TEST_SCHEMA).await?;
 
         // Create a new Vault with a triple_id and no atom_id
         let mut new_vault = create_test_vault_with_triple(stored_triple.id);
 
         // Insert the vault
-        let newly_inserted_vault = new_vault.upsert(&pool).await?;
+        let newly_inserted_vault = new_vault.upsert(&pool, TEST_SCHEMA).await?;
 
         // Check if the inserted vault matches the original
         assert_eq!(newly_inserted_vault.id, new_vault.id);
@@ -114,7 +114,7 @@ mod tests {
         new_vault.position_count = 10;
 
         // Upsert the updated vault
-        let updated_vault = new_vault.upsert(&pool).await?;
+        let updated_vault = new_vault.upsert(&pool, TEST_SCHEMA).await?;
 
         // Check if the updated vault matches the changes
         assert_eq!(updated_vault.id, new_vault.id);

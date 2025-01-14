@@ -2,7 +2,8 @@
 mod tests {
     use chrono::Utc;
     use models::{
-        substreams_cursor::SubstreamsCursor, test_helpers::setup_test_db, traits::SimpleCrud,
+        substreams_cursor::SubstreamsCursor, test_helpers::setup_test_db,
+        test_helpers::TEST_SCHEMA, traits::SimpleCrud,
     };
 
     #[tokio::test]
@@ -21,15 +22,15 @@ mod tests {
         };
 
         // Insert the SubstreamsCursor
-        let inserted_cursor = cursor.upsert(&pool).await.unwrap();
+        let inserted_cursor = cursor.upsert(&pool, TEST_SCHEMA).await.unwrap();
         assert_eq!(inserted_cursor.id, cursor.id);
 
         // Upsert the SubstreamsCursor again
-        let upserted_cursor = cursor.upsert(&pool).await.unwrap();
+        let upserted_cursor = cursor.upsert(&pool, TEST_SCHEMA).await.unwrap();
         assert_eq!(upserted_cursor.id, cursor.id);
 
         // Retrieve the SubstreamsCursor by id
-        let found_cursor = SubstreamsCursor::find_by_id(cursor.id, &pool)
+        let found_cursor = SubstreamsCursor::find_by_id(cursor.id, &pool, TEST_SCHEMA)
             .await
             .unwrap();
         assert!(found_cursor.is_some());

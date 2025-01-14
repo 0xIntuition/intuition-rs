@@ -39,7 +39,7 @@ impl SimpleCrud<String> for Account {
         let query = format!(
             r#"
             INSERT INTO {}.account (id, atom_id, label, image, type)
-            VALUES ($1, $2, $3, $4, $5::text::{}account_type)
+            VALUES ($1, $2, $3, $4, $5::text::{}.account_type)
             ON CONFLICT (id) DO UPDATE SET
                 atom_id = EXCLUDED.atom_id,
                 label = EXCLUDED.label,
@@ -47,10 +47,10 @@ impl SimpleCrud<String> for Account {
                 type = EXCLUDED.type
             RETURNING 
                 id, 
-                atom_id as "atom_id: U256Wrapper", 
+                atom_id, 
                 label, 
                 image, 
-                type as "account_type: AccountType"
+                type as account_type
             "#,
             schema, schema
         );
@@ -76,10 +76,10 @@ impl SimpleCrud<String> for Account {
             r#"
             SELECT 
                 id, 
-                atom_id as "atom_id: U256Wrapper", 
+                atom_id, 
                 label, 
                 image, 
-                type as "account_type: AccountType"
+                type as account_type
             FROM {}.account
             WHERE id = $1
             "#,

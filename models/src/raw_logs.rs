@@ -56,28 +56,35 @@ where
 
 impl RawLog {
     /// This is a method to insert a raw log into the database.
-    pub async fn insert(&self, pg_pool: &PgPool) -> Result<RawLogPresenter, ModelError> {
-        sqlx::query_as::<_, RawLogPresenter>(
+    pub async fn insert(
+        &self,
+        pg_pool: &PgPool,
+        schema: &str,
+    ) -> Result<RawLogPresenter, ModelError> {
+        let query = format!(
             r#"
-           INSERT INTO raw_data (gs_id,block_number,block_hash,transaction_hash,transaction_index,
+           INSERT INTO {}.raw_data (gs_id,block_number,block_hash,transaction_hash,transaction_index,
            log_index,address,data,topics,block_timestamp)
            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
            RETURNING *
            "#,
-        )
-        .bind(self.gs_id.clone())
-        .bind(self.block_number)
-        .bind(self.block_hash.clone())
-        .bind(self.transaction_hash.clone())
-        .bind(self.transaction_index)
-        .bind(self.log_index)
-        .bind(self.address.clone())
-        .bind(self.data.clone())
-        .bind(self.topics.clone())
-        .bind(self.block_timestamp)
-        .fetch_one(pg_pool)
-        .await
-        .map_err(|error| ModelError::InsertError(error.to_string()))
+            schema,
+        );
+
+        sqlx::query_as::<_, RawLogPresenter>(&query)
+            .bind(self.gs_id.clone())
+            .bind(self.block_number)
+            .bind(self.block_hash.clone())
+            .bind(self.transaction_hash.clone())
+            .bind(self.transaction_index)
+            .bind(self.log_index)
+            .bind(self.address.clone())
+            .bind(self.data.clone())
+            .bind(self.topics.clone())
+            .bind(self.block_timestamp)
+            .fetch_one(pg_pool)
+            .await
+            .map_err(|error| ModelError::InsertError(error.to_string()))
     }
 
     /// This is a method to get paginated raw logs from the database.
@@ -85,25 +92,36 @@ impl RawLog {
         pg_pool: &PgPool,
         page: i64,
         page_size: i64,
+        schema: &str,
     ) -> Result<Vec<RawLogPresenter>, ModelError> {
-        sqlx::query_as::<_, RawLogPresenter>(
+        let query = format!(
             r#"
             SELECT *
-            FROM raw_data
+            FROM {}.raw_data
             ORDER BY block_timestamp ASC
             LIMIT $1 OFFSET $2
             "#,
-        )
-        .bind(page_size)
-        .bind((page - 1) * page_size)
-        .fetch_all(pg_pool)
-        .await
-        .map_err(|error| ModelError::QueryError(error.to_string()))
+            schema,
+        );
+
+        sqlx::query_as::<_, RawLogPresenter>(&query)
+            .bind(page_size)
+            .bind((page - 1) * page_size)
+            .fetch_all(pg_pool)
+            .await
+            .map_err(|error| ModelError::QueryError(error.to_string()))
     }
 
     /// This is a method to get the total count of raw logs in the database.
-    pub async fn get_total_count(pg_pool: &PgPool) -> Result<i64, ModelError> {
-        sqlx::query_scalar("SELECT COUNT(*) FROM raw_data")
+    pub async fn get_total_count(pg_pool: &PgPool, schema: &str) -> Result<i64, ModelError> {
+        let query = format!(
+            r#"
+            SELECT COUNT(*) FROM {}.raw_data
+            "#,
+            schema,
+        );
+
+        sqlx::query_scalar(&query)
             .fetch_one(pg_pool)
             .await
             .map_err(|error| ModelError::QueryError(error.to_string()))
@@ -115,15 +133,20 @@ impl RawLog {
         pool: &PgPool,
         last_block_timestamp: i64,
         limit: i64,
+        schema: &str,
     ) -> Result<Vec<RawLogPresenter>, ModelError> {
-        sqlx::query_as::<_, RawLogPresenter>(
-            r#"SELECT * FROM raw_data WHERE block_timestamp > $1 ORDER BY block_timestamp ASC LIMIT $2"#,
-        )
-        .bind(last_block_timestamp)
-        .bind(limit)
-        .fetch_all(pool)
-        .await
-        .map_err(ModelError::from)
+        let query = format!(
+            r#"
+            SELECT * FROM {}.raw_data WHERE block_timestamp > $1 ORDER BY block_timestamp ASC LIMIT $2"#,
+            schema,
+        );
+
+        sqlx::query_as::<_, RawLogPresenter>(&query)
+            .bind(last_block_timestamp)
+            .bind(limit)
+            .fetch_all(pool)
+            .await
+            .map_err(ModelError::from)
     }
 
     /// This is a method to get paginated raw logs from the database after a
@@ -132,15 +155,20 @@ impl RawLog {
         pool: &PgPool,
         last_id: i32,
         limit: i64,
+        schema: &str,
     ) -> Result<Vec<RawLogPresenter>, ModelError> {
-        sqlx::query_as::<_, RawLogPresenter>(
-            r#"SELECT * FROM raw_data WHERE id > $1 ORDER BY id ASC LIMIT $2"#,
-        )
-        .bind(last_id)
-        .bind(limit)
-        .fetch_all(pool)
-        .await
-        .map_err(ModelError::from)
+        let query = format!(
+            r#"
+            SELECT * FROM {}.raw_data WHERE id > $1 ORDER BY id ASC LIMIT $2"#,
+            schema,
+        );
+
+        sqlx::query_as::<_, RawLogPresenter>(&query)
+            .bind(last_id)
+            .bind(limit)
+            .fetch_all(pool)
+            .await
+            .map_err(ModelError::from)
     }
 }
 

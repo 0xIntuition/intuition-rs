@@ -3,7 +3,7 @@ mod tests {
     use models::{
         error::ModelError,
         person::Person,
-        test_helpers::{create_test_person, setup_test_db},
+        test_helpers::{create_test_person, setup_test_db, TEST_SCHEMA},
         traits::SimpleCrud,
     };
 
@@ -15,7 +15,7 @@ mod tests {
         let initial_person = create_test_person();
 
         // Test upsert of initial Person
-        let stored_person = initial_person.upsert(&pool).await?;
+        let stored_person = initial_person.upsert(&pool, TEST_SCHEMA).await?;
         assert_eq!(stored_person.id, initial_person.id);
         assert_eq!(stored_person.name, initial_person.name);
         assert_eq!(stored_person.email, initial_person.email);
@@ -26,7 +26,7 @@ mod tests {
         updated_person.email = Some("updated@example.com".to_string());
 
         // Test upsert of updated Person
-        let stored_updated_person = updated_person.upsert(&pool).await?;
+        let stored_updated_person = updated_person.upsert(&pool, TEST_SCHEMA).await?;
         assert_eq!(
             stored_updated_person.name,
             Some("Updated Test Person".to_string())
@@ -37,7 +37,7 @@ mod tests {
         );
 
         // Test find_by_id
-        let found_person = Person::find_by_id(initial_person.id.clone(), &pool)
+        let found_person = Person::find_by_id(initial_person.id.clone(), &pool, TEST_SCHEMA)
             .await?
             .expect("Person should exist");
 

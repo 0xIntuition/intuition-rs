@@ -35,12 +35,12 @@ impl SimpleCrud<U256Wrapper> for AtomValue {
                 organization_id = EXCLUDED.organization_id,
                 book_id = EXCLUDED.book_id
             RETURNING 
-                id as "id: U256Wrapper", 
-                account_id, 
-                thing_id as "thing_id: U256Wrapper", 
-                person_id as "person_id: U256Wrapper", 
-                organization_id as "organization_id: U256Wrapper", 
-                book_id as "book_id: U256Wrapper"
+                id, 
+                account_id,
+                thing_id,
+                person_id,
+                organization_id,
+                book_id
             "#,
             schema
         );
@@ -74,12 +74,12 @@ impl SimpleCrud<U256Wrapper> for AtomValue {
         let query = format!(
             r#"
             SELECT 
-                id as "id: U256Wrapper", 
+                id, 
                 account_id, 
-                thing_id as "thing_id: U256Wrapper", 
-                person_id as "person_id: U256Wrapper", 
-                organization_id as "organization_id: U256Wrapper", 
-                book_id as "book_id: U256Wrapper"
+                thing_id, 
+                person_id, 
+                organization_id, 
+                book_id
             FROM {}.atom_value
             WHERE id = $1
             "#,

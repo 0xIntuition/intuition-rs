@@ -18,15 +18,18 @@ pub struct SharePricePresenter {
 }
 
 impl SharePrice {
-    pub async fn insert(&self, db: &PgPool) -> Result<(), sqlx::Error> {
-        sqlx::query!(
-            "INSERT INTO share_price (id, block_number, share_price) VALUES ($1, $2, $3)",
-            self.id,
-            self.block_number,
-            self.share_price,
-        )
-        .execute(db)
-        .await?;
+    pub async fn insert(&self, db: &PgPool, schema: &str) -> Result<(), sqlx::Error> {
+        let query = format!(
+            "INSERT INTO {}.share_price (id, block_number, share_price) VALUES ($1, $2, $3)",
+            schema,
+        );
+
+        sqlx::query(&query)
+            .bind(&self.id)
+            .bind(&self.block_number)
+            .bind(&self.share_price)
+            .execute(db)
+            .await?;
         Ok(())
     }
 }

@@ -2,7 +2,7 @@
 mod tests {
     use models::{
         error::ModelError,
-        test_helpers::{create_test_thing, setup_test_db},
+        test_helpers::{create_test_thing, setup_test_db, TEST_SCHEMA},
         thing::Thing,
         traits::SimpleCrud,
     };
@@ -16,7 +16,7 @@ mod tests {
         let initial_thing = create_test_thing();
 
         // Test upsert of initial Thing
-        let stored_thing = initial_thing.upsert(&pool).await?;
+        let stored_thing = initial_thing.upsert(&pool, TEST_SCHEMA).await?;
         assert_eq!(stored_thing.id, initial_thing.id);
         assert_eq!(stored_thing.name, initial_thing.name);
         assert_eq!(stored_thing.description, initial_thing.description);
@@ -28,13 +28,13 @@ mod tests {
         updated_thing.url = Some("https://example.com/updated".to_string());
 
         // Test upsert of updated Thing
-        let stored_updated_thing = updated_thing.upsert(&pool).await?;
+        let stored_updated_thing = updated_thing.upsert(&pool, TEST_SCHEMA).await?;
         assert_eq!(stored_updated_thing.name, updated_thing.name);
         assert_eq!(stored_updated_thing.description, updated_thing.description);
         assert_eq!(stored_updated_thing.url, updated_thing.url);
 
         // Test find_by_id
-        let found_thing = Thing::find_by_id(stored_updated_thing.id.clone(), &pool)
+        let found_thing = Thing::find_by_id(stored_updated_thing.id.clone(), &pool, TEST_SCHEMA)
             .await?
             .expect("Thing should exist");
 

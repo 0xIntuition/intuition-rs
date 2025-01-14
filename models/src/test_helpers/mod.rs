@@ -26,6 +26,8 @@ use rand::{
 };
 use sqlx::{postgres::PgPoolOptions, PgPool};
 
+pub const TEST_SCHEMA: &str = "base_sepolia_backend";
+
 /// This function sets up a test database connection pool.
 pub async fn setup_test_db() -> PgPool {
     let database_url = "postgres://testuser:test@localhost:5435/storage";
@@ -64,7 +66,10 @@ pub async fn create_test_account() -> Account {
 /// This function creates a test account and stores it in the database.
 pub async fn create_test_account_db(pool: &PgPool) -> Account {
     let account = create_test_account().await;
-    account.upsert(pool).await.expect("Failed to store account")
+    account
+        .upsert(pool, TEST_SCHEMA)
+        .await
+        .expect("Failed to store account")
 }
 
 /// This function creates a test atom.
@@ -131,12 +136,18 @@ pub fn create_test_vault_with_triple(triple_id: U256Wrapper) -> Vault {
 
 /// This function creates a test vault and stores it in the database.
 pub async fn create_test_vault_db(pool: &PgPool, vault: Vault) -> Vault {
-    vault.upsert(pool).await.expect("Failed to store vault")
+    vault
+        .upsert(pool, TEST_SCHEMA)
+        .await
+        .expect("Failed to store vault")
 }
 
 /// This function creates a test triple and stores it in the database.
 pub async fn create_test_triple_db(pool: &PgPool, triple: Triple) -> Triple {
-    triple.upsert(pool).await.expect("Failed to store triple")
+    triple
+        .upsert(pool, TEST_SCHEMA)
+        .await
+        .expect("Failed to store triple")
 }
 
 /// This function creates a test atom and stores it in the database.
@@ -147,7 +158,10 @@ pub async fn create_test_atom_db(pool: &PgPool) -> Atom {
 
     // Step 3: Create a test Atom
     let test_atom = create_test_atom(stored_wallet.id, stored_creator.id);
-    test_atom.upsert(pool).await.expect("Failed to store atom")
+    test_atom
+        .upsert(pool, TEST_SCHEMA)
+        .await
+        .expect("Failed to store atom")
 }
 
 /// This function creates a test deposit.
@@ -175,7 +189,10 @@ pub fn create_test_deposit(
 
 /// This function creates a test deposit and stores it in the database.
 pub async fn create_test_deposit_db(pool: &PgPool, deposit: Deposit) -> Deposit {
-    deposit.upsert(pool).await.expect("Failed to store deposit")
+    deposit
+        .upsert(pool, TEST_SCHEMA)
+        .await
+        .expect("Failed to store deposit")
 }
 
 /// This function creates a test event with an atom.
@@ -204,7 +221,10 @@ pub fn create_test_event_with_triple(triple_id: U256Wrapper) -> Event {
 
 /// This function creates a test event and stores it in the database.
 pub async fn create_test_event_db(pool: &PgPool, event: Event) -> Event {
-    event.upsert(pool).await.expect("Failed to store event")
+    event
+        .upsert(pool, TEST_SCHEMA)
+        .await
+        .expect("Failed to store event")
 }
 
 /// This function creates a test fee transfer.
@@ -223,7 +243,7 @@ pub fn create_test_fee_transfer(sender_id: String, receiver_id: String) -> FeeTr
 /// This function creates a test fee transfer and stores it in the database.
 pub async fn create_test_fee_transfer_db(pool: &PgPool, fee_transfer: FeeTransfer) -> FeeTransfer {
     fee_transfer
-        .upsert(pool)
+        .upsert(pool, TEST_SCHEMA)
         .await
         .expect("Failed to store fee transfer")
 }
@@ -252,7 +272,7 @@ pub fn create_test_redemption(
 /// This function creates a test redemption and stores it in the database.
 pub async fn create_test_redemption_db(pool: &PgPool, redemption: Redemption) -> Redemption {
     redemption
-        .upsert(pool)
+        .upsert(pool, TEST_SCHEMA)
         .await
         .expect("Failed to store redemption")
 }
@@ -270,7 +290,7 @@ pub async fn create_test_organization_db(
     organization: Organization,
 ) -> Organization {
     organization
-        .upsert(pool)
+        .upsert(pool, TEST_SCHEMA)
         .await
         .expect("Failed to store organization")
 }
@@ -282,7 +302,10 @@ pub fn create_test_person() -> Person {
 
 /// This function creates a test person and stores it in the database.
 pub async fn create_test_person_db(pool: &PgPool, person: Person) -> Person {
-    person.upsert(pool).await.expect("Failed to store person")
+    person
+        .upsert(pool, TEST_SCHEMA)
+        .await
+        .expect("Failed to store person")
 }
 
 /// This function creates a test position.
@@ -298,7 +321,7 @@ pub fn create_test_position(account_id: String, vault_id: U256Wrapper) -> Positi
 /// This function creates a test position and stores it in the database.
 pub async fn create_test_position_db(pool: &PgPool, position: Position) -> Position {
     position
-        .upsert(pool)
+        .upsert(pool, TEST_SCHEMA)
         .await
         .expect("Failed to store position")
 }
@@ -321,7 +344,7 @@ pub async fn create_test_predicate_object_db(
     predicate_object: PredicateObject,
 ) -> PredicateObject {
     predicate_object
-        .upsert(pool)
+        .upsert(pool, TEST_SCHEMA)
         .await
         .expect("Failed to store predicate object")
 }

@@ -6,6 +6,7 @@ mod tests {
         error::ModelError,
         test_helpers::{
             create_test_account_db, create_test_atom_db, create_test_triple, setup_test_db,
+            TEST_SCHEMA,
         },
         traits::SimpleCrud,
         triple::Triple,
@@ -42,13 +43,13 @@ mod tests {
         let triple = create_test_triple(creator.id, subject.id, predicate.id, object.id);
 
         // Test insertion
-        let inserted_triple: Triple = triple.upsert(&pool).await?;
+        let inserted_triple: Triple = triple.upsert(&pool, TEST_SCHEMA).await?;
 
         assert_eq!(inserted_triple, triple);
         assert_eq!(inserted_triple.id, triple.id);
 
         // Test retrieval
-        let retrieved_triple = Triple::find_by_id(triple.id.clone(), &pool)
+        let retrieved_triple = Triple::find_by_id(triple.id.clone(), &pool, TEST_SCHEMA)
             .await?
             .expect("Triple not found");
         assert_eq!(retrieved_triple.id, triple.id);
@@ -66,12 +67,12 @@ mod tests {
         let mut updated_triple = triple.clone();
         updated_triple.block_number = U256Wrapper::from_str("2").unwrap();
 
-        let upserted_triple = updated_triple.upsert(&pool).await?;
+        let upserted_triple = updated_triple.upsert(&pool, TEST_SCHEMA).await?;
         assert_eq!(upserted_triple.id, updated_triple.id);
         assert_eq!(upserted_triple.block_number, updated_triple.block_number);
 
         // Verify update
-        let final_triple = Triple::find_by_id(triple.id, &pool)
+        let final_triple = Triple::find_by_id(triple.id, &pool, TEST_SCHEMA)
             .await?
             .expect("Triple not found");
         assert_eq!(

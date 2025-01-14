@@ -5,7 +5,7 @@ mod tests {
         position::Position,
         test_helpers::{
             create_test_account_db, create_test_atom, create_test_position,
-            create_test_vault_with_atom, setup_test_db,
+            create_test_vault_with_atom, setup_test_db, TEST_SCHEMA,
         },
         traits::SimpleCrud,
         types::U256Wrapper,
@@ -20,18 +20,18 @@ mod tests {
         let creator = create_test_account_db(&pool).await;
 
         let atom = create_test_atom(wallet.id.clone(), creator.id.clone());
-        let stored_atom = atom.upsert(&pool).await.unwrap();
+        let stored_atom = atom.upsert(&pool, TEST_SCHEMA).await.unwrap();
 
         // Create and store a test Vault
         let test_vault = create_test_vault_with_atom(stored_atom.id);
 
-        let stored_vault = test_vault.upsert(&pool).await.unwrap();
+        let stored_vault = test_vault.upsert(&pool, TEST_SCHEMA).await.unwrap();
 
         // Create initial position
         let position = create_test_position(wallet.id, stored_vault.id);
 
         // Insert the position
-        position.upsert(&pool).await?;
+        position.upsert(&pool, TEST_SCHEMA).await?;
 
         // Update position with new values
         let updated_position = Position {
@@ -42,10 +42,10 @@ mod tests {
         };
 
         // Update using upsert
-        updated_position.upsert(&pool).await?;
+        updated_position.upsert(&pool, TEST_SCHEMA).await?;
 
         // Retrieve the position and verify updated values
-        let retrieved_position = Position::find_by_id(position.id.clone(), &pool)
+        let retrieved_position = Position::find_by_id(position.id.clone(), &pool, TEST_SCHEMA)
             .await?
             .expect("Position should exist");
 

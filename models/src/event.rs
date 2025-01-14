@@ -46,12 +46,11 @@ impl SimpleCrud<String> for Event {
     ///
     /// Inserts a new record or updates an existing one based on the Event's ID.
     /// Utilizes proper serialization for complex types to ensure type safety and consistency.
-    async fn upsert(&self, pool: &PgPool) -> Result<Self, ModelError> {
-        sqlx::query_as!(
-            Event,
+    async fn upsert(&self, pool: &PgPool, schema: &str) -> Result<Self, ModelError> {
+        let query = format!(
             r#"
-            INSERT INTO event (id, type, atom_id, triple_id, fee_transfer_id, deposit_id, redemption_id, block_number, block_timestamp, transaction_hash)
-            VALUES ($1, $2::text::event_type, $3, $4, $5, $6, $7, $8, $9, $10)
+            INSERT INTO {}.event (id, type, atom_id, triple_id, fee_transfer_id, deposit_id, redemption_id, block_number, block_timestamp, transaction_hash)
+            VALUES ($1, $2::text::{}.event_type, $3, $4, $5, $6, $7, $8, $9, $10)
             ON CONFLICT (id) DO UPDATE SET
                 type = EXCLUDED.type,
                 atom_id = EXCLUDED.atom_id,
@@ -62,53 +61,58 @@ impl SimpleCrud<String> for Event {
                 block_number = EXCLUDED.block_number,
                 block_timestamp = EXCLUDED.block_timestamp,
                 transaction_hash = EXCLUDED.transaction_hash
-            RETURNING id, type as "event_type: EventType", 
-                      atom_id as "atom_id: U256Wrapper",
-                      triple_id as "triple_id: U256Wrapper",
-                      fee_transfer_id,
-                      deposit_id,
-                      redemption_id,
-                      block_number as "block_number: U256Wrapper",
-                      block_timestamp,
-                      transaction_hash
+            RETURNING id, type, atom_id, triple_id, fee_transfer_id, deposit_id, redemption_id, block_number, block_timestamp, transaction_hash
             "#,
-            self.id,
-            self.event_type.to_string(),
-            self.atom_id.as_ref().and_then(|w| w.to_big_decimal().ok()),
-            self.triple_id.as_ref().and_then(|w| w.to_big_decimal().ok()),
-            self.fee_transfer_id,
-            self.deposit_id,
-            self.redemption_id,
-            self.block_number.to_big_decimal()?,
-            self.block_timestamp,
-            &self.transaction_hash,
-        )
-        .fetch_one(pool)
-        .await
-        .map_err(|e| ModelError::InsertError(e.to_string()))
+            schema, schema
+        );
+
+        sqlx::query_as::<_, Event>(&query)
+            .bind(self.id.clone())
+            .bind(self.event_type.to_string())
+            .bind(self.atom_id.as_ref().and_then(|w| w.to_big_decimal().ok()))
+            .bind(
+                self.triple_id
+                    .as_ref()
+                    .and_then(|w| w.to_big_decimal().ok()),
+            )
+            .bind(self.fee_transfer_id.clone())
+            .bind(self.deposit_id.clone())
+            .bind(self.redemption_id.clone())
+            .bind(self.block_number.to_big_decimal()?)
+            .bind(self.block_timestamp)
+            .bind(&self.transaction_hash)
+            .fetch_one(pool)
+            .await
+            .map_err(|e| ModelError::InsertError(e.to_string()))
     }
 
     /// Finds an event by its id.
-    async fn find_by_id(id: String, pool: &PgPool) -> Result<Option<Self>, ModelError> {
-        sqlx::query_as!(
-            Event,
+    async fn find_by_id(
+        id: String,
+        pool: &PgPool,
+        schema: &str,
+    ) -> Result<Option<Self>, ModelError> {
+        let query = format!(
             r#"
-            SELECT id, type as "event_type: EventType",
-                   atom_id as "atom_id: U256Wrapper",
-                   triple_id as "triple_id: U256Wrapper",
+            SELECT id, type,
+                   atom_id,
+                   triple_id,
                    fee_transfer_id,
                    deposit_id,
                    redemption_id,
-                   block_number as "block_number: U256Wrapper",
+                   block_number,
                    block_timestamp,
                    transaction_hash
-            FROM event
+            FROM {}.event
             WHERE id = $1
             "#,
-            id
-        )
-        .fetch_optional(pool)
-        .await
-        .map_err(|e| ModelError::QueryError(e.to_string()))
+            schema,
+        );
+
+        sqlx::query_as::<_, Event>(&query)
+            .bind(id)
+            .fetch_optional(pool)
+            .await
+            .map_err(|e| ModelError::QueryError(e.to_string()))
     }
 }

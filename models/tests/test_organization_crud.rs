@@ -2,7 +2,7 @@
 mod tests {
     use models::{
         organization::Organization,
-        test_helpers::{create_test_organization, setup_test_db},
+        test_helpers::{create_test_organization, setup_test_db, TEST_SCHEMA},
         traits::SimpleCrud,
     };
 
@@ -15,7 +15,7 @@ mod tests {
 
         // Test initial upsert
         let stored_org = org
-            .upsert(&pool)
+            .upsert(&pool, TEST_SCHEMA)
             .await
             .expect("Failed to store organization");
         assert_eq!(stored_org.name, org.name);
@@ -28,7 +28,7 @@ mod tests {
 
         // Test update
         let stored_updated_org = updated_org
-            .upsert(&pool)
+            .upsert(&pool, TEST_SCHEMA)
             .await
             .expect("Failed to update organization");
         assert_eq!(
@@ -41,7 +41,7 @@ mod tests {
         );
 
         // Test find_by_id
-        let found_org = Organization::find_by_id(org.id.clone(), &pool)
+        let found_org = Organization::find_by_id(org.id.clone(), &pool, TEST_SCHEMA)
             .await
             .expect("Failed to find organization")
             .expect("Organization not found");

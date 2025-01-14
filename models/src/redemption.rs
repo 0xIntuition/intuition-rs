@@ -30,11 +30,10 @@ impl Model for Redemption {}
 impl SimpleCrud<String> for Redemption {
     /// Upserts a redemption record in the database.
     /// If a record with the same ID exists, it will be updated, otherwise a new record will be created.
-    async fn upsert(&self, pool: &sqlx::PgPool) -> Result<Self, ModelError> {
-        let result = sqlx::query_as!(
-            Redemption,
+    async fn upsert(&self, pool: &sqlx::PgPool, schema: &str) -> Result<Self, ModelError> {
+        let query = format!(
             r#"
-            INSERT INTO redemption (
+            INSERT INTO {}.redemption (
                 id, sender_id, receiver_id, sender_total_shares_in_vault,
                 assets_for_receiver, shares_redeemed_by_sender, exit_fee, vault_id,
                 block_number, block_timestamp, transaction_hash
@@ -52,59 +51,64 @@ impl SimpleCrud<String> for Redemption {
                 transaction_hash = EXCLUDED.transaction_hash
             RETURNING 
                 id, sender_id, receiver_id,
-                sender_total_shares_in_vault as "sender_total_shares_in_vault: U256Wrapper",
-                assets_for_receiver as "assets_for_receiver: U256Wrapper",
-                shares_redeemed_by_sender as "shares_redeemed_by_sender: U256Wrapper",
-                exit_fee as "exit_fee: U256Wrapper",
-                vault_id as "vault_id: U256Wrapper",
-                block_number as "block_number: U256Wrapper",
+                sender_total_shares_in_vault,
+                assets_for_receiver,
+                shares_redeemed_by_sender,
+                exit_fee,
+                vault_id,
+                block_number,
                 block_timestamp,
                 transaction_hash
-            "#,
-            self.id,
-            self.sender_id,
-            self.receiver_id,
-            self.sender_total_shares_in_vault.to_big_decimal()?,
-            self.assets_for_receiver.to_big_decimal()?,
-            self.shares_redeemed_by_sender.to_big_decimal()?,
-            self.exit_fee.to_big_decimal()?,
-            self.vault_id.to_big_decimal()?,
-            self.block_number.to_big_decimal()?,
-            self.block_timestamp,
-            self.transaction_hash,
-        )
-        .fetch_one(pool)
-        .await
-        .map_err(|e| crate::error::ModelError::InsertError(e.to_string()))?;
+                    "#,
+            schema,
+        );
 
-        Ok(result)
+        sqlx::query_as::<_, Redemption>(&query)
+            .bind(self.id.clone())
+            .bind(self.sender_id.clone())
+            .bind(self.receiver_id.clone())
+            .bind(self.sender_total_shares_in_vault.to_big_decimal()?)
+            .bind(self.assets_for_receiver.to_big_decimal()?)
+            .bind(self.shares_redeemed_by_sender.to_big_decimal()?)
+            .bind(self.exit_fee.to_big_decimal()?)
+            .bind(self.vault_id.to_big_decimal()?)
+            .bind(self.block_number.to_big_decimal()?)
+            .bind(self.block_timestamp)
+            .bind(self.transaction_hash.clone())
+            .fetch_one(pool)
+            .await
+            .map_err(|e| crate::error::ModelError::InsertError(e.to_string()))
     }
 
     /// Finds a redemption record by its ID.
     /// Returns None if no record is found.
-    async fn find_by_id(id: String, pool: &sqlx::PgPool) -> Result<Option<Self>, ModelError> {
-        let result = sqlx::query_as!(
-            Redemption,
+    async fn find_by_id(
+        id: String,
+        pool: &sqlx::PgPool,
+        schema: &str,
+    ) -> Result<Option<Self>, ModelError> {
+        let query = format!(
             r#"
             SELECT 
                 id, sender_id, receiver_id,
-                sender_total_shares_in_vault as "sender_total_shares_in_vault: U256Wrapper",
-                assets_for_receiver as "assets_for_receiver: U256Wrapper",
-                shares_redeemed_by_sender as "shares_redeemed_by_sender: U256Wrapper",
-                exit_fee as "exit_fee: U256Wrapper",
-                vault_id as "vault_id: U256Wrapper",
-                block_number as "block_number: U256Wrapper",
+                sender_total_shares_in_vault,
+                assets_for_receiver,
+                shares_redeemed_by_sender,
+                exit_fee,
+                vault_id,
+                block_number,
                 block_timestamp,
                 transaction_hash
-            FROM redemption
+            FROM {}.redemption
             WHERE id = $1
             "#,
-            id
-        )
-        .fetch_optional(pool)
-        .await
-        .map_err(|e| crate::error::ModelError::QueryError(e.to_string()))?;
+            schema,
+        );
 
-        Ok(result)
+        sqlx::query_as::<_, Redemption>(&query)
+            .bind(id.clone())
+            .fetch_optional(pool)
+            .await
+            .map_err(|e| crate::error::ModelError::QueryError(e.to_string()))
     }
 }

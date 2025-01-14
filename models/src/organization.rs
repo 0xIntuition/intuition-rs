@@ -21,11 +21,10 @@ impl Model for Organization {}
 #[async_trait]
 impl SimpleCrud<U256Wrapper> for Organization {
     /// Upserts an organization into the database.
-    async fn upsert(&self, pool: &PgPool) -> Result<Self, ModelError> {
-        sqlx::query_as!(
-            Self,
+    async fn upsert(&self, pool: &PgPool, schema: &str) -> Result<Self, ModelError> {
+        let query = format!(
             r#"
-            INSERT INTO organization (id, name, description, image, url, email)
+            INSERT INTO {}.organization (id, name, description, image, url, email)
             VALUES ($1, $2, $3, $4, $5, $6)
             ON CONFLICT (id) DO UPDATE SET
                 name = EXCLUDED.name,
@@ -33,43 +32,52 @@ impl SimpleCrud<U256Wrapper> for Organization {
                 image = EXCLUDED.image,
                 url = EXCLUDED.url,
                 email = EXCLUDED.email
-            RETURNING id as "id: U256Wrapper", 
-                   name as "name: String", 
-                   description as "description: String", 
-                   image as "image: String", 
-                   url as "url: String", 
-                   email as "email: String"
+            RETURNING id, 
+                   name, 
+                   description, 
+                   image, 
+                   url, 
+                   email
             "#,
-            self.id.to_big_decimal()?,
-            self.name,
-            self.description,
-            self.image,
-            self.url,
-            self.email
-        )
-        .fetch_one(pool)
-        .await
-        .map_err(|e| ModelError::InsertError(e.to_string()))
+            schema,
+        );
+
+        sqlx::query_as::<_, Organization>(&query)
+            .bind(self.id.to_big_decimal()?)
+            .bind(self.name.clone())
+            .bind(self.description.clone())
+            .bind(self.image.clone())
+            .bind(self.url.clone())
+            .bind(self.email.clone())
+            .fetch_one(pool)
+            .await
+            .map_err(|e| ModelError::InsertError(e.to_string()))
     }
 
     /// Finds an organization by its id.
-    async fn find_by_id(id: U256Wrapper, pool: &PgPool) -> Result<Option<Self>, ModelError> {
-        sqlx::query_as!(
-            Self,
+    async fn find_by_id(
+        id: U256Wrapper,
+        pool: &PgPool,
+        schema: &str,
+    ) -> Result<Option<Self>, ModelError> {
+        let query = format!(
             r#"
-            SELECT id as "id: U256Wrapper", 
-                   name as "name: String", 
-                   description as "description: String", 
-                   image as "image: String", 
-                   url as "url: String", 
-                   email as "email: String" 
-            FROM organization 
+            SELECT id, 
+                   name, 
+                   description, 
+                   image, 
+                   url, 
+                   email 
+            FROM {}.organization 
             WHERE id = $1
             "#,
-            id.to_big_decimal()?
-        )
-        .fetch_optional(pool)
-        .await
-        .map_err(|e| ModelError::QueryError(e.to_string()))
+            schema,
+        );
+
+        sqlx::query_as::<_, Organization>(&query)
+            .bind(id.to_big_decimal()?)
+            .fetch_optional(pool)
+            .await
+            .map_err(|e| ModelError::QueryError(e.to_string()))
     }
 }

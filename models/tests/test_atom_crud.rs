@@ -4,7 +4,7 @@ mod tests {
     use alloy::primitives::U256;
     use models::{
         atom::Atom,
-        test_helpers::{create_test_account_db, create_test_atom, setup_test_db},
+        test_helpers::{create_test_account_db, create_test_atom, setup_test_db, TEST_SCHEMA},
         traits::SimpleCrud,
         types::U256Wrapper,
     };
@@ -21,7 +21,10 @@ mod tests {
         let test_atom = create_test_atom(stored_wallet.id, stored_creator.id);
 
         // Step 3: Store the Atom in the database
-        let stored_atom = test_atom.upsert(&pool).await.expect("Failed to store atom");
+        let stored_atom = test_atom
+            .upsert(&pool, TEST_SCHEMA)
+            .await
+            .expect("Failed to store atom");
 
         // Step 4: Verify that the stored Atom matches the original
         assert_eq!(
@@ -30,7 +33,7 @@ mod tests {
         );
 
         // Step 5: Fetch the Atom from the database using find_by_id
-        let fetched_atom = Atom::find_by_id(test_atom.id.clone(), &pool)
+        let fetched_atom = Atom::find_by_id(test_atom.id.clone(), &pool, TEST_SCHEMA)
             .await
             .expect("Failed to fetch atom")
             .expect("Atom not found");
@@ -53,7 +56,7 @@ mod tests {
 
         // Step 8: Upsert the updated Atom
         let upserted_atom = updated_atom
-            .upsert(&pool)
+            .upsert(&pool, TEST_SCHEMA)
             .await
             .expect("Failed to update atom");
 
@@ -64,7 +67,7 @@ mod tests {
         );
 
         // Step 10: Fetch the Atom again to ensure the update was persisted
-        let re_fetched_atom = Atom::find_by_id(test_atom.id.clone(), &pool)
+        let re_fetched_atom = Atom::find_by_id(test_atom.id.clone(), &pool, TEST_SCHEMA)
             .await
             .expect("Failed to re-fetch atom")
             .expect("Updated atom not found");

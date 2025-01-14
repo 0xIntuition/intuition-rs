@@ -71,7 +71,7 @@ impl SimpleCrud<U256Wrapper> for Atom {
             r#"
             INSERT INTO {}.atom 
                 (id, wallet_id, creator_id, vault_id, data, raw_data, type, emoji, label, image, value_id, block_number, block_timestamp, transaction_hash, resolving_status)
-            VALUES ($1, $2, $3, $4, $5, $6, $7::text::atom_type, $8, $9, $10, $11, $12, $13, $14, $15::text::{}.atom_resolving_status)
+            VALUES ($1, $2, $3, $4, $5, $6, $7::text::{}.atom_type, $8, $9, $10, $11, $12, $13, $14, $15::text::{}.atom_resolving_status)
             ON CONFLICT (id) DO UPDATE SET
                 wallet_id = EXCLUDED.wallet_id,
                 creator_id = EXCLUDED.creator_id,
@@ -87,23 +87,24 @@ impl SimpleCrud<U256Wrapper> for Atom {
                 block_timestamp = EXCLUDED.block_timestamp,
                 transaction_hash = EXCLUDED.transaction_hash,
                 resolving_status = EXCLUDED.resolving_status
-            RETURNING id as "id: U256Wrapper", 
-                      wallet_id, 
-                      creator_id, 
-                      vault_id as "vault_id: U256Wrapper", 
-                      data, 
-                      raw_data,
-                      type as "atom_type: AtomType", 
-                      emoji, 
-                      label, 
-                      image, 
-                      value_id as "value_id: U256Wrapper",
-                      block_number as "block_number: U256Wrapper",
-                      block_timestamp,
-                      transaction_hash,
-                      resolving_status as "resolving_status: AtomResolvingStatus"
+            RETURNING 
+                "id", 
+                "wallet_id", 
+                "creator_id", 
+                "vault_id", 
+                "data", 
+                "raw_data",
+                "type" as "atom_type", 
+                "emoji", 
+                "label", 
+                "image", 
+                "value_id",
+                "block_number",
+                "block_timestamp",
+                "transaction_hash",
+                "resolving_status"
             "#,
-            schema, schema
+            schema, schema, schema
         );
 
         sqlx::query_as::<_, Atom>(&query)
@@ -147,21 +148,21 @@ impl SimpleCrud<U256Wrapper> for Atom {
     ) -> Result<Option<Self>, ModelError> {
         let query = format!(
             r#"
-            SELECT id as "id: U256Wrapper", 
+            SELECT id, 
                    wallet_id, 
                    creator_id, 
-                   vault_id as "vault_id: U256Wrapper", 
+                   vault_id, 
                    data, 
                    raw_data,
-                   type as "atom_type: AtomType", 
+                   type as atom_type, 
                    emoji, 
                    label, 
                    image, 
-                   value_id as "value_id: U256Wrapper",
-                   block_number as "block_number: U256Wrapper",
+                   value_id,
+                   block_number,
                    block_timestamp,
                    transaction_hash,
-                   resolving_status as "resolving_status: AtomResolvingStatus"
+                   resolving_status
             FROM {}.atom
             WHERE id = $1
             "#,

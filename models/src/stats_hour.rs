@@ -18,11 +18,10 @@ pub struct StatsHour {
 
 impl StatsHour {
     /// This is a method to upsert stats into the database.
-    pub async fn upsert(&self, pool: &PgPool) -> Result<Self, ModelError> {
-        sqlx::query_as!(
-            StatsHour,
+    pub async fn upsert(&self, pool: &PgPool, schema: &str) -> Result<Self, ModelError> {
+        let query = format!(
             r#"
-            INSERT INTO stats_hour (id, total_accounts, total_atoms, total_triples, total_positions, 
+            INSERT INTO {}.stats_hour (id, total_accounts, total_atoms, total_triples, total_positions, 
                              total_signals, total_fees, contract_balance)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             ON CONFLICT (id) DO UPDATE SET
@@ -34,40 +33,57 @@ impl StatsHour {
                 total_fees = EXCLUDED.total_fees,
                 contract_balance = EXCLUDED.contract_balance
             RETURNING id, total_accounts, total_atoms, total_triples, total_positions, total_signals,
-                      total_fees as "total_fees: U256Wrapper", 
-                      contract_balance as "contract_balance: U256Wrapper",
+                      total_fees,
+                      contract_balance,
                       created_at
             "#,
-            self.id,
-            self.total_accounts,
-            self.total_atoms,
-            self.total_triples,
-            self.total_positions,
-            self.total_signals,
-            self.total_fees.as_ref().and_then(|w| w.to_big_decimal().ok()),
-            self.contract_balance.as_ref().and_then(|w| w.to_big_decimal().ok()),
-        )
-        .fetch_one(pool)
-        .await
-        .map_err(|e| ModelError::InsertError(e.to_string()))
+            schema,
+        );
+
+        sqlx::query_as::<_, StatsHour>(&query)
+            .bind(self.id)
+            .bind(self.total_accounts)
+            .bind(self.total_atoms)
+            .bind(self.total_triples)
+            .bind(self.total_positions)
+            .bind(self.total_signals)
+            .bind(
+                self.total_fees
+                    .as_ref()
+                    .and_then(|w| w.to_big_decimal().ok()),
+            )
+            .bind(
+                self.contract_balance
+                    .as_ref()
+                    .and_then(|w| w.to_big_decimal().ok()),
+            )
+            .fetch_one(pool)
+            .await
+            .map_err(|e| ModelError::InsertError(e.to_string()))
     }
 
     /// This is a method to find stats by id.
-    pub async fn find_by_id(id: i32, pool: &PgPool) -> Result<Option<Self>, ModelError> {
-        sqlx::query_as!(
-            StatsHour,
+    pub async fn find_by_id(
+        id: i32,
+        pool: &PgPool,
+        schema: &str,
+    ) -> Result<Option<Self>, ModelError> {
+        let query = format!(
             r#"
             SELECT id, total_accounts, total_atoms, total_triples, total_positions, total_signals,
-                   total_fees as "total_fees: U256Wrapper",
-                   contract_balance as "contract_balance: U256Wrapper",
+                   total_fees,
+                   contract_balance,
                    created_at
-            FROM stats_hour
+            FROM {}.stats_hour
             WHERE id = $1
             "#,
-            id
-        )
-        .fetch_optional(pool)
-        .await
-        .map_err(|e| ModelError::QueryError(e.to_string()))
+            schema,
+        );
+
+        sqlx::query_as::<_, StatsHour>(&query)
+            .bind(id)
+            .fetch_optional(pool)
+            .await
+            .map_err(|e| ModelError::QueryError(e.to_string()))
     }
 }

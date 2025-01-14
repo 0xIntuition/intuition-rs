@@ -4,7 +4,7 @@ mod tests {
         claim::Claim,
         test_helpers::{
             create_random_string, create_test_account_db, create_test_atom_db, create_test_triple,
-            create_test_vault_with_atom, setup_test_db,
+            create_test_vault_with_atom, setup_test_db, TEST_SCHEMA,
         },
         traits::SimpleCrud,
         types::U256Wrapper,
@@ -31,19 +31,19 @@ mod tests {
             predicate.id.clone(),
             object.id.clone(),
         )
-        .upsert(&pool)
+        .upsert(&pool, TEST_SCHEMA)
         .await
         .unwrap();
 
         // Create and store a test Vault
         let vault = create_test_vault_with_atom(object.id.clone())
-            .upsert(&pool)
+            .upsert(&pool, TEST_SCHEMA)
             .await
             .unwrap();
 
         // Create and store a test Counter Vault
         let counter_vault = create_test_vault_with_atom(subject.id.clone())
-            .upsert(&pool)
+            .upsert(&pool, TEST_SCHEMA)
             .await
             .unwrap();
 
@@ -60,12 +60,12 @@ mod tests {
             .vault_id(vault.id)
             .counter_vault_id(counter_vault.id)
             .build()
-            .upsert(&pool)
+            .upsert(&pool, TEST_SCHEMA)
             .await
             .unwrap();
 
         // make sure it's in the database
-        let found_claim = Claim::find_by_id(claim.id.clone(), &pool)
+        let found_claim = Claim::find_by_id(claim.id.clone(), &pool, TEST_SCHEMA)
             .await
             .unwrap()
             .unwrap();
@@ -73,9 +73,12 @@ mod tests {
 
         // now we update it and make sure the changes are reflected
         claim.counter_shares = U256Wrapper::from_str("200").unwrap();
-        claim.upsert(&pool).await.unwrap();
+        claim.upsert(&pool, TEST_SCHEMA).await.unwrap();
 
-        let found_claim = Claim::find_by_id(claim.id, &pool).await.unwrap().unwrap();
+        let found_claim = Claim::find_by_id(claim.id, &pool, TEST_SCHEMA)
+            .await
+            .unwrap()
+            .unwrap();
         assert_eq!(
             found_claim.counter_shares,
             U256Wrapper::from_str("200").unwrap()

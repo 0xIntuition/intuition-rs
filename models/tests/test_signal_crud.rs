@@ -6,6 +6,7 @@ mod tests {
         test_helpers::{
             create_test_account_db, create_test_atom_db, create_test_deposit,
             create_test_signal_with_atom_and_deposit, create_test_vault_with_atom, setup_test_db,
+            TEST_SCHEMA,
         },
         traits::SimpleCrud,
         types::U256Wrapper,
@@ -25,17 +26,17 @@ mod tests {
         let receiver = create_test_account_db(&pool).await;
         let atom = create_test_atom_db(&pool).await;
         let vault = create_test_vault_with_atom(atom.id.clone())
-            .upsert(&pool)
+            .upsert(&pool, TEST_SCHEMA)
             .await?;
 
         let deposit = create_test_deposit(sender.id, receiver.id, vault.id)
-            .upsert(&pool)
+            .upsert(&pool, TEST_SCHEMA)
             .await?;
         // Create initial signal
         let signal = create_test_signal_with_atom_and_deposit(account.id, atom.id, deposit.id);
 
         // Test initial upsert
-        let inserted = signal.upsert(&pool).await?;
+        let inserted = signal.upsert(&pool, TEST_SCHEMA).await?;
         assert_eq!(inserted.id, signal.id);
         assert_eq!(inserted.delta, signal.delta);
         assert_eq!(inserted.atom_id, signal.atom_id);
@@ -45,11 +46,11 @@ mod tests {
         updated.delta = U256Wrapper::from_str("200").unwrap();
 
         // Test update via upsert
-        let updated = updated.upsert(&pool).await?;
+        let updated = updated.upsert(&pool, TEST_SCHEMA).await?;
         assert_eq!(updated.delta, U256Wrapper::from_str("200").unwrap());
 
         // Test find_by_id
-        let found = Signal::find_by_id(signal.id.clone(), &pool)
+        let found = Signal::find_by_id(signal.id.clone(), &pool, TEST_SCHEMA)
             .await?
             .expect("Signal should exist");
 
