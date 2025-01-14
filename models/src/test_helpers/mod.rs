@@ -27,6 +27,7 @@ use rand::{
 use sqlx::{postgres::PgPoolOptions, PgPool};
 
 pub const TEST_SCHEMA: &str = "base_sepolia_backend";
+pub const TEST_PROXY_SCHEMA: &str = "base_sepolia_proxy";
 
 /// This function sets up a test database connection pool.
 pub async fn setup_test_db() -> PgPool {

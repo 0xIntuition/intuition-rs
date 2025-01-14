@@ -17,12 +17,14 @@ pub struct Env {
     pub localstack_url: Option<String>,
     pub raw_consumer_queue_url: String,
     pub database_url: String,
+    pub indexer_schema: String,
 }
 
 /// The application
 pub struct App {
     pub client: Client,
     pub args: Args,
+    pub env: Env,
     pub aws_sqs_client: AWSClient,
     pub raw_consumer_queue_url: String,
     pub pg_pool: PgPool,
@@ -47,13 +49,14 @@ impl App {
         // Create the SQS client
         let aws_sqs_client = Self::get_aws_client(env.localstack_url.clone()).await;
         // Get the raw consumer queue url
-        let raw_consumer_queue_url = env.raw_consumer_queue_url;
+        let raw_consumer_queue_url = env.raw_consumer_queue_url.clone();
         // Connect to the database
         let pg_pool = connect_to_db(&env.database_url).await?;
 
         Ok(Self {
             client,
             args,
+            env,
             aws_sqs_client,
             raw_consumer_queue_url,
             pg_pool,
@@ -152,7 +155,9 @@ impl App {
                 .send()
                 .await?;
         } else if self.args.output == Output::Postgres {
-            raw_log.insert(&self.pg_pool).await?;
+            raw_log
+                .insert(&self.pg_pool, &self.env.indexer_schema)
+                .await?;
         }
         Ok(())
     }

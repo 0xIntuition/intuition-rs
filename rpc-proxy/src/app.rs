@@ -1,5 +1,13 @@
 use crate::{
-    endpoints::current_share_price::current_share_price, error::ApiError, openapi::ApiDoc,
+    endpoints::current_share_price::current_share_price,
+    error::ApiError,
+    openapi::ApiDoc,
+    EthMultiVault::{self, EthMultiVaultInstance},
+};
+use alloy::{
+    primitives::Address,
+    providers::{ProviderBuilder, RootProvider},
+    transports::http::Http,
 };
 use axum::{
     routing::{get, post},
@@ -11,10 +19,11 @@ use http::{
     Method,
 };
 use log::info;
+use reqwest::Client;
 use serde::Deserialize;
 use shared_utils::postgres::connect_to_db;
 use sqlx::PgPool;
-use std::time::Duration;
+use std::{str::FromStr, sync::Arc, time::Duration};
 use tokio::net::TcpListener;
 use tower_http::cors::CorsLayer;
 use utoipa::OpenApi;
@@ -24,15 +33,33 @@ use utoipa_swagger_ui::SwaggerUi;
 pub struct Env {
     pub proxy_api_port: u16,
     pub proxy_database_url: String,
+    pub proxy_rpc_url: String,
+    pub proxy_contract_address: String,
 }
 
 #[derive(Clone)]
 pub struct App {
     env: Env,
     pg_pool: PgPool,
+    rpc_client: Arc<EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>>>,
 }
 
 impl App {
+    /// Builds the alloy client for the Intuition contract
+    fn build_intuition_client(
+        rpc_url: &str,
+        contract_address: &str,
+    ) -> Result<EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>>, ApiError> {
+        let provider = ProviderBuilder::new().on_http(rpc_url.parse().map_err(ApiError::from)?);
+
+        let alloy_contract = EthMultiVault::new(
+            Address::from_str(contract_address)
+                .map_err(|e| ApiError::AddressParse(e.to_string()))?,
+            provider.clone(),
+        );
+
+        Ok(alloy_contract)
+    }
     /// Build a TCP listener for the application.
     async fn build_listener(&self) -> Result<TcpListener, ApiError> {
         TcpListener::bind(format!("0.0.0.0:{}", self.env.proxy_api_port))
@@ -58,7 +85,15 @@ impl App {
         // Load the environment variables into our struct
         let env = envy::from_env::<Env>().map_err(ApiError::from)?;
         let pg_pool = connect_to_db(&env.proxy_database_url).await?;
-        Ok(Self { env, pg_pool })
+        let rpc_client = Arc::new(Self::build_intuition_client(
+            &env.proxy_rpc_url,
+            &env.proxy_contract_address,
+        )?);
+        Ok(Self {
+            env,
+            pg_pool,
+            rpc_client,
+        })
     }
 
     /// Merge the router with the Swagger UI.

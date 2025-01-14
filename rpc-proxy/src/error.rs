@@ -11,6 +11,8 @@ use thiserror::Error;
 /// libraries
 #[derive(Error, Debug)]
 pub enum ApiError {
+    #[error("Address parse error: {0}")]
+    AddressParse(String),
     #[error(transparent)]
     Env(#[from] envy::Error),
     #[error(transparent)]
@@ -25,6 +27,8 @@ pub enum ApiError {
     Multipart(#[from] axum::extract::multipart::MultipartError),
     #[error(transparent)]
     IO(#[from] std::io::Error),
+    #[error(transparent)]
+    UrlParse(#[from] url::ParseError),
     #[error(transparent)]
     Serde(#[from] serde_json::Error),
 }
