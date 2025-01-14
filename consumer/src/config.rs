@@ -22,6 +22,7 @@ pub struct Env {
     pub resolver_queue_url: Option<String>,
     pub rpc_url_base_mainnet: Option<String>,
     pub rpc_url_mainnet: Option<String>,
+    pub backend_schema: String,
 }
 
 #[derive(Deserialize, Debug)]

@@ -37,8 +37,12 @@ pub async fn get_or_create_account(
     id: String,
     decoded_consumer_context: &DecodedConsumerContext,
 ) -> Result<Account, ConsumerError> {
-    if let Some(account) =
-        Account::find_by_id(id.clone(), &decoded_consumer_context.pg_pool).await?
+    if let Some(account) = Account::find_by_id(
+        id.clone(),
+        &decoded_consumer_context.pg_pool,
+        &decoded_consumer_context.backend_schema,
+    )
+    .await?
     {
         info!("Returning existing account for: {}", id);
         Ok(account)
@@ -49,7 +53,10 @@ pub async fn get_or_create_account(
             .label(short_id(&id))
             .account_type(AccountType::Default)
             .build()
-            .upsert(&decoded_consumer_context.pg_pool)
+            .upsert(
+                &decoded_consumer_context.pg_pool,
+                &decoded_consumer_context.backend_schema,
+            )
             .await
             .map_err(ConsumerError::ModelError)?;
 
@@ -70,12 +77,21 @@ pub async fn update_account_with_atom_id(
     atom_id: U256Wrapper,
     decoded_consumer_context: &DecodedConsumerContext,
 ) -> Result<Account, ConsumerError> {
-    let mut account = Account::find_by_id(id.clone(), &decoded_consumer_context.pg_pool)
-        .await?
-        .ok_or(ConsumerError::AccountNotFound)?;
+    let mut account = Account::find_by_id(
+        id.clone(),
+        &decoded_consumer_context.pg_pool,
+        &decoded_consumer_context.backend_schema,
+    )
+    .await?
+    .ok_or(ConsumerError::AccountNotFound)?;
 
     account.atom_id = Some(atom_id);
-    account.upsert(&decoded_consumer_context.pg_pool).await?;
+    account
+        .upsert(
+            &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
+        )
+        .await?;
     info!("Updated account: {:?}", account);
 
     // Now we need to enqueue the message to be processed by the resolver. In this

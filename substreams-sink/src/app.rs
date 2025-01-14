@@ -20,11 +20,13 @@ pub struct Env {
     pub database_url: String,
     pub raw_consumer_queue_url: String,
     pub localstack_url: Option<String>,
+    pub indexer_schema: String,
 }
 
 #[derive(Clone, Debug)]
 pub struct AppState {
     pub pg_pool: PgPool,
+    pub indexer_schema: String,
     pub aws_sqs_client: AWSClient,
     pub raw_consumer_queue_url: String,
 }
@@ -37,6 +39,7 @@ impl AppState {
             }),
             aws_sqs_client: Self::get_aws_client(env.localstack_url.clone()).await,
             raw_consumer_queue_url: env.raw_consumer_queue_url.clone(),
+            indexer_schema: env.indexer_schema.clone(),
         }
     }
     /// This function returns an [`aws_sdk_sqs::Client`] based on the
@@ -121,7 +124,7 @@ impl AppState {
             .start_block(starting_block as i64)
             .endpoint(cli.endpoint.clone())
             .build()
-            .upsert(&self.pg_pool)
+            .upsert(&self.pg_pool, &self.indexer_schema)
             .await?;
         Ok(())
     }
@@ -129,7 +132,7 @@ impl AppState {
     /// Load the last persisted cursor from the database. If no cursor is found,
     /// return `None`.
     pub async fn load_persisted_cursor(&self) -> Result<Option<String>, SubstreamError> {
-        let cursor = SubstreamsCursor::get_last(&self.pg_pool).await?;
+        let cursor = SubstreamsCursor::get_last(&self.pg_pool, &self.indexer_schema).await?;
         Ok(cursor.map(|c| c.cursor))
     }
 }

@@ -12,6 +12,7 @@ pub struct Env {
     pub localstack_url: Option<String>,
     pub raw_consumer_queue_url: String,
     pub indexer_db_url: String,
+    pub indexer_schema: String,
 }
 
 /// Represents the SQS consumer
@@ -125,7 +126,8 @@ impl SqsProducer {
     /// them to the SQS queue.
     pub async fn process_historical_records(&self) -> Result<(), HistoFluxError> {
         let mut last_processed_id = 0;
-        let amount_of_logs = RawLog::get_total_count(&self.pg_pool).await?;
+        let amount_of_logs =
+            RawLog::get_total_count(&self.pg_pool, &self.env.indexer_schema).await?;
         // If there are no logs, we dont need to process anything
         if amount_of_logs == 0 {
             return Ok(());
@@ -135,8 +137,13 @@ impl SqsProducer {
         info!("Processing {} pages with page size {}", pages, page_size);
 
         'outer_loop: for _page in 0..pages {
-            let logs =
-                RawLog::get_paginated_after_id(&self.pg_pool, last_processed_id, page_size).await?;
+            let logs = RawLog::get_paginated_after_id(
+                &self.pg_pool,
+                last_processed_id,
+                page_size,
+                &self.env.indexer_schema,
+            )
+            .await?;
 
             info!("Processing {} logs", logs.len());
             for log in logs {

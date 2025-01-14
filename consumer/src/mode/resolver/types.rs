@@ -89,10 +89,16 @@ impl ResolverMessageType {
                     "No atom found for account: {:?}, querying the DB...",
                     account
                 );
-                let account =
-                    Account::find_by_id(account.id.clone(), &resolver_consumer_context.pg_pool)
-                        .await?
-                        .ok_or(ConsumerError::AccountNotFound)?;
+                let account = Account::find_by_id(
+                    account.id.clone(),
+                    &resolver_consumer_context.pg_pool,
+                    &resolver_consumer_context
+                        .server_initialize
+                        .env
+                        .backend_schema,
+                )
+                .await?
+                .ok_or(ConsumerError::AccountNotFound)?;
                 if let Some(atom_id) = account.atom_id {
                     self.update_atom_metadata(resolver_consumer_context, &atom_id, ens)
                         .await?;
@@ -124,12 +130,7 @@ impl ResolverMessageType {
         // If we resolved an IPFS URI, we need to try to parse the JSON
         let metadata = if let Some(data) = data {
             info!("Atom data is an IPFS URI: {data}");
-            try_to_parse_json(
-                &data,
-                &resolver_message.atom,
-                &resolver_consumer_context.pg_pool,
-            )
-            .await?
+            try_to_parse_json(&data, &resolver_message.atom, resolver_consumer_context).await?
         } else {
             info!(
                 "No IPFS URI found or IPFS URI is not valid, trying to parse atom data as JSON..."
@@ -144,7 +145,7 @@ impl ResolverMessageType {
                     .clone()
                     .ok_or(ConsumerError::AtomDataNotFound)?,
                 &resolver_message.atom,
-                &resolver_consumer_context.pg_pool,
+                resolver_consumer_context,
             )
             .await?
         };
@@ -155,12 +156,23 @@ impl ResolverMessageType {
             let atom = Atom::find_by_id(
                 resolver_message.atom.id.clone(),
                 &resolver_consumer_context.pg_pool,
+                &resolver_consumer_context
+                    .server_initialize
+                    .env
+                    .backend_schema,
             )
             .await?;
 
             if let Some(mut atom) = atom {
                 metadata
-                    .update_atom_metadata(&mut atom, &resolver_consumer_context.pg_pool)
+                    .update_atom_metadata(
+                        &mut atom,
+                        &resolver_consumer_context.pg_pool,
+                        &resolver_consumer_context
+                            .server_initialize
+                            .env
+                            .backend_schema,
+                    )
                     .await?;
 
                 // If the atom has an image, we need to download it and classify it
@@ -177,7 +189,13 @@ impl ResolverMessageType {
                 // Mark the atom as resolved
                 resolver_message
                     .atom
-                    .mark_as_resolved(&resolver_consumer_context.pg_pool)
+                    .mark_as_resolved(
+                        &resolver_consumer_context.pg_pool,
+                        &resolver_consumer_context
+                            .server_initialize
+                            .env
+                            .backend_schema,
+                    )
                     .await?;
                 info!("Updated atom metadata: {atom:?}");
             }
@@ -185,7 +203,13 @@ impl ResolverMessageType {
             // Mark the atom as failed
             resolver_message
                 .atom
-                .mark_as_failed(&resolver_consumer_context.pg_pool)
+                .mark_as_failed(
+                    &resolver_consumer_context.pg_pool,
+                    &resolver_consumer_context
+                        .server_initialize
+                        .env
+                        .backend_schema,
+                )
                 .await?;
         }
         Ok(())
@@ -198,12 +222,27 @@ impl ResolverMessageType {
         account_id: String,
         ens: Ens,
     ) -> Result<(), ConsumerError> {
-        let mut account = Account::find_by_id(account_id, &resolver_consumer_context.pg_pool)
-            .await?
-            .ok_or(ConsumerError::AccountNotFound)?;
+        let mut account = Account::find_by_id(
+            account_id,
+            &resolver_consumer_context.pg_pool,
+            &resolver_consumer_context
+                .server_initialize
+                .env
+                .backend_schema,
+        )
+        .await?
+        .ok_or(ConsumerError::AccountNotFound)?;
         account.label = ens.name.ok_or(ConsumerError::LabelNotFound)?;
         account.image = ens.image;
-        account.upsert(&resolver_consumer_context.pg_pool).await?;
+        account
+            .upsert(
+                &resolver_consumer_context.pg_pool,
+                &resolver_consumer_context
+                    .server_initialize
+                    .env
+                    .backend_schema,
+            )
+            .await?;
         Ok(())
     }
 
@@ -214,12 +253,26 @@ impl ResolverMessageType {
         atom_id: &U256Wrapper,
         ens: Ens,
     ) -> Result<(), ConsumerError> {
-        let mut atom = Atom::find_by_id(atom_id.clone(), &resolver_consumer_context.pg_pool)
-            .await?
-            .ok_or(ConsumerError::AtomNotFound)?;
+        let mut atom = Atom::find_by_id(
+            atom_id.clone(),
+            &resolver_consumer_context.pg_pool,
+            &resolver_consumer_context
+                .server_initialize
+                .env
+                .backend_schema,
+        )
+        .await?
+        .ok_or(ConsumerError::AtomNotFound)?;
         atom.label = ens.name;
         atom.image = ens.image;
-        atom.upsert(&resolver_consumer_context.pg_pool).await?;
+        atom.upsert(
+            &resolver_consumer_context.pg_pool,
+            &resolver_consumer_context
+                .server_initialize
+                .env
+                .backend_schema,
+        )
+        .await?;
         Ok(())
     }
 }

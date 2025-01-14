@@ -82,7 +82,10 @@ impl AtomMetadata {
             .chain_id(chain_id)
             .account_address(account_address)
             .build()
-            .upsert(&decoded_consumer_context.pg_pool)
+            .upsert(
+                &decoded_consumer_context.pg_pool,
+                &decoded_consumer_context.backend_schema,
+            )
             .await
             .map_err(ConsumerError::ModelError)
     }
@@ -250,6 +253,7 @@ impl AtomMetadata {
         if AtomValue::find_by_id(
             resolved_atom.atom.vault_id.clone(),
             &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
         )
         .await?
         .is_some()
@@ -262,7 +266,10 @@ impl AtomMetadata {
             .id(resolved_atom.atom.vault_id.clone())
             .account_id(account.id)
             .build()
-            .upsert(&decoded_consumer_context.pg_pool)
+            .upsert(
+                &decoded_consumer_context.pg_pool,
+                &decoded_consumer_context.backend_schema,
+            )
             .await?;
 
         Ok(())
@@ -273,12 +280,13 @@ impl AtomMetadata {
         &self,
         atom: &mut Atom,
         pg_pool: &PgPool,
+        backend_schema: &str,
     ) -> Result<(), ConsumerError> {
         atom.emoji = Some(self.emoji.clone());
         atom.atom_type = AtomType::from_str(&self.atom_type)?;
         atom.label = Some(self.label.clone());
         atom.image = self.image.clone();
-        atom.upsert(pg_pool).await?;
+        atom.upsert(pg_pool, backend_schema).await?;
         Ok(())
     }
 }
@@ -385,8 +393,7 @@ pub async fn get_supported_atom_metadata(
 
         // 5. Now we try to parse the JSON and return the metadata. At this point
         // the resolver will handle the rest of the cases.
-        let metadata =
-            try_to_parse_json(decoded_atom_data, atom, &decoded_consumer_context.pg_pool).await?;
+        let metadata = try_to_parse_json(decoded_atom_data, atom, decoded_consumer_context).await?;
 
         Ok(metadata)
     }

@@ -23,6 +23,11 @@ use tracing::{debug, info, warn};
 
 use super::{ipfs_upload::types::IpfsUploadMessage, resolver::types::ResolverConsumerMessage};
 
+pub trait AtomUpdater {
+    fn pool(&self) -> &PgPool;
+    fn backend_schema(&self) -> &str;
+}
+
 // Create a OnceCell to hold the histogram
 static EVENT_PROCESSING_HISTOGRAM: OnceCell<HistogramVec> = OnceCell::new();
 
@@ -54,8 +59,18 @@ pub struct DecodedConsumerContext {
     pub client: Arc<dyn BasicConsumer>,
     pub base_client: Arc<EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>>>,
     pub pg_pool: PgPool,
+    pub backend_schema: String,
 }
 
+impl AtomUpdater for DecodedConsumerContext {
+    fn pool(&self) -> &PgPool {
+        &self.pg_pool
+    }
+
+    fn backend_schema(&self) -> &str {
+        &self.backend_schema
+    }
+}
 /// Represents the ipfs upload consumer context
 #[derive(Clone)]
 pub struct IpfsUploadConsumerContext {
@@ -64,6 +79,7 @@ pub struct IpfsUploadConsumerContext {
     pub ipfs_resolver: IPFSResolver,
     pub pg_pool: PgPool,
     pub reqwest_client: reqwest::Client,
+    pub backend_schema: String,
 }
 
 /// Represents the raw consumer context
@@ -72,6 +88,7 @@ pub struct RawConsumerContext {
     pub client: Arc<dyn BasicConsumer>,
     pub pg_pool: PgPool,
     pub indexing_source: Arc<IndexerSource>,
+    pub backend_schema: String,
 }
 
 /// Represents the resolver consumer context
@@ -86,6 +103,15 @@ pub struct ResolverConsumerContext {
     pub server_initialize: ServerInitialize,
 }
 
+impl AtomUpdater for ResolverConsumerContext {
+    fn pool(&self) -> &PgPool {
+        &self.pg_pool
+    }
+
+    fn backend_schema(&self) -> &str {
+        &self.server_initialize.env.backend_schema
+    }
+}
 impl ConsumerMode {
     /// This function builds the client based on the consumer type
     async fn build_client(
@@ -165,6 +191,7 @@ impl ConsumerMode {
             base_client,
             client,
             pg_pool,
+            backend_schema: data.env.backend_schema.clone(),
         }))
     }
 
@@ -231,6 +258,7 @@ impl ConsumerMode {
             ipfs_resolver,
             pg_pool,
             reqwest_client,
+            backend_schema: data.env.backend_schema.clone(),
         }))
     }
 
@@ -267,6 +295,7 @@ impl ConsumerMode {
             client,
             pg_pool,
             indexing_source,
+            backend_schema: data.env.backend_schema.clone(),
         }))
     }
 
@@ -415,10 +444,7 @@ impl ConsumerMode {
                     .start_timer();
                 info!("Received: {fees_data:#?}");
                 fees_data
-                    .handle_fees_transferred_creation(
-                        &decoded_consumer_context.pg_pool,
-                        &decoded_message,
-                    )
+                    .handle_fees_transferred_creation(&decoded_message, &decoded_consumer_context)
                     .await?;
                 timer.observe_duration();
             }
@@ -429,7 +455,7 @@ impl ConsumerMode {
                 info!("Received: {triple_data:#?}");
                 triple_data
                     .handle_triple_creation(
-                        &decoded_consumer_context.pg_pool,
+                        &decoded_consumer_context,
                         &decoded_consumer_context.base_client,
                         &decoded_message,
                     )

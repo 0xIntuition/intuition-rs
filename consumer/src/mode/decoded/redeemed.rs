@@ -25,14 +25,13 @@ use models::{
     vault::Vault,
 };
 use reqwest::Client;
-use sqlx::PgPool;
 use std::str::FromStr;
 
 impl Redeemed {
     /// This function creates an `Event` for the `Redeemed` event
     async fn create_event(
         &self,
-        pg_pool: &PgPool,
+        decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
         vault: &Vault,
     ) -> Result<(), ConsumerError> {
@@ -46,7 +45,10 @@ impl Redeemed {
                 .redemption_id(DecodedMessage::event_id(event))
                 .triple_id(triple_id)
                 .build()
-                .upsert(pg_pool)
+                .upsert(
+                    &decoded_consumer_context.pg_pool,
+                    &decoded_consumer_context.backend_schema,
+                )
                 .await?;
         } else {
             Event::builder()
@@ -63,7 +65,10 @@ impl Redeemed {
                         .ok_or(ConsumerError::VaultAtomNotFound)?,
                 )
                 .build()
-                .upsert(pg_pool)
+                .upsert(
+                    &decoded_consumer_context.pg_pool,
+                    &decoded_consumer_context.backend_schema,
+                )
                 .await?;
         }
         Ok(())
@@ -72,7 +77,7 @@ impl Redeemed {
     // Helper methods to break down the complexity:
     async fn create_redemption_record(
         &self,
-        pg_pool: &PgPool,
+        decoded_consumer_context: &DecodedConsumerContext,
         sender_account: &Account,
         receiver_account: &Account,
         event: &DecodedMessage,
@@ -90,7 +95,10 @@ impl Redeemed {
             .block_timestamp(event.block_timestamp)
             .transaction_hash(event.transaction_hash.clone())
             .build()
-            .upsert(pg_pool)
+            .upsert(
+                &decoded_consumer_context.pg_pool,
+                &decoded_consumer_context.backend_schema,
+            )
             .await
             .map_err(ConsumerError::ModelError)
     }
@@ -98,7 +106,7 @@ impl Redeemed {
     /// This function creates a `Signal` for the `Redeemed` event
     async fn create_signal(
         &self,
-        pg_pool: &PgPool,
+        decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
         vault: &Vault,
     ) -> Result<(), ConsumerError> {
@@ -116,7 +124,10 @@ impl Redeemed {
                 .block_timestamp(event.block_timestamp)
                 .transaction_hash(event.transaction_hash.clone())
                 .build()
-                .upsert(pg_pool)
+                .upsert(
+                    &decoded_consumer_context.pg_pool,
+                    &decoded_consumer_context.backend_schema,
+                )
                 .await?;
         } else {
             Signal::builder()
@@ -137,7 +148,10 @@ impl Redeemed {
                 .block_timestamp(event.block_timestamp)
                 .transaction_hash(event.transaction_hash.clone())
                 .build()
-                .upsert(pg_pool)
+                .upsert(
+                    &decoded_consumer_context.pg_pool,
+                    &decoded_consumer_context.backend_schema,
+                )
                 .await?;
         }
         Ok(())
@@ -171,7 +185,7 @@ impl Redeemed {
 
         // 2. Create redemption record
         self.create_redemption_record(
-            &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context,
             &sender_account,
             &receiver_account,
             event,
@@ -185,33 +199,30 @@ impl Redeemed {
         let vault = Vault::find_by_id(
             U256Wrapper::from(self.vaultId),
             &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
         )
         .await?
         .ok_or(ConsumerError::VaultNotFound)?;
 
         // 4. Handle position and claims based on remaining shares
         if self.senderTotalSharesInVault == Uint::from(0) {
-            self.handle_zero_shares(&vault, &sender_account, &decoded_consumer_context.pg_pool)
+            self.handle_zero_shares(&vault, &sender_account, decoded_consumer_context)
                 .await?;
         } else {
-            self.handle_remaining_shares(
-                &vault,
-                &sender_account,
-                &decoded_consumer_context.pg_pool,
-            )
-            .await?;
+            self.handle_remaining_shares(&vault, &sender_account, decoded_consumer_context)
+                .await?;
         }
 
         // 5. Update vault stats
-        self.update_vault_stats(&decoded_consumer_context.pg_pool, current_share_price)
+        self.update_vault_stats(decoded_consumer_context, current_share_price)
             .await?;
 
         // 6. Create event record
-        self.create_event(&decoded_consumer_context.pg_pool, event, &vault)
+        self.create_event(decoded_consumer_context, event, &vault)
             .await?;
 
         // 7. Create signal record
-        self.create_signal(&decoded_consumer_context.pg_pool, event, &vault)
+        self.create_signal(decoded_consumer_context, event, &vault)
             .await?;
 
         Ok(())
@@ -222,25 +233,38 @@ impl Redeemed {
         &self,
         vault: &Vault,
         sender_account: &Account,
-        pg_pool: &PgPool,
+        decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<(), ConsumerError> {
         // Update position
         if let Some(mut position) = Position::find_by_id(
             format!("{}-{}", vault.id, sender_account.id.to_lowercase()),
-            pg_pool,
+            &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
         )
         .await?
         {
             position.shares = U256Wrapper::from(self.senderTotalSharesInVault);
-            position.upsert(pg_pool).await?;
+            position
+                .upsert(
+                    &decoded_consumer_context.pg_pool,
+                    &decoded_consumer_context.backend_schema,
+                )
+                .await?;
         }
 
         // Update claim if triple exists
         if let Some(triple_id) = &vault.triple_id {
-            if let Some(triple) = Triple::find_by_id(triple_id.clone(), pg_pool).await? {
+            if let Some(triple) = Triple::find_by_id(
+                triple_id.clone(),
+                &decoded_consumer_context.pg_pool,
+                &decoded_consumer_context.backend_schema,
+            )
+            .await?
+            {
                 if let Some(mut claim) = Claim::find_by_id(
                     format!("{}-{}", triple.id, sender_account.id.to_lowercase()),
-                    pg_pool,
+                    &decoded_consumer_context.pg_pool,
+                    &decoded_consumer_context.backend_schema,
                 )
                 .await?
                 {
@@ -254,7 +278,12 @@ impl Redeemed {
                     } else {
                         claim.counter_shares
                     };
-                    claim.upsert(pg_pool).await?;
+                    claim
+                        .upsert(
+                            &decoded_consumer_context.pg_pool,
+                            &decoded_consumer_context.backend_schema,
+                        )
+                        .await?;
                 }
             }
         }
@@ -266,32 +295,52 @@ impl Redeemed {
         &self,
         vault: &Vault,
         sender_account: &Account,
-        pg_pool: &PgPool,
+        decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<(), ConsumerError> {
         // Delete position
         let position_id = format!("{}-{}", vault.id, sender_account.id.to_lowercase());
-        Position::delete(position_id, pg_pool)
-            .await
-            .map_err(|e| ConsumerError::DeletePosition(e.to_string()))?;
+        Position::delete(
+            position_id,
+            &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
+        )
+        .await
+        .map_err(|e| ConsumerError::DeletePosition(e.to_string()))?;
 
         // Handle triple-related cleanup if exists
         if let Some(triple_id) = &vault.triple_id {
-            if let Some(triple) = Triple::find_by_id(triple_id.clone(), pg_pool).await? {
+            if let Some(triple) = Triple::find_by_id(
+                triple_id.clone(),
+                &decoded_consumer_context.pg_pool,
+                &decoded_consumer_context.backend_schema,
+            )
+            .await?
+            {
                 // Delete claim
                 let claim_id = format!("{}-{}", triple.id, sender_account.id.to_lowercase());
-                Claim::delete(claim_id, pg_pool)
-                    .await
-                    .map_err(|e| ConsumerError::DeleteClaim(e.to_string()))?;
+                Claim::delete(
+                    claim_id,
+                    &decoded_consumer_context.pg_pool,
+                    &decoded_consumer_context.backend_schema,
+                )
+                .await
+                .map_err(|e| ConsumerError::DeleteClaim(e.to_string()))?;
 
                 // Update predicate object
                 if let Some(mut predicate_object) = PredicateObject::find_by_id(
                     format!("{}-{}", triple.predicate_id, triple.object_id),
-                    pg_pool,
+                    &decoded_consumer_context.pg_pool,
+                    &decoded_consumer_context.backend_schema,
                 )
                 .await?
                 {
                     predicate_object.claim_count -= 1;
-                    predicate_object.upsert(pg_pool).await?;
+                    predicate_object
+                        .upsert(
+                            &decoded_consumer_context.pg_pool,
+                            &decoded_consumer_context.backend_schema,
+                        )
+                        .await?;
                 }
             }
         }
@@ -301,15 +350,25 @@ impl Redeemed {
     /// This function updates the vault stats
     async fn update_vault_stats(
         &self,
-        pg_pool: &PgPool,
+        decoded_consumer_context: &DecodedConsumerContext,
         current_share_price: U256,
     ) -> Result<(), ConsumerError> {
-        if let Some(mut vault) = Vault::find_by_id(U256Wrapper::from(self.vaultId), pg_pool).await?
+        if let Some(mut vault) = Vault::find_by_id(
+            U256Wrapper::from(self.vaultId),
+            &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
+        )
+        .await?
         {
             vault.total_shares -= U256Wrapper::from(self.sharesRedeemedBySender);
             vault.current_share_price = U256Wrapper::from(current_share_price);
             vault.position_count -= 1;
-            vault.upsert(pg_pool).await?;
+            vault
+                .upsert(
+                    &decoded_consumer_context.pg_pool,
+                    &decoded_consumer_context.backend_schema,
+                )
+                .await?;
             Ok(())
         } else {
             Err(ConsumerError::VaultNotFound)

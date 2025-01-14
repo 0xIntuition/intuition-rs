@@ -20,7 +20,6 @@ use models::{
     types::U256Wrapper,
     vault::Vault,
 };
-use sqlx::PgPool;
 use std::str::FromStr;
 use tracing::{info, warn};
 impl AtomCreated {
@@ -28,7 +27,7 @@ impl AtomCreated {
     async fn create_event(
         &self,
         event: &DecodedMessage,
-        pg_pool: &PgPool,
+        decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<Event, ConsumerError> {
         // Create the event
         Event::builder()
@@ -39,7 +38,10 @@ impl AtomCreated {
             .block_timestamp(event.block_timestamp)
             .transaction_hash(event.transaction_hash.clone())
             .build()
-            .upsert(pg_pool)
+            .upsert(
+                &decoded_consumer_context.pg_pool,
+                &decoded_consumer_context.backend_schema,
+            )
             .await
             .map_err(ConsumerError::ModelError)
     }
@@ -63,7 +65,11 @@ impl AtomCreated {
 
         // Update the atom with the decoded data
         atom.data = Some(decoded_atom_data.clone());
-        atom.upsert(&decoded_consumer_context.pg_pool).await?;
+        atom.upsert(
+            &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
+        )
+        .await?;
         Ok(decoded_atom_data)
     }
 
@@ -78,15 +84,25 @@ impl AtomCreated {
     /// If it does not, it creates it.
     async fn get_or_create_atom_wallet_account(
         &self,
-        pg_pool: &PgPool,
+        decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<Account, ConsumerError> {
         // First try to find existing account
-        if let Some(mut account) = Account::find_by_id(self.atomWallet.to_string(), pg_pool).await?
+        if let Some(mut account) = Account::find_by_id(
+            self.atomWallet.to_string(),
+            &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
+        )
+        .await?
         {
             // We update the account type to `AtomWallet` if it is not already set
             if account.account_type != AccountType::AtomWallet {
                 account.account_type = AccountType::AtomWallet;
-                account.upsert(pg_pool).await?;
+                account
+                    .upsert(
+                        &decoded_consumer_context.pg_pool,
+                        &decoded_consumer_context.backend_schema,
+                    )
+                    .await?;
             }
             return Ok(account);
         }
@@ -97,7 +113,10 @@ impl AtomCreated {
             .label(short_id(&self.atomWallet.to_string()))
             .account_type(AccountType::AtomWallet)
             .build()
-            .upsert(pg_pool)
+            .upsert(
+                &decoded_consumer_context.pg_pool,
+                &decoded_consumer_context.backend_schema,
+            )
             .await
             .map_err(ConsumerError::ModelError)
     }
@@ -112,6 +131,7 @@ impl AtomCreated {
         if let Some(atom) = Atom::find_by_id(
             U256Wrapper::from_str(&self.vaultID.to_string())?,
             &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
         )
         .await?
         {
@@ -121,7 +141,7 @@ impl AtomCreated {
         } else {
             info!("Atom does not exist, creating it");
             let atom_wallet_account = self
-                .get_or_create_atom_wallet_account(&decoded_consumer_context.pg_pool)
+                .get_or_create_atom_wallet_account(&decoded_consumer_context)
                 .await?;
             let creator_account =
                 get_or_create_account(self.creator.to_string(), decoded_consumer_context).await?;
@@ -142,7 +162,10 @@ impl AtomCreated {
                 .transaction_hash(event.transaction_hash.clone())
                 .resolving_status(AtomResolvingStatus::Pending)
                 .build()
-                .upsert(&decoded_consumer_context.pg_pool)
+                .upsert(
+                    &decoded_consumer_context.pg_pool,
+                    &decoded_consumer_context.backend_schema,
+                )
                 .await?;
             //updating the account with the atom id
             update_account_with_atom_id(
@@ -187,10 +210,14 @@ impl AtomCreated {
 
         // Update the atom metadata to reflect the supported atom type
         supported_atom_metadata
-            .update_atom_metadata(&mut atom, &decoded_consumer_context.pg_pool)
+            .update_atom_metadata(
+                &mut atom,
+                &decoded_consumer_context.pg_pool,
+                &decoded_consumer_context.backend_schema,
+            )
             .await?;
         // Create the event
-        self.create_event(decoded_message, &decoded_consumer_context.pg_pool)
+        self.create_event(decoded_message, &decoded_consumer_context)
             .await?;
 
         Ok(())
@@ -227,7 +254,10 @@ impl AtomCreated {
             .current_share_price(U256Wrapper::from_str(&current_share_price._0.to_string())?)
             .position_count(0)
             .build()
-            .upsert(&decoded_consumer_context.pg_pool)
+            .upsert(
+                &decoded_consumer_context.pg_pool,
+                &decoded_consumer_context.backend_schema,
+            )
             .await?;
 
         Ok((vault, atom))
