@@ -177,7 +177,23 @@ services:
     ports:
       - 3000:3000
     
-
+  rpc-proxy:
+    container_name: rpc-proxy
+    image: ghcr.io/0xintuition/rpc-proxy:latest
+    environment:
+      DATABASE_URL: $DATABASE_URL
+      PROXY_API_PORT: $PROXY_API_PORT
+      PROXY_SCHEMA: $PROXY_SCHEMA
+      BASE_MAINNET_RPC_URL: $BASE_MAINNET_RPC_URL
+      BASE_SEPOLIA_RPC_URL: $BASE_SEPOLIA_RPC_URL
+      ETHEREUM_MAINNET_RPC_URL: $ETHEREUM_MAINNET_RPC_URL
+      RUST_LOG: $RUST_LOG
+    ports:
+      - $PROXY_API_PORT:$PROXY_API_PORT
+    depends_on:
+      database:
+        condition: service_healthy
+  
   safe-content:
     container_name: safe-content
     image: steelcityamir/safe-content-ai:latest
@@ -288,7 +304,7 @@ services:
       AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
       AWS_REGION: $AWS_REGION
       AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
-      DATABASE_URL: $INDEXER_DB_URL
+      DATABASE_URL: $DATABASE_URL
       RAW_CONSUMER_QUEUE_URL: $RAW_CONSUMER_QUEUE_URL
       HYPERSYNC_TOKEN: $HYPERSYNC_TOKEN
       INDEXER_SCHEMA: $INDEXER_SCHEMA
@@ -303,8 +319,7 @@ services:
     container_name: indexer-migrations
     image: ghcr.io/0xintuition/indexer-migrations:latest
     environment:
-      INDEXER_DB_URL: $INDEXER_DB_URL
-      DB_URL: $DATABASE_URL
+      DATABASE_URL: $DATABASE_URL
     depends_on:
       database:
         condition: service_healthy
@@ -317,7 +332,7 @@ services:
       AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
       AWS_REGION: $AWS_REGION
       AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY 
-      INDEXER_DB_URL: $INDEXER_DB_URL
+      DATABASE_URL: $DATABASE_URL
       LOCALSTACK_URL: $LOCALSTACK_URL
       RAW_CONSUMER_QUEUE_URL: $RAW_CONSUMER_QUEUE_URL
       INDEXER_SCHEMA: $INDEXER_SCHEMA

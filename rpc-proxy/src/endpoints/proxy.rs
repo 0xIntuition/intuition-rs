@@ -1,4 +1,5 @@
 use crate::error::ApiError;
+use crate::models::share_price::Method;
 use crate::{app::App, models::share_price::SharePrice};
 use axum::extract::Path;
 use axum::extract::State;
@@ -31,6 +32,15 @@ pub struct JsonRpcRequest {
 }
 
 impl JsonRpcRequest {
+    /// Builds a JSON RPC response from the request and the result.
+    pub fn build_response_json(&self, result: String) -> Result<Value, ApiError> {
+        let mut response = serde_json::Map::new();
+        response.insert("jsonrpc".into(), Value::String(self.jsonrpc.clone()));
+        response.insert("id".into(), Value::Number(self.id.into()));
+        response.insert("result".into(), serde_json::from_str(&result)?);
+        Ok(Value::Object(response))
+    }
+
     /// Converts a string slice in base 16 to an integer.
     pub fn get_block_number(&self) -> Result<i64, ApiError> {
         let block_number = self.params[1].as_str().unwrap().trim_start_matches("0x");
@@ -40,6 +50,11 @@ impl JsonRpcRequest {
     /// Get the contract address from the request.
     pub fn get_contract_address(&self) -> Result<String, ApiError> {
         Ok(self.params[0]["to"].to_string())
+    }
+
+    /// Get the input from the request.
+    pub fn get_input(&self) -> Result<String, ApiError> {
+        Ok(self.params[0]["data"].to_string())
     }
 
     /// Checks if the block number is "latest".
@@ -66,9 +81,10 @@ impl JsonRpcRequest {
         let share_price = SharePrice {
             chain_id: chain_id as i64,
             block_number: self.get_block_number()?,
-            contract_address: self.get_contract_address()?,
-            raw_rpc_request: serde_json::to_value(self).unwrap(),
-            result,
+            method: Method::EthCall,
+            to_address: self.get_contract_address()?,
+            input: self.get_input()?,
+            result: result["result"].to_string(),
         };
         share_price
             .insert(&state.pg_pool, &state.env.proxy_schema)
@@ -109,10 +125,11 @@ pub async fn rpc_proxy(
     // we return it. If we don't, we relay the request to the target server,
     // store the result in the DB and return it.
     let block_number = payload.block_number()?;
-    if let Some(_block_number) = block_number {
+    if let Some(block_number) = block_number {
         info!("Block number is not latest, checking DB for result");
-        let share_price = SharePrice::find_raw_rpc_request(
-            &serde_json::to_value(&payload).unwrap(),
+        let share_price = SharePrice::find(
+            &payload.get_input()?,
+            block_number,
             &state.pg_pool,
             &state.env.proxy_schema,
         )
@@ -120,7 +137,7 @@ pub async fn rpc_proxy(
         .map_err(|e| ApiError::Model(models::error::ModelError::SqlError(e)))?;
         if let Some(share_price) = share_price {
             info!("Found result in DB, returning it");
-            Ok(Json(share_price.result))
+            Ok(Json(payload.build_response_json(share_price.result)?))
         } else {
             info!("Didn't find result in DB, relaying request to target server");
             // If we don't have the result in the DB, we relay the request to the target server
@@ -128,7 +145,8 @@ pub async fn rpc_proxy(
             let response = state
                 .relay_request(serde_json::to_value(&payload).unwrap(), chain_id)
                 .await?;
-            let response = payload.store(&state, chain_id, response).await?;
+            println!("Response: {:?}", response);
+            payload.store(&state, chain_id, response.clone()).await?;
             Ok(Json(serde_json::to_value(response)?))
         }
     } else {

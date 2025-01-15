@@ -11,7 +11,7 @@ use sqlx::PgPool;
 pub struct Env {
     pub localstack_url: Option<String>,
     pub raw_consumer_queue_url: String,
-    pub indexer_db_url: String,
+    pub database_url: String,
     pub indexer_schema: String,
 }
 
@@ -54,7 +54,7 @@ impl SqsProducer {
         // Create the SQS client
         let client = Self::get_aws_client(env.localstack_url.clone()).await;
         // Connect to the database
-        let pg_pool = connect_to_db(&env.indexer_db_url).await?;
+        let pg_pool = connect_to_db(&env.database_url).await?;
 
         Ok(Self {
             client,
@@ -168,7 +168,7 @@ impl SqsProducer {
         info!("Starting polling events");
 
         // Start listening BEFORE processing historical records
-        let mut listener = PgListener::connect(&self.env.indexer_db_url).await?;
+        let mut listener = PgListener::connect(&self.env.database_url).await?;
         listener.listen("raw_logs_channel").await?;
 
         // Get current timestamp before processing historical

@@ -11,14 +11,14 @@ use thiserror::Error;
 /// libraries
 #[derive(Error, Debug)]
 pub enum ApiError {
-    #[error("Chain ID not supported: {0}")]
-    ChainIdNotSupported(String),
+    #[error(transparent)]
+    Axum(#[from] axum::Error),
     #[error(transparent)]
     Env(#[from] envy::Error),
     #[error("External service error: {0}")]
     ExternalServiceError(String),
     #[error(transparent)]
-    Axum(#[from] axum::Error),
+    IO(#[from] std::io::Error),
     #[error("Json parse error: {0}")]
     JsonParseError(String),
     #[error("JsonRpc error: {0}")]
@@ -32,13 +32,11 @@ pub enum ApiError {
     #[error(transparent)]
     NumParseError(#[from] std::num::ParseIntError),
     #[error(transparent)]
-    IO(#[from] std::io::Error),
-    #[error(transparent)]
-    UrlParse(#[from] url::ParseError),
-    #[error(transparent)]
     Serde(#[from] serde_json::Error),
     #[error("Unsupported chain_id: {0}")]
     UnsupportedChainId(u64),
+    #[error(transparent)]
+    UrlParse(#[from] url::ParseError),
 }
 
 impl IntoResponse for ApiError {

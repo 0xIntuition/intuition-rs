@@ -522,3 +522,48 @@ impl ConsumerMode {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use alloy::{
+        eips::BlockId,
+        primitives::{Address, U256},
+        providers::ProviderBuilder,
+    };
+    use std::str::FromStr;
+
+    async fn build_test_client(
+        rpc_url: &str,
+        contract_address: &str,
+    ) -> EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>> {
+        let provider = ProviderBuilder::new().on_http(rpc_url.parse().unwrap());
+
+        EthMultiVault::new(
+            Address::from_str(contract_address).unwrap(),
+            provider.clone(),
+        )
+    }
+
+    #[tokio::test]
+    async fn test_share_price_fetch() {
+        let rpc_url = "http://rpc-proxy:3008/8453/proxy";
+        let contract_address = "430BbF52503Bd4801E51182f4cB9f8F534225DE5";
+        let vault_id = U256::from(20);
+        let block_number = "25000968";
+        // Build the client
+        let web3 = build_test_client(rpc_url, contract_address).await;
+
+        // Make the actual request
+        let share_price = web3
+            .currentSharePrice(vault_id)
+            .block(BlockId::from_str(block_number).unwrap())
+            .call()
+            .await;
+
+        println!("Share price: {:?}", share_price);
+
+        assert!(share_price.is_ok());
+        println!("Share price: {:?}", share_price.unwrap());
+    }
+}

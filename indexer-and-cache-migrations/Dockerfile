@@ -17,4 +17,4 @@ RUN apt-get update && \
 
 RUN cargo install sqlx-cli --no-default-features --features native-tls,postgres
 
-CMD ["sh", "-c", "sqlx migrate run --database-url $DB_URL"]
+CMD ["sh", "-c", "sqlx migrate run --database-url $DATABASE_URL"]
