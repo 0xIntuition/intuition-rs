@@ -2,11 +2,10 @@ use std::str::FromStr;
 
 use crate::error::ApiError;
 use crate::EthMultiVault::EthMultiVaultInstance;
-use crate::{app::App, models::share_price::SharePrice, EthMultiVault::EthMultiVaultCalls};
+use crate::{app::App, models::share_price::SharePrice};
 use alloy::eips::BlockId;
 use alloy::primitives::{Address, Uint, U256};
 use alloy::providers::RootProvider;
-use alloy::sol_types::SolInterface;
 use alloy::transports::http::Http;
 use axum::extract::State;
 use axum_jrpc::{JrpcResult, JsonRpcExtractor, JsonRpcResponse};
@@ -60,6 +59,7 @@ async fn fetch_current_share_price(
 pub async fn current_share_price(State(state): State<App>, value: JsonRpcExtractor) -> JrpcResult {
     match value.method.as_str() {
         "eth_call" => {
+            // We may need to match on this one to be able to handle different requests, like ENS and such
             let request: CurrentSharePriceRequest = value.clone().parse_params()?;
             let block_number = u64::from_str_radix(
                 request

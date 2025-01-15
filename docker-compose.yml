@@ -40,6 +40,7 @@ services:
       RPC_URL_BASE_MAINNET: $RPC_URL_BASE_MAINNET
       RPC_URL_MAINNET: $RPC_URL_MAINNET
       RUST_LOG: $RUST_LOG
+      BACKEND_SCHEMA: $BACKEND_SCHEMA
     restart: always
     depends_on:
       sqs:
@@ -68,6 +69,7 @@ services:
       PG_MIN_CONNECTIONS: $PG_MIN_CONNECTIONS
       IPFS_UPLOAD_QUEUE_URL: $IPFS_UPLOAD_QUEUE_URL
       RUST_LOG: $RUST_LOG
+      BACKEND_SCHEMA: $BACKEND_SCHEMA
     restart: always
     depends_on:
       sqs:
@@ -96,6 +98,7 @@ services:
       RESOLVER_QUEUE_URL: $RESOLVER_QUEUE_URL
       RPC_URL_BASE_MAINNET: $RPC_URL_BASE_MAINNET
       RUST_LOG: $RUST_LOG
+      BACKEND_SCHEMA: $BACKEND_SCHEMA
     restart: always
     depends_on:
       sqs:
@@ -124,6 +127,7 @@ services:
       RPC_URL_BASE_MAINNET: $RPC_URL_BASE_MAINNET
       RPC_URL_MAINNET: $RPC_URL_MAINNET
       RUST_LOG: $RUST_LOG
+      BACKEND_SCHEMA: $BACKEND_SCHEMA
     restart: always
     depends_on:
       sqs:
@@ -286,6 +290,7 @@ services:
       DATABASE_URL: $INDEXER_DB_URL
       RAW_CONSUMER_QUEUE_URL: $RAW_CONSUMER_QUEUE_URL
       HYPERSYNC_TOKEN: $HYPERSYNC_TOKEN
+      INDEXER_SCHEMA: $INDEXER_SCHEMA
     depends_on:
       sqs:
         condition: service_healthy
@@ -298,6 +303,7 @@ services:
     image: ghcr.io/0xintuition/indexer-migrations:latest
     environment:
       INDEXER_DB_URL: $INDEXER_DB_URL
+      DB_URL: $DATABASE_URL
     depends_on:
       database:
         condition: service_healthy
@@ -313,6 +319,7 @@ services:
       INDEXER_DB_URL: $INDEXER_DB_URL
       LOCALSTACK_URL: $LOCALSTACK_URL
       RAW_CONSUMER_QUEUE_URL: $RAW_CONSUMER_QUEUE_URL
+      INDEXER_SCHEMA: $INDEXER_SCHEMA
     depends_on:
       database:
         condition: service_healthy

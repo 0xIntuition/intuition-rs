@@ -201,7 +201,7 @@ pub fn create_test_event_with_atom(atom_id: U256Wrapper) -> Event {
     Event::builder()
         .id(create_random_string())
         .atom_id(atom_id)
-        .event_type(EventType::AtomCreated)
+        .event_type(EventType::FeesTransfered)
         .block_number(create_random_u256wrapper())
         .block_timestamp(create_random_number())
         .transaction_hash(vec![5u8])

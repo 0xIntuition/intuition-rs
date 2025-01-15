@@ -61,7 +61,7 @@ impl SimpleCrud<String> for Event {
                 block_number = EXCLUDED.block_number,
                 block_timestamp = EXCLUDED.block_timestamp,
                 transaction_hash = EXCLUDED.transaction_hash
-            RETURNING id, type, atom_id, triple_id, fee_transfer_id, deposit_id, redemption_id, block_number, block_timestamp, transaction_hash
+            RETURNING id, type as event_type, atom_id, triple_id, fee_transfer_id, deposit_id, redemption_id, block_number, block_timestamp, transaction_hash
             "#,
             schema, schema
         );
@@ -94,7 +94,7 @@ impl SimpleCrud<String> for Event {
     ) -> Result<Option<Self>, ModelError> {
         let query = format!(
             r#"
-            SELECT id, type,
+            SELECT id, type as event_type,
                    atom_id,
                    triple_id,
                    fee_transfer_id,

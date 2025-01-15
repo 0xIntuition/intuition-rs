@@ -3,7 +3,7 @@ FROM rust:1.84-slim
 WORKDIR /app
 
 # Copy migrations from workspace
-COPY migrations ./migrations
+COPY indexer-and-cache-migrations ./migrations
 
 # Install build and runtime dependencies
 RUN apt-get update && \
@@ -17,4 +17,4 @@ RUN apt-get update && \
 
 RUN cargo install sqlx-cli --no-default-features --features native-tls,postgres
 
-CMD ["sh", "-c", "sqlx migrate run --database-url $INDEXER_DB_URL"]
+CMD ["sh", "-c", "sqlx migrate run --database-url $DB_URL"]
