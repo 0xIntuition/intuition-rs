@@ -7,9 +7,10 @@ This workspace contains the following crates:
 * `consumer`: contains the code to RAW, DECODED and RESOLVER consumers.
 * `envio-indexer`: contains the code to index the base-sepolia events of our contract using envio.
 * `hasura`: contains the migrations and hasura config.
-* `histoflux`: streams historical/live events from the database to an SQS queue.
+* `histoflux`: streams historical/live events from the database to an SQS queue.`
 * `image-guard`: contains the code to guard the images.
 * `models`: contains the domain models for the intuition data as basic traits for the data.
+* `rpc-proxy`: contains the code to proxy the RPC calls to their respective networks, caching the results of the `eth_call` method for the `currentSharePrice` function of the `EthMultiVault` contract.
 * `substreams-sink`: contains the code to consume the Substreams events.
 
 

@@ -54,7 +54,7 @@ impl JsonRpcRequest {
 
     /// Get the input from the request.
     pub fn get_input(&self) -> Result<String, ApiError> {
-        Ok(self.params[0]["data"].to_string())
+        Ok(self.params[0]["input"].to_string())
     }
 
     /// Checks if the block number is "latest".
