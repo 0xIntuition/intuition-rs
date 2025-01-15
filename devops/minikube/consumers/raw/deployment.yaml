@@ -73,11 +73,11 @@ spec:
                 secretKeyRef:
                   name: secrets
                   key: RAW_CONSUMER_QUEUE_URL
-            - name: RPC_URL_BASE_MAINNET
+            - name: RPC_URL_BASE
               valueFrom:
                 secretKeyRef:
                   name: secrets
-                  key: RPC_URL_BASE_MAINNET
+                  key: RPC_URL_BASE
             - name: RPC_URL_MAINNET
               valueFrom:
                 secretKeyRef:

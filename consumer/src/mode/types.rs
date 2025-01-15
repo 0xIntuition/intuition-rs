@@ -166,7 +166,7 @@ impl ConsumerMode {
             &data
                 .clone()
                 .env
-                .rpc_url_base_mainnet
+                .rpc_url_base
                 .unwrap_or_else(|| panic!("RPC URL base mainnet is not set")),
             &data
                 .clone()

@@ -43,7 +43,7 @@ There is a `.env.sample` file that you need to use as a template to create the `
 * `PINATA_GATEWAY_TOKEN`: You can get the token from [Pinata](https://app.pinata.cloud/developers/gateway-settings)
 * `PINATA_API_JWT`: You can get the token from [Pinata](https://app.pinata.cloud/developers/api-keys)
 * `RPC_URL_MAINNET`: We are currently using Alchemy. You can create new ones using the [Alchemy dashboard](https://dashboard.alchemy.com/)
-* `RPC_URL_BASE_MAINNET`: We are currently using Alchemy. You can create new ones using the [Alchemy dashboard](https://dashboard.alchemy.com/apps)
+* `RPC_URL_BASE`: We are currently using Alchemy. You can create new ones using the [Alchemy dashboard](https://dashboard.alchemy.com/apps)
 * `AWS_ACCESS_KEY_ID`: You can get the values from your [AWS account](https://us-east-1.console.aws.amazon.com/iam/home?region=us-east-1#/users)
 * `AWS_SECRET_ACCESS_KEY`: You can get the values from your [AWS account](https://us-east-1.console.aws.amazon.com/iam/home?region=us-east-1#/users)
 * `HF_TOKEN`: You can get the token from [Hugging Face](https://huggingface.co/settings/tokens)
