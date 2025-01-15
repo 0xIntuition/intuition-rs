@@ -6,7 +6,7 @@ use utoipa::OpenApi;
 #[derive(OpenApi)]
 #[openapi(
     paths(
-        endpoints::current_share_price::current_share_price,
+        endpoints::proxy::rpc_proxy,
     ),
     components(
         schemas(
@@ -16,7 +16,7 @@ use utoipa::OpenApi;
         )
     ),
     tags(
-        (name = "current_share_price", description = "Current share price endpoint")
+        (name = "rpc_proxy", description = "RPC proxy endpoint")
     )
 )]
 pub struct ApiDoc;

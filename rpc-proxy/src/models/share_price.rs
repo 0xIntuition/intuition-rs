@@ -1,5 +1,4 @@
 use macon::Builder;
-use models::types::U256Wrapper;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sqlx::PgPool;
@@ -7,10 +6,10 @@ use sqlx::PgPool;
 #[derive(sqlx::FromRow, Debug, PartialEq, Clone, Builder, Serialize, Deserialize)]
 #[sqlx(type_name = "share_price")]
 pub struct SharePrice {
-    pub block_number: U256Wrapper,
+    pub block_number: i64,
     pub contract_address: String,
     pub raw_rpc_request: Value,
-    pub chain_id: U256Wrapper,
+    pub chain_id: i64,
     pub result: Value,
 }
 
@@ -36,7 +35,7 @@ impl SharePrice {
     }
 
     pub async fn find_raw_rpc_request(
-        &self,
+        raw_rpc_request: &Value,
         db: &PgPool,
         schema: &str,
     ) -> Result<Option<Self>, sqlx::Error> {
@@ -49,7 +48,7 @@ impl SharePrice {
         );
 
         sqlx::query_as::<_, SharePrice>(&query)
-            .bind(&self.raw_rpc_request)
+            .bind(raw_rpc_request)
             .fetch_optional(db)
             .await
     }
@@ -58,7 +57,6 @@ impl SharePrice {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy::primitives::Uint;
     use models::test_helpers::{setup_test_db, TEST_PROXY_SCHEMA};
 
     #[tokio::test]
@@ -67,10 +65,10 @@ mod tests {
 
         // Create test data
         let share_price = SharePrice {
-            block_number: U256Wrapper::from(Uint::from(100)),
+            block_number: 100,
             contract_address: "0x123".to_string(),
             raw_rpc_request: Value::String("test_request".to_string()),
-            chain_id: U256Wrapper::from(Uint::from(1)),
+            chain_id: 1,
             result: Value::String("test_result".to_string()),
         };
 
@@ -79,9 +77,12 @@ mod tests {
         assert_eq!(inserted, share_price);
 
         // Find record
-        let found = share_price
-            .find_raw_rpc_request(&pool, TEST_PROXY_SCHEMA)
-            .await?;
+        let found = SharePrice::find_raw_rpc_request(
+            &share_price.raw_rpc_request,
+            &pool,
+            TEST_PROXY_SCHEMA,
+        )
+        .await?;
         assert!(found.is_some());
         assert_eq!(found.unwrap(), share_price);
 

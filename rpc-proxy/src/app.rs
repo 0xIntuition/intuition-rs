@@ -1,19 +1,5 @@
-use crate::{
-    endpoints::current_share_price::current_share_price,
-    error::ApiError,
-    openapi::ApiDoc,
-    EthMultiVault::{self, EthMultiVaultInstance},
-};
-use alloy::{
-    primitives::Address,
-    providers::{ProviderBuilder, RootProvider},
-    transports::http::Http,
-};
-use axum::{
-    routing::{get, post},
-    Router,
-};
-use axum_prometheus::PrometheusMetricLayer;
+use crate::{endpoints::proxy::rpc_proxy, error::ApiError, openapi::ApiDoc};
+use axum::{routing::post, Router};
 use http::{
     header::{AUTHORIZATION, CONTENT_TYPE},
     Method,
@@ -21,9 +7,10 @@ use http::{
 use log::info;
 use reqwest::Client;
 use serde::Deserialize;
+use serde_json::Value;
 use shared_utils::postgres::connect_to_db;
 use sqlx::PgPool;
-use std::{str::FromStr, sync::Arc, time::Duration};
+use std::time::Duration;
 use tokio::net::TcpListener;
 use tower_http::cors::CorsLayer;
 use utoipa::OpenApi;
@@ -32,35 +19,53 @@ use utoipa_swagger_ui::SwaggerUi;
 #[derive(Clone, Deserialize)]
 pub struct Env {
     pub proxy_api_port: u16,
-    pub proxy_database_url: String,
-    pub proxy_rpc_url: String,
-    pub proxy_contract_address: String,
+    pub database_url: String,
     pub proxy_schema: String,
+    pub base_mainnet_rpc_url: String,
+    pub base_sepolia_rpc_url: String,
+    pub ethereum_mainnet_rpc_url: String,
 }
 
 #[derive(Clone)]
 pub struct App {
     pub env: Env,
     pub pg_pool: PgPool,
-    pub rpc_client: Arc<EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>>>,
+    pub reqwest_client: Client,
 }
 
 impl App {
-    /// Builds the alloy client for the Intuition contract
-    fn build_intuition_client(
-        rpc_url: &str,
-        contract_address: &str,
-    ) -> Result<EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>>, ApiError> {
-        let provider = ProviderBuilder::new().on_http(rpc_url.parse().map_err(ApiError::from)?);
+    /// Relay the request to the target server.
+    pub async fn relay_request(&self, payload: Value, chain_id: u64) -> Result<Value, ApiError> {
+        // Get the RPC URL for the given chain_id
+        let rpc_url = self.get_rpc_url(chain_id)?;
 
-        let alloy_contract = EthMultiVault::new(
-            Address::from_str(contract_address)
-                .map_err(|e| ApiError::AddressParse(e.to_string()))?,
-            provider.clone(),
-        );
+        // Forward the request to the target server
+        let response = self
+            .reqwest_client
+            .post(&rpc_url)
+            .json(&payload)
+            .send()
+            .await
+            .map_err(|e| ApiError::ExternalServiceError(e.to_string()))?;
 
-        Ok(alloy_contract)
+        // Get the response JSON
+        let response_data = response
+            .json::<serde_json::Value>()
+            .await
+            .map_err(|e| ApiError::JsonParseError(e.to_string()))?;
+        Ok(response_data)
     }
+
+    /// Get the RPC URL for the given chain_id.
+    pub fn get_rpc_url(&self, chain_id: u64) -> Result<String, ApiError> {
+        match chain_id {
+            8453 => Ok(self.env.base_mainnet_rpc_url.clone()),
+            84532 => Ok(self.env.base_sepolia_rpc_url.clone()),
+            1 => Ok(self.env.ethereum_mainnet_rpc_url.clone()),
+            _ => Err(ApiError::UnsupportedChainId(chain_id)),
+        }
+    }
+
     /// Build a TCP listener for the application.
     async fn build_listener(&self) -> Result<TcpListener, ApiError> {
         TcpListener::bind(format!("0.0.0.0:{}", self.env.proxy_api_port))
@@ -85,15 +90,12 @@ impl App {
         dotenvy::dotenv().ok();
         // Load the environment variables into our struct
         let env = envy::from_env::<Env>().map_err(ApiError::from)?;
-        let pg_pool = connect_to_db(&env.proxy_database_url).await?;
-        let rpc_client = Arc::new(Self::build_intuition_client(
-            &env.proxy_rpc_url,
-            &env.proxy_contract_address,
-        )?);
+        let pg_pool = connect_to_db(&env.database_url).await?;
+        let reqwest_client = Client::new();
         Ok(Self {
             env,
             pg_pool,
-            rpc_client,
+            reqwest_client,
         })
     }
 
@@ -106,11 +108,8 @@ impl App {
 
     /// Create the router for the application.
     fn router(&self) -> Router {
-        let (prometheus_layer, metric_handle) = PrometheusMetricLayer::pair();
         Router::new()
-            .route("/current_share_price", post(current_share_price))
-            .route("/metrics", get(|| async move { metric_handle.render() }))
-            .layer(prometheus_layer)
+            .route("/{chain_id}/proxy", post(rpc_proxy))
             .with_state(self.clone())
     }
 

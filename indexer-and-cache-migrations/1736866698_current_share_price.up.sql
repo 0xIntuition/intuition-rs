@@ -1,10 +1,10 @@
 CREATE SCHEMA IF NOT EXISTS base_sepolia_proxy;
 
 CREATE TABLE base_sepolia_proxy.share_price(
-  block_number NUMERIC(78, 0) NOT NULL,
+  block_number BIGINT NOT NULL,
   contract_address TEXT NOT NULL,
   raw_rpc_request JSONB NOT NULL,
-  chain_id NUMERIC(78, 0) NOT NULL,
+  chain_id BIGINT NOT NULL,
   result JSONB NOT NULL
 );
 
