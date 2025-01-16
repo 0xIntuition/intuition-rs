@@ -16,8 +16,7 @@ use serde_json::Value;
 ///     "method": "eth_call",
 ///     "params": [
 ///         {
-///             "from": "0x0000000000000000000000000000000000000000",
-///             "data": "0xee9dd98f0000000000000000000000000000000000000000000000000000000000000014",
+///             "input": "0xee9dd98f0000000000000000000000000000000000000000000000000000000000000014",
 ///             "to": "0x430bbf52503bd4801e51182f4cb9f8f534225de5"
 ///         },
 ///         "0x17D7C08"
@@ -35,9 +34,10 @@ impl JsonRpcRequest {
     /// Builds a JSON RPC response from the request and the result.
     pub fn build_response_json(&self, result: String) -> Result<Value, ApiError> {
         let mut response = serde_json::Map::new();
-        response.insert("jsonrpc".into(), Value::String(self.jsonrpc.clone()));
+        response.insert("jsonrpc".into(), Value::String("2.0".into()));
         response.insert("id".into(), Value::Number(self.id.into()));
-        response.insert("result".into(), serde_json::from_str(&result)?);
+        response.insert("result".into(), Value::String(result));
+
         Ok(Value::Object(response))
     }
 
@@ -49,12 +49,18 @@ impl JsonRpcRequest {
 
     /// Get the contract address from the request.
     pub fn get_contract_address(&self) -> Result<String, ApiError> {
-        Ok(self.params[0]["to"].to_string())
+        let address = self.params[0]["to"].to_string();
+        // Trim any leading or trailing quotes
+        let trimmed_address = address.trim_matches('"').to_string();
+        Ok(trimmed_address)
     }
 
     /// Get the input from the request.
     pub fn get_input(&self) -> Result<String, ApiError> {
-        Ok(self.params[0]["input"].to_string())
+        let input = self.params[0]["input"].to_string();
+        // Trim any leading or trailing quotes
+        let trimmed_input = input.trim_matches('"').to_string();
+        Ok(trimmed_input)
     }
 
     /// Checks if the block number is "latest".
@@ -127,12 +133,12 @@ pub async fn rpc_proxy(
     let block_number = payload.block_number()?;
     if let Some(_block_number) = block_number {
         info!("Block number is not latest, checking DB for result");
-
         let share_price = JsonRpcCache::find(&payload, chain_id as i64, &state).await?;
-
         if let Some(share_price) = share_price {
             info!("Found result in DB, returning it");
-            Ok(Json(payload.build_response_json(share_price.result)?))
+            // Create response directly without using build_response_json
+            let response = payload.build_response_json(share_price.result)?;
+            Ok(Json(response))
         } else {
             info!("Didn't find result in DB, relaying request to target server");
             // If we don't have the result in the DB, we relay the request to the target server

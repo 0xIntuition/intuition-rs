@@ -144,7 +144,7 @@ mod tests {
         // Find record
         let found = JsonRpcCache::find(&payload, 84532, &app_state).await?;
         assert!(found.is_some());
-        // assert_eq!(found.unwrap(), share_price);
+        assert_eq!(found.unwrap(), share_price);
 
         Ok(())
     }
