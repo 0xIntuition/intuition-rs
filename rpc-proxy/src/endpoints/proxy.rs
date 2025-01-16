@@ -1,6 +1,6 @@
 use crate::error::ApiError;
 use crate::models::share_price::Method;
-use crate::{app::App, models::share_price::SharePrice};
+use crate::{app::App, models::share_price::JsonRpcCache};
 use axum::extract::Path;
 use axum::extract::State;
 use axum::Json;
@@ -77,8 +77,8 @@ impl JsonRpcRequest {
         state: &App,
         chain_id: u64,
         result: Value,
-    ) -> Result<SharePrice, ApiError> {
-        let share_price = SharePrice {
+    ) -> Result<JsonRpcCache, ApiError> {
+        let share_price = JsonRpcCache {
             chain_id: chain_id as i64,
             block_number: self.get_block_number()?,
             method: Method::EthCall,
@@ -125,16 +125,11 @@ pub async fn rpc_proxy(
     // we return it. If we don't, we relay the request to the target server,
     // store the result in the DB and return it.
     let block_number = payload.block_number()?;
-    if let Some(block_number) = block_number {
+    if let Some(_block_number) = block_number {
         info!("Block number is not latest, checking DB for result");
-        let share_price = SharePrice::find(
-            &payload.get_input()?,
-            block_number,
-            &state.pg_pool,
-            &state.env.proxy_schema,
-        )
-        .await
-        .map_err(|e| ApiError::Model(models::error::ModelError::SqlError(e)))?;
+
+        let share_price = JsonRpcCache::find(&payload, chain_id as i64, &state).await?;
+
         if let Some(share_price) = share_price {
             info!("Found result in DB, returning it");
             Ok(Json(payload.build_response_json(share_price.result)?))
@@ -145,7 +140,7 @@ pub async fn rpc_proxy(
             let response = state
                 .relay_request(serde_json::to_value(&payload).unwrap(), chain_id)
                 .await?;
-            println!("Response: {:?}", response);
+            info!("Storing result in DB");
             payload.store(&state, chain_id, response.clone()).await?;
             Ok(Json(serde_json::to_value(response)?))
         }

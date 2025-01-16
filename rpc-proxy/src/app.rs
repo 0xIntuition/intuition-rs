@@ -16,7 +16,7 @@ use tower_http::cors::CorsLayer;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, Default)]
 pub struct Env {
     pub proxy_api_port: u16,
     pub database_url: String,

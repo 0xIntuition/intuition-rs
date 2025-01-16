@@ -33,6 +33,8 @@ pub enum ApiError {
     NumParseError(#[from] std::num::ParseIntError),
     #[error(transparent)]
     Serde(#[from] serde_json::Error),
+    #[error(transparent)]
+    Sqlx(#[from] sqlx::Error),
     #[error("Unsupported chain_id: {0}")]
     UnsupportedChainId(u64),
     #[error(transparent)]

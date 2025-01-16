@@ -4,6 +4,9 @@ use macon::Builder;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
+use crate::{app::App, endpoints::proxy::JsonRpcRequest, error::ApiError};
+
+/// The method enum.
 #[derive(sqlx::Type, Debug, PartialEq, Clone, Serialize, Deserialize)]
 #[sqlx(type_name = "method")]
 pub enum Method {
@@ -19,9 +22,10 @@ impl Display for Method {
     }
 }
 
+/// The share price model.
 #[derive(sqlx::FromRow, Debug, PartialEq, Clone, Builder, Serialize, Deserialize)]
-#[sqlx(type_name = "share_price")]
-pub struct SharePrice {
+#[sqlx(type_name = "json_rpc_cache")]
+pub struct JsonRpcCache {
     pub chain_id: i64,
     pub block_number: i64,
     pub method: Method,
@@ -30,18 +34,19 @@ pub struct SharePrice {
     pub result: String,
 }
 
-impl SharePrice {
+impl JsonRpcCache {
+    /// Insert the share price into the DB.
     pub async fn insert(&self, db: &PgPool, schema: &str) -> Result<Self, sqlx::Error> {
         let query = format!(
             r#"
-            INSERT INTO {}.share_price (chain_id, block_number, method, to_address, input, result) 
+            INSERT INTO {}.json_rpc_cache (chain_id, block_number, method, to_address, input, result) 
             VALUES ($1::numeric, $2, $3::text::{}.method, $4, $5, $6) 
             RETURNING chain_id, block_number, method as "method", to_address, input, result
             "#,
             schema, schema
         );
 
-        sqlx::query_as::<_, SharePrice>(&query)
+        sqlx::query_as::<_, JsonRpcCache>(&query)
             .bind(self.chain_id)
             .bind(self.block_number)
             .bind(self.method.to_string())
@@ -52,32 +57,42 @@ impl SharePrice {
             .await
     }
 
+    /// Find the share price in the DB.
     pub async fn find(
-        input: &str,
-        block_number: i64,
-        db: &PgPool,
-        schema: &str,
-    ) -> Result<Option<Self>, sqlx::Error> {
+        payload: &JsonRpcRequest,
+        chain_id: i64,
+        app_state: &App,
+    ) -> Result<Option<Self>, ApiError> {
         let query = format!(
             r#"
-            SELECT * FROM {}.share_price 
-            WHERE input = $1 AND block_number = $2
+            SELECT * FROM {}.json_rpc_cache 
+            WHERE chain_id = $1 AND block_number = $2 AND to_address = $3 AND input = $4
             "#,
-            schema,
+            app_state.env.proxy_schema,
         );
 
-        sqlx::query_as::<_, SharePrice>(&query)
-            .bind(input)
-            .bind(block_number)
-            .fetch_optional(db)
-            .await
+        Ok(sqlx::query_as::<_, JsonRpcCache>(&query)
+            .bind(chain_id)
+            .bind(
+                payload
+                    .block_number()?
+                    .ok_or(ApiError::JsonRpc("Block number is required".to_string()))?,
+            )
+            .bind(payload.get_contract_address()?)
+            .bind(payload.get_input()?)
+            .fetch_optional(&app_state.pg_pool)
+            .await?)
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::app::Env;
+
     use super::*;
     use models::test_helpers::{setup_test_db, TEST_PROXY_SCHEMA};
+    use reqwest::Client;
+    use serde_json::Value;
 
     /// This test requires the database to be running and migrations to be applied.
     #[tokio::test]
@@ -85,7 +100,7 @@ mod tests {
         let pool = setup_test_db().await;
 
         // Create test data
-        let share_price = SharePrice {
+        let share_price = JsonRpcCache {
             chain_id: 1,
             block_number: 100,
             method: Method::EthCall,
@@ -98,14 +113,23 @@ mod tests {
         let inserted = share_price.insert(&pool, TEST_PROXY_SCHEMA).await?;
         assert_eq!(inserted, share_price);
 
+        // Build the payload
+        let payload = JsonRpcRequest {
+            id: 1,
+            jsonrpc: "2.0".to_string(),
+            method: "eth_call".to_string(),
+            params: Value::Array(vec![Value::String("0x123".to_string())]),
+        };
+
+        // Build the app state
+        let app_state = App {
+            env: Env::default(),
+            pg_pool: pool,
+            reqwest_client: Client::new(),
+        };
+
         // Find record
-        let found = SharePrice::find(
-            &share_price.input,
-            share_price.block_number,
-            &pool,
-            TEST_PROXY_SCHEMA,
-        )
-        .await?;
+        let found = JsonRpcCache::find(&payload, share_price.block_number, &app_state).await?;
         assert!(found.is_some());
         assert_eq!(found.unwrap(), share_price);
 

@@ -1,1 +1,1 @@
-DROP TABLE base_sepolia_proxy.share_price;
+DROP TABLE base_sepolia_proxy.json_rpc_cache;

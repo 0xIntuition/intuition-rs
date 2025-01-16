@@ -2,7 +2,7 @@ CREATE SCHEMA IF NOT EXISTS base_sepolia_proxy;
 
 CREATE TYPE base_sepolia_proxy.method AS ENUM ('eth_call');
 
-CREATE TABLE base_sepolia_proxy.share_price(
+CREATE TABLE base_sepolia_proxy.json_rpc_cache(
   chain_id BIGINT NOT NULL,
   block_number BIGINT NOT NULL,
   method base_sepolia_proxy.method NOT NULL,
@@ -12,6 +12,6 @@ CREATE TABLE base_sepolia_proxy.share_price(
 );
 
 -- Indexes for common query patterns
-CREATE INDEX idx_share_price_block_number ON base_sepolia_proxy.share_price(block_number);
-CREATE INDEX idx_share_price_input ON base_sepolia_proxy.share_price(input);
-CREATE INDEX idx_share_price_method_input ON base_sepolia_proxy.share_price(method, input);
+CREATE INDEX idx_json_rpc_cache_block_number ON base_sepolia_proxy.json_rpc_cache(block_number);
+CREATE INDEX idx_json_rpc_cache_input ON base_sepolia_proxy.json_rpc_cache(input);
+CREATE INDEX idx_json_rpc_cache_method_input ON base_sepolia_proxy.json_rpc_cache(method, input);
