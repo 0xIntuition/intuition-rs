@@ -3,7 +3,7 @@ mod tests {
     use chrono::Utc;
     use models::{
         cached_image::CachedImage,
-        test_helpers::{create_random_string, setup_test_db},
+        test_helpers::{create_random_string, setup_test_db, TEST_SCHEMA},
         traits::SimpleCrud,
     };
 
@@ -21,16 +21,19 @@ mod tests {
         };
 
         // Insert with Unknown classification
-        let inserted = guard.upsert(&pool).await.unwrap();
+        let inserted = guard.upsert(&pool, TEST_SCHEMA).await.unwrap();
         assert!(!inserted.safe);
 
         // Update to Safe
         guard.safe = true;
-        let updated = guard.upsert(&pool).await.unwrap();
+        let updated = guard.upsert(&pool, TEST_SCHEMA).await.unwrap();
         assert!(updated.safe);
 
         // Find and verify
-        let found = CachedImage::find_by_id(id, &pool).await.unwrap().unwrap();
+        let found = CachedImage::find_by_id(id, &pool, TEST_SCHEMA)
+            .await
+            .unwrap()
+            .unwrap();
         assert!(found.safe);
     }
 }

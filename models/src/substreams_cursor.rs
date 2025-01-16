@@ -28,11 +28,10 @@ impl Model for SubstreamsCursor {}
 #[async_trait]
 impl SimpleCrud<i32> for SubstreamsCursor {
     /// This is a method to upsert an account into the database.
-    async fn upsert(&self, pool: &PgPool) -> Result<Self, ModelError> {
-        sqlx::query_as!(
-            SubstreamsCursor,
+    async fn upsert(&self, pool: &PgPool, schema: &str) -> Result<Self, ModelError> {
+        let query = format!(
             r#"
-            INSERT INTO substreams_cursor (id, cursor, endpoint, start_block, end_block, created_at)
+            INSERT INTO {}.substreams_cursor (id, cursor, endpoint, start_block, end_block, created_at)
             VALUES ($1, $2, $3, $4, $5, $6)
                 ON CONFLICT (id) DO UPDATE SET
                     cursor = EXCLUDED.cursor,
@@ -48,22 +47,24 @@ impl SimpleCrud<i32> for SubstreamsCursor {
                 end_block,
                 created_at
             "#,
-            self.id,
-            self.cursor,
-            self.endpoint,
-            self.start_block,
-            self.end_block,
-            self.created_at,
-        )
-        .fetch_one(pool)
-        .await
-        .map_err(|e| ModelError::InsertError(e.to_string()))
+            schema,
+        );
+
+        sqlx::query_as::<_, SubstreamsCursor>(&query)
+            .bind(self.id)
+            .bind(self.cursor.clone())
+            .bind(self.endpoint.clone())
+            .bind(self.start_block)
+            .bind(self.end_block)
+            .bind(self.created_at)
+            .fetch_one(pool)
+            .await
+            .map_err(|e| ModelError::InsertError(e.to_string()))
     }
 
     /// This is a method to find an account by its id.
-    async fn find_by_id(id: i32, pool: &PgPool) -> Result<Option<Self>, ModelError> {
-        sqlx::query_as!(
-            SubstreamsCursor,
+    async fn find_by_id(id: i32, pool: &PgPool, schema: &str) -> Result<Option<Self>, ModelError> {
+        let query = format!(
             r#"
             SELECT 
                 id, 
@@ -72,23 +73,25 @@ impl SimpleCrud<i32> for SubstreamsCursor {
                 start_block,
                 end_block,
                 created_at
-            FROM substreams_cursor
+            FROM {}.substreams_cursor
             WHERE id = $1
             "#,
-            id
-        )
-        .fetch_optional(pool)
-        .await
-        .map_err(|e| ModelError::QueryError(e.to_string()))
+            schema,
+        );
+
+        sqlx::query_as::<_, SubstreamsCursor>(&query)
+            .bind(id)
+            .fetch_optional(pool)
+            .await
+            .map_err(|e| ModelError::QueryError(e.to_string()))
     }
 }
 
 impl SubstreamsCursor {
-    pub async fn insert(&self, pool: &PgPool) -> Result<Self, ModelError> {
-        sqlx::query_as!(
-            SubstreamsCursor,
+    pub async fn insert(&self, pool: &PgPool, schema: &str) -> Result<Self, ModelError> {
+        let query = format!(
             r#"
-            INSERT INTO substreams_cursor (cursor, endpoint, start_block, end_block)
+            INSERT INTO {}.substreams_cursor (cursor, endpoint, start_block, end_block)
             VALUES ($1, $2, $3, $4)
             RETURNING 
                 id, 
@@ -98,19 +101,21 @@ impl SubstreamsCursor {
                 end_block,
                 created_at
             "#,
-            self.cursor,
-            self.endpoint,
-            self.start_block,
-            self.end_block,
-        )
-        .fetch_one(pool)
-        .await
-        .map_err(|e| ModelError::InsertError(e.to_string()))
+            schema,
+        );
+
+        sqlx::query_as::<_, SubstreamsCursor>(&query)
+            .bind(self.cursor.clone())
+            .bind(self.endpoint.clone())
+            .bind(self.start_block)
+            .bind(self.end_block)
+            .fetch_one(pool)
+            .await
+            .map_err(|e| ModelError::InsertError(e.to_string()))
     }
 
-    pub async fn get_last(pool: &PgPool) -> Result<Option<Self>, ModelError> {
-        sqlx::query_as!(
-            SubstreamsCursor,
+    pub async fn get_last(pool: &PgPool, schema: &str) -> Result<Option<Self>, ModelError> {
+        let query = format!(
             r#"
             SELECT 
                 id, 
@@ -119,13 +124,16 @@ impl SubstreamsCursor {
                 start_block,
                 end_block,
                 created_at
-            FROM substreams_cursor
+            FROM {}.substreams_cursor
             ORDER BY created_at DESC
             LIMIT 1
-            "#
-        )
-        .fetch_optional(pool)
-        .await
-        .map_err(|e| ModelError::QueryError(e.to_string()))
+            "#,
+            schema,
+        );
+
+        sqlx::query_as::<_, SubstreamsCursor>(&query)
+            .fetch_optional(pool)
+            .await
+            .map_err(|e| ModelError::QueryError(e.to_string()))
     }
 }

@@ -29,11 +29,10 @@ impl Model for FeeTransfer {}
 impl SimpleCrud<String> for FeeTransfer {
     /// Upserts a fee transfer record in the database.
     /// If a record with the same ID exists, it will be updated, otherwise a new record will be created.
-    async fn upsert(&self, pool: &sqlx::PgPool) -> Result<Self, ModelError> {
-        let result = sqlx::query_as!(
-            FeeTransfer,
+    async fn upsert(&self, pool: &PgPool, schema: &str) -> Result<Self, ModelError> {
+        let query = format!(
             r#"
-            INSERT INTO fee_transfer (
+            INSERT INTO {}.fee_transfer (
                 id, sender_id, receiver_id, amount, block_number, block_timestamp, transaction_hash
             ) VALUES ($1, $2, $3, $4, $5, $6, $7)
             ON CONFLICT (id) DO UPDATE SET
@@ -45,47 +44,52 @@ impl SimpleCrud<String> for FeeTransfer {
                 transaction_hash = EXCLUDED.transaction_hash
             RETURNING 
                 id, sender_id, receiver_id, 
-                amount as "amount: U256Wrapper",
-                block_number as "block_number: U256Wrapper",
+                amount,
+                block_number,
                 block_timestamp,
                 transaction_hash
             "#,
-            self.id,
-            self.sender_id,
-            self.receiver_id,
-            self.amount.to_big_decimal()?,
-            self.block_number.to_big_decimal()?,
-            self.block_timestamp,
-            self.transaction_hash,
-        )
-        .fetch_one(pool)
-        .await
-        .map_err(|e| ModelError::InsertError(e.to_string()))?;
+            schema,
+        );
 
-        Ok(result)
+        sqlx::query_as::<_, FeeTransfer>(&query)
+            .bind(self.id.clone())
+            .bind(self.sender_id.clone())
+            .bind(self.receiver_id.clone())
+            .bind(self.amount.to_big_decimal()?)
+            .bind(self.block_number.to_big_decimal()?)
+            .bind(self.block_timestamp)
+            .bind(self.transaction_hash.clone())
+            .fetch_one(pool)
+            .await
+            .map_err(|e| ModelError::InsertError(e.to_string()))
     }
 
     /// Finds a fee transfer record by its ID.
     /// Returns None if no record is found.
-    async fn find_by_id(id: String, pool: &PgPool) -> Result<Option<Self>, ModelError> {
-        let result = sqlx::query_as!(
-            FeeTransfer,
+    async fn find_by_id(
+        id: String,
+        pool: &PgPool,
+        schema: &str,
+    ) -> Result<Option<Self>, ModelError> {
+        let query = format!(
             r#"
             SELECT 
                 id, sender_id, receiver_id,
-                amount as "amount: U256Wrapper",
-                block_number as "block_number: U256Wrapper",
+                amount,
+                block_number,
                 block_timestamp,
                 transaction_hash
-            FROM fee_transfer
+            FROM {}.fee_transfer
             WHERE id = $1
             "#,
-            id
-        )
-        .fetch_optional(pool)
-        .await
-        .map_err(|e| crate::error::ModelError::QueryError(e.to_string()))?;
+            schema,
+        );
 
-        Ok(result)
+        sqlx::query_as::<_, FeeTransfer>(&query)
+            .bind(id)
+            .fetch_optional(pool)
+            .await
+            .map_err(|e| crate::error::ModelError::QueryError(e.to_string()))
     }
 }

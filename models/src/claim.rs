@@ -28,11 +28,10 @@ impl Model for Claim {}
 #[async_trait]
 impl SimpleCrud<String> for Claim {
     /// Creates a new claim or updates an existing one in the database
-    async fn upsert(&self, pool: &sqlx::PgPool) -> Result<Self, ModelError> {
-        sqlx::query_as!(
-            Claim,
+    async fn upsert(&self, pool: &PgPool, schema: &str) -> Result<Self, ModelError> {
+        let query = format!(
             r#"
-            INSERT INTO claim (
+            INSERT INTO {}.claim (
                 id, account_id, triple_id, subject_id, predicate_id, object_id,
                 shares, counter_shares, vault_id, counter_vault_id
             )
@@ -51,70 +50,78 @@ impl SimpleCrud<String> for Claim {
             RETURNING 
                 id, 
                 account_id, 
-                triple_id as "triple_id: U256Wrapper", 
-                subject_id as "subject_id: U256Wrapper", 
-                predicate_id as "predicate_id: U256Wrapper", 
-                object_id as "object_id: U256Wrapper", 
-                shares as "shares: U256Wrapper", 
-                counter_shares as "counter_shares: U256Wrapper", 
-                vault_id as "vault_id: U256Wrapper", 
-                counter_vault_id as "counter_vault_id: U256Wrapper"
+                triple_id, 
+                subject_id, 
+                predicate_id, 
+                object_id, 
+                shares, 
+                counter_shares, 
+                vault_id, 
+                counter_vault_id
             "#,
-            self.id.to_lowercase(),
-            self.account_id.to_lowercase(),
-            self.triple_id.to_big_decimal()?,
-            self.subject_id.to_big_decimal()?,
-            self.predicate_id.to_big_decimal()?,
-            self.object_id.to_big_decimal()?,
-            self.shares.to_big_decimal()?,
-            self.counter_shares.to_big_decimal()?,
-            self.vault_id.to_big_decimal()?,
-            self.counter_vault_id.to_big_decimal()?
-        )
-        .fetch_one(pool)
-        .await
-        .map_err(|e| ModelError::InsertError(e.to_string()))
+            schema,
+        );
+
+        sqlx::query_as::<_, Claim>(&query)
+            .bind(self.id.to_lowercase())
+            .bind(self.account_id.to_lowercase())
+            .bind(self.triple_id.to_big_decimal()?)
+            .bind(self.subject_id.to_big_decimal()?)
+            .bind(self.predicate_id.to_big_decimal()?)
+            .bind(self.object_id.to_big_decimal()?)
+            .bind(self.shares.to_big_decimal()?)
+            .bind(self.counter_shares.to_big_decimal()?)
+            .bind(self.vault_id.to_big_decimal()?)
+            .bind(self.counter_vault_id.to_big_decimal()?)
+            .fetch_one(pool)
+            .await
+            .map_err(|e| ModelError::InsertError(e.to_string()))
     }
 
     /// Finds a claim by its ID
-    async fn find_by_id(id: String, pool: &PgPool) -> Result<Option<Self>, ModelError> {
-        sqlx::query_as!(
-            Claim,
+    async fn find_by_id(
+        id: String,
+        pool: &PgPool,
+        schema: &str,
+    ) -> Result<Option<Self>, ModelError> {
+        let query = format!(
             r#"
             SELECT 
                 id,
                 account_id,
-                triple_id as "triple_id: U256Wrapper",
-                subject_id as "subject_id: U256Wrapper",
-                predicate_id as "predicate_id: U256Wrapper",
-                object_id as "object_id: U256Wrapper",
-                shares as "shares: U256Wrapper",
-                counter_shares as "counter_shares: U256Wrapper",
-                vault_id as "vault_id: U256Wrapper",
-                counter_vault_id as "counter_vault_id: U256Wrapper"
-            FROM claim
+                triple_id,
+                subject_id,
+                predicate_id,
+                object_id,
+                shares,
+                counter_shares,
+                vault_id,
+                counter_vault_id
+            FROM {}.claim
             WHERE id = $1
             "#,
-            id.to_lowercase()
-        )
-        .fetch_optional(pool)
-        .await
-        .map_err(|e| ModelError::QueryError(e.to_string()))
+            schema
+        );
+
+        sqlx::query_as::<_, Claim>(&query)
+            .bind(id.to_lowercase())
+            .fetch_optional(pool)
+            .await
+            .map_err(|e| ModelError::QueryError(e.to_string()))
     }
 }
 
 /// This trait works as a contract for all models that need to be deleted from the database.
 #[async_trait]
 impl Deletable for Claim {
-    async fn delete(id: String, pool: &PgPool) -> Result<(), ModelError> {
-        sqlx::query_as!(
-            Claim,
-            r#"DELETE FROM claim WHERE id = $1"#,
-            id.to_lowercase()
-        )
-        .execute(pool)
-        .await
-        .map(|_| ())
-        .map_err(|e| ModelError::DeleteError(e.to_string()))
+    async fn delete(id: String, pool: &PgPool, schema: &str) -> Result<(), ModelError> {
+        let query = format!(r#"DELETE FROM {}.claim WHERE id = $1"#, schema);
+
+        sqlx::query(&query)
+            .bind(id.to_lowercase())
+            .execute(pool)
+            .await
+            .map(|_| ())
+            .map_err(|e| ModelError::DeleteError(e.to_string()))
     }
 }

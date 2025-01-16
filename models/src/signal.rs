@@ -29,11 +29,10 @@ impl Model for Signal {}
 #[async_trait]
 impl SimpleCrud<String> for Signal {
     /// This is a method to upsert a signal into the database.
-    async fn upsert(&self, pool: &PgPool) -> Result<Self, ModelError> {
-        sqlx::query_as!(
-            Signal,
+    async fn upsert(&self, pool: &PgPool, schema: &str) -> Result<Self, ModelError> {
+        let query = format!(
             r#"
-            INSERT INTO signal 
+            INSERT INTO {}.signal 
                 (id, delta, account_id, atom_id, triple_id, deposit_id, redemption_id, block_number, block_timestamp, transaction_hash) 
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
             ON CONFLICT (id) DO UPDATE SET 
@@ -48,55 +47,68 @@ impl SimpleCrud<String> for Signal {
                 transaction_hash = EXCLUDED.transaction_hash 
             RETURNING 
                 id, 
-                delta as "delta: U256Wrapper", 
+                delta, 
                 account_id, 
-                atom_id as "atom_id: U256Wrapper", 
-                triple_id as "triple_id: U256Wrapper", 
+                atom_id, 
+                triple_id, 
                 deposit_id, 
                 redemption_id, 
-                block_number as "block_number: U256Wrapper", 
+                block_number, 
                 block_timestamp, 
                 transaction_hash
             "#,
-            self.id,
-            self.delta.to_big_decimal()?,
-            self.account_id,
-            self.atom_id.as_ref().and_then(|w| w.to_big_decimal().ok()),
-            self.triple_id.as_ref().and_then(|w| w.to_big_decimal().ok()),
-            self.deposit_id,
-            self.redemption_id,
-            self.block_number.to_big_decimal()?,
-            self.block_timestamp,
-            self.transaction_hash,
-        )
-        .fetch_one(pool)
-        .await
-        .map_err(|e| ModelError::QueryError(e.to_string()))
+            schema,
+        );
+
+        sqlx::query_as::<_, Signal>(&query)
+            .bind(self.id.clone())
+            .bind(self.delta.to_big_decimal()?)
+            .bind(self.account_id.clone())
+            .bind(self.atom_id.as_ref().and_then(|w| w.to_big_decimal().ok()))
+            .bind(
+                self.triple_id
+                    .as_ref()
+                    .and_then(|w| w.to_big_decimal().ok()),
+            )
+            .bind(self.deposit_id.clone())
+            .bind(self.redemption_id.clone())
+            .bind(self.block_number.to_big_decimal()?)
+            .bind(self.block_timestamp)
+            .bind(self.transaction_hash.clone())
+            .fetch_one(pool)
+            .await
+            .map_err(|e| ModelError::QueryError(e.to_string()))
     }
 
     /// This is a method to find a signal by its id.
-    async fn find_by_id(id: String, pool: &PgPool) -> Result<Option<Self>, ModelError> {
-        sqlx::query_as!(
-            Signal,
+    async fn find_by_id(
+        id: String,
+        pool: &PgPool,
+        schema: &str,
+    ) -> Result<Option<Self>, ModelError> {
+        let query = format!(
             r#"
             SELECT 
                 id, 
-                delta as "delta: U256Wrapper", 
+                delta, 
                 account_id, 
-                atom_id as "atom_id: U256Wrapper", 
-                triple_id as "triple_id: U256Wrapper", 
+                atom_id, 
+                triple_id, 
                 deposit_id, 
                 redemption_id, 
-                block_number as "block_number: U256Wrapper", 
+                block_number, 
                 block_timestamp, 
                 transaction_hash 
-            FROM signal 
+            FROM {}.signal 
             WHERE id = $1
             "#,
-            id,
-        )
-        .fetch_optional(pool)
-        .await
-        .map_err(|e| ModelError::QueryError(e.to_string()))
+            schema,
+        );
+
+        sqlx::query_as::<_, Signal>(&query)
+            .bind(id.clone())
+            .fetch_optional(pool)
+            .await
+            .map_err(|e| ModelError::QueryError(e.to_string()))
     }
 }

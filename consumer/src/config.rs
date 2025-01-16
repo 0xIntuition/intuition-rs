@@ -20,8 +20,9 @@ pub struct Env {
     pub pinata_api_jwt: Option<String>,
     pub raw_consumer_queue_url: Option<String>,
     pub resolver_queue_url: Option<String>,
-    pub rpc_url_base_mainnet: Option<String>,
+    pub rpc_url_base: Option<String>,
     pub rpc_url_mainnet: Option<String>,
+    pub backend_schema: String,
 }
 
 #[derive(Deserialize, Debug)]

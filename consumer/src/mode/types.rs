@@ -23,6 +23,11 @@ use tracing::{debug, info, warn};
 
 use super::{ipfs_upload::types::IpfsUploadMessage, resolver::types::ResolverConsumerMessage};
 
+pub trait AtomUpdater {
+    fn pool(&self) -> &PgPool;
+    fn backend_schema(&self) -> &str;
+}
+
 // Create a OnceCell to hold the histogram
 static EVENT_PROCESSING_HISTOGRAM: OnceCell<HistogramVec> = OnceCell::new();
 
@@ -54,8 +59,18 @@ pub struct DecodedConsumerContext {
     pub client: Arc<dyn BasicConsumer>,
     pub base_client: Arc<EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>>>,
     pub pg_pool: PgPool,
+    pub backend_schema: String,
 }
 
+impl AtomUpdater for DecodedConsumerContext {
+    fn pool(&self) -> &PgPool {
+        &self.pg_pool
+    }
+
+    fn backend_schema(&self) -> &str {
+        &self.backend_schema
+    }
+}
 /// Represents the ipfs upload consumer context
 #[derive(Clone)]
 pub struct IpfsUploadConsumerContext {
@@ -64,6 +79,7 @@ pub struct IpfsUploadConsumerContext {
     pub ipfs_resolver: IPFSResolver,
     pub pg_pool: PgPool,
     pub reqwest_client: reqwest::Client,
+    pub backend_schema: String,
 }
 
 /// Represents the raw consumer context
@@ -72,6 +88,7 @@ pub struct RawConsumerContext {
     pub client: Arc<dyn BasicConsumer>,
     pub pg_pool: PgPool,
     pub indexing_source: Arc<IndexerSource>,
+    pub backend_schema: String,
 }
 
 /// Represents the resolver consumer context
@@ -86,6 +103,15 @@ pub struct ResolverConsumerContext {
     pub server_initialize: ServerInitialize,
 }
 
+impl AtomUpdater for ResolverConsumerContext {
+    fn pool(&self) -> &PgPool {
+        &self.pg_pool
+    }
+
+    fn backend_schema(&self) -> &str {
+        &self.server_initialize.env.backend_schema
+    }
+}
 impl ConsumerMode {
     /// This function builds the client based on the consumer type
     async fn build_client(
@@ -140,7 +166,7 @@ impl ConsumerMode {
             &data
                 .clone()
                 .env
-                .rpc_url_base_mainnet
+                .rpc_url_base
                 .unwrap_or_else(|| panic!("RPC URL base mainnet is not set")),
             &data
                 .clone()
@@ -165,6 +191,7 @@ impl ConsumerMode {
             base_client,
             client,
             pg_pool,
+            backend_schema: data.env.backend_schema.clone(),
         }))
     }
 
@@ -231,6 +258,7 @@ impl ConsumerMode {
             ipfs_resolver,
             pg_pool,
             reqwest_client,
+            backend_schema: data.env.backend_schema.clone(),
         }))
     }
 
@@ -267,6 +295,7 @@ impl ConsumerMode {
             client,
             pg_pool,
             indexing_source,
+            backend_schema: data.env.backend_schema.clone(),
         }))
     }
 
@@ -415,10 +444,7 @@ impl ConsumerMode {
                     .start_timer();
                 info!("Received: {fees_data:#?}");
                 fees_data
-                    .handle_fees_transferred_creation(
-                        &decoded_consumer_context.pg_pool,
-                        &decoded_message,
-                    )
+                    .handle_fees_transferred_creation(&decoded_message, &decoded_consumer_context)
                     .await?;
                 timer.observe_duration();
             }
@@ -429,7 +455,7 @@ impl ConsumerMode {
                 info!("Received: {triple_data:#?}");
                 triple_data
                     .handle_triple_creation(
-                        &decoded_consumer_context.pg_pool,
+                        &decoded_consumer_context,
                         &decoded_consumer_context.base_client,
                         &decoded_message,
                     )
@@ -494,5 +520,50 @@ impl ConsumerMode {
             .await?;
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use alloy::{
+        eips::BlockId,
+        primitives::{Address, U256},
+        providers::ProviderBuilder,
+    };
+    use std::str::FromStr;
+
+    async fn build_test_client(
+        rpc_url: &str,
+        contract_address: &str,
+    ) -> EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>> {
+        let provider = ProviderBuilder::new().on_http(rpc_url.parse().unwrap());
+
+        EthMultiVault::new(
+            Address::from_str(contract_address).unwrap(),
+            provider.clone(),
+        )
+    }
+
+    #[tokio::test]
+    async fn test_share_price_fetch() {
+        let rpc_url = "http://rpc-proxy:3008/8453/proxy";
+        let contract_address = "430BbF52503Bd4801E51182f4cB9f8F534225DE5";
+        let vault_id = U256::from(20);
+        let block_number = "25000968";
+        // Build the client
+        let web3 = build_test_client(rpc_url, contract_address).await;
+
+        // Make the actual request
+        let share_price = web3
+            .currentSharePrice(vault_id)
+            .block(BlockId::from_str(block_number).unwrap())
+            .call()
+            .await;
+
+        println!("Share price: {:?}", share_price);
+
+        assert!(share_price.is_ok());
+        println!("Share price: {:?}", share_price.unwrap());
     }
 }

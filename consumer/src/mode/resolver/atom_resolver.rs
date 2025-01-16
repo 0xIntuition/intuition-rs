@@ -1,6 +1,9 @@
 use crate::{
     error::ConsumerError,
-    mode::{decoded::atom::atom_supported_types::AtomMetadata, types::ResolverConsumerContext},
+    mode::{
+        decoded::atom::atom_supported_types::AtomMetadata,
+        types::{AtomUpdater, ResolverConsumerContext},
+    },
 };
 use models::{
     atom::{Atom, AtomType},
@@ -12,7 +15,6 @@ use models::{
     traits::SimpleCrud,
 };
 use serde_json::Value;
-use sqlx::PgPool;
 use std::str::FromStr;
 use tracing::warn;
 
@@ -68,14 +70,15 @@ pub async fn try_to_resolve_schema_org_url(
 pub async fn try_to_parse_json(
     atom_data: &str,
     atom: &Atom,
-    pg_pool: &PgPool,
+    consumer_context: &impl AtomUpdater,
 ) -> Result<AtomMetadata, ConsumerError> {
     // TODO: What if the JSON is not valid? Should we return an error?
     // Currently, we just return unknown metadata
     if let Ok(json) = serde_json::from_str::<Value>(atom_data) {
         match json.get("@context").and_then(|c| c.as_str()) {
             Some(ctx_str) if SCHEMA_ORG_CONTEXTS.contains(&ctx_str) => {
-                let metadata = try_to_resolve_schema_org_properties(pg_pool, atom, &json).await?;
+                let metadata =
+                    try_to_resolve_schema_org_properties(consumer_context, atom, &json).await?;
                 Ok(metadata)
             }
             // TODO: Handle unsuported schemas
@@ -98,13 +101,13 @@ pub async fn try_to_parse_json(
 pub async fn create_thing_atom_value(
     atom: &Atom,
     thing: &Thing,
-    pg_pool: &PgPool,
+    consumer_context: &impl AtomUpdater,
 ) -> Result<(), ConsumerError> {
     AtomValue::builder()
         .id(atom.id.clone())
         .thing_id(thing.id.clone())
         .build()
-        .upsert(pg_pool)
+        .upsert(consumer_context.pool(), consumer_context.backend_schema())
         .await?;
     Ok(())
 }
@@ -113,13 +116,13 @@ pub async fn create_thing_atom_value(
 pub async fn create_person_atom_value(
     atom: &Atom,
     person: &Person,
-    pg_pool: &PgPool,
+    consumer_context: &impl AtomUpdater,
 ) -> Result<(), ConsumerError> {
     AtomValue::builder()
         .id(atom.id.clone())
         .person_id(person.id.clone())
         .build()
-        .upsert(pg_pool)
+        .upsert(consumer_context.pool(), consumer_context.backend_schema())
         .await?;
     Ok(())
 }
@@ -128,13 +131,13 @@ pub async fn create_person_atom_value(
 pub async fn create_organization_atom_value(
     atom: &Atom,
     organization: &Organization,
-    pg_pool: &PgPool,
+    consumer_context: &impl AtomUpdater,
 ) -> Result<(), ConsumerError> {
     AtomValue::builder()
         .id(atom.id.clone())
         .organization_id(organization.id.clone())
         .build()
-        .upsert(pg_pool)
+        .upsert(consumer_context.pool(), consumer_context.backend_schema())
         .await?;
     Ok(())
 }
@@ -143,20 +146,20 @@ pub async fn create_organization_atom_value(
 pub async fn create_book_atom_value(
     atom: &Atom,
     book: &Book,
-    pg_pool: &PgPool,
+    consumer_context: &impl AtomUpdater,
 ) -> Result<(), ConsumerError> {
     AtomValue::builder()
         .id(atom.id.clone())
         .book_id(book.id.clone())
         .build()
-        .upsert(pg_pool)
+        .upsert(consumer_context.pool(), consumer_context.backend_schema())
         .await?;
     Ok(())
 }
 
 /// Resolves schema.org properties
 async fn try_to_resolve_schema_org_properties(
-    pg_pool: &PgPool,
+    consumer_context: &impl AtomUpdater,
     atom: &Atom,
     obj: &Value,
 ) -> Result<AtomMetadata, ConsumerError> {
@@ -166,16 +169,20 @@ async fn try_to_resolve_schema_org_properties(
         if let Ok(atom_type) = AtomType::from_str(obj_type) {
             match atom_type {
                 AtomType::Thing => {
-                    let thing = create_thing_from_obj(atom, obj).upsert(pg_pool).await?;
-                    create_thing_atom_value(atom, &thing, pg_pool).await?;
+                    let thing = create_thing_from_obj(atom, obj)
+                        .upsert(consumer_context.pool(), consumer_context.backend_schema())
+                        .await?;
+                    create_thing_atom_value(atom, &thing, consumer_context).await?;
                     Ok(AtomMetadata::thing(
                         thing.name.unwrap_or_default(),
                         thing.image.clone(),
                     ))
                 }
                 AtomType::Person => {
-                    let person = create_person_from_obj(atom, obj).upsert(pg_pool).await?;
-                    create_person_atom_value(atom, &person, pg_pool).await?;
+                    let person = create_person_from_obj(atom, obj)
+                        .upsert(consumer_context.pool(), consumer_context.backend_schema())
+                        .await?;
+                    create_person_atom_value(atom, &person, consumer_context).await?;
                     Ok(AtomMetadata::person(
                         person.name.unwrap_or_default(),
                         person.image.clone(),
@@ -183,17 +190,19 @@ async fn try_to_resolve_schema_org_properties(
                 }
                 AtomType::Organization => {
                     let organization = create_organization_from_obj(atom, obj)
-                        .upsert(pg_pool)
+                        .upsert(consumer_context.pool(), consumer_context.backend_schema())
                         .await?;
-                    create_organization_atom_value(atom, &organization, pg_pool).await?;
+                    create_organization_atom_value(atom, &organization, consumer_context).await?;
                     Ok(AtomMetadata::organization(
                         organization.name.unwrap_or_default(),
                         organization.image.clone(),
                     ))
                 }
                 AtomType::Book => {
-                    let book = create_book_from_obj(atom, obj).upsert(pg_pool).await?;
-                    create_book_atom_value(atom, &book, pg_pool).await?;
+                    let book = create_book_from_obj(atom, obj)
+                        .upsert(consumer_context.pool(), consumer_context.backend_schema())
+                        .await?;
+                    create_book_atom_value(atom, &book, consumer_context).await?;
                     Ok(AtomMetadata::book(book.name.unwrap_or_default()))
                 }
                 _ => {

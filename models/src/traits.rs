@@ -13,12 +13,12 @@ pub trait SimpleCrud<ID>: Model
 where
     ID: Send + Sync,
 {
-    async fn upsert(&self, pool: &PgPool) -> Result<Self, ModelError>;
-    async fn find_by_id(id: ID, pool: &PgPool) -> Result<Option<Self>, ModelError>;
+    async fn upsert(&self, pool: &PgPool, schema: &str) -> Result<Self, ModelError>;
+    async fn find_by_id(id: ID, pool: &PgPool, schema: &str) -> Result<Option<Self>, ModelError>;
 }
 
 /// This trait works as a contract for all models that need to be deleted from the database.
 #[async_trait]
 pub trait Deletable: Model {
-    async fn delete(id: String, pool: &PgPool) -> Result<(), ModelError>;
+    async fn delete(id: String, pool: &PgPool, schema: &str) -> Result<(), ModelError>;
 }

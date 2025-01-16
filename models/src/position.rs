@@ -27,11 +27,10 @@ impl Model for Position {}
 #[async_trait]
 impl SimpleCrud<String> for Position {
     /// Creates a new position or updates an existing one in the database
-    async fn upsert(&self, pool: &sqlx::PgPool) -> Result<Self, ModelError> {
-        sqlx::query_as!(
-            Position,
+    async fn upsert(&self, pool: &sqlx::PgPool, schema: &str) -> Result<Self, ModelError> {
+        let query = format!(
             r#"
-            INSERT INTO position (id, account_id, vault_id, shares)
+            INSERT INTO {}.position (id, account_id, vault_id, shares)
             VALUES ($1, $2, $3, $4)
             ON CONFLICT (id) 
             DO UPDATE SET
@@ -41,53 +40,61 @@ impl SimpleCrud<String> for Position {
             RETURNING 
                 id, 
                 account_id, 
-                vault_id as "vault_id: U256Wrapper", 
-                shares as "shares: U256Wrapper"
+                vault_id, 
+                shares
             "#,
-            self.id.to_lowercase(),
-            self.account_id.to_lowercase(),
-            self.vault_id.to_big_decimal()?,
-            self.shares.to_big_decimal()?,
-        )
-        .fetch_one(pool)
-        .await
-        .map_err(|e| ModelError::InsertError(e.to_string()))
+            schema,
+        );
+
+        sqlx::query_as::<_, Position>(&query)
+            .bind(self.id.to_lowercase())
+            .bind(self.account_id.to_lowercase())
+            .bind(self.vault_id.to_big_decimal()?)
+            .bind(self.shares.to_big_decimal()?)
+            .fetch_one(pool)
+            .await
+            .map_err(|e| ModelError::InsertError(e.to_string()))
     }
 
     /// Finds a position by its ID
-    async fn find_by_id(id: String, pool: &PgPool) -> Result<Option<Self>, ModelError> {
-        sqlx::query_as!(
-            Position,
+    async fn find_by_id(
+        id: String,
+        pool: &PgPool,
+        schema: &str,
+    ) -> Result<Option<Self>, ModelError> {
+        let query = format!(
             r#"
             SELECT 
                 id, 
                 account_id, 
-                vault_id as "vault_id: U256Wrapper", 
-                shares as "shares: U256Wrapper"
-            FROM position
+                vault_id, 
+                shares
+            FROM {}.position
             WHERE id = $1
             "#,
-            id.to_lowercase()
-        )
-        .fetch_optional(pool)
-        .await
-        .map_err(|e| ModelError::QueryError(e.to_string()))
+            schema,
+        );
+
+        sqlx::query_as::<_, Position>(&query)
+            .bind(id.to_lowercase())
+            .fetch_optional(pool)
+            .await
+            .map_err(|e| ModelError::QueryError(e.to_string()))
     }
 }
 
 /// This trait works as a contract for all models that need to be deleted from the database.
 #[async_trait]
 impl Deletable for Position {
-    async fn delete(id: String, pool: &PgPool) -> Result<(), ModelError> {
-        sqlx::query_as!(
-            Position,
-            r#"DELETE FROM position WHERE id = $1"#,
-            id.to_lowercase()
-        )
-        .execute(pool)
-        .await
-        .map(|_| ())
-        .map_err(|e| ModelError::DeleteError(e.to_string()))
+    async fn delete(id: String, pool: &PgPool, schema: &str) -> Result<(), ModelError> {
+        let query = format!(r#"DELETE FROM {}.position WHERE id = $1"#, schema);
+
+        sqlx::query(&query)
+            .bind(id.to_lowercase())
+            .execute(pool)
+            .await
+            .map(|_| ())
+            .map_err(|e| ModelError::DeleteError(e.to_string()))
     }
 }
 
@@ -96,22 +103,25 @@ impl Position {
     pub async fn find_by_vault_id(
         vault_id: U256Wrapper,
         pool: &PgPool,
+        schema: &str,
     ) -> Result<Vec<Self>, ModelError> {
-        sqlx::query_as!(
-            Position,
+        let query = format!(
             r#"
             SELECT 
                 id, 
                 account_id, 
-                vault_id as "vault_id: U256Wrapper", 
-                shares as "shares: U256Wrapper" 
-            FROM position 
+                vault_id, 
+                shares 
+            FROM {}.position 
             WHERE vault_id = $1
             "#,
-            vault_id.to_big_decimal()?
-        )
-        .fetch_all(pool)
-        .await
-        .map_err(|e| ModelError::QueryError(e.to_string()))
+            schema,
+        );
+
+        sqlx::query_as::<_, Position>(&query)
+            .bind(vault_id.to_big_decimal()?)
+            .fetch_all(pool)
+            .await
+            .map_err(|e| ModelError::QueryError(e.to_string()))
     }
 }

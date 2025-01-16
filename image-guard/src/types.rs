@@ -12,6 +12,7 @@ pub struct Env {
     pub flag_local_with_classification: Option<bool>,
     pub flag_local_with_db_only: Option<bool>,
     pub pinata_api_jwt: String,
+    pub be_schema: String,
 }
 
 /// A multipart request with an image

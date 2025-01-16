@@ -6,7 +6,7 @@ mod tests {
         redemption::Redemption,
         test_helpers::{
             create_test_account_db, create_test_atom_db, create_test_redemption,
-            create_test_vault_with_atom, setup_test_db,
+            create_test_vault_with_atom, setup_test_db, TEST_SCHEMA,
         },
         traits::SimpleCrud,
         types::U256Wrapper,
@@ -19,13 +19,15 @@ mod tests {
         let sender = create_test_account_db(&pool).await;
         let receiver = create_test_account_db(&pool).await;
         let atom = create_test_atom_db(&pool).await;
-        let vault = create_test_vault_with_atom(atom.id).upsert(&pool).await?;
+        let vault = create_test_vault_with_atom(atom.id)
+            .upsert(&pool, TEST_SCHEMA)
+            .await?;
 
         // Create initial redemption
         let redemption = create_test_redemption(sender.id, receiver.id, vault.id);
 
         // Test initial upsert
-        let upserted_redemption = redemption.upsert(&pool).await?;
+        let upserted_redemption = redemption.upsert(&pool, TEST_SCHEMA).await?;
         assert_eq!(upserted_redemption, redemption);
 
         // Update redemption values
@@ -35,11 +37,11 @@ mod tests {
             U256Wrapper::from(U256::from_str("150").unwrap());
 
         // Test update via upsert
-        let upserted_updated = updated_redemption.upsert(&pool).await?;
+        let upserted_updated = updated_redemption.upsert(&pool, TEST_SCHEMA).await?;
         assert_eq!(upserted_updated, updated_redemption);
 
         // Test find_by_id
-        let found_redemption = Redemption::find_by_id(redemption.id, &pool)
+        let found_redemption = Redemption::find_by_id(redemption.id, &pool, TEST_SCHEMA)
             .await?
             .expect("Redemption should exist");
         assert_eq!(found_redemption, updated_redemption);

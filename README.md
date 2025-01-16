@@ -7,9 +7,10 @@ This workspace contains the following crates:
 * `consumer`: contains the code to RAW, DECODED and RESOLVER consumers.
 * `envio-indexer`: contains the code to index the base-sepolia events of our contract using envio.
 * `hasura`: contains the migrations and hasura config.
-* `histoflux`: streams historical/live events from the database to an SQS queue.
+* `histoflux`: streams historical/live events from the database to an SQS queue.`
 * `image-guard`: contains the code to guard the images.
 * `models`: contains the domain models for the intuition data as basic traits for the data.
+* `rpc-proxy`: contains the code to proxy the RPC calls to their respective networks, caching the results of the `eth_call` method for the `currentSharePrice` function of the `EthMultiVault` contract.
 * `substreams-sink`: contains the code to consume the Substreams events.
 
 
@@ -42,7 +43,7 @@ There is a `.env.sample` file that you need to use as a template to create the `
 * `PINATA_GATEWAY_TOKEN`: You can get the token from [Pinata](https://app.pinata.cloud/developers/gateway-settings)
 * `PINATA_API_JWT`: You can get the token from [Pinata](https://app.pinata.cloud/developers/api-keys)
 * `RPC_URL_MAINNET`: We are currently using Alchemy. You can create new ones using the [Alchemy dashboard](https://dashboard.alchemy.com/)
-* `RPC_URL_BASE_MAINNET`: We are currently using Alchemy. You can create new ones using the [Alchemy dashboard](https://dashboard.alchemy.com/apps)
+* `RPC_URL_BASE`: We are currently using Alchemy. You can create new ones using the [Alchemy dashboard](https://dashboard.alchemy.com/apps)
 * `AWS_ACCESS_KEY_ID`: You can get the values from your [AWS account](https://us-east-1.console.aws.amazon.com/iam/home?region=us-east-1#/users)
 * `AWS_SECRET_ACCESS_KEY`: You can get the values from your [AWS account](https://us-east-1.console.aws.amazon.com/iam/home?region=us-east-1#/users)
 * `HF_TOKEN`: You can get the token from [Hugging Face](https://huggingface.co/settings/tokens)

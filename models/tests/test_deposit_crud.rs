@@ -5,7 +5,7 @@ mod tests {
         error::ModelError,
         test_helpers::{
             create_test_account_db, create_test_atom, create_test_deposit,
-            create_test_vault_with_atom, setup_test_db,
+            create_test_vault_with_atom, setup_test_db, TEST_SCHEMA,
         },
         traits::SimpleCrud,
         types::U256Wrapper,
@@ -23,12 +23,12 @@ mod tests {
         let creator = create_test_account_db(&pool).await;
 
         let atom = create_test_atom(wallet.id, creator.id)
-            .upsert(&pool)
+            .upsert(&pool, TEST_SCHEMA)
             .await
             .unwrap();
 
         let vault = create_test_vault_with_atom(atom.id.clone())
-            .upsert(&pool)
+            .upsert(&pool, TEST_SCHEMA)
             .await
             .unwrap();
 
@@ -36,7 +36,7 @@ mod tests {
         let deposit = create_test_deposit(sender.id, receiver.id, vault.id);
 
         // Test initial upsert
-        let upserted_deposit = deposit.upsert(&pool).await?;
+        let upserted_deposit = deposit.upsert(&pool, TEST_SCHEMA).await?;
         assert_eq!(upserted_deposit.id, deposit.id.to_lowercase());
         assert_eq!(
             upserted_deposit.shares_for_receiver,
@@ -50,7 +50,7 @@ mod tests {
         updated_deposit.entry_fee = U256Wrapper::from_str("20").unwrap();
 
         // Test update via upsert
-        let upserted_updated = updated_deposit.upsert(&pool).await?;
+        let upserted_updated = updated_deposit.upsert(&pool, TEST_SCHEMA).await?;
         assert_eq!(
             upserted_updated.shares_for_receiver,
             updated_deposit.shares_for_receiver
@@ -58,7 +58,7 @@ mod tests {
         assert_eq!(upserted_updated.entry_fee, updated_deposit.entry_fee);
 
         // Test find_by_id
-        let found_deposit = Deposit::find_by_id(deposit.id.clone(), &pool)
+        let found_deposit = Deposit::find_by_id(deposit.id.clone(), &pool, TEST_SCHEMA)
             .await?
             .expect("Deposit should exist");
 

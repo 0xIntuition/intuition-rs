@@ -4,7 +4,7 @@ mod tests {
     use models::{
         error::ModelError,
         stats::Stats,
-        test_helpers::{create_test_stats, setup_test_db},
+        test_helpers::{create_test_stats, setup_test_db, TEST_SCHEMA},
         types::U256Wrapper,
     };
     use std::str::FromStr;
@@ -17,7 +17,7 @@ mod tests {
         let initial_stats = create_test_stats();
 
         // Upsert initial Stats
-        let upserted_stats = initial_stats.upsert(&pool).await?;
+        let upserted_stats = initial_stats.upsert(&pool, TEST_SCHEMA).await?;
         assert_eq!(upserted_stats.id, initial_stats.id);
         assert_eq!(upserted_stats.total_accounts, initial_stats.total_accounts);
 
@@ -34,7 +34,7 @@ mod tests {
         };
 
         // Upsert updated Stats
-        let upserted_updated_stats = updated_stats.upsert(&pool).await?;
+        let upserted_updated_stats = updated_stats.upsert(&pool, TEST_SCHEMA).await?;
         assert_eq!(upserted_updated_stats.id, updated_stats.id);
         assert_eq!(
             upserted_updated_stats.total_accounts,
@@ -42,7 +42,9 @@ mod tests {
         );
 
         // Find Stats by id
-        let found_stats = Stats::find_by_id(1, &pool).await?.expect("Stats not found");
+        let found_stats = Stats::find_by_id(1, &pool, TEST_SCHEMA)
+            .await?
+            .expect("Stats not found");
 
         // Assert that found Stats match the updated values
         assert_eq!(found_stats.id, updated_stats.id);

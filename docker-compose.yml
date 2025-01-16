@@ -9,7 +9,7 @@ services:
       PGPORT: $PG_PORT
     volumes:
       - database-data:/var/lib/postgresql/data/
-      - ./init-dbs.sh:/docker-entrypoint-initdb.d/init-dbs.sh
+      # - ./init-dbs.sh:/docker-entrypoint-initdb.d/init-dbs.sh
     ports:
       - $PG_PORT:$PG_PORT
     healthcheck:
@@ -37,9 +37,10 @@ services:
       PINATA_GATEWAY_TOKEN: $PINATA_GATEWAY_TOKEN
       PG_MIN_CONNECTIONS: $PG_MIN_CONNECTIONS
       RESOLVER_QUEUE_URL: $RESOLVER_QUEUE_URL
-      RPC_URL_BASE_MAINNET: $RPC_URL_BASE_MAINNET
+      RPC_URL_BASE: $RPC_URL_BASE
       RPC_URL_MAINNET: $RPC_URL_MAINNET
       RUST_LOG: $RUST_LOG
+      BACKEND_SCHEMA: $BACKEND_SCHEMA
     restart: always
     depends_on:
       sqs:
@@ -68,6 +69,7 @@ services:
       PG_MIN_CONNECTIONS: $PG_MIN_CONNECTIONS
       IPFS_UPLOAD_QUEUE_URL: $IPFS_UPLOAD_QUEUE_URL
       RUST_LOG: $RUST_LOG
+      BACKEND_SCHEMA: $BACKEND_SCHEMA
     restart: always
     depends_on:
       sqs:
@@ -94,8 +96,9 @@ services:
       LOCALSTACK_URL: $LOCALSTACK_URL
       PG_MIN_CONNECTIONS: $PG_MIN_CONNECTIONS
       RESOLVER_QUEUE_URL: $RESOLVER_QUEUE_URL
-      RPC_URL_BASE_MAINNET: $RPC_URL_BASE_MAINNET
+      RPC_URL_BASE: $RPC_URL_BASE
       RUST_LOG: $RUST_LOG
+      BACKEND_SCHEMA: $BACKEND_SCHEMA
     restart: always
     depends_on:
       sqs:
@@ -121,9 +124,10 @@ services:
       LOCALSTACK_URL: $LOCALSTACK_URL
       PG_MIN_CONNECTIONS: $PG_MIN_CONNECTIONS
       RAW_CONSUMER_QUEUE_URL: $RAW_CONSUMER_QUEUE_URL
-      RPC_URL_BASE_MAINNET: $RPC_URL_BASE_MAINNET
+      RPC_URL_BASE: $RPC_URL_BASE
       RPC_URL_MAINNET: $RPC_URL_MAINNET
       RUST_LOG: $RUST_LOG
+      BACKEND_SCHEMA: $BACKEND_SCHEMA
     restart: always
     depends_on:
       sqs:
@@ -167,12 +171,29 @@ services:
       PINATA_API_JWT: $PINATA_API_JWT
       RUST_LOG: $RUST_LOG
       FLAG_LOCAL_WITH_CLASSIFICATION: $FLAG_LOCAL_WITH_CLASSIFICATION
+      BE_SCHEMA: $BACKEND_SCHEMA
       # FLAG_LOCAL_WITH_DB_ONLY: $FLAG_LOCAL_WITH_DB_ONLY
       # FLAG_HF_CLASSIFICATION: $FLAG_HF_CLASSIFICATION 
     ports:
       - 3000:3000
     
-
+  rpc-proxy:
+    container_name: rpc-proxy
+    image: ghcr.io/0xintuition/rpc-proxy:latest
+    environment:
+      DATABASE_URL: $DATABASE_URL
+      PROXY_API_PORT: $PROXY_API_PORT
+      PROXY_SCHEMA: $PROXY_SCHEMA
+      BASE_MAINNET_RPC_URL: $BASE_MAINNET_RPC_URL
+      BASE_SEPOLIA_RPC_URL: $BASE_SEPOLIA_RPC_URL
+      ETHEREUM_MAINNET_RPC_URL: $ETHEREUM_MAINNET_RPC_URL
+      RUST_LOG: $RUST_LOG
+    ports:
+      - $PROXY_API_PORT:$PROXY_API_PORT
+    depends_on:
+      database:
+        condition: service_healthy
+  
   safe-content:
     container_name: safe-content
     image: steelcityamir/safe-content-ai:latest
@@ -283,9 +304,10 @@ services:
       AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
       AWS_REGION: $AWS_REGION
       AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
-      DATABASE_URL: $INDEXER_DB_URL
+      DATABASE_URL: $DATABASE_URL
       RAW_CONSUMER_QUEUE_URL: $RAW_CONSUMER_QUEUE_URL
       HYPERSYNC_TOKEN: $HYPERSYNC_TOKEN
+      INDEXER_SCHEMA: $INDEXER_SCHEMA
     depends_on:
       sqs:
         condition: service_healthy
@@ -297,7 +319,7 @@ services:
     container_name: indexer-migrations
     image: ghcr.io/0xintuition/indexer-migrations:latest
     environment:
-      INDEXER_DB_URL: $INDEXER_DB_URL
+      DATABASE_URL: $DATABASE_URL
     depends_on:
       database:
         condition: service_healthy
@@ -310,9 +332,10 @@ services:
       AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
       AWS_REGION: $AWS_REGION
       AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY 
-      INDEXER_DB_URL: $INDEXER_DB_URL
+      DATABASE_URL: $DATABASE_URL
       LOCALSTACK_URL: $LOCALSTACK_URL
       RAW_CONSUMER_QUEUE_URL: $RAW_CONSUMER_QUEUE_URL
+      INDEXER_SCHEMA: $INDEXER_SCHEMA
     depends_on:
       database:
         condition: service_healthy

@@ -5,7 +5,7 @@ mod tests {
     use models::{
         error::ModelError,
         stats_hour::StatsHour,
-        test_helpers::{create_test_stats_hour, setup_test_db},
+        test_helpers::{create_test_stats_hour, setup_test_db, TEST_SCHEMA},
         types::U256Wrapper,
     };
     use std::str::FromStr;
@@ -19,7 +19,7 @@ mod tests {
         let initial_stats = create_test_stats_hour();
 
         // Upsert initial Stats
-        let upserted_stats = initial_stats.upsert(&pool).await?;
+        let upserted_stats = initial_stats.upsert(&pool, TEST_SCHEMA).await?;
         assert_eq!(upserted_stats.total_accounts, initial_stats.total_accounts);
 
         // Update Stats
@@ -36,7 +36,7 @@ mod tests {
         };
 
         // Upsert updated Stats
-        let upserted_updated_stats = updated_stats.upsert(&pool).await?;
+        let upserted_updated_stats = updated_stats.upsert(&pool, TEST_SCHEMA).await?;
         assert_eq!(upserted_updated_stats.id, updated_stats.id);
         assert_eq!(
             upserted_updated_stats.total_accounts,
@@ -44,7 +44,7 @@ mod tests {
         );
 
         // Find Stats by id
-        let found_stats = StatsHour::find_by_id(updated_stats.id, &pool)
+        let found_stats = StatsHour::find_by_id(updated_stats.id, &pool, TEST_SCHEMA)
             .await?
             .expect("Stats not found");
 

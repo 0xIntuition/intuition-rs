@@ -4,7 +4,9 @@ mod tests {
     use models::{
         error::ModelError,
         fee_transfer::FeeTransfer,
-        test_helpers::{create_test_account_db, create_test_fee_transfer, setup_test_db},
+        test_helpers::{
+            create_test_account_db, create_test_fee_transfer, setup_test_db, TEST_SCHEMA,
+        },
         traits::SimpleCrud,
         types::U256Wrapper,
     };
@@ -20,7 +22,7 @@ mod tests {
         let fee_transfer = create_test_fee_transfer(sender.id, receiver.id);
 
         // Test initial upsert
-        let upserted_transfer = fee_transfer.upsert(&pool).await?;
+        let upserted_transfer = fee_transfer.upsert(&pool, TEST_SCHEMA).await?;
         assert_eq!(upserted_transfer.id, fee_transfer.id);
         assert_eq!(upserted_transfer.amount, fee_transfer.amount);
         assert_eq!(upserted_transfer.sender_id, fee_transfer.sender_id);
@@ -31,11 +33,11 @@ mod tests {
         updated_transfer.amount = U256Wrapper::from(U256::from_str("2000").unwrap());
 
         // Test update via upsert
-        let upserted_updated = updated_transfer.upsert(&pool).await?;
+        let upserted_updated = updated_transfer.upsert(&pool, TEST_SCHEMA).await?;
         assert_eq!(upserted_updated.amount, updated_transfer.amount);
 
         // Test find_by_id
-        let found_transfer = FeeTransfer::find_by_id(fee_transfer.id.clone(), &pool)
+        let found_transfer = FeeTransfer::find_by_id(fee_transfer.id.clone(), &pool, TEST_SCHEMA)
             .await?
             .expect("FeeTransfer should exist");
 

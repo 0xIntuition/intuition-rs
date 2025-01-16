@@ -4,11 +4,11 @@ CREATE TYPE atom_type_new AS ENUM (
   'Organization', 'OrganizationPredicate', 'Book', 'LikeAction', 'FollowAction', 'Keywords'
 );
 
-ALTER TABLE atoms 
+ALTER TABLE ${BACKEND_SCHEMA_NAME}.atoms 
   ALTER COLUMN type TYPE atom_type_new 
   USING (type::text::atom_type_new);
 
 DROP TYPE atom_type;
 ALTER TYPE atom_type_new RENAME TO atom_type;
 
-DROP TABLE caip10;
+DROP TABLE ${BACKEND_SCHEMA_NAME}.caip10;
