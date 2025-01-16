@@ -82,9 +82,9 @@ impl JsonRpcRequest {
             chain_id: chain_id as i64,
             block_number: self.get_block_number()?,
             method: Method::EthCall,
-            to_address: self.get_contract_address()?,
-            input: self.get_input()?,
-            result: result["result"].to_string(),
+            to_address: self.get_contract_address()?.trim_matches('"').to_string(),
+            input: self.get_input()?.trim_matches('"').to_string(),
+            result: result["result"].as_str().unwrap_or("").to_string(),
         };
         share_price
             .insert(&state.pg_pool, &state.env.proxy_schema)

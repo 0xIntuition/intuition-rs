@@ -98,19 +98,18 @@ mod tests {
     #[tokio::test]
     async fn test_share_price_insert_and_find() -> Result<(), Box<dyn std::error::Error>> {
         let pool = setup_test_db().await;
-        let block_number = "0xd07169".to_string();
+        let block_number = "0xda14d2".to_string();
+        let chain_id = 84532;
 
-        let block_number_parsed =
-            i64::from_str_radix(block_number.clone().trim_start_matches("0x"), 16)?;
+        let block_number_parsed = i64::from_str_radix(block_number.trim_start_matches("0x"), 16)?;
 
         println!("block_number_parsed: {}", block_number_parsed);
-        // Create test data
         let share_price = JsonRpcCache {
-            chain_id: 1,
+            chain_id,
             block_number: block_number_parsed,
             method: Method::EthCall,
-            to_address: "0x00000000000c2e074ec69a0dfb2997ba6c7d2e1e".to_string(),
-            input: "0x0178b8bf8f48a62b2dc85a542abcf5bc560c3a233718d5969ac2f0df1599a35fdc5a306e"
+            to_address: "0x1a6950807e33d5bc9975067e6d6b5ea4cd661665".to_string(),
+            input: "0xee9dd98f00000000000000000000000000000000000000000000000000000000000003ec"
                 .to_string(),
             result: "test_result".to_string(),
         };
@@ -121,13 +120,13 @@ mod tests {
 
         // Build the payload
         let payload = JsonRpcRequest {
-            id: 1,
+            id: 987987,
             jsonrpc: "2.0".to_string(),
             method: "eth_call".to_string(),
             params: Value::Array(vec![
                 Value::Object(serde_json::json!({
-                    "input": "0x0178b8bf8f48a62b2dc85a542abcf5bc560c3a233718d5969ac2f0df1599a35fdc5a306e",
-                    "to": "0x00000000000c2e074ec69a0dfb2997ba6c7d2e1e"
+                    "input": "0xee9dd98f00000000000000000000000000000000000000000000000000000000000003ec",
+                    "to": "0x1a6950807e33d5bc9975067e6d6b5ea4cd661665"
                 }).as_object().unwrap().clone()),
                 Value::String(block_number),
             ]),
@@ -142,9 +141,8 @@ mod tests {
             pg_pool: pool,
             reqwest_client: Client::new(),
         };
-
         // Find record
-        let found = JsonRpcCache::find(&payload, 1, &app_state).await?;
+        let found = JsonRpcCache::find(&payload, 84532, &app_state).await?;
         assert!(found.is_some());
         // assert_eq!(found.unwrap(), share_price);
 
