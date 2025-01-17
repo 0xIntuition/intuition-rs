@@ -13,7 +13,4 @@ spec:
       containers:
         - name: hasura-migrations
           image: ghcr.io/0xintuition/hasura-migrations:1.0.27
-          envFrom:
-            - secretRef:
-                name: hasura-aws-secrets
       restartPolicy: Never
