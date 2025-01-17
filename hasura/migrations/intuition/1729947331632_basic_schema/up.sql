@@ -65,7 +65,7 @@ CREATE TABLE base_sepolia_backend.atom (
   value_id NUMERIC(78, 0),
   block_number NUMERIC(78, 0) NOT NULL,
   block_timestamp BIGINT NOT NULL,
-  transaction_hash BYTEA NOT NULL,
+  transaction_hash TEXT NOT NULL,
   resolving_status base_sepolia_backend.atom_resolving_status NOT NULL DEFAULT 'Pending'
 );
 
@@ -84,7 +84,7 @@ CREATE TABLE base_sepolia_backend.triple (
   counter_vault_id NUMERIC(78, 0) NOT NULL,
   block_number NUMERIC(78, 0) NOT NULL,
   block_timestamp BIGINT NOT NULL,
-  transaction_hash BYTEA NOT NULL
+  transaction_hash TEXT NOT NULL
 );
 
 CREATE TABLE base_sepolia_backend.vault (
@@ -109,7 +109,7 @@ CREATE TABLE base_sepolia_backend.fee_transfer (
   amount NUMERIC(78, 0) NOT NULL,
   block_number NUMERIC(78, 0) NOT NULL,
   block_timestamp BIGINT NOT NULL,
-  transaction_hash BYTEA NOT NULL
+  transaction_hash TEXT NOT NULL
 );
 
 
@@ -126,7 +126,7 @@ CREATE TABLE base_sepolia_backend.deposit (
   is_atom_wallet BOOLEAN NOT NULL,
   block_number NUMERIC(78, 0) NOT NULL,
   block_timestamp BIGINT NOT NULL,
-  transaction_hash BYTEA NOT NULL
+  transaction_hash TEXT NOT NULL
 );
 
 CREATE TABLE base_sepolia_backend.redemption (
@@ -140,7 +140,7 @@ CREATE TABLE base_sepolia_backend.redemption (
   vault_id NUMERIC(78, 0) REFERENCES base_sepolia_backend.vault(id) NOT NULL,
   block_number NUMERIC(78, 0) NOT NULL,
   block_timestamp BIGINT NOT NULL,
-  transaction_hash BYTEA NOT NULL
+  transaction_hash TEXT NOT NULL
 );
 
 CREATE TABLE base_sepolia_backend.event (
@@ -153,7 +153,7 @@ CREATE TABLE base_sepolia_backend.event (
   redemption_id TEXT REFERENCES base_sepolia_backend.redemption(id),
   block_number NUMERIC(78, 0) NOT NULL,
   block_timestamp BIGINT NOT NULL,
-  transaction_hash BYTEA NOT NULL
+  transaction_hash TEXT NOT NULL
 );
 
 -- position and claim id are using  the same idea, id is a concatenation of account_id and vault_id with a dash in between
@@ -197,7 +197,7 @@ CREATE TABLE base_sepolia_backend.signal (
   redemption_id TEXT REFERENCES base_sepolia_backend.redemption(id),
   block_number NUMERIC(78, 0) NOT NULL,
   block_timestamp BIGINT NOT NULL,
-  transaction_hash BYTEA NOT NULL,
+  transaction_hash TEXT NOT NULL,
   -- Ensure that exactly one of atom_id or triple_id is set
   CONSTRAINT check_signal_constraints CHECK (
     ((atom_id IS NOT NULL AND triple_id IS NULL)

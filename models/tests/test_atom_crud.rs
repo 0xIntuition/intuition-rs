@@ -4,7 +4,10 @@ mod tests {
     use alloy::primitives::U256;
     use models::{
         atom::Atom,
-        test_helpers::{create_test_account_db, create_test_atom, setup_test_db, TEST_SCHEMA},
+        test_helpers::{
+            create_random_string, create_test_account_db, create_test_atom, setup_test_db,
+            TEST_SCHEMA,
+        },
         traits::SimpleCrud,
         types::U256Wrapper,
     };
@@ -52,7 +55,7 @@ mod tests {
         updated_atom.image = Some("https://example.com/image.jpg".to_string());
         updated_atom.block_number = U256Wrapper::from(U256::from(5u64));
         updated_atom.block_timestamp = 6;
-        updated_atom.transaction_hash = vec![7u8];
+        updated_atom.transaction_hash = create_random_string();
 
         // Step 8: Upsert the updated Atom
         let upserted_atom = updated_atom

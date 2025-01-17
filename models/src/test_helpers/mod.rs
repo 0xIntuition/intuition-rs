@@ -87,7 +87,7 @@ pub fn create_test_atom(wallet_id: String, creator_id: String) -> Atom {
         .label(create_random_string())
         .block_number(create_random_u256wrapper())
         .block_timestamp(create_random_number())
-        .transaction_hash(vec![5u8])
+        .transaction_hash(create_random_string())
         .resolving_status(AtomResolvingStatus::Pending)
         .build()
 }
@@ -109,7 +109,7 @@ pub fn create_test_triple(
         .counter_vault_id(create_random_u256wrapper())
         .block_number(create_random_u256wrapper())
         .block_timestamp(create_random_number())
-        .transaction_hash(vec![5u8])
+        .transaction_hash(create_random_string())
         .build()
 }
 
@@ -184,7 +184,7 @@ pub fn create_test_deposit(
         .is_atom_wallet(false)
         .block_number(create_random_u256wrapper())
         .block_timestamp(create_random_number())
-        .transaction_hash(vec![5u8])
+        .transaction_hash(create_random_string())
         .build()
 }
 
@@ -204,7 +204,7 @@ pub fn create_test_event_with_atom(atom_id: U256Wrapper) -> Event {
         .event_type(EventType::FeesTransfered)
         .block_number(create_random_u256wrapper())
         .block_timestamp(create_random_number())
-        .transaction_hash(vec![5u8])
+        .transaction_hash(create_random_string())
         .build()
 }
 
@@ -216,7 +216,7 @@ pub fn create_test_event_with_triple(triple_id: U256Wrapper) -> Event {
         .event_type(EventType::TripleCreated)
         .block_number(create_random_u256wrapper())
         .block_timestamp(create_random_number())
-        .transaction_hash(vec![5u8])
+        .transaction_hash(create_random_string())
         .build()
 }
 
@@ -237,7 +237,7 @@ pub fn create_test_fee_transfer(sender_id: String, receiver_id: String) -> FeeTr
         .amount(create_random_u256wrapper())
         .block_number(create_random_u256wrapper())
         .block_timestamp(create_random_number())
-        .transaction_hash(vec![5u8])
+        .transaction_hash(create_random_string())
         .build()
 }
 
@@ -266,7 +266,7 @@ pub fn create_test_redemption(
         .vault_id(vault_id)
         .block_number(create_random_u256wrapper())
         .block_timestamp(create_random_number())
-        .transaction_hash(vec![5u8])
+        .transaction_hash(create_random_string())
         .build()
 }
 
@@ -364,7 +364,7 @@ pub fn create_test_signal_with_atom_and_deposit(
         .block_number(create_random_u256wrapper())
         .block_timestamp(create_random_number())
         .deposit_id(deposit_id)
-        .transaction_hash(vec![5u8])
+        .transaction_hash(create_random_string())
         .build()
 }
 
