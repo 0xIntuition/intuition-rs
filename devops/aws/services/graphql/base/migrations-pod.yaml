@@ -22,7 +22,7 @@ spec:
           readOnly: true
   serviceAccountName: secrets-access-sa
   containers:
-    - image: ghcr.io/0xintuition/hasura-migrations:latest
+    - image: ghcr.io/0xintuition/hasura-migrations:1.0.27
       name: hasura-migrations
   volumes:
     - name: aws-iam-token

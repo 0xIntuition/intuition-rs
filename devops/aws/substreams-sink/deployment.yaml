@@ -29,7 +29,7 @@ spec:
             - $(SUBSTREAMS_PACKAGE)
             - $(SUBSTREAMS_MODULE)
             - "$(SUBSTREAMS_START_BLOCK):"
-          image: ghcr.io/0xintuition/substreams-sink:latest
+          image: ghcr.io/0xintuition/substreams-sink:1.0.27
           imagePullPolicy: Always
           name: substreams-sink
           volumeMounts:

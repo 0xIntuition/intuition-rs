@@ -27,7 +27,7 @@ spec:
         - args:
             - --network
             - base-sepolia
-          image: ghcr.io/0xintuition/envio-indexer:latest
+          image: ghcr.io/0xintuition/envio-indexer:1.0.27
           imagePullPolicy: Always
           name: envio-indexer
           volumeMounts:
