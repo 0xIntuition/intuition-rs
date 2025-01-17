@@ -25,7 +25,7 @@ pub struct Atom {
     pub value_id: Option<U256Wrapper>,
     pub block_number: U256Wrapper,
     pub block_timestamp: i64,
-    pub transaction_hash: Vec<u8>,
+    pub transaction_hash: String,
     pub resolving_status: AtomResolvingStatus,
 }
 

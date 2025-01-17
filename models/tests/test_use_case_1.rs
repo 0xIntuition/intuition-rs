@@ -8,7 +8,8 @@ mod tests {
         atom_value::AtomValue,
         person::Person,
         test_helpers::{
-            create_random_number, create_random_u256wrapper, setup_test_db, TEST_SCHEMA,
+            create_random_number, create_random_string, create_random_u256wrapper, setup_test_db,
+            TEST_SCHEMA,
         },
         traits::SimpleCrud,
         types::U256Wrapper,
@@ -51,7 +52,7 @@ mod tests {
             .label("0x00...01".to_string())
             .block_number(create_random_u256wrapper())
             .block_timestamp(create_random_number())
-            .transaction_hash(vec![5u8])
+            .transaction_hash(create_random_string())
             .resolving_status(AtomResolvingStatus::Pending)
             .build()
             .upsert(&pool, TEST_SCHEMA)
@@ -98,7 +99,7 @@ mod tests {
             .label("Alice".to_string())
             .block_number(create_random_u256wrapper())
             .block_timestamp(create_random_number())
-            .transaction_hash(vec![5u8])
+            .transaction_hash(create_random_string())
             .resolving_status(AtomResolvingStatus::Pending)
             .build()
             .upsert(&pool, TEST_SCHEMA)

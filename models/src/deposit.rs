@@ -23,7 +23,7 @@ pub struct Deposit {
     pub is_atom_wallet: bool,
     pub block_number: U256Wrapper,
     pub block_timestamp: i64,
-    pub transaction_hash: Vec<u8>,
+    pub transaction_hash: String,
 }
 
 /// This is a trait that all models must implement.
