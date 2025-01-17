@@ -5,7 +5,7 @@ resources:
 - ../../base
 - secret-provider.yaml
 
-namePrefix: base-sepolia-
+namePrefix: dev-base-sepolia-
 
 commonLabels:
   network: base-sepolia

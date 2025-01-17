@@ -3,8 +3,9 @@ kind: Kustomization
 
 resources:
   - ../../../base/resolver
+  - secret-provider.yaml
 
-namePrefix: "base-mainnet-" 
+namePrefix: "dev-base-mainnet-" 
 
 patches:
   - path: deployment-patch.yaml

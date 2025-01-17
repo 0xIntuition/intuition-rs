@@ -28,9 +28,6 @@ spec:
             - ./consumer
             - --mode
             - raw
-          # envFrom:
-          #   - secretRef:
-          #       name: raw-aws-secrets
           image: ghcr.io/0xintuition/consumer:1.0.27
           imagePullPolicy: Always
           name: raw-consumer

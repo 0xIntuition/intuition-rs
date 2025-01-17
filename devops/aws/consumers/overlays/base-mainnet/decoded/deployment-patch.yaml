@@ -21,4 +21,4 @@ spec:
             driver: secrets-store.csi.k8s.io
             readOnly: true
             volumeAttributes:
-              secretProviderClass: "base-mainnet-dev-decoded-consumer-secrets"
+              secretProviderClass: "dev-base-mainnet-dev-decoded-consumer-secrets"

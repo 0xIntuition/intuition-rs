@@ -13,11 +13,11 @@ spec:
               readOnly: true
           envFrom:
             - secretRef:
-                name: graphql-aws-secrets
+                name: dev-hasura-aws-secrets
       volumes:
         - name: secrets-store-inline
           csi:
             driver: secrets-store.csi.k8s.io
             readOnly: true
             volumeAttributes:
-              secretProviderClass: "base-mainnet-hasura-aws-secrets"
+              secretProviderClass: "dev-base-mainnet-dev-hasura-aws-secrets"

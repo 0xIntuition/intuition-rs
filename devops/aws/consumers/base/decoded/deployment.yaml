@@ -28,9 +28,6 @@ spec:
             - ./consumer
             - --mode
             - decoded
-          envFrom:
-            - secretRef:
-                name: decoded-aws-secrets
           image: ghcr.io/0xintuition/consumer:1.0.27
           imagePullPolicy: Always
           name: decoded-consumer
