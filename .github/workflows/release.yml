@@ -131,8 +131,8 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ${{ env.REGISTRY }}/0xintuition/indexer-migrations:${{ steps.meta.outputs.version }}
-            ${{ env.REGISTRY }}/0xintuition/indexer-migrations:latest
+            ${{ env.REGISTRY }}/0xintuition/indexer-and-cache-migrations:${{ steps.meta.outputs.version }}
+            ${{ env.REGISTRY }}/0xintuition/indexer-and-cache-migrations:latest
 
       - name: Build and push Histoflux
         uses: docker/build-push-action@v5
