@@ -27,8 +27,6 @@ spec:
         - args:
             - --network
             - base-sepolia
-          image: ghcr.io/0xintuition/envio-indexer:1.0.27
-          imagePullPolicy: Always
           name: envio-indexer
           volumeMounts:
             - mountPath: /var/lib/data
@@ -36,17 +34,8 @@ spec:
             - name: secrets-store
               mountPath: "/mnt/secrets"
               readOnly: true
-          # envFrom:
-          #   - secretRef:
-          #       name: envio-indexer-aws-secrets
       restartPolicy: Always
       volumes:
         - name: envio-indexer-data
           persistentVolumeClaim:
             claimName: envio-indexer-data
-        # - name: secrets-store
-        #   csi:
-        #     driver: secrets-store.csi.k8s.io
-        #     readOnly: true
-        #     volumeAttributes:
-        #       secretProviderClass: envio-indexer-aws-secrets

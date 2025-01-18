@@ -8,6 +8,8 @@ spec:
       serviceAccountName: secrets-access-sa
       containers:
         - name: envio-indexer
+          image: ghcr.io/0xintuition/envio-indexer:1.0.27
+          imagePullPolicy: Always
           volumeMounts:
             - name: secrets-store-inline
               mountPath: "/mnt/secrets"
