@@ -23,4 +23,4 @@ spec:
             driver: secrets-store.csi.k8s.io
             readOnly: true
             volumeAttributes:
-              secretProviderClass: "base-sepolia-ipfs-upload-consumer-secrets"
+              secretProviderClass: "dev-base-sepolia-ipfs-upload-consumer-secrets"

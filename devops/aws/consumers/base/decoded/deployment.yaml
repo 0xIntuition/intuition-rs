@@ -28,8 +28,6 @@ spec:
             - ./consumer
             - --mode
             - decoded
-          image: ghcr.io/0xintuition/consumer:1.0.27
-          imagePullPolicy: Always
           name: decoded-consumer
           ports:
             - containerPort: 3002

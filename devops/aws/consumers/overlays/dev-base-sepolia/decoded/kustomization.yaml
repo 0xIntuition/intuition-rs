@@ -5,7 +5,7 @@ resources:
   - ../../../base/decoded
   - secret-provider.yaml
 
-namePrefix: "base-sepolia-" 
+namePrefix: "dev-base-sepolia-" 
 
 patches:
   - path: deployment-patch.yaml
