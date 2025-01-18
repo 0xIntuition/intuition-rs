@@ -1,6 +1,6 @@
 table:
   name: event
-  schema: public
+  schema: base_sepolia_backend
 configuration:
   column_config: {}
   custom_column_names: {}
@@ -16,7 +16,7 @@ object_relationships:
         insertion_order: null
         remote_table:
           name: atom
-          schema: public
+          schema: base_sepolia_backend
   - name: deposit
     using:
       foreign_key_constraint_on: deposit_id
@@ -34,7 +34,7 @@ object_relationships:
         insertion_order: null
         remote_table:
           name: triple
-          schema: public
+          schema: base_sepolia_backend
 select_permissions:
   - role: anonymous
     permission:

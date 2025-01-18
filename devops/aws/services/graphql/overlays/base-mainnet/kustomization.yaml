@@ -5,7 +5,7 @@ resources:
   - ../../base  # Adjusted to point to the base directory
   - secret-provider.yaml
 
-namePrefix: "base-mainnet-"
+namePrefix: "dev-base-mainnet-"
 
 patches:
   - path: deployment-patch.yaml

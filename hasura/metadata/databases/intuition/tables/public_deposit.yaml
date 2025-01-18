@@ -1,6 +1,6 @@
 table:
   name: deposit
-  schema: public
+  schema: base_sepolia_backend
 configuration:
   column_config: {}
   custom_column_names: {}
@@ -19,7 +19,7 @@ object_relationships:
         insertion_order: null
         remote_table:
           name: account
-          schema: public
+          schema: base_sepolia_backend
   - name: vault
     using:
       foreign_key_constraint_on: vault_id
@@ -30,14 +30,14 @@ array_relationships:
         column: deposit_id
         table:
           name: event
-          schema: public
+          schema: base_sepolia_backend
   - name: signals
     using:
       foreign_key_constraint_on:
         column: deposit_id
         table:
           name: signal
-          schema: public
+          schema: base_sepolia_backend
 select_permissions:
   - role: anonymous
     permission:
