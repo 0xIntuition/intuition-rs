@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: histoflux
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: histoflux
+  template:
+    metadata:
+      labels:
+        io.kompose.service: histoflux
+    spec:
+      serviceAccountName: secrets-access-sa
+      containers:
+        - name: histoflux
+          ports:
+          - containerPort: 3009
+            protocol: TCP
+      
