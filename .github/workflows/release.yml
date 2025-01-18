@@ -11,161 +11,272 @@ env:
   RUST_VERSION: 1.81.0
 
 jobs:
-  build-and-push:
+  setup:
     runs-on: self-hosted
     permissions:
-      contents: write
-      packages: write
-
+      contents: read
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Extract metadata
         id: meta
         run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
-      - name: Build and push Consumer image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: consumer/Dockerfile
-          push: true
-          platforms: linux/amd64,linux/arm64
-          tags: |
-            ${{ env.REGISTRY }}/0xintuition/consumer:${{ steps.meta.outputs.version }}
-            ${{ env.REGISTRY }}/0xintuition/consumer:latest
-          build-args: |
-            RUST_VERSION=${{ env.RUST_VERSION }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+  build-consumer:
+    runs-on: self-hosted
+    needs: setup
+    permissions:
+      contents: read
+      packages: write
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
 
-      - name: Build and push Image Guard
-        uses: docker/build-push-action@v5
+  build-image-guard:
+    runs-on: self-hosted
+    needs: setup
+    permissions:
+      contents: read
+      packages: write
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v5
         with:
           context: .
           file: image-guard/Dockerfile
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ${{ env.REGISTRY }}/0xintuition/image-guard:${{ steps.meta.outputs.version }}
+            ${{ env.REGISTRY }}/0xintuition/image-guard:${{ needs.setup.outputs.version }}
             ${{ env.REGISTRY }}/0xintuition/image-guard:latest
           build-args: |
             RUST_VERSION=${{ env.RUST_VERSION }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Build and push Substreams Sink
-        uses: docker/build-push-action@v5
+  build-substreams-sink:
+    runs-on: self-hosted
+    needs: setup
+    permissions:
+      contents: read
+      packages: write
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v5
         with:
           context: .
           file: substreams-sink/Dockerfile
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ${{ env.REGISTRY }}/0xintuition/substreams-sink:${{ steps.meta.outputs.version }}
+            ${{ env.REGISTRY }}/0xintuition/substreams-sink:${{ needs.setup.outputs.version }}
             ${{ env.REGISTRY }}/0xintuition/substreams-sink:latest
           build-args: |
             RUST_VERSION=${{ env.RUST_VERSION }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Build and push Hasura migrations
-        uses: docker/build-push-action@v5
+  build-hasura-migrations:
+    runs-on: self-hosted
+    needs: setup
+    permissions:
+      contents: read
+      packages: write
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v5
         with:
           context: .
           file: hasura/Dockerfile
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ${{ env.REGISTRY }}/0xintuition/hasura-migrations:${{ steps.meta.outputs.version }}
+            ${{ env.REGISTRY }}/0xintuition/hasura-migrations:${{ needs.setup.outputs.version }}
             ${{ env.REGISTRY }}/0xintuition/hasura-migrations:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Build and push CLI TUI image
-        uses: docker/build-push-action@v5
+  build-cli:
+    runs-on: self-hosted
+    needs: setup
+    permissions:
+      contents: read
+      packages: write
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v5
         with:
           context: .
           file: cli/Dockerfile
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ${{ env.REGISTRY }}/0xintuition/cli:${{ steps.meta.outputs.version }}
+            ${{ env.REGISTRY }}/0xintuition/cli:${{ needs.setup.outputs.version }}
             ${{ env.REGISTRY }}/0xintuition/cli:latest
           build-args: |
             RUST_VERSION=${{ env.RUST_VERSION }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Build and push Envio Indexer
-        uses: docker/build-push-action@v5
+  build-envio-indexer:
+    runs-on: self-hosted
+    needs: setup
+    permissions:
+      contents: read
+      packages: write
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v5
         with:
           context: .
           file: envio-indexer/Dockerfile
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ${{ env.REGISTRY }}/0xintuition/envio-indexer:${{ steps.meta.outputs.version }}
+            ${{ env.REGISTRY }}/0xintuition/envio-indexer:${{ needs.setup.outputs.version }}
             ${{ env.REGISTRY }}/0xintuition/envio-indexer:latest
           build-args: |
             RUST_VERSION=${{ env.RUST_VERSION }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Build and push Indexer Migrations
-        uses: docker/build-push-action@v5
+  build-indexer-migrations:
+    runs-on: self-hosted
+    needs: setup
+    permissions:
+      contents: read
+      packages: write
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v5
         with:
           context: .
           file: migrations/Dockerfile
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ${{ env.REGISTRY }}/0xintuition/indexer-and-cache-migrations:${{ steps.meta.outputs.version }}
+            ${{ env.REGISTRY }}/0xintuition/indexer-and-cache-migrations:${{ needs.setup.outputs.version }}
             ${{ env.REGISTRY }}/0xintuition/indexer-and-cache-migrations:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-      - name: Build and push Histoflux
-        uses: docker/build-push-action@v5
+  build-histoflux:
+    runs-on: self-hosted
+    needs: setup
+    permissions:
+      contents: read
+      packages: write
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v5
         with:
           context: .
           file: histoflux/Dockerfile
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ${{ env.REGISTRY }}/0xintuition/histoflux:${{ steps.meta.outputs.version }}
+            ${{ env.REGISTRY }}/0xintuition/histoflux:${{ needs.setup.outputs.version }}
             ${{ env.REGISTRY }}/0xintuition/histoflux:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-      - name: Build and push RPC Proxy
-        uses: docker/build-push-action@v5
+  build-rpc-proxy:
+    runs-on: self-hosted
+    needs: setup
+    permissions:
+      contents: read
+      packages: write
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v5
         with:
           context: .
           file: rpc-proxy/Dockerfile
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ${{ env.REGISTRY }}/0xintuition/rpc-proxy:${{ steps.meta.outputs.version }}
+            ${{ env.REGISTRY }}/0xintuition/rpc-proxy:${{ needs.setup.outputs.version }}
             ${{ env.REGISTRY }}/0xintuition/rpc-proxy:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-      - name: Check permissions
-        run: |
-          curl -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Accept: application/vnd.github.v3+json" \
-            https://api.github.com/repos/${{ github.repository }}
-
+  create-release:
+    needs: [
+      build-consumer,
+      build-image-guard,
+      build-substreams-sink,
+      build-hasura-migrations,
+      build-cli,
+      build-envio-indexer,
+      build-indexer-migrations,
+      build-histoflux,
+      build-rpc-proxy
+    ]
+    runs-on: self-hosted
+    permissions:
+      contents: write
+      packages: read
+    steps:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          name: Release ${{ steps.meta.outputs.version }}
+          name: Release ${{ needs.setup.outputs.version }}
           draft: false
           prerelease: false
           generate_release_notes: true 
