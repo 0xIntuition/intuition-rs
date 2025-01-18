@@ -1,25 +1,24 @@
-apiVersion: batch/v1
-kind: Job
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-  name: hasura-migrations
+  name: graphql-engine
 spec:
   template:
     spec:
+      serviceAccountName: secrets-access-sa
       containers:
-        - name: hasura-migrations
-          image: ghcr.io/0xintuition/hasura-migrations:1.0.27
-          imagePullPolicy: Always
+        - name: graphql-engine
           volumeMounts:
             - name: secrets-store-inline
               mountPath: "/mnt/secrets"
               readOnly: true
           envFrom:
             - secretRef:
-                name: dev-sepolia-hasura-aws-secrets
+                name: prod-sepolia-hasura-aws-secrets
       volumes:
         - name: secrets-store-inline
           csi:
             driver: secrets-store.csi.k8s.io
             readOnly: true
             volumeAttributes:
-              secretProviderClass: "dev-base-sepolia-dev-sepolia-hasura-aws-secrets"
+              secretProviderClass: "prod-base-sepolia-prod-sepolia-hasura-aws-secrets"
