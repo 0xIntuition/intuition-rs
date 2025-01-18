@@ -8,6 +8,9 @@ spec:
       serviceAccountName: secrets-access-sa
       containers:
         - name: envio-indexer
+          args:
+            - --network
+            - base-sepolia
           image: ghcr.io/0xintuition/envio-indexer:1.0.27
           imagePullPolicy: Always
           volumeMounts:

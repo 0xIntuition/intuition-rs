@@ -11,7 +11,7 @@ patches:
   - path: deployment-patch.yaml
     target:
       kind: Deployment
-      name: envio-indexer
+      name: rpc-proxy
 
 commonLabels:
   network: base-sepolia

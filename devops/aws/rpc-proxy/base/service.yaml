@@ -5,12 +5,13 @@ metadata:
     kompose.cmd: kompose convert -f docker-compose-kompose.yml
     kompose.version: 1.34.0 (HEAD)
   labels:
-    app: envio-indexer
-  name: envio-indexer
+    io.kompose.service: rpc-proxy
+  name: rpc-proxy
 spec:
+  type: ClusterIP 
   ports:
-    - name: envio-indexer
-      port: 3000
-      targetPort: 3000
+    - name: "3008"
+      port: 3008
+      targetPort: 3008
   selector:
-    app: envio-indexer
+    io.kompose.service: rpc-proxy

@@ -24,16 +24,10 @@ spec:
     spec:
       serviceAccountName: secrets-access-sa
       containers:
-        - args:
-            - --network
-            - base-sepolia
-          name: envio-indexer
+        - name: envio-indexer
           volumeMounts:
             - mountPath: /var/lib/data
               name: envio-indexer-data
-            - name: secrets-store
-              mountPath: "/mnt/secrets"
-              readOnly: true
       restartPolicy: Always
       volumes:
         - name: envio-indexer-data

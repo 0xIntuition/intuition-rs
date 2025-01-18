@@ -1,31 +1,26 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: envio-indexer
+  name: rpc-proxy
 spec:
   template:
     spec:
       serviceAccountName: secrets-access-sa
       containers:
-        - name: envio-indexer
-          args:
-            - --network
-            - base-sepolia
-            - --output
-            - postgres
-          image: ghcr.io/0xintuition/envio-indexer:1.0.32
-          imagePullPolicy: Always
+        - name: rpc-proxy
+          image: ghcr.io/0xintuition/rpc-proxy:1.0.32
+          imagePullPolicy: Always 
           volumeMounts:
             - name: secrets-store-inline
               mountPath: "/mnt/secrets"
               readOnly: true
           envFrom:
             - secretRef:
-                name: prod-envio-indexer-aws-secrets
+                name: prod-rpc-proxy-aws-secrets
       volumes:
         - name: secrets-store-inline
           csi:
             driver: secrets-store.csi.k8s.io
             readOnly: true
             volumeAttributes:
-              secretProviderClass: "prod-base-sepolia-prod-envio-indexer-aws-secrets"
+              secretProviderClass: "prod-base-sepolia-prod-rpc-proxy-aws-secrets"
