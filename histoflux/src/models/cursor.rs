@@ -68,7 +68,7 @@ impl HistoFluxCursor {
 mod tests {
     use super::*;
     use chrono::Duration;
-    use models::test_helpers::{setup_test_db, TEST_PROXY_SCHEMA};
+    use models::test_helpers::{setup_test_db, TEST_INDEXER_SCHEMA};
 
     #[sqlx::test]
     async fn test_cursor_upsert_and_find() {
@@ -81,10 +81,10 @@ mod tests {
         };
 
         // First upsert
-        let saved = cursor.upsert(&pool, TEST_PROXY_SCHEMA).await.unwrap();
+        let saved = cursor.upsert(&pool, TEST_INDEXER_SCHEMA).await.unwrap();
 
         // Find and verify first insert
-        let found = HistoFluxCursor::find(&pool, TEST_PROXY_SCHEMA)
+        let found = HistoFluxCursor::find(&pool, TEST_INDEXER_SCHEMA)
             .await
             .unwrap()
             .unwrap();
@@ -100,10 +100,10 @@ mod tests {
             last_processed_id: 200,
             updated_at: found.updated_at,
         };
-        let saved2 = cursor2.upsert(&pool, TEST_PROXY_SCHEMA).await.unwrap();
+        let saved2 = cursor2.upsert(&pool, TEST_INDEXER_SCHEMA).await.unwrap();
 
         // Find and verify update
-        let found2 = HistoFluxCursor::find(&pool, TEST_PROXY_SCHEMA)
+        let found2 = HistoFluxCursor::find(&pool, TEST_INDEXER_SCHEMA)
             .await
             .unwrap()
             .unwrap();
