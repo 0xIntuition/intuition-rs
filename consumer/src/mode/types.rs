@@ -444,7 +444,7 @@ impl ConsumerMode {
                     .start_timer();
                 info!("Received: {fees_data:#?}");
                 fees_data
-                    .handle_fees_transferred_creation(&decoded_message, &decoded_consumer_context)
+                    .handle_fees_transferred_creation(&decoded_message, decoded_consumer_context)
                     .await?;
                 timer.observe_duration();
             }
@@ -455,7 +455,7 @@ impl ConsumerMode {
                 info!("Received: {triple_data:#?}");
                 triple_data
                     .handle_triple_creation(
-                        &decoded_consumer_context,
+                        decoded_consumer_context,
                         &decoded_consumer_context.base_client,
                         &decoded_message,
                     )

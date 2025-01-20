@@ -2,6 +2,7 @@ use app_context::SqsProducer;
 
 mod app_context;
 mod error;
+mod models;
 mod types;
 
 #[tokio::main]

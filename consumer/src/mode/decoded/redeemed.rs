@@ -185,7 +185,7 @@ impl Redeemed {
 
         // 2. Create redemption record
         self.create_redemption_record(
-            &decoded_consumer_context,
+            decoded_consumer_context,
             &sender_account,
             &receiver_account,
             event,

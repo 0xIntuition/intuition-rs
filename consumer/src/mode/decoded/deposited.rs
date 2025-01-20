@@ -341,18 +341,17 @@ impl Deposited {
         )?;
 
         // Create deposit record
-        self.create_deposit(event, &decoded_consumer_context)
-            .await?;
+        self.create_deposit(event, decoded_consumer_context).await?;
 
         // Handle position and related entities
-        self.handle_position_and_claims(&decoded_consumer_context, &vault)
+        self.handle_position_and_claims(decoded_consumer_context, &vault)
             .await?;
 
         // Create event
-        self.create_event(event, &decoded_consumer_context).await?;
+        self.create_event(event, decoded_consumer_context).await?;
 
         // Create signal
-        self.create_signal(&decoded_consumer_context, event, &vault)
+        self.create_signal(decoded_consumer_context, event, &vault)
             .await?;
 
         Ok(())
@@ -386,13 +385,13 @@ impl Deposited {
         position_id: &str,
         triple: Option<Triple>,
     ) -> Result<(), ConsumerError> {
-        self.create_new_position(position_id.to_string(), &decoded_consumer_context)
+        self.create_new_position(position_id.to_string(), decoded_consumer_context)
             .await?;
-        self.increment_vault_position_count(&decoded_consumer_context)
+        self.increment_vault_position_count(decoded_consumer_context)
             .await?;
 
         if let Some(triple) = triple {
-            self.create_claim_and_predicate_object(&decoded_consumer_context, &triple)
+            self.create_claim_and_predicate_object(decoded_consumer_context, &triple)
                 .await?;
         }
 
@@ -420,10 +419,10 @@ impl Deposited {
         .await?;
 
         if position.is_none() && self.receiverTotalSharesInVault != U256::from(0) {
-            self.handle_new_position(&decoded_consumer_context, &position_id, triple)
+            self.handle_new_position(decoded_consumer_context, &position_id, triple)
                 .await?;
         } else if self.receiverTotalSharesInVault != U256::from(0) {
-            self.handle_existing_position(&decoded_consumer_context, &position_id, triple, vault)
+            self.handle_existing_position(decoded_consumer_context, &position_id, triple, vault)
                 .await?;
         }
 
@@ -468,7 +467,7 @@ impl Deposited {
         sender?;
         receiver?;
 
-        self.get_or_create_vault(&decoded_consumer_context, self.vaultId, current_share_price)
+        self.get_or_create_vault(decoded_consumer_context, self.vaultId, current_share_price)
             .await
     }
 

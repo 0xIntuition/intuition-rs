@@ -213,19 +213,15 @@ impl TripleCreated {
 
         // Update the counter vault current share price and get the triple
         let triple = self
-            .update_vaults_current_share_price_and_get_triple(
-                &decoded_consumer_context,
-                web3,
-                event,
-            )
+            .update_vaults_current_share_price_and_get_triple(decoded_consumer_context, web3, event)
             .await?;
 
         // Update the predicate object
-        self.update_predicate_object_triple_count(&decoded_consumer_context)
+        self.update_predicate_object_triple_count(decoded_consumer_context)
             .await?;
 
         // Update the positions
-        self.update_positions(&decoded_consumer_context, &triple)
+        self.update_positions(decoded_consumer_context, &triple)
             .await?;
 
         // Create the event
@@ -336,11 +332,11 @@ impl TripleCreated {
                 .await?;
 
             // Update the predicate object claim count
-            self.update_predicate_object_claim_count(&decoded_consumer_context)
+            self.update_predicate_object_claim_count(decoded_consumer_context)
                 .await?;
         }
 
-        self.check_and_update_account_predicate_object_claim_count(&decoded_consumer_context)
+        self.check_and_update_account_predicate_object_claim_count(decoded_consumer_context)
             .await?;
 
         Ok(())

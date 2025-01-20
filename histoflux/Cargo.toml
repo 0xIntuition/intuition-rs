@@ -12,6 +12,7 @@ dotenvy.workspace = true
 env_logger.workspace = true
 envy.workspace = true
 log.workspace = true
+macon.workspace = true
 models = { path = "../models" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
