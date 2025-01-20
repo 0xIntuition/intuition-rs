@@ -1,0 +1,1 @@
+DROP TABLE base_sepolia_indexer.histoflux_cursor;

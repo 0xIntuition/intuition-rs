@@ -1,4 +1,5 @@
 use crate::error::HistoFluxError;
+use crate::models::cursor::HistoFluxCursor;
 use aws_sdk_sqs::Client as AWSClient;
 use log::info;
 use models::raw_logs::RawLog;
@@ -125,7 +126,14 @@ impl SqsProducer {
     /// This function processes all existing records in the database and sends
     /// them to the SQS queue.
     pub async fn process_historical_records(&self) -> Result<(), HistoFluxError> {
-        let mut last_processed_id = 0;
+        // Get the last processed id from the database, if it doesnt exist,
+        // it will return the default value.
+        info!("Getting last processed id from the DB");
+        let mut last_processed_id = HistoFluxCursor::find(&self.pg_pool, &self.env.indexer_schema)
+            .await?
+            .unwrap_or_default()
+            .last_processed_id;
+        info!("Last processed id: {}", last_processed_id);
         let amount_of_logs =
             RawLog::get_total_count(&self.pg_pool, &self.env.indexer_schema).await?;
         // If there are no logs, we dont need to process anything
@@ -139,7 +147,7 @@ impl SqsProducer {
         'outer_loop: for _page in 0..pages {
             let logs = RawLog::get_paginated_after_id(
                 &self.pg_pool,
-                last_processed_id,
+                last_processed_id as i32,
                 page_size,
                 &self.env.indexer_schema,
             )
@@ -148,7 +156,8 @@ impl SqsProducer {
             info!("Processing {} logs", logs.len());
             for log in logs {
                 info!("Processing log: {:?}", log);
-                last_processed_id = log.id;
+                last_processed_id = log.id as i64;
+                self.update_last_processed_id(last_processed_id).await?;
                 // This is added because we dont want to process more logs than
                 // the total amount we initially got. We have a listener that
                 // will send us new logs, so we dont need to process all logs.
@@ -160,6 +169,22 @@ impl SqsProducer {
             }
         }
 
+        Ok(())
+    }
+
+    /// This function updates the last processed id in the database.
+    pub async fn update_last_processed_id(
+        &self,
+        last_processed_id: i64,
+    ) -> Result<(), HistoFluxError> {
+        let cursor = HistoFluxCursor::builder()
+            .id(1)
+            .last_processed_id(last_processed_id)
+            .updated_at(chrono::Utc::now())
+            .build();
+        cursor
+            .upsert(&self.pg_pool, &self.env.indexer_schema)
+            .await?;
         Ok(())
     }
     /// This function starts polling the database for raw logs and sends them to
@@ -179,19 +204,20 @@ impl SqsProducer {
 
         info!("Processed historical records");
 
-        // Process any notifications that arrived during historical processing
-        while let Ok(notification) = listener.recv().await {
-            self.process_notification(notification, start_time).await?;
-        }
-
-        // Continue with normal listening
+        // Process notifications continuously
         loop {
-            let notification = listener.recv().await?;
-            info!("Processing notification: {:?}", notification);
-            let payload: RawLog = serde_json::from_str(notification.payload())?;
-            let message = serde_json::to_string(&payload)?;
-            self.send_message(message).await?;
-            info!("Sent message to SQS");
+            info!("Waiting for notifications");
+            match listener.recv().await {
+                Ok(notification) => {
+                    self.process_notification(notification, start_time).await?;
+                }
+                Err(e) => {
+                    // Log the error but continue the loop
+                    log::error!("Error receiving notification: {:?}", e);
+                    // Optional: Add delay to prevent tight loop on persistent errors
+                    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                }
+            }
         }
     }
 
