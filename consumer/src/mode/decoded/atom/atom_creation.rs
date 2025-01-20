@@ -141,7 +141,7 @@ impl AtomCreated {
         } else {
             info!("Atom does not exist, creating it");
             let atom_wallet_account = self
-                .get_or_create_atom_wallet_account(&decoded_consumer_context)
+                .get_or_create_atom_wallet_account(decoded_consumer_context)
                 .await?;
             let creator_account =
                 get_or_create_account(self.creator.to_string(), decoded_consumer_context).await?;
@@ -217,7 +217,7 @@ impl AtomCreated {
             )
             .await?;
         // Create the event
-        self.create_event(decoded_message, &decoded_consumer_context)
+        self.create_event(decoded_message, decoded_consumer_context)
             .await?;
 
         Ok(())
