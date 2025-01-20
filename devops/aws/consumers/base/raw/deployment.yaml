@@ -28,11 +28,6 @@ spec:
             - ./consumer
             - --mode
             - raw
-          envFrom:
-            - secretRef:
-                name: raw-aws-secrets
-          image: ghcr.io/0xintuition/consumer:latest
-          imagePullPolicy: Always
           name: raw-consumer
           ports:
             - containerPort: 8003

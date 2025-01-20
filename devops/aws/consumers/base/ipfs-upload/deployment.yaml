@@ -28,11 +28,6 @@ spec:
             - ./consumer
             - --mode
             - ipfs-upload
-          envFrom:
-            - secretRef:
-                name: ipfs-upload-aws-secrets
-          image: ghcr.io/0xintuition/consumer:latest
-          imagePullPolicy: Always
           name: ipfs-upload-consumer
           ports:
             - containerPort: 8002

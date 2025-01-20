@@ -22,7 +22,7 @@ spec:
         pathType: Prefix
         backend:
           service:
-            name: graphql-engine
+            name: dev-base-mainnet-graphql-engine
             port:
               number: 8080
       - path: /upload_image_from_url
@@ -46,7 +46,7 @@ spec:
         pathType: Prefix
         backend:
           service:
-            name: base-sepolia-graphql-engine
+            name: dev-base-sepolia-graphql-engine
             port:
               number: 8080
   - host: prod.base.intuition-api.com
@@ -56,7 +56,7 @@ spec:
         pathType: Prefix
         backend:
           service:
-            name: graphql-engine
+            name: dev-base-mainnet-graphql-engine
             port:
               number: 8080
   - host: prod.base-sepolia.intuition-api.com
@@ -66,7 +66,7 @@ spec:
         pathType: Prefix
         backend:
           service:
-            name: base-sepolia-graphql-engine
+            name: prod-base-sepolia-graphql-engine
             port:
               number: 8080
 

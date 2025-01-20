@@ -28,11 +28,6 @@ spec:
             - ./consumer
             - --mode
             - resolver
-          envFrom:
-            - secretRef:
-                name: resolver-aws-secrets
-          image: ghcr.io/0xintuition/consumer:latest
-          imagePullPolicy: Always
           name: resolver-consumer
           ports:
             - containerPort: 8001

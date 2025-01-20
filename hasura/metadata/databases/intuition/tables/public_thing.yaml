@@ -1,6 +1,6 @@
 table:
   name: thing
-  schema: public
+  schema: base_sepolia_backend
 configuration:
   column_config: {}
   custom_column_names: {}
@@ -16,7 +16,7 @@ object_relationships:
         insertion_order: null
         remote_table:
           name: atom
-          schema: public
+          schema: base_sepolia_backend
   - name: cached_image
     using:
       manual_configuration:
@@ -25,7 +25,7 @@ object_relationships:
         insertion_order: null
         remote_table:
           name: cached_image
-          schema: public
+          schema: base_sepolia_backend
 select_permissions:
   - role: anonymous
     permission:

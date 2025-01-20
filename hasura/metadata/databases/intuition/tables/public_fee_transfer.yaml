@@ -1,6 +1,6 @@
 table:
   name: fee_transfer
-  schema: public
+  schema: base_sepolia_backend
 configuration:
   column_config: {}
   custom_column_names: {}
@@ -19,7 +19,7 @@ object_relationships:
         insertion_order: null
         remote_table:
           name: account
-          schema: public
+          schema: base_sepolia_backend
 array_relationships:
   - name: events
     using:
@@ -27,7 +27,7 @@ array_relationships:
         column: fee_transfer_id
         table:
           name: event
-          schema: public
+          schema: base_sepolia_backend
 select_permissions:
   - role: anonymous
     permission:

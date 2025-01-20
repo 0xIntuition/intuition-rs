@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rpc-proxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: rpc-proxy
+  template:
+    metadata:
+      labels:
+        io.kompose.service: rpc-proxy
+    spec:
+      serviceAccountName: secrets-access-sa
+      containers:
+        - name: rpc-proxy
+          ports:
+          - containerPort: 3008
+            protocol: TCP
+      

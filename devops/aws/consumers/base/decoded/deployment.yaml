@@ -28,11 +28,6 @@ spec:
             - ./consumer
             - --mode
             - decoded
-          envFrom:
-            - secretRef:
-                name: decoded-aws-secrets
-          image: ghcr.io/0xintuition/consumer:latest
-          imagePullPolicy: Always
           name: decoded-consumer
           ports:
             - containerPort: 3002
