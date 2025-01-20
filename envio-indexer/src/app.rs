@@ -26,7 +26,6 @@ pub struct App {
     pub args: Args,
     pub env: Env,
     pub aws_sqs_client: AWSClient,
-    pub raw_consumer_queue_url: String,
     pub pg_pool: PgPool,
 }
 
@@ -48,8 +47,6 @@ impl App {
         info!("Server height is {}", height);
         // Create the SQS client
         let aws_sqs_client = Self::get_aws_client(env.localstack_url.clone()).await;
-        // Get the raw consumer queue url
-        let raw_consumer_queue_url = env.raw_consumer_queue_url.clone();
         // Connect to the database
         let pg_pool = connect_to_db(&env.database_url).await?;
 
@@ -58,7 +55,6 @@ impl App {
             args,
             env,
             aws_sqs_client,
-            raw_consumer_queue_url,
             pg_pool,
         })
     }
@@ -149,7 +145,7 @@ impl App {
         if self.args.output == Output::Sqs {
             self.aws_sqs_client
                 .send_message()
-                .queue_url(&self.raw_consumer_queue_url)
+                .queue_url(&self.env.raw_consumer_queue_url)
                 .message_group_id("raw")
                 .message_body(message)
                 .send()

@@ -1962,7 +1962,6 @@ dependencies = [
  "ratatui",
  "reqwest 0.12.9",
  "serde",
- "serde_json",
  "tokio",
 ]
 
@@ -2036,11 +2035,9 @@ dependencies = [
  "aws-smithy-runtime-api",
  "clap",
  "dotenvy",
- "env_logger",
  "envy",
  "futures 0.3.31",
  "hex",
- "hyper 1.5.1",
  "models",
  "once_cell",
  "prometheus",
@@ -2553,7 +2550,6 @@ dependencies = [
 name = "envio-indexer"
 version = "0.1.0"
 dependencies = [
- "alloy",
  "anyhow",
  "aws-config",
  "aws-sdk-sqs",
@@ -3686,7 +3682,7 @@ dependencies = [
  "tokio",
  "tower-http",
  "utoipa",
- "utoipa-swagger-ui",
+ "utoipa-swagger-ui 8.1.1",
 ]
 
 [[package]]
@@ -5328,16 +5324,12 @@ dependencies = [
 name = "rpc-proxy"
 version = "0.1.0"
 dependencies = [
- "alloy",
  "axum 0.8.1",
  "axum-jrpc",
  "axum-macros",
- "axum-prometheus",
- "chrono",
  "dotenvy",
  "env_logger",
  "envy",
- "hex",
  "http 1.2.0",
  "log",
  "macon",
@@ -5347,14 +5339,12 @@ dependencies = [
  "serde_json",
  "shared-utils",
  "sqlx",
- "strum",
- "strum_macros",
  "thiserror 2.0.11",
  "tokio",
  "tower-http",
  "url",
  "utoipa",
- "utoipa-swagger-ui",
+ "utoipa-swagger-ui 9.0.0",
 ]
 
 [[package]]
@@ -5909,7 +5899,6 @@ name = "shared-utils"
 version = "0.1.0"
 dependencies = [
  "bytes",
- "chrono",
  "log",
  "macon",
  "models",
@@ -6419,7 +6408,6 @@ dependencies = [
  "aws-config",
  "aws-sdk-sqs",
  "aws-smithy-runtime-api",
- "chrono",
  "clap",
  "dotenvy",
  "env_logger",
@@ -6427,7 +6415,6 @@ dependencies = [
  "futures 0.3.31",
  "hex",
  "log",
- "macon",
  "models",
  "prost",
  "prost-types",
@@ -6439,7 +6426,6 @@ dependencies = [
  "thiserror 2.0.11",
  "tokio",
  "tokio-retry",
- "tokio-stream",
  "tonic",
 ]
 
@@ -7250,6 +7236,24 @@ name = "utoipa-swagger-ui"
 version = "8.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "040cad8bd8de63f3d028e08e5b39be49d68f8a646e99f4aea2e2d4d82c34b21f"
+dependencies = [
+ "axum 0.8.1",
+ "base64 0.22.1",
+ "mime_guess",
+ "regex",
+ "rust-embed",
+ "serde",
+ "serde_json",
+ "url",
+ "utoipa",
+ "zip",
+]
+
+[[package]]
+name = "utoipa-swagger-ui"
+version = "9.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "161166ec520c50144922a625d8bc4925cc801b2dda958ab69878527c0e5c5d61"
 dependencies = [
  "axum 0.8.1",
  "base64 0.22.1",
