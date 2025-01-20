@@ -196,9 +196,6 @@ impl SqsProducer {
         let mut listener = PgListener::connect(&self.env.database_url).await?;
         listener.listen("raw_logs_channel").await?;
 
-        // Get current timestamp before processing historical
-        let start_time = chrono::Utc::now();
-
         info!("Start pulling historical records");
         self.process_historical_records().await?;
 
@@ -209,7 +206,7 @@ impl SqsProducer {
             info!("Waiting for notifications");
             match listener.recv().await {
                 Ok(notification) => {
-                    self.process_notification(notification, start_time).await?;
+                    self.process_notification(notification).await?;
                 }
                 Err(e) => {
                     // Log the error but continue the loop
@@ -226,30 +223,28 @@ impl SqsProducer {
     async fn process_notification(
         &self,
         notification: PgNotification,
-        start_time: chrono::DateTime<chrono::Utc>,
     ) -> Result<(), HistoFluxError> {
         info!("Processing notification: {:?}", notification);
         let payload: NotificationPayload = serde_json::from_str(notification.payload())?;
         info!("Payload: {:?}", payload);
 
-        if payload.raw_log.block_timestamp < start_time.timestamp() {
-            // Convert numeric fields to strings if RawLog expects them as strings
-            let raw_log = RawLog::builder()
-                .gs_id(payload.raw_log.gs_id.to_string())
-                .block_number(payload.raw_log.block_number)
-                .block_hash(payload.raw_log.block_hash)
-                .transaction_hash(payload.raw_log.transaction_hash)
-                .transaction_index(payload.raw_log.transaction_index)
-                .log_index(payload.raw_log.log_index)
-                .address(payload.raw_log.address)
-                .data(payload.raw_log.data)
-                .topics(payload.raw_log.topics)
-                .block_timestamp(payload.raw_log.block_timestamp)
-                .build();
-            let message = serde_json::to_string(&raw_log)?;
-            self.send_message(message).await?;
-            info!("Sent message to SQS");
-        }
+        // Convert numeric fields to strings if RawLog expects them as strings
+        let raw_log = RawLog::builder()
+            .gs_id(payload.raw_log.gs_id.to_string())
+            .block_number(payload.raw_log.block_number)
+            .block_hash(payload.raw_log.block_hash)
+            .transaction_hash(payload.raw_log.transaction_hash)
+            .transaction_index(payload.raw_log.transaction_index)
+            .log_index(payload.raw_log.log_index)
+            .address(payload.raw_log.address)
+            .data(payload.raw_log.data)
+            .topics(payload.raw_log.topics)
+            .block_timestamp(payload.raw_log.block_timestamp)
+            .build();
+        let message = serde_json::to_string(&raw_log)?;
+        self.send_message(message).await?;
+        info!("Sent message to SQS");
+
         Ok(())
     }
 }
