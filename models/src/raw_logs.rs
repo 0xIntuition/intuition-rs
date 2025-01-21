@@ -87,6 +87,23 @@ impl RawLog {
             .map_err(|error| ModelError::InsertError(error.to_string()))
     }
 
+    /// This is a method to fetch the last observed block from the database.
+    /// It returns None if there are no blocks in the database.
+    pub async fn fetch_last_observed_block(
+        pg_pool: &PgPool,
+        schema: &str,
+    ) -> Result<Option<i64>, ModelError> {
+        let query = format!(
+            r#"SELECT block_number from {}.raw_data ORDER BY id DESC LIMIT 1"#,
+            schema,
+        );
+
+        sqlx::query_scalar(&query)
+            .fetch_optional(pg_pool)
+            .await
+            .map_err(|error| ModelError::QueryError(error.to_string()))
+    }
+
     /// This is a method to get paginated raw logs from the database.
     pub async fn get_paginated(
         pg_pool: &PgPool,

@@ -1,22 +1,12 @@
 use app::App;
-use clap::{Parser, ValueEnum};
+use clap::Parser;
 use error::IndexerError;
 use log::info;
+use types::{Network, Output};
 
 mod app;
 mod error;
-
-/// The network to index. Currently only Base Sepolia is supported.
-#[derive(ValueEnum, Clone, Debug, PartialEq, Eq)]
-enum Network {
-    BaseSepolia,
-}
-
-#[derive(ValueEnum, Clone, Debug, PartialEq, Eq)]
-pub enum Output {
-    Sqs,
-    Postgres,
-}
+mod types;
 
 /// The CLI arguments
 #[derive(Parser)]
