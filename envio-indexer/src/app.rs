@@ -5,6 +5,7 @@ use hypersync_client::{net_types::Query, simple_types::Event, Client, ClientConf
 use log::info;
 use models::raw_logs::RawLog;
 use serde::Deserialize;
+use serde_json::json;
 use shared_utils::postgres::connect_to_db;
 use sqlx::PgPool;
 use tokio::time::{sleep, Duration};
@@ -41,7 +42,7 @@ impl App {
         // Parse the CLI arguments
         let args = Args::parse();
         // Create the client for the given network
-        let client = Self::create_client(&env, &args)?;
+        let client = args.network.create_client(&env.hypersync_token)?;
         // Get the current height of the server
         let height = client.get_height().await?;
         info!("Server height is {}", height);
@@ -59,26 +60,42 @@ impl App {
         })
     }
 
-    /// Create a client for the given network
-    pub fn create_client(env: &Env, args: &Args) -> Result<Client, IndexerError> {
-        Ok(match args.network {
-            Network::BaseSepolia => Client::new(ClientConfig {
-                url: Some(Url::parse("https://84532.hypersync.xyz")?),
-                bearer_token: Some(env.hypersync_token.clone()),
-                ..Default::default()
-            })?,
-        })
-    }
-
     /// Create a query for the given network
-    pub fn query(&self) -> Result<Query, IndexerError> {
-        if self.args.network == Network::BaseSepolia {
-            Ok(serde_json::from_str(include_str!(
-                "queries/base_sepolia_query.json"
-            ))?)
-        } else {
-            Err(IndexerError::Anyhow(anyhow::anyhow!("Invalid network")))
-        }
+    pub fn query(&self, starting_block: Option<i64>) -> Result<Query, IndexerError> {
+        let contract_address = self.args.network.get_contract_address_for_network();
+        let query_json = json!({
+        "from_block": starting_block.unwrap_or(0),
+        "logs": [
+                {
+                    "address": [contract_address]
+                }
+            ],
+            "field_selection": {
+                "block": [
+                    "number",
+                    "timestamp",
+                    "hash"
+                ],
+                "log": [
+                    "block_number",
+                    "log_index",
+                    "transaction_index",
+                    "data",
+                    "address",
+                    "topic0",
+                    "topic1",
+                    "topic2",
+                    "topic3"
+                ],
+                "transaction": [
+                    "block_number",
+                    "transaction_index",
+                    "hash"
+                ]
+            }
+        });
+
+        Ok(serde_json::from_value(query_json)?)
     }
 
     /// This function returns an [`aws_sdk_sqs::Client`] based on the
@@ -108,8 +125,14 @@ impl App {
 
     /// Start the indexer
     pub async fn start_indexer(&self) -> Result<(), IndexerError> {
+        info!("Starting indexer");
+        // get the last observed block from the database
+        let last_observed_block =
+            RawLog::fetch_last_observed_block(&self.pg_pool, &self.env.indexer_schema).await?;
+        info!("Last observed block: {:?}", last_observed_block);
+        sleep(Duration::from_secs(5)).await;
         // Get the query for the given network
-        let mut query = self.query()?;
+        let mut query = self.query(last_observed_block)?;
 
         loop {
             let res = self.client.get_events(query.clone()).await?;
