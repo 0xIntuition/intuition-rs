@@ -1,7 +1,7 @@
-use crate::{error::IndexerError, Args, Network, Output};
+use crate::{error::IndexerError, Args, Output};
 use aws_sdk_sqs::Client as AWSClient;
 use clap::Parser;
-use hypersync_client::{net_types::Query, simple_types::Event, Client, ClientConfig};
+use hypersync_client::{net_types::Query, simple_types::Event, Client};
 use log::info;
 use models::raw_logs::RawLog;
 use serde::Deserialize;
@@ -9,7 +9,6 @@ use serde_json::json;
 use shared_utils::postgres::connect_to_db;
 use sqlx::PgPool;
 use tokio::time::{sleep, Duration};
-use url::Url;
 
 /// The environment variables
 #[derive(Clone, Deserialize, Debug)]
@@ -130,7 +129,7 @@ impl App {
         let last_observed_block =
             RawLog::fetch_last_observed_block(&self.pg_pool, &self.env.indexer_schema).await?;
         info!("Last observed block: {:?}", last_observed_block);
-        sleep(Duration::from_secs(5)).await;
+
         // Get the query for the given network
         let mut query = self.query(last_observed_block)?;
 
