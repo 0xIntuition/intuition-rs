@@ -3,7 +3,7 @@ kind: Kustomization
 
 resources:
   - deployment.yaml
-  - pvc.yaml
+  # - pvc.yaml
   - service.yaml
 
 commonLabels:
