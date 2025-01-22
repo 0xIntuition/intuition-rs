@@ -14,6 +14,8 @@ spec:
             - name: secrets-store-inline
               mountPath: "/mnt/secrets"
               readOnly: true
+            - mountPath: /var/log/app
+              name: resolver-logs
           envFrom:
             - secretRef:
                 name: resolver-consumer-secrets
@@ -24,3 +26,6 @@ spec:
             readOnly: true
             volumeAttributes:
               secretProviderClass: "dev-base-sepolia-resolver-consumer-secrets"
+        - name: resolver-logs
+          persistentVolumeClaim:
+            claimName: dev-base-sepolia-resolver-logs

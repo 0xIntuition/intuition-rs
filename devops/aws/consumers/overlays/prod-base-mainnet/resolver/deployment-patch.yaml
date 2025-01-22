@@ -14,6 +14,8 @@ spec:
             - name: secrets-store-inline
               mountPath: "/mnt/secrets"
               readOnly: true
+            - mountPath: /var/log/app
+              name: resolver-logs
           envFrom:
             - secretRef:
                 name: prod-mainnet-resolver-consumer-secrets
@@ -24,3 +26,6 @@ spec:
             readOnly: true
             volumeAttributes:
               secretProviderClass: "prod-base-mainnet-prod-mainnet-resolver-consumer-secrets"
+        - name: resolver-logs
+          persistentVolumeClaim:
+            claimName: prod-base-mainnet-resolver-logs
