@@ -21,4 +21,5 @@ patches:
 
 commonLabels:
   network: base-mainnet
+  io.kompose.service: prod-base-mainnet-graphql-engine
 
