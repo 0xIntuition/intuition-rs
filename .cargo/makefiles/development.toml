@@ -67,7 +67,7 @@ args = ["deploy", "--project", "hasura"]
 
 # This task remove the docker volumes, start the docker compose stack, and migrate the database
 [tasks.start-docker-and-migrate]
-dependencies = ["remove-docker-volumes", "build-cli", "build-image-substreams-sink", "build-consumer", "build-image-guard", "build-image-hasura-migrations", "start-docker"]
+dependencies = ["remove-docker-volumes", "build-docker-images", "start-docker"]
 
 [tasks.build-docker-images]
 dependencies = [ "build-cli", "build-image-substreams-sink", "build-consumer", "build-image-guard", "build-image-hasura-migrations", "build-envio-indexer", "build-indexer-migrations", "build-histoflux"]
