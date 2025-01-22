@@ -15,6 +15,8 @@ pub enum Environment {
 }
 
 impl Environment {
+    /// This method is used to get the indexer schema from the environment.
+    /// There must be a 1-1 mapping between the environment and the indexer schema.
     pub fn to_indexer_schema(&self) -> String {
         match self {
             Environment::DevBase => "base_indexer".to_string(),
