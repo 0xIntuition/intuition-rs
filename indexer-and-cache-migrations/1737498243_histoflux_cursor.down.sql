@@ -1,1 +1,1 @@
-DROP TABLE base_indexer.histoflux_cursor;
+DROP TABLE base_proxy.histoflux_cursor;
