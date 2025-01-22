@@ -1,1 +1,2 @@
-DROP TABLE base_proxy.histoflux_cursor;
+DROP TABLE cursors.histoflux_cursor;
+DROP TYPE cursors.environment;

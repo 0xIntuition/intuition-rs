@@ -1,8 +1,5 @@
 CREATE SCHEMA IF NOT EXISTS base_indexer;
 
--- Set the search path for this session
--- SET search_path TO !INDEXER_base_indexer!;
-
 CREATE TABLE IF NOT EXISTS base_indexer.raw_data (
     id SERIAL PRIMARY KEY NOT NULL,
     gs_id VARCHAR(200),
