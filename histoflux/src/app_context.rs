@@ -12,7 +12,7 @@ use sqlx::PgPool;
 #[derive(Clone, Deserialize, Debug)]
 pub struct Env {
     pub localstack_url: Option<String>,
-    pub database_url: String,
+    pub indexer_database_url: String,
     pub histoflux_cursor_id: i32,
 }
 
@@ -58,7 +58,7 @@ impl SqsProducer {
         // Create the SQS client
         let client = Self::get_aws_client(env.localstack_url.clone()).await;
         // Connect to the database
-        let pg_pool = connect_to_db(&env.database_url).await?;
+        let pg_pool = connect_to_db(&env.indexer_database_url).await?;
 
         let cursor = HistoFluxCursor::find(&pg_pool, env.histoflux_cursor_id)
             .await?
