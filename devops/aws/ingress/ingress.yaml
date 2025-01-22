@@ -56,7 +56,7 @@ spec:
         pathType: Prefix
         backend:
           service:
-            name: dev-base-mainnet-graphql-engine
+            name: prod-base-mainnet-graphql-engine
             port:
               number: 8080
   - host: prod.base-sepolia.intuition-api.com
