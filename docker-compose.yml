@@ -319,7 +319,7 @@ services:
     container_name: indexer-migrations
     image: ghcr.io/0xintuition/indexer-migrations:latest
     environment:
-      DATABASE_URL: $DATABASE_URL
+      INDEXER_DATABASE_URL: $DATABASE_URL
     depends_on:
       database:
         condition: service_healthy
