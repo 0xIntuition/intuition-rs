@@ -202,7 +202,7 @@ impl SqsProducer {
         info!("Starting polling events");
 
         // Start listening BEFORE processing historical records
-        let mut listener = PgListener::connect(&self.env.database_url).await?;
+        let mut listener = PgListener::connect(&self.env.indexer_database_url).await?;
         listener.listen("raw_logs_channel").await?;
 
         info!("Start pulling historical records");
