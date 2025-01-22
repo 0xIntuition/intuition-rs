@@ -1,6 +1,6 @@
 table:
   name: vault
-  schema: base_sepolia_backend
+  schema: public
 configuration:
   column_config: {}
   custom_column_names: {}
@@ -16,7 +16,7 @@ object_relationships:
         insertion_order: null
         remote_table:
           name: atom
-          schema: base_sepolia_backend
+          schema: public
   - name: triple
     using:
       manual_configuration:
@@ -25,7 +25,7 @@ object_relationships:
         insertion_order: null
         remote_table:
           name: triple
-          schema: base_sepolia_backend
+          schema: public
 array_relationships:
   - name: claims
     using:
@@ -33,35 +33,35 @@ array_relationships:
         column: vault_id
         table:
           name: claim
-          schema: base_sepolia_backend
+          schema: public
   - name: counter_claims
     using:
       foreign_key_constraint_on:
         column: counter_vault_id
         table:
           name: claim
-          schema: base_sepolia_backend
+          schema: public
   - name: deposits
     using:
       foreign_key_constraint_on:
         column: vault_id
         table:
           name: deposit
-          schema: base_sepolia_backend
+          schema: public
   - name: positions
     using:
       foreign_key_constraint_on:
         column: vault_id
         table:
           name: position
-          schema: base_sepolia_backend
+          schema: public
   - name: redemptions
     using:
       foreign_key_constraint_on:
         column: vault_id
         table:
           name: redemption
-          schema: base_sepolia_backend
+          schema: public
 select_permissions:
   - role: anonymous
     permission:

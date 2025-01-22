@@ -25,6 +25,7 @@ pub struct SqsProducer {
 
 #[derive(Debug, Deserialize)]
 struct DbRawLog {
+    id: i64,
     gs_id: String,
     block_number: i64,
     block_hash: String,
@@ -243,6 +244,11 @@ impl SqsProducer {
             .build();
         let message = serde_json::to_string(&raw_log)?;
         self.send_message(message).await?;
+
+        // update the last processed id
+        self.update_last_processed_id(payload.raw_log.id as i64)
+            .await?;
+
         info!("Sent message to SQS");
 
         Ok(())

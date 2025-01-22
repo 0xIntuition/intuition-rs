@@ -1,6 +1,6 @@
 table:
   name: book
-  schema: base_sepolia_backend
+  schema: public
 configuration:
   column_config: {}
   custom_column_names: {}
@@ -16,7 +16,7 @@ object_relationships:
         insertion_order: null
         remote_table:
           name: atom
-          schema: base_sepolia_backend
+          schema: public
 select_permissions:
   - role: anonymous
     permission:

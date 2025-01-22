@@ -1,0 +1,1 @@
+DROP TABLE base_indexer.histoflux_cursor;

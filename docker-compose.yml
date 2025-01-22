@@ -313,7 +313,7 @@ services:
         condition: service_healthy
       indexer-migrations:
         condition: service_started
-    command: ["--network", "base-sepolia", "--output", "postgres"]
+    command: ["--network", "base", "--output", "postgres"]
 
   indexer-migrations:
     container_name: indexer-migrations
