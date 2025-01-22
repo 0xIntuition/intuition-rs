@@ -35,11 +35,4 @@ spec:
           securityContext:
             runAsUser: 0
             runAsGroup: 0
-          volumeMounts:
-            - mountPath: /var/log/app
-              name: resolver-logs
       restartPolicy: Always
-      volumes:
-        - name: resolver-logs
-          persistentVolumeClaim:
-            claimName: resolver-logs

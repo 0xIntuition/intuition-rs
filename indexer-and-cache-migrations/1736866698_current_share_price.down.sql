@@ -1,1 +1,1 @@
-DROP TABLE base_sepolia_proxy.json_rpc_cache;
+DROP TABLE base_indexer.json_rpc_cache;

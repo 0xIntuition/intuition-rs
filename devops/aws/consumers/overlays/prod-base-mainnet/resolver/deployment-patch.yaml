@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: resolver-consumer
+spec:
+  template:
+    spec:
+      serviceAccountName: secrets-access-sa
+      containers:
+        - name: resolver-consumer
+          image: ghcr.io/0xintuition/consumer:1.0.30
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: secrets-store-inline
+              mountPath: "/mnt/secrets"
+              readOnly: true
+            - mountPath: /var/log/app
+              name: resolver-logs
+          envFrom:
+            - secretRef:
+                name: prod-mainnet-resolver-consumer-secrets
+      volumes:
+        - name: secrets-store-inline
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: "prod-base-mainnet-prod-mainnet-resolver-consumer-secrets"
+        - name: resolver-logs
+          persistentVolumeClaim:
+            claimName: prod-base-mainnet-resolver-logs

@@ -2,16 +2,16 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  - ../../base
+  - ../../../base/ipfs-upload
   - secret-provider.yaml
 
-namePrefix: "prod-base-sepolia-" 
+namePrefix: "prod-base-mainnet-" 
 
 patches:
   - path: deployment-patch.yaml
     target:
       kind: Deployment
-      name: rpc-proxy
+      name: ipfs-upload-consumer
 
 commonLabels:
-  network: base-sepolia
+  network: base-mainnet

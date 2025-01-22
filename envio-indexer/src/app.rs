@@ -16,7 +16,7 @@ pub struct Env {
     pub hypersync_token: String,
     pub localstack_url: Option<String>,
     pub raw_consumer_queue_url: String,
-    pub database_url: String,
+    pub indexer_database_url: String,
     pub indexer_schema: String,
 }
 
@@ -48,7 +48,7 @@ impl App {
         // Create the SQS client
         let aws_sqs_client = Self::get_aws_client(env.localstack_url.clone()).await;
         // Connect to the database
-        let pg_pool = connect_to_db(&env.database_url).await?;
+        let pg_pool = connect_to_db(&env.indexer_database_url).await?;
 
         Ok(Self {
             client,

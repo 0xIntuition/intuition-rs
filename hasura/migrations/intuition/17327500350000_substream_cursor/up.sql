@@ -1,4 +1,4 @@
-CREATE TABLE base_sepolia_backend.substreams_cursor (
+CREATE TABLE substreams_cursor (
   id SERIAL PRIMARY KEY NOT NULL,
   cursor TEXT NOT NULL,
   endpoint TEXT NOT NULL,

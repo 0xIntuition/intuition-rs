@@ -1,1 +1,1 @@
-DROP TABLE IF EXISTS base_sepolia_indexer.raw_data;
+DROP TABLE IF EXISTS base_indexer.raw_data;

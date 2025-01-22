@@ -1,6 +1,6 @@
 table:
   name: atom_value
-  schema: base_sepolia_backend
+  schema: public
 configuration:
   column_config: {}
   custom_column_names: {}
@@ -19,7 +19,7 @@ object_relationships:
         insertion_order: null
         remote_table:
           name: atom
-          schema: base_sepolia_backend
+          schema: public
   - name: book
     using:
       manual_configuration:
@@ -28,7 +28,7 @@ object_relationships:
         insertion_order: null
         remote_table:
           name: book
-          schema: base_sepolia_backend
+          schema: public
   - name: organization
     using:
       manual_configuration:
@@ -37,7 +37,7 @@ object_relationships:
         insertion_order: null
         remote_table:
           name: organization
-          schema: base_sepolia_backend
+          schema: public
   - name: person
     using:
       manual_configuration:
@@ -46,7 +46,7 @@ object_relationships:
         insertion_order: null
         remote_table:
           name: person
-          schema: base_sepolia_backend
+          schema: public
   - name: thing
     using:
       manual_configuration:
@@ -55,7 +55,7 @@ object_relationships:
         insertion_order: null
         remote_table:
           name: thing
-          schema: base_sepolia_backend
+          schema: public
 select_permissions:
   - role: anonymous
     permission:

@@ -7,24 +7,27 @@ use serde::Deserialize;
 use shared_utils::postgres::connect_to_db;
 use sqlx::postgres::{PgListener, PgNotification};
 use sqlx::PgPool;
+
 /// The environment variables
 #[derive(Clone, Deserialize, Debug)]
 pub struct Env {
     pub localstack_url: Option<String>,
-    pub raw_consumer_queue_url: String,
-    pub database_url: String,
-    pub indexer_schema: String,
+    pub indexer_database_url: String,
+    pub histoflux_cursor_id: i32,
 }
 
-/// Represents the SQS consumer
+/// Represents the SQS producer
 pub struct SqsProducer {
     client: AWSClient,
     pg_pool: PgPool,
+    raw_queue_url: String,
     env: Env,
+    indexer_environment_schema: String,
 }
 
 #[derive(Debug, Deserialize)]
 struct DbRawLog {
+    id: i64,
     gs_id: String,
     block_number: i64,
     block_hash: String,
@@ -55,12 +58,18 @@ impl SqsProducer {
         // Create the SQS client
         let client = Self::get_aws_client(env.localstack_url.clone()).await;
         // Connect to the database
-        let pg_pool = connect_to_db(&env.database_url).await?;
+        let pg_pool = connect_to_db(&env.indexer_database_url).await?;
+
+        let cursor = HistoFluxCursor::find(&pg_pool, env.histoflux_cursor_id)
+            .await?
+            .ok_or(HistoFluxError::CursorNotSet)?;
 
         Ok(Self {
             client,
             pg_pool,
             env,
+            raw_queue_url: cursor.queue_url,
+            indexer_environment_schema: cursor.environment.to_indexer_schema(),
         })
     }
 
@@ -85,7 +94,7 @@ impl SqsProducer {
     pub async fn send_message(&self, message: String) -> Result<(), HistoFluxError> {
         self.client
             .send_message()
-            .queue_url(&self.env.raw_consumer_queue_url)
+            .queue_url(&self.raw_queue_url)
             .message_body(&message)
             .message_group_id("raw")
             // If the queue is FIFO, you need to set .message_deduplication_id
@@ -129,13 +138,15 @@ impl SqsProducer {
         // Get the last processed id from the database, if it doesnt exist,
         // it will return the default value.
         info!("Getting last processed id from the DB");
-        let mut last_processed_id = HistoFluxCursor::find(&self.pg_pool, &self.env.indexer_schema)
-            .await?
-            .unwrap_or_default()
-            .last_processed_id;
+        let mut last_processed_id =
+            HistoFluxCursor::find(&self.pg_pool, self.env.histoflux_cursor_id)
+                .await?
+                .ok_or(HistoFluxError::NotFound)?
+                .last_processed_id;
         info!("Last processed id: {}", last_processed_id);
         let amount_of_logs =
-            RawLog::get_total_count(&self.pg_pool, &self.env.indexer_schema).await?;
+            RawLog::get_total_count(&self.pg_pool, &self.indexer_environment_schema.to_string())
+                .await?;
         // If there are no logs, we dont need to process anything
         if amount_of_logs == 0 {
             return Ok(());
@@ -149,7 +160,7 @@ impl SqsProducer {
                 &self.pg_pool,
                 last_processed_id as i32,
                 page_size,
-                &self.env.indexer_schema,
+                &self.indexer_environment_schema.to_string(),
             )
             .await?;
 
@@ -177,14 +188,12 @@ impl SqsProducer {
         &self,
         last_processed_id: i64,
     ) -> Result<(), HistoFluxError> {
-        let cursor = HistoFluxCursor::builder()
-            .id(1)
-            .last_processed_id(last_processed_id)
-            .updated_at(chrono::Utc::now())
-            .build();
-        cursor
-            .upsert(&self.pg_pool, &self.env.indexer_schema)
-            .await?;
+        HistoFluxCursor::update_last_processed_id(
+            &self.pg_pool,
+            self.env.histoflux_cursor_id,
+            last_processed_id,
+        )
+        .await?;
         Ok(())
     }
     /// This function starts polling the database for raw logs and sends them to
@@ -193,7 +202,7 @@ impl SqsProducer {
         info!("Starting polling events");
 
         // Start listening BEFORE processing historical records
-        let mut listener = PgListener::connect(&self.env.database_url).await?;
+        let mut listener = PgListener::connect(&self.env.indexer_database_url).await?;
         listener.listen("raw_logs_channel").await?;
 
         info!("Start pulling historical records");
@@ -243,6 +252,11 @@ impl SqsProducer {
             .build();
         let message = serde_json::to_string(&raw_log)?;
         self.send_message(message).await?;
+
+        // update the last processed id
+        self.update_last_processed_id(payload.raw_log.id as i64)
+            .await?;
+
         info!("Sent message to SQS");
 
         Ok(())

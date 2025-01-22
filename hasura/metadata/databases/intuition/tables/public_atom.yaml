@@ -1,6 +1,6 @@
 table:
   name: atom
-  schema: base_sepolia_backend
+  schema: public
 configuration:
   column_config: {}
   custom_column_names: {}
@@ -16,7 +16,7 @@ object_relationships:
         insertion_order: null
         remote_table:
           name: cached_image
-          schema: base_sepolia_backend
+          schema: public
   - name: controler
     using:
       manual_configuration:
@@ -25,7 +25,7 @@ object_relationships:
         insertion_order: null
         remote_table:
           name: account
-          schema: base_sepolia_backend
+          schema: public
   - name: creator
     using:
       manual_configuration:
@@ -34,7 +34,7 @@ object_relationships:
         insertion_order: null
         remote_table:
           name: account
-          schema: base_sepolia_backend
+          schema: public
   - name: value
     using:
       manual_configuration:
@@ -43,7 +43,7 @@ object_relationships:
         insertion_order: null
         remote_table:
           name: atom_value
-          schema: base_sepolia_backend
+          schema: public
   - name: vault
     using:
       manual_configuration:
@@ -52,7 +52,7 @@ object_relationships:
         insertion_order: null
         remote_table:
           name: vault
-          schema: base_sepolia_backend
+          schema: public
 array_relationships:
   - name: accounts
     using:
@@ -60,49 +60,49 @@ array_relationships:
         column: atom_id
         table:
           name: account
-          schema: base_sepolia_backend
+          schema: public
   - name: as_object_claims
     using:
       foreign_key_constraint_on:
         column: object_id
         table:
           name: claim
-          schema: base_sepolia_backend
+          schema: public
   - name: as_object_triples
     using:
       foreign_key_constraint_on:
         column: object_id
         table:
           name: triple
-          schema: base_sepolia_backend
+          schema: public
   - name: as_predicate_claims
     using:
       foreign_key_constraint_on:
         column: predicate_id
         table:
           name: claim
-          schema: base_sepolia_backend
+          schema: public
   - name: as_predicate_triples
     using:
       foreign_key_constraint_on:
         column: predicate_id
         table:
           name: triple
-          schema: base_sepolia_backend
+          schema: public
   - name: as_subject_claims
     using:
       foreign_key_constraint_on:
         column: subject_id
         table:
           name: claim
-          schema: base_sepolia_backend
+          schema: public
   - name: as_subject_triples
     using:
       foreign_key_constraint_on:
         column: subject_id
         table:
           name: triple
-          schema: base_sepolia_backend
+          schema: public
   - name: signals
     using:
       manual_configuration:
@@ -111,7 +111,7 @@ array_relationships:
         insertion_order: null
         remote_table:
           name: signal
-          schema: base_sepolia_backend
+          schema: public
 select_permissions:
   - role: anonymous
     permission:

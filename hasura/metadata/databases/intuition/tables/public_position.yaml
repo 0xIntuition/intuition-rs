@@ -1,6 +1,6 @@
 table:
   name: position
-  schema: base_sepolia_backend
+  schema: public
 configuration:
   column_config: {}
   custom_column_names: {}
@@ -16,7 +16,7 @@ object_relationships:
         insertion_order: null
         remote_table:
           name: account
-          schema: base_sepolia_backend
+          schema: public
   - name: vault
     using:
       foreign_key_constraint_on: vault_id

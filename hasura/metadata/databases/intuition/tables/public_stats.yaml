@@ -1,6 +1,6 @@
 table:
   name: stats
-  schema: base_sepolia_backend
+  schema: public
 configuration:
   column_config: {}
   custom_column_names: {}

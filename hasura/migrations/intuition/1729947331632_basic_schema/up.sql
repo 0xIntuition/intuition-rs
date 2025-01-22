@@ -1,26 +1,23 @@
-CREATE SCHEMA IF NOT EXISTS base_sepolia_backend;
-
-SET check_function_bodies = false;
 CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
 COMMENT ON EXTENSION pgcrypto IS 'cryptographic functions';
 
 -- Create custom enum types
-CREATE TYPE base_sepolia_backend.account_type AS ENUM ('Default', 'AtomWallet', 'ProtocolVault');
-CREATE TYPE base_sepolia_backend.event_type AS ENUM ('AtomCreated', 'TripleCreated', 'Deposited', 'Redeemed', 'FeesTransfered');
-CREATE TYPE base_sepolia_backend.atom_type AS ENUM (
+CREATE TYPE account_type AS ENUM ('Default', 'AtomWallet', 'ProtocolVault');
+CREATE TYPE event_type AS ENUM ('AtomCreated', 'TripleCreated', 'Deposited', 'Redeemed', 'FeesTransfered');
+CREATE TYPE atom_type AS ENUM (
   'Unknown', 'Account', 'Thing', 'ThingPredicate', 'Person', 'PersonPredicate',
   'Organization', 'OrganizationPredicate', 'Book', 'LikeAction', 'FollowAction', 'Keywords'
 );
-CREATE TYPE base_sepolia_backend.atom_resolving_status AS ENUM ('Pending', 'Resolved', 'Failed');
-CREATE TYPE base_sepolia_backend.image_classification AS ENUM ('Safe', 'Unsafe', 'Unknown');
+CREATE TYPE atom_resolving_status AS ENUM ('Pending', 'Resolved', 'Failed');
+CREATE TYPE image_classification AS ENUM ('Safe', 'Unsafe', 'Unknown');
 
 -- Create tables
-CREATE TABLE base_sepolia_backend.chainlink_price (
+CREATE TABLE chainlink_price (
   id NUMERIC(78, 0) PRIMARY KEY NOT NULL,
   usd FLOAT
 );
 
-CREATE TABLE base_sepolia_backend.stats (
+CREATE TABLE stats (
   id INTEGER PRIMARY KEY NOT NULL,
   total_accounts INTEGER,
   total_atoms INTEGER,
@@ -31,7 +28,7 @@ CREATE TABLE base_sepolia_backend.stats (
   contract_balance NUMERIC(78, 0)
 );
 
-CREATE TABLE base_sepolia_backend.stats_hour (
+CREATE TABLE stats_hour (
   id SERIAL PRIMARY KEY NOT NULL,
   total_accounts INTEGER,
   total_atoms INTEGER,
@@ -43,22 +40,22 @@ CREATE TABLE base_sepolia_backend.stats_hour (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE TABLE base_sepolia_backend.account (
+CREATE TABLE account (
   id TEXT PRIMARY KEY NOT NULL,
   atom_id NUMERIC(78, 0),
   label TEXT NOT NULL,
   image TEXT,
-  type base_sepolia_backend.account_type NOT NULL
+  type account_type NOT NULL
 );
 
-CREATE TABLE base_sepolia_backend.atom (
+CREATE TABLE atom (
   id NUMERIC(78, 0) PRIMARY KEY NOT NULL,
-  wallet_id TEXT REFERENCES base_sepolia_backend.account(id) NOT NULL,
-  creator_id TEXT REFERENCES base_sepolia_backend.account(id) NOT NULL,
+  wallet_id TEXT REFERENCES account(id) NOT NULL,
+  creator_id TEXT REFERENCES account(id) NOT NULL,
   vault_id NUMERIC(78, 0) NOT NULL,
   data TEXT,
   raw_data TEXT NOT NULL,
-  type base_sepolia_backend.atom_type NOT NULL,
+  type atom_type NOT NULL,
   emoji TEXT,
   label TEXT,
   image TEXT,
@@ -66,20 +63,20 @@ CREATE TABLE base_sepolia_backend.atom (
   block_number NUMERIC(78, 0) NOT NULL,
   block_timestamp BIGINT NOT NULL,
   transaction_hash TEXT NOT NULL,
-  resolving_status base_sepolia_backend.atom_resolving_status NOT NULL DEFAULT 'Pending'
+  resolving_status atom_resolving_status NOT NULL DEFAULT 'Pending'
 );
 
 -- Add foreign key constraints after tables are created
-ALTER TABLE base_sepolia_backend.account
+ALTER TABLE account
   ADD CONSTRAINT fk_account_atom
-  FOREIGN KEY (atom_id) REFERENCES base_sepolia_backend.atom(id);
+  FOREIGN KEY (atom_id) REFERENCES atom(id);
 
-CREATE TABLE base_sepolia_backend.triple (
+CREATE TABLE triple (
   id NUMERIC(78, 0) PRIMARY KEY NOT NULL,
-  creator_id TEXT REFERENCES base_sepolia_backend.account(id) NOT NULL ,
-  subject_id NUMERIC(78, 0) REFERENCES base_sepolia_backend.atom(id) NOT NULL,
-  predicate_id NUMERIC(78, 0) REFERENCES base_sepolia_backend.atom(id) NOT NULL,
-  object_id NUMERIC(78, 0) REFERENCES base_sepolia_backend.atom(id) NOT NULL,
+  creator_id TEXT REFERENCES account(id) NOT NULL ,
+  subject_id NUMERIC(78, 0) REFERENCES atom(id) NOT NULL,
+  predicate_id NUMERIC(78, 0) REFERENCES atom(id) NOT NULL,
+  object_id NUMERIC(78, 0) REFERENCES atom(id) NOT NULL,
   vault_id NUMERIC(78, 0) NOT NULL,
   counter_vault_id NUMERIC(78, 0) NOT NULL,
   block_number NUMERIC(78, 0) NOT NULL,
@@ -87,7 +84,7 @@ CREATE TABLE base_sepolia_backend.triple (
   transaction_hash TEXT NOT NULL
 );
 
-CREATE TABLE base_sepolia_backend.vault (
+CREATE TABLE vault (
   id NUMERIC(78, 0) PRIMARY KEY NOT NULL,
   atom_id NUMERIC(78, 0),
   triple_id NUMERIC(78, 0),
@@ -102,10 +99,10 @@ CREATE TABLE base_sepolia_backend.vault (
   )
 );
 
-CREATE TABLE base_sepolia_backend.fee_transfer (
+CREATE TABLE fee_transfer (
   id TEXT PRIMARY KEY NOT NULL,
-  sender_id TEXT REFERENCES base_sepolia_backend.account(id) NOT NULL,
-  receiver_id TEXT REFERENCES base_sepolia_backend.account(id) NOT NULL,
+  sender_id TEXT REFERENCES account(id) NOT NULL,
+  receiver_id TEXT REFERENCES account(id) NOT NULL,
   amount NUMERIC(78, 0) NOT NULL,
   block_number NUMERIC(78, 0) NOT NULL,
   block_timestamp BIGINT NOT NULL,
@@ -113,15 +110,15 @@ CREATE TABLE base_sepolia_backend.fee_transfer (
 );
 
 
-CREATE TABLE base_sepolia_backend.deposit (
+CREATE TABLE deposit (
   id TEXT PRIMARY KEY NOT NULL,
-  sender_id TEXT REFERENCES base_sepolia_backend.account(id) NOT NULL,
-  receiver_id TEXT REFERENCES base_sepolia_backend.account(id) NOT NULL,
+  sender_id TEXT REFERENCES account(id) NOT NULL,
+  receiver_id TEXT REFERENCES account(id) NOT NULL,
   receiver_total_shares_in_vault NUMERIC(78, 0) NOT NULL,
   sender_assets_after_total_fees NUMERIC(78, 0) NOT NULL,
   shares_for_receiver NUMERIC(78, 0) NOT NULL,
   entry_fee NUMERIC(78, 0) NOT NULL,
-  vault_id NUMERIC(78, 0) REFERENCES base_sepolia_backend.vault(id) NOT NULL,
+  vault_id NUMERIC(78, 0) REFERENCES vault(id) NOT NULL,
   is_triple BOOLEAN NOT NULL,
   is_atom_wallet BOOLEAN NOT NULL,
   block_number NUMERIC(78, 0) NOT NULL,
@@ -129,72 +126,72 @@ CREATE TABLE base_sepolia_backend.deposit (
   transaction_hash TEXT NOT NULL
 );
 
-CREATE TABLE base_sepolia_backend.redemption (
+CREATE TABLE redemption (
   id TEXT PRIMARY KEY NOT NULL,
-  sender_id TEXT REFERENCES base_sepolia_backend.account(id) NOT NULL,
-  receiver_id TEXT REFERENCES base_sepolia_backend.account(id) NOT NULL,
+  sender_id TEXT REFERENCES account(id) NOT NULL,
+  receiver_id TEXT REFERENCES account(id) NOT NULL,
   sender_total_shares_in_vault NUMERIC(78, 0) NOT NULL,
   assets_for_receiver NUMERIC(78, 0) NOT NULL,
   shares_redeemed_by_sender NUMERIC(78, 0) NOT NULL,
   exit_fee NUMERIC(78, 0) NOT NULL,
-  vault_id NUMERIC(78, 0) REFERENCES base_sepolia_backend.vault(id) NOT NULL,
+  vault_id NUMERIC(78, 0) REFERENCES vault(id) NOT NULL,
   block_number NUMERIC(78, 0) NOT NULL,
   block_timestamp BIGINT NOT NULL,
   transaction_hash TEXT NOT NULL
 );
 
-CREATE TABLE base_sepolia_backend.event (
+CREATE TABLE event (
   id TEXT PRIMARY KEY NOT NULL,
-  type base_sepolia_backend.event_type NOT NULL,
+  type event_type NOT NULL,
   atom_id NUMERIC(78, 0), 
   triple_id NUMERIC(78, 0),
-  fee_transfer_id TEXT REFERENCES base_sepolia_backend.fee_transfer(id),
-  deposit_id TEXT REFERENCES base_sepolia_backend.deposit(id),
-  redemption_id TEXT REFERENCES base_sepolia_backend.redemption(id),
+  fee_transfer_id TEXT REFERENCES fee_transfer(id),
+  deposit_id TEXT REFERENCES deposit(id),
+  redemption_id TEXT REFERENCES redemption(id),
   block_number NUMERIC(78, 0) NOT NULL,
   block_timestamp BIGINT NOT NULL,
   transaction_hash TEXT NOT NULL
 );
 
 -- position and claim id are using  the same idea, id is a concatenation of account_id and vault_id with a dash in between
-CREATE TABLE base_sepolia_backend.position (
+CREATE TABLE position (
   id TEXT PRIMARY KEY NOT NULL,
-  account_id TEXT REFERENCES base_sepolia_backend.account(id) NOT NULL,
-  vault_id NUMERIC(78, 0) REFERENCES base_sepolia_backend.vault(id) NOT NULL,
+  account_id TEXT REFERENCES account(id) NOT NULL,
+  vault_id NUMERIC(78, 0) REFERENCES vault(id) NOT NULL,
   shares NUMERIC(78, 0) NOT NULL
 );
 
 -- id is a concatenation of account_id and vault_id with a dash in between
-CREATE TABLE base_sepolia_backend.claim (
+CREATE TABLE claim (
   id TEXT PRIMARY KEY NOT NULL,
-  account_id TEXT REFERENCES base_sepolia_backend.account(id) NOT NULL,
-  triple_id NUMERIC(78, 0) REFERENCES base_sepolia_backend.triple(id) NOT NULL,
-  subject_id NUMERIC(78, 0) REFERENCES base_sepolia_backend.atom(id) NOT NULL,
-  predicate_id NUMERIC(78, 0) REFERENCES base_sepolia_backend.atom(id) NOT NULL,
-  object_id NUMERIC(78, 0) REFERENCES base_sepolia_backend.atom(id) NOT NULL,
+  account_id TEXT REFERENCES account(id) NOT NULL,
+  triple_id NUMERIC(78, 0) REFERENCES triple(id) NOT NULL,
+  subject_id NUMERIC(78, 0) REFERENCES atom(id) NOT NULL,
+  predicate_id NUMERIC(78, 0) REFERENCES atom(id) NOT NULL,
+  object_id NUMERIC(78, 0) REFERENCES atom(id) NOT NULL,
   shares NUMERIC(78, 0) NOT NULL,
   counter_shares NUMERIC(78, 0) NOT NULL,
-  vault_id NUMERIC(78, 0) REFERENCES base_sepolia_backend.vault(id) NOT NULL,
-  counter_vault_id NUMERIC(78, 0) REFERENCES base_sepolia_backend.vault(id) NOT NULL
+  vault_id NUMERIC(78, 0) REFERENCES vault(id) NOT NULL,
+  counter_vault_id NUMERIC(78, 0) REFERENCES vault(id) NOT NULL
 );
 
 -- id is a concatenation of predicate_id and object_id with a dash in between
-CREATE TABLE base_sepolia_backend.predicate_object (
+CREATE TABLE predicate_object (
   id TEXT PRIMARY KEY NOT NULL,
-  predicate_id NUMERIC(78, 0) REFERENCES base_sepolia_backend.atom(id) NOT NULL,
-  object_id NUMERIC(78, 0) REFERENCES base_sepolia_backend.atom(id) NOT NULL,
+  predicate_id NUMERIC(78, 0) REFERENCES atom(id) NOT NULL,
+  object_id NUMERIC(78, 0) REFERENCES atom(id) NOT NULL,
   triple_count INTEGER NOT NULL,
   claim_count INTEGER NOT NULL
 );
 
-CREATE TABLE base_sepolia_backend.signal (
+CREATE TABLE signal (
   id TEXT PRIMARY KEY NOT NULL,
   delta NUMERIC(78, 0) NOT NULL,
-  account_id TEXT REFERENCES base_sepolia_backend.account(id) NOT NULL,
+  account_id TEXT REFERENCES account(id) NOT NULL,
   atom_id NUMERIC(78, 0), 
   triple_id NUMERIC(78, 0),
-  deposit_id TEXT REFERENCES base_sepolia_backend.deposit(id),
-  redemption_id TEXT REFERENCES base_sepolia_backend.redemption(id),
+  deposit_id TEXT REFERENCES deposit(id),
+  redemption_id TEXT REFERENCES redemption(id),
   block_number NUMERIC(78, 0) NOT NULL,
   block_timestamp BIGINT NOT NULL,
   transaction_hash TEXT NOT NULL,
@@ -206,7 +203,7 @@ CREATE TABLE base_sepolia_backend.signal (
   )
 );
 
-CREATE TABLE base_sepolia_backend.thing (
+CREATE TABLE thing (
   id NUMERIC(78, 0) PRIMARY KEY NOT NULL,
   name TEXT,
   description TEXT,
@@ -214,7 +211,7 @@ CREATE TABLE base_sepolia_backend.thing (
   url TEXT
 );
 
-CREATE TABLE base_sepolia_backend.person (
+CREATE TABLE person (
   id NUMERIC(78, 0) PRIMARY KEY NOT NULL,
   identifier TEXT,
   name TEXT,
@@ -224,7 +221,7 @@ CREATE TABLE base_sepolia_backend.person (
   email TEXT
 );
 
-CREATE TABLE base_sepolia_backend.organization (
+CREATE TABLE organization (
   id NUMERIC(78, 0) PRIMARY KEY NOT NULL,
   name TEXT,
   description TEXT,
@@ -233,7 +230,7 @@ CREATE TABLE base_sepolia_backend.organization (
   email TEXT
 );
 
-CREATE TABLE base_sepolia_backend.book (
+CREATE TABLE book (
   id NUMERIC(78, 0) PRIMARY KEY NOT NULL,
   name TEXT,
   description TEXT,
@@ -241,16 +238,16 @@ CREATE TABLE base_sepolia_backend.book (
   url TEXT
 );
 
-CREATE TABLE base_sepolia_backend.atom_value (
-  id NUMERIC(78, 0) PRIMARY KEY NOT NULL REFERENCES base_sepolia_backend.atom(id),
-  account_id TEXT REFERENCES base_sepolia_backend.account(id),
-  thing_id NUMERIC(78, 0) REFERENCES base_sepolia_backend.thing(id),
-  person_id NUMERIC(78, 0) REFERENCES base_sepolia_backend.person(id),
-  organization_id NUMERIC(78, 0) REFERENCES base_sepolia_backend.organization(id),
-  book_id NUMERIC(78, 0) REFERENCES base_sepolia_backend.book(id)
+CREATE TABLE atom_value (
+  id NUMERIC(78, 0) PRIMARY KEY NOT NULL REFERENCES atom(id),
+  account_id TEXT REFERENCES account(id),
+  thing_id NUMERIC(78, 0) REFERENCES thing(id),
+  person_id NUMERIC(78, 0) REFERENCES person(id),
+  organization_id NUMERIC(78, 0) REFERENCES organization(id),
+  book_id NUMERIC(78, 0) REFERENCES book(id)
 );
 
-CREATE TABLE base_sepolia_backend.cached_image (
+CREATE TABLE cached_image (
   -- id is the original name of the image in lowercase without the extension
   url TEXT PRIMARY KEY NOT NULL,
   original_url TEXT NOT NULL,
@@ -261,55 +258,55 @@ CREATE TABLE base_sepolia_backend.cached_image (
 );
 
 -- Create indexes
-CREATE INDEX idx_atom_creator ON base_sepolia_backend.atom(creator_id);
-CREATE INDEX idx_atom_vault ON base_sepolia_backend.atom(vault_id);
-CREATE INDEX idx_triple_creator ON base_sepolia_backend.triple(creator_id);
-CREATE INDEX idx_triple_subject ON base_sepolia_backend.triple(subject_id);
-CREATE INDEX idx_triple_predicate ON base_sepolia_backend.triple(predicate_id);
-CREATE INDEX idx_triple_object ON base_sepolia_backend.triple(object_id);
-CREATE INDEX idx_triple_vault ON base_sepolia_backend.triple(vault_id);
-CREATE INDEX idx_vault_atom ON base_sepolia_backend.vault(atom_id);
-CREATE INDEX idx_vault_triple ON base_sepolia_backend.vault(triple_id);
-CREATE INDEX idx_fee_transfer_sender ON base_sepolia_backend.fee_transfer(sender_id);
-CREATE INDEX idx_fee_transfer_receiver ON base_sepolia_backend.fee_transfer(receiver_id);
-CREATE INDEX idx_deposit_sender ON base_sepolia_backend.deposit(sender_id);
-CREATE INDEX idx_deposit_receiver ON base_sepolia_backend.deposit(receiver_id);
-CREATE INDEX idx_deposit_vault ON base_sepolia_backend.deposit(vault_id);
-CREATE INDEX idx_redemption_sender ON base_sepolia_backend.redemption(sender_id);
-CREATE INDEX idx_redemption_receiver ON base_sepolia_backend.redemption(receiver_id);
-CREATE INDEX idx_redemption_vault ON base_sepolia_backend.redemption(vault_id);
-CREATE INDEX idx_position_account ON base_sepolia_backend.position(account_id);
-CREATE INDEX idx_position_vault ON base_sepolia_backend.position(vault_id);
-CREATE INDEX idx_claim_account ON base_sepolia_backend.claim(account_id);
-CREATE INDEX idx_claim_subject ON base_sepolia_backend.claim(subject_id);
-CREATE INDEX idx_claim_predicate ON base_sepolia_backend.claim(predicate_id);
-CREATE INDEX idx_claim_object ON base_sepolia_backend.claim(object_id);
-CREATE INDEX idx_claim_vault ON base_sepolia_backend.claim(vault_id);
-CREATE INDEX idx_claim_triple ON base_sepolia_backend.claim(triple_id);
-CREATE INDEX idx_predicate_object_predicate ON base_sepolia_backend.predicate_object(predicate_id);
-CREATE INDEX idx_predicate_object_object ON base_sepolia_backend.predicate_object(object_id);
-CREATE INDEX idx_signal_account ON base_sepolia_backend.signal(account_id);
-CREATE INDEX idx_signal_atom ON base_sepolia_backend.signal(atom_id);
-CREATE INDEX idx_signal_triple ON base_sepolia_backend.signal(triple_id);
-CREATE INDEX idx_atom_value_atom ON base_sepolia_backend.atom_value(id);
-CREATE INDEX idx_atom_value_thing ON base_sepolia_backend.atom_value(thing_id);
-CREATE INDEX idx_atom_value_person ON base_sepolia_backend.atom_value(person_id);
-CREATE INDEX idx_atom_value_organization ON base_sepolia_backend.atom_value(organization_id);
-CREATE INDEX idx_atom_value_book ON base_sepolia_backend.atom_value(book_id);
-CREATE INDEX idx_thing_name ON base_sepolia_backend.thing(name);
-CREATE INDEX idx_thing_description ON base_sepolia_backend.thing(description);
-CREATE INDEX idx_thing_url ON base_sepolia_backend.thing(url);
-CREATE INDEX idx_person_name ON base_sepolia_backend.person(name);
-CREATE INDEX idx_person_description ON base_sepolia_backend.person(description);
-CREATE INDEX idx_person_url ON base_sepolia_backend.person(url);
-CREATE INDEX idx_organization_name ON base_sepolia_backend.organization(name);
-CREATE INDEX idx_organization_description ON base_sepolia_backend.organization(description);
-CREATE INDEX idx_organization_url ON base_sepolia_backend.organization(url);
-CREATE INDEX idx_event_type ON base_sepolia_backend.event(type);
-CREATE INDEX idx_event_atom ON base_sepolia_backend.event(atom_id);
-CREATE INDEX idx_event_triple ON base_sepolia_backend.event(triple_id);
-CREATE INDEX idx_event_block_number ON base_sepolia_backend.event(block_number);
-CREATE INDEX idx_event_block_timestamp ON base_sepolia_backend.event(block_timestamp);
-CREATE INDEX idx_event_transaction_hash ON base_sepolia_backend.event(transaction_hash);
-CREATE INDEX idx_cached_image_original_url ON base_sepolia_backend.cached_image(original_url);
-CREATE INDEX idx_cached_image_url ON base_sepolia_backend.cached_image(url);
+CREATE INDEX idx_atom_creator ON atom(creator_id);
+CREATE INDEX idx_atom_vault ON atom(vault_id);
+CREATE INDEX idx_triple_creator ON triple(creator_id);
+CREATE INDEX idx_triple_subject ON triple(subject_id);
+CREATE INDEX idx_triple_predicate ON triple(predicate_id);
+CREATE INDEX idx_triple_object ON triple(object_id);
+CREATE INDEX idx_triple_vault ON triple(vault_id);
+CREATE INDEX idx_vault_atom ON vault(atom_id);
+CREATE INDEX idx_vault_triple ON vault(triple_id);
+CREATE INDEX idx_fee_transfer_sender ON fee_transfer(sender_id);
+CREATE INDEX idx_fee_transfer_receiver ON fee_transfer(receiver_id);
+CREATE INDEX idx_deposit_sender ON deposit(sender_id);
+CREATE INDEX idx_deposit_receiver ON deposit(receiver_id);
+CREATE INDEX idx_deposit_vault ON deposit(vault_id);
+CREATE INDEX idx_redemption_sender ON redemption(sender_id);
+CREATE INDEX idx_redemption_receiver ON redemption(receiver_id);
+CREATE INDEX idx_redemption_vault ON redemption(vault_id);
+CREATE INDEX idx_position_account ON position(account_id);
+CREATE INDEX idx_position_vault ON position(vault_id);
+CREATE INDEX idx_claim_account ON claim(account_id);
+CREATE INDEX idx_claim_subject ON claim(subject_id);
+CREATE INDEX idx_claim_predicate ON claim(predicate_id);
+CREATE INDEX idx_claim_object ON claim(object_id);
+CREATE INDEX idx_claim_vault ON claim(vault_id);
+CREATE INDEX idx_claim_triple ON claim(triple_id);
+CREATE INDEX idx_predicate_object_predicate ON predicate_object(predicate_id);
+CREATE INDEX idx_predicate_object_object ON predicate_object(object_id);
+CREATE INDEX idx_signal_account ON signal(account_id);
+CREATE INDEX idx_signal_atom ON signal(atom_id);
+CREATE INDEX idx_signal_triple ON signal(triple_id);
+CREATE INDEX idx_atom_value_atom ON atom_value(id);
+CREATE INDEX idx_atom_value_thing ON atom_value(thing_id);
+CREATE INDEX idx_atom_value_person ON atom_value(person_id);
+CREATE INDEX idx_atom_value_organization ON atom_value(organization_id);
+CREATE INDEX idx_atom_value_book ON atom_value(book_id);
+CREATE INDEX idx_thing_name ON thing(name);
+CREATE INDEX idx_thing_description ON thing(description);
+CREATE INDEX idx_thing_url ON thing(url);
+CREATE INDEX idx_person_name ON person(name);
+CREATE INDEX idx_person_description ON person(description);
+CREATE INDEX idx_person_url ON person(url);
+CREATE INDEX idx_organization_name ON organization(name);
+CREATE INDEX idx_organization_description ON organization(description);
+CREATE INDEX idx_organization_url ON organization(url);
+CREATE INDEX idx_event_type ON event(type);
+CREATE INDEX idx_event_atom ON event(atom_id);
+CREATE INDEX idx_event_triple ON event(triple_id);
+CREATE INDEX idx_event_block_number ON event(block_number);
+CREATE INDEX idx_event_block_timestamp ON event(block_timestamp);
+CREATE INDEX idx_event_transaction_hash ON event(transaction_hash);
+CREATE INDEX idx_cached_image_original_url ON cached_image(original_url);
+CREATE INDEX idx_cached_image_url ON cached_image(url);
