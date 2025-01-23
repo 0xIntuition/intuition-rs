@@ -20,6 +20,7 @@ services:
   
   resolver_consumer:
     image: ghcr.io/0xintuition/consumer:latest
+    pull_policy: always
     command: ./consumer --mode resolver
     environment:
       AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
@@ -53,6 +54,7 @@ services:
   
   ipfs_upload_consumer:
     image: ghcr.io/0xintuition/consumer:latest
+    pull_policy: always
     command: ./consumer --mode ipfs-upload
     environment:
       AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
@@ -83,6 +85,7 @@ services:
   decoded_consumer:
     container_name: decoded_consumer
     image: ghcr.io/0xintuition/consumer:latest
+    pull_policy: always
     command: ./consumer --mode decoded
     environment:
       AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
@@ -112,6 +115,7 @@ services:
   raw_consumer:
     container_name: raw_consumer
     image: ghcr.io/0xintuition/consumer:latest
+    pull_policy: always
     command: ./consumer --mode raw
     environment:
       AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
@@ -162,6 +166,7 @@ services:
   api:
     container_name: api
     image: ghcr.io/0xintuition/image-guard:latest
+    pull_policy: always
     environment:
       CLASSIFICATION_API_PORT: $CLASSIFICATION_API_PORT
       DATABASE_URL: $DATABASE_URL
@@ -180,6 +185,7 @@ services:
   rpc-proxy:
     container_name: rpc-proxy
     image: ghcr.io/0xintuition/rpc-proxy:latest
+    pull_policy: always
     environment:
       DATABASE_URL: $DATABASE_URL
       PROXY_API_PORT: $PROXY_API_PORT
@@ -299,6 +305,7 @@ services:
   envio-indexer:
     container_name: envio-indexer
     image: ghcr.io/0xintuition/envio-indexer:latest
+    pull_policy: always
     environment:
       LOCALSTACK_URL: $LOCALSTACK_URL
       AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
@@ -346,6 +353,7 @@ services:
   hasura-migrations:
     container_name: hasura-migrations
     image: ghcr.io/0xintuition/hasura-migrations:latest
+    pull_policy: always
     environment:
       HASURA_GRAPHQL_ENDPOINT: $HASURA_GRAPHQL_ENDPOINT
       HASURA_GRAPHQL_ADMIN_SECRET: $HASURA_GRAPHQL_ADMIN_SECRET
