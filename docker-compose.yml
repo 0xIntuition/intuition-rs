@@ -317,7 +317,7 @@ services:
 
   indexer-migrations:
     container_name: indexer-migrations
-    image: ghcr.io/0xintuition/indexer-migrations:latest
+    image: ghcr.io/0xintuition/indexer-and-cache-migrations:latest
     environment:
       INDEXER_DATABASE_URL: $DATABASE_URL
     depends_on:
