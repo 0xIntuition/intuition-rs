@@ -8,7 +8,7 @@ spec:
       serviceAccountName: secrets-access-sa
       containers:
         - name: substreams-sink
-          image: ghcr.io/0xintuition/substreams-sink:1.0.27
+          image: ghcr.io/0xintuition/substreams-sink:1.0.45
           imagePullPolicy: Always 
           volumeMounts:
             - name: secrets-store-inline
