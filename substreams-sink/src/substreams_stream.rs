@@ -42,7 +42,9 @@ impl SubstreamsStream {
                     app.app_state.load_persisted_cursor().await?,
                     Some(
                         prepared_endpoint_package
-                            .mutable_modules(app.env.intuition_contract_address.clone())
+                            .mutable_modules(
+                                app.env.intuition_contract_address.clone().to_lowercase(),
+                            )
                             .await
                             .unwrap(),
                     ),
