@@ -15,31 +15,39 @@ use shared_utils::postgres::connect_to_db;
 use sqlx::PgPool;
 
 #[derive(Deserialize, Clone, Debug)]
+pub enum Output {
+    Sqs,
+    Postgres,
+}
+
+#[derive(Deserialize, Clone, Debug)]
 pub struct Env {
     pub substreams_api_token: String,
-    pub database_url: String,
     pub raw_consumer_queue_url: String,
     pub localstack_url: Option<String>,
     pub indexer_schema: String,
+    pub substreams_output: Output,
+    pub intuition_contract_address: String,
+    pub indexer_database_url: String,
 }
 
 #[derive(Clone, Debug)]
 pub struct AppState {
     pub pg_pool: PgPool,
-    pub indexer_schema: String,
     pub aws_sqs_client: AWSClient,
-    pub raw_consumer_queue_url: String,
+    pub env: Env,
 }
 
 impl AppState {
     pub async fn new(env: &Env) -> Self {
         Self {
-            pg_pool: connect_to_db(&env.database_url).await.unwrap_or_else(|e| {
-                panic!("Failed to connect to database: {}", e);
-            }),
+            pg_pool: connect_to_db(&env.indexer_database_url)
+                .await
+                .unwrap_or_else(|e| {
+                    panic!("Failed to connect to database: {}", e);
+                }),
             aws_sqs_client: Self::get_aws_client(env.localstack_url.clone()).await,
-            raw_consumer_queue_url: env.raw_consumer_queue_url.clone(),
-            indexer_schema: env.indexer_schema.clone(),
+            env: env.clone(),
         }
     }
     /// This function returns an [`aws_sdk_sqs::Client`] based on the
@@ -84,13 +92,24 @@ impl AppState {
             let message = serde_json::to_string(&raw_log)?;
             info!("{:#?}", message);
 
-            self.aws_sqs_client
-                .send_message()
-                .queue_url(&self.raw_consumer_queue_url)
-                .message_group_id("raw")
-                .message_body(message)
-                .send()
-                .await?;
+            match self.env.substreams_output {
+                Output::Sqs => {
+                    self.aws_sqs_client
+                        .send_message()
+                        .queue_url(&self.env.raw_consumer_queue_url)
+                        .message_group_id("raw")
+                        .message_body(message)
+                        .send()
+                        .await?;
+                    info!("Sent message to SQS");
+                }
+                Output::Postgres => {
+                    raw_log
+                        .insert(&self.pg_pool, &self.env.indexer_schema)
+                        .await?;
+                    info!("Inserted message to Postgres");
+                }
+            }
         }
 
         Ok(())
@@ -124,7 +143,7 @@ impl AppState {
             .start_block(starting_block as i64)
             .endpoint(cli.endpoint.clone())
             .build()
-            .upsert(&self.pg_pool, &self.indexer_schema)
+            .upsert(&self.pg_pool, &self.env.indexer_schema)
             .await?;
         Ok(())
     }
@@ -132,7 +151,7 @@ impl AppState {
     /// Load the last persisted cursor from the database. If no cursor is found,
     /// return `None`.
     pub async fn load_persisted_cursor(&self) -> Result<Option<String>, SubstreamError> {
-        let cursor = SubstreamsCursor::get_last(&self.pg_pool, &self.indexer_schema).await?;
+        let cursor = SubstreamsCursor::get_last(&self.pg_pool, &self.env.indexer_schema).await?;
         Ok(cursor.map(|c| c.cursor))
     }
 }

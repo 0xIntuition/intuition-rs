@@ -1,4 +1,4 @@
-CREATE TABLE substreams_cursor (
+CREATE TABLE base_sepolia_indexer.substreams_cursor (
   id SERIAL PRIMARY KEY NOT NULL,
   cursor TEXT NOT NULL,
   endpoint TEXT NOT NULL,
@@ -6,3 +6,4 @@ CREATE TABLE substreams_cursor (
   end_block BIGINT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+

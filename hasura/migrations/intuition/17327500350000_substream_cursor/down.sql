@@ -1,1 +1,0 @@
-DROP TABLE IF EXISTS ${BACKEND_SCHEMA_NAME}.substreams_cursor;

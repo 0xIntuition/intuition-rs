@@ -270,35 +270,11 @@ services:
         exec ipfs daemon --migrate=true --agent-version-suffix=docker
       "
 
-  # substreams-sink:
-  #   container_name: substreams-sink
-  #   image: ghcr.io/0xintuition/substreams-sink:latest
-  #   restart: always
-  #   entrypoint: ["./substreams-sink"]
-  #   environment:
-  #     LOCALSTACK_URL: $LOCALSTACK_URL
-  #     AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
-  #     AWS_REGION: $AWS_REGION
-  #     AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
-  #     DATABASE_URL: $DATABASE_URL
-  #     RAW_CONSUMER_QUEUE_URL: $RAW_CONSUMER_QUEUE_URL
-  #     SUBSTREAMS_ENDPOINT: $SUBSTREAMS_ENDPOINT
-  #     SUBSTREAMS_PACKAGE: $SUBSTREAMS_PACKAGE
-  #     SUBSTREAMS_MODULE: $SUBSTREAMS_MODULE
-  #     SUBSTREAMS_START_BLOCK: $SUBSTREAMS_START_BLOCK
-  #     SUBSTREAMS_API_TOKEN: $SUBSTREAMS_API_TOKEN
-  #   command: ["$SUBSTREAMS_ENDPOINT", "$SUBSTREAMS_PACKAGE", "$SUBSTREAMS_MODULE", "$SUBSTREAMS_START_BLOCK:"]
-  #   depends_on:
-  #     sqs:
-  #       condition: service_healthy
-  #     hasura-migrations:
-  #       condition: service_started
-  #   volumes:
-  #     - substreams-sink-data:/data
-
-  envio-indexer:
-    container_name: envio-indexer
-    image: ghcr.io/0xintuition/envio-indexer:latest
+  substreams-sink:
+    container_name: substreams-sink
+    image: ghcr.io/0xintuition/substreams-sink:latest
+    restart: always
+    entrypoint: ["./substreams-sink"]
     environment:
       LOCALSTACK_URL: $LOCALSTACK_URL
       AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
@@ -306,14 +282,41 @@ services:
       AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
       INDEXER_DATABASE_URL: $DATABASE_URL
       RAW_CONSUMER_QUEUE_URL: $RAW_CONSUMER_QUEUE_URL
-      HYPERSYNC_TOKEN: $HYPERSYNC_TOKEN
+      SUBSTREAMS_ENDPOINT: $SUBSTREAMS_ENDPOINT
+      SUBSTREAMS_PACKAGE: $SUBSTREAMS_PACKAGE
+      SUBSTREAMS_MODULE: $SUBSTREAMS_MODULE
+      SUBSTREAMS_START_BLOCK: $SUBSTREAMS_START_BLOCK
+      SUBSTREAMS_API_TOKEN: $SUBSTREAMS_API_TOKEN
+      SUBSTREAMS_OUTPUT: $SUBSTREAMS_OUTPUT
       INDEXER_SCHEMA: $INDEXER_SCHEMA
+      INTUITION_CONTRACT_ADDRESS: $INTUITION_CONTRACT_ADDRESS
+    command: ["$SUBSTREAMS_ENDPOINT", "$SUBSTREAMS_PACKAGE", "$SUBSTREAMS_MODULE", "$SUBSTREAMS_START_BLOCK:"]
     depends_on:
       sqs:
         condition: service_healthy
-      indexer-migrations:
+      hasura-migrations:
         condition: service_started
-    command: ["--network", "base-mainnet", "--output", "postgres"]
+    volumes:
+      - substreams-sink-data:/data
+
+  # envio-indexer:
+  #   container_name: envio-indexer
+  #   image: ghcr.io/0xintuition/envio-indexer:latest
+  #   environment:
+  #     LOCALSTACK_URL: $LOCALSTACK_URL
+  #     AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
+  #     AWS_REGION: $AWS_REGION
+  #     AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
+  #     INDEXER_DATABASE_URL: $DATABASE_URL
+  #     RAW_CONSUMER_QUEUE_URL: $RAW_CONSUMER_QUEUE_URL
+  #     HYPERSYNC_TOKEN: $HYPERSYNC_TOKEN
+  #     INDEXER_SCHEMA: $INDEXER_SCHEMA
+  #   depends_on:
+  #     sqs:
+  #       condition: service_healthy
+  #     indexer-migrations:
+  #       condition: service_started
+  #   command: ["--network", "base-mainnet", "--output", "postgres"]
 
   indexer-migrations:
     container_name: indexer-migrations
@@ -340,7 +343,7 @@ services:
         condition: service_healthy
       sqs:
         condition: service_healthy
-      envio-indexer:
+      substreams-sink:
         condition: service_started
 
   hasura-migrations:
