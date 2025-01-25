@@ -93,11 +93,11 @@ impl HistoCrawler {
     pub async fn get_block_number_ceiling(
         &self,
         start_block: u64,
+        last_block: u64,
     ) -> Result<u64, HistoCrawlerError> {
         // We are targeting batches with 2000 blocks, but we need to take into account the end block
         // if it is provided, allowing us to index a "gap" if needed. If not, we will index until the
         // last block available.
-
         // If the end block is provided, we will use it as the ceiling
         if self.env.end_block.is_some() {
             return Ok(self.env.end_block.unwrap());
@@ -107,7 +107,6 @@ impl HistoCrawler {
         let end_block = start_block.add(2000);
 
         // If the end block is greater than the last block available, we will use the last block available
-        let last_block = self.get_last_block().await?;
         if end_block > last_block {
             Ok(last_block)
         } else {
@@ -121,12 +120,15 @@ impl HistoCrawler {
         start_block: &mut u64,
         end_block: &mut u64,
     ) -> Result<(), HistoCrawlerError> {
+        let last_block = self.get_last_block().await?;
         // Update the start and end block for the next iteration
         *start_block = *end_block;
-        *end_block = self.get_block_number_ceiling(*start_block).await?;
+        *end_block = self
+            .get_block_number_ceiling(*start_block, last_block)
+            .await?;
 
         // If we are at the last block, use exponential backoff
-        if *start_block == self.get_last_block().await? {
+        if *start_block == last_block {
             info!(
                 "Reached the last block, backing off for {:?} seconds",
                 self.backoff_delay
@@ -149,7 +151,9 @@ impl HistoCrawler {
         info!("Current last available block: {}", last_block);
 
         let mut start_block = self.env.start_block;
-        let mut end_block = self.get_block_number_ceiling(start_block).await?;
+        let mut end_block = self
+            .get_block_number_ceiling(start_block, last_block)
+            .await?;
 
         loop {
             let filter = self.create_filter(start_block, end_block).await?;
