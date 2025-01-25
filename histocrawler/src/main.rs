@@ -17,6 +17,6 @@ pub struct Env {
 
 #[tokio::main]
 async fn main() -> Result<(), HistoCrawlerError> {
-    let app = HistoCrawler::new().await?;
+    let mut app = HistoCrawler::new().await?;
     app.start_indexing().await
 }
