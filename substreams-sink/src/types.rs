@@ -37,14 +37,17 @@ impl PreparedEndpointAndPackage {
     }
 
     /// Prepare the modules for the substreams stream.
-    pub async fn mutable_modules(&self) -> Result<Modules, SubstreamError> {
+    pub async fn mutable_modules(
+        &self,
+        contract_address: String,
+    ) -> Result<Modules, SubstreamError> {
         let mut mutable_modules = self.package.modules.as_ref().unwrap().clone();
         mutable_modules.modules.iter_mut().for_each(|module| {
             if module.name == "filtered_events" {
                 module.inputs.clear();
                 module.inputs.push(Input {
                     input: Some(InputEnum::Params(Params {
-                        value: "evt_addr:0x430bbf52503bd4801e51182f4cb9f8f534225de5".to_string(),
+                        value: format!("evt_addr:{}", contract_address).to_string(),
                     })),
                 });
                 module.inputs.push(Input {

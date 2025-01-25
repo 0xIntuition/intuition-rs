@@ -280,13 +280,16 @@ services:
   #     AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
   #     AWS_REGION: $AWS_REGION
   #     AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
-  #     DATABASE_URL: $DATABASE_URL
+  #     INDEXER_DATABASE_URL: $DATABASE_URL
   #     RAW_CONSUMER_QUEUE_URL: $RAW_CONSUMER_QUEUE_URL
   #     SUBSTREAMS_ENDPOINT: $SUBSTREAMS_ENDPOINT
   #     SUBSTREAMS_PACKAGE: $SUBSTREAMS_PACKAGE
   #     SUBSTREAMS_MODULE: $SUBSTREAMS_MODULE
   #     SUBSTREAMS_START_BLOCK: $SUBSTREAMS_START_BLOCK
   #     SUBSTREAMS_API_TOKEN: $SUBSTREAMS_API_TOKEN
+  #     SUBSTREAMS_OUTPUT: $SUBSTREAMS_OUTPUT
+  #     INDEXER_SCHEMA: $INDEXER_SCHEMA
+  #     INTUITION_CONTRACT_ADDRESS: $INTUITION_CONTRACT_ADDRESS
   #   command: ["$SUBSTREAMS_ENDPOINT", "$SUBSTREAMS_PACKAGE", "$SUBSTREAMS_MODULE", "$SUBSTREAMS_START_BLOCK:"]
   #   depends_on:
   #     sqs:
@@ -296,24 +299,55 @@ services:
   #   volumes:
   #     - substreams-sink-data:/data
 
-  envio-indexer:
-    container_name: envio-indexer
-    image: ghcr.io/0xintuition/envio-indexer:latest
+  # envio-indexer:
+  #   container_name: envio-indexer
+  #   image: ghcr.io/0xintuition/envio-indexer:latest
+  #   environment:
+  #     LOCALSTACK_URL: $LOCALSTACK_URL
+  #     AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
+  #     AWS_REGION: $AWS_REGION
+  #     AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
+  #     INDEXER_DATABASE_URL: $DATABASE_URL
+  #     RAW_CONSUMER_QUEUE_URL: $RAW_CONSUMER_QUEUE_URL
+  #     HYPERSYNC_TOKEN: $HYPERSYNC_TOKEN
+  #     INDEXER_SCHEMA: $INDEXER_SCHEMA
+  #   depends_on:
+  #     sqs:
+  #       condition: service_healthy
+  #     indexer-migrations:
+  #       condition: service_started
+  #   command: ["--network", "base-mainnet", "--output", "postgres"]
+
+  histocrawler:
+    container_name: histocrawler
+    image: ghcr.io/0xintuition/histocrawler:latest
     environment:
-      LOCALSTACK_URL: $LOCALSTACK_URL
-      AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
-      AWS_REGION: $AWS_REGION
-      AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
-      INDEXER_DATABASE_URL: $DATABASE_URL
-      RAW_CONSUMER_QUEUE_URL: $RAW_CONSUMER_QUEUE_URL
-      HYPERSYNC_TOKEN: $HYPERSYNC_TOKEN
+      RPC_URL: $RPC_URL
+      START_BLOCK: $START_BLOCK
+      INTUITION_CONTRACT_ADDRESS: $INTUITION_CONTRACT_ADDRESS
+      HISTOCRAWLER_DATABASE_URL: $DATABASE_URL
       INDEXER_SCHEMA: $INDEXER_SCHEMA
     depends_on:
-      sqs:
+      database:
+        condition: service_healthy
+      local-migrations:
+        condition: service_started
+
+  local-migrations:
+    container_name: local-migrations
+    image: ghcr.io/0xintuition/local-migrations:latest
+    environment:
+      POSTGRES_PASSWORD: $PG_PASSWORD
+      POSTGRES_USER: $PG_USER
+      POSTGRES_DB: $PG_DB
+      POSTGRES_PORT: $PG_PORT
+      INDEXER_DATABASE_URL: $DATABASE_URL
+    depends_on:
+      database:
         condition: service_healthy
       indexer-migrations:
         condition: service_started
-    command: ["--network", "base-mainnet", "--output", "postgres"]
+    restart: "no"
 
   indexer-migrations:
     container_name: indexer-migrations
@@ -335,12 +369,13 @@ services:
       INDEXER_DATABASE_URL: $DATABASE_URL
       LOCALSTACK_URL: $LOCALSTACK_URL
       HISTOFLUX_CURSOR_ID: $HISTOFLUX_CURSOR_ID
+      RAW_LOGS_CHANNEL: $RAW_LOGS_CHANNEL
     depends_on:
       database:
         condition: service_healthy
       sqs:
         condition: service_healthy
-      envio-indexer:
+      local-migrations:
         condition: service_started
 
   hasura-migrations:

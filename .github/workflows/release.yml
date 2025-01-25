@@ -256,6 +256,33 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+  build-histocrawler:
+    runs-on: self-hosted
+    needs: setup
+    permissions:
+      contents: read
+      packages: write
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: histocrawler/Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            ${{ env.REGISTRY }}/0xintuition/histocrawler:${{ needs.setup.outputs.version }}
+            ${{ env.REGISTRY }}/0xintuition/histocrawler:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
   create-release:
     needs: [
       build-consumer,
@@ -266,7 +293,8 @@ jobs:
       build-envio-indexer,
       build-indexer-migrations,
       build-histoflux,
-      build-rpc-proxy
+      build-rpc-proxy,
+      build-histocrawler
     ]
     runs-on: self-hosted
     permissions:
