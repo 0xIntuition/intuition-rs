@@ -1,0 +1,19 @@
+[package]
+name = "histocrawler"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+alloy.workspace = true
+eyre = "0.6.12"
+models = { path = "../models" }
+serde_json.workspace = true
+shared-utils = { path = "../shared-utils" }
+sqlx.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+url.workspace = true
+dotenvy.workspace = true
+envy.workspace = true
+env_logger.workspace = true
+serde.workspace = true
