@@ -5,15 +5,15 @@ edition = "2021"
 
 [dependencies]
 alloy.workspace = true
-eyre = "0.6.12"
+dotenvy.workspace = true
+env_logger.workspace = true
+envy.workspace = true
+log.workspace = true
 models = { path = "../models" }
+serde.workspace = true
 serde_json.workspace = true
 shared-utils = { path = "../shared-utils" }
 sqlx.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
 url.workspace = true
-dotenvy.workspace = true
-envy.workspace = true
-env_logger.workspace = true
-serde.workspace = true

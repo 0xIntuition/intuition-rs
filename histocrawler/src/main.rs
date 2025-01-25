@@ -12,6 +12,7 @@ pub struct Env {
     pub end_block: Option<u64>,
     pub intuition_contract_address: String,
     pub histocrawler_database_url: String,
+    pub indexer_schema: String,
 }
 
 #[tokio::main]
