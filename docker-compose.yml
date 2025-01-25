@@ -324,10 +324,30 @@ services:
     environment:
       RPC_URL: $RPC_URL
       START_BLOCK: $START_BLOCK
-      END_BLOCK: $END_BLOCK
       INTUITION_CONTRACT_ADDRESS: $INTUITION_CONTRACT_ADDRESS
-      HISTOCRWALER_DATABASE_URL: $HISTOCRWALER_DATABASE_URL
+      HISTOCRAWLER_DATABASE_URL: $DATABASE_URL
       INDEXER_SCHEMA: $INDEXER_SCHEMA
+    depends_on:
+      database:
+        condition: service_healthy
+      local-migrations:
+        condition: service_started
+
+  local-migrations:
+    container_name: local-migrations
+    image: ghcr.io/0xintuition/local-migrations:latest
+    environment:
+      POSTGRES_PASSWORD: $PG_PASSWORD
+      POSTGRES_USER: $PG_USER
+      POSTGRES_DB: $PG_DB
+      POSTGRES_PORT: $PG_PORT
+      INDEXER_DATABASE_URL: $DATABASE_URL
+    depends_on:
+      database:
+        condition: service_healthy
+      indexer-migrations:
+        condition: service_started
+    restart: "no"
 
   indexer-migrations:
     container_name: indexer-migrations

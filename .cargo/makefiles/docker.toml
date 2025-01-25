@@ -37,3 +37,7 @@ args = ["build", "-t", "ghcr.io/0xintuition/rpc-proxy:latest", "-f", "rpc-proxy/
 [tasks.build-histocrawler]
 command = "docker"
 args = ["build", "-t", "ghcr.io/0xintuition/histocrawler:latest", "-f", "histocrawler/Dockerfile", "."]
+
+[tasks.build-local-migrations]
+command = "docker"
+args = ["build", "-t", "ghcr.io/0xintuition/local-migrations:latest", "-f", "local/Dockerfile", "."]
