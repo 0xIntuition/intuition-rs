@@ -375,8 +375,8 @@ services:
         condition: service_healthy
       sqs:
         condition: service_healthy
-      # substreams-sink:
-      #   condition: service_started
+      local-migrations:
+        condition: service_started
 
   hasura-migrations:
     container_name: hasura-migrations
