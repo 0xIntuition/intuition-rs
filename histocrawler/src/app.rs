@@ -36,7 +36,7 @@ impl HistoCrawler {
             env,
             pg_pool,
             provider,
-            backoff_delay: Duration::from_secs(1),
+            backoff_delay: Duration::from_millis(100),
         })
     }
 
