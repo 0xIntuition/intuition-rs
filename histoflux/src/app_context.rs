@@ -14,6 +14,7 @@ pub struct Env {
     pub localstack_url: Option<String>,
     pub indexer_database_url: String,
     pub histoflux_cursor_id: i32,
+    pub raw_logs_channel: String,
 }
 
 /// Represents the SQS producer
@@ -203,7 +204,7 @@ impl SqsProducer {
 
         // Start listening BEFORE processing historical records
         let mut listener = PgListener::connect(&self.env.indexer_database_url).await?;
-        listener.listen("raw_logs_channel").await?;
+        listener.listen(&self.env.raw_logs_channel).await?;
 
         info!("Start pulling historical records");
         self.process_historical_records().await?;

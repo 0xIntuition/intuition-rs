@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS base_sepolia_indexer.raw_data (
 CREATE OR REPLACE FUNCTION base_sepolia_indexer.notify_raw_logs()
 RETURNS trigger AS $$
 BEGIN
-    PERFORM pg_notify('raw_logs_channel', row_to_json(NEW)::text);
+    PERFORM pg_notify('base_sepolia_raw_logs_channel', row_to_json(NEW)::text);
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
