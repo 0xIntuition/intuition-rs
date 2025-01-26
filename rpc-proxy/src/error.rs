@@ -13,10 +13,14 @@ use thiserror::Error;
 pub enum ApiError {
     #[error(transparent)]
     Axum(#[from] axum::Error),
+    #[error("Block number not found")]
+    BlockNumberNotFound,
     #[error(transparent)]
     Env(#[from] envy::Error),
     #[error("External service error: {0}")]
     ExternalServiceError(String),
+    #[error("Invalid input: {0}")]
+    InvalidInput(String),
     #[error(transparent)]
     IO(#[from] std::io::Error),
     #[error("Json parse error: {0}")]
@@ -31,6 +35,8 @@ pub enum ApiError {
     Multipart(#[from] axum::extract::multipart::MultipartError),
     #[error(transparent)]
     NumParseError(#[from] std::num::ParseIntError),
+    #[error("Parse string failed")]
+    ParseStrFailed,
     #[error(transparent)]
     Serde(#[from] serde_json::Error),
     #[error(transparent)]
