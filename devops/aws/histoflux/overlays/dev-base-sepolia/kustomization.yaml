@@ -2,9 +2,8 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  - ../../../base/ipfs-upload
+  - ../../base
   - secret-provider.yaml
-  - pvc.yaml
 
 namePrefix: "dev-base-sepolia-" 
 
@@ -12,7 +11,7 @@ patches:
   - path: deployment-patch.yaml
     target:
       kind: Deployment
-      name: ipfs-upload-consumer
+      name: histoflux
 
 commonLabels:
   network: base-sepolia

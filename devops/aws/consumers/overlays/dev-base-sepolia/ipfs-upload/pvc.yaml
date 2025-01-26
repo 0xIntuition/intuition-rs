@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: prod-base-sepolia-resolver-logs
+  name: dev-base-sepolia-ipfs-upload-logs
 spec:
   storageClassName: gp2
   accessModes:

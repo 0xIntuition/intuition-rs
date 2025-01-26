@@ -1,25 +1,26 @@
-apiVersion: batch/v1
-kind: Job
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-  name: hasura-migrations
+  name: histoflux
 spec:
   template:
     spec:
+      serviceAccountName: secrets-access-sa
       containers:
-        - name: hasura-migrations
-          image: ghcr.io/0xintuition/hasura-migrations:1.0.46
-          imagePullPolicy: Always
+        - name: histoflux
+          image: ghcr.io/0xintuition/histoflux:1.0.46
+          imagePullPolicy: Always 
           volumeMounts:
             - name: secrets-store-inline
               mountPath: "/mnt/secrets"
               readOnly: true
           envFrom:
             - secretRef:
-                name: prod-sepolia-hasura-aws-secrets
+                name: dev-base-sepolia-histoflux-aws-secrets
       volumes:
         - name: secrets-store-inline
           csi:
             driver: secrets-store.csi.k8s.io
             readOnly: true
             volumeAttributes:
-              secretProviderClass: "prod-base-sepolia-prod-sepolia-hasura-aws-secrets"
+              secretProviderClass: "dev-base-sepolia-dev-base-sepolia-histoflux-aws-secrets"

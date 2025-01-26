@@ -1,22 +1,20 @@
-use std::{ops::Add, str::FromStr, time::Duration};
-
+use crate::{error::HistoCrawlerError, Env};
 use alloy::{
+    eips::BlockNumberOrTag,
     primitives::Address,
     providers::{Provider, ProviderBuilder, RootProvider},
-    rpc::types::{Filter, Log},
+    rpc::types::{BlockTransactionsKind, Filter, Log},
     transports::http::{Client, Http},
 };
 use log::info;
 use models::raw_logs::RawLog;
 use shared_utils::postgres::connect_to_db;
 use sqlx::PgPool;
+use std::{ops::Add, str::FromStr, time::Duration};
 use tokio::time::sleep;
 use url::Url;
 
-use crate::{error::HistoCrawlerError, Env};
-
-const MAX_BACKOFF: Duration = Duration::from_secs(3); // Max 3 seconds delay
-
+/// This is the main struct for the HistoCrawler application
 pub struct HistoCrawler {
     pub contract_address: Address,
     pub env: Env,
@@ -31,7 +29,7 @@ impl HistoCrawler {
         let contract_address = Address::from_str(&env.intuition_contract_address.to_lowercase())?;
         let pg_pool = connect_to_db(&env.histocrawler_database_url).await?;
         let provider = Self::get_provider(&env).await?;
-        let backoff_delay = Duration::from_millis(100);
+        let backoff_delay = Duration::from_secs(2);
         Ok(Self {
             contract_address,
             env,
@@ -56,13 +54,36 @@ impl HistoCrawler {
 
     /// Decode the raw log and insert it into the database
     pub async fn decode_raw_log_and_insert(&self, log: Log) -> Result<(), HistoCrawlerError> {
-        let raw_log = RawLog::from(log);
+        // Fetch the block timestamp from the provider
+        let block_timestamp = self
+            .fetch_block_timestamp(
+                log.block_number
+                    .ok_or(HistoCrawlerError::BlockNumberNotFound)?,
+            )
+            .await?;
+        let mut raw_log = RawLog::from(log);
+        // We need to update the block timestamp of the raw log before inserting it into the database,
+        // as the block timestamp is not available in the log object.
         raw_log
+            .update_block_timestamp(block_timestamp)
             .insert(&self.pg_pool, &self.env.indexer_schema)
             .await?;
         info!("Inserted log: {:#?}", raw_log);
 
         Ok(())
+    }
+
+    /// This method is used to fetch the timestamp of a block from the provider
+    pub async fn fetch_block_timestamp(&self, block_number: u64) -> Result<u64, HistoCrawlerError> {
+        let block = self
+            .provider
+            .get_block_by_number(
+                BlockNumberOrTag::Number(block_number),
+                BlockTransactionsKind::Hashes,
+            )
+            .await?
+            .ok_or(HistoCrawlerError::BlockNumberNotFound)?;
+        Ok(block.header.timestamp)
     }
 
     /// Get the last block number from the provider
@@ -134,11 +155,6 @@ impl HistoCrawler {
                 self.backoff_delay
             );
             sleep(self.backoff_delay).await;
-            // Double the backoff time for next iteration, but cap it
-            self.backoff_delay = std::cmp::min(self.backoff_delay * 2, MAX_BACKOFF);
-        } else {
-            // Reset backoff when we get new blocks
-            self.backoff_delay = Duration::from_millis(100);
         }
 
         Ok(())
