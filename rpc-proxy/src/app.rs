@@ -137,6 +137,8 @@ impl App {
         let req: JsonRpcRequest = serde_json::from_value(payload.clone())?;
         let block_number = req.block_number()?;
         if let Some(_block_number) = block_number {
+            info!("Searching for cached request for {:?}", req);
+
             let cached_request =
                 JsonRpcCache::find(&req, chain_id as i64, self, Method::from_str(&req.method)?)
                     .await?;
@@ -145,9 +147,11 @@ impl App {
                     "Cached request found for {:?}, returning it",
                     cached_request
                 );
-                Ok(req.build_response_json(cached_request.result)?)
+
+                Ok(req.build_response_json(cached_request.result, Method::from_str(&req.method)?)?)
             } else {
-                info!("Cached request not found for {:?}, relaying it", req);
+                info!("Not found for {:?}, relaying it", req);
+
                 let response = self
                     .relay_request(serde_json::to_value(&req)?, chain_id)
                     .await?;
@@ -160,6 +164,7 @@ impl App {
                 )
                 .await?;
                 info!("Cached request stored!");
+
                 Ok(response)
             }
         } else {

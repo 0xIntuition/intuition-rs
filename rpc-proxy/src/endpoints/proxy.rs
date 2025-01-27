@@ -33,11 +33,21 @@ pub struct JsonRpcRequest {
 
 impl JsonRpcRequest {
     /// Builds a JSON RPC response from the request and the result.
-    pub fn build_response_json(&self, result: String) -> Result<Value, ApiError> {
+    pub fn build_response_json(&self, result: String, method: Method) -> Result<Value, ApiError> {
         let mut response = serde_json::Map::new();
         response.insert("jsonrpc".into(), Value::String("2.0".into()));
         response.insert("id".into(), Value::Number(self.id.into()));
-        response.insert("result".into(), Value::String(result));
+        match method {
+            Method::EthCall => {
+                response.insert("result".into(), Value::String(result));
+            }
+            Method::EthBlockByNumber => {
+                let result_obj: Value = serde_json::from_str(&result).map_err(|e| {
+                    ApiError::InvalidInput(format!("Failed to parse result: {}", e))
+                })?;
+                response.insert("result".into(), result_obj);
+            }
+        }
 
         Ok(Value::Object(response))
     }
@@ -51,9 +61,15 @@ impl JsonRpcRequest {
     /// Get the contract address from the request.
     pub fn get_contract_address(&self, chain_id: u64) -> Result<String, ApiError> {
         match chain_id {
-            84532 => Ok("0x1A6950807E33d5bC9975067e6D6b5Ea4cD661665".to_string()),
-            8453 => Ok("0x430BbF52503Bd4801E51182f4cB9f8F534225DE5".to_string()),
-            1 => Ok("0x4200000000000000000000000000000000000006".to_string()),
+            84532 => Ok("0x1A6950807E33d5bC9975067e6D6b5Ea4cD661665"
+                .to_string()
+                .to_lowercase()),
+            8453 => Ok("0x430BbF52503Bd4801E51182f4cB9f8F534225DE5"
+                .to_string()
+                .to_lowercase()),
+            1 => Ok("0x4200000000000000000000000000000000000006"
+                .to_string()
+                .to_lowercase()),
             _ => Err(ApiError::InvalidInput("Chain ID not supported".into())),
         }
     }
