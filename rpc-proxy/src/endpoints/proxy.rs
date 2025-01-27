@@ -59,18 +59,16 @@ impl JsonRpcRequest {
     }
 
     /// Get the contract address from the request.
-    pub fn get_contract_address(&self, chain_id: u64) -> Result<String, ApiError> {
-        match chain_id {
-            84532 => Ok("0x1A6950807E33d5bC9975067e6D6b5Ea4cD661665"
-                .to_string()
-                .to_lowercase()),
-            8453 => Ok("0x430BbF52503Bd4801E51182f4cB9f8F534225DE5"
-                .to_string()
-                .to_lowercase()),
-            1 => Ok("0x4200000000000000000000000000000000000006"
-                .to_string()
-                .to_lowercase()),
-            _ => Err(ApiError::InvalidInput("Chain ID not supported".into())),
+    pub fn get_contract_address(&self) -> Result<Option<String>, ApiError> {
+        match Method::from_str(&self.method) {
+            Ok(Method::EthCall) => Ok(Some(
+                self.params[0]["to"]
+                    .to_string()
+                    .trim_matches('"')
+                    .to_string(),
+            )),
+            Ok(Method::EthBlockByNumber) => Ok(None),
+            _ => Err(ApiError::InvalidInput("Method not supported".into())),
         }
     }
 
@@ -78,10 +76,11 @@ impl JsonRpcRequest {
     pub fn get_input(&self, method: Method) -> Result<String, ApiError> {
         match method {
             Method::EthCall => {
-                let input = self.params[0]["input"].to_string();
-                // Trim any leading or trailing quotes
-                let trimmed_input = input.trim_matches('"').to_string();
-                Ok(trimmed_input)
+                let input = self.params[0]["input"]
+                    .to_string()
+                    .trim_matches('"')
+                    .to_string();
+                Ok(input)
             }
             Method::EthBlockByNumber => {
                 let input = self.params[0].as_str().unwrap();
@@ -133,18 +132,12 @@ impl JsonRpcRequest {
         result: Value,
         method: Method,
     ) -> Result<JsonRpcCache, ApiError> {
-        let share_price = JsonRpcCache {
+        let cached_request = JsonRpcCache {
             chain_id: chain_id as i64,
             block_number: self.block_number()?.ok_or(ApiError::BlockNumberNotFound)?,
             method: method.clone(),
-            to_address: self
-                .get_contract_address(chain_id)?
-                .trim_matches('"')
-                .to_string(),
-            input: self
-                .get_input(method.clone())?
-                .trim_matches('"')
-                .to_string(),
+            to_address: self.get_contract_address()?,
+            input: self.get_input(method.clone())?,
             result: match method {
                 Method::EthBlockByNumber => {
                     serde_json::to_string(&result["result"]).unwrap_or_default()
@@ -152,11 +145,11 @@ impl JsonRpcRequest {
                 _ => result["result"].as_str().unwrap_or("").to_string(),
             },
         };
-        share_price
+        cached_request
             .insert(&state.pg_pool, &state.env.proxy_schema)
             .await
             .map_err(|e| ApiError::Model(models::error::ModelError::SqlError(e)))?;
-        Ok(share_price)
+        Ok(cached_request)
     }
 }
 

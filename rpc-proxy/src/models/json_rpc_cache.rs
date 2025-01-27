@@ -44,7 +44,7 @@ pub struct JsonRpcCache {
     pub chain_id: i64,
     pub block_number: i64,
     pub method: Method,
-    pub to_address: String,
+    pub to_address: Option<String>,
     pub input: String,
     pub result: String,
 }
@@ -82,7 +82,10 @@ impl JsonRpcCache {
         let query = format!(
             r#"
             SELECT * FROM {}.json_rpc_cache 
-            WHERE chain_id = $1 AND block_number = $2 AND to_address = $3 AND input = $4
+            WHERE chain_id = $1 
+            AND block_number = $2 
+            AND (($3::text IS NULL AND to_address IS NULL) OR to_address = $3)
+            AND input = $4
             "#,
             app_state.env.proxy_schema,
         );
@@ -94,13 +97,7 @@ impl JsonRpcCache {
                     .block_number()?
                     .ok_or(ApiError::JsonRpc("Block number is required".to_string()))?,
             )
-            .bind(
-                payload
-                    .get_contract_address(chain_id as u64)?
-                    .trim_matches('"')
-                    .to_string()
-                    .to_lowercase(),
-            )
+            .bind(payload.get_contract_address()?)
             .bind(payload.get_input(method)?)
             .fetch_optional(&app_state.pg_pool)
             .await?)
@@ -130,7 +127,7 @@ mod tests {
             chain_id,
             block_number: block_number_parsed,
             method: Method::EthCall,
-            to_address: "0x1a6950807e33d5bc9975067e6d6b5ea4cd661665".to_string(),
+            to_address: Some("0x1a6950807e33d5bc9975067e6d6b5ea4cd661665".to_string()),
             input: "0xee9dd98f00000000000000000000000000000000000000000000000000000000000003ec"
                 .to_string(),
             result: "test_result".to_string(),

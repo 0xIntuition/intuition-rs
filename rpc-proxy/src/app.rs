@@ -21,7 +21,7 @@ use utoipa_swagger_ui::SwaggerUi;
 #[derive(Clone, Deserialize, Default)]
 pub struct Env {
     pub proxy_api_port: u16,
-    pub database_url: String,
+    pub proxy_database_url: String,
     pub proxy_schema: String,
     pub base_mainnet_rpc_url: String,
     pub base_sepolia_rpc_url: String,
@@ -92,7 +92,7 @@ impl App {
         dotenvy::dotenv().ok();
         // Load the environment variables into our struct
         let env = envy::from_env::<Env>().map_err(ApiError::from)?;
-        let pg_pool = connect_to_db(&env.database_url).await?;
+        let pg_pool = connect_to_db(&env.proxy_database_url).await?;
         let reqwest_client = Client::new();
         Ok(Self {
             env,
