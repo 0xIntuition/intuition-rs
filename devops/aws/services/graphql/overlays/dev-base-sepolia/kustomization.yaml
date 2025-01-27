@@ -21,4 +21,5 @@ patches:
 
 commonLabels:
   network: base-sepolia
+  io.kompose.service: dev-base-sepolia-graphql-engine
 

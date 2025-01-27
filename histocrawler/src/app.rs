@@ -167,6 +167,19 @@ impl HistoCrawler {
         info!("Current last available block: {}", last_block);
 
         let mut start_block = self.env.start_block;
+
+        // Check what is the last block in the database, in that case we will start
+        // from the last block in the database
+        let last_block_in_db =
+            RawLog::fetch_last_observed_block(&self.pg_pool, &self.env.indexer_schema).await?;
+        if let Some(last_block_in_db) = last_block_in_db {
+            info!(
+                "Found last block in the database: {}, using this as start block",
+                last_block_in_db
+            );
+            start_block = last_block_in_db as u64;
+        }
+
         let mut end_block = self
             .get_block_number_ceiling(start_block, last_block)
             .await?;
