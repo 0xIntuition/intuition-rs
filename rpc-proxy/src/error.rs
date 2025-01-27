@@ -35,8 +35,6 @@ pub enum ApiError {
     Multipart(#[from] axum::extract::multipart::MultipartError),
     #[error(transparent)]
     NumParseError(#[from] std::num::ParseIntError),
-    #[error("Parse string failed")]
-    ParseStrFailed,
     #[error(transparent)]
     Serde(#[from] serde_json::Error),
     #[error(transparent)]
