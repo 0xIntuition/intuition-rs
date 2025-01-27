@@ -5,13 +5,13 @@ resources:
   - ../../base
   - secret-provider.yaml
 
-namePrefix: "dev-" 
+namePrefix: "dev-base-sepolia-" 
 
 patches:
   - path: deployment-patch.yaml
     target:
       kind: Deployment
-      name: rpc-proxy
+      name: histocrawler
 
 commonLabels:
   network: base-sepolia

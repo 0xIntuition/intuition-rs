@@ -1,26 +1,31 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: rpc-proxy
+  name: histocrawler
 spec:
   template:
     spec:
       serviceAccountName: secrets-access-sa
       containers:
-        - name: rpc-proxy
-          image: ghcr.io/0xintuition/rpc-proxy:1.0.47
-          imagePullPolicy: Always 
+        - name: histocrawler
+          args:
+            - --network
+            - base-sepolia
+            - --output
+            - postgres
+          image: ghcr.io/0xintuition/histocrawler:1.0.47
+          imagePullPolicy: Always
           volumeMounts:
             - name: secrets-store-inline
               mountPath: "/mnt/secrets"
               readOnly: true
           envFrom:
             - secretRef:
-                name: dev-rpc-proxy-aws-secrets
+                name: dev-histocrawler-aws-secrets
       volumes:
         - name: secrets-store-inline
           csi:
             driver: secrets-store.csi.k8s.io
             readOnly: true
             volumeAttributes:
-              secretProviderClass: "dev-dev-rpc-proxy-aws-secrets"
+              secretProviderClass: "dev-base-sepolia-dev-histocrawler-aws-secrets"

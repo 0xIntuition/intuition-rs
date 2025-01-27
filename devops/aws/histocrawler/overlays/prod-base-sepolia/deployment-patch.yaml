@@ -13,7 +13,7 @@ spec:
             - base-sepolia
             - --output
             - postgres
-          image: ghcr.io/0xintuition/histocrawler:1.0.46
+          image: ghcr.io/0xintuition/histocrawler:1.0.47
           imagePullPolicy: Always
           volumeMounts:
             - name: secrets-store-inline
