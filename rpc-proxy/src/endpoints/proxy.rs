@@ -182,7 +182,21 @@ pub async fn rpc_proxy(
     let payload = match payload["method"].as_str() {
         // Handle eth_call and eth_getBlockByNumber requests. Those requests are cached
         Some("eth_call") | Some("eth_getBlockByNumber") => {
-            state.handle_cached_request(chain_id, payload).await?
+            // Deserialize the request
+            let deserialized_request: JsonRpcRequest = serde_json::from_value(payload.clone())?;
+            // Get the block number
+            let block_number = deserialized_request.block_number()?;
+            // If the block number is `None` it's a ENS request, we don't cache it
+            if block_number.is_none() {
+                info!("Relaying request for {:?}", payload);
+                state
+                    .relay_request(serde_json::to_value(&payload)?, chain_id)
+                    .await?
+            } else {
+                state
+                    .handle_cached_request(chain_id, deserialized_request)
+                    .await?
+            }
         }
         // Handle block number request and other foreign requests, this is not cached
         Some(_) => {

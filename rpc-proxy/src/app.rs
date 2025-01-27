@@ -132,43 +132,32 @@ impl App {
     pub async fn handle_cached_request(
         &self,
         chain_id: u64,
-        payload: Value,
+        req: JsonRpcRequest,
     ) -> Result<serde_json::Value, ApiError> {
-        let req: JsonRpcRequest = serde_json::from_value(payload.clone())?;
-        let block_number = req.block_number()?;
-        if let Some(_block_number) = block_number {
-            info!("Searching for cached request for {:?}", req);
-
-            let cached_request =
-                JsonRpcCache::find(&req, chain_id as i64, self, Method::from_str(&req.method)?)
-                    .await?;
-            if let Some(cached_request) = cached_request {
-                info!(
-                    "Cached request found for {:?}, returning it",
-                    cached_request
-                );
-
-                Ok(req.build_response_json(cached_request.result, Method::from_str(&req.method)?)?)
-            } else {
-                info!("Not found for {:?}, relaying it", req);
-
-                let response = self
-                    .relay_request(serde_json::to_value(&req)?, chain_id)
-                    .await?;
-                let method = payload["method"].as_str().ok_or(ApiError::ParseStrFailed)?;
-                req.store(
-                    self,
-                    chain_id,
-                    response.clone(),
-                    Method::from_str(method).map_err(|e| ApiError::InvalidInput(e.to_string()))?,
-                )
-                .await?;
-                info!("Cached request stored!");
-
-                Ok(response)
-            }
+        info!("Searching for cached request for {:?}", req);
+        let cached_request =
+            JsonRpcCache::find(&req, chain_id as i64, self, Method::from_str(&req.method)?).await?;
+        if let Some(cached_request) = cached_request {
+            info!(
+                "Cached request found for {:?}, returning it",
+                cached_request
+            );
+            Ok(req.build_response_json(cached_request.result, Method::from_str(&req.method)?)?)
         } else {
-            Err(ApiError::BlockNumberNotFound)
+            info!("Not found for {:?}, relaying it", req);
+            let response = self
+                .relay_request(serde_json::to_value(&req)?, chain_id)
+                .await?;
+            let method = req.method.clone();
+            req.store(
+                self,
+                chain_id,
+                response.clone(),
+                Method::from_str(&method).map_err(|e| ApiError::InvalidInput(e.to_string()))?,
+            )
+            .await?;
+            info!("Cached request stored!");
+            Ok(response)
         }
     }
 }
