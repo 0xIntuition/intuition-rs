@@ -156,6 +156,11 @@ impl SqsProducer {
         let pages = Self::ceiling_div(amount_of_logs, page_size);
         info!("Processing {} pages with page size {}", pages, page_size);
 
+        // Initialize the processed logs counter. This is used to avoid processing
+        // more logs than the total amount we initially got. We have a listener
+        // that will send us new logs, so we dont need to process all logs.
+        let mut processed_logs_counter = 0;
+
         'outer_loop: for _page in 0..pages {
             let logs = RawLog::get_paginated_after_id(
                 &self.pg_pool,
@@ -167,17 +172,19 @@ impl SqsProducer {
 
             info!("Processing {} logs", logs.len());
             for log in logs {
-                info!("Processing log: {:?}", log);
-                last_processed_id = log.id as i64;
-                self.update_last_processed_id(last_processed_id).await?;
-                // This is added because we dont want to process more logs than
-                // the total amount we initially got. We have a listener that
-                // will send us new logs, so we dont need to process all logs.
-                if last_processed_id as i64 >= amount_of_logs {
+                // Don't process more logs than the total amount we initially got.
+                if processed_logs_counter >= amount_of_logs {
                     break 'outer_loop;
                 }
+                info!("Processing log: {:?}", log);
+                // Update the last processed id variable
+                last_processed_id = log.id as i64;
+                self.update_last_processed_id(last_processed_id).await?;
+                // Send the log to the SQS queue
                 let message = serde_json::to_string(&log)?;
                 self.send_message(message).await?;
+                // Increment the processed logs counter
+                processed_logs_counter += 1;
             }
         }
 
