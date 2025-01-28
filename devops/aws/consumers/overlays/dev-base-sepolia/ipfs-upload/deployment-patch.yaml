@@ -14,13 +14,16 @@ spec:
             - name: secrets-store-inline
               mountPath: "/mnt/secrets"
               readOnly: true
+            - name: ipfs-upload-logs
+              mountPath: /logs
+              readOnly: false
           envFrom:
             - secretRef:
-                name: ipfs-upload-consumer-secrets
+                name: dev-base-sepolia-ipfs-upload-consumer-secrets
       volumes:
         - name: secrets-store-inline
           csi:
             driver: secrets-store.csi.k8s.io
             readOnly: true
             volumeAttributes:
-              secretProviderClass: "dev-base-sepolia-ipfs-upload-consumer-secrets"
+              secretProviderClass: "dev-base-sepolia-dev-base-sepolia-ipfs-upload-consumer-secrets"

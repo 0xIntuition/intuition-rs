@@ -181,7 +181,7 @@ services:
     container_name: rpc-proxy
     image: ghcr.io/0xintuition/rpc-proxy:latest
     environment:
-      DATABASE_URL: $DATABASE_URL
+      PROXY_DATABASE_URL: $DATABASE_URL
       PROXY_API_PORT: $PROXY_API_PORT
       PROXY_SCHEMA: $PROXY_SCHEMA
       BASE_MAINNET_RPC_URL: $BASE_MAINNET_RPC_URL

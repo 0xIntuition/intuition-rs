@@ -1,4 +1,4 @@
-use crate::endpoints;
+use crate::endpoints::{self, proxy::JsonRpcRequest};
 use models::cached_image::CachedImage;
 use shared_utils::{image::Image, types::ClassificationModel};
 use utoipa::OpenApi;
@@ -13,6 +13,7 @@ use utoipa::OpenApi;
             Image,
             CachedImage,
             ClassificationModel,
+            JsonRpcRequest,
         )
     ),
     tags(

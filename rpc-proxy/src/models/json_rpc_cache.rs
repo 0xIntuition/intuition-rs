@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display, str::FromStr};
 
 use macon::Builder;
 use serde::{Deserialize, Serialize};
@@ -12,12 +12,27 @@ use crate::{app::App, endpoints::proxy::JsonRpcRequest, error::ApiError};
 pub enum Method {
     #[sqlx(rename = "eth_call")]
     EthCall,
+    #[sqlx(rename = "eth_getBlockByNumber")]
+    EthBlockByNumber,
+}
+
+impl FromStr for Method {
+    type Err = ApiError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s {
+            "eth_call" => Method::EthCall,
+            "eth_getBlockByNumber" => Method::EthBlockByNumber,
+            _ => return Err(ApiError::InvalidInput("Invalid method".to_string())),
+        })
+    }
 }
 
 impl Display for Method {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Method::EthCall => write!(f, "eth_call"),
+            Method::EthBlockByNumber => write!(f, "eth_getBlockByNumber"),
         }
     }
 }
@@ -29,7 +44,7 @@ pub struct JsonRpcCache {
     pub chain_id: i64,
     pub block_number: i64,
     pub method: Method,
-    pub to_address: String,
+    pub to_address: Option<String>,
     pub input: String,
     pub result: String,
 }
@@ -62,11 +77,15 @@ impl JsonRpcCache {
         payload: &JsonRpcRequest,
         chain_id: i64,
         app_state: &App,
+        method: Method,
     ) -> Result<Option<Self>, ApiError> {
         let query = format!(
             r#"
             SELECT * FROM {}.json_rpc_cache 
-            WHERE chain_id = $1 AND block_number = $2 AND to_address = $3 AND input = $4
+            WHERE chain_id = $1 
+            AND block_number = $2 
+            AND (($3::text IS NULL AND to_address IS NULL) OR to_address = $3)
+            AND input = $4
             "#,
             app_state.env.proxy_schema,
         );
@@ -79,7 +98,7 @@ impl JsonRpcCache {
                     .ok_or(ApiError::JsonRpc("Block number is required".to_string()))?,
             )
             .bind(payload.get_contract_address()?)
-            .bind(payload.get_input()?)
+            .bind(payload.get_input(method)?)
             .fetch_optional(&app_state.pg_pool)
             .await?)
     }
@@ -108,7 +127,7 @@ mod tests {
             chain_id,
             block_number: block_number_parsed,
             method: Method::EthCall,
-            to_address: "0x1a6950807e33d5bc9975067e6d6b5ea4cd661665".to_string(),
+            to_address: Some("0x1a6950807e33d5bc9975067e6d6b5ea4cd661665".to_string()),
             input: "0xee9dd98f00000000000000000000000000000000000000000000000000000000000003ec"
                 .to_string(),
             result: "test_result".to_string(),
@@ -142,7 +161,7 @@ mod tests {
             reqwest_client: Client::new(),
         };
         // Find record
-        let found = JsonRpcCache::find(&payload, 84532, &app_state).await?;
+        let found = JsonRpcCache::find(&payload, 84532, &app_state, Method::EthCall).await?;
         assert!(found.is_some());
         assert_eq!(found.unwrap(), share_price);
 

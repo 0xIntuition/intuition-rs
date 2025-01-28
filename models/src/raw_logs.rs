@@ -188,6 +188,12 @@ impl RawLog {
             .await
             .map_err(ModelError::from)
     }
+
+    /// This is a method to update the block timestamp of a raw log.
+    pub fn update_block_timestamp(&mut self, block_timestamp: u64) -> &mut Self {
+        self.block_timestamp = block_timestamp as i64;
+        self
+    }
 }
 
 impl From<Log> for RawLog {
