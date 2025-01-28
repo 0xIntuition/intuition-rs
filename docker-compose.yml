@@ -359,24 +359,24 @@ services:
         condition: service_healthy
     restart: "no"
   
-  # histoflux:
-  #   container_name: histoflux
-  #   image: ghcr.io/0xintuition/histoflux:latest
-  #   environment:
-  #     AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
-  #     AWS_REGION: $AWS_REGION
-  #     AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY 
-  #     INDEXER_DATABASE_URL: $DATABASE_URL
-  #     LOCALSTACK_URL: $LOCALSTACK_URL
-  #     HISTOFLUX_CURSOR_ID: $HISTOFLUX_CURSOR_ID
-  #     RAW_LOGS_CHANNEL: $RAW_LOGS_CHANNEL
-  #   depends_on:
-  #     database:
-  #       condition: service_healthy
-  #     sqs:
-  #       condition: service_healthy
-  #     local-migrations:
-  #       condition: service_started
+  histoflux:
+    container_name: histoflux
+    image: ghcr.io/0xintuition/histoflux:latest
+    environment:
+      AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
+      AWS_REGION: $AWS_REGION
+      AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY 
+      INDEXER_DATABASE_URL: $DATABASE_URL
+      LOCALSTACK_URL: $LOCALSTACK_URL
+      HISTOFLUX_CURSOR_ID: $HISTOFLUX_CURSOR_ID
+      RAW_LOGS_CHANNEL: $RAW_LOGS_CHANNEL
+    depends_on:
+      database:
+        condition: service_healthy
+      sqs:
+        condition: service_healthy
+      local-migrations:
+        condition: service_started
 
   hasura-migrations:
     container_name: hasura-migrations
