@@ -11,7 +11,7 @@ use tokio::time::sleep;
 
 /// The base delays for the retry mechanism and timeouts
 pub const BASE_DELAY: Duration = Duration::from_secs(1);
-pub const FETCH_TIMEOUT: Duration = Duration::from_millis(3000);
+pub const FETCH_TIMEOUT: Duration = Duration::from_secs(5);
 pub const PIN_TIMEOUT: Duration = Duration::from_secs(10);
 pub const PINATA_API_URL: &str = "https://api.pinata.cloud";
 pub const RETRY_ATTEMPTS: i32 = 3;

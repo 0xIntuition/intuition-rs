@@ -100,13 +100,23 @@ impl DecodedConsumerContext {
         event: &DecodedMessage,
     ) -> Result<U256, ConsumerError> {
         self.retry_with_backoff(|| async {
-            Ok(self
+            let current_share_price = self
                 .base_client
                 .currentSharePrice(id)
                 .block(BlockId::from_str(&event.block_number.to_string())?)
                 .call()
-                .await?
-                ._0)
+                .await;
+            match &current_share_price {
+                Ok(price) => {
+                    info!("Current share price: {:?}", price);
+                    Ok(price._0)
+                }
+                Err(e) => {
+                    warn!("Response: {:?}", current_share_price);
+                    warn!("Error fetching current share price: {}", e);
+                    Err(ConsumerError::MaxRetriesExceeded)
+                }
+            }
         })
         .await
     }
@@ -117,12 +127,22 @@ impl DecodedConsumerContext {
         vault_id: Uint<256, 4>,
     ) -> Result<Uint<256, 4>, ConsumerError> {
         self.retry_with_backoff(|| async {
-            Ok(self
+            let counter_id = self
                 .base_client
                 .getCounterIdFromTriple(vault_id)
                 .call()
-                .await?
-                ._0)
+                .await;
+            match &counter_id {
+                Ok(counter_id) => {
+                    info!("Counter id: {:?}", counter_id);
+                    Ok(counter_id._0)
+                }
+                Err(e) => {
+                    warn!("Response: {:?}", counter_id);
+                    warn!("Error fetching counter id from triple: {}", e);
+                    Err(ConsumerError::MaxRetriesExceeded)
+                }
+            }
         })
         .await
     }
