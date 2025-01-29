@@ -199,7 +199,7 @@ impl HistoCrawler {
             RawLog::fetch_last_observed_block(&self.pg_pool, &self.env.indexer_schema).await?;
         if let Some(last_block_in_db) = last_block_in_db {
             info!(
-                "Found last block in the database: {}, using this as start block",
+                "Found last block in the database: {}, using it as start block",
                 last_block_in_db
             );
             start_block = last_block_in_db as u64;
@@ -211,10 +211,7 @@ impl HistoCrawler {
 
         loop {
             let filter = self.create_filter(start_block, end_block).await?;
-
-            // Replace the direct RPC call with our retry mechanism
             let logs = self.get_logs_with_retry(&filter).await?;
-
             // Process the batch of logs and insert them into the database
             for log in logs {
                 self.decode_raw_log_and_insert(log).await?;

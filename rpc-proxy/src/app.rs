@@ -67,17 +67,15 @@ impl App {
 
             if attempt < Self::MAX_RETRIES - 1 {
                 tokio::time::sleep(delay).await;
-                delay *= 2; // Exponential backoff
-            } else {
-                return Err(ApiError::ExternalServiceError(format!(
-                    "Request failed after {} retries with status: {}",
-                    Self::MAX_RETRIES,
-                    response.status()
-                )));
+                delay *= 2;
             }
         }
 
-        unreachable!()
+        Err(ApiError::ExternalServiceError(format!(
+            "Request to {} failed after {} retries",
+            rpc_url,
+            Self::MAX_RETRIES
+        )))
     }
 
     /// Get the RPC URL for the given chain_id.
