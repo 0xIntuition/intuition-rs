@@ -113,7 +113,7 @@ impl IPFSResolver {
                     self.http_client
                         .get(self.format_ipfs_fetch_url(
                             cid,
-                            "https://aquamarine-tragic-mockingbird-747.mypinata.cloud/ipfs/",
+                            "https://aquamarine-tragic-mockingbird-747.mypinata.cloud",
                             pinata_gateway_token,
                         ))
                         .timeout(self.fetch_timeout.unwrap_or(FETCH_TIMEOUT))
