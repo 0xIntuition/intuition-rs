@@ -83,13 +83,32 @@ impl IPFSResolver {
         Ok(response)
     }
 
-    /// Sends a request to fetch IPFS data
+    /// Sends a request to fetch IPFS data. If the request fails, it will
+    /// try to fetch the data from the Pinata node.
+    /// TODO: improve this
     async fn fetch_from_ipfs_request(&self, cid: &str) -> Result<Response, reqwest::Error> {
-        self.http_client
-            .get(self.format_ipfs_fetch_url(cid))
+        let response = self
+            .http_client
+            .get(self.format_ipfs_fetch_url(cid, &self.ipfs_fetch_url))
             .timeout(self.fetch_timeout.unwrap_or(FETCH_TIMEOUT))
             .send()
-            .await
+            .await;
+        match response {
+            Ok(resp) => Ok(resp),
+            Err(e) => {
+                if e.is_status() && e.status().unwrap() == StatusCode::NOT_FOUND {
+                    warn!("IPFS fetch to local node failed: {}", e);
+                    warn!("Fetching from Pinata node...");
+                    self.http_client
+                        .get(self.format_ipfs_fetch_url(cid, "https://gateway.pinata.cloud"))
+                        .timeout(self.fetch_timeout.unwrap_or(FETCH_TIMEOUT))
+                        .send()
+                        .await
+                } else {
+                    Err(e)
+                }
+            }
+        }
     }
 
     /// Formats the URL to add a remote pin to Pinata
@@ -101,8 +120,8 @@ impl IPFSResolver {
     }
 
     /// Formats the URL to fetch IPFS data
-    fn format_ipfs_fetch_url(&self, cid: &str) -> String {
-        format!("{}/ipfs/{}", self.ipfs_fetch_url, cid)
+    fn format_ipfs_fetch_url(&self, cid: &str, ipfs_node: &str) -> String {
+        format!("{}/ipfs/{}", ipfs_node, cid)
     }
 
     /// Formats the URL to pin a hash to IPFS
