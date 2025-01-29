@@ -35,7 +35,13 @@ pub async fn try_to_resolve_ipfs_uri(
     if let Some(ipfs_hash) = atom_data.strip_prefix("ipfs://") {
         if let Ok(ipfs_data) = resolver_consumer_context
             .ipfs_resolver
-            .fetch_from_ipfs(ipfs_hash)
+            .fetch_from_ipfs(
+                ipfs_hash,
+                &resolver_consumer_context
+                    .server_initialize
+                    .env
+                    .pinata_gateway_token,
+            )
             .await
         {
             // Remove UTF-8 BOM if present

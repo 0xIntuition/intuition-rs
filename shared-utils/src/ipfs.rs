@@ -57,12 +57,19 @@ impl IPFSResolver {
     }
     /// Fetches a file and returns its content as a string from IPFS
     /// using the configured gateway.
-    pub async fn fetch_from_ipfs(&self, cid: &str) -> Result<String, LibError> {
+    pub async fn fetch_from_ipfs(
+        &self,
+        cid: &str,
+        pinata_gateway_token: &Option<String>,
+    ) -> Result<String, LibError> {
         let mut attempts = 0;
 
         let response = loop {
             attempts += 1;
-            match self.fetch_from_ipfs_request(cid).await {
+            match self
+                .fetch_from_ipfs_request(cid, pinata_gateway_token)
+                .await
+            {
                 Ok(resp) => {
                     // Check if the response contains the "resource does not exist" error
                     let body = resp.text().await.unwrap_or_default();
@@ -86,10 +93,14 @@ impl IPFSResolver {
     /// Sends a request to fetch IPFS data. If the request fails, it will
     /// try to fetch the data from the Pinata node.
     /// TODO: improve this
-    async fn fetch_from_ipfs_request(&self, cid: &str) -> Result<Response, reqwest::Error> {
+    async fn fetch_from_ipfs_request(
+        &self,
+        cid: &str,
+        pinata_gateway_token: &Option<String>,
+    ) -> Result<Response, reqwest::Error> {
         let response = self
             .http_client
-            .get(self.format_ipfs_fetch_url(cid, &self.ipfs_fetch_url))
+            .get(self.format_ipfs_fetch_url(cid, &self.ipfs_fetch_url, &None))
             .timeout(self.fetch_timeout.unwrap_or(FETCH_TIMEOUT))
             .send()
             .await;
@@ -100,7 +111,11 @@ impl IPFSResolver {
                     warn!("IPFS fetch to local node failed: {}", e);
                     warn!("Fetching from Pinata node...");
                     self.http_client
-                        .get(self.format_ipfs_fetch_url(cid, "https://gateway.pinata.cloud"))
+                        .get(self.format_ipfs_fetch_url(
+                            cid,
+                            "https://aquamarine-tragic-mockingbird-747.mypinata.cloud/ipfs/",
+                            pinata_gateway_token,
+                        ))
                         .timeout(self.fetch_timeout.unwrap_or(FETCH_TIMEOUT))
                         .send()
                         .await
@@ -120,8 +135,17 @@ impl IPFSResolver {
     }
 
     /// Formats the URL to fetch IPFS data
-    fn format_ipfs_fetch_url(&self, cid: &str, ipfs_node: &str) -> String {
-        format!("{}/ipfs/{}", ipfs_node, cid)
+    fn format_ipfs_fetch_url(
+        &self,
+        cid: &str,
+        ipfs_node: &str,
+        pinata_gateway_token: &Option<String>,
+    ) -> String {
+        if let Some(token) = pinata_gateway_token {
+            format!("{}/ipfs/{}?pinataGatewayToken={}", ipfs_node, cid, token)
+        } else {
+            format!("{}/ipfs/{}", ipfs_node, cid)
+        }
     }
 
     /// Formats the URL to pin a hash to IPFS

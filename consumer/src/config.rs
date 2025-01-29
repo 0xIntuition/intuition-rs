@@ -18,6 +18,7 @@ pub struct Env {
     pub ipfs_upload_url: Option<String>,
     pub localstack_url: Option<String>,
     pub pinata_api_jwt: Option<String>,
+    pub pinata_gateway_token: Option<String>,
     pub raw_consumer_queue_url: Option<String>,
     pub resolver_queue_url: Option<String>,
     pub rpc_url_base: Option<String>,
