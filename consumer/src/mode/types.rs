@@ -9,7 +9,8 @@ use crate::{
     EthMultiVault::{self, EthMultiVaultEvents, EthMultiVaultInstance},
 };
 use alloy::{
-    primitives::Address,
+    eips::BlockId,
+    primitives::{Address, Uint, U256},
     providers::{ProviderBuilder, RootProvider},
     transports::http::Http,
 };
@@ -19,6 +20,7 @@ use reqwest::Client;
 use shared_utils::{ipfs::IPFSResolver, postgres::connect_to_db};
 use sqlx::PgPool;
 use std::{str::FromStr, sync::Arc};
+use tokio::time::{sleep, Duration};
 use tracing::{debug, info, warn};
 
 use super::{ipfs_upload::types::IpfsUploadMessage, resolver::types::ResolverConsumerMessage};
@@ -60,6 +62,70 @@ pub struct DecodedConsumerContext {
     pub base_client: Arc<EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>>>,
     pub pg_pool: PgPool,
     pub backend_schema: String,
+}
+
+impl DecodedConsumerContext {
+    /// This function retries a function with a backoff strategy. It expects to receive a
+    /// function that returns a `Result<T, ConsumerError>`, where `T` is the type of the result
+    /// of the function and `F` is the function that returns the result, F also needs to be a
+    /// `Future<Output = Result<T, ConsumerError>>`.
+    async fn retry_with_backoff<T, F, Fut>(&self, mut f: F) -> Result<T, ConsumerError>
+    where
+        F: FnMut() -> Fut,
+        Fut: std::future::Future<Output = Result<T, ConsumerError>>,
+    {
+        let mut backoff = Duration::from_millis(100);
+        let max_backoff = Duration::from_secs(10);
+        let max_retries = 5;
+
+        for attempt in 0..max_retries {
+            match f().await {
+                Ok(result) => return Ok(result),
+                Err(e) => {
+                    if attempt == max_retries - 1 {
+                        return Err(e);
+                    }
+                    sleep(backoff).await;
+                    backoff = std::cmp::min(backoff * 2, max_backoff);
+                }
+            }
+        }
+        Err(ConsumerError::MaxRetriesExceeded)
+    }
+
+    /// This function fetches the current share price from the vault
+    pub async fn fetch_current_share_price(
+        &self,
+        id: Uint<256, 4>,
+        event: &DecodedMessage,
+    ) -> Result<U256, ConsumerError> {
+        self.retry_with_backoff(|| async {
+            Ok(self
+                .base_client
+                .currentSharePrice(id)
+                .block(BlockId::from_str(&event.block_number.to_string())?)
+                .call()
+                .await?
+                ._0)
+        })
+        .await
+    }
+
+    /// This function fetches the counter id from the triple
+    pub async fn get_counter_id_from_triple(
+        &self,
+        vault_id: Uint<256, 4>,
+    ) -> Result<Uint<256, 4>, ConsumerError> {
+        self.retry_with_backoff(|| async {
+            Ok(self
+                .base_client
+                .getCounterIdFromTriple(vault_id)
+                .call()
+                .await?
+                ._0)
+        })
+        .await
+    }
 }
 
 impl AtomUpdater for DecodedConsumerContext {
@@ -444,7 +510,7 @@ impl ConsumerMode {
                     .start_timer();
                 info!("Received: {fees_data:#?}");
                 fees_data
-                    .handle_fees_transferred_creation(&decoded_message, decoded_consumer_context)
+                    .handle_fees_transferred_creation(decoded_consumer_context, &decoded_message)
                     .await?;
                 timer.observe_duration();
             }
@@ -454,11 +520,7 @@ impl ConsumerMode {
                     .start_timer();
                 info!("Received: {triple_data:#?}");
                 triple_data
-                    .handle_triple_creation(
-                        decoded_consumer_context,
-                        &decoded_consumer_context.base_client,
-                        &decoded_message,
-                    )
+                    .handle_triple_creation(decoded_consumer_context, &decoded_message)
                     .await?;
                 timer.observe_duration();
             }

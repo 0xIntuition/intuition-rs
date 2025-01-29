@@ -1,16 +1,9 @@
 use super::utils::get_or_create_account;
 use crate::{
-    error::ConsumerError,
-    mode::types::DecodedConsumerContext,
-    schemas::types::DecodedMessage,
-    EthMultiVault::{EthMultiVaultInstance, Redeemed},
+    error::ConsumerError, mode::types::DecodedConsumerContext, schemas::types::DecodedMessage,
+    EthMultiVault::Redeemed,
 };
-use alloy::{
-    eips::BlockId,
-    primitives::{Uint, U256},
-    providers::RootProvider,
-    transports::http::Http,
-};
+use alloy::primitives::{Uint, U256};
 use models::{
     account::Account,
     claim::Claim,
@@ -24,8 +17,6 @@ use models::{
     types::U256Wrapper,
     vault::Vault,
 };
-use reqwest::Client;
-use std::str::FromStr;
 
 impl Redeemed {
     /// This function creates an `Event` for the `Redeemed` event
@@ -157,20 +148,6 @@ impl Redeemed {
         Ok(())
     }
 
-    /// This function fetches the current share price from the vault
-    async fn fetch_current_share_price(
-        &self,
-        web3: &EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>>,
-        event: &DecodedMessage,
-    ) -> Result<U256, ConsumerError> {
-        Ok(web3
-            .currentSharePrice(self.vaultId)
-            .block(BlockId::from_str(&event.block_number.to_string())?)
-            .call()
-            .await?
-            ._0)
-    }
-
     /// This function handles the creation of a `Redeemed`
     pub async fn handle_redeemed_creation(
         &self,
@@ -193,8 +170,8 @@ impl Redeemed {
         .await?;
 
         // 3. Get vault and current share price
-        let current_share_price = self
-            .fetch_current_share_price(&decoded_consumer_context.base_client, event)
+        let current_share_price = decoded_consumer_context
+            .fetch_current_share_price(self.vaultId, event)
             .await?;
         let vault = Vault::find_by_id(
             U256Wrapper::from(self.vaultId),

@@ -3,9 +3,9 @@ use crate::{
     mode::{decoded::utils::get_or_create_account, types::DecodedConsumerContext},
     schemas::types::DecodedMessage,
     ConsumerError,
-    EthMultiVault::{Deposited, EthMultiVaultInstance},
+    EthMultiVault::Deposited,
 };
-use alloy::{eips::BlockId, primitives::U256, providers::RootProvider, transports::http::Http};
+use alloy::primitives::U256;
 use futures::executor::block_on;
 use models::{
     claim::Claim,
@@ -19,7 +19,6 @@ use models::{
     types::U256Wrapper,
     vault::Vault,
 };
-use reqwest::Client;
 use std::str::FromStr;
 use tracing::info;
 
@@ -232,20 +231,6 @@ impl Deposited {
         Ok(())
     }
 
-    /// This function fetches the current share price from the vault
-    async fn fetch_current_share_price(
-        &self,
-        web3: &EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>>,
-        event: &DecodedMessage,
-    ) -> Result<U256, ConsumerError> {
-        Ok(web3
-            .currentSharePrice(self.vaultId)
-            .block(BlockId::from_str(&event.block_number.to_string())?)
-            .call()
-            .await?
-            ._0)
-    }
-
     /// This function formats the claim ID
     fn format_claim_id(&self) -> String {
         format!(
@@ -330,8 +315,8 @@ impl Deposited {
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
         // Initialize core data
-        let current_share_price = self
-            .fetch_current_share_price(&decoded_consumer_context.base_client, event)
+        let current_share_price = decoded_consumer_context
+            .fetch_current_share_price(self.vaultId, event)
             .await?;
 
         // Initialize accounts and vault. We need to block on this because it's async and

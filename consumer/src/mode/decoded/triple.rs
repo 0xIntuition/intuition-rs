@@ -1,10 +1,8 @@
 use crate::{
-    error::ConsumerError,
-    mode::types::DecodedConsumerContext,
-    schemas::types::DecodedMessage,
-    EthMultiVault::{EthMultiVaultInstance, TripleCreated},
+    error::ConsumerError, mode::types::DecodedConsumerContext, schemas::types::DecodedMessage,
+    EthMultiVault::TripleCreated,
 };
-use alloy::{eips::BlockId, primitives::U256, providers::RootProvider, transports::http::Http};
+use alloy::primitives::U256;
 use models::{
     account::{Account, AccountType},
     atom::{Atom, AtomType},
@@ -17,7 +15,6 @@ use models::{
     types::U256Wrapper,
     vault::Vault,
 };
-use reqwest::Client;
 use std::str::FromStr;
 use tracing::info;
 
@@ -206,14 +203,13 @@ impl TripleCreated {
     pub async fn handle_triple_creation(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
-        web3: &EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>>,
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
         info!("Handling triple creation: {self:#?}");
 
         // Update the counter vault current share price and get the triple
         let triple = self
-            .update_vaults_current_share_price_and_get_triple(decoded_consumer_context, web3, event)
+            .update_vaults_current_share_price_and_get_triple(decoded_consumer_context, event)
             .await?;
 
         // Update the predicate object
@@ -418,43 +414,40 @@ impl TripleCreated {
     async fn update_vaults_current_share_price_and_get_triple(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
-        web3: &EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>>,
         event: &DecodedMessage,
     ) -> Result<Triple, ConsumerError> {
         // Get the counter vault ID
-        let counter_vault_id = web3.getCounterIdFromTriple(self.vaultID).call().await?;
+        let counter_vault_id = decoded_consumer_context
+            .get_counter_id_from_triple(self.vaultID)
+            .await?;
         // Get the share price of the atom
         // Get the current share price of the counter vault
-        let counter_vault_current_share_price = web3
-            .currentSharePrice(counter_vault_id._0)
-            .block(BlockId::from_str(&event.block_number.to_string())?)
-            .call()
+        let counter_vault_current_share_price = decoded_consumer_context
+            .fetch_current_share_price(counter_vault_id, event)
             .await?;
 
         // Get the current share price of the vault
-        let vault_current_share_price = web3
-            .currentSharePrice(self.vaultID)
-            .block(BlockId::from_str(&event.block_number.to_string())?)
-            .call()
+        let vault_current_share_price = decoded_consumer_context
+            .fetch_current_share_price(self.vaultID, event)
             .await?;
 
         // Get or create the triple
         let triple = self
-            .get_or_create_triple(decoded_consumer_context, event, counter_vault_id._0)
+            .get_or_create_triple(decoded_consumer_context, event, counter_vault_id)
             .await?;
 
         // Get or update the vault
         self.get_or_create_vault(
             decoded_consumer_context,
             self.vaultID,
-            vault_current_share_price._0,
+            vault_current_share_price,
         )
         .await?;
         // Get or update the counter vault
         self.get_or_create_vault(
             decoded_consumer_context,
-            counter_vault_id._0,
-            counter_vault_current_share_price._0,
+            counter_vault_id,
+            counter_vault_current_share_price,
         )
         .await?;
 
