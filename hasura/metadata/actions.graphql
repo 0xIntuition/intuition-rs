@@ -1,12 +1,18 @@
 type Mutation {
-  pinThing(
-    thing: PinThingInput!
+  pinOrganization(
+    organization: PinOrganizationInput!
   ): PinOutput
+}
+
+type Mutation {
   pinPerson(
     person: PinPersonInput!
   ): PinOutput
-  pinOrganization(
-    organization: PinOrganizationInput!
+}
+
+type Mutation {
+  pinThing(
+    thing: PinThingInput!
   ): PinOutput
 }
 

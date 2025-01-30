@@ -1,0 +1,18 @@
+table:
+  name: text_object
+  schema: public
+configuration:
+  column_config: {}
+  custom_column_names: {}
+  custom_name: text_objects
+  custom_root_fields:
+    select_by_pk: text_object
+select_permissions:
+  - role: anonymous
+    permission:
+      columns:
+        - id
+        - data
+      filter: {}
+      allow_aggregations: true
+    comment: ""

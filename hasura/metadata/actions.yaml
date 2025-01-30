@@ -1,5 +1,5 @@
 actions:
-  - name: pinThing
+  - name: pinOrganization
     definition:
       kind: synchronous
       handler: https://api.pinata.cloud/pinning/pinJSONToIPFS
@@ -18,11 +18,12 @@ actions:
               },
               "pinataContent": {
                 "@context": "https://schema.org",
-                "@type": "Thing",
-                "name": "{{$body.input.thing.name}}",
-                "description": "{{$body.input.thing.description}}",
-                "image": "{{$body.input.thing.image}}",
-                "url": "{{$body.input.thing.url}}"
+                "@type": "Organization",
+                "name": "{{$body.input.organization.name}}",
+                "description": "{{$body.input.organization.description}}",
+                "image": "{{$body.input.organization.image}}",
+                "url": "{{$body.input.organization.url}}",
+                "email": "{{$body.input.organization.email}}"
               }
             }
         template_engine: Kriti
@@ -38,7 +39,7 @@ actions:
         version: 2
     permissions:
       - role: anonymous
-    comment: Uploads and pins Thing to IPFS
+    comment: Uploads and pins Organization to IPFS
   - name: pinPerson
     definition:
       kind: synchronous
@@ -81,7 +82,7 @@ actions:
     permissions:
       - role: anonymous
     comment: Uploads and pins Person to IPFS
-  - name: pinOrganization
+  - name: pinThing
     definition:
       kind: synchronous
       handler: https://api.pinata.cloud/pinning/pinJSONToIPFS
@@ -100,12 +101,11 @@ actions:
               },
               "pinataContent": {
                 "@context": "https://schema.org",
-                "@type": "Organization",
-                "name": "{{$body.input.organization.name}}",
-                "description": "{{$body.input.organization.description}}",
-                "image": "{{$body.input.organization.image}}",
-                "url": "{{$body.input.organization.url}}",
-                "email": "{{$body.input.organization.email}}"
+                "@type": "Thing",
+                "name": "{{$body.input.thing.name}}",
+                "description": "{{$body.input.thing.description}}",
+                "image": "{{$body.input.thing.image}}",
+                "url": "{{$body.input.thing.url}}"
               }
             }
         template_engine: Kriti
@@ -121,7 +121,7 @@ actions:
         version: 2
     permissions:
       - role: anonymous
-    comment: Uploads and pins Organization to IPFS
+    comment: Uploads and pins Thing to IPFS
 custom_types:
   enums: []
   input_objects:

@@ -1,0 +1,21 @@
+table:
+  name: caip10
+  schema: public
+configuration:
+  column_config: {}
+  custom_column_names: {}
+  custom_root_fields:
+    select: caip10s
+    select_by_pk: caip10
+select_permissions:
+  - role: anonymous
+    permission:
+      columns:
+        - chain_id
+        - id
+        - account_address
+        - namespace
+      filter: {}
+      limit: 100
+      allow_aggregations: true
+    comment: ""
