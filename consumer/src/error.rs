@@ -69,6 +69,8 @@ pub enum ConsumerError {
             aws_smithy_runtime_api::http::Response,
         >,
     ),
+    #[error("ByteObject error")]
+    ByteObjectError(String),
     #[error("Deposited error")]
     Deposited(String),
     #[error("Failed to delete claim: {0}")]

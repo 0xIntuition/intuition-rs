@@ -1,6 +1,7 @@
 use crate::{
     error::ConsumerError,
     mode::{
+        decoded::atom::atom_supported_types::AtomMetadata,
         ipfs_upload::types::IpfsUploadMessage,
         resolver::{
             atom_resolver::{try_to_parse_json, try_to_resolve_ipfs_uri},
@@ -118,48 +119,72 @@ impl ResolverMessageType {
         resolver_consumer_context: &ResolverConsumerContext,
         resolver_message: &ResolveAtom,
     ) -> Result<(), ConsumerError> {
-        let data = try_to_resolve_ipfs_uri(
-            &resolver_message
-                .atom
-                .data
-                .clone()
-                .ok_or(ConsumerError::AtomDataNotFound)?,
-            resolver_consumer_context,
-        )
-        .await?;
-        // If we resolved an IPFS URI, we need to try to parse the JSON
-        let metadata = if let Some(data) = data {
-            // At this point we know that the data is a valid response
-            // so we can try to parse the JSON. We also need to remove the UTF-8 BOM
-            // if present, as it can cause issues with the JSON parsing.
+        let metadata = self
+            .resolve_and_parse_atom_data(resolver_consumer_context, resolver_message)
+            .await?;
+
+        // If the atom type is not unknown, we handle the new atom type that was resolved
+        if AtomType::from_str(&metadata.atom_type)? != AtomType::Unknown {
+            self.handle_known_atom_type(resolver_consumer_context, resolver_message, metadata)
+                .await?;
+        } else {
+            self.mark_atom_as_failed(resolver_consumer_context, resolver_message)
+                .await?;
+        }
+        Ok(())
+    }
+
+    /// This function resolves and parses the atom data
+    async fn resolve_and_parse_atom_data(
+        &self,
+        resolver_consumer_context: &ResolverConsumerContext,
+        resolver_message: &ResolveAtom,
+    ) -> Result<AtomMetadata, ConsumerError> {
+        let atom_data = resolver_message
+            .atom
+            .data
+            .clone()
+            .ok_or(ConsumerError::AtomDataNotFound)?;
+
+        let data = try_to_resolve_ipfs_uri(&atom_data, resolver_consumer_context).await?;
+
+        if let Some(data) = data {
             let data = data.text().await?.replace('\u{feff}', "");
             let _bytes = data.bytes();
             info!("Atom data is an IPFS URI: {data}");
-            try_to_parse_json(&data, &resolver_message.atom, resolver_consumer_context).await?
+            try_to_parse_json(&data, &resolver_message.atom, resolver_consumer_context).await
         } else {
             info!(
                 "No IPFS URI found or IPFS URI is not valid, trying to parse atom data as JSON..."
             );
-            // This is the fallback case, where we try to parse the atom data as JSON
-            // even if it's not a valid IPFS URI. This is useful for cases where the
-            // atom data is a JSON object that is not a schema.org URL.
             try_to_parse_json(
-                &resolver_message
-                    .atom
-                    .data
-                    .clone()
-                    .ok_or(ConsumerError::AtomDataNotFound)?,
+                &atom_data,
                 &resolver_message.atom,
                 resolver_consumer_context,
             )
-            .await?
-        };
+            .await
+        }
+    }
 
-        // If at this point we have an atom type that is not unknown (it means it changes it state),
-        // we need to update the atom metadata
-        if AtomType::from_str(&metadata.atom_type)? != AtomType::Unknown {
-            let atom = Atom::find_by_id(
-                resolver_message.atom.id.clone(),
+    /// This function handles the known atom type
+    async fn handle_known_atom_type(
+        &self,
+        resolver_consumer_context: &ResolverConsumerContext,
+        resolver_message: &ResolveAtom,
+        metadata: AtomMetadata,
+    ) -> Result<(), ConsumerError> {
+        let atom = self
+            .find_and_update_atom(resolver_consumer_context, resolver_message, metadata)
+            .await?;
+
+        if let Some(image) = atom.image.clone() {
+            self.handle_atom_image(resolver_consumer_context, image)
+                .await?;
+        }
+
+        resolver_message
+            .atom
+            .mark_as_resolved(
                 &resolver_consumer_context.pg_pool,
                 &resolver_consumer_context
                     .server_initialize
@@ -168,56 +193,74 @@ impl ResolverMessageType {
             )
             .await?;
 
-            if let Some(mut atom) = atom {
-                metadata
-                    .update_atom_metadata(
-                        &mut atom,
-                        &resolver_consumer_context.pg_pool,
-                        &resolver_consumer_context
-                            .server_initialize
-                            .env
-                            .backend_schema,
-                    )
-                    .await?;
-
-                // If the atom has an image, we need to download it and classify it
-                if let Some(image) = metadata.image {
-                    // If we receive an image, we send it to the IPFS upload consumer
-                    // to be classified and stored
-                    info!("Sending image to IPFS upload consumer: {}", image);
-                    resolver_consumer_context
-                        .client
-                        .send_message(serde_json::to_string(&IpfsUploadMessage { image })?, None)
-                        .await?;
-                }
-
-                // Mark the atom as resolved
-                resolver_message
-                    .atom
-                    .mark_as_resolved(
-                        &resolver_consumer_context.pg_pool,
-                        &resolver_consumer_context
-                            .server_initialize
-                            .env
-                            .backend_schema,
-                    )
-                    .await?;
-                info!("Updated atom metadata: {atom:?}");
-            }
-        } else {
-            // Mark the atom as failed
-            resolver_message
-                .atom
-                .mark_as_failed(
-                    &resolver_consumer_context.pg_pool,
-                    &resolver_consumer_context
-                        .server_initialize
-                        .env
-                        .backend_schema,
-                )
-                .await?;
-        }
+        info!("Updated atom metadata: {atom:?}");
         Ok(())
+    }
+
+    /// This function finds the atom and updates its metadata
+    async fn find_and_update_atom(
+        &self,
+        resolver_consumer_context: &ResolverConsumerContext,
+        resolver_message: &ResolveAtom,
+        metadata: AtomMetadata,
+    ) -> Result<Atom, ConsumerError> {
+        let atom = Atom::find_by_id(
+            resolver_message.atom.id.clone(),
+            &resolver_consumer_context.pg_pool,
+            &resolver_consumer_context
+                .server_initialize
+                .env
+                .backend_schema,
+        )
+        .await?
+        .ok_or(ConsumerError::AtomNotFound)?;
+
+        let mut atom = atom;
+        metadata
+            .update_atom_metadata(
+                &mut atom,
+                &resolver_consumer_context.pg_pool,
+                &resolver_consumer_context
+                    .server_initialize
+                    .env
+                    .backend_schema,
+            )
+            .await?;
+
+        Ok(atom)
+    }
+
+    /// This function handles the atom image
+    async fn handle_atom_image(
+        &self,
+        resolver_consumer_context: &ResolverConsumerContext,
+        image: String,
+    ) -> Result<(), ConsumerError> {
+        info!("Sending image to IPFS upload consumer: {}", image);
+        resolver_consumer_context
+            .client
+            .send_message(serde_json::to_string(&IpfsUploadMessage { image })?, None)
+            .await
+            .map_err(ConsumerError::from)
+    }
+
+    /// This function marks the atom as failed
+    async fn mark_atom_as_failed(
+        &self,
+        resolver_consumer_context: &ResolverConsumerContext,
+        resolver_message: &ResolveAtom,
+    ) -> Result<(), ConsumerError> {
+        resolver_message
+            .atom
+            .mark_as_failed(
+                &resolver_consumer_context.pg_pool,
+                &resolver_consumer_context
+                    .server_initialize
+                    .env
+                    .backend_schema,
+            )
+            .await
+            .map_err(ConsumerError::from)
     }
 
     /// This function updates the account metadata

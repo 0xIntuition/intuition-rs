@@ -51,6 +51,16 @@ impl AtomMetadata {
         }
     }
 
+    /// Creates a new atom metadata for a byte object
+    pub fn byte_object(image: Option<String>) -> Self {
+        Self {
+            label: "byte object".to_string(),
+            emoji: "👾".to_string(),
+            atom_type: "ByteObject".to_string(),
+            image,
+        }
+    }
+
     /// Creates a new atom metadata for a caip10
     pub fn caip10(caip10: String) -> Self {
         Self {
@@ -137,6 +147,17 @@ impl AtomMetadata {
             }
         }
     }
+
+    /// Creates a new atom metadata for a json object
+    pub fn json_object(image: Option<String>) -> Self {
+        Self {
+            label: "json object".to_string(),
+            emoji: "📃".to_string(),
+            atom_type: "JsonObject".to_string(),
+            image,
+        }
+    }
+
     /// Creates a new atom metadata for a keywords predicate
     pub fn keywords_predicate(image: Option<String>) -> Self {
         Self {
@@ -193,6 +214,16 @@ impl AtomMetadata {
             label: "is person".to_string(),
             emoji: "👤".to_string(),
             atom_type: "PersonPredicate".to_string(),
+            image,
+        }
+    }
+
+    /// Creates a new atom metadata for a text object
+    pub fn text_object(image: Option<String>) -> Self {
+        Self {
+            label: "text object".to_string(),
+            emoji: "📄".to_string(),
+            atom_type: "TextObject".to_string(),
             image,
         }
     }
