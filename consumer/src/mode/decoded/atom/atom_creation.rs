@@ -11,7 +11,7 @@ use crate::{
     schemas::types::DecodedMessage,
     EthMultiVault::AtomCreated,
 };
-use alloy::{eips::BlockId, primitives::U256};
+use alloy::primitives::U256;
 use models::{
     account::{Account, AccountType},
     atom::{Atom, AtomResolvingStatus, AtomType},
@@ -231,10 +231,7 @@ impl AtomCreated {
     ) -> Result<(Vault, Atom), ConsumerError> {
         // Get the share price of the atom
         let current_share_price = decoded_consumer_context
-            .base_client
-            .currentSharePrice(self.vaultID)
-            .block(BlockId::from_str(&event.block_number.to_string())?)
-            .call()
+            .fetch_current_share_price(self.vaultID, event)
             .await?;
 
         // In order to upsert a [`Vault`] we need to have an [`Atom`] first.
@@ -251,7 +248,7 @@ impl AtomCreated {
             .id(atom.vault_id.clone())
             .atom_id(atom.vault_id.clone())
             .total_shares(U256Wrapper::from(U256::from(0)))
-            .current_share_price(U256Wrapper::from_str(&current_share_price._0.to_string())?)
+            .current_share_price(U256Wrapper::from_str(&current_share_price.to_string())?)
             .position_count(0)
             .build()
             .upsert(

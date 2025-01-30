@@ -4,6 +4,7 @@ kind: Kustomization
 resources:
   - ../../base  # Adjusted to point to the base directory
   - secret-provider.yaml
+  - migrations-patch.yaml
 
 namePrefix: "dev-base-mainnet-"
 
@@ -15,7 +16,7 @@ patches:
 
   - path: migrations-patch.yaml
     target:
-      kind: Deployment
+      kind: Job
       name: hasura-migrations
 
 commonLabels:

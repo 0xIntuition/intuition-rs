@@ -8,7 +8,7 @@ spec:
       serviceAccountName: secrets-access-sa
       containers:
         - name: histoflux
-          image: ghcr.io/0xintuition/histoflux:1.0.45
+          image: ghcr.io/0xintuition/histoflux:1.0.60
           imagePullPolicy: Always 
           volumeMounts:
             - name: secrets-store-inline

@@ -95,8 +95,8 @@ impl FeesTransferred {
     /// This function handles an `FeesTransferred` event.
     pub async fn handle_fees_transferred_creation(
         &self,
-        event: &DecodedMessage,
         decoded_consumer_context: &DecodedConsumerContext,
+        event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
         info!("Handling fees transfer: {self:#?}");
 

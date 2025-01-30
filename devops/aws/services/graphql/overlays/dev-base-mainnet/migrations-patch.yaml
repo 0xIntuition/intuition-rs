@@ -5,9 +5,10 @@ metadata:
 spec:
   template:
     spec:
+      serviceAccountName: secrets-access-sa
       containers:
         - name: hasura-migrations
-          image: ghcr.io/0xintuition/hasura-migrations:1.0.27
+          image: ghcr.io/0xintuition/hasura-migrations:1.0.48
           imagePullPolicy: Always
           volumeMounts:
             - name: secrets-store-inline

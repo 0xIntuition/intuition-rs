@@ -160,6 +160,31 @@ impl HistoCrawler {
         Ok(())
     }
 
+    async fn get_logs_with_retry(&self, filter: &Filter) -> Result<Vec<Log>, HistoCrawlerError> {
+        let mut delay = Duration::from_secs(1);
+        let max_delay = Duration::from_secs(10);
+        let mut attempts = 0;
+        let max_attempts = 5;
+
+        loop {
+            match self.provider.get_logs(filter).await {
+                Ok(logs) => return Ok(logs),
+                Err(e) => {
+                    attempts += 1;
+                    if attempts > max_attempts {
+                        return Err(e.into());
+                    }
+                    info!(
+                        "RPC call failed, attempt {}/{}. Error: {}. Retrying in {:?}...",
+                        attempts, max_attempts, e, delay
+                    );
+                    sleep(delay).await;
+                    delay = std::cmp::min(delay * 2, max_delay);
+                }
+            }
+        }
+    }
+
     pub async fn start_indexing(&mut self) -> Result<(), HistoCrawlerError> {
         info!("Starting indexing from block {}", self.env.start_block);
         let last_block = self.get_last_block().await?;
@@ -174,7 +199,7 @@ impl HistoCrawler {
             RawLog::fetch_last_observed_block(&self.pg_pool, &self.env.indexer_schema).await?;
         if let Some(last_block_in_db) = last_block_in_db {
             info!(
-                "Found last block in the database: {}, using this as start block",
+                "Found last block in the database: {}, using it as start block",
                 last_block_in_db
             );
             start_block = last_block_in_db as u64;
@@ -186,10 +211,7 @@ impl HistoCrawler {
 
         loop {
             let filter = self.create_filter(start_block, end_block).await?;
-
-            // Get all logs from the latest block that match the filter.
-            let logs = self.provider.get_logs(&filter).await?;
-
+            let logs = self.get_logs_with_retry(&filter).await?;
             // Process the batch of logs and insert them into the database
             for log in logs {
                 self.decode_raw_log_and_insert(log).await?;

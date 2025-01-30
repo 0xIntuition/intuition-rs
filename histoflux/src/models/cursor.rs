@@ -19,9 +19,9 @@ impl Environment {
     /// There must be a 1-1 mapping between the environment and the indexer schema.
     pub fn to_indexer_schema(&self) -> String {
         match self {
-            Environment::DevBase => "base_indexer".to_string(),
+            Environment::DevBase => "base_mainnet_indexer".to_string(),
             Environment::DevBaseSepolia => "base_sepolia_indexer".to_string(),
-            Environment::ProdBase => "base_indexer".to_string(),
+            Environment::ProdBase => "base_mainnet_indexer".to_string(),
             Environment::ProdBaseSepolia => "base_sepolia_indexer".to_string(),
         }
     }

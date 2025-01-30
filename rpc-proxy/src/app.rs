@@ -7,7 +7,7 @@ use crate::{
 use axum::{routing::post, Router};
 use http::header::{AUTHORIZATION, CONTENT_TYPE};
 use log::info;
-use reqwest::Client;
+use reqwest::{Client, Response};
 use serde::Deserialize;
 use serde_json::Value;
 use shared_utils::postgres::connect_to_db;
@@ -36,26 +36,46 @@ pub struct App {
 }
 
 impl App {
-    /// Relay the request to the target server.
-    pub async fn relay_request(&self, payload: Value, chain_id: u64) -> Result<Value, ApiError> {
-        // Get the RPC URL for the given chain_id
-        let rpc_url = self.get_rpc_url(chain_id)?;
-
-        // Forward the request to the target server
+    /// The maximum number of retries for the RPC request.
+    const MAX_RETRIES: u8 = 3;
+    /// The delay between retries.
+    const RETRY_DELAY: Duration = Duration::from_millis(100);
+    /// Send an RPC request to the given URL.
+    async fn send_rpc_request(&self, payload: &Value, rpc_url: &str) -> Result<Response, ApiError> {
         let response = self
             .reqwest_client
-            .post(&rpc_url)
-            .json(&payload)
+            .post(rpc_url)
+            .json(payload)
             .send()
             .await
             .map_err(|e| ApiError::ExternalServiceError(e.to_string()))?;
+        Ok(response)
+    }
+    /// Relay the request to the target server.
+    pub async fn relay_request(&self, payload: Value, chain_id: u64) -> Result<Value, ApiError> {
+        let rpc_url = self.get_rpc_url(chain_id)?;
+        let mut delay = Self::RETRY_DELAY;
 
-        // Get the response JSON
-        let response_data = response
-            .json::<serde_json::Value>()
-            .await
-            .map_err(|e| ApiError::JsonParseError(e.to_string()))?;
-        Ok(response_data)
+        for attempt in 0..Self::MAX_RETRIES {
+            let response = self.send_rpc_request(&payload, &rpc_url).await?;
+            if response.status().is_success() {
+                return response
+                    .json::<serde_json::Value>()
+                    .await
+                    .map_err(|e| ApiError::JsonParseError(e.to_string()));
+            }
+
+            if attempt < Self::MAX_RETRIES - 1 {
+                tokio::time::sleep(delay).await;
+                delay *= 2;
+            }
+        }
+
+        Err(ApiError::ExternalServiceError(format!(
+            "Request to {} failed after {} retries",
+            rpc_url,
+            Self::MAX_RETRIES
+        )))
     }
 
     /// Get the RPC URL for the given chain_id.

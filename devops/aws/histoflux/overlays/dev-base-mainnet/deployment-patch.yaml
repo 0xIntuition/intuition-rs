@@ -1,31 +1,26 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: histocrawler
+  name: histoflux
 spec:
   template:
     spec:
       serviceAccountName: secrets-access-sa
       containers:
-        - name: histocrawler
-          args:
-            - --network
-            - base-sepolia
-            - --output
-            - postgres
-          image: ghcr.io/0xintuition/histocrawler:1.0.47
-          imagePullPolicy: Always
+        - name: histoflux
+          image: ghcr.io/0xintuition/histoflux:1.0.60
+          imagePullPolicy: Always 
           volumeMounts:
             - name: secrets-store-inline
               mountPath: "/mnt/secrets"
               readOnly: true
           envFrom:
             - secretRef:
-                name: prod-histocrawler-aws-secrets
+                name: dev-base-histoflux-aws-secrets
       volumes:
         - name: secrets-store-inline
           csi:
             driver: secrets-store.csi.k8s.io
             readOnly: true
             volumeAttributes:
-              secretProviderClass: "prod-base-sepolia-prod-histocrawler-aws-secrets"
+              secretProviderClass: "dev-base-mainnet-dev-base-histoflux-aws-secrets"

@@ -99,6 +99,8 @@ pub enum ConsumerError {
     LocalstackUrlNotFound,
     #[error("Failed to decode log: {0}")]
     LogDecodingError(String),
+    #[error("Max retries exceeded")]
+    MaxRetriesExceeded,
     #[error(transparent)]
     ModelError(#[from] models::error::ModelError),
     #[error("Vault not found")]

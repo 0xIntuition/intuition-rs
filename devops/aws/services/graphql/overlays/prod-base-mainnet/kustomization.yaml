@@ -19,6 +19,11 @@ patches:
       kind: Job
       name: hasura-migrations
 
+  - path: indexer-migrations.yaml
+    target:
+      kind: Job
+      name: indexer-and-cache-migration
+
 commonLabels:
   network: base-mainnet
   io.kompose.service: prod-base-mainnet-graphql-engine
