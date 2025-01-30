@@ -361,6 +361,10 @@ async fn handle_text_data(
     atom: &Atom,
     atom_data: &str,
 ) -> Result<AtomMetadata, ConsumerError> {
+    if atom_data.starts_with("ipfs://") {
+        return Ok(AtomMetadata::unknown());
+    }
+
     info!("Data is likely text, returning it as TextObject");
     let text_object = create_text_object_from_obj(atom, atom_data)
         .upsert(consumer_context.pool(), consumer_context.backend_schema())
