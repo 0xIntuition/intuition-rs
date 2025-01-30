@@ -312,6 +312,12 @@ impl ConsumerMode {
                     .clone()
                     .unwrap_or_else(|| panic!("Pinata API JWT is not set")),
             )
+            .pinata_gateway_token(
+                data.env
+                    .pinata_gateway_token
+                    .clone()
+                    .unwrap_or_else(|| panic!("Pinata gateway token is not set")),
+            )
             .build())
     }
 

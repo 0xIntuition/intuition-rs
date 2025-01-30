@@ -5,13 +5,13 @@ resources:
   - ../../base
   - secret-provider.yaml
 
-namePrefix: "prod-base-sepolia-" 
+namePrefix: "dev-base-mainnet-" 
 
 patches:
   - path: deployment-patch.yaml
     target:
       kind: Deployment
-      name: histocrawler
+      name: histoflux
 
 commonLabels:
-  network: base-sepolia
+  network: base-mainnet

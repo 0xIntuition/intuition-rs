@@ -8,11 +8,6 @@ spec:
       serviceAccountName: secrets-access-sa
       containers:
         - name: histocrawler
-          args:
-            - --network
-            - base-sepolia
-            - --output
-            - postgres
           image: ghcr.io/0xintuition/histocrawler:1.0.51
           imagePullPolicy: Always
           volumeMounts:
