@@ -42,15 +42,18 @@ pub enum AtomResolvingStatus {
 #[sqlx(type_name = "atom_type")]
 pub enum AtomType {
     Account,
+    ByteObject,
     Book,
     Caip10,
     FollowAction,
+    JsonObject,
     Keywords,
     LikeAction,
     Organization,
     OrganizationPredicate,
     Person,
     PersonPredicate,
+    TextObject,
     Thing,
     ThingPredicate,
     Unknown,

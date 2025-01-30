@@ -58,7 +58,7 @@ impl IPFSResolver {
     }
     /// Fetches a file and returns its content as a string from IPFS
     /// using the configured gateway.
-    pub async fn fetch_from_ipfs(&self, cid: &str) -> Result<String, LibError> {
+    pub async fn fetch_from_ipfs(&self, cid: &str) -> Result<Response, LibError> {
         let mut attempts = 0;
 
         let response = loop {
@@ -94,17 +94,33 @@ impl IPFSResolver {
     }
 
     /// Fetches a file from IPFS using the configured gateway.
-    async fn fetch_from_ipfs_request(&self, cid: &str) -> Result<String, LibError> {
+    async fn fetch_from_ipfs_request(&self, cid: &str) -> Result<Response, LibError> {
         let nodes = self.get_ipfs_nodes();
         for (node, pinata_token) in nodes {
             match self.try_fetch_from_node(cid, node, &pinata_token).await {
                 Ok(resp) => {
-                    let body = resp.text().await.unwrap_or_default();
+                    let status = resp.status();
+                    // Clone the response bytes before consuming
+                    let bytes = resp
+                        .bytes()
+                        .await
+                        .map_err(|e| LibError::NetworkError(e.to_string()))?;
+                    // Convert bytes to string, so we can check if the resource exists
+                    let body = String::from_utf8_lossy(&bytes);
+
                     if body.contains("resource does not exist") {
                         warn!("Resource not found in {}", node);
                         continue;
                     }
-                    return Ok(body);
+
+                    // Reconstruct response with the bytes
+                    let resp = Response::from(
+                        http::Response::builder()
+                            .status(status)
+                            .body(bytes)
+                            .unwrap(),
+                    );
+                    return Ok(resp);
                 }
                 Err(e) => warn!("IPFS fetch from {} failed: {}", node, e),
             }

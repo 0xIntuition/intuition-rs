@@ -14,6 +14,7 @@ use models::{
     thing::Thing,
     traits::SimpleCrud,
 };
+use reqwest::Response;
 use serde_json::Value;
 use std::str::FromStr;
 use tracing::warn;
@@ -30,7 +31,7 @@ pub const SCHEMA_ORG_CONTEXTS: [&str; 4] = [
 pub async fn try_to_resolve_ipfs_uri(
     atom_data: &str,
     resolver_consumer_context: &ResolverConsumerContext,
-) -> Result<Option<String>, ConsumerError> {
+) -> Result<Option<Response>, ConsumerError> {
     // Handle IPFS URIs
     if let Some(ipfs_hash) = atom_data.strip_prefix("ipfs://") {
         if let Ok(ipfs_data) = resolver_consumer_context
@@ -38,9 +39,9 @@ pub async fn try_to_resolve_ipfs_uri(
             .fetch_from_ipfs(ipfs_hash)
             .await
         {
-            // Remove UTF-8 BOM if present
-            let data = ipfs_data.replace('\u{feff}', "");
-            Ok(Some(data))
+            // At this point we dont know what type of data is contained in the response,
+            // we just know that the response is valid and the file exists
+            Ok(Some(ipfs_data))
         } else {
             warn!("Failed to fetch IPFS data, atom data: {}", atom_data);
             Ok(None)

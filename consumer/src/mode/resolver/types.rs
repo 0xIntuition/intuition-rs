@@ -129,6 +129,11 @@ impl ResolverMessageType {
         .await?;
         // If we resolved an IPFS URI, we need to try to parse the JSON
         let metadata = if let Some(data) = data {
+            // At this point we know that the data is a valid response
+            // so we can try to parse the JSON. We also need to remove the UTF-8 BOM
+            // if present, as it can cause issues with the JSON parsing.
+            let data = data.text().await?.replace('\u{feff}', "");
+            let _bytes = data.bytes();
             info!("Atom data is an IPFS URI: {data}");
             try_to_parse_json(&data, &resolver_message.atom, resolver_consumer_context).await?
         } else {
