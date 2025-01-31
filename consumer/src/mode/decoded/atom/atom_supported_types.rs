@@ -55,7 +55,7 @@ impl AtomMetadata {
     pub fn byte_object(image: Option<String>) -> Self {
         Self {
             label: "byte object".to_string(),
-            emoji: "👾".to_string(),
+            emoji: "🖥️".to_string(),
             atom_type: "ByteObject".to_string(),
             image,
         }
@@ -152,7 +152,7 @@ impl AtomMetadata {
     pub fn json_object(image: Option<String>) -> Self {
         Self {
             label: "json object".to_string(),
-            emoji: "📃".to_string(),
+            emoji: "🗂️".to_string(),
             atom_type: "JsonObject".to_string(),
             image,
         }
@@ -222,7 +222,7 @@ impl AtomMetadata {
     pub fn text_object(image: Option<String>) -> Self {
         Self {
             label: "text object".to_string(),
-            emoji: "📄".to_string(),
+            emoji: "📝".to_string(),
             atom_type: "TextObject".to_string(),
             image,
         }
@@ -312,13 +312,18 @@ impl AtomMetadata {
         atom: &mut Atom,
         pg_pool: &PgPool,
         backend_schema: &str,
-    ) -> Result<(), ConsumerError> {
+    ) -> Result<AtomMetadata, ConsumerError> {
         atom.emoji = Some(self.emoji.clone());
         atom.atom_type = AtomType::from_str(&self.atom_type)?;
         atom.label = Some(self.label.clone());
         atom.image = self.image.clone();
         atom.upsert(pg_pool, backend_schema).await?;
-        Ok(())
+        Ok(AtomMetadata {
+            label: self.label.clone(),
+            emoji: self.emoji.clone(),
+            atom_type: self.atom_type.clone(),
+            image: self.image.clone(),
+        })
     }
 }
 

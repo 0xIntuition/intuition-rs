@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bytes = "1.8.0"
+bytes.workspace = true
 http = "1.2.0"
 log.workspace = true
 macon.workspace = true
@@ -15,5 +15,6 @@ serde_json.workspace = true
 sqlx.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
+tracing = "0.1"
 utoipa.workspace = true
 

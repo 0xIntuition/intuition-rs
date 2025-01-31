@@ -27,15 +27,14 @@ impl SimpleCrud<U256Wrapper> for ByteObject {
             VALUES ($1, $2) 
             ON CONFLICT (id) DO UPDATE SET 
                 data = EXCLUDED.data
-            RETURNING id, 
-                      data
+            RETURNING id, data
             "#,
             schema,
         );
 
         sqlx::query_as::<_, ByteObject>(&query)
             .bind(self.id.to_big_decimal()?)
-            .bind(self.data.clone())
+            .bind(&self.data[..])
             .fetch_one(pool)
             .await
             .map_err(|e| ModelError::InsertError(e.to_string()))

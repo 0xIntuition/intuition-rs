@@ -2033,6 +2033,7 @@ dependencies = [
  "aws-sdk-s3",
  "aws-sdk-sqs",
  "aws-smithy-runtime-api",
+ "bytes",
  "clap",
  "dotenvy",
  "envy",
@@ -4126,6 +4127,7 @@ version = "0.1.0"
 dependencies = [
  "alloy",
  "async-trait",
+ "bytes",
  "chrono",
  "hex",
  "hypersync-client",
@@ -5680,9 +5682,9 @@ dependencies = [
 
 [[package]]
 name = "schnellru"
-version = "0.2.3"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c9a8ef13a93c54d20580de1e5c413e624e53121d42fc7e2c11d10ef7f8b02367"
+checksum = "356285bbf17bea63d9e52e96bd18f039672ac92b55b8cb997d6162a2a37d1649"
 dependencies = [
  "ahash 0.8.11",
  "cfg-if",
@@ -5931,6 +5933,7 @@ dependencies = [
  "sqlx",
  "thiserror 2.0.11",
  "tokio",
+ "tracing",
  "utoipa",
 ]
 

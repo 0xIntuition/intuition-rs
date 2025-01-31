@@ -5,6 +5,7 @@ use crate::{
         types::{AtomUpdater, ResolverConsumerContext},
     },
 };
+use bytes::Bytes;
 use models::{
     atom::{Atom, AtomType},
     atom_value::AtomValue,
@@ -36,6 +37,7 @@ pub async fn try_to_resolve_ipfs_uri(
     resolver_consumer_context: &ResolverConsumerContext,
 ) -> Result<Option<Response>, ConsumerError> {
     // Handle IPFS URIs
+    warn!("Trying to resolve IPFS URI: {}", atom_data);
     if let Some(ipfs_hash) = atom_data.strip_prefix("ipfs://") {
         if let Ok(ipfs_data) = resolver_consumer_context
             .ipfs_resolver
@@ -50,6 +52,7 @@ pub async fn try_to_resolve_ipfs_uri(
             Ok(None)
         }
     } else {
+        warn!("Atom data is not an IPFS URI: {}", atom_data);
         Ok(None)
     }
 }
@@ -324,10 +327,10 @@ async fn handle_regular_json(
 pub async fn handle_binary_data(
     consumer_context: &impl AtomUpdater,
     atom: &Atom,
-    atom_data: &str,
+    atom_data: Bytes,
 ) -> Result<AtomMetadata, ConsumerError> {
     info!("Data is likely binary, returning it as ByteObject");
-    let byte_object = create_byte_object_from_obj(atom, atom_data.as_bytes().to_vec());
+    let byte_object = create_byte_object_from_obj(atom, atom_data.to_vec());
     match byte_object {
         Ok(byte_object) => {
             byte_object
@@ -349,6 +352,8 @@ async fn handle_text_data(
     atom: &Atom,
     atom_data: &str,
 ) -> Result<AtomMetadata, ConsumerError> {
+    // We need to ignore the case where the atom data is an IPFS URI, as we already handled it
+    // in the previous step
     if atom_data.starts_with("ipfs://") {
         return Ok(AtomMetadata::unknown());
     }

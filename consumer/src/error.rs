@@ -83,6 +83,8 @@ pub enum ConsumerError {
     Envy(#[from] envy::Error),
     #[error("Failed to resolve ENS data: {0}")]
     Ens(String),
+    #[error("Failed to get bytes from IPFS response")]
+    FailedToGetBytes,
     #[error(transparent)]
     Hex(#[from] hex::FromHexError),
     #[error(transparent)]

@@ -150,30 +150,42 @@ impl ResolverMessageType {
 
         // We check if the atom data is an IPFS URI and if it is, we fetch the data from the IPFS node
         let data = try_to_resolve_ipfs_uri(&atom_data, resolver_consumer_context).await?;
+        // let text = data.text().await;
+        // let bytes = data.bytes().await;
 
         // This is the case where we receive a response from the IPFS node, but we dont know yet
         // if the response is a JSON or a binary file.
         if let Some(data) = data {
-            // First we try to decode the response as text
-            match data.text().await {
-                Ok(text) => {
-                    let data = text.replace('\u{feff}', "");
-                    info!("Atom data is an IPFS URI: {data}");
-                    try_to_parse_json_or_text(
-                        &data,
-                        &resolver_message.atom,
-                        resolver_consumer_context,
-                    )
-                    .await
+            info!("Atom data is an IPFS URI and we have a response from the IPFS node");
+            // First we try to decode the response as bytes
+            match data.bytes().await {
+                Ok(bytes) => {
+                    // Try to convert bytes to text
+                    match String::from_utf8(bytes.to_vec()) {
+                        Ok(text) => {
+                            info!("Trying to get text from {}", text);
+                            let data = text.replace('\u{feff}', "");
+                            try_to_parse_json_or_text(
+                                &data,
+                                &resolver_message.atom,
+                                resolver_consumer_context,
+                            )
+                            .await
+                        }
+                        Err(_) => {
+                            info!("Failed to parse as text, trying to parse atom data as Binary");
+                            handle_binary_data(
+                                resolver_consumer_context,
+                                &resolver_message.atom,
+                                bytes,
+                            )
+                            .await
+                        }
+                    }
                 }
                 Err(e) => {
-                    info!("Failed to get text from IPFS response: {e}, trying to parse atom data as Binary");
-                    handle_binary_data(
-                        resolver_consumer_context,
-                        &resolver_message.atom,
-                        &atom_data,
-                    )
-                    .await
+                    info!("Failed to get bytes from IPFS response: {e}");
+                    Err(ConsumerError::FailedToGetBytes)
                 }
             }
         // This is the case where the atom data is not an IPFS URI, so we try to parse it as JSON
