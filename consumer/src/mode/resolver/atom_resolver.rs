@@ -43,7 +43,7 @@ pub async fn try_to_resolve_ipfs_uri(
             .await
         {
             // At this point we dont know what type of data is contained in the response,
-            // we just know that the response is valid and the file exists
+            // we just know that the response is valid
             Ok(Some(ipfs_data))
         } else {
             warn!("Failed to fetch IPFS data, atom data: {}", atom_data);
@@ -68,18 +68,6 @@ pub async fn try_to_resolve_schema_org_url(
     } else {
         Ok(None)
     }
-}
-
-/// Determines if data is likely binary based on the proportion of non-text characters
-fn is_likely_binary(data: &str) -> bool {
-    let binary_threshold = 0.3; // 30% non-text chars suggests binary
-    let non_text_chars = data
-        .as_bytes()
-        .iter()
-        .filter(|&&b| b < 32 && !b.is_ascii_whitespace() || b == 127)
-        .count();
-
-    (non_text_chars as f32 / data.len() as f32) > binary_threshold
 }
 
 /// Resolves schema.org properties
@@ -333,7 +321,7 @@ async fn handle_regular_json(
 }
 
 /// Handles binary data
-async fn handle_binary_data(
+pub async fn handle_binary_data(
     consumer_context: &impl AtomUpdater,
     atom: &Atom,
     atom_data: &str,
@@ -374,7 +362,7 @@ async fn handle_text_data(
 }
 
 /// Tries to parse JSON
-pub async fn try_to_parse_json(
+pub async fn try_to_parse_json_or_text(
     atom_data: &str,
     atom: &Atom,
     consumer_context: &impl AtomUpdater,
@@ -386,8 +374,6 @@ pub async fn try_to_parse_json(
             }
             _ => handle_regular_json(consumer_context, atom, &json).await,
         }
-    } else if is_likely_binary(atom_data) {
-        handle_binary_data(consumer_context, atom, atom_data).await
     } else {
         handle_text_data(consumer_context, atom, atom_data).await
     }
@@ -401,7 +387,6 @@ pub async fn create_byte_object_atom_value(
 ) -> Result<(), ConsumerError> {
     AtomValue::builder()
         .id(atom.id.clone())
-        .account_id(atom.creator_id.clone())
         .byte_object_id(byte_object.id.clone())
         .build()
         .upsert(consumer_context.pool(), consumer_context.backend_schema())
@@ -417,7 +402,6 @@ pub async fn create_text_object_atom_value(
 ) -> Result<(), ConsumerError> {
     AtomValue::builder()
         .id(atom.id.clone())
-        .account_id(atom.creator_id.clone())
         .text_object_id(text_object.id.clone())
         .build()
         .upsert(consumer_context.pool(), consumer_context.backend_schema())
@@ -433,7 +417,6 @@ pub async fn create_json_object_atom_value(
 ) -> Result<(), ConsumerError> {
     AtomValue::builder()
         .id(atom.id.clone())
-        .account_id(atom.creator_id.clone())
         .json_object_id(json_object.id.clone())
         .build()
         .upsert(consumer_context.pool(), consumer_context.backend_schema())
@@ -449,7 +432,6 @@ pub async fn create_thing_atom_value(
 ) -> Result<(), ConsumerError> {
     AtomValue::builder()
         .id(atom.id.clone())
-        .account_id(atom.creator_id.clone())
         .thing_id(thing.id.clone())
         .build()
         .upsert(consumer_context.pool(), consumer_context.backend_schema())
@@ -465,7 +447,6 @@ pub async fn create_person_atom_value(
 ) -> Result<(), ConsumerError> {
     AtomValue::builder()
         .id(atom.id.clone())
-        .account_id(atom.creator_id.clone())
         .person_id(person.id.clone())
         .build()
         .upsert(consumer_context.pool(), consumer_context.backend_schema())
@@ -481,7 +462,6 @@ pub async fn create_organization_atom_value(
 ) -> Result<(), ConsumerError> {
     AtomValue::builder()
         .id(atom.id.clone())
-        .account_id(atom.creator_id.clone())
         .organization_id(organization.id.clone())
         .build()
         .upsert(consumer_context.pool(), consumer_context.backend_schema())
@@ -497,7 +477,6 @@ pub async fn create_book_atom_value(
 ) -> Result<(), ConsumerError> {
     AtomValue::builder()
         .id(atom.id.clone())
-        .account_id(atom.creator_id.clone())
         .book_id(book.id.clone())
         .build()
         .upsert(consumer_context.pool(), consumer_context.backend_schema())

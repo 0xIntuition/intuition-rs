@@ -4,7 +4,9 @@ use crate::{
         decoded::atom::atom_supported_types::AtomMetadata,
         ipfs_upload::types::IpfsUploadMessage,
         resolver::{
-            atom_resolver::{try_to_parse_json, try_to_resolve_ipfs_uri},
+            atom_resolver::{
+                handle_binary_data, try_to_parse_json_or_text, try_to_resolve_ipfs_uri,
+            },
             ens_resolver::Ens,
         },
         types::ResolverConsumerContext,
@@ -146,18 +148,40 @@ impl ResolverMessageType {
             .clone()
             .ok_or(ConsumerError::AtomDataNotFound)?;
 
+        // We check if the atom data is an IPFS URI and if it is, we fetch the data from the IPFS node
         let data = try_to_resolve_ipfs_uri(&atom_data, resolver_consumer_context).await?;
 
+        // This is the case where we receive a response from the IPFS node, but we dont know yet
+        // if the response is a JSON or a binary file.
         if let Some(data) = data {
-            let data = data.text().await?.replace('\u{feff}', "");
-            let _bytes = data.bytes();
-            info!("Atom data is an IPFS URI: {data}");
-            try_to_parse_json(&data, &resolver_message.atom, resolver_consumer_context).await
+            // First we try to decode the response as text
+            match data.text().await {
+                Ok(text) => {
+                    let data = text.replace('\u{feff}', "");
+                    info!("Atom data is an IPFS URI: {data}");
+                    try_to_parse_json_or_text(
+                        &data,
+                        &resolver_message.atom,
+                        resolver_consumer_context,
+                    )
+                    .await
+                }
+                Err(e) => {
+                    info!("Failed to get text from IPFS response: {e}, trying to parse atom data as Binary");
+                    handle_binary_data(
+                        resolver_consumer_context,
+                        &resolver_message.atom,
+                        &atom_data,
+                    )
+                    .await
+                }
+            }
+        // This is the case where the atom data is not an IPFS URI, so we try to parse it as JSON
         } else {
             info!(
-                "No IPFS URI found or IPFS URI is not valid, trying to parse atom data as JSON..."
+                "No IPFS URI found or IPFS URI is not valid, trying to parse atom data as JSON or text..."
             );
-            try_to_parse_json(
+            try_to_parse_json_or_text(
                 &atom_data,
                 &resolver_message.atom,
                 resolver_consumer_context,

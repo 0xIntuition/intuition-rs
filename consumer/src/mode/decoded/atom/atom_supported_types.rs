@@ -3,7 +3,7 @@ use crate::{
     mode::{
         decoded::utils::{short_id, update_account_with_atom_id},
         resolver::{
-            atom_resolver::{try_to_parse_json, try_to_resolve_schema_org_url},
+            atom_resolver::{try_to_parse_json_or_text, try_to_resolve_schema_org_url},
             types::{ResolveAtom, ResolverConsumerMessage},
         },
         types::DecodedConsumerContext,
@@ -424,7 +424,8 @@ pub async fn get_supported_atom_metadata(
 
         // 5. Now we try to parse the JSON and return the metadata. At this point
         // the resolver will handle the rest of the cases.
-        let metadata = try_to_parse_json(decoded_atom_data, atom, decoded_consumer_context).await?;
+        let metadata =
+            try_to_parse_json_or_text(decoded_atom_data, atom, decoded_consumer_context).await?;
 
         Ok(metadata)
     }

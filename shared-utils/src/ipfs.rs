@@ -99,27 +99,6 @@ impl IPFSResolver {
         for (node, pinata_token) in nodes {
             match self.try_fetch_from_node(cid, node, &pinata_token).await {
                 Ok(resp) => {
-                    let status = resp.status();
-                    // Clone the response bytes before consuming
-                    let bytes = resp
-                        .bytes()
-                        .await
-                        .map_err(|e| LibError::NetworkError(e.to_string()))?;
-                    // Convert bytes to string, so we can check if the resource exists
-                    let body = String::from_utf8_lossy(&bytes);
-
-                    if body.contains("resource does not exist") {
-                        warn!("Resource not found in {}", node);
-                        continue;
-                    }
-
-                    // Reconstruct response with the bytes
-                    let resp = Response::from(
-                        http::Response::builder()
-                            .status(status)
-                            .body(bytes)
-                            .unwrap(),
-                    );
                     return Ok(resp);
                 }
                 Err(e) => warn!("IPFS fetch from {} failed: {}", node, e),

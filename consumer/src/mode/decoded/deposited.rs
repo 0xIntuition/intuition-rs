@@ -128,12 +128,14 @@ impl Deposited {
         &self,
         event: &DecodedMessage,
         decoded_consumer_context: &DecodedConsumerContext,
+        deposit_id: String,
     ) -> Result<Event, ConsumerError> {
         // Create the event
         let event = if self.isTriple {
             Event::builder()
                 .id(DecodedMessage::event_id(event))
                 .event_type(EventType::Deposited)
+                .deposit_id(deposit_id)
                 .block_number(U256Wrapper::try_from(event.block_number)?)
                 .block_timestamp(event.block_timestamp)
                 .transaction_hash(event.transaction_hash.clone())
@@ -143,6 +145,7 @@ impl Deposited {
             Event::builder()
                 .id(DecodedMessage::event_id(event))
                 .event_type(EventType::Deposited)
+                .deposit_id(deposit_id)
                 .block_number(U256Wrapper::try_from(event.block_number)?)
                 .block_timestamp(event.block_timestamp)
                 .transaction_hash(event.transaction_hash.clone())
@@ -326,14 +329,15 @@ impl Deposited {
         )?;
 
         // Create deposit record
-        self.create_deposit(event, decoded_consumer_context).await?;
+        let deposit = self.create_deposit(event, decoded_consumer_context).await?;
 
         // Handle position and related entities
         self.handle_position_and_claims(decoded_consumer_context, &vault)
             .await?;
 
         // Create event
-        self.create_event(event, decoded_consumer_context).await?;
+        self.create_event(event, decoded_consumer_context, deposit.id)
+            .await?;
 
         // Create signal
         self.create_signal(decoded_consumer_context, event, &vault)
