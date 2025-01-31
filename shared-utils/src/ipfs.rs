@@ -1,5 +1,4 @@
 use crate::{error::LibError, types::MultiPartHandler};
-use log::warn;
 use macon::Builder;
 use reqwest::{
     multipart::{Form, Part},
@@ -8,6 +7,7 @@ use reqwest::{
 use serde::Deserialize;
 use std::time::Duration;
 use tokio::time::sleep;
+use tracing::warn;
 
 /// The base delays for the retry mechanism and timeouts
 pub const BASE_DELAY: Duration = Duration::from_secs(1);
@@ -58,7 +58,7 @@ impl IPFSResolver {
     }
     /// Fetches a file and returns its content as a string from IPFS
     /// using the configured gateway.
-    pub async fn fetch_from_ipfs(&self, cid: &str) -> Result<String, LibError> {
+    pub async fn fetch_from_ipfs(&self, cid: &str) -> Result<Response, LibError> {
         let mut attempts = 0;
 
         let response = loop {
@@ -94,17 +94,12 @@ impl IPFSResolver {
     }
 
     /// Fetches a file from IPFS using the configured gateway.
-    async fn fetch_from_ipfs_request(&self, cid: &str) -> Result<String, LibError> {
+    async fn fetch_from_ipfs_request(&self, cid: &str) -> Result<Response, LibError> {
         let nodes = self.get_ipfs_nodes();
         for (node, pinata_token) in nodes {
             match self.try_fetch_from_node(cid, node, &pinata_token).await {
                 Ok(resp) => {
-                    let body = resp.text().await.unwrap_or_default();
-                    if body.contains("resource does not exist") {
-                        warn!("Resource not found in {}", node);
-                        continue;
-                    }
-                    return Ok(body);
+                    return Ok(resp);
                 }
                 Err(e) => warn!("IPFS fetch from {} failed: {}", node, e),
             }
@@ -121,12 +116,30 @@ impl IPFSResolver {
         node: &str,
         token: &Option<String>,
     ) -> Result<Response, LibError> {
+        let url = self.format_ipfs_fetch_url(cid, node, token);
+
+        // Debug log the URL being called
+        tracing::debug!("Attempting to fetch from URL: {}", url);
+
         self.http_client
-            .get(self.format_ipfs_fetch_url(cid, node, token))
+            .get(&url)
             .timeout(self.fetch_timeout.unwrap_or(FETCH_TIMEOUT))
             .send()
             .await
-            .map_err(|e| e.into())
+            .map_err(|e| {
+                // Log detailed error info
+                tracing::error!("Request failed: {:#?}", e);
+                if e.is_timeout() {
+                    tracing::error!("Request timed out");
+                }
+                if e.is_connect() {
+                    tracing::error!("Connection error");
+                }
+                if e.is_request() {
+                    tracing::error!("Invalid request");
+                }
+                e.into()
+            })
     }
 
     /// Formats the URL to add a remote pin to Pinata

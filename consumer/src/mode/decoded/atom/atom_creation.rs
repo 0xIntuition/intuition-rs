@@ -197,9 +197,15 @@ impl AtomCreated {
             .decode_atom_data_and_update_atom(&mut atom, decoded_consumer_context)
             .await?;
 
-        // get the supported atom metadata
+        // get the supported atom metadata and update the atom metadata
         let supported_atom_metadata =
             get_supported_atom_metadata(&mut atom, &decoded_atom_data, decoded_consumer_context)
+                .await?
+                .update_atom_metadata(
+                    &mut atom,
+                    &decoded_consumer_context.pg_pool,
+                    &decoded_consumer_context.backend_schema,
+                )
                 .await?;
 
         // Handle the account or caip10 type
@@ -208,14 +214,6 @@ impl AtomCreated {
             .handle_account_or_caip10_type(&resolved_atom, decoded_consumer_context)
             .await?;
 
-        // Update the atom metadata to reflect the supported atom type
-        supported_atom_metadata
-            .update_atom_metadata(
-                &mut atom,
-                &decoded_consumer_context.pg_pool,
-                &decoded_consumer_context.backend_schema,
-            )
-            .await?;
         // Create the event
         self.create_event(decoded_message, decoded_consumer_context)
             .await?;

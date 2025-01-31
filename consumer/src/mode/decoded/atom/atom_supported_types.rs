@@ -3,7 +3,7 @@ use crate::{
     mode::{
         decoded::utils::{short_id, update_account_with_atom_id},
         resolver::{
-            atom_resolver::{try_to_parse_json, try_to_resolve_schema_org_url},
+            atom_resolver::{try_to_parse_json_or_text, try_to_resolve_schema_org_url},
             types::{ResolveAtom, ResolverConsumerMessage},
         },
         types::DecodedConsumerContext,
@@ -48,6 +48,16 @@ impl AtomMetadata {
             emoji: "📚".to_string(),
             atom_type: "Book".to_string(),
             image: None,
+        }
+    }
+
+    /// Creates a new atom metadata for a byte object
+    pub fn byte_object(image: Option<String>) -> Self {
+        Self {
+            label: "byte object".to_string(),
+            emoji: "🔢".to_string(),
+            atom_type: "ByteObject".to_string(),
+            image,
         }
     }
 
@@ -137,6 +147,17 @@ impl AtomMetadata {
             }
         }
     }
+
+    /// Creates a new atom metadata for a json object
+    pub fn json_object(image: Option<String>) -> Self {
+        Self {
+            label: "json object".to_string(),
+            emoji: "📦".to_string(),
+            atom_type: "JsonObject".to_string(),
+            image,
+        }
+    }
+
     /// Creates a new atom metadata for a keywords predicate
     pub fn keywords_predicate(image: Option<String>) -> Self {
         Self {
@@ -193,6 +214,16 @@ impl AtomMetadata {
             label: "is person".to_string(),
             emoji: "👤".to_string(),
             atom_type: "PersonPredicate".to_string(),
+            image,
+        }
+    }
+
+    /// Creates a new atom metadata for a text object
+    pub fn text_object(image: Option<String>) -> Self {
+        Self {
+            label: "text object".to_string(),
+            emoji: "📝".to_string(),
+            atom_type: "TextObject".to_string(),
             image,
         }
     }
@@ -281,13 +312,18 @@ impl AtomMetadata {
         atom: &mut Atom,
         pg_pool: &PgPool,
         backend_schema: &str,
-    ) -> Result<(), ConsumerError> {
+    ) -> Result<AtomMetadata, ConsumerError> {
         atom.emoji = Some(self.emoji.clone());
         atom.atom_type = AtomType::from_str(&self.atom_type)?;
         atom.label = Some(self.label.clone());
         atom.image = self.image.clone();
         atom.upsert(pg_pool, backend_schema).await?;
-        Ok(())
+        Ok(AtomMetadata {
+            label: self.label.clone(),
+            emoji: self.emoji.clone(),
+            atom_type: self.atom_type.clone(),
+            image: self.image.clone(),
+        })
     }
 }
 
@@ -393,7 +429,8 @@ pub async fn get_supported_atom_metadata(
 
         // 5. Now we try to parse the JSON and return the metadata. At this point
         // the resolver will handle the rest of the cases.
-        let metadata = try_to_parse_json(decoded_atom_data, atom, decoded_consumer_context).await?;
+        let metadata =
+            try_to_parse_json_or_text(decoded_atom_data, atom, decoded_consumer_context).await?;
 
         Ok(metadata)
     }
