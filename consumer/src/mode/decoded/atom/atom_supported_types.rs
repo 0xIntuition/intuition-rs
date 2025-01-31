@@ -55,7 +55,7 @@ impl AtomMetadata {
     pub fn byte_object(image: Option<String>) -> Self {
         Self {
             label: "byte object".to_string(),
-            emoji: "🖥️".to_string(),
+            emoji: "🔢".to_string(),
             atom_type: "ByteObject".to_string(),
             image,
         }
@@ -152,7 +152,7 @@ impl AtomMetadata {
     pub fn json_object(image: Option<String>) -> Self {
         Self {
             label: "json object".to_string(),
-            emoji: "🗂️".to_string(),
+            emoji: "📦".to_string(),
             atom_type: "JsonObject".to_string(),
             image,
         }
