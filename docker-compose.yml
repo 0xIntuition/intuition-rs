@@ -253,13 +253,20 @@ services:
         ipfs config Addresses.API /ip4/0.0.0.0/tcp/5001;
         ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/8080;
 
-        # Add Pinata as a remote pinning service with proper JSON format
-        ipfs config --json Services.RemotePinning.Pinata '{
-          \"api\": {
-            \"endpoint\": \"https://api.pinata.cloud/psa\",
-            \"key\": \"'\"$PINATA_API_JWT\"'\"
-          }
-        }';
+        # Add Pinata as a remote pinning service
+        ipfs pin remote service add Pinata https://api.pinata.cloud/psa $PINATA_API_JWT;
+
+        # Configure Pinata gateway and use subdomains
+        ipfs config --json Gateway.PublicGateways '{\"localhost\": {\"UseSubdomains\": false,\"Paths\": [\"/ipfs\", \"/ipns\"]},\"ipfs\": {\"UseSubdomains\": false,\"Paths\": [\"/ipfs\", \"/ipns\"]}}';
+
+        # Set Pinata as the default remote pinning service
+        ipfs config --json Pinning.RemoteServices '[\"Pinata\"]';
+
+        # Configure policy to automatically pin all files to Pinata (MFS policy)
+        ipfs config --json Pinning.RemoteServices.Pinata.Policies '{\"MFS\":{\"Enable\": false,\"PinName\": \"\",\"RepinInterval\": \"1m\"}}';
+
+        # Add Peering to Pinata (optional)
+        ipfs config --json Peering.Peers '[{\"ID\": \"Qma8ddFEQWEU8ijWvdxXm3nxU7oHsRtCykAaVz8WUYhiKn\", \"Addrs\": [\"/dnsaddr/bitswap.pinata.cloud\"]}]';
 
         # Start the IPFS daemon
         exec ipfs daemon --migrate=true --agent-version-suffix=docker
