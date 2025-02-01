@@ -1,4 +1,4 @@
-use crate::error::HistoFluxError;
+use crate::{app_context::Env, error::HistoFluxError};
 use chrono::{DateTime, Utc};
 use macon::Builder;
 use serde::{Deserialize, Serialize};
@@ -17,12 +17,12 @@ pub enum Environment {
 impl Environment {
     /// This method is used to get the indexer schema from the environment.
     /// There must be a 1-1 mapping between the environment and the indexer schema.
-    pub fn to_indexer_schema(&self) -> String {
+    pub fn to_indexer_schema(&self, env: &Env) -> String {
         match self {
-            Environment::DevBase => "base_mainnet_indexer".to_string(),
-            Environment::DevBaseSepolia => "base_sepolia_indexer".to_string(),
-            Environment::ProdBase => "base_mainnet_indexer".to_string(),
-            Environment::ProdBaseSepolia => "base_sepolia_indexer".to_string(),
+            Environment::DevBase => env.dev_base_schema.clone(),
+            Environment::DevBaseSepolia => env.dev_base_sepolia_schema.clone(),
+            Environment::ProdBase => env.prod_base_schema.clone(),
+            Environment::ProdBaseSepolia => env.prod_base_sepolia_schema.clone(),
         }
     }
 }

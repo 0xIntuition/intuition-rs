@@ -3,7 +3,7 @@ use alloy::{
     eips::BlockNumberOrTag,
     primitives::Address,
     providers::{Provider, ProviderBuilder, RootProvider},
-    rpc::types::{BlockTransactionsKind, Filter, Log},
+    rpc::types::{Block, BlockTransactionsKind, Filter, Log},
     transports::http::{Client, Http},
 };
 use log::info;
@@ -54,36 +54,48 @@ impl HistoCrawler {
 
     /// Decode the raw log and insert it into the database
     pub async fn decode_raw_log_and_insert(&self, log: Log) -> Result<(), HistoCrawlerError> {
-        // Fetch the block timestamp from the provider
-        let block_timestamp = self
-            .fetch_block_timestamp(
-                log.block_number
-                    .ok_or(HistoCrawlerError::BlockNumberNotFound)?,
-            )
-            .await?;
-        let mut raw_log = RawLog::from(log);
-        // We need to update the block timestamp of the raw log before inserting it into the database,
-        // as the block timestamp is not available in the log object.
-        raw_log
-            .update_block_timestamp(block_timestamp)
-            .insert(&self.pg_pool, &self.env.indexer_schema)
-            .await?;
-        info!("Inserted log: {:#?}", raw_log);
+        if let Some(_block_number) = log.block_number {
+            // Fetch the block timestamp from the provider
+            if let Some(block) = self
+                .fetch_block_timestamp(
+                    log.block_number
+                        .ok_or(HistoCrawlerError::BlockNumberNotFound)?,
+                )
+                .await?
+            {
+                let block_timestamp = block.header.timestamp;
+                let mut raw_log = RawLog::from(log);
+                // We need to update the block timestamp of the raw log before inserting it into the database,
+                // as the block timestamp is not available in the log object.
+                raw_log
+                    .update_block_timestamp(block_timestamp)
+                    .insert(&self.pg_pool, &self.env.indexer_schema)
+                    .await?;
+                info!("Inserted log: {:#?}", raw_log);
+            } else {
+                info!("Skipping log: {:#?}", log);
+            }
+        } else {
+            info!("Skipping log: {:#?}", log);
+        }
 
         Ok(())
     }
 
     /// This method is used to fetch the timestamp of a block from the provider
-    pub async fn fetch_block_timestamp(&self, block_number: u64) -> Result<u64, HistoCrawlerError> {
+    pub async fn fetch_block_timestamp(
+        &self,
+        block_number: u64,
+    ) -> Result<Option<Block>, HistoCrawlerError> {
         let block = self
             .provider
             .get_block_by_number(
                 BlockNumberOrTag::Number(block_number),
                 BlockTransactionsKind::Hashes,
             )
-            .await?
-            .ok_or(HistoCrawlerError::BlockNumberNotFound)?;
-        Ok(block.header.timestamp)
+            .await?;
+        Ok(block)
+        // Ok(block.header.timestamp)
     }
 
     /// Get the last block number from the provider
