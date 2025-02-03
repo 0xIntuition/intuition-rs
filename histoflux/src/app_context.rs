@@ -15,6 +15,10 @@ pub struct Env {
     pub indexer_database_url: String,
     pub histoflux_cursor_id: i32,
     pub raw_logs_channel: String,
+    pub dev_base_schema: String,
+    pub dev_base_sepolia_schema: String,
+    pub prod_base_schema: String,
+    pub prod_base_sepolia_schema: String,
 }
 
 /// Represents the SQS producer
@@ -64,13 +68,14 @@ impl SqsProducer {
         let cursor = HistoFluxCursor::find(&pg_pool, env.histoflux_cursor_id)
             .await?
             .ok_or(HistoFluxError::CursorNotSet)?;
+        let indexer_environment_schema = cursor.environment.to_indexer_schema(&env);
 
         Ok(Self {
             client,
             pg_pool,
             env,
             raw_queue_url: cursor.queue_url,
-            indexer_environment_schema: cursor.environment.to_indexer_schema(),
+            indexer_environment_schema,
         })
     }
 
