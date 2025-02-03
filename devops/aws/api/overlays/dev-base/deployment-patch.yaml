@@ -8,7 +8,7 @@ spec:
       serviceAccountName: secrets-access-sa
       containers:
         - name: api
-          image: ghcr.io/0xintuition/image-guard:1.0.27
+          image: ghcr.io/0xintuition/image-guard:2.0.0
           imagePullPolicy: Always 
           volumeMounts:
             - name: secrets-store-inline

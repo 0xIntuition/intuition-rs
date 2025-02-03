@@ -74,9 +74,11 @@ impl HistoCrawler {
                 info!("Inserted log: {:#?}", raw_log);
             } else {
                 info!("Skipping log: {:#?}", log);
+                sleep(Duration::from_secs(10)).await;
             }
         } else {
             info!("Skipping log: {:#?}", log);
+            sleep(Duration::from_secs(10)).await;
         }
 
         Ok(())

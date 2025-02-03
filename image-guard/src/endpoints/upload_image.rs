@@ -72,7 +72,9 @@ pub async fn upload_image(
         // Add to the responses vector
         responses.push(image_guard.clone());
         // And upsert the image guard to the database
-        image_guard.upsert(&state.pg_pool, &state.be_schema).await?;
+        image_guard
+            .upsert(&state.pg_pool, &state.image_api_schema)
+            .await?;
     }
 
     Ok(Json(responses))

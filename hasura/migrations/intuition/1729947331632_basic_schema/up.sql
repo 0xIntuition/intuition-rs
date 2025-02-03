@@ -247,16 +247,6 @@ CREATE TABLE atom_value (
   book_id NUMERIC(78, 0) REFERENCES book(id)
 );
 
-CREATE TABLE cached_image (
-  -- id is the original name of the image in lowercase without the extension
-  url TEXT PRIMARY KEY NOT NULL,
-  original_url TEXT NOT NULL,
-  score JSONB,
-  model TEXT,
-  safe BOOLEAN NOT NULL DEFAULT false,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
 -- Create indexes
 CREATE INDEX idx_atom_creator ON atom(creator_id);
 CREATE INDEX idx_atom_vault ON atom(vault_id);
@@ -308,5 +298,3 @@ CREATE INDEX idx_event_triple ON event(triple_id);
 CREATE INDEX idx_event_block_number ON event(block_number);
 CREATE INDEX idx_event_block_timestamp ON event(block_timestamp);
 CREATE INDEX idx_event_transaction_hash ON event(transaction_hash);
-CREATE INDEX idx_cached_image_original_url ON cached_image(original_url);
-CREATE INDEX idx_cached_image_url ON cached_image(url);
