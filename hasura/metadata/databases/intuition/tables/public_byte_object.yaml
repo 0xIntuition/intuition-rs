@@ -1,0 +1,13 @@
+table:
+  name: byte_object
+  schema: public
+select_permissions:
+  - role: anonymous
+    permission:
+      columns:
+        - data
+        - id
+      filter: {}
+      limit: 100
+      allow_aggregations: true
+    comment: ""

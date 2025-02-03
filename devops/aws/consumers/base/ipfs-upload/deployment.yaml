@@ -8,7 +8,7 @@ metadata:
     io.kompose.service: ipfs-upload-consumer
   name: ipfs-upload-consumer
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       io.kompose.service: ipfs-upload-consumer
@@ -32,10 +32,6 @@ spec:
           ports:
             - containerPort: 8002
               protocol: TCP
-          volumeMounts:
-            - name: ipfs-upload-logs
-              mountPath: /logs
-              readOnly: false
           securityContext:
             runAsUser: 0
             runAsGroup: 0

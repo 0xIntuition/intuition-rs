@@ -1,0 +1,27 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: indexer-and-cache-migration
+spec:
+  template:
+    spec:
+      serviceAccountName: secrets-access-sa
+      containers:
+        - name: indexer-and-cache-migration
+          image: ghcr.io/0xintuition/indexer-and-cache-migrations:1.0.48 
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: secrets-store-inline
+              mountPath: "/mnt/secrets"
+              readOnly: true
+          envFrom:
+            - secretRef:
+                name: dev-sepolia-hasura-aws-secrets
+      volumes:
+        - name: secrets-store-inline
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: "dev-base-sepolia-dev-sepolia-hasura-aws-secrets"
+      restartPolicy: Never 

@@ -2033,6 +2033,7 @@ dependencies = [
  "aws-sdk-s3",
  "aws-sdk-sqs",
  "aws-smithy-runtime-api",
+ "bytes",
  "clap",
  "dotenvy",
  "envy",
@@ -3154,6 +3155,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6fe2267d4ed49bc07b63801559be28c718ea06c4738b7a03c94df7386d2cde46"
 
 [[package]]
+name = "histocrawler"
+version = "0.1.0"
+dependencies = [
+ "alloy",
+ "dotenvy",
+ "env_logger",
+ "envy",
+ "log",
+ "models",
+ "serde",
+ "serde_json",
+ "shared-utils",
+ "sqlx",
+ "thiserror 2.0.11",
+ "tokio",
+ "url",
+]
+
+[[package]]
 name = "histoflux"
 version = "0.1.0"
 dependencies = [
@@ -4107,6 +4127,7 @@ version = "0.1.0"
 dependencies = [
  "alloy",
  "async-trait",
+ "bytes",
  "chrono",
  "hex",
  "hypersync-client",
@@ -5661,9 +5682,9 @@ dependencies = [
 
 [[package]]
 name = "schnellru"
-version = "0.2.3"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c9a8ef13a93c54d20580de1e5c413e624e53121d42fc7e2c11d10ef7f8b02367"
+checksum = "356285bbf17bea63d9e52e96bd18f039672ac92b55b8cb997d6162a2a37d1649"
 dependencies = [
  "ahash 0.8.11",
  "cfg-if",
@@ -5902,6 +5923,7 @@ name = "shared-utils"
 version = "0.1.0"
 dependencies = [
  "bytes",
+ "http 1.2.0",
  "log",
  "macon",
  "models",
@@ -5911,6 +5933,7 @@ dependencies = [
  "sqlx",
  "thiserror 2.0.11",
  "tokio",
+ "tracing",
  "utoipa",
 ]
 

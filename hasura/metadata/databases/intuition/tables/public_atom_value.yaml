@@ -29,6 +29,27 @@ object_relationships:
         remote_table:
           name: book
           schema: public
+  - name: byte_object
+    using:
+      manual_configuration:
+        column_mapping:
+          byte_object_id: id
+        insertion_order: null
+        remote_table:
+          name: byte_object
+          schema: public
+  - name: caip10
+    using:
+      foreign_key_constraint_on: caip10_id
+  - name: json_object
+    using:
+      manual_configuration:
+        column_mapping:
+          json_object_id: id
+        insertion_order: null
+        remote_table:
+          name: json_object
+          schema: public
   - name: organization
     using:
       manual_configuration:
@@ -47,6 +68,15 @@ object_relationships:
         remote_table:
           name: person
           schema: public
+  - name: text_object
+    using:
+      manual_configuration:
+        column_mapping:
+          text_object_id: id
+        insertion_order: null
+        remote_table:
+          name: text_object
+          schema: public
   - name: thing
     using:
       manual_configuration:
@@ -61,9 +91,12 @@ select_permissions:
     permission:
       columns:
         - book_id
+        - byte_object_id
         - id
+        - json_object_id
         - organization_id
         - person_id
+        - text_object_id
         - thing_id
         - account_id
       filter: {}

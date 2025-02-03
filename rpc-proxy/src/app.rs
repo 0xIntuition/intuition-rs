@@ -1,16 +1,18 @@
-use crate::{endpoints::proxy::rpc_proxy, error::ApiError, openapi::ApiDoc};
-use axum::{routing::post, Router};
-use http::{
-    header::{AUTHORIZATION, CONTENT_TYPE},
-    Method,
+use crate::{
+    endpoints::proxy::{rpc_proxy, JsonRpcRequest},
+    error::ApiError,
+    models::json_rpc_cache::{JsonRpcCache, Method},
+    openapi::ApiDoc,
 };
+use axum::{routing::post, Router};
+use http::header::{AUTHORIZATION, CONTENT_TYPE};
 use log::info;
-use reqwest::Client;
+use reqwest::{Client, Response};
 use serde::Deserialize;
 use serde_json::Value;
 use shared_utils::postgres::connect_to_db;
 use sqlx::PgPool;
-use std::time::Duration;
+use std::{str::FromStr, time::Duration};
 use tokio::net::TcpListener;
 use tower_http::cors::CorsLayer;
 use utoipa::OpenApi;
@@ -19,7 +21,7 @@ use utoipa_swagger_ui::SwaggerUi;
 #[derive(Clone, Deserialize, Default)]
 pub struct Env {
     pub proxy_api_port: u16,
-    pub database_url: String,
+    pub proxy_database_url: String,
     pub proxy_schema: String,
     pub base_mainnet_rpc_url: String,
     pub base_sepolia_rpc_url: String,
@@ -34,26 +36,46 @@ pub struct App {
 }
 
 impl App {
-    /// Relay the request to the target server.
-    pub async fn relay_request(&self, payload: Value, chain_id: u64) -> Result<Value, ApiError> {
-        // Get the RPC URL for the given chain_id
-        let rpc_url = self.get_rpc_url(chain_id)?;
-
-        // Forward the request to the target server
+    /// The maximum number of retries for the RPC request.
+    const MAX_RETRIES: u8 = 3;
+    /// The delay between retries.
+    const RETRY_DELAY: Duration = Duration::from_millis(100);
+    /// Send an RPC request to the given URL.
+    async fn send_rpc_request(&self, payload: &Value, rpc_url: &str) -> Result<Response, ApiError> {
         let response = self
             .reqwest_client
-            .post(&rpc_url)
-            .json(&payload)
+            .post(rpc_url)
+            .json(payload)
             .send()
             .await
             .map_err(|e| ApiError::ExternalServiceError(e.to_string()))?;
+        Ok(response)
+    }
+    /// Relay the request to the target server.
+    pub async fn relay_request(&self, payload: Value, chain_id: u64) -> Result<Value, ApiError> {
+        let rpc_url = self.get_rpc_url(chain_id)?;
+        let mut delay = Self::RETRY_DELAY;
 
-        // Get the response JSON
-        let response_data = response
-            .json::<serde_json::Value>()
-            .await
-            .map_err(|e| ApiError::JsonParseError(e.to_string()))?;
-        Ok(response_data)
+        for attempt in 0..Self::MAX_RETRIES {
+            let response = self.send_rpc_request(&payload, &rpc_url).await?;
+            if response.status().is_success() {
+                return response
+                    .json::<serde_json::Value>()
+                    .await
+                    .map_err(|e| ApiError::JsonParseError(e.to_string()));
+            }
+
+            if attempt < Self::MAX_RETRIES - 1 {
+                tokio::time::sleep(delay).await;
+                delay *= 2;
+            }
+        }
+
+        Err(ApiError::ExternalServiceError(format!(
+            "Request to {} failed after {} retries",
+            rpc_url,
+            Self::MAX_RETRIES
+        )))
     }
 
     /// Get the RPC URL for the given chain_id.
@@ -77,7 +99,7 @@ impl App {
     /// specified headers and a max age of 1 hour.
     fn cors(&self) -> CorsLayer {
         CorsLayer::new()
-            .allow_methods([Method::GET, Method::POST])
+            .allow_methods([http::Method::GET, http::Method::POST])
             .allow_headers([CONTENT_TYPE, AUTHORIZATION])
             .max_age(Duration::from_secs(3600))
     }
@@ -90,7 +112,7 @@ impl App {
         dotenvy::dotenv().ok();
         // Load the environment variables into our struct
         let env = envy::from_env::<Env>().map_err(ApiError::from)?;
-        let pg_pool = connect_to_db(&env.database_url).await?;
+        let pg_pool = connect_to_db(&env.proxy_database_url).await?;
         let reqwest_client = Client::new();
         Ok(Self {
             env,
@@ -124,5 +146,38 @@ impl App {
         axum::serve(listener, self.merge_layers())
             .await
             .map_err(ApiError::from)
+    }
+
+    /// Handle the cached request.
+    pub async fn handle_cached_request(
+        &self,
+        chain_id: u64,
+        req: JsonRpcRequest,
+    ) -> Result<serde_json::Value, ApiError> {
+        info!("Searching for cached request for {:?}", req);
+        let cached_request =
+            JsonRpcCache::find(&req, chain_id as i64, self, Method::from_str(&req.method)?).await?;
+        if let Some(cached_request) = cached_request {
+            info!(
+                "Cached request found for {:?}, returning it",
+                cached_request
+            );
+            Ok(req.build_response_json(cached_request.result, Method::from_str(&req.method)?)?)
+        } else {
+            info!("Not found for {:?}, relaying it", req);
+            let response = self
+                .relay_request(serde_json::to_value(&req)?, chain_id)
+                .await?;
+            let method = req.method.clone();
+            req.store(
+                self,
+                chain_id,
+                response.clone(),
+                Method::from_str(&method).map_err(|e| ApiError::InvalidInput(e.to_string()))?,
+            )
+            .await?;
+            info!("Cached request stored!");
+            Ok(response)
+        }
     }
 }

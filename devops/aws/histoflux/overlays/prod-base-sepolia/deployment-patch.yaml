@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: histoflux
+spec:
+  template:
+    spec:
+      serviceAccountName: secrets-access-sa
+      containers:
+        - name: histoflux
+          image: ghcr.io/0xintuition/histoflux:1.0.49
+          imagePullPolicy: Always 
+          volumeMounts:
+            - name: secrets-store-inline
+              mountPath: "/mnt/secrets"
+              readOnly: true
+          envFrom:
+            - secretRef:
+                name: prod-base-sepolia-prod-histoflux-aws-secrets
+      volumes:
+        - name: secrets-store-inline
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: "prod-base-sepolia-prod-base-sepolia-prod-histoflux-aws-secrets"

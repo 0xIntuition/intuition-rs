@@ -21,6 +21,9 @@ spec:
             - name: resolver-logs
               persistentVolumeClaim:
                 claimName: resolver-logs
+            - name: prod-base-mainnet-resolver-logs
+              persistentVolumeClaim:
+                claimName: prod-base-mainnet-resolver-logs
           containers:
             - name: cleanup
               image: busybox
@@ -41,4 +44,6 @@ spec:
                   name: raw-logs
                 - mountPath: /resolver-logs
                   name: resolver-logs
+                - mountPath: /prod-base-mainnet-resolver-logs
+                  name: prod-base-mainnet-resolver-logs
           restartPolicy: OnFailure 

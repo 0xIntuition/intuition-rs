@@ -8,7 +8,7 @@ spec:
       serviceAccountName: secrets-access-sa
       containers:
         - name: raw-consumer
-          image: ghcr.io/0xintuition/consumer:1.0.27
+          image: ghcr.io/0xintuition/consumer:1.0.30
           imagePullPolicy: Always
           volumeMounts:
             - name: secrets-store-inline
@@ -16,11 +16,11 @@ spec:
               readOnly: true
           envFrom:
             - secretRef:
-                name: raw-consumer-secrets
+                name: dev-sepolia-raw-consumer-secrets
       volumes:
         - name: secrets-store-inline
           csi:
             driver: secrets-store.csi.k8s.io
             readOnly: true
             volumeAttributes:
-              secretProviderClass: "dev-base-sepolia-raw-consumer-secrets"
+              secretProviderClass: "dev-base-sepolia-dev-sepolia-raw-consumer-secrets"

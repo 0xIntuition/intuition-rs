@@ -1,3 +1,4 @@
+use alloy::rpc::types::Log;
 use chrono::{DateTime, Utc};
 use hypersync_client::simple_types::Event;
 use serde::{Deserialize, Deserializer, Serialize};
@@ -186,6 +187,35 @@ impl RawLog {
             .fetch_all(pool)
             .await
             .map_err(ModelError::from)
+    }
+
+    /// This is a method to update the block timestamp of a raw log.
+    pub fn update_block_timestamp(&mut self, block_timestamp: u64) -> &mut Self {
+        self.block_timestamp = block_timestamp as i64;
+        self
+    }
+}
+
+impl From<Log> for RawLog {
+    fn from(log: Log) -> Self {
+        let topics = log
+            .inner
+            .data
+            .topics()
+            .iter()
+            .map(|t| t.to_string())
+            .collect::<Vec<String>>();
+        RawLog::builder()
+            .block_number(log.block_number.unwrap_or_default() as i64)
+            .block_hash(log.block_hash.unwrap_or_default().to_string())
+            .block_timestamp(log.block_timestamp.unwrap_or_default() as i64)
+            .transaction_hash(log.transaction_hash.unwrap_or_default().to_string())
+            .transaction_index(log.transaction_index.unwrap_or_default() as i64)
+            .log_index(log.log_index.unwrap_or_default() as i64)
+            .address(log.inner.address.to_string())
+            .data(hex::encode(log.inner.data.data))
+            .topics(topics)
+            .build()
     }
 }
 

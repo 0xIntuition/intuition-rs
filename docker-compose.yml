@@ -49,7 +49,7 @@ services:
       - ~/.aws/:/root/.aws:ro
       - ./logs:/app/logs
     deploy:
-      replicas: 2
+      replicas: 5
   
   ipfs_upload_consumer:
     image: ghcr.io/0xintuition/consumer:latest
@@ -181,7 +181,7 @@ services:
     container_name: rpc-proxy
     image: ghcr.io/0xintuition/rpc-proxy:latest
     environment:
-      DATABASE_URL: $DATABASE_URL
+      PROXY_DATABASE_URL: $DATABASE_URL
       PROXY_API_PORT: $PROXY_API_PORT
       PROXY_SCHEMA: $PROXY_SCHEMA
       BASE_MAINNET_RPC_URL: $BASE_MAINNET_RPC_URL
@@ -237,6 +237,8 @@ services:
     environment:
       IPFS_PATH: /data/ipfs
       PINATA_API_JWT: $PINATA_API_JWT
+      QUIC_GO_DISABLE_RECEIVE_BUFFER_WARNING: "true"
+      QUIC_GO_SET_RECEIVE_BUFFER: "false"
     volumes:
       - ipfs_data:/data/ipfs
     entrypoint: /bin/sh
@@ -251,24 +253,23 @@ services:
         ipfs config Addresses.API /ip4/0.0.0.0/tcp/5001;
         ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/8080;
 
-        # Add Pinata as a remote pinning service
-        ipfs pin remote service add Pinata https://api.pinata.cloud/psa $PINATA_API_JWT;
+        # Add Pinata as a remote pinning service with proper JSON format
+        ipfs config --json Services.RemotePinning.Pinata '{
+          \"api\": {
+            \"endpoint\": \"https://api.pinata.cloud/psa\",
+            \"key\": \"'\"$PINATA_API_JWT\"'\"
+          }
+        }';
 
-        # Configure Pinata gateway and use subdomains
-        ipfs config --json Gateway.PublicGateways '{\"localhost\": {\"UseSubdomains\": false,\"Paths\": [\"/ipfs\", \"/ipns\"]},\"ipfs\": {\"UseSubdomains\": false,\"Paths\": [\"/ipfs\", \"/ipns\"]}}';
-
-        # Set Pinata as the default remote pinning service
-        ipfs config --json Pinning.RemoteServices '[\"Pinata\"]';
-
-        # Configure policy to automatically pin all files to Pinata (MFS policy)
-        ipfs config --json Pinning.RemoteServices.Pinata.Policies '{\"MFS\":{\"Enable\": false,\"PinName\": \"\",\"RepinInterval\": \"1m\"}}';
-
-        # Add Peering to Pinata (optional)
-        ipfs config --json Peering.Peers '[{\"ID\": \"Qma8ddFEQWEU8ijWvdxXm3nxU7oHsRtCykAaVz8WUYhiKn\", \"Addrs\": [\"/dnsaddr/bitswap.pinata.cloud\"]}]';
-
+      ipfs config --json Peering.Peers '[{\"ID\": \"Qma8ddFEQWEU8ijWvdxXm3nxU7oHsRtCykAaVz8WUYhiKn\", \"Addrs\": [\"/dnsaddr/bitswap.pinata.cloud\"]}]';
+      
         # Start the IPFS daemon
         exec ipfs daemon --migrate=true --agent-version-suffix=docker
       "
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
 
   # substreams-sink:
   #   container_name: substreams-sink
@@ -280,13 +281,16 @@ services:
   #     AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
   #     AWS_REGION: $AWS_REGION
   #     AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
-  #     DATABASE_URL: $DATABASE_URL
+  #     INDEXER_DATABASE_URL: $DATABASE_URL
   #     RAW_CONSUMER_QUEUE_URL: $RAW_CONSUMER_QUEUE_URL
   #     SUBSTREAMS_ENDPOINT: $SUBSTREAMS_ENDPOINT
   #     SUBSTREAMS_PACKAGE: $SUBSTREAMS_PACKAGE
   #     SUBSTREAMS_MODULE: $SUBSTREAMS_MODULE
   #     SUBSTREAMS_START_BLOCK: $SUBSTREAMS_START_BLOCK
   #     SUBSTREAMS_API_TOKEN: $SUBSTREAMS_API_TOKEN
+  #     SUBSTREAMS_OUTPUT: $SUBSTREAMS_OUTPUT
+  #     INDEXER_SCHEMA: $INDEXER_SCHEMA
+  #     INTUITION_CONTRACT_ADDRESS: $INTUITION_CONTRACT_ADDRESS
   #   command: ["$SUBSTREAMS_ENDPOINT", "$SUBSTREAMS_PACKAGE", "$SUBSTREAMS_MODULE", "$SUBSTREAMS_START_BLOCK:"]
   #   depends_on:
   #     sqs:
@@ -296,24 +300,55 @@ services:
   #   volumes:
   #     - substreams-sink-data:/data
 
-  envio-indexer:
-    container_name: envio-indexer
-    image: ghcr.io/0xintuition/envio-indexer:latest
+  # envio-indexer:
+  #   container_name: envio-indexer
+  #   image: ghcr.io/0xintuition/envio-indexer:latest
+  #   environment:
+  #     LOCALSTACK_URL: $LOCALSTACK_URL
+  #     AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
+  #     AWS_REGION: $AWS_REGION
+  #     AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
+  #     INDEXER_DATABASE_URL: $DATABASE_URL
+  #     RAW_CONSUMER_QUEUE_URL: $RAW_CONSUMER_QUEUE_URL
+  #     HYPERSYNC_TOKEN: $HYPERSYNC_TOKEN
+  #     INDEXER_SCHEMA: $INDEXER_SCHEMA
+  #   depends_on:
+  #     sqs:
+  #       condition: service_healthy
+  #     indexer-migrations:
+  #       condition: service_started
+  #   command: ["--network", "base-mainnet", "--output", "postgres"]
+
+  histocrawler:
+    container_name: histocrawler
+    image: ghcr.io/0xintuition/histocrawler:latest
     environment:
-      LOCALSTACK_URL: $LOCALSTACK_URL
-      AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
-      AWS_REGION: $AWS_REGION
-      AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
-      INDEXER_DATABASE_URL: $DATABASE_URL
-      RAW_CONSUMER_QUEUE_URL: $RAW_CONSUMER_QUEUE_URL
-      HYPERSYNC_TOKEN: $HYPERSYNC_TOKEN
+      RPC_URL: $RPC_URL
+      START_BLOCK: $START_BLOCK
+      INTUITION_CONTRACT_ADDRESS: $INTUITION_CONTRACT_ADDRESS
+      HISTOCRAWLER_DATABASE_URL: $DATABASE_URL
       INDEXER_SCHEMA: $INDEXER_SCHEMA
     depends_on:
-      sqs:
+      database:
+        condition: service_healthy
+      local-migrations:
+        condition: service_started
+
+  local-migrations:
+    container_name: local-migrations
+    image: ghcr.io/0xintuition/local-migrations:latest
+    environment:
+      POSTGRES_PASSWORD: $PG_PASSWORD
+      POSTGRES_USER: $PG_USER
+      POSTGRES_DB: $PG_DB
+      POSTGRES_PORT: $PG_PORT
+      INDEXER_DATABASE_URL: $DATABASE_URL
+    depends_on:
+      database:
         condition: service_healthy
       indexer-migrations:
         condition: service_started
-    command: ["--network", "base-mainnet", "--output", "postgres"]
+    restart: "no"
 
   indexer-migrations:
     container_name: indexer-migrations
@@ -335,12 +370,13 @@ services:
       INDEXER_DATABASE_URL: $DATABASE_URL
       LOCALSTACK_URL: $LOCALSTACK_URL
       HISTOFLUX_CURSOR_ID: $HISTOFLUX_CURSOR_ID
+      RAW_LOGS_CHANNEL: $RAW_LOGS_CHANNEL
     depends_on:
       database:
         condition: service_healthy
       sqs:
         condition: service_healthy
-      envio-indexer:
+      local-migrations:
         condition: service_started
 
   hasura-migrations:

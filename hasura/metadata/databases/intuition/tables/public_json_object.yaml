@@ -1,0 +1,19 @@
+table:
+  name: json_object
+  schema: public
+configuration:
+  column_config: {}
+  custom_column_names: {}
+  custom_name: json_objects
+  custom_root_fields:
+    select_by_pk: json_object
+select_permissions:
+  - role: anonymous
+    permission:
+      columns:
+        - data
+        - id
+      filter: {}
+      limit: 100
+      allow_aggregations: true
+    comment: ""

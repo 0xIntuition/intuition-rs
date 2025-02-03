@@ -2,6 +2,7 @@ pub mod account;
 pub mod atom;
 pub mod atom_value;
 pub mod book;
+pub mod byte_object;
 pub mod cached_image;
 pub mod caip10;
 pub mod claim;
@@ -9,6 +10,7 @@ pub mod deposit;
 pub mod error;
 pub mod event;
 pub mod fee_transfer;
+pub mod json_object;
 pub mod organization;
 pub mod person;
 pub mod position;
@@ -20,11 +22,11 @@ pub mod stats;
 pub mod stats_hour;
 pub mod substreams_cursor;
 pub mod test_helpers;
+pub mod text_object;
 pub mod thing;
 pub mod traits;
 pub mod triple;
 pub mod types;
 pub mod vault;
-
 #[macro_use]
 extern crate macon;

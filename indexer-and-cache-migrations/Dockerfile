@@ -1,5 +1,6 @@
 FROM rust:1.84-slim
 
+# Set the workdir
 WORKDIR /app
 
 # Copy migrations from workspace

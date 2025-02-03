@@ -11,7 +11,7 @@ use crate::{
     schemas::types::DecodedMessage,
     EthMultiVault::AtomCreated,
 };
-use alloy::{eips::BlockId, primitives::U256};
+use alloy::primitives::U256;
 use models::{
     account::{Account, AccountType},
     atom::{Atom, AtomResolvingStatus, AtomType},
@@ -197,9 +197,15 @@ impl AtomCreated {
             .decode_atom_data_and_update_atom(&mut atom, decoded_consumer_context)
             .await?;
 
-        // get the supported atom metadata
+        // get the supported atom metadata and update the atom metadata
         let supported_atom_metadata =
             get_supported_atom_metadata(&mut atom, &decoded_atom_data, decoded_consumer_context)
+                .await?
+                .update_atom_metadata(
+                    &mut atom,
+                    &decoded_consumer_context.pg_pool,
+                    &decoded_consumer_context.backend_schema,
+                )
                 .await?;
 
         // Handle the account or caip10 type
@@ -208,14 +214,6 @@ impl AtomCreated {
             .handle_account_or_caip10_type(&resolved_atom, decoded_consumer_context)
             .await?;
 
-        // Update the atom metadata to reflect the supported atom type
-        supported_atom_metadata
-            .update_atom_metadata(
-                &mut atom,
-                &decoded_consumer_context.pg_pool,
-                &decoded_consumer_context.backend_schema,
-            )
-            .await?;
         // Create the event
         self.create_event(decoded_message, decoded_consumer_context)
             .await?;
@@ -231,10 +229,7 @@ impl AtomCreated {
     ) -> Result<(Vault, Atom), ConsumerError> {
         // Get the share price of the atom
         let current_share_price = decoded_consumer_context
-            .base_client
-            .currentSharePrice(self.vaultID)
-            .block(BlockId::from_str(&event.block_number.to_string())?)
-            .call()
+            .fetch_current_share_price(self.vaultID, event)
             .await?;
 
         // In order to upsert a [`Vault`] we need to have an [`Atom`] first.
@@ -251,7 +246,7 @@ impl AtomCreated {
             .id(atom.vault_id.clone())
             .atom_id(atom.vault_id.clone())
             .total_shares(U256Wrapper::from(U256::from(0)))
-            .current_share_price(U256Wrapper::from_str(&current_share_price._0.to_string())?)
+            .current_share_price(U256Wrapper::from_str(&current_share_price.to_string())?)
             .position_count(0)
             .build()
             .upsert(

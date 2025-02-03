@@ -8,7 +8,7 @@ spec:
       serviceAccountName: secrets-access-sa
       containers:
         - name: rpc-proxy
-          image: ghcr.io/0xintuition/rpc-proxy:1.0.32
+          image: ghcr.io/0xintuition/rpc-proxy:1.0.51
           imagePullPolicy: Always 
           volumeMounts:
             - name: secrets-store-inline
@@ -16,11 +16,11 @@ spec:
               readOnly: true
           envFrom:
             - secretRef:
-                name: prod-rpc-proxy-aws-secrets
+                name: dev-rpc-proxy-aws-secrets
       volumes:
         - name: secrets-store-inline
           csi:
             driver: secrets-store.csi.k8s.io
             readOnly: true
             volumeAttributes:
-              secretProviderClass: "prod-base-sepolia-prod-rpc-proxy-aws-secrets"
+              secretProviderClass: "dev-dev-rpc-proxy-aws-secrets"
