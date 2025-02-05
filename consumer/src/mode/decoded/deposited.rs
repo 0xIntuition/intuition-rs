@@ -101,7 +101,7 @@ impl Deposited {
         decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<Deposit, ConsumerError> {
         Deposit::builder()
-            .id(event.transaction_hash.to_string())
+            .id(DecodedMessage::event_id(event))
             .sender_id(self.sender.to_string())
             .receiver_id(self.receiver.to_string())
             .receiver_total_shares_in_vault(U256Wrapper::from(self.receiverTotalSharesInVault))

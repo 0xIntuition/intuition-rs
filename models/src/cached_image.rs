@@ -72,3 +72,22 @@ impl SimpleCrud<String> for CachedImage {
             .map_err(|e| ModelError::QueryError(e.to_string()))
     }
 }
+
+impl CachedImage {
+    pub async fn find_by_original_url(
+        pool: &PgPool,
+        original_url: &str,
+        schema: &str,
+    ) -> Result<Option<Self>, ModelError> {
+        let query = format!(
+            r#"SELECT url, original_url, score, model, safe, created_at FROM {}.cached_image WHERE original_url = $1"#,
+            schema
+        );
+
+        sqlx::query_as::<_, CachedImage>(&query)
+            .bind(original_url)
+            .fetch_optional(pool)
+            .await
+            .map_err(|e| ModelError::QueryError(e.to_string()))
+    }
+}

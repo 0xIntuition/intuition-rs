@@ -3684,7 +3684,7 @@ dependencies = [
 
 [[package]]
 name = "image-guard"
-version = "2.0.1"
+version = "2.0.2"
 dependencies = [
  "axum 0.8.1",
  "axum-macros",

@@ -5,6 +5,7 @@ resources:
   - ../../base  # Adjusted to point to the base directory
   - secret-provider.yaml
   - migrations-patch.yaml
+  - indexer-migrations.yaml
 
 namePrefix: "dev-base-mainnet-"
 
@@ -18,6 +19,11 @@ patches:
     target:
       kind: Job
       name: hasura-migrations
+
+  - path: indexer-migrations.yaml
+    target:
+      kind: Job
+      name: indexer-migrations
 
 commonLabels:
   network: base-mainnet

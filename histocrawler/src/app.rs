@@ -54,33 +54,24 @@ impl HistoCrawler {
 
     /// Decode the raw log and insert it into the database
     pub async fn decode_raw_log_and_insert(&self, log: Log) -> Result<(), HistoCrawlerError> {
-        if let Some(_block_number) = log.block_number {
-            // Fetch the block timestamp from the provider
-            if let Some(block) = self
-                .fetch_block_timestamp(
-                    log.block_number
-                        .ok_or(HistoCrawlerError::BlockNumberNotFound)?,
-                )
-                .await?
-            {
-                let block_timestamp = block.header.timestamp;
-                let mut raw_log = RawLog::from(log);
-                // We need to update the block timestamp of the raw log before inserting it into the database,
-                // as the block timestamp is not available in the log object.
-                raw_log
-                    .update_block_timestamp(block_timestamp)
-                    .insert(&self.pg_pool, &self.env.indexer_schema)
-                    .await?;
-                info!("Inserted log: {:#?}", raw_log);
-            } else {
-                info!("Skipping log: {:#?}", log);
-                sleep(Duration::from_secs(10)).await;
-            }
-        } else {
-            info!("Skipping log: {:#?}", log);
-            sleep(Duration::from_secs(10)).await;
-        }
+        let block_number = log
+            .block_number
+            .ok_or(HistoCrawlerError::BlockNumberNotFound)?;
 
+        // Fetch the block timestamp from the provider
+        let block = self
+            .fetch_block_timestamp(block_number)
+            .await?
+            .ok_or(HistoCrawlerError::BlockNotFound(block_number))?;
+
+        let block_timestamp = block.header.timestamp;
+        let mut raw_log = RawLog::from(log);
+        raw_log
+            .update_block_timestamp(block_timestamp)
+            .insert(&self.pg_pool, &self.env.indexer_schema)
+            .await?;
+
+        info!("Inserted log: {:#?}", raw_log);
         Ok(())
     }
 
@@ -157,18 +148,19 @@ impl HistoCrawler {
     ) -> Result<(), HistoCrawlerError> {
         let last_block = self.get_last_block().await?;
         // Update the start and end block for the next iteration
-        *start_block = *end_block;
+        *start_block = *end_block + 1; // Add 1 to avoid skipping blocks
         *end_block = self
             .get_block_number_ceiling(*start_block, last_block)
             .await?;
 
         // If we are at the last block, use exponential backoff
-        if *start_block == last_block {
+        if *start_block >= last_block {
             info!(
                 "Reached the last block, backing off for {:?} seconds",
                 self.backoff_delay
             );
             sleep(self.backoff_delay).await;
+            *start_block = last_block;
         }
 
         Ok(())
@@ -213,10 +205,11 @@ impl HistoCrawler {
             RawLog::fetch_last_observed_block(&self.pg_pool, &self.env.indexer_schema).await?;
         if let Some(last_block_in_db) = last_block_in_db {
             info!(
-                "Found last block in the database: {}, using it as start block",
-                last_block_in_db
+                "Found last block in the database: {}, using next block as start block {}",
+                last_block_in_db,
+                last_block_in_db + 1
             );
-            start_block = last_block_in_db as u64;
+            start_block = last_block_in_db as u64 + 1;
         }
 
         let mut end_block = self
@@ -226,13 +219,34 @@ impl HistoCrawler {
         loop {
             let filter = self.create_filter(start_block, end_block).await?;
             let logs = self.get_logs_with_retry(&filter).await?;
-            // Process the batch of logs and insert them into the database
+
+            // Process logs in the current batch.
+            // If an error occurs, break out and re-fetch for the reduced range.
+            let mut encountered_error = false;
             for log in logs {
-                self.decode_raw_log_and_insert(log).await?;
+                if let Err(e) = self.decode_raw_log_and_insert(log.clone()).await {
+                    info!(
+                        "Error processing log in block {}: {}. Reducing batch size.",
+                        log.block_number.unwrap_or(start_block),
+                        e
+                    );
+                    if end_block - start_block > 100 {
+                        end_block = start_block + (end_block - start_block) / 2;
+                        info!("New end_block: {}", end_block);
+                        encountered_error = true;
+                        break; // break out to refetch logs for the smaller range
+                    } else {
+                        return Err(e);
+                    }
+                }
+            }
+
+            if encountered_error {
+                // Instead of updating start/end blocks immediately, retry the current range.
+                continue;
             }
 
             info!("Scanned up to block {}", end_block);
-
             self.update_start_end_blocks(&mut start_block, &mut end_block)
                 .await?;
         }

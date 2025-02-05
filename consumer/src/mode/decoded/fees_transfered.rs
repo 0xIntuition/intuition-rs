@@ -46,7 +46,7 @@ impl FeesTransferred {
         event: &DecodedMessage,
     ) -> Result<FeeTransfer, ConsumerError> {
         FeeTransfer::builder()
-            .id(event.transaction_hash.clone())
+            .id(DecodedMessage::event_id(event))
             .sender_id(sender_account.id.clone())
             .receiver_id(protocol_multisig_account.id.clone())
             .amount(self.amount)
