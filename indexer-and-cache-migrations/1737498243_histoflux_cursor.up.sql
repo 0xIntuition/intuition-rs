@@ -24,6 +24,6 @@ INSERT INTO cursors.histoflux_cursor (id, last_processed_id, environment, queue_
 -- dev-base-sepolia
 INSERT INTO cursors.histoflux_cursor (id, last_processed_id, environment, queue_url) VALUES (1, 0, 'DevBaseSepolia', 'https://sqs.us-west-2.amazonaws.com/064662847354/base-sepolia-raw-logs.fifo');
 -- prod-base
-INSERT INTO cursors.histoflux_cursor (id, last_processed_id, environment, queue_url) VALUES (2, 0, 'ProdBase', 'https://sqs.us-west-2.amazonaws.com/064662847354/prod-base-mainnet-raw-logs.fifo');
+INSERT INTO cursors.histoflux_cursor (id, last_processed_id, environment, queue_url) VALUES (2, 0, 'ProdBase', 'http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/raw_logs.fifo');
 -- prod-base-sepolia
 INSERT INTO cursors.histoflux_cursor (id, last_processed_id, environment, queue_url) VALUES (3, 50232, 'ProdBaseSepolia', 'https://sqs.us-west-2.amazonaws.com/064662847354/prod-base-sepolia-raw-logs.fifo');
