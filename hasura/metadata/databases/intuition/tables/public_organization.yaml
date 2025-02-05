@@ -17,15 +17,6 @@ object_relationships:
         remote_table:
           name: atom
           schema: public
-  - name: cached_image
-    using:
-      manual_configuration:
-        column_mapping:
-          image: original_url
-        insertion_order: null
-        remote_table:
-          name: cached_image
-          schema: public
 select_permissions:
   - role: anonymous
     permission:

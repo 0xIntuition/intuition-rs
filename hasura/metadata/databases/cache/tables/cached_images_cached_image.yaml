@@ -1,0 +1,16 @@
+table:
+  name: cached_image
+  schema: cached_images
+select_permissions:
+  - role: anonymous
+    permission:
+      columns:
+        - safe
+        - score
+        - model
+        - original_url
+        - url
+        - created_at
+      filter: {}
+      limit: 100
+    comment: ""

@@ -17,15 +17,17 @@ object_relationships:
         remote_table:
           name: atom
           schema: public
-  - name: cached_image
-    using:
-      manual_configuration:
-        column_mapping:
+remote_relationships:
+  - definition:
+      to_source:
+        field_mapping:
           image: original_url
-        insertion_order: null
-        remote_table:
+        relationship_type: object
+        source: cache
+        table:
           name: cached_image
-          schema: public
+          schema: cached_images
+    name: cached_image
 select_permissions:
   - role: anonymous
     permission:
