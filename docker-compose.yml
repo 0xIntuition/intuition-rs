@@ -319,20 +319,20 @@ services:
   #       condition: service_started
   #   command: ["--network", "base-mainnet", "--output", "postgres"]
 
-  # histocrawler:
-  #   container_name: histocrawler
-  #   image: ghcr.io/0xintuition/histocrawler:latest
-  #   environment:
-  #     RPC_URL: $RPC_URL
-  #     START_BLOCK: $START_BLOCK
-  #     INTUITION_CONTRACT_ADDRESS: $INTUITION_CONTRACT_ADDRESS
-  #     HISTOCRAWLER_DATABASE_URL: $DATABASE_URL
-  #     INDEXER_SCHEMA: $INDEXER_SCHEMA
-  #   depends_on:
-  #     database:
-  #       condition: service_healthy
-  #     local-migrations:
-  #       condition: service_started
+  histocrawler:
+    container_name: histocrawler
+    image: ghcr.io/0xintuition/histocrawler:latest
+    environment:
+      RPC_URL: $RPC_URL
+      START_BLOCK: $START_BLOCK
+      INTUITION_CONTRACT_ADDRESS: $INTUITION_CONTRACT_ADDRESS
+      HISTOCRAWLER_DATABASE_URL: $DATABASE_URL
+      INDEXER_SCHEMA: $INDEXER_SCHEMA
+    depends_on:
+      database:
+        condition: service_healthy
+      local-migrations:
+        condition: service_started
 
   local-migrations:
     container_name: local-migrations

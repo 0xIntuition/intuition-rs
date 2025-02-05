@@ -24,7 +24,7 @@ impl FeesTransferred {
         Event::builder()
             .id(DecodedMessage::event_id(event))
             .event_type(EventType::FeesTransfered)
-            .fee_transfer_id(event.transaction_hash.clone())
+            .fee_transfer_id(DecodedMessage::event_id(event))
             .block_number(U256Wrapper::try_from(event.block_number)?)
             .block_timestamp(event.block_timestamp)
             .transaction_hash(event.transaction_hash.clone())
