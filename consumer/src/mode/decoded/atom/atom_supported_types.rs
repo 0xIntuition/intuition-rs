@@ -219,12 +219,16 @@ impl AtomMetadata {
     }
 
     /// Creates a new atom metadata for a text object
-    pub fn text_object(image: Option<String>) -> Self {
+    pub fn text_object(name: Option<String>) -> Self {
         Self {
-            label: "text object".to_string(),
+            label: name
+                .unwrap_or("text object".to_string())
+                .chars()
+                .take(256)
+                .collect(),
             emoji: "📝".to_string(),
             atom_type: "TextObject".to_string(),
-            image,
+            image: None,
         }
     }
 

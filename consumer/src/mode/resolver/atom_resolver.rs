@@ -363,7 +363,7 @@ async fn handle_text_data(
         .upsert(consumer_context.pool(), consumer_context.backend_schema())
         .await?;
     create_text_object_atom_value(atom, &text_object, consumer_context).await?;
-    Ok(AtomMetadata::text_object(None))
+    Ok(AtomMetadata::text_object(Some(text_object.data)))
 }
 
 /// Tries to parse JSON
