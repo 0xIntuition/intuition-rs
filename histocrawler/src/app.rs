@@ -94,11 +94,7 @@ impl HistoCrawler {
     /// Get the last block number from the provider
     pub async fn get_last_block(&self) -> Result<u64, HistoCrawlerError> {
         let block_number = self.provider.get_block_number().await?;
-        // This is set as a confirmation delay —only index blocks a few
-        // blocks behind the current tip. This way we only process finalized
-        // blocks (or blocks that are at least a few confirmations deep)
-        // and avoid missing events due to propagation or indexing delays.
-        Ok(block_number.saturating_sub(6))
+        Ok(block_number)
     }
 
     /// Get the provider
