@@ -41,6 +41,21 @@ pub async fn upload_image_from_url(
 ) -> Result<Json<Vec<CachedImage>>, ApiError> {
     let mut responses = Vec::new();
     info!("Uploading image");
+    // If the image is already in the database, return it
+    if let Some(cached_image) =
+        CachedImage::find_by_original_url(&state.pg_pool, &image.url, &state.image_api_schema)
+            .await?
+    {
+        info!("Image already in the database, returning it");
+        responses.push(cached_image);
+        return Ok(Json(responses));
+    } else {
+        info!(
+            "Image URL {} not in the database, downloading it",
+            image.url
+        );
+    }
+
     // Download the image
     let image_bytes = image.download().await?;
     if let Some(image_bytes) = image_bytes {
@@ -86,7 +101,9 @@ pub async fn upload_image_from_url(
         // Add to the responses vector
         responses.push(image_guard.clone());
         // And upsert the image guard to the database
-        image_guard.upsert(&state.pg_pool, &state.be_schema).await?;
+        image_guard
+            .upsert(&state.pg_pool, &state.image_api_schema)
+            .await?;
     }
 
     Ok(Json(responses))

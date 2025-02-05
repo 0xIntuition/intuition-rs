@@ -10,7 +10,7 @@ use crate::{
 };
 use alloy::{
     eips::BlockId,
-    primitives::{Address, Uint, U256},
+    primitives::{Address, Bytes, Uint, U256},
     providers::{ProviderBuilder, RootProvider},
     transports::http::Http,
 };
@@ -114,6 +114,25 @@ impl DecodedConsumerContext {
                 Err(e) => {
                     warn!("Response: {:?}", current_share_price);
                     warn!("Error fetching current share price: {}", e);
+                    Err(ConsumerError::MaxRetriesExceeded)
+                }
+            }
+        })
+        .await
+    }
+
+    /// This function fetches the atom data from the contract
+    pub async fn fetch_atom_data(&self, id: Uint<256, 4>) -> Result<Bytes, ConsumerError> {
+        self.retry_with_backoff(|| async {
+            let atom_data = self.base_client.atoms(id).call().await;
+            match &atom_data {
+                Ok(data) => {
+                    info!("Atom data: {:?}", data);
+                    Ok(data.atomData.clone())
+                }
+                Err(e) => {
+                    warn!("Response: {:?}", atom_data);
+                    warn!("Error fetching atom data: {}", e);
                     Err(ConsumerError::MaxRetriesExceeded)
                 }
             }

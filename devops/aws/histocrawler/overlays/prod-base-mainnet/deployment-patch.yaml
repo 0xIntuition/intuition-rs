@@ -13,7 +13,7 @@ spec:
             - base-mainnet
             - --output
             - postgres
-          image: ghcr.io/0xintuition/histocrawler:2.0.2
+          image: ghcr.io/0xintuition/histocrawler:2.0.6
           imagePullPolicy: Always
           volumeMounts:
             - name: secrets-store-inline

@@ -208,6 +208,7 @@ services:
     restart: always
     environment:
       HASURA_GRAPHQL_METADATA_DATABASE_URL: postgres://testuser:test@database:$PG_PORT/storage
+      HASURA_GRAPHQL_CACHE_DATABASE_URL: postgres://testuser:test@database:$PG_PORT/storage
       HASURA_GRAPHQL_ENABLE_CONSOLE: 'true'
       HASURA_GRAPHQL_UNAUTHORIZED_ROLE: 'anonymous'
       HASURA_GRAPHQL_DEV_MODE: 'true'

@@ -25,7 +25,7 @@ impl Flag {
 #[derive(Clone)]
 pub struct AppState {
     pub pg_pool: Pool<Postgres>,
-    pub be_schema: String,
+    pub image_api_schema: String,
     pub pinata_api_jwt: String,
     pub ipfs_upload_url: String,
     pub ipfs_fetch_url: String,
@@ -36,8 +36,8 @@ pub struct AppState {
 impl AppState {
     pub async fn new(env: &Env) -> Self {
         Self {
-            pg_pool: connect_to_db(&env.database_url).await.unwrap(),
-            be_schema: env.be_schema.clone(),
+            pg_pool: connect_to_db(&env.indexer_database_url).await.unwrap(),
+            image_api_schema: env.image_api_schema.clone(),
             pinata_api_jwt: env.pinata_api_jwt.clone(),
             ipfs_fetch_url: env.ipfs_gateway_url.clone(),
             ipfs_upload_url: env.ipfs_upload_url.clone(),

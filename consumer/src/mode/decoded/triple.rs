@@ -5,7 +5,7 @@ use crate::{
 use alloy::primitives::U256;
 use models::{
     account::{Account, AccountType},
-    atom::{Atom, AtomType},
+    atom::{Atom, AtomResolvingStatus, AtomType},
     claim::Claim,
     event::{Event, EventType},
     position::Position,
@@ -166,6 +166,64 @@ impl TripleCreated {
         )
         .await
         .map_err(ConsumerError::ModelError)
+    }
+
+    #[allow(dead_code)]
+    /// This function fetches an atom from the DB. If it does not exist, it creates it.
+    async fn fetch_atom_or_create(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+        id: U256Wrapper,
+    ) -> Result<Atom, ConsumerError> {
+        let atom = Atom::find_by_id(
+            id.clone(),
+            &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
+        )
+        .await?;
+        if let Some(atom) = atom {
+            Ok(atom)
+        } else {
+            let atom_data = decoded_consumer_context
+                .fetch_atom_data(self.subjectId)
+                .await?;
+            // Need to fetch this from DB first
+            let account = if let Some(account) = Account::find_by_id(
+                "placeholder".to_string(),
+                &decoded_consumer_context.pg_pool,
+                &decoded_consumer_context.backend_schema,
+            )
+            .await?
+            {
+                account
+            } else {
+                Account::builder()
+                    .id("placeholder".to_string())
+                    .label("placeholder".to_string())
+                    .account_type(AccountType::Default)
+                    .build()
+            };
+
+            let atom = Atom::builder()
+                .id(id)
+                .wallet_id(account.id.clone())
+                .creator_id(account.id)
+                .vault_id(U256Wrapper::from_str(&self.vaultID.to_string())?)
+                .value_id(U256Wrapper::from_str(&self.vaultID.to_string())?)
+                .raw_data(atom_data.to_string())
+                .atom_type(AtomType::Unknown)
+                .block_number(U256Wrapper::from_str("0")?)
+                .block_timestamp(0)
+                .transaction_hash("waiting for resolution".to_string())
+                .resolving_status(AtomResolvingStatus::Pending)
+                .build()
+                .upsert(
+                    &decoded_consumer_context.pg_pool,
+                    &decoded_consumer_context.backend_schema,
+                )
+                .await?;
+            Ok(atom)
+        }
     }
     /// This function gets the subject, predicate and object atoms from the DB
     /// and returns them as a tuple of atoms. If any of the atoms are not found,

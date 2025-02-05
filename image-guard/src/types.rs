@@ -4,7 +4,7 @@ use utoipa::ToSchema;
 #[derive(Deserialize)]
 pub struct Env {
     pub classification_api_port: u16,
-    pub database_url: String,
+    pub indexer_database_url: String,
     pub flag_hf_classification: Option<bool>,
     pub hf_token: Option<String>,
     pub ipfs_gateway_url: String,
@@ -12,7 +12,7 @@ pub struct Env {
     pub flag_local_with_classification: Option<bool>,
     pub flag_local_with_db_only: Option<bool>,
     pub pinata_api_jwt: String,
-    pub be_schema: String,
+    pub image_api_schema: String,
 }
 
 /// A multipart request with an image

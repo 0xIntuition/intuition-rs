@@ -101,7 +101,7 @@ impl Deposited {
         decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<Deposit, ConsumerError> {
         Deposit::builder()
-            .id(event.transaction_hash.to_string())
+            .id(DecodedMessage::event_id(event))
             .sender_id(self.sender.to_string())
             .receiver_id(self.receiver.to_string())
             .receiver_total_shares_in_vault(U256Wrapper::from(self.receiverTotalSharesInVault))
@@ -196,7 +196,7 @@ impl Deposited {
                     .account_id(self.sender.to_string().to_lowercase())
                     .delta(U256Wrapper::from(self.senderAssetsAfterTotalFees))
                     .atom_id(atom_id)
-                    .deposit_id(event.transaction_hash.clone())
+                    .deposit_id(DecodedMessage::event_id(event))
                     .block_number(U256Wrapper::try_from(event.block_number)?)
                     .block_timestamp(event.block_timestamp)
                     .transaction_hash(event.transaction_hash.clone())
@@ -217,7 +217,7 @@ impl Deposited {
                             .clone()
                             .ok_or(ConsumerError::TripleNotFound)?,
                     )
-                    .deposit_id(event.transaction_hash.clone())
+                    .deposit_id(DecodedMessage::event_id(event))
                     .block_number(U256Wrapper::try_from(event.block_number)?)
                     .block_timestamp(event.block_timestamp)
                     .transaction_hash(event.transaction_hash.clone())

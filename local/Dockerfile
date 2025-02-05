@@ -11,7 +11,7 @@ RUN apt-get update && \
 # Create update script
 RUN echo '#!/bin/bash \n\
 PGPASSWORD=$POSTGRES_PASSWORD psql -h database -U $POSTGRES_USER -d $POSTGRES_DB -p $POSTGRES_PORT -c \
-"UPDATE cursors.histoflux_cursor SET queue_url = '\''http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/raw_logs.fifo'\'' WHERE id = 1;"' > /app/update.sh
+"UPDATE cursors.histoflux_cursor SET queue_url = '\''http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/raw_logs.fifo'\'';"' > /app/update.sh
 
 RUN chmod +x /app/update.sh
 
