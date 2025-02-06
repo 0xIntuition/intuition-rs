@@ -210,4 +210,35 @@ impl Atom {
             .map_err(ModelError::from)
             .map(|_| ())
     }
+
+    /// This function decodes the atom data
+    pub fn decode_data(data: String) -> Result<String, ModelError> {
+        // Remove the "0x" prefix and decode the hex string
+        let decoded_data = hex::decode(&data[2..]).expect("Decoding failed");
+        let decoded_string = String::from_utf8(decoded_data).expect("UTF-8 conversion failed");
+        let filtered_bytes: Vec<u8> = decoded_string
+            .as_bytes()
+            .iter()
+            .filter(|&&b| b != 0)
+            .cloned()
+            .collect();
+
+        Ok(String::from_utf8(filtered_bytes)?)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_decode_data() {
+        let hex_string = "0x697066733a2f2f516d58314b5a3445756e64347639336a364333786b383367667133777477667a5a47327465704e7a714e75764768";
+        let expected_output = "ipfs://QmX1KZ4Eund4v93j6C3xk83gfq3wtwfzZG2tepNzqNuvGh";
+
+        // Use the decode_data function
+        let result = Atom::decode_data(hex_string.to_string()).expect("Decoding data failed");
+
+        assert_eq!(result, expected_output);
+    }
 }

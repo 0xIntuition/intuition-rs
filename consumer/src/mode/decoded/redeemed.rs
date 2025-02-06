@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use super::utils::get_or_create_account;
 use crate::{
     error::ConsumerError, mode::types::DecodedConsumerContext, schemas::types::DecodedMessage,
@@ -148,6 +150,37 @@ impl Redeemed {
         Ok(())
     }
 
+    /// This function gets or creates a vault
+    async fn get_or_create_temporary_vault(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+        id: &U256Wrapper,
+    ) -> Result<Vault, ConsumerError> {
+        if let Some(vault) = Vault::find_by_id(
+            id.clone(),
+            &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
+        )
+        .await?
+        {
+            Ok(vault)
+        } else {
+            Vault::builder()
+                .id(id.clone())
+                .atom_id(id.clone())
+                .total_shares(U256Wrapper::from_str("0")?)
+                .current_share_price(U256Wrapper::from_str("0")?)
+                .position_count(0)
+                .build()
+                .upsert(
+                    &decoded_consumer_context.pg_pool,
+                    &decoded_consumer_context.backend_schema,
+                )
+                .await
+                .map_err(ConsumerError::ModelError)
+        }
+    }
+
     /// This function handles the creation of a `Redeemed`
     pub async fn handle_redeemed_creation(
         &self,
@@ -160,7 +193,16 @@ impl Redeemed {
         let receiver_account =
             get_or_create_account(self.receiver.to_string(), decoded_consumer_context).await?;
 
-        // 2. Create redemption record
+        // 2. Check if vaults exists, if not create a temporary one. This is the case
+        // where we start indexing data from an arbitrary point in time.
+        let _vault = self
+            .get_or_create_temporary_vault(
+                decoded_consumer_context,
+                &U256Wrapper::from(self.vaultId),
+            )
+            .await?;
+
+        // 3. Create redemption record
         self.create_redemption_record(
             decoded_consumer_context,
             &sender_account,
@@ -185,14 +227,16 @@ impl Redeemed {
         if self.senderTotalSharesInVault == Uint::from(0) {
             self.handle_zero_shares(&vault, &sender_account, decoded_consumer_context)
                 .await?;
+            // 5a. Update vault stats updating the position count
+            self.update_vault_stats(decoded_consumer_context, current_share_price, true)
+                .await?;
         } else {
             self.handle_remaining_shares(&vault, &sender_account, decoded_consumer_context)
                 .await?;
+            // 5b. Update vault stats without updating the position count
+            self.update_vault_stats(decoded_consumer_context, current_share_price, false)
+                .await?;
         }
-
-        // 5. Update vault stats
-        self.update_vault_stats(decoded_consumer_context, current_share_price)
-            .await?;
 
         // 6. Create event record
         self.create_event(decoded_consumer_context, event, &vault)
@@ -329,6 +373,7 @@ impl Redeemed {
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         current_share_price: U256,
+        update_position_count: bool,
     ) -> Result<(), ConsumerError> {
         if let Some(mut vault) = Vault::find_by_id(
             U256Wrapper::from(self.vaultId),
@@ -339,7 +384,9 @@ impl Redeemed {
         {
             vault.total_shares -= U256Wrapper::from(self.sharesRedeemedBySender);
             vault.current_share_price = U256Wrapper::from(current_share_price);
-            vault.position_count -= 1;
+            if update_position_count {
+                vault.position_count -= 1;
+            }
             vault
                 .upsert(
                     &decoded_consumer_context.pg_pool,
