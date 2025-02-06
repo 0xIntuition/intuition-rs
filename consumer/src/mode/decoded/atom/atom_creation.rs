@@ -53,7 +53,9 @@ impl AtomCreated {
         decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<String, ConsumerError> {
         // decode the hex data from the atomData.
-        let decoded_atom_data = if let Ok(decoded_atom_data) = self.decode_data() {
+        let decoded_atom_data = if let Ok(decoded_atom_data) =
+            Atom::decode_data(self.atomData.to_string())
+        {
             decoded_atom_data
         } else {
             warn!(
@@ -71,13 +73,6 @@ impl AtomCreated {
         )
         .await?;
         Ok(decoded_atom_data)
-    }
-
-    /// This function decodes the atom data
-    fn decode_data(&self) -> Result<String, ConsumerError> {
-        let filtered_bytes: Vec<u8> = self.atomData.iter().filter(|&&b| b != 0).cloned().collect();
-
-        Ok(String::from_utf8(filtered_bytes)?)
     }
 
     /// This function verifies if the atom wallet account exists in our DB. If it does, it returns it.

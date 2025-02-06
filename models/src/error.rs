@@ -8,6 +8,8 @@ pub enum ModelError {
     DatabaseConnectionError(String),
     #[error("Failed to delete data: {0}")]
     DeleteError(String),
+    #[error(transparent)]
+    FromUtf8Error(#[from] std::string::FromUtf8Error),
     #[error("Failed to insert data: {0}")]
     InsertError(String),
     #[error("Invalid atom type: {0}")]
