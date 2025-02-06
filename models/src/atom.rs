@@ -215,15 +215,16 @@ impl Atom {
     pub fn decode_data(data: String) -> Result<String, ModelError> {
         // Remove the "0x" prefix and decode the hex string
         let decoded_data = hex::decode(&data[2..]).expect("Decoding failed");
-        let decoded_string = String::from_utf8(decoded_data).expect("UTF-8 conversion failed");
-        let filtered_bytes: Vec<u8> = decoded_string
-            .as_bytes()
-            .iter()
-            .filter(|&&b| b != 0)
-            .cloned()
-            .collect();
 
-        Ok(String::from_utf8(filtered_bytes)?)
+        // Try UTF-8 first
+        if let Ok(s) = String::from_utf8(decoded_data.clone()) {
+            let filtered_bytes: Vec<u8> =
+                s.as_bytes().iter().filter(|&&b| b != 0).cloned().collect();
+            return Ok(String::from_utf8(filtered_bytes)?);
+        }
+
+        // Fallback to hex representation if not UTF-8
+        Ok(hex::encode(decoded_data))
     }
 }
 
