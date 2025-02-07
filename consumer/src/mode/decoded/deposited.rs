@@ -255,6 +255,7 @@ impl Deposited {
     /// This function gets or creates a vault
     async fn get_or_create_vault(
         &self,
+        event: &DecodedMessage,
         decoded_consumer_context: &DecodedConsumerContext,
         id: U256,
         current_share_price: U256,
@@ -268,7 +269,12 @@ impl Deposited {
         {
             Some(mut vault) => {
                 vault.current_share_price = U256Wrapper::from(current_share_price);
-                vault.total_shares = vault.total_shares + U256Wrapper::from(self.sharesForReceiver);
+                vault.total_shares = U256Wrapper::from(
+                    decoded_consumer_context
+                        .fetch_total_shares_in_vault(id, event)
+                        .await?,
+                );
+                // vault.total_shares + U256Wrapper::from(self.sharesForReceiver);
                 vault
                     .upsert(
                         &decoded_consumer_context.pg_pool,
@@ -298,7 +304,7 @@ impl Deposited {
                         .current_share_price(U256Wrapper::from(current_share_price))
                         .position_count(0)
                         .atom_id(self.vaultId)
-                        .total_shares(U256Wrapper::from(U256::from(0)))
+                        .total_shares(U256Wrapper::from(self.sharesForReceiver))
                         .build()
                         .upsert(
                             &decoded_consumer_context.pg_pool,
@@ -324,9 +330,11 @@ impl Deposited {
 
         // Initialize accounts and vault. We need to block on this because it's async and
         // we need to ensure that the accounts and vault are initialized before we proceed
-        let vault = block_on(
-            self.initialize_accounts_and_vault(decoded_consumer_context, current_share_price),
-        )?;
+        let vault = block_on(self.initialize_accounts_and_vault(
+            decoded_consumer_context,
+            current_share_price,
+            event,
+        ))?;
 
         // Create deposit record
         let deposit = self.create_deposit(event, decoded_consumer_context).await?;
@@ -447,6 +455,7 @@ impl Deposited {
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         current_share_price: U256,
+        event: &DecodedMessage,
     ) -> Result<Vault, ConsumerError> {
         // Create accounts concurrently
         let (sender, receiver) = futures::join!(
@@ -456,8 +465,13 @@ impl Deposited {
         sender?;
         receiver?;
 
-        self.get_or_create_vault(decoded_consumer_context, self.vaultId, current_share_price)
-            .await
+        self.get_or_create_vault(
+            event,
+            decoded_consumer_context,
+            self.vaultId,
+            current_share_price,
+        )
+        .await
     }
 
     /// This function updates the claim

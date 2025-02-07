@@ -382,10 +382,13 @@ impl Redeemed {
         )
         .await?
         {
-            vault.total_shares -= U256Wrapper::from(self.sharesRedeemedBySender);
+            // Prevent underflow by using saturating subtraction.
+            vault.total_shares = vault
+                .total_shares
+                .saturating_sub(U256Wrapper::from(self.sharesRedeemedBySender));
             vault.current_share_price = U256Wrapper::from(current_share_price);
             if update_position_count {
-                vault.position_count -= 1;
+                vault.position_count = vault.position_count.saturating_sub(1);
             }
             vault
                 .upsert(
