@@ -2025,7 +2025,7 @@ checksum = "c2459377285ad874054d797f3ccebf984978aa39129f6eafde5cdc8315b612f8"
 
 [[package]]
 name = "consumer"
-version = "0.11.0"
+version = "2.0.5"
 dependencies = [
  "alloy",
  "async-trait",

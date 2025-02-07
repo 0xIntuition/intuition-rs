@@ -214,16 +214,14 @@ impl Atom {
     /// This function decodes the atom data
     pub fn decode_data(data: String) -> Result<String, ModelError> {
         // Remove the "0x" prefix and decode the hex string
-        let decoded_data = hex::decode(&data[2..]).expect("Decoding failed");
-        let decoded_string = String::from_utf8(decoded_data).expect("UTF-8 conversion failed");
-        let filtered_bytes: Vec<u8> = decoded_string
-            .as_bytes()
-            .iter()
-            .filter(|&&b| b != 0)
-            .cloned()
-            .collect();
+        let decoded_data =
+            hex::decode(&data[2..]).map_err(|e| ModelError::DecodingError(e.to_string()))?;
 
-        Ok(String::from_utf8(filtered_bytes)?)
+        // Try UTF-8 and fail if invalid
+        let s = String::from_utf8(decoded_data)
+            .map_err(|e| ModelError::DecodingError(e.to_string()))?;
+        let filtered_bytes: Vec<u8> = s.as_bytes().iter().filter(|&&b| b != 0).cloned().collect();
+        String::from_utf8(filtered_bytes).map_err(|e| ModelError::DecodingError(e.to_string()))
     }
 }
 
@@ -239,6 +237,15 @@ mod tests {
         // Use the decode_data function
         let result = Atom::decode_data(hex_string.to_string()).expect("Decoding data failed");
 
+        assert_eq!(result, expected_output);
+    }
+
+    #[test]
+    fn test_decode_data_non_utf8() {
+        let hex_string = "0xc626cbfe61bac7a1db9d227b90878d872c379c6a";
+        let expected_output = "c626cbfe61bac7a1db9d227b90878d872c379c6a";
+
+        let result = Atom::decode_data(hex_string.to_string()).expect("Decoding data failed");
         assert_eq!(result, expected_output);
     }
 }
