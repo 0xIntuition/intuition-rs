@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use crate::{
     error::ConsumerError,
     mode::{resolver::types::ResolverConsumerMessage, types::DecodedConsumerContext},
@@ -5,8 +7,10 @@ use crate::{
 use alloy::primitives::U256;
 use models::{
     account::{Account, AccountType},
+    position::Position,
     traits::SimpleCrud,
     types::U256Wrapper,
+    vault::Vault,
 };
 use tracing::info;
 
@@ -103,4 +107,35 @@ pub async fn update_account_with_atom_id(
         .send_message(serde_json::to_string(&message)?, None)
         .await?;
     Ok(account)
+}
+
+/// This function updates the position count for a given vault
+pub async fn update_vault_position_count(
+    decoded_consumer_context: &DecodedConsumerContext,
+    vault_id: U256Wrapper,
+) -> Result<(), ConsumerError> {
+    let mut vault = Vault::find_by_id(
+        vault_id,
+        &decoded_consumer_context.pg_pool,
+        &decoded_consumer_context.backend_schema,
+    )
+    .await?
+    .ok_or(ConsumerError::VaultNotFound)?;
+
+    let count = Position::count_by_vault(
+        U256Wrapper::from_str(&vault.id.to_string())?,
+        &decoded_consumer_context.pg_pool,
+        &decoded_consumer_context.backend_schema,
+    )
+    .await?;
+
+    vault.position_count = count as i32;
+    vault
+        .upsert(
+            &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
+        )
+        .await
+        .map_err(ConsumerError::ModelError)?;
+    Ok(())
 }

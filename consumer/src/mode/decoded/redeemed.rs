@@ -1,6 +1,8 @@
 use super::utils::get_or_create_account;
 use crate::{
-    error::ConsumerError, mode::types::DecodedConsumerContext, schemas::types::DecodedMessage,
+    error::ConsumerError,
+    mode::{decoded::utils::update_vault_position_count, types::DecodedConsumerContext},
+    schemas::types::DecodedMessage,
     EthMultiVault::Redeemed,
 };
 use alloy::primitives::{Uint, U256};
@@ -227,12 +229,12 @@ impl Redeemed {
                 .await?;
 
             // Optionally update vault stats (if needed)
-            self.update_vault_stats(decoded_consumer_context, current_share_price, true)
+            self.update_vault_stats(decoded_consumer_context, current_share_price)
                 .await?;
         } else {
             self.handle_remaining_shares(&vault, &sender_account, decoded_consumer_context)
                 .await?;
-            self.update_vault_stats(decoded_consumer_context, current_share_price, false)
+            self.update_vault_stats(decoded_consumer_context, current_share_price)
                 .await?;
         }
 
@@ -364,7 +366,6 @@ impl Redeemed {
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         current_share_price: U256,
-        update_position_count: bool,
     ) -> Result<(), ConsumerError> {
         if let Some(mut vault) = Vault::find_by_id(
             U256Wrapper::from(self.vaultId),
@@ -376,9 +377,6 @@ impl Redeemed {
             // Prevent underflow by using saturating subtraction.
             vault.total_shares -= U256Wrapper::from(self.sharesRedeemedBySender);
             vault.current_share_price = U256Wrapper::from(current_share_price);
-            if update_position_count {
-                vault.position_count -= 1;
-            }
             vault
                 .upsert(
                     &decoded_consumer_context.pg_pool,
@@ -417,36 +415,14 @@ impl Redeemed {
                     &decoded_consumer_context.backend_schema,
                 )
                 .await?;
-                self.decrement_vault_position_count(decoded_consumer_context)
-                    .await?;
+                update_vault_position_count(
+                    decoded_consumer_context,
+                    U256Wrapper::from(self.vaultId),
+                )
+                .await?;
             }
         }
 
         Ok(())
-    }
-
-    async fn decrement_vault_position_count(
-        &self,
-        decoded_consumer_context: &DecodedConsumerContext,
-    ) -> Result<(), ConsumerError> {
-        let mut vault = Vault::find_by_id(
-            U256Wrapper::from(self.vaultId),
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
-        )
-        .await?
-        .ok_or(ConsumerError::VaultNotFound)?;
-
-        // This subtraction should be safe if we're only decrementing when a position actually closes.
-        vault.position_count -= 1;
-
-        vault
-            .upsert(
-                &decoded_consumer_context.pg_pool,
-                &decoded_consumer_context.backend_schema,
-            )
-            .await
-            .map(|_| ())
-            .map_err(ConsumerError::ModelError)
     }
 }
