@@ -535,8 +535,7 @@ impl Deposited {
         .await?
         {
             Some(mut position) => {
-                position.shares =
-                    position.shares + U256Wrapper::from(self.receiverTotalSharesInVault);
+                position.shares = U256Wrapper::from(self.receiverTotalSharesInVault);
                 position
             }
             None => return Err(ConsumerError::PositionNotFound),
