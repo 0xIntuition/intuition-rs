@@ -414,14 +414,13 @@ impl Deposited {
         )
         .await?;
 
-        if position.is_none() && self.receiverTotalSharesInVault != U256::from(0) {
+        if position.is_none() {
             self.handle_new_position(decoded_consumer_context, &position_id, triple)
                 .await?;
-        } else if self.receiverTotalSharesInVault != U256::from(0) {
+        } else {
             self.handle_existing_position(decoded_consumer_context, &position_id, triple, vault)
                 .await?;
         }
-
         Ok(())
     }
 
