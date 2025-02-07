@@ -274,7 +274,6 @@ impl Deposited {
                         .fetch_total_shares_in_vault(id, event)
                         .await?,
                 );
-                // vault.total_shares + U256Wrapper::from(self.sharesForReceiver);
                 vault
                     .upsert(
                         &decoded_consumer_context.pg_pool,
