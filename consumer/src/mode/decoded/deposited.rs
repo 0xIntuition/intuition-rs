@@ -417,9 +417,11 @@ impl Deposited {
         if position.is_none() && self.receiverTotalSharesInVault > U256::from(0) {
             self.handle_new_position(decoded_consumer_context, &position_id, triple)
                 .await?;
-        } else {
+        } else if position.is_some() && self.receiverTotalSharesInVault > U256::from(0) {
             self.handle_existing_position(decoded_consumer_context, &position_id, triple, vault)
                 .await?;
+        } else {
+            info!("No need to update position or claims.");
         }
         Ok(())
     }
