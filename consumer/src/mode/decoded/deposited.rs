@@ -414,7 +414,7 @@ impl Deposited {
         )
         .await?;
 
-        if position.is_none() {
+        if position.is_none() && self.receiverTotalSharesInVault > U256::from(0) {
             self.handle_new_position(decoded_consumer_context, &position_id, triple)
                 .await?;
         } else {
@@ -532,16 +532,12 @@ impl Deposited {
         )
         .await?
         {
-            Some(mut pos) => {
-                pos.shares = U256Wrapper::from(self.receiverTotalSharesInVault);
-                pos
+            Some(mut position) => {
+                position.shares =
+                    position.shares + U256Wrapper::from(self.receiverTotalSharesInVault);
+                position
             }
-            None => Position::builder()
-                .id(position_id.to_string())
-                .account_id(self.receiver.to_string())
-                .vault_id(self.vaultId)
-                .shares(self.receiverTotalSharesInVault)
-                .build(),
+            None => return Err(ConsumerError::PositionNotFound),
         };
 
         position
