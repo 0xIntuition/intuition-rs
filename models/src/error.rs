@@ -6,6 +6,8 @@ pub enum ModelError {
     ConversionError(String),
     #[error("Database connection error: {0}")]
     DatabaseConnectionError(String),
+    #[error("Decoding error: {0}")]
+    DecodingError(String),
     #[error("Failed to delete data: {0}")]
     DeleteError(String),
     #[error(transparent)]
