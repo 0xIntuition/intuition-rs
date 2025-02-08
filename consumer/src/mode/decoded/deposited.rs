@@ -1,4 +1,4 @@
-use super::utils::get_absolute_triple_id;
+use super::utils::{get_absolute_triple_id, update_vault_position_count};
 use crate::{
     mode::{decoded::utils::get_or_create_account, types::DecodedConsumerContext},
     schemas::types::DecodedMessage,
@@ -255,6 +255,7 @@ impl Deposited {
     /// This function gets or creates a vault
     async fn get_or_create_vault(
         &self,
+        event: &DecodedMessage,
         decoded_consumer_context: &DecodedConsumerContext,
         id: U256,
         current_share_price: U256,
@@ -268,7 +269,11 @@ impl Deposited {
         {
             Some(mut vault) => {
                 vault.current_share_price = U256Wrapper::from(current_share_price);
-                vault.total_shares = vault.total_shares + U256Wrapper::from(self.sharesForReceiver);
+                vault.total_shares = U256Wrapper::from(
+                    decoded_consumer_context
+                        .fetch_total_shares_in_vault(id, event)
+                        .await?,
+                );
                 vault
                     .upsert(
                         &decoded_consumer_context.pg_pool,
@@ -298,7 +303,7 @@ impl Deposited {
                         .current_share_price(U256Wrapper::from(current_share_price))
                         .position_count(0)
                         .atom_id(self.vaultId)
-                        .total_shares(U256Wrapper::from(U256::from(0)))
+                        .total_shares(U256Wrapper::from(self.sharesForReceiver))
                         .build()
                         .upsert(
                             &decoded_consumer_context.pg_pool,
@@ -324,9 +329,11 @@ impl Deposited {
 
         // Initialize accounts and vault. We need to block on this because it's async and
         // we need to ensure that the accounts and vault are initialized before we proceed
-        let vault = block_on(
-            self.initialize_accounts_and_vault(decoded_consumer_context, current_share_price),
-        )?;
+        let vault = block_on(self.initialize_accounts_and_vault(
+            decoded_consumer_context,
+            current_share_price,
+            event,
+        ))?;
 
         // Create deposit record
         let deposit = self.create_deposit(event, decoded_consumer_context).await?;
@@ -376,7 +383,7 @@ impl Deposited {
     ) -> Result<(), ConsumerError> {
         self.create_new_position(position_id.to_string(), decoded_consumer_context)
             .await?;
-        self.increment_vault_position_count(decoded_consumer_context)
+        update_vault_position_count(decoded_consumer_context, U256Wrapper::from(self.vaultId))
             .await?;
 
         if let Some(triple) = triple {
@@ -407,46 +414,48 @@ impl Deposited {
         )
         .await?;
 
-        if position.is_none() && self.receiverTotalSharesInVault != U256::from(0) {
+        if position.is_none() && self.receiverTotalSharesInVault > U256::from(0) {
             self.handle_new_position(decoded_consumer_context, &position_id, triple)
                 .await?;
-        } else if self.receiverTotalSharesInVault != U256::from(0) {
+        } else if position.is_some() && self.receiverTotalSharesInVault > U256::from(0) {
             self.handle_existing_position(decoded_consumer_context, &position_id, triple, vault)
                 .await?;
+        } else {
+            info!("No need to update position or claims.");
         }
-
         Ok(())
     }
 
-    /// This function increments the vault's position count
-    async fn increment_vault_position_count(
-        &self,
-        decoded_consumer_context: &DecodedConsumerContext,
-    ) -> Result<(), ConsumerError> {
-        let mut vault = Vault::find_by_id(
-            U256Wrapper::from(self.vaultId),
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
-        )
-        .await?
-        .ok_or(ConsumerError::VaultNotFound)?;
+    // /// This function increments the vault's position count
+    // async fn increment_vault_position_count(
+    //     &self,
+    //     decoded_consumer_context: &DecodedConsumerContext,
+    // ) -> Result<(), ConsumerError> {
+    //     let mut vault = Vault::find_by_id(
+    //         U256Wrapper::from(self.vaultId),
+    //         &decoded_consumer_context.pg_pool,
+    //         &decoded_consumer_context.backend_schema,
+    //     )
+    //     .await?
+    //     .ok_or(ConsumerError::VaultNotFound)?;
 
-        vault.position_count += 1;
-        vault
-            .upsert(
-                &decoded_consumer_context.pg_pool,
-                &decoded_consumer_context.backend_schema,
-            )
-            .await
-            .map_err(ConsumerError::ModelError)?;
-        Ok(())
-    }
+    //     vault.position_count += 1;
+    //     vault
+    //         .upsert(
+    //             &decoded_consumer_context.pg_pool,
+    //             &decoded_consumer_context.backend_schema,
+    //         )
+    //         .await
+    //         .map_err(ConsumerError::ModelError)?;
+    //     Ok(())
+    // }
 
     /// This function initializes the accounts and vault
     async fn initialize_accounts_and_vault(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         current_share_price: U256,
+        event: &DecodedMessage,
     ) -> Result<Vault, ConsumerError> {
         // Create accounts concurrently
         let (sender, receiver) = futures::join!(
@@ -456,8 +465,13 @@ impl Deposited {
         sender?;
         receiver?;
 
-        self.get_or_create_vault(decoded_consumer_context, self.vaultId, current_share_price)
-            .await
+        self.get_or_create_vault(
+            event,
+            decoded_consumer_context,
+            self.vaultId,
+            current_share_price,
+        )
+        .await
     }
 
     /// This function updates the claim
@@ -520,16 +534,11 @@ impl Deposited {
         )
         .await?
         {
-            Some(mut pos) => {
-                pos.shares = U256Wrapper::from(self.receiverTotalSharesInVault);
-                pos
+            Some(mut position) => {
+                position.shares = U256Wrapper::from(self.receiverTotalSharesInVault);
+                position
             }
-            None => Position::builder()
-                .id(position_id.to_string())
-                .account_id(self.receiver.to_string())
-                .vault_id(self.vaultId)
-                .shares(self.receiverTotalSharesInVault)
-                .build(),
+            None => return Err(ConsumerError::PositionNotFound),
         };
 
         position

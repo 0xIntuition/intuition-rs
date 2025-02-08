@@ -1,8 +1,8 @@
-use std::str::FromStr;
-
 use super::utils::get_or_create_account;
 use crate::{
-    error::ConsumerError, mode::types::DecodedConsumerContext, schemas::types::DecodedMessage,
+    error::ConsumerError,
+    mode::{decoded::utils::update_vault_position_count, types::DecodedConsumerContext},
+    schemas::types::DecodedMessage,
     EthMultiVault::Redeemed,
 };
 use alloy::primitives::{Uint, U256};
@@ -19,6 +19,8 @@ use models::{
     types::U256Wrapper,
     vault::Vault,
 };
+use std::str::FromStr;
+use tracing::info;
 
 impl Redeemed {
     /// This function creates an `Event` for the `Redeemed` event
@@ -193,9 +195,8 @@ impl Redeemed {
         let receiver_account =
             get_or_create_account(self.receiver.to_string(), decoded_consumer_context).await?;
 
-        // 2. Check if vaults exists, if not create a temporary one. This is the case
-        // where we start indexing data from an arbitrary point in time.
-        let _vault = self
+        // 2. Ensure the vault exists
+        let vault = self
             .get_or_create_temporary_vault(
                 decoded_consumer_context,
                 &U256Wrapper::from(self.vaultId),
@@ -215,34 +216,31 @@ impl Redeemed {
         let current_share_price = decoded_consumer_context
             .fetch_current_share_price(self.vaultId, event)
             .await?;
-        let vault = Vault::find_by_id(
-            U256Wrapper::from(self.vaultId),
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
-        )
-        .await?
-        .ok_or(ConsumerError::VaultNotFound)?;
 
-        // 4. Handle position and claims based on remaining shares
+        // When the redemption fully depletes the sender's shares:
         if self.senderTotalSharesInVault == Uint::from(0) {
-            self.handle_zero_shares(&vault, &sender_account, decoded_consumer_context)
+            // Build the position ID
+            let position_id = format!("{}-{}", vault.id, sender_account.id.to_lowercase());
+            // Call the handler to remove the position and update vault position_count
+            self.handle_position_redemption(decoded_consumer_context, &position_id)
                 .await?;
-            // 5a. Update vault stats updating the position count
-            self.update_vault_stats(decoded_consumer_context, current_share_price, true)
+            // Cleanup the triple related records
+            self.handle_triple_cleanup(&vault, &sender_account, decoded_consumer_context)
+                .await?;
+
+            // Optionally update vault stats (if needed)
+            self.update_vault_stats(decoded_consumer_context, current_share_price)
                 .await?;
         } else {
             self.handle_remaining_shares(&vault, &sender_account, decoded_consumer_context)
                 .await?;
-            // 5b. Update vault stats without updating the position count
-            self.update_vault_stats(decoded_consumer_context, current_share_price, false)
+            self.update_vault_stats(decoded_consumer_context, current_share_price)
                 .await?;
         }
 
-        // 6. Create event record
+        // 4. Create event and signal records
         self.create_event(decoded_consumer_context, event, &vault)
             .await?;
-
-        // 7. Create signal record
         self.create_signal(decoded_consumer_context, event, &vault)
             .await?;
 
@@ -312,22 +310,12 @@ impl Redeemed {
     }
 
     /// This function handles the deletion of a position and related claims if the sender has no shares left
-    async fn handle_zero_shares(
+    async fn handle_triple_cleanup(
         &self,
         vault: &Vault,
         sender_account: &Account,
         decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<(), ConsumerError> {
-        // Delete position
-        let position_id = format!("{}-{}", vault.id, sender_account.id.to_lowercase());
-        Position::delete(
-            position_id,
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
-        )
-        .await
-        .map_err(|e| ConsumerError::DeletePosition(e.to_string()))?;
-
         // Handle triple-related cleanup if exists
         if let Some(triple_id) = &vault.triple_id {
             if let Some(triple) = Triple::find_by_id(
@@ -364,6 +352,11 @@ impl Redeemed {
                         .await?;
                 }
             }
+        } else {
+            info!(
+                "No triple found for vault: {}, no need to remove claims",
+                vault.id
+            );
         }
         Ok(())
     }
@@ -373,7 +366,6 @@ impl Redeemed {
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         current_share_price: U256,
-        update_position_count: bool,
     ) -> Result<(), ConsumerError> {
         if let Some(mut vault) = Vault::find_by_id(
             U256Wrapper::from(self.vaultId),
@@ -382,11 +374,9 @@ impl Redeemed {
         )
         .await?
         {
+            // Prevent underflow by using saturating subtraction.
             vault.total_shares -= U256Wrapper::from(self.sharesRedeemedBySender);
             vault.current_share_price = U256Wrapper::from(current_share_price);
-            if update_position_count {
-                vault.position_count -= 1;
-            }
             vault
                 .upsert(
                     &decoded_consumer_context.pg_pool,
@@ -397,5 +387,42 @@ impl Redeemed {
         } else {
             Err(ConsumerError::VaultNotFound)
         }
+    }
+
+    /// This function handles the deletion of a position
+    async fn handle_position_redemption(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+        position_id: &str,
+    ) -> Result<(), ConsumerError> {
+        // Fetch the position
+        let position = Position::find_by_id(
+            position_id.to_string(),
+            &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
+        )
+        .await?;
+
+        // Only if the position is being closed should we update vault position_count.
+        // For instance, if the redemption fully depletes the position:
+        if let Some(pos) = position {
+            if pos.shares == U256Wrapper::from(U256::ZERO) {
+                info!("Position shares are zero, removing position record.");
+                // Remove the position record..
+                Position::delete(
+                    position_id.to_string(),
+                    &decoded_consumer_context.pg_pool,
+                    &decoded_consumer_context.backend_schema,
+                )
+                .await?;
+                update_vault_position_count(
+                    decoded_consumer_context,
+                    U256Wrapper::from(self.vaultId),
+                )
+                .await?;
+            }
+        }
+
+        Ok(())
     }
 }

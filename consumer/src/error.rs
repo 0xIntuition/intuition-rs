@@ -119,6 +119,8 @@ pub enum ConsumerError {
     ParseIntError(#[from] std::num::ParseIntError),
     #[error(transparent)]
     ParseBlockIdError(#[from] alloy::eips::eip1898::ParseBlockIdError),
+    #[error("Position not found")]
+    PositionNotFound,
     #[error("Failed to get connection pool: {0}")]
     PostgresConnectError(String),
     #[error("Predicate atom not found")]

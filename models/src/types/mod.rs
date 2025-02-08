@@ -99,6 +99,11 @@ impl U256Wrapper {
     pub fn add(&self, other: U256Wrapper) -> Result<U256Wrapper, ModelError> {
         Ok(U256Wrapper(self.0 + other.0))
     }
+
+    /// This is a method to subtract two `U256Wrapper` types
+    pub fn saturating_sub(&self, other: U256Wrapper) -> U256Wrapper {
+        U256Wrapper(self.0.saturating_sub(other.0))
+    }
 }
 
 /// We are implementing the `FromStr` trait for the `U256Wrapper` type
