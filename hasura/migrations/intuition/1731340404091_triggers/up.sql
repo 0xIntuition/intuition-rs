@@ -54,6 +54,15 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+CREATE OR REPLACE FUNCTION delete_position_stats()
+RETURNS TRIGGER AS $$
+BEGIN
+    UPDATE stats
+    SET total_positions = total_positions - 1
+    WHERE id = 0;
+    RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
 -- SIGNAL STATS
 -- Create a trigger on the signal table for inserts
 CREATE OR REPLACE FUNCTION update_signal_stats()
@@ -98,18 +107,9 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION update_redemption_stats()
 RETURNS TRIGGER AS $$
 BEGIN
-    IF NEW.sender_total_shares_in_vault = 0 THEN
-        -- Full redemption - update both positions and balance
-        UPDATE stats
-        SET total_positions = total_positions - 1,
-            contract_balance = contract_balance - NEW.assets_for_receiver
-        WHERE id = 0;
-    ELSE
-        -- Partial redemption - only update balance
-        UPDATE stats
-        SET contract_balance = contract_balance - NEW.assets_for_receiver
-        WHERE id = 0;
-    END IF;
+    UPDATE stats
+    SET contract_balance = contract_balance - NEW.assets_for_receiver
+    WHERE id = 0;
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -139,6 +139,11 @@ CREATE TRIGGER position_insert_trigger
 AFTER INSERT ON position
 FOR EACH ROW
 EXECUTE FUNCTION update_position_stats();
+
+CREATE TRIGGER position_delete_trigger
+AFTER DELETE ON position
+FOR EACH ROW
+EXECUTE FUNCTION delete_position_stats();
 
 -- Create a trigger on the signal table for inserts
 CREATE TRIGGER signal_insert_trigger
