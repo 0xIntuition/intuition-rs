@@ -1,0 +1,16 @@
+global:
+  domain: argocd.intuition.dev
+
+configs:
+  params:
+    server.insecure: true
+
+server:
+  ingress:
+    enabled: true
+    ingressClassName: alb
+    annotations:
+      external-dns.alpha.kubernetes.io/hostname: argocd.intuition.dev
+      alb.ingress.kubernetes.io/scheme: "internet-facing"
+      alb.ingress.kubernetes.io/target-type: "ip"
+      alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
