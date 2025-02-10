@@ -11,7 +11,7 @@ use crate::{
 use alloy::{
     eips::BlockId,
     primitives::{Address, Bytes, Uint, U256},
-    providers::{ProviderBuilder, RootProvider},
+    providers::{Provider, ProviderBuilder, RootProvider},
     transports::http::Http,
 };
 use once_cell::sync::OnceCell;
@@ -91,6 +91,38 @@ impl DecodedConsumerContext {
             }
         }
         Err(ConsumerError::MaxRetriesExceeded)
+    }
+
+    /// This function fetches the current contract balance using the provider,
+    /// since your contract does not expose a `balance()` function.
+    pub async fn fetch_contract_balance(
+        &self,
+        // event: &DecodedMessage,
+    ) -> Result<U256, ConsumerError> {
+        // Build the block identifier from the event's block number.
+        // let block = BlockId::from_str(&event.block_number.to_string())?;
+        // Assume self.base_client stores the contract address.
+        let contract_address = self.base_client.address();
+
+        self.retry_with_backoff(|| async {
+            // Directly query the provider for the balance of the contract address.
+            let balance_result = self
+                .base_client
+                .provider()
+                .get_balance(*contract_address)
+                .await;
+            match balance_result {
+                Ok(balance) => {
+                    info!("Contract balance: {:?}", balance);
+                    Ok(balance)
+                }
+                Err(e) => {
+                    warn!("Error fetching contract balance: {}", e);
+                    Err(ConsumerError::MaxRetriesExceeded)
+                }
+            }
+        })
+        .await
     }
 
     /// This function fetches the current share price from the vault
@@ -187,6 +219,38 @@ impl DecodedConsumerContext {
                 Err(e) => {
                     warn!("Response: {:?}", counter_id);
                     warn!("Error fetching counter id from triple: {}", e);
+                    Err(ConsumerError::MaxRetriesExceeded)
+                }
+            }
+        })
+        .await
+    }
+
+    /// This function fetches the contract balance at a specific block.
+    pub async fn fetch_contract_balance_at_block(
+        &self,
+        block_id_str: &str,
+    ) -> Result<U256, ConsumerError> {
+        let contract_address = self.base_client.address();
+        let block = BlockId::from_str(block_id_str)?;
+
+        self.retry_with_backoff(|| async {
+            let balance_result = self
+                .base_client
+                .provider()
+                .get_balance(*contract_address)
+                .block_id(block)
+                .await;
+            match balance_result {
+                Ok(balance) => {
+                    info!("Contract balance at block {}: {:?}", block_id_str, balance);
+                    Ok(balance)
+                }
+                Err(e) => {
+                    warn!(
+                        "Error fetching contract balance at block {}: {}",
+                        block_id_str, e
+                    );
                     Err(ConsumerError::MaxRetriesExceeded)
                 }
             }
@@ -700,5 +764,120 @@ mod tests {
 
         assert!(share_price.is_ok());
         println!("Share price: {:?}", share_price.unwrap());
+    }
+
+    // -- Dummy configuration types to mimic our real config --
+    // These types only include the fields needed by the decoded consumer.
+    #[derive(Clone)]
+    struct DummyEnv {
+        rpc_url_base: Option<String>,
+        intuition_contract_address: Option<String>,
+        decoded_logs_queue_url: Option<String>,
+        resolver_queue_url: Option<String>,
+        backend_schema: String,
+        ens_contract_address: Option<String>,
+    }
+
+    #[derive(Clone)]
+    struct DummyArgs {
+        mode: String,
+    }
+
+    // TestServerInitialize mimics the structure of ServerInitialize.
+    // (Our actual ServerInitialize from app_context has these fields.)
+    #[derive(Clone)]
+    struct TestServerInitialize {
+        env: DummyEnv,
+        args: DummyArgs,
+    }
+
+    // We assume that our actual ServerInitialize structure (from app_context)
+    // looks similar to this and exposes its fields.
+    // Here we convert our dummy into the real expected type.
+    impl From<TestServerInitialize> for ServerInitialize {
+        fn from(test: TestServerInitialize) -> Self {
+            ServerInitialize {
+                env: crate::config::Env {
+                    consumer_metrics_api_port: None,
+                    consumer_type: "decoded".to_string(),
+                    database_url: "postgres://testuser:test@database:5435/storage".to_string(),
+                    decoded_logs_queue_url: test.env.decoded_logs_queue_url,
+                    ens_contract_address: test.env.ens_contract_address,
+                    image_guard_url: None,
+                    rpc_url_base: test.env.rpc_url_base,
+                    intuition_contract_address: test.env.intuition_contract_address,
+                    resolver_queue_url: test.env.resolver_queue_url,
+                    backend_schema: test.env.backend_schema,
+                    // Other fields not used in decoded consumer are set to None or defaults.
+                    ..Default::default()
+                },
+                args: crate::ConsumerArgs {
+                    mode: test.args.mode,
+                },
+            }
+        }
+    }
+
+    pub async fn create_test_decoded_consumer() -> Result<DecodedConsumerContext, ConsumerError> {
+        // Build the test configuration using values from .env.dump.
+        let test_server = TestServerInitialize {
+            env: DummyEnv {
+                rpc_url_base: Some("http://rpc-proxy:3008/84532/proxy".to_string()),
+                intuition_contract_address: Some("0x1A6950807E33d5bC9975067e6D6b5Ea4cD661665".to_string()),
+                decoded_logs_queue_url: Some("http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/decoded_logs.fifo".to_string()),
+                ens_contract_address: Some("0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e".to_string()),
+                resolver_queue_url: Some("http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/resolver".to_string()),
+                backend_schema: "public".to_string(),
+            },
+            args: DummyArgs {
+                mode: "decoded".to_string(),
+            },
+        };
+
+        // Convert our dummy config into the actual ServerInitialize expected.
+        let server_initialize: ServerInitialize = test_server.into();
+
+        // Create a lazy PgPool using the DATABASE_URL value from .env.dump.
+        let pg_pool = PgPool::connect_lazy("postgres://testuser:test@database:5435/storage")
+            .expect("Failed to create pg pool");
+
+        // Create the decoded consumer.
+        let consumer = ConsumerMode::create_decoded_consumer(server_initialize, pg_pool).await;
+
+        match consumer {
+            Ok(ConsumerMode::Decoded(decoded_context)) => {
+                // Ensure the configuration was passed through correctly.
+                assert_eq!(decoded_context.backend_schema, "public");
+
+                // Verify the base client was built with the expected contract address.
+                let contract_address = decoded_context.base_client.address();
+                // Normalize to lowercase (the builder may parse the address in lowercase).
+                assert_eq!(
+                    contract_address.to_string().to_lowercase(),
+                    "0x1a6950807e33d5bc9975067e6d6b5ea4cd661665"
+                );
+                Ok(decoded_context)
+            }
+            Ok(_) => panic!("Expected a Decoded consumer"),
+            Err(e) => panic!("Failed to create decoded consumer: {:?}", e),
+        }
+    }
+
+    // This test needs database and rpc-proxy running to pass
+    #[tokio::test]
+    async fn test_fetch_contract_balance() {
+        let decoded_consumer = create_test_decoded_consumer().await.unwrap();
+        let balance = decoded_consumer.fetch_contract_balance().await.unwrap();
+        println!("Balance: {:?}", balance);
+    }
+
+    #[tokio::test]
+    async fn test_fetch_contract_balance_by_block() {
+        let decoded_consumer = create_test_decoded_consumer().await.unwrap();
+        let balance = decoded_consumer
+            .fetch_contract_balance_at_block("21665089")
+            .await
+            .unwrap();
+        println!("Balance: {:?}", balance);
     }
 }
