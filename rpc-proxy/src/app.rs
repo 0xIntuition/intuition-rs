@@ -157,6 +157,7 @@ impl App {
         info!("Searching for cached request for {:?}", req);
         let cached_request =
             JsonRpcCache::find(&req, chain_id as i64, self, Method::from_str(&req.method)?).await?;
+        info!("Cached request: {:?}", cached_request);
         if let Some(cached_request) = cached_request {
             info!(
                 "Cached request found for {:?}, returning it",
