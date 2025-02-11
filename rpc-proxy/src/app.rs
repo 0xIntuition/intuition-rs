@@ -163,7 +163,10 @@ impl App {
                 "Cached request found for {:?}, returning it",
                 cached_request
             );
-            Ok(req.build_response_json(cached_request.result, Method::from_str(&req.method)?)?)
+            let response =
+                req.build_response_json(cached_request.result, Method::from_str(&req.method)?)?;
+            info!("Updating contract balance");
+            Ok(response)
         } else {
             info!("Not found for {:?}, relaying it", req);
             let response = self
@@ -177,7 +180,7 @@ impl App {
                 Method::from_str(&method).map_err(|e| ApiError::InvalidInput(e.to_string()))?,
             )
             .await?;
-            info!("Cached request stored!");
+            info!("Cached request stored! Updating contract balance");
             Ok(response)
         }
     }

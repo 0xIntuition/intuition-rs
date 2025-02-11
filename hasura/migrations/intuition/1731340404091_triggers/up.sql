@@ -1,6 +1,6 @@
 -- Ensure we have a record in the stats table
-INSERT INTO stats (id, total_accounts, total_atoms, total_triples, total_positions, total_signals, total_fees, contract_balance, current_block_number)
-VALUES (0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO stats (id, total_accounts, total_atoms, total_triples, total_positions, total_signals, total_fees, contract_balance, last_processed_block_number, last_processed_block_timestamp)
+VALUES (0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
 
 -- ACCOUNT STATS

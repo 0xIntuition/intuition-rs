@@ -637,7 +637,7 @@ impl ConsumerMode {
         .await?;
 
         if let Some(stats) = stats {
-            if let Some(stored_block_number) = stats.current_block_number {
+            if let Some(stored_block_number) = stats.last_processed_block_number {
                 if stored_block_number < U256Wrapper::try_from(decoded_message.block_number)? {
                     info!(
                         "Updating stats for block number: {}, current block number: {}",
@@ -649,6 +649,7 @@ impl ConsumerMode {
                     Stats::update_current_block_number_and_contract_balance(
                         decoded_message.block_number,
                         U256Wrapper::from(contract_balance),
+                        decoded_message.block_timestamp,
                         &decoded_consumer_context.pg_pool,
                         &decoded_consumer_context.backend_schema,
                     )
@@ -737,6 +738,7 @@ impl ConsumerMode {
                 warn!("Received event: {decoded_message:#?}");
             }
         }
+
         Ok(())
     }
 
