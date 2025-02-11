@@ -14,6 +14,7 @@ use alloy::{
     providers::{Provider, ProviderBuilder, RootProvider},
     transports::http::Http,
 };
+use models::{stats::Stats, types::U256Wrapper};
 use once_cell::sync::OnceCell;
 use prometheus::{register_histogram_vec, HistogramVec};
 use reqwest::Client;
@@ -621,6 +622,52 @@ impl ConsumerMode {
         }
     }
 
+    /// This function updates the stats for the decoded consumer, more specifically
+    /// the current block number and the contract balance.
+    async fn update_stats(
+        &self,
+        decoded_message: &DecodedMessage,
+        decoded_consumer_context: &DecodedConsumerContext,
+    ) -> Result<(), ConsumerError> {
+        let stats = Stats::find_by_id(
+            0,
+            &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
+        )
+        .await?;
+
+        if let Some(stats) = stats {
+            if let Some(stored_block_number) = stats.current_block_number {
+                if stored_block_number < U256Wrapper::try_from(decoded_message.block_number)? {
+                    info!(
+                        "Updating stats for block number: {}, current block number: {}",
+                        decoded_message.block_number, stored_block_number
+                    );
+                    let contract_balance = decoded_consumer_context
+                        .fetch_contract_balance_at_block(&decoded_message.block_number.to_string())
+                        .await?;
+                    Stats::update_current_block_number_and_contract_balance(
+                        decoded_message.block_number,
+                        U256Wrapper::from(contract_balance),
+                        &decoded_consumer_context.pg_pool,
+                        &decoded_consumer_context.backend_schema,
+                    )
+                    .await
+                    .map_err(ConsumerError::ModelError)?;
+                } else {
+                    info!(
+                        "Skipping update for block number: {}, already up to date",
+                        decoded_message.block_number,
+                    );
+                }
+            } else {
+                info!("No block number found for stats, unable to update");
+            }
+        } else {
+            info!("No stats found, unable to update");
+        }
+        Ok(())
+    }
     /// This function process a decoded message.
     async fn handle_decoded_message(
         &self,
@@ -629,6 +676,11 @@ impl ConsumerMode {
     ) -> Result<(), ConsumerError> {
         debug!("Processing a decoded message: {message:?}");
         let decoded_message: DecodedMessage = serde_json::from_str(&message)?;
+
+        // Check if we already updated the stats for contract balance for
+        // the current block.
+        self.update_stats(&decoded_message, decoded_consumer_context)
+            .await?;
 
         match &decoded_message.body {
             EthMultiVaultEvents::AtomCreated(atom_data) => {

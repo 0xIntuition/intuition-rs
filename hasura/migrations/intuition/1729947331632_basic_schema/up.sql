@@ -25,7 +25,9 @@ CREATE TABLE stats (
   total_positions INTEGER,
   total_signals INTEGER,
   total_fees NUMERIC(78, 0),
-  contract_balance NUMERIC(78, 0)
+  contract_balance NUMERIC(78, 0),
+  current_block_number NUMERIC(78, 0),
+  last_updated TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE stats_hour (

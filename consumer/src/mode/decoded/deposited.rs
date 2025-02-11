@@ -426,30 +426,6 @@ impl Deposited {
         Ok(())
     }
 
-    // /// This function increments the vault's position count
-    // async fn increment_vault_position_count(
-    //     &self,
-    //     decoded_consumer_context: &DecodedConsumerContext,
-    // ) -> Result<(), ConsumerError> {
-    //     let mut vault = Vault::find_by_id(
-    //         U256Wrapper::from(self.vaultId),
-    //         &decoded_consumer_context.pg_pool,
-    //         &decoded_consumer_context.backend_schema,
-    //     )
-    //     .await?
-    //     .ok_or(ConsumerError::VaultNotFound)?;
-
-    //     vault.position_count += 1;
-    //     vault
-    //         .upsert(
-    //             &decoded_consumer_context.pg_pool,
-    //             &decoded_consumer_context.backend_schema,
-    //         )
-    //         .await
-    //         .map_err(ConsumerError::ModelError)?;
-    //     Ok(())
-    // }
-
     /// This function initializes the accounts and vault
     async fn initialize_accounts_and_vault(
         &self,

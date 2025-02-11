@@ -31,6 +31,7 @@ mod tests {
             total_signals: Some(75),
             total_fees: Some(U256Wrapper::from(U256::from_str("1500000").unwrap())),
             contract_balance: Some(U256Wrapper::from(U256::from_str("7500000").unwrap())),
+            current_block_number: Some(1234567890),
         };
 
         // Upsert updated Stats
