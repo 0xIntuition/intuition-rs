@@ -8,14 +8,13 @@ module "eks" {
   cluster_name    = local.name
   cluster_version = "1.32"
 
-  iam_openid_connect_provider = "https://oidc.eks.us-west-2.amazonaws.com/id/E0D7D186EF1B51081691AEE0B023B053"
-
   # EKS Addons
   cluster_addons = {
     coredns                = {}
     eks-pod-identity-agent = {}
     kube-proxy             = {}
     vpc-cni                = {}
+    aws-ebs-csi-driver     = {}
   }
 
   vpc_id     = module.vpc.vpc_id
@@ -26,10 +25,10 @@ module "eks" {
       instance_types = ["t3.medium"]
 
       min_size = 1
-      max_size = 2
+      max_size = 3
       # This value is ignored after the initial creation
       # https://github.com/bryantbiggs/eks-desired-size-hack
-      desired_size = 1
+      desired_size = 3
 
       iam_role_additional_policies = {
         AmazonEKS_CNI_Policy = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
