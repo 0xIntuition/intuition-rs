@@ -1,26 +1,26 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: batch/v1
+kind: Job
 metadata:
-  name: rpc-proxy
+  name: hasura-migrations
 spec:
   template:
     spec:
       serviceAccountName: secrets-access-sa
       containers:
-        - name: rpc-proxy
-          image: ghcr.io/0xintuition/rpc-proxy:2.0.3
-          imagePullPolicy: Always 
+        - name: hasura-migrations
+          image: ghcr.io/0xintuition/hasura-migrations:2.0.8
+          imagePullPolicy: Always
           volumeMounts:
             - name: secrets-store-inline
               mountPath: "/mnt/secrets"
               readOnly: true
           envFrom:
             - secretRef:
-                name: dev-rpc-proxy-aws-secrets
+                name: prod-base-mainnet-v2-hasura-aws-secrets
       volumes:
         - name: secrets-store-inline
           csi:
             driver: secrets-store.csi.k8s.io
             readOnly: true
             volumeAttributes:
-              secretProviderClass: "dev-dev-rpc-proxy-aws-secrets"
+              secretProviderClass: "prod-base-mainnet-v2-prod-base-mainnet-v2-hasura-aws-secrets"
