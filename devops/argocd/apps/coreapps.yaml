@@ -1,0 +1,30 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: coreapps
+  namespace: argocd
+spec:
+  syncPolicy:
+    preserveResourcesOnDeletion: true
+  generators:
+    - list:
+        elements:
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: francois/add-iac
+            namespace: default
+  template:
+    metadata:
+      name: '{{ cluster }}-coreapps-{{namespace}}'
+      annotations:
+        argocd.argoproj.io/manifest-generate-paths: '.;/devops/argocd'
+    spec:
+      project: prod
+      source:
+        repoURL: 'https://github.com/0xintuition/intuition-rs.git'
+        path: devops/argocd/apps/coreapps
+        targetRevision: '{{ revision }}'
+        kustomize: {}
+      destination:
+        server: '{{ server }}'
+        namespace: '{{ namespace }}'
