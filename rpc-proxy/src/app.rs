@@ -26,6 +26,7 @@ pub struct Env {
     pub base_mainnet_rpc_url: String,
     pub base_sepolia_rpc_url: String,
     pub ethereum_mainnet_rpc_url: String,
+    pub linea_mainnet_rpc_url: String,
 }
 
 #[derive(Clone)]
@@ -81,6 +82,7 @@ impl App {
     /// Get the RPC URL for the given chain_id.
     pub fn get_rpc_url(&self, chain_id: u64) -> Result<String, ApiError> {
         match chain_id {
+            59144 => Ok(self.env.linea_mainnet_rpc_url.clone()),
             8453 => Ok(self.env.base_mainnet_rpc_url.clone()),
             84532 => Ok(self.env.base_sepolia_rpc_url.clone()),
             1 => Ok(self.env.ethereum_mainnet_rpc_url.clone()),

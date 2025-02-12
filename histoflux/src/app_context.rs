@@ -19,6 +19,7 @@ pub struct Env {
     pub dev_base_sepolia_schema: String,
     pub prod_base_schema: String,
     pub prod_base_sepolia_schema: String,
+    pub prod_linea_mainnet_schema: String,
 }
 
 /// Represents the SQS producer

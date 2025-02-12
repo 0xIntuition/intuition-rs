@@ -1,14 +1,14 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: rpc-proxy
+  name: histoflux
 spec:
   template:
     spec:
       serviceAccountName: secrets-access-sa
       containers:
-        - name: rpc-proxy
-          image: ghcr.io/0xintuition/rpc-proxy:2.0.3
+        - name: histoflux
+          image: ghcr.io/0xintuition/histoflux:2.0.2
           imagePullPolicy: Always 
           volumeMounts:
             - name: secrets-store-inline
@@ -16,11 +16,11 @@ spec:
               readOnly: true
           envFrom:
             - secretRef:
-                name: prod-rpc-proxy-aws-secrets
+                name: prod-linea-mainnet-histoflux-aws-secrets
       volumes:
         - name: secrets-store-inline
           csi:
             driver: secrets-store.csi.k8s.io
             readOnly: true
             volumeAttributes:
-              secretProviderClass: "prod-prod-rpc-proxy-aws-secrets"
+              secretProviderClass: "prod-linea-mainnet-prod-linea-mainnet-histoflux-aws-secrets"
