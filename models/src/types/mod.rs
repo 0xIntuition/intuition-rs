@@ -16,7 +16,7 @@ use sqlx::{
 
 /// This is a wrapper around the `U256` type to be able to use it with
 /// the `sqlx` library.
-#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Serialize, Deserialize)]
 pub struct U256Wrapper(pub U256);
 
 impl TryInto<U256> for U256Wrapper {

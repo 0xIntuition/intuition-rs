@@ -12,6 +12,8 @@ pub struct Stats {
     pub total_signals: Option<i32>,
     pub total_fees: Option<U256Wrapper>,
     pub contract_balance: Option<U256Wrapper>,
+    pub last_processed_block_number: Option<U256Wrapper>,
+    pub last_processed_block_timestamp: Option<i64>,
 }
 
 impl Stats {
@@ -20,8 +22,8 @@ impl Stats {
         let query = format!(
             r#"
             INSERT INTO {}.stats (id, total_accounts, total_atoms, total_triples, total_positions, 
-                             total_signals, total_fees, contract_balance)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                             total_signals, total_fees, contract_balance, last_processed_block_number, last_processed_block_timestamp)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             ON CONFLICT (id) DO UPDATE SET
                 total_accounts = EXCLUDED.total_accounts,
                 total_atoms = EXCLUDED.total_atoms,
@@ -29,10 +31,14 @@ impl Stats {
                 total_positions = EXCLUDED.total_positions,
                 total_signals = EXCLUDED.total_signals,
                 total_fees = EXCLUDED.total_fees,
-                contract_balance = EXCLUDED.contract_balance
+                contract_balance = EXCLUDED.contract_balance,
+                last_processed_block_number = EXCLUDED.last_processed_block_number,
+                last_processed_block_timestamp = EXCLUDED.last_processed_block_timestamp
             RETURNING id, total_accounts, total_atoms, total_triples, total_positions, total_signals,
                       total_fees,
-                      contract_balance
+                      contract_balance,
+                      last_processed_block_number,
+                      last_processed_block_timestamp
             "#,
             schema,
         );
@@ -54,6 +60,12 @@ impl Stats {
                     .as_ref()
                     .and_then(|w| w.to_big_decimal().ok()),
             )
+            .bind(
+                self.last_processed_block_number
+                    .as_ref()
+                    .and_then(|w| w.to_big_decimal().ok()),
+            )
+            .bind(self.last_processed_block_timestamp)
             .fetch_one(pool)
             .await
             .map_err(|e| ModelError::InsertError(e.to_string()))
@@ -69,7 +81,9 @@ impl Stats {
             r#"
             SELECT id, total_accounts, total_atoms, total_triples, total_positions, total_signals,
                    total_fees,
-                   contract_balance
+                   contract_balance,
+                   last_processed_block_number,
+                   last_processed_block_timestamp
             FROM {}.stats
             WHERE id = $1
             "#,
@@ -79,6 +93,34 @@ impl Stats {
         sqlx::query_as::<_, Stats>(&query)
             .bind(id)
             .fetch_optional(pool)
+            .await
+            .map_err(|e| ModelError::QueryError(e.to_string()))
+    }
+
+    /// This is a method to update the current block number.
+    pub async fn update_current_block_number_and_contract_balance(
+        block_number: i64,
+        contract_balance: U256Wrapper,
+        last_processed_block_timestamp: i64,
+        pool: &PgPool,
+        schema: &str,
+    ) -> Result<Self, ModelError> {
+        let query = format!(
+            r#"
+            UPDATE {}.stats 
+            SET last_processed_block_number = $1, contract_balance = $2, last_processed_block_timestamp = $3
+            WHERE id = 0
+            RETURNING id, total_accounts, total_atoms, total_triples, total_positions, total_signals,
+                      total_fees, contract_balance, last_processed_block_number, last_processed_block_timestamp
+            "#,
+            schema,
+        );
+
+        sqlx::query_as::<_, Stats>(&query)
+            .bind(block_number)
+            .bind(contract_balance.to_big_decimal().ok())
+            .bind(last_processed_block_timestamp)
+            .fetch_one(pool)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
     }

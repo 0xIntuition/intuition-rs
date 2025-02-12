@@ -8,7 +8,7 @@ spec:
       serviceAccountName: secrets-access-sa
       containers:
         - name: indexer-and-cache-migration
-          image: ghcr.io/0xintuition/indexer-and-cache-migrations:2.0.1
+          image: ghcr.io/0xintuition/indexer-and-cache-migrations:2.0.2
           imagePullPolicy: Always
           volumeMounts:
             - name: secrets-store-inline

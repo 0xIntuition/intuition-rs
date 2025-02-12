@@ -14,6 +14,8 @@ pub enum Method {
     EthCall,
     #[sqlx(rename = "eth_getBlockByNumber")]
     EthBlockByNumber,
+    #[sqlx(rename = "eth_getBalance")]
+    EthGetBalance,
 }
 
 impl FromStr for Method {
@@ -23,6 +25,7 @@ impl FromStr for Method {
         Ok(match s {
             "eth_call" => Method::EthCall,
             "eth_getBlockByNumber" => Method::EthBlockByNumber,
+            "eth_getBalance" => Method::EthGetBalance,
             _ => return Err(ApiError::InvalidInput("Invalid method".to_string())),
         })
     }
@@ -33,6 +36,7 @@ impl Display for Method {
         match self {
             Method::EthCall => write!(f, "eth_call"),
             Method::EthBlockByNumber => write!(f, "eth_getBlockByNumber"),
+            Method::EthGetBalance => write!(f, "eth_getBalance"),
         }
     }
 }
@@ -106,12 +110,12 @@ impl JsonRpcCache {
 
 #[cfg(test)]
 mod tests {
-    use crate::app::Env;
-
-    use super::*;
+    use crate::app::{App, Env};
+    use crate::endpoints::proxy::JsonRpcRequest;
+    use crate::models::json_rpc_cache::{JsonRpcCache, Method};
     use models::test_helpers::{setup_test_db, TEST_PROXY_SCHEMA};
     use reqwest::Client;
-    use serde_json::Value;
+    use serde_json::json;
 
     /// This test requires the database to be running and migrations to be applied.
     #[tokio::test]
@@ -142,12 +146,9 @@ mod tests {
             id: 987987,
             jsonrpc: "2.0".to_string(),
             method: "eth_call".to_string(),
-            params: Value::Array(vec![
-                Value::Object(serde_json::json!({
-                    "input": "0xee9dd98f00000000000000000000000000000000000000000000000000000000000003ec",
-                    "to": "0x1a6950807e33d5bc9975067e6d6b5ea4cd661665"
-                }).as_object().unwrap().clone()),
-                Value::String(block_number),
+            params: json!([
+                "0xee9dd98f00000000000000000000000000000000000000000000000000000000000003ec",
+                "0x1a6950807e33d5bc9975067e6d6b5ea4cd661665"
             ]),
         };
 
@@ -164,6 +165,40 @@ mod tests {
         let found = JsonRpcCache::find(&payload, 84532, &app_state, Method::EthCall).await?;
         assert!(found.is_some());
         assert_eq!(found.unwrap(), share_price);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_find_non_existent_eth_get_balance() -> Result<(), Box<dyn std::error::Error>> {
+        // setup test db and app state
+        let pool = setup_test_db().await;
+        let chain_id = 84532;
+
+        // Build a JsonRpcRequest matching:
+        // JsonRpcRequest { id: 4, jsonrpc: "2.0", method: "eth_getBalance",
+        //   params: [ "0x1a6950807e33d5bc9975067e6d6b5ea4cd661665", "0x14a9541" ] }
+        let payload = JsonRpcRequest {
+            id: 4,
+            jsonrpc: "2.0".to_string(),
+            method: "eth_getBalance".to_string(),
+            params: json!(["0x1a6950807e33d5bc9975067e6d6b5ea4cd661665", "0x14a9541"]),
+        };
+
+        // Build the app state with our test schema and client.
+        let app_state = App {
+            env: Env {
+                proxy_schema: TEST_PROXY_SCHEMA.to_string(),
+                ..Default::default()
+            },
+            pg_pool: pool,
+            reqwest_client: Client::new(),
+        };
+
+        // Call find. Since no record was inserted, it should return None.
+        let result =
+            JsonRpcCache::find(&payload, chain_id, &app_state, Method::EthGetBalance).await?;
+        assert!(result.is_none());
 
         Ok(())
     }

@@ -26,6 +26,7 @@ pub struct Env {
     pub base_mainnet_rpc_url: String,
     pub base_sepolia_rpc_url: String,
     pub ethereum_mainnet_rpc_url: String,
+    pub linea_mainnet_rpc_url: String,
 }
 
 #[derive(Clone)]
@@ -81,6 +82,7 @@ impl App {
     /// Get the RPC URL for the given chain_id.
     pub fn get_rpc_url(&self, chain_id: u64) -> Result<String, ApiError> {
         match chain_id {
+            59144 => Ok(self.env.linea_mainnet_rpc_url.clone()),
             8453 => Ok(self.env.base_mainnet_rpc_url.clone()),
             84532 => Ok(self.env.base_sepolia_rpc_url.clone()),
             1 => Ok(self.env.ethereum_mainnet_rpc_url.clone()),
@@ -157,12 +159,16 @@ impl App {
         info!("Searching for cached request for {:?}", req);
         let cached_request =
             JsonRpcCache::find(&req, chain_id as i64, self, Method::from_str(&req.method)?).await?;
+        info!("Cached request: {:?}", cached_request);
         if let Some(cached_request) = cached_request {
             info!(
                 "Cached request found for {:?}, returning it",
                 cached_request
             );
-            Ok(req.build_response_json(cached_request.result, Method::from_str(&req.method)?)?)
+            let response =
+                req.build_response_json(cached_request.result, Method::from_str(&req.method)?)?;
+            info!("Updating contract balance");
+            Ok(response)
         } else {
             info!("Not found for {:?}, relaying it", req);
             let response = self
@@ -176,7 +182,7 @@ impl App {
                 Method::from_str(&method).map_err(|e| ApiError::InvalidInput(e.to_string()))?,
             )
             .await?;
-            info!("Cached request stored!");
+            info!("Cached request stored! Updating contract balance");
             Ok(response)
         }
     }
