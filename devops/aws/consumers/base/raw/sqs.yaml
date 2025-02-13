@@ -1,0 +1,9 @@
+apiVersion: sqs.aws.upbound.io/v1beta1
+kind: Queue
+metadata:
+  name: decoded-logs-queue
+spec:
+  forProvider:
+    name: decoded-logs-queue
+    region: us-west-2
+    fifoQueue: true

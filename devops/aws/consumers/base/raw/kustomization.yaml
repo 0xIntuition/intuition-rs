@@ -5,6 +5,7 @@ resources:
   - pvc.yaml
   - deployment.yaml
   - service.yaml
+  - sqs.yaml
 
 commonLabels:
-  component: raw-consumer 
+  component: raw-consumer
