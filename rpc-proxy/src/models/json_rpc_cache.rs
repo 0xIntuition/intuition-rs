@@ -7,6 +7,7 @@ use sqlx::PgPool;
 use crate::{app::App, endpoints::proxy::JsonRpcRequest, error::ApiError};
 
 /// The method enum.
+#[allow(clippy::enum_variant_names)]
 #[derive(sqlx::Type, Debug, PartialEq, Clone, Serialize, Deserialize)]
 #[sqlx(type_name = "method")]
 pub enum Method {

@@ -97,7 +97,10 @@ impl Vault {
     ) -> Result<Self, ModelError> {
         let query = format!(
             r#"
-            UPDATE {}.vault SET current_share_price = $1 WHERE id = $2
+            UPDATE {}.vault 
+            SET current_share_price = $1 
+            WHERE id = $2
+            RETURNING id, atom_id, triple_id, total_shares, current_share_price, position_count
             "#,
             schema,
         );

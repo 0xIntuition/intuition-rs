@@ -1,26 +1,29 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: decoded-consumer
+  name: ipfs-upload-consumer
 spec:
   template:
     spec:
       serviceAccountName: secrets-access-sa
       containers:
-        - name: decoded-consumer
-          image: ghcr.io/0xintuition/consumer:2.0.18
+        - name: ipfs-upload-consumer
+          image: ghcr.io/0xintuition/consumer:2.0.15
           imagePullPolicy: Always
           volumeMounts:
             - name: secrets-store-inline
               mountPath: "/mnt/secrets"
               readOnly: true
+            - name: ipfs-upload-logs
+              mountPath: /logs
+              readOnly: false
           envFrom:
             - secretRef:
-                name: prod-linea-mainnet-decoded-consumer-secrets
+                name: prod-base-sepolia-v2-ipfs-upload-consumer-secrets
       volumes:
         - name: secrets-store-inline
           csi:
             driver: secrets-store.csi.k8s.io
             readOnly: true
             volumeAttributes:
-              secretProviderClass: "prod-linea-mainnet-prod-linea-mainnet-decoded-consumer-secrets"
+              secretProviderClass: "prod-base-sepolia-v2-prod-base-sepolia-v2-ipfs-upload-consumer-secrets"

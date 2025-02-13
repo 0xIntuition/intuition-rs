@@ -1,8 +1,6 @@
 use super::utils::get_or_create_account;
 use crate::{
-    error::ConsumerError,
-    mode::{decoded::utils::update_vault_position_count, types::DecodedConsumerContext},
-    schemas::types::DecodedMessage,
+    error::ConsumerError, mode::types::DecodedConsumerContext, schemas::types::DecodedMessage,
     EthMultiVault::Redeemed,
 };
 use alloy::primitives::{Uint, U256};
@@ -221,7 +219,7 @@ impl Redeemed {
         if self.senderTotalSharesInVault == Uint::from(0) {
             // Build the position ID
             let position_id = format!("{}-{}", vault.id, sender_account.id.to_lowercase());
-            // Call the handler to remove the position and update vault position_count
+            // Call the handler to remove the position
             self.handle_position_redemption(decoded_consumer_context, &position_id)
                 .await?;
             // Cleanup the triple related records
@@ -413,11 +411,6 @@ impl Redeemed {
                     position_id.to_string(),
                     &decoded_consumer_context.pg_pool,
                     &decoded_consumer_context.backend_schema,
-                )
-                .await?;
-                update_vault_position_count(
-                    decoded_consumer_context,
-                    U256Wrapper::from(self.vaultId),
                 )
                 .await?;
             }

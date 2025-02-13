@@ -11,11 +11,11 @@ use crate::{
     schemas::types::DecodedMessage,
     EthMultiVault::AtomCreated,
 };
-use alloy::primitives::U256;
 use models::{
     account::{Account, AccountType},
     atom::{Atom, AtomResolvingStatus, AtomType},
     event::{Event, EventType},
+    position::Position,
     traits::SimpleCrud,
     types::U256Wrapper,
     vault::Vault,
@@ -169,6 +169,7 @@ impl AtomCreated {
                 decoded_consumer_context,
             )
             .await?;
+
             Ok(atom)
         }
     }
@@ -216,6 +217,54 @@ impl AtomCreated {
         Ok(())
     }
 
+    /// This function verifies if the vault exists in our DB. If it does, it returns it.
+    /// If it does not, it creates it.
+    async fn get_or_create_vault(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+        event: &DecodedMessage,
+    ) -> Result<Vault, ConsumerError> {
+        if let Some(vault) = Vault::find_by_id(
+            U256Wrapper::from_str(&self.vaultID.to_string())?,
+            &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
+        )
+        .await?
+        {
+            info!("Vault already exists, returning it");
+            Ok(vault)
+        } else {
+            // create the vault
+            Vault::builder()
+                .id(U256Wrapper::from_str(&self.vaultID.to_string())?)
+                .total_shares(
+                    decoded_consumer_context
+                        .fetch_total_shares_in_vault(self.vaultID, event)
+                        .await?,
+                )
+                .current_share_price(
+                    decoded_consumer_context
+                        .fetch_current_share_price(self.vaultID, event)
+                        .await?,
+                )
+                .position_count(
+                    Position::count_by_vault(
+                        U256Wrapper::from_str(&self.vaultID.to_string())?,
+                        &decoded_consumer_context.pg_pool,
+                        &decoded_consumer_context.backend_schema,
+                    )
+                    .await? as i32,
+                )
+                .build()
+                .upsert(
+                    &decoded_consumer_context.pg_pool,
+                    &decoded_consumer_context.backend_schema,
+                )
+                .await
+                .map_err(ConsumerError::ModelError)
+        }
+    }
+
     /// This function updates the vault current share price and it returns the vault and atom
     async fn update_vault_current_share_price(
         &self,
@@ -227,6 +276,10 @@ impl AtomCreated {
             .fetch_current_share_price(self.vaultID, event)
             .await?;
 
+        // Get or create the vault
+        self.get_or_create_vault(decoded_consumer_context, event)
+            .await?;
+
         // In order to upsert a [`Vault`] we need to have an [`Atom`] first.
         // Verify that the atom exists, if not, create it. Note that in order
         // to create the atom, we need to have the creator and the wallet accounts
@@ -235,7 +288,6 @@ impl AtomCreated {
         let atom = self
             .get_or_create_vault_atom(decoded_consumer_context, event)
             .await?;
-
         // Update the respective vault with the correct share price
         let vault = Vault::update_current_share_price(
             U256Wrapper::from_str(&self.vaultID.to_string())?,

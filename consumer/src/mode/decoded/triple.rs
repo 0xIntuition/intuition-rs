@@ -147,13 +147,16 @@ impl TripleCreated {
         id: U256,
         current_share_price: U256,
     ) -> Result<Vault, ConsumerError> {
-        Vault::find_by_id(
+        let vault = Vault::find_by_id(
             U256Wrapper::from_str(&id.to_string())?,
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
-        .await?
-        .unwrap_or_else(|| {
+        .await?;
+
+        if let Some(vault) = vault {
+            Ok(vault)
+        } else {
             Vault::builder()
                 .id(id)
                 .triple_id(self.vaultID)
@@ -161,13 +164,13 @@ impl TripleCreated {
                 .current_share_price(U256Wrapper::from(current_share_price))
                 .position_count(0)
                 .build()
-        })
-        .upsert(
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
-        )
-        .await
-        .map_err(ConsumerError::ModelError)
+                .upsert(
+                    &decoded_consumer_context.pg_pool,
+                    &decoded_consumer_context.backend_schema,
+                )
+                .await
+                .map_err(ConsumerError::ModelError)
+        }
     }
 
     /// This function fetches an atom or creates it

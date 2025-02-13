@@ -1,4 +1,4 @@
-use super::utils::{get_absolute_triple_id, update_vault_position_count};
+use super::utils::get_absolute_triple_id;
 use crate::{
     mode::{decoded::utils::get_or_create_account, types::DecodedConsumerContext},
     schemas::types::DecodedMessage,
@@ -382,8 +382,6 @@ impl Deposited {
         triple: Option<Triple>,
     ) -> Result<(), ConsumerError> {
         self.create_new_position(position_id.to_string(), decoded_consumer_context)
-            .await?;
-        update_vault_position_count(decoded_consumer_context, U256Wrapper::from(self.vaultId))
             .await?;
 
         if let Some(triple) = triple {
