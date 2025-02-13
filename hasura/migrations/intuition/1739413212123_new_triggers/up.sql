@@ -2,10 +2,16 @@
 CREATE OR REPLACE FUNCTION update_vault_positions_on_deposit()
 RETURNS TRIGGER AS $$
 BEGIN
-  -- Increase the vault's position_count by 1 using NEW.vault_id
-  UPDATE vault
-    SET position_count = position_count + 1
-  WHERE id = NEW.vault_id;
+  IF NOT EXISTS (
+    SELECT 1
+    FROM position
+    WHERE vault_id = NEW.vault_id
+      AND account_id = NEW.receiver_id
+  ) THEN
+    UPDATE vault
+      SET position_count = position_count + 1
+    WHERE id = NEW.vault_id;
+  END IF;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
