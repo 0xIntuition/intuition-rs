@@ -19,9 +19,13 @@ metadata:
 spec:
   package: xpkg.upbound.io/upbound/provider-aws-sqs:v1.20.0
 ---
-apiVersion: aws.crossplane.io/v1beta1
+apiVersion: aws.upbound.io/v1beta1
 kind: ProviderConfig
 metadata:
   name: default
 spec:
+  credentials:
+    source: IRSA
+  assumeRoleWithWebIdentity:
+    roleARN: arn:aws:iam::064662847354:role/eksctl-prod-eks-addon-iamserviceaccount-cross-Role1-0DHe2n50pD15
   skip_credentials_validation: true
