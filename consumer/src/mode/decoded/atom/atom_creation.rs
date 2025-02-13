@@ -237,18 +237,13 @@ impl AtomCreated {
             .await?;
 
         // Update the respective vault with the correct share price
-        let vault = Vault::builder()
-            .id(atom.vault_id.clone())
-            .atom_id(atom.vault_id.clone())
-            .total_shares(U256Wrapper::from(U256::from(0)))
-            .current_share_price(U256Wrapper::from_str(&current_share_price.to_string())?)
-            .position_count(0)
-            .build()
-            .upsert(
-                &decoded_consumer_context.pg_pool,
-                &decoded_consumer_context.backend_schema,
-            )
-            .await?;
+        let vault = Vault::update_current_share_price(
+            U256Wrapper::from_str(&self.vaultID.to_string())?,
+            U256Wrapper::from_str(&current_share_price.to_string())?,
+            &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
+        )
+        .await?;
 
         Ok((vault, atom))
     }
