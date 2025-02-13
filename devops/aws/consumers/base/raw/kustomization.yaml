@@ -4,6 +4,7 @@ kind: Kustomization
 resources:
   - deployment.yaml
   - service.yaml
+  - sqs.yaml
 
 commonLabels:
-  component: raw-consumer 
+  component: raw-consumer
