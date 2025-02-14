@@ -10,6 +10,13 @@ spec:
         - name: decoded-consumer
           image: ghcr.io/0xintuition/consumer:2.0.18
           imagePullPolicy: Always
+          resources:
+            requests:
+              cpu: "1"
+              memory: "1Gi"
+            limits:
+              cpu: "3"
+              memory: "2Gi"
           volumeMounts:
             - name: secrets-store-inline
               mountPath: "/mnt/secrets"
