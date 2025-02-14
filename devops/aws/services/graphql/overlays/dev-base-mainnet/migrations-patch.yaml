@@ -8,7 +8,7 @@ spec:
       serviceAccountName: secrets-access-sa
       containers:
         - name: hasura-migrations
-          image: ghcr.io/0xintuition/hasura-migrations:2.0.2
+          image: ghcr.io/0xintuition/hasura-migrations:2.0.12
           imagePullPolicy: Always
           volumeMounts:
             - name: secrets-store-inline

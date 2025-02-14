@@ -28,4 +28,6 @@ pub enum ModelError {
     SqlError(#[from] sqlx::Error),
     #[error("Unexpected null value: {0}")]
     UnexpectedNull(String),
+    #[error("Failed to update data: {0}")]
+    UpdateError(String),
 }
