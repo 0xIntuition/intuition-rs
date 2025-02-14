@@ -96,10 +96,7 @@ impl DecodedConsumerContext {
 
     /// This function fetches the current contract balance using the provider,
     /// since your contract does not expose a `balance()` function.
-    pub async fn fetch_contract_balance(
-        &self,
-        // event: &DecodedMessage,
-    ) -> Result<U256, ConsumerError> {
+    pub async fn fetch_contract_balance(&self) -> Result<U256, ConsumerError> {
         // Build the block identifier from the event's block number.
         // let block = BlockId::from_str(&event.block_number.to_string())?;
         // Assume self.base_client stores the contract address.
@@ -130,13 +127,13 @@ impl DecodedConsumerContext {
     pub async fn fetch_current_share_price(
         &self,
         id: Uint<256, 4>,
-        event: &DecodedMessage,
+        block_number: i64,
     ) -> Result<U256, ConsumerError> {
         self.retry_with_backoff(|| async {
             let current_share_price = self
                 .base_client
                 .currentSharePrice(id)
-                .block(BlockId::from_str(&event.block_number.to_string())?)
+                .block(BlockId::from_str(&block_number.to_string())?)
                 .call()
                 .await;
             match &current_share_price {
@@ -158,13 +155,13 @@ impl DecodedConsumerContext {
     pub async fn fetch_total_shares_in_vault(
         &self,
         id: Uint<256, 4>,
-        event: &DecodedMessage,
+        block_number: i64,
     ) -> Result<U256, ConsumerError> {
         self.retry_with_backoff(|| async {
             let total_shares = self
                 .base_client
                 .vaults(id)
-                .block(BlockId::from_str(&event.block_number.to_string())?)
+                .block(BlockId::from_str(&block_number.to_string())?)
                 .call()
                 .await;
             match &total_shares {
@@ -933,5 +930,20 @@ mod tests {
             .await
             .unwrap();
         println!("Balance: {:?}", balance);
+    }
+
+    #[tokio::test]
+    async fn test_fetch_total_shares_in_vault() {
+        let decoded_consumer = create_test_decoded_consumer().await.unwrap();
+
+        // Use the vaultID from the inner message
+        let vault_id = Uint::<256, 4>::from_str("0x329b").unwrap();
+
+        let total_shares = decoded_consumer
+            .fetch_total_shares_in_vault(vault_id, 21854762)
+            .await
+            .unwrap();
+
+        println!("Total shares in vault: {:?}", total_shares);
     }
 }

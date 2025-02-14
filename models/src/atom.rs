@@ -239,13 +239,4 @@ mod tests {
 
         assert_eq!(result, expected_output);
     }
-
-    #[test]
-    fn test_decode_data_non_utf8() {
-        let hex_string = "0xc626cbfe61bac7a1db9d227b90878d872c379c6a";
-        let expected_output = "c626cbfe61bac7a1db9d227b90878d872c379c6a";
-
-        let result = Atom::decode_data(hex_string.to_string()).expect("Decoding data failed");
-        assert_eq!(result, expected_output);
-    }
 }

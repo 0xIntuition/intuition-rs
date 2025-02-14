@@ -141,17 +141,22 @@ mod tests {
         // Insert record
         let inserted = share_price.insert(&pool, TEST_PROXY_SCHEMA).await?;
         assert_eq!(inserted, share_price);
+        println!("inserted: {:?}", inserted);
 
         // Build the payload
         let payload = JsonRpcRequest {
             id: 987987,
             jsonrpc: "2.0".to_string(),
             method: "eth_call".to_string(),
-            params: json!([
-                "0xee9dd98f00000000000000000000000000000000000000000000000000000000000003ec",
-                "0x1a6950807e33d5bc9975067e6d6b5ea4cd661665"
-            ]),
+            params: json!({
+                "input": [
+                    "0xee9dd98f00000000000000000000000000000000000000000000000000000000000003ec",
+                    block_number_parsed
+                ]
+            }),
         };
+
+        println!("payload: {:?}", payload);
 
         // Build the app state
         let app_state = App {
@@ -162,8 +167,12 @@ mod tests {
             pg_pool: pool,
             reqwest_client: Client::new(),
         };
+
+        println!("app_state ready");
+
         // Find record
         let found = JsonRpcCache::find(&payload, 84532, &app_state, Method::EthCall).await?;
+        println!("found: {:?}", found);
         assert!(found.is_some());
         assert_eq!(found.unwrap(), share_price);
 

@@ -239,12 +239,12 @@ impl AtomCreated {
                 .id(U256Wrapper::from_str(&self.vaultID.to_string())?)
                 .total_shares(
                     decoded_consumer_context
-                        .fetch_total_shares_in_vault(self.vaultID, event)
+                        .fetch_total_shares_in_vault(self.vaultID, event.block_number)
                         .await?,
                 )
                 .current_share_price(
                     decoded_consumer_context
-                        .fetch_current_share_price(self.vaultID, event)
+                        .fetch_current_share_price(self.vaultID, event.block_number)
                         .await?,
                 )
                 .position_count(
@@ -273,7 +273,7 @@ impl AtomCreated {
     ) -> Result<(Vault, Atom), ConsumerError> {
         // Get the share price of the atom
         let current_share_price = decoded_consumer_context
-            .fetch_current_share_price(self.vaultID, event)
+            .fetch_current_share_price(self.vaultID, event.block_number)
             .await?;
 
         // Get or create the vault
