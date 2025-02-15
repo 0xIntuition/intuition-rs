@@ -1,4 +1,4 @@
-use super::utils::{get_absolute_triple_id, update_vault_position_count};
+use super::utils::get_absolute_triple_id;
 use crate::{
     mode::{decoded::utils::get_or_create_account, types::DecodedConsumerContext},
     schemas::types::DecodedMessage,
@@ -271,7 +271,7 @@ impl Deposited {
                 vault.current_share_price = U256Wrapper::from(current_share_price);
                 vault.total_shares = U256Wrapper::from(
                     decoded_consumer_context
-                        .fetch_total_shares_in_vault(id, event)
+                        .fetch_total_shares_in_vault(id, event.block_number)
                         .await?,
                 );
                 vault
@@ -289,7 +289,11 @@ impl Deposited {
                         .current_share_price(U256Wrapper::from(current_share_price))
                         .position_count(0)
                         .triple_id(get_absolute_triple_id(self.vaultId))
-                        .total_shares(U256Wrapper::from(self.sharesForReceiver))
+                        .total_shares(U256Wrapper::from(
+                            decoded_consumer_context
+                                .fetch_total_shares_in_vault(id, event.block_number)
+                                .await?,
+                        ))
                         .build()
                         .upsert(
                             &decoded_consumer_context.pg_pool,
@@ -303,7 +307,11 @@ impl Deposited {
                         .current_share_price(U256Wrapper::from(current_share_price))
                         .position_count(0)
                         .atom_id(self.vaultId)
-                        .total_shares(U256Wrapper::from(self.sharesForReceiver))
+                        .total_shares(U256Wrapper::from(
+                            decoded_consumer_context
+                                .fetch_total_shares_in_vault(id, event.block_number)
+                                .await?,
+                        ))
                         .build()
                         .upsert(
                             &decoded_consumer_context.pg_pool,
@@ -324,7 +332,7 @@ impl Deposited {
     ) -> Result<(), ConsumerError> {
         // Initialize core data
         let current_share_price = decoded_consumer_context
-            .fetch_current_share_price(self.vaultId, event)
+            .fetch_current_share_price(self.vaultId, event.block_number)
             .await?;
 
         // Initialize accounts and vault. We need to block on this because it's async and
@@ -382,8 +390,6 @@ impl Deposited {
         triple: Option<Triple>,
     ) -> Result<(), ConsumerError> {
         self.create_new_position(position_id.to_string(), decoded_consumer_context)
-            .await?;
-        update_vault_position_count(decoded_consumer_context, U256Wrapper::from(self.vaultId))
             .await?;
 
         if let Some(triple) = triple {

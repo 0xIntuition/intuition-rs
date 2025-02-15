@@ -87,3 +87,29 @@ impl SimpleCrud<U256Wrapper> for Vault {
             .map_err(|e| ModelError::QueryError(e.to_string()))
     }
 }
+
+impl Vault {
+    pub async fn update_current_share_price(
+        id: U256Wrapper,
+        current_share_price: U256Wrapper,
+        pool: &PgPool,
+        schema: &str,
+    ) -> Result<Self, ModelError> {
+        let query = format!(
+            r#"
+            UPDATE {}.vault 
+            SET current_share_price = $1 
+            WHERE id = $2
+            RETURNING id, atom_id, triple_id, total_shares, current_share_price, position_count
+            "#,
+            schema,
+        );
+
+        sqlx::query_as::<_, Vault>(&query)
+            .bind(current_share_price.to_big_decimal()?)
+            .bind(id.to_big_decimal()?)
+            .fetch_one(pool)
+            .await
+            .map_err(|e| ModelError::UpdateError(e.to_string()))
+    }
+}

@@ -9,41 +9,53 @@ spec:
       template:
         spec:
           volumes:
+            # Base consumers (decoded & raw)
             - name: decoded-logs
               persistentVolumeClaim:
                 claimName: decoded-logs
-            - name: ipfs-upload-logs
-              persistentVolumeClaim:
-                claimName: ipfs-upload-logs
             - name: raw-logs
               persistentVolumeClaim:
                 claimName: raw-logs
-            - name: resolver-logs
+            # ipfs-upload consumer: base (or dev-base-mainnet) uses the base PVC
+            - name: ipfs-upload-logs
               persistentVolumeClaim:
-                claimName: resolver-logs
-            - name: prod-base-mainnet-resolver-logs
+                claimName: ipfs-upload-logs
+            # ipfs-upload consumer for sepolia overlay
+            - name: sepolia-ipfs-upload-logs
               persistentVolumeClaim:
-                claimName: prod-base-mainnet-resolver-logs
+                claimName: dev-base-sepolia-ipfs-upload-logs
+            # resolver consumer for mainnet overlay
+            - name: mainnet-resolver-logs
+              persistentVolumeClaim:
+                claimName: dev-base-mainnet-resolver-logs
+            # resolver consumer for sepolia overlay
+            - name: sepolia-resolver-logs
+              persistentVolumeClaim:
+                claimName: dev-base-sepolia-resolver-logs
           containers:
             - name: cleanup
               image: busybox
               command:
-              - /bin/sh
-              - -c
-              - |
-                find /decoded-logs -type f -mtime +2 -delete
-                find /ipfs-upload-logs -type f -mtime +2 -delete
-                find /raw-logs -type f -mtime +2 -delete
-                find /resolver-logs -type f -mtime +2 -delete
+                - /bin/sh
+                - -c
+                - |
+                  find /decoded-logs -type f -mtime +2 -delete
+                  find /raw-logs -type f -mtime +2 -delete
+                  find /ipfs-upload-logs -type f -mtime +2 -delete
+                  find /sepolia-ipfs-upload-logs -type f -mtime +2 -delete
+                  find /mainnet-resolver-logs -type f -mtime +2 -delete
+                  find /sepolia-resolver-logs -type f -mtime +2 -delete
               volumeMounts:
-                - mountPath: /decoded-logs
-                  name: decoded-logs
-                - mountPath: /ipfs-upload-logs
-                  name: ipfs-upload-logs
-                - mountPath: /raw-logs
-                  name: raw-logs
-                - mountPath: /resolver-logs
-                  name: resolver-logs
-                - mountPath: /prod-base-mainnet-resolver-logs
-                  name: prod-base-mainnet-resolver-logs
+                - name: decoded-logs
+                  mountPath: /decoded-logs
+                - name: raw-logs
+                  mountPath: /raw-logs
+                - name: ipfs-upload-logs
+                  mountPath: /ipfs-upload-logs
+                - name: sepolia-ipfs-upload-logs
+                  mountPath: /sepolia-ipfs-upload-logs
+                - name: mainnet-resolver-logs
+                  mountPath: /mainnet-resolver-logs
+                - name: sepolia-resolver-logs
+                  mountPath: /sepolia-resolver-logs
           restartPolicy: OnFailure 

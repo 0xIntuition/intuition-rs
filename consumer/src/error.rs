@@ -148,6 +148,8 @@ pub enum ConsumerError {
     #[error("Triple not found")]
     TripleNotFound,
     #[error(transparent)]
+    UintParse(#[from] alloy::primitives::ruint::ParseError),
+    #[error(transparent)]
     Utf8(#[from] std::string::FromUtf8Error),
     #[error(transparent)]
     UrlParse(#[from] sqlx_core::url::ParseError),
