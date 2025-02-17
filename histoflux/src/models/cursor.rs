@@ -38,7 +38,7 @@ impl HistoFluxCursor {
     /// Find the cursor in the DB.
     pub async fn find(db: &PgPool, id: i32) -> Result<Option<Self>, HistoFluxError> {
         let query = r#"
-        SELECT id, last_processed_id, environment, paused, queue_url, updated_at::timestamptz as updated_at
+        SELECT id, last_processed_id, environment::text as environment, paused, queue_url, updated_at::timestamptz as updated_at
         FROM cursors.histoflux_cursor 
         WHERE id = $1
         "#;
