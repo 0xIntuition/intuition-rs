@@ -1,46 +1,15 @@
-use crate::{app_context::Env, error::HistoFluxError};
+use crate::error::HistoFluxError;
 use chrono::{DateTime, Utc};
 use macon::Builder;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
-use strum::{Display, EnumString};
-
-#[derive(sqlx::Type, Clone, Debug, Display, EnumString, PartialEq, Serialize, Deserialize)]
-#[sqlx(type_name = "environment")]
-pub enum Environment {
-    DevBase,
-    DevBaseSepolia,
-    ProdBase,
-    ProdBaseSepolia,
-    ProdLineaMainnet,
-    ProdLineaSepolia,
-    ProdBaseMainnetV2,
-    ProdBaseSepoliaV2,
-}
-
-impl Environment {
-    /// This method is used to get the indexer schema from the environment.
-    /// There must be a 1-1 mapping between the environment and the indexer schema.
-    pub fn to_indexer_schema(&self, env: &Env) -> String {
-        match self {
-            Environment::DevBase => env.dev_base_schema.clone(),
-            Environment::DevBaseSepolia => env.dev_base_sepolia_schema.clone(),
-            Environment::ProdBase => env.prod_base_schema.clone(),
-            Environment::ProdBaseSepolia => env.prod_base_sepolia_schema.clone(),
-            Environment::ProdLineaMainnet => env.prod_linea_mainnet_schema.clone(),
-            Environment::ProdLineaSepolia => env.prod_linea_sepolia_schema.clone(),
-            Environment::ProdBaseMainnetV2 => env.prod_base_mainnet_v2_schema.clone(),
-            Environment::ProdBaseSepoliaV2 => env.prod_base_sepolia_v2_schema.clone(),
-        }
-    }
-}
 
 #[derive(sqlx::FromRow, Debug, PartialEq, Clone, Builder, Serialize, Deserialize)]
 #[sqlx(type_name = "histoflux_cursor")]
 pub struct HistoFluxCursor {
     pub id: i32,
     pub last_processed_id: i64,
-    pub environment: Environment,
+    pub environment: String,
     pub paused: bool,
     pub queue_url: String,
     pub updated_at: DateTime<Utc>,
@@ -91,7 +60,7 @@ impl HistoFluxCursor {
         UPDATE cursors.histoflux_cursor 
         SET last_processed_id = $1, updated_at = NOW()
         WHERE id = $2
-        RETURNING id, last_processed_id, environment, paused, queue_url, updated_at::timestamptz as updated_at
+        RETURNING id, last_processed_id, environment::text as environment, paused, queue_url, updated_at::timestamptz as updated_at
         "#;
 
         sqlx::query_as::<_, HistoFluxCursor>(query)
@@ -116,7 +85,7 @@ mod tests {
         let cursor = HistoFluxCursor {
             id: 4,
             queue_url: "test_url".to_string(),
-            environment: Environment::DevBase,
+            environment: "DevBase".to_string(),
             paused: false,
             last_processed_id: 100,
             updated_at: Utc::now(),
