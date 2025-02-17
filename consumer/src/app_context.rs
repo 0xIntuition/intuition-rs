@@ -31,7 +31,7 @@ impl Server {
         info!("Parsing the CLI arguments");
         let args = ConsumerArgs::parse();
         // Set up the logging
-        Self::set_up_logging(args.mode.clone()).await?;
+        Self::set_up_logging().await?;
         // Read the .env file from the current directory or parents
         dotenvy::dotenv().ok();
         // Parse the env vars
@@ -44,15 +44,11 @@ impl Server {
     }
 
     /// Set up the logging
-    async fn set_up_logging(consumer_mode: String) -> Result<(), ConsumerError> {
-        // Set up file appender
-        let file_appender = RollingFileAppender::new(
-            Rotation::DAILY,
-            "logs",                                    // directory
-            format!("consumer-{}.log", consumer_mode), // file name
-        );
-
-        // Configure subscriber with JSON formatting for production
+    async fn set_up_logging() -> Result<(), ConsumerError> {
+        // Instead of setting up a RollingFileAppender, we'll log to STDOUT.
+        //
+        // In containerized AWS deployments, it's standard practice to write logs to STDOUT
+        // and let your log agent (e.g., CloudWatch agent via FireLens or Fluent Bit) handle shipping.
         let subscriber = tracing_subscriber::registry()
             .with(
                 EnvFilter::from_default_env()
@@ -65,13 +61,15 @@ impl Server {
                     .with_file(true)
                     .with_line_number(true)
                     .with_thread_ids(true)
-                    .with_target(true),
-            )
-            .with(tracing_subscriber::fmt::layer().with_writer(file_appender));
+                    .with_target(true)
+                    // Write to STDOUT instead of a file
+                    .with_writer(std::io::stdout),
+            );
 
         // Initialize the subscriber
         tracing::subscriber::set_global_default(subscriber)
             .expect("Failed to set tracing subscriber");
+
         Ok(())
     }
 

@@ -439,17 +439,15 @@ impl Redeemed {
 
         // Only if the position is being closed should we update vault position_count.
         // For instance, if the redemption fully depletes the position:
-        if let Some(pos) = position {
-            if pos.shares == U256Wrapper::from(U256::ZERO) {
-                info!("Position shares are zero, removing position record.");
-                // Remove the position record..
-                Position::delete(
-                    position_id.to_string(),
-                    &decoded_consumer_context.pg_pool,
-                    &decoded_consumer_context.backend_schema,
-                )
-                .await?;
-            }
+        if let Some(_pos) = position {
+            info!("Position shares are zero, removing position record.");
+            // Remove the position record..
+            Position::delete(
+                position_id.to_string(),
+                &decoded_consumer_context.pg_pool,
+                &decoded_consumer_context.backend_schema,
+            )
+            .await?;
         }
 
         Ok(())
