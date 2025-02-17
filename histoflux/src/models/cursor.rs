@@ -13,6 +13,7 @@ pub enum Environment {
     ProdBase,
     ProdBaseSepolia,
     ProdLineaMainnet,
+    ProdLineaSepolia,
     ProdBaseMainnetV2,
     ProdBaseSepoliaV2,
 }
@@ -27,6 +28,7 @@ impl Environment {
             Environment::ProdBase => env.prod_base_schema.clone(),
             Environment::ProdBaseSepolia => env.prod_base_sepolia_schema.clone(),
             Environment::ProdLineaMainnet => env.prod_linea_mainnet_schema.clone(),
+            Environment::ProdLineaSepolia => env.prod_linea_sepolia_schema.clone(),
             Environment::ProdBaseMainnetV2 => env.prod_base_mainnet_v2_schema.clone(),
             Environment::ProdBaseSepoliaV2 => env.prod_base_sepolia_v2_schema.clone(),
         }

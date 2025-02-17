@@ -32,15 +32,7 @@ spec:
           ports:
             - containerPort: 8003
               protocol: TCP
-          volumeMounts:
-            - name: raw-logs
-              mountPath: /logs
-              readOnly: false
           securityContext:
             runAsUser: 0
             runAsGroup: 0
       restartPolicy: Always
-      volumes:
-        - name: raw-logs
-          persistentVolumeClaim:
-            claimName: raw-logs
