@@ -12,8 +12,9 @@ metadata:
       arn:aws:acm:us-west-2:064662847354:certificate/2d5b4c58-81f7-4a93-bdc9-c1143e60d9de,
       arn:aws:acm:us-west-2:064662847354:certificate/20ffcf56-d3c7-4bbf-b64c-a8259b1dcd4f,
       arn:aws:acm:us-west-2:064662847354:certificate/103e08d5-016c-427d-a2c7-d151b26187bd,
-      arn:aws:acm:us-west-2:064662847354:certificate/b00c5489-8bc9-4cf1-8836-d31e64d4e5c8
-    external-dns.alpha.kubernetes.io/hostname: dev.base.intuition-api.com,dev.base-sepolia.intuition-api.com,prod.base.intuition-api.com,prod.base-sepolia.intuition-api.com,prod.linea.intuition-api.com,prod.linea-sepolia.intuition-api.com
+      arn:aws:acm:us-west-2:064662847354:certificate/b00c5489-8bc9-4cf1-8836-d31e64d4e5c8,
+      arn:aws:acm:us-west-2:064662847354:certificate/361cf455-7d26-4e68-b92c-37a535a563c3
+    external-dns.alpha.kubernetes.io/hostname: dev.base.intuition-api.com,dev.base-sepolia.intuition-api.com,prod.base.intuition-api.com,prod.base-sepolia.intuition-api.com,prod.linea.intuition-api.com,prod.linea-sepolia.intuition-api.com,staging.linea.intuition-api.com
 spec:
   ingressClassName: alb
   rules:
@@ -58,7 +59,7 @@ spec:
         pathType: Prefix
         backend:
           service:
-            name: prod-base-mainnet-graphql-engine
+            name: prod-base-mainnet-v2-graphql-engine
             port:
               number: 8080
   - host: prod.base-sepolia.intuition-api.com
@@ -68,7 +69,7 @@ spec:
         pathType: Prefix
         backend:
           service:
-            name: prod-base-sepolia-graphql-engine
+            name: prod-base-sepolia-v2-graphql-engine
             port:
               number: 8080
   - host: prod.linea.intuition-api.com
@@ -92,3 +93,13 @@ spec:
             port:
               number: 8080
 
+  - host: staging.linea.intuition-api.com
+    http:
+      paths:
+      - path: /v1/graphql
+        pathType: Prefix
+        backend:
+          service:
+            name: prod-linea-mainnet-v2-graphql-engine
+            port:
+              number: 8080

@@ -1,13 +1,13 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ipfs-upload-consumer
+  name: resolver-consumer
 spec:
   template:
     spec:
       serviceAccountName: secrets-access-sa
       containers:
-        - name: ipfs-upload-consumer
+        - name: resolver-consumer
           image: ghcr.io/0xintuition/consumer:2.0.20
           imagePullPolicy: Always
           volumeMounts:
@@ -16,11 +16,11 @@ spec:
               readOnly: true
           envFrom:
             - secretRef:
-                name: prod-linea-mainnet-ipfs-upload-consumer-secrets
+                name: prod-linea-mainnet-v2-resolver-consumer-secrets
       volumes:
         - name: secrets-store-inline
           csi:
             driver: secrets-store.csi.k8s.io
             readOnly: true
             volumeAttributes:
-              secretProviderClass: "prod-linea-mainnet-prod-linea-mainnet-ipfs-upload-consumer-secrets"
+              secretProviderClass: "prod-linea-mainnet-v2-prod-linea-mainnet-v2-resolver-consumer-secrets"

@@ -4,9 +4,11 @@
 ENVIRONMENTS=(
     "dev-base-sepolia"
     "dev-base-mainnet"
-    "prod-base-sepolia"
-    "prod-base-mainnet"
+    "prod-base-sepolia-v2"
+    "prod-base-mainnet-v2"
     "prod-linea-mainnet"
+    "prod-linea-mainnet-v2"
+    "prod-linea-sepolia"
 )
 
 CONSUMERS=(
@@ -53,7 +55,7 @@ get_version() {
     fi
 }
 
-# Function to print header
+# Function to print header for the old (vertical) table
 print_header() {
     printf "\n%-20s" "Service"
     for env in "${ENVIRONMENTS[@]}"; do
@@ -107,9 +109,70 @@ print_category() {
     done
 }
 
+# --- New function: print table with environments as rows ---
+print_category_by_env() {
+    local title=$1
+    shift
+    local services=("$@")
+    
+    echo -e "\n=== $title ==="
+    # Compute dynamic table width based on number of columns (Environment + each service)
+    local col_width=25
+    local num_columns=$(( ${#services[@]} + 1 ))
+    local total_width=$(( num_columns * col_width ))
+    local line
+    line=$(printf '=%.0s' $(seq 1 $total_width))
+    
+    # Print header row: first column "Environment", then each service (truncated as needed)
+    printf "\n%-25s" "Environment"
+    for service in "${services[@]}"; do
+        local display_service="$service"
+        if [ ${#service} -gt 12 ]; then
+            display_service="${service:0:9}..."
+        fi
+        printf "%-25s" "$display_service"
+    done
+    echo ""
+    echo "$line"
+    
+    # For each environment, print a row with version information for each service
+    for env in "${ENVIRONMENTS[@]}"; do
+        printf "\n%-25s" "$env"
+        for service in "${services[@]}"; do
+            version=$(get_version "$env" "$service")
+            printf "%-25s" "$version"
+        done
+        echo ""
+    done
+
+    # Print status row: checks each service across all environments
+    printf "\n%-25s" "Status"
+    for service in "${services[@]}"; do 
+        versions=()
+        for env in "${ENVIRONMENTS[@]}"; do
+            version=$(get_version "$env" "$service")
+            versions+=("$version")
+        done
+        if check_versions_match "${versions[@]}"; then
+            printf "%-25s" "✅"
+        else
+            printf "%-25s" "❌"
+        fi
+    done
+    echo ""
+}
+
 # Main execution
 echo "Collecting versions across environments..."
 
-print_category "CONSUMERS" "${CONSUMERS[@]}"
-print_category "HISTOFLUX" "${HISTOFLUX[@]}"
-print_category "MIGRATIONS" "${MIGRATIONS[@]}"
+# Uncomment the layout you want:
+
+# Existing vertical layout per service:
+# print_category "CONSUMERS" "${CONSUMERS[@]}"
+# print_category "HISTOFLUX" "${HISTOFLUX[@]}"
+# print_category "MIGRATIONS" "${MIGRATIONS[@]}"
+
+# New horizontal layout with environments as rows:
+print_category_by_env "CONSUMERS" "${CONSUMERS[@]}"
+print_category_by_env "HISTOFLUX" "${HISTOFLUX[@]}"
+print_category_by_env "MIGRATIONS" "${MIGRATIONS[@]}"
