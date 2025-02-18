@@ -22,10 +22,19 @@ spec:
     spec:
       project: default
       source:
-        repoURL: ssh://git@github.com/0xintuition/intuition-rs.git
+        repoURL: https://github.com/0xintuition/intuition-rs.git
         path: 'devops/aws/consumers/overlays/{{env}}/raw'
         targetRevision: '{{ revision }}'
-        kustomize: {}
+        kustomize:
+          patches:
+            - target:
+                kind: Deployment
+                name: raw-consumer
+              patch: |-
+                - op: replace
+                  path: /spec/template/spec/serviceAccountName
+                  value: prod-eks-dev-base-sepolia-v2-0-0-secrets-access-sa
+
       destination:
         server: '{{ server }}'
         namespace: '{{ namespace }}'
