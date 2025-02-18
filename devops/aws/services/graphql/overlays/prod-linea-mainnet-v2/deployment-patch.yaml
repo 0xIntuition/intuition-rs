@@ -1,26 +1,31 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: decoded-consumer
+  name: graphql-engine
 spec:
   template:
     spec:
       serviceAccountName: secrets-access-sa
       containers:
-        - name: decoded-consumer
-          image: ghcr.io/0xintuition/consumer:2.0.21
-          imagePullPolicy: Always
+        - name: graphql-engine
+          resources:
+            requests:
+              cpu: "1"
+              memory: "2Gi"
+            limits:
+              cpu: "4"
+              memory: "6Gi"
           volumeMounts:
             - name: secrets-store-inline
               mountPath: "/mnt/secrets"
               readOnly: true
           envFrom:
             - secretRef:
-                name: prod-base-mainnet-v2-decoded-consumer-secrets
+                name: prod-linea-mainnet-v2-hasura-aws-secrets
       volumes:
         - name: secrets-store-inline
           csi:
             driver: secrets-store.csi.k8s.io
             readOnly: true
             volumeAttributes:
-              secretProviderClass: "prod-base-mainnet-v2-prod-base-mainnet-v2-decoded-consumer-secrets"
+              secretProviderClass: "prod-linea-mainnet-v2-prod-linea-mainnet-v2-hasura-aws-secrets"
