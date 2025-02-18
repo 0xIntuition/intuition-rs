@@ -32,14 +32,6 @@ spec:
           ports:
             - containerPort: 3002
               protocol: TCP
-          volumeMounts:
-            - name: decoded-logs
-              mountPath: /logs
-              readOnly: false
           securityContext:
             runAsUser: 0
             runAsGroup: 0
-      volumes:
-        - name: decoded-logs
-          persistentVolumeClaim:
-            claimName: decoded-logs

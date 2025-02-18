@@ -35,7 +35,3 @@ spec:
           securityContext:
             runAsUser: 0
             runAsGroup: 0
-      volumes:
-        - name: ipfs-upload-logs
-          persistentVolumeClaim:
-            claimName: ipfs-upload-logs

@@ -5,7 +5,7 @@ resources:
   - ../../../base/ipfs-upload
   - secret-provider.yaml
 
-namePrefix: "prod-linea-mainnet-" 
+namePrefix: "prod-linea-mainnet-v2-" 
 
 patches:
   - path: deployment-patch.yaml
@@ -14,4 +14,4 @@ patches:
       name: ipfs-upload-consumer
 
 commonLabels:
-  network: linea-mainnet
+  network: linea-mainnet-v2
