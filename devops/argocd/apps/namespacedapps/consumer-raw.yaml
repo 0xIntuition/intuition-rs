@@ -28,12 +28,32 @@ spec:
         kustomize:
           patches:
             - target:
+                kind: Queue
+                name: decoded-logs-queue
+              patch: |-
+                - op: replace
+                  path: /metadata/name
+                  value: '{{namespace}}-raw-logs'
+                - op: replace
+                  path: /spec/forProvider/name
+                  value: '{{cluster}}-{{namespace}}-decoded-logs.fifo'
+            - target:
                 kind: Deployment
                 name: raw-consumer
               patch: |-
                 - op: replace
                   path: /spec/template/spec/serviceAccountName
-                  value: prod-eks-dev-base-sepolia-v2-0-0-secrets-access-sa
+                  value: '{{cluster}}-{{env}}-secrets-access-sa'
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: RAW_CONSUMER_QUEUE_URL
+                    value: 'https://arn:aws:sqs:us-west-2:064662847354:{{cluster}}-{{namespace}}-raw-logs.fifo'
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: DECODED_LOGS_QUEUE_URL
+                    value: 'https://arn:aws:sqs:us-west-2:064662847354:{{cluster}}-{{namespace}}-decoded-logs.fifo'
 
       destination:
         server: '{{ server }}'
