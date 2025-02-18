@@ -19,7 +19,7 @@ spec:
       annotations:
         argocd.argoproj.io/manifest-generate-paths: '.;/devops/argocd'
     spec:
-      project: default
+      project: prod
       source:
         repoURL: ssh://git@github.com/0xintuition/intuition-rs.git
         path: devops/argocd/namespacedapps
