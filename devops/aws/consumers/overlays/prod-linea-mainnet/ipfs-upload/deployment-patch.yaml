@@ -14,9 +14,6 @@ spec:
             - name: secrets-store-inline
               mountPath: "/mnt/secrets"
               readOnly: true
-            - name: ipfs-upload-logs
-              mountPath: /logs
-              readOnly: false
           envFrom:
             - secretRef:
                 name: prod-linea-mainnet-ipfs-upload-consumer-secrets

@@ -4,7 +4,6 @@ kind: Kustomization
 resources:
   - ../../../base/ipfs-upload
   - secret-provider.yaml
-  - pvc.yaml
 
 namePrefix: "prod-linea-mainnet-" 
 
