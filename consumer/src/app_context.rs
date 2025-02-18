@@ -4,7 +4,6 @@ use crate::{config::Env, error::ConsumerError, mode::types::ConsumerMode, Consum
 use clap::Parser;
 use prometheus::{gather, Encoder, TextEncoder};
 use tracing::info;
-use tracing_appender::rolling::{RollingFileAppender, Rotation};
 use tracing_subscriber::{layer::SubscriberExt, EnvFilter};
 use warp::Filter;
 
