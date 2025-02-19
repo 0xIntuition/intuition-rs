@@ -1,0 +1,51 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: consumer-ipfs-upload
+  namespace: argocd
+spec:
+  syncPolicy:
+    preserveResourcesOnDeletion: true
+  generators:
+    - list:
+        elements:
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: francois/add-iac
+            env: dev-base-sepolia
+            namespace: dev-base-sepolia-v2-0-0
+  template:
+    metadata:
+      name: '{{ cluster }}-consumer-ipfs-upload-{{namespace}}'
+      annotations:
+        argocd.argoproj.io/manifest-generate-paths: '.;/devops/argocd'
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/0xintuition/intuition-rs.git
+        path: 'devops/aws/consumers/overlays/{{env}}/ipfs-upload'
+        targetRevision: '{{ revision }}'
+        kustomize:
+          patches:
+            - target:
+                kind: Deployment
+                name: ipfs-upload-consumer
+              patch: |-
+                - op: replace
+                  path: /spec/template/spec/serviceAccountName
+                  value: '{{cluster}}-{{namespace}}-secrets-access-sa'
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: IPFS_UPLOAD_QUEUE_URL
+                    value: 'https://arn:aws:sqs:us-west-2:064662847354:{{cluster}}-{{namespace}}-ipfs-upload'
+
+      destination:
+        server: '{{ server }}'
+        namespace: '{{ namespace }}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+        - CreateNamespace=true
