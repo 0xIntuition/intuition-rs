@@ -82,17 +82,6 @@ spec:
             name: prod-linea-mainnet-graphql-engine
             port:
               number: 8080
-  - host: prod.linea-sepolia.intuition-api.com
-    http:
-      paths:
-      - path: /v1/graphql
-        pathType: Prefix
-        backend:
-          service:
-            name: prod-linea-sepolia-graphql-engine
-            port:
-              number: 8080
-
   - host: staging.linea.intuition-api.com
     http:
       paths:

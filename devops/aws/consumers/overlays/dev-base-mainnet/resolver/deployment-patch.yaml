@@ -24,6 +24,3 @@ spec:
             readOnly: true
             volumeAttributes:
               secretProviderClass: "dev-base-mainnet-dev-resolver-consumer-secrets"
-        - name: resolver-logs
-          persistentVolumeClaim:
-            claimName: dev-base-mainnet-resolver-logs

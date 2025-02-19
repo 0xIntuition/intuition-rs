@@ -3,6 +3,7 @@ kind: Deployment
 metadata:
   name: rpc-proxy
 spec:
+  replicas: 3
   template:
     spec:
       serviceAccountName: secrets-access-sa

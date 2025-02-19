@@ -24,6 +24,3 @@ spec:
             readOnly: true
             volumeAttributes:
               secretProviderClass: "dev-base-sepolia-dev-base-sepolia-resolver-consumer-secrets"
-        - name: resolver-logs
-          persistentVolumeClaim:
-            claimName: dev-base-sepolia-resolver-logs
