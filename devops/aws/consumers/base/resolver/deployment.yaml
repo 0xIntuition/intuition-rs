@@ -29,6 +29,7 @@ spec:
             - --mode
             - resolver
           name: resolver-consumer
+          env: []
           ports:
             - containerPort: 8001
               protocol: TCP
