@@ -36,6 +36,7 @@ spec:
             - name: decoded-logs
               mountPath: /logs
               readOnly: false
+          env: []
           securityContext:
             runAsUser: 0
             runAsGroup: 0
