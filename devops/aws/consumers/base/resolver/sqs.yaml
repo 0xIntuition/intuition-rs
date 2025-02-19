@@ -1,9 +1,8 @@
 apiVersion: sqs.aws.upbound.io/v1beta1
 kind: Queue
 metadata:
-  name: decoded-logs
+  name: ipfs-upload
 spec:
   forProvider:
-    name: decoded-logs
+    name: ipfs-upload
     region: us-west-2
-    fifoQueue: true

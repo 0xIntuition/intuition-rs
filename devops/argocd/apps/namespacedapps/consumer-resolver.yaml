@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: consumer-raw
+  name: consumer-resolver
   namespace: argocd
 spec:
   syncPolicy:
@@ -16,30 +16,30 @@ spec:
             namespace: dev-base-sepolia-v2-0-0
   template:
     metadata:
-      name: '{{ cluster }}-consumer-raw-{{namespace}}'
+      name: '{{ cluster }}-consumer-resolver-{{namespace}}'
       annotations:
         argocd.argoproj.io/manifest-generate-paths: '.;/devops/argocd'
     spec:
       project: default
       source:
         repoURL: https://github.com/0xintuition/intuition-rs.git
-        path: 'devops/aws/consumers/overlays/{{env}}/raw'
+        path: 'devops/aws/consumers/overlays/{{env}}/resolver'
         targetRevision: '{{ revision }}'
         kustomize:
           patches:
             - target:
                 kind: Queue
-                name: decoded-logs
+                name: ipfs-upload
               patch: |-
                 - op: replace
                   path: /metadata/name
-                  value: '{{namespace}}-decoded-logs'
+                  value: '{{namespace}}-ipfs-upload'
                 - op: replace
                   path: /spec/forProvider/name
-                  value: '{{cluster}}-{{namespace}}-decoded-logs.fifo'
+                  value: '{{cluster}}-{{namespace}}-ipfs-upload'
             - target:
                 kind: Deployment
-                name: raw-consumer
+                name: resolver-consumer
               patch: |-
                 - op: replace
                   path: /spec/template/spec/serviceAccountName
@@ -47,13 +47,13 @@ spec:
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
-                    name: RAW_CONSUMER_QUEUE_URL
-                    value: 'https://arn:aws:sqs:us-west-2:064662847354:{{cluster}}-{{namespace}}-raw-logs.fifo'
+                    name: RESOLVER_QUEUE_URL
+                    value: 'https://arn:aws:sqs:us-west-2:064662847354:{{cluster}}-{{namespace}}-resolver'
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
-                    name: DECODED_LOGS_QUEUE_URL
-                    value: 'https://arn:aws:sqs:us-west-2:064662847354:{{cluster}}-{{namespace}}-decoded-logs.fifo'
+                    name: IPFS_UPLOAD_QUEUE_URL
+                    value: 'https://arn:aws:sqs:us-west-2:064662847354:{{cluster}}-{{namespace}}-ipfs-upload'
 
       destination:
         server: '{{ server }}'
