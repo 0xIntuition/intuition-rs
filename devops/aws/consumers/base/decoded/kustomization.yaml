@@ -5,6 +5,7 @@ resources:
   - deployment.yaml
   - pvc.yaml
   - service.yaml
+  - sqs.yaml
 
 commonLabels:
   component: decoded-consumer
