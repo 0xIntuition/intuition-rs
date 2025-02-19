@@ -27,16 +27,26 @@ MIGRATIONS=(
     "indexer-and-cache-migration"
 )
 
+# Add caching associative array
+declare -A VERSION_CACHE
+
 # Function to get image version for a pod
 get_version() {
     local env=$1
     local pod=$2
-
+    local key="${env}_${pod}"
+    
+    if [[ -n "${VERSION_CACHE[$key]}" ]]; then
+        echo "${VERSION_CACHE[$key]}"
+        return
+    fi
+    
     local pod_prefix="${env}-${pod}-"
     local pod_name
     pod_name=$(kubectl get pods --no-headers | awk -v prefix="$pod_prefix" '$1 ~ "^"prefix {print $1; exit}')
-
+    
     if [[ -z "$pod_name" ]]; then
+        VERSION_CACHE[$key]="N/A"
         echo "N/A"
         return
     fi
@@ -45,12 +55,12 @@ get_version() {
     full_image=$(kubectl get pod "$pod_name" -o jsonpath='{.spec.containers[0].image}' 2>/dev/null || echo "N/A")
 
     if [[ "$full_image" == "N/A" ]]; then
+        VERSION_CACHE[$key]="N/A"
         echo "N/A"
     else
-        # Extract the final segment (e.g., consumer:2.0.18)
         local image_and_tag="${full_image##*/}"
-        # Extract just the version after the colon (e.g., 2.0.18)
         local version="${image_and_tag#*:}"
+        VERSION_CACHE[$key]="$version"
         echo "$version"
     fi
 }
@@ -154,9 +164,9 @@ print_category_by_env() {
             versions+=("$version")
         done
         if check_versions_match "${versions[@]}"; then
-            printf "%-25s" "✅"
+            printf "%-25s" "  ✅"
         else
-            printf "%-25s" "❌"
+            printf "%-25s" "  ❌"
         fi
     done
     echo ""
