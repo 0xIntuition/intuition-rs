@@ -8,14 +8,12 @@ spec:
       serviceAccountName: secrets-access-sa
       containers:
         - name: resolver-consumer
-          image: ghcr.io/0xintuition/consumer:2.0.18
+          image: ghcr.io/0xintuition/consumer:2.0.21
           imagePullPolicy: Always
           volumeMounts:
             - name: secrets-store-inline
               mountPath: "/mnt/secrets"
               readOnly: true
-            - mountPath: /var/log/app
-              name: resolver-logs
           envFrom:
             - secretRef:
                 name: dev-resolver-consumer-secrets
@@ -26,6 +24,3 @@ spec:
             readOnly: true
             volumeAttributes:
               secretProviderClass: "dev-base-mainnet-dev-resolver-consumer-secrets"
-        - name: resolver-logs
-          persistentVolumeClaim:
-            claimName: dev-base-mainnet-resolver-logs

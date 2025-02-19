@@ -8,15 +8,12 @@ spec:
       serviceAccountName: secrets-access-sa
       containers:
         - name: ipfs-upload-consumer
-          image: ghcr.io/0xintuition/consumer:2.0.20
+          image: ghcr.io/0xintuition/consumer:2.0.21
           imagePullPolicy: Always
           volumeMounts:
             - name: secrets-store-inline
               mountPath: "/mnt/secrets"
               readOnly: true
-            - name: ipfs-upload-logs
-              mountPath: /logs
-              readOnly: false
           envFrom:
             - secretRef:
                 name: prod-base-mainnet-v2-ipfs-upload-consumer-secrets
