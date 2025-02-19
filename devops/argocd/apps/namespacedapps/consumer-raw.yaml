@@ -16,7 +16,7 @@ spec:
             namespace: dev-base-sepolia-v2-0-0
   template:
     metadata:
-      name: '{{ cluster }}-namespacedapps-{{namespace}}'
+      name: '{{ cluster }}-consumer-raw-{{namespace}}'
       annotations:
         argocd.argoproj.io/manifest-generate-paths: '.;/devops/argocd'
     spec:

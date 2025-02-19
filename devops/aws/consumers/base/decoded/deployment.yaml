@@ -32,6 +32,7 @@ spec:
           ports:
             - containerPort: 3002
               protocol: TCP
+          env: []
           securityContext:
             runAsUser: 0
             runAsGroup: 0
