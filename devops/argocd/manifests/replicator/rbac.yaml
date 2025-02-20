@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: replicator-kubernetes-replicator
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: replicator-kubernetes-replicator
+rules:
+- apiGroups: [ "" ]
+  resources: [ "namespaces" ]
+  verbs: [ "get", "watch", "list" ]
+- apiGroups: [""] # "" indicates the core API group
+  resources: ["secrets", "configmaps", "serviceaccounts"]
+  verbs: ["get", "watch", "list", "create", "update", "patch", "delete"]
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: ["roles", "rolebindings"]
+  verbs: ["get", "watch", "list", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: replicator-kubernetes-replicator
+roleRef:
+  kind: ClusterRole
+  name: replicator-kubernetes-replicator
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+- kind: ServiceAccount
+  name: replicator-kubernetes-replicator
+  namespace: kube-system
