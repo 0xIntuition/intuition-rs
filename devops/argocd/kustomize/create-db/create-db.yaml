@@ -14,7 +14,7 @@ spec:
           - "psql $DATABASE_URL -c 'CREATE DATABASE $DBNAME;'"
         env:
           - name: DATABASE_URL
-            value: "postgresql://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/postgres?sslmode=disable"
+            value: "postgresql://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/postgres?sslmode=require"
         envFrom:
           - secretRef:
               name: main-db-creds
