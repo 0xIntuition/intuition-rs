@@ -1,0 +1,29 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ipfs
+  namespace: argocd
+spec:
+  project: dev
+  source:
+    repoURL: 'https://github.com/0xintuition/intuition-rs.git'
+    targetRevision: HEAD
+    path: devops/aws/ipfs/overlays/dev
+    kustomize:
+      patches:
+        - target:
+            kind: Deployment
+            name: ipfs
+          patch: |-
+            - op: replace
+              path: /spec/template/spec/serviceAccountName
+              value: prod-eks-secrets-access-sa
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
