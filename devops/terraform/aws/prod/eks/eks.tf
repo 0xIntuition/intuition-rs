@@ -25,10 +25,10 @@ module "eks" {
       instance_types = ["t3.medium"]
 
       min_size = 1
-      max_size = 3
+      max_size = 4
       # This value is ignored after the initial creation
       # https://github.com/bryantbiggs/eks-desired-size-hack
-      desired_size = 3
+      desired_size = 4
 
       iam_role_additional_policies = {
         AmazonEKS_CNI_Policy = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
