@@ -45,7 +45,7 @@ spec:
                   path: /spec/template/spec/serviceAccountName
                   value: '{{cluster}}-{{namespace}}-secrets-access-sa'
                 - op: add
-                  path: /spec/template/spec/containers/0/envFromSecret/-
+                  path: /spec/template/spec/containers/0/envFrom/-
                   value:
                     secretRef:
                       name: 'main-db-creds'
