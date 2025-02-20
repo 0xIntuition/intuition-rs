@@ -11,6 +11,16 @@ spec:
     tags:
       Name: RDS Subnet Group
 ---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: main-db-creds
+  namespace: default
+  annotations:
+    replicator.v1.mittwald.de/replication-allowed: "true"
+    replicator.v1.mittwald.de/replication-allowed-namespaces: "*"
+type: connection.crossplane.io/v1alpha1
+---
 apiVersion: rds.aws.upbound.io/v1beta3
 kind: Instance
 metadata:
