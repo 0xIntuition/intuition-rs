@@ -1,23 +1,12 @@
-apiVersion: pkg.crossplane.io/v1
-kind: Provider
+apiVersion: pkg.crossplane.io/v1beta1
+kind: DeploymentRuntimeConfig
 metadata:
-  name: provider-aws-s3
+  name: irsa-drc
 spec:
-  package: xpkg.upbound.io/upbound/provider-aws-s3:v1
----
-apiVersion: pkg.crossplane.io/v1
-kind: Provider
-metadata:
-  name: provider-aws-rds
-spec:
-  package: xpkg.upbound.io/upbound/provider-aws-rds:v1.20.0
----
-apiVersion: pkg.crossplane.io/v1
-kind: Provider
-metadata:
-  name: provider-aws-sqs
-spec:
-  package: xpkg.upbound.io/upbound/provider-aws-sqs:v1.20.0
+  serviceAccountTemplate:
+    metadata:
+      annotations:
+        eks.amazonaws.com/role-arn: "arn:aws:iam::064662847354:role/eksctl-prod-eks-addon-iamserviceaccount-cross-Role1-0DHe2n50pD15"
 ---
 apiVersion: aws.upbound.io/v1beta1
 kind: ProviderConfig
@@ -26,5 +15,30 @@ metadata:
 spec:
   credentials:
     source: IRSA
-    webIdentity:
-      roleARN: "arn:aws:iam::064662847354:role/eksctl-prod-eks-addon-iamserviceaccount-cross-Role1-0DHe2n50pD15"
+---
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-aws-s3
+spec:
+  package: xpkg.upbound.io/upbound/provider-aws-s3:v1
+  runtimeConfigRef:
+    name: irsa-drc
+---
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-aws-rds
+spec:
+  package: xpkg.upbound.io/upbound/provider-aws-rds:v1.20.0
+  runtimeConfigRef:
+    name: irsa-drc
+---
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-aws-sqs
+spec:
+  package: xpkg.upbound.io/upbound/provider-aws-sqs:v1.20.0
+  runtimeConfigRef:
+    name: irsa-drc
