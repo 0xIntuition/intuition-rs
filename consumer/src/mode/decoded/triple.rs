@@ -1,8 +1,10 @@
 use crate::{
-    error::ConsumerError, mode::types::DecodedConsumerContext, schemas::types::DecodedMessage,
+    error::ConsumerError,
+    mode::{resolver::types::ResolverConsumerMessage, types::DecodedConsumerContext},
+    schemas::types::DecodedMessage,
     EthMultiVault::TripleCreated,
 };
-use alloy::primitives::U256;
+use alloy::primitives::{Uint, U256};
 use models::{
     account::{Account, AccountType},
     atom::{Atom, AtomResolvingStatus, AtomType},
@@ -26,9 +28,10 @@ impl TripleCreated {
     async fn check_and_update_account_predicate_object_claim_count(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
+        block_number: i64,
     ) -> Result<(), ConsumerError> {
         let (subject_atom, predicate_atom, object_atom) = self
-            .get_subject_predicate_object_atoms(decoded_consumer_context)
+            .get_subject_predicate_object_atoms(decoded_consumer_context, block_number)
             .await?;
 
         if self.is_account_with_person_or_org(&subject_atom, &predicate_atom, &object_atom) {
@@ -106,7 +109,7 @@ impl TripleCreated {
             .await?;
 
         let (subject_atom, predicate_atom, object_atom) = self
-            .get_subject_predicate_object_atoms(decoded_consumer_context)
+            .get_subject_predicate_object_atoms(decoded_consumer_context, event.block_number)
             .await?;
 
         Triple::find_by_id(
@@ -144,23 +147,94 @@ impl TripleCreated {
         decoded_consumer_context: &DecodedConsumerContext,
         id: U256,
         current_share_price: U256,
+        block_number: i64,
     ) -> Result<Vault, ConsumerError> {
-        Vault::find_by_id(
+        let vault = Vault::find_by_id(
             U256Wrapper::from_str(&id.to_string())?,
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
-        .await?
-        .unwrap_or_else(|| {
+        .await?;
+
+        if let Some(vault) = vault {
+            Ok(vault)
+        } else {
             Vault::builder()
                 .id(id)
                 .triple_id(self.vaultID)
-                .total_shares(U256Wrapper::from(U256::from(0)))
+                .total_shares(
+                    decoded_consumer_context
+                        .fetch_total_shares_in_vault(id, block_number)
+                        .await?,
+                )
                 .current_share_price(U256Wrapper::from(current_share_price))
-                .position_count(0)
+                .position_count(
+                    Position::count_by_vault(
+                        U256Wrapper::from_str(&id.to_string())?,
+                        &decoded_consumer_context.pg_pool,
+                        &decoded_consumer_context.backend_schema,
+                    )
+                    .await? as i32,
+                )
                 .build()
-        })
-        .upsert(
+                .upsert(
+                    &decoded_consumer_context.pg_pool,
+                    &decoded_consumer_context.backend_schema,
+                )
+                .await
+                .map_err(ConsumerError::ModelError)
+        }
+    }
+
+    /// This function fetches an atom or creates it
+    async fn fetch_or_create_temporary_atom(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+        id: U256Wrapper,
+        block_number: i64,
+    ) -> Result<Atom, ConsumerError> {
+        if let Some(atom) = self.find_atom(decoded_consumer_context, &id).await? {
+            return Ok(atom);
+        }
+
+        let atom_data = decoded_consumer_context
+            .fetch_atom_data(self.subjectId)
+            .await?;
+
+        let account = self
+            .get_or_create_temporary_account(decoded_consumer_context)
+            .await?;
+        let vault = self
+            .get_or_create_temporary_vault(decoded_consumer_context, &id, block_number)
+            .await?;
+
+        let atom = self
+            .create_atom(
+                decoded_consumer_context,
+                id,
+                atom_data.to_string(),
+                account,
+                vault,
+            )
+            .await?;
+
+        // Enqueue the atom for resolution
+        let message = ResolverConsumerMessage::new_atom(atom.clone());
+        decoded_consumer_context
+            .client
+            .send_message(serde_json::to_string(&message)?, None)
+            .await?;
+        Ok(atom)
+    }
+
+    /// This function finds an atom
+    async fn find_atom(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+        id: &U256Wrapper,
+    ) -> Result<Option<Atom>, ConsumerError> {
+        Atom::find_by_id(
+            id.clone(),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
@@ -168,93 +242,141 @@ impl TripleCreated {
         .map_err(ConsumerError::ModelError)
     }
 
-    #[allow(dead_code)]
-    /// This function fetches an atom from the DB. If it does not exist, it creates it.
-    async fn fetch_atom_or_create(
+    /// This function gets or creates an account
+    async fn get_or_create_temporary_account(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
-        id: U256Wrapper,
-    ) -> Result<Atom, ConsumerError> {
-        let atom = Atom::find_by_id(
-            id.clone(),
+    ) -> Result<Account, ConsumerError> {
+        if let Some(account) = Account::find_by_id(
+            "0x0000000000000000000000000000000000000000".to_string(),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
-        .await?;
-        if let Some(atom) = atom {
-            Ok(atom)
+        .await?
+        {
+            Ok(account)
         } else {
-            let atom_data = decoded_consumer_context
-                .fetch_atom_data(self.subjectId)
-                .await?;
-            // Need to fetch this from DB first
-            let account = if let Some(account) = Account::find_by_id(
-                "placeholder".to_string(),
-                &decoded_consumer_context.pg_pool,
-                &decoded_consumer_context.backend_schema,
-            )
-            .await?
-            {
-                account
-            } else {
-                Account::builder()
-                    .id("placeholder".to_string())
-                    .label("placeholder".to_string())
-                    .account_type(AccountType::Default)
-                    .build()
-            };
-
-            let atom = Atom::builder()
-                .id(id)
-                .wallet_id(account.id.clone())
-                .creator_id(account.id)
-                .vault_id(U256Wrapper::from_str(&self.vaultID.to_string())?)
-                .value_id(U256Wrapper::from_str(&self.vaultID.to_string())?)
-                .raw_data(atom_data.to_string())
-                .atom_type(AtomType::Unknown)
-                .block_number(U256Wrapper::from_str("0")?)
-                .block_timestamp(0)
-                .transaction_hash("waiting for resolution".to_string())
-                .resolving_status(AtomResolvingStatus::Pending)
+            Account::builder()
+                .id("0x0000000000000000000000000000000000000000".to_string())
+                .label("Unknown".to_string())
+                .account_type(AccountType::Default)
                 .build()
                 .upsert(
                     &decoded_consumer_context.pg_pool,
                     &decoded_consumer_context.backend_schema,
                 )
-                .await?;
-            Ok(atom)
+                .await
+                .map_err(ConsumerError::ModelError)
         }
     }
+
+    /// This function gets or creates a vault
+    async fn get_or_create_temporary_vault(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+        id: &U256Wrapper,
+        block_number: i64,
+    ) -> Result<Vault, ConsumerError> {
+        if let Some(vault) = Vault::find_by_id(
+            id.clone(),
+            &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
+        )
+        .await?
+        {
+            Ok(vault)
+        } else {
+            Vault::builder()
+                .id(id.clone())
+                .atom_id(id.clone())
+                .total_shares(
+                    decoded_consumer_context
+                        .fetch_total_shares_in_vault(
+                            Uint::<256, 4>::from_str(&id.to_string())?,
+                            block_number,
+                        )
+                        .await?,
+                )
+                .current_share_price(U256Wrapper::from_str("0")?)
+                .position_count(
+                    Position::count_by_vault(
+                        U256Wrapper::from_str(&id.to_string())?,
+                        &decoded_consumer_context.pg_pool,
+                        &decoded_consumer_context.backend_schema,
+                    )
+                    .await? as i32,
+                )
+                .build()
+                .upsert(
+                    &decoded_consumer_context.pg_pool,
+                    &decoded_consumer_context.backend_schema,
+                )
+                .await
+                .map_err(ConsumerError::ModelError)
+        }
+    }
+
+    /// This function creates an atom
+    async fn create_atom(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+        id: U256Wrapper,
+        atom_data: String,
+        account: Account,
+        vault: Vault,
+    ) -> Result<Atom, ConsumerError> {
+        Atom::builder()
+            .id(id)
+            .wallet_id(account.id.clone())
+            .creator_id(account.id)
+            .vault_id(vault.id.clone())
+            .value_id(vault.id.clone())
+            .data(Atom::decode_data(atom_data.to_string())?)
+            .raw_data(atom_data.to_string())
+            .atom_type(AtomType::Unknown)
+            .block_number(U256Wrapper::from_str("0")?)
+            .block_timestamp(0)
+            .transaction_hash("0x0000000000000000000000000000000000000000".to_string())
+            .resolving_status(AtomResolvingStatus::Pending)
+            .build()
+            .upsert(
+                &decoded_consumer_context.pg_pool,
+                &decoded_consumer_context.backend_schema,
+            )
+            .await
+            .map_err(ConsumerError::ModelError)
+    }
+
     /// This function gets the subject, predicate and object atoms from the DB
     /// and returns them as a tuple of atoms. If any of the atoms are not found,
     /// it returns an error.
     async fn get_subject_predicate_object_atoms(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
+        block_number: i64,
     ) -> Result<(Atom, Atom, Atom), ConsumerError> {
-        Ok((
-            Atom::find_by_id(
+        let subject_atom = self
+            .fetch_or_create_temporary_atom(
+                decoded_consumer_context,
                 U256Wrapper::from(self.subjectId),
-                &decoded_consumer_context.pg_pool,
-                &decoded_consumer_context.backend_schema,
+                block_number,
             )
-            .await?
-            .ok_or(ConsumerError::SubjectAtomNotFound)?,
-            Atom::find_by_id(
+            .await?;
+        let predicate_atom = self
+            .fetch_or_create_temporary_atom(
+                decoded_consumer_context,
                 U256Wrapper::from(self.predicateId),
-                &decoded_consumer_context.pg_pool,
-                &decoded_consumer_context.backend_schema,
+                block_number,
             )
-            .await?
-            .ok_or(ConsumerError::PredicateAtomNotFound)?,
-            Atom::find_by_id(
+            .await?;
+        let object_atom = self
+            .fetch_or_create_temporary_atom(
+                decoded_consumer_context,
                 U256Wrapper::from(self.objectId),
-                &decoded_consumer_context.pg_pool,
-                &decoded_consumer_context.backend_schema,
+                block_number,
             )
-            .await?
-            .ok_or(ConsumerError::ObjectAtomNotFound)?,
-        ))
+            .await?;
+        Ok((subject_atom, predicate_atom, object_atom))
     }
 
     /// This function handles an `TripleCreated` event.
@@ -275,7 +397,7 @@ impl TripleCreated {
             .await?;
 
         // Update the positions
-        self.update_positions(decoded_consumer_context, &triple)
+        self.update_positions(decoded_consumer_context, &triple, event.block_number)
             .await?;
 
         // Create the event
@@ -359,6 +481,7 @@ impl TripleCreated {
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         triple: &Triple,
+        block_number: i64,
     ) -> Result<(), ConsumerError> {
         let positions = Position::find_by_vault_id(
             U256Wrapper::from(self.vaultID),
@@ -390,8 +513,11 @@ impl TripleCreated {
                 .await?;
         }
 
-        self.check_and_update_account_predicate_object_claim_count(decoded_consumer_context)
-            .await?;
+        self.check_and_update_account_predicate_object_claim_count(
+            decoded_consumer_context,
+            block_number,
+        )
+        .await?;
 
         Ok(())
     }
@@ -481,12 +607,12 @@ impl TripleCreated {
         // Get the share price of the atom
         // Get the current share price of the counter vault
         let counter_vault_current_share_price = decoded_consumer_context
-            .fetch_current_share_price(counter_vault_id, event)
+            .fetch_current_share_price(counter_vault_id, event.block_number)
             .await?;
 
         // Get the current share price of the vault
         let vault_current_share_price = decoded_consumer_context
-            .fetch_current_share_price(self.vaultID, event)
+            .fetch_current_share_price(self.vaultID, event.block_number)
             .await?;
 
         // Get or create the triple
@@ -499,6 +625,7 @@ impl TripleCreated {
             decoded_consumer_context,
             self.vaultID,
             vault_current_share_price,
+            event.block_number,
         )
         .await?;
         // Get or update the counter vault
@@ -506,6 +633,7 @@ impl TripleCreated {
             decoded_consumer_context,
             counter_vault_id,
             counter_vault_current_share_price,
+            event.block_number,
         )
         .await?;
 

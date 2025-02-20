@@ -3,7 +3,7 @@ use std::str::FromStr;
 use crate::error::ConsumerError;
 use serde::Deserialize;
 
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug, Default)]
 pub struct Env {
     pub consumer_metrics_api_port: Option<u16>,
     pub consumer_type: String,

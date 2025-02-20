@@ -6,8 +6,12 @@ pub enum ModelError {
     ConversionError(String),
     #[error("Database connection error: {0}")]
     DatabaseConnectionError(String),
+    #[error("Decoding error: {0}")]
+    DecodingError(String),
     #[error("Failed to delete data: {0}")]
     DeleteError(String),
+    #[error(transparent)]
+    FromUtf8Error(#[from] std::string::FromUtf8Error),
     #[error("Failed to insert data: {0}")]
     InsertError(String),
     #[error("Invalid atom type: {0}")]
@@ -24,4 +28,6 @@ pub enum ModelError {
     SqlError(#[from] sqlx::Error),
     #[error("Unexpected null value: {0}")]
     UnexpectedNull(String),
+    #[error("Failed to update data: {0}")]
+    UpdateError(String),
 }

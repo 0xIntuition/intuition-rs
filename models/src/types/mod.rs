@@ -16,7 +16,7 @@ use sqlx::{
 
 /// This is a wrapper around the `U256` type to be able to use it with
 /// the `sqlx` library.
-#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Serialize, Deserialize)]
 pub struct U256Wrapper(pub U256);
 
 impl TryInto<U256> for U256Wrapper {
@@ -98,6 +98,11 @@ impl U256Wrapper {
     /// This is a method to add two `U256Wrapper` types
     pub fn add(&self, other: U256Wrapper) -> Result<U256Wrapper, ModelError> {
         Ok(U256Wrapper(self.0 + other.0))
+    }
+
+    /// This is a method to subtract two `U256Wrapper` types
+    pub fn saturating_sub(&self, other: U256Wrapper) -> U256Wrapper {
+        U256Wrapper(self.0.saturating_sub(other.0))
     }
 }
 
