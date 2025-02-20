@@ -26,5 +26,5 @@ metadata:
 spec:
   credentials:
     source: IRSA
-  assumeRoleWithWebIdentity:
-    roleARN: "arn:aws:iam::064662847354:role/eksctl-prod-eks-addon-iamserviceaccount-cross-Role1-0DHe2n50pD15"
+    webIdentity:
+      roleARN: "arn:aws:iam::064662847354:role/eksctl-prod-eks-addon-iamserviceaccount-cross-Role1-0DHe2n50pD15"
