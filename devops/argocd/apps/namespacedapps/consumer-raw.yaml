@@ -47,6 +47,11 @@ spec:
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
+                    name: TEST_URL
+                    value: '$(DATABASE_URL)'
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
                     name: RAW_CONSUMER_QUEUE_URL
                     value: 'https://arn:aws:sqs:us-west-2:064662847354:{{cluster}}-{{namespace}}-raw-logs.fifo'
                 - op: add
