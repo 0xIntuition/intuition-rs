@@ -4,6 +4,23 @@ table:
 configuration:
   column_config: {}
   custom_column_names: {}
-  custom_name: statHours
+  custom_name: stat_hours
   custom_root_fields:
-    select_by_pk: statHour
+    select_by_pk: stat_hour
+select_permissions:
+  - role: anonymous
+    permission:
+      columns:
+        - id
+        - total_accounts
+        - total_atoms
+        - total_positions
+        - total_signals
+        - total_triples
+        - contract_balance
+        - total_fees
+        - created_at
+      filter: {}
+      limit: 1000
+      allow_aggregations: true
+    comment: ""

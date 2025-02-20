@@ -25,11 +25,4 @@ spec:
       serviceAccountName: secrets-access-sa
       containers:
         - name: histocrawler
-          volumeMounts:
-            - mountPath: /var/lib/data
-              name: histocrawler-data
       restartPolicy: Always
-      volumes:
-        - name: histocrawler-data
-          persistentVolumeClaim:
-            claimName: histocrawler-data

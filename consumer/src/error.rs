@@ -119,6 +119,8 @@ pub enum ConsumerError {
     ParseIntError(#[from] std::num::ParseIntError),
     #[error(transparent)]
     ParseBlockIdError(#[from] alloy::eips::eip1898::ParseBlockIdError),
+    #[error("Position not found")]
+    PositionNotFound,
     #[error("Failed to get connection pool: {0}")]
     PostgresConnectError(String),
     #[error("Predicate atom not found")]
@@ -145,6 +147,8 @@ pub enum ConsumerError {
     UnsuportedMode,
     #[error("Triple not found")]
     TripleNotFound,
+    #[error(transparent)]
+    UintParse(#[from] alloy::primitives::ruint::ParseError),
     #[error(transparent)]
     Utf8(#[from] std::string::FromUtf8Error),
     #[error(transparent)]

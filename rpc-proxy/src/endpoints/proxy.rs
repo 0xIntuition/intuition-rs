@@ -47,13 +47,16 @@ impl JsonRpcRequest {
                 })?;
                 response.insert("result".into(), result_obj);
             }
+            Method::EthGetBalance => {
+                response.insert("result".into(), Value::String(result));
+            }
         }
 
         Ok(Value::Object(response))
     }
 
     /// Converts a string slice in base 16 to an integer.
-    pub fn get_block_number_eth_call(&self) -> Result<i64, ApiError> {
+    pub fn get_block_number_eth_call_and_get_balance(&self) -> Result<i64, ApiError> {
         let block_number = self.params[1].as_str().unwrap().trim_start_matches("0x");
         Ok(i64::from_str_radix(block_number, 16)?)
     }
@@ -66,6 +69,9 @@ impl JsonRpcRequest {
                     .to_string()
                     .trim_matches('"')
                     .to_string(),
+            )),
+            Ok(Method::EthGetBalance) => Ok(Some(
+                self.params[0].to_string().trim_matches('"').to_string(),
             )),
             Ok(Method::EthBlockByNumber) => Ok(None),
             _ => Err(ApiError::InvalidInput("Method not supported".into())),
@@ -86,6 +92,10 @@ impl JsonRpcRequest {
                 let input = self.params[0].as_str().unwrap();
                 Ok(input.to_string())
             }
+            Method::EthGetBalance => {
+                let input = self.params[1].as_str().unwrap();
+                Ok(input.to_string())
+            }
         }
     }
 
@@ -95,12 +105,12 @@ impl JsonRpcRequest {
     }
 
     /// Returns the block number if it's not "latest".
-    pub fn block_number_eth_call(&self) -> Result<Option<i64>, ApiError> {
+    pub fn block_number_eth_call_and_get_balance(&self) -> Result<Option<i64>, ApiError> {
         let block_number = self.params[1].as_str().unwrap();
         if Self::is_latest_block(block_number) {
             return Ok(None);
         }
-        Ok(Some(self.get_block_number_eth_call()?))
+        Ok(Some(self.get_block_number_eth_call_and_get_balance()?))
     }
 
     pub fn block_number_eth_block_by_number(&self) -> Result<Option<i64>, ApiError> {
@@ -115,8 +125,9 @@ impl JsonRpcRequest {
 
     pub fn block_number(&self) -> Result<Option<i64>, ApiError> {
         match Method::from_str(&self.method) {
-            Ok(Method::EthCall) => self.block_number_eth_call(),
+            Ok(Method::EthCall) => self.block_number_eth_call_and_get_balance(),
             Ok(Method::EthBlockByNumber) => self.block_number_eth_block_by_number(),
+            Ok(Method::EthGetBalance) => self.block_number_eth_call_and_get_balance(),
             _ => {
                 warn!("Not able to get block number for method: {:?}", self.method);
                 Ok(None)
@@ -181,12 +192,13 @@ pub async fn rpc_proxy(
     // Parse based on method
     let payload = match payload["method"].as_str() {
         // Handle eth_call and eth_getBlockByNumber requests. Those requests are cached
-        Some("eth_call") | Some("eth_getBlockByNumber") => {
+        Some("eth_call") | Some("eth_getBlockByNumber") | Some("eth_getBalance") => {
             // Deserialize the request
             match serde_json::from_value::<JsonRpcRequest>(payload.clone()) {
                 Ok(deserialized_request) => {
                     // Get the block number
                     let block_number = deserialized_request.block_number()?;
+                    info!("Block number: {:?}", block_number);
                     // If the block number is `None` it's a ENS request, we don't cache it
                     if block_number.is_none() {
                         info!("Relaying request for {:?}", payload);

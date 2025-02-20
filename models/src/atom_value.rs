@@ -103,7 +103,11 @@ impl SimpleCrud<U256Wrapper> for AtomValue {
                 thing_id, 
                 person_id, 
                 organization_id, 
-                book_id
+                book_id,
+                caip10_id,
+                json_object_id,
+                text_object_id,
+                byte_object_id
             FROM {}.atom_value
             WHERE id = $1
             "#,
