@@ -31,3 +31,9 @@ spec:
           selfHeal: false
         syncOptions:
         - CreateNamespace=true
+      ignoreDifferences:
+      - group: ""
+        kind: Secret
+        name: main-db-creds
+        jsonPointers:
+          - /data

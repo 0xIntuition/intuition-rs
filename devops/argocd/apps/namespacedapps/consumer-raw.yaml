@@ -45,10 +45,31 @@ spec:
                   path: /spec/template/spec/serviceAccountName
                   value: '{{cluster}}-{{namespace}}-secrets-access-sa'
                 - op: add
+                  path: /spec/template/spec/containers/0/envFromSecret/-
+                  value:
+                    secretRef:
+                      name: 'main-db-creds'
+                    prefix: "MAINDB_"
+                - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
-                    name: TEST_URL
-                    value: '$(DATABASE_URL)'
+                    name: BACKEND_SCHEMA
+                    value: 'public' # not sure if needs to be templated
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: CONSUMER_TYPE
+                    value: 'sqs'
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: INDEXING_SOURCE
+                    value: 'substreams' # not sure if needs to be templated
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: DATABASE_URL
+                    value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/{{namespace | replace "-" "_"}}?sslmode=require'
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
@@ -59,6 +80,16 @@ spec:
                   value:
                     name: DECODED_LOGS_QUEUE_URL
                     value: 'https://arn:aws:sqs:us-west-2:064662847354:{{cluster}}-{{namespace}}-decoded-logs.fifo'
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: RPC_URL_BASE
+                    value: 'http://dev-rpc-proxy:3008/84532/proxy'
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: RPC_URL_MAINNET
+                    value: 'http://dev-rpc-proxy:3008/1/proxy'
       destination:
         server: '{{ server }}'
         namespace: '{{ namespace }}'
