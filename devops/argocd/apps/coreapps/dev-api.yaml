@@ -1,14 +1,14 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: prod-api
+  name: dev-api
   namespace: argocd
 spec:
   project: prod
   source:
     repoURL: 'https://github.com/0xintuition/intuition-rs.git'
     targetRevision: francois/add-iac
-    path: devops/aws/api/overlays/prod-base
+    path: devops/aws/api/overlays/dev-base
     kustomize:
       patches:
         - target:
