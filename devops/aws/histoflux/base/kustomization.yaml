@@ -4,6 +4,7 @@ kind: Kustomization
 resources:
   - service.yaml
   - deployment.yaml
+  - sqs.yaml
 
 commonLabels:
-  component: histoflux 
+  component: histoflux
