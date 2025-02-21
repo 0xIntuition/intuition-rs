@@ -30,6 +30,7 @@ spec:
             - ipfs-upload
           name: ipfs-upload-consumer
           env: []
+          envFrom: []
           ports:
             - containerPort: 8002
               protocol: TCP
