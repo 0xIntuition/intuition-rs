@@ -1,14 +1,14 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: prod-rpc-proxy
+  name: dev-rpc-proxy
   namespace: argocd
 spec:
-  project: prod
+  project: dev
   source:
     repoURL: 'https://github.com/0xintuition/intuition-rs.git'
     targetRevision: francois/add-iac
-    path: devops/aws/rpc-proxy/overlays/prod
+    path: devops/aws/rpc-proxy/overlays/dev
     kustomize:
       patches:
         - target:
@@ -39,7 +39,6 @@ spec:
               value:
                 name: PROXY_SCHEMA
                 value: 'base_proxy'
-
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: default
