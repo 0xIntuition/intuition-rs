@@ -81,6 +81,9 @@ spec:
                   value:
                     name: DECODED_LOGS_QUEUE_URL
                     value: 'https://sqs.us-west-2.amazonaws.com/064662847354/{{.cluster}}-{{.namespace}}-decoded-logs.fifo'
+
+                # check other chains but probably need to template that
+                # somehow
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
