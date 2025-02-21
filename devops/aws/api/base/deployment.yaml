@@ -18,6 +18,7 @@ spec:
           ports:
           - containerPort: 3000
             protocol: TCP
+          envFrom: []
           env:
             - name: CLASSIFICATION_API_PORT
               value: "3000"
@@ -29,4 +30,4 @@ spec:
               value: "true"
             - name: BE_SCHEMA
               value: "public"
-      
+

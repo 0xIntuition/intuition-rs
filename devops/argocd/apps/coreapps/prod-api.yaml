@@ -1,0 +1,46 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: prod-api
+  namespace: argocd
+spec:
+  project: prod
+  source:
+    repoURL: 'https://github.com/0xintuition/intuition-rs.git'
+    targetRevision: francois/add-iac
+    path: devops/aws/api/overlays/prod
+    kustomize:
+      patches:
+        - target:
+            kind: Deployment
+            name: api
+          patch: |-
+            - op: replace
+              path: /spec/template/spec/serviceAccountName
+              value: prod-eks-secrets-access-sa
+            - op: add
+              path: /spec/template/spec/containers/0/envFrom/-
+              value:
+                secretRef:
+                  name: 'main-db-creds'
+                prefix: "MAINDB_"
+            - op: add
+              path: /spec/template/spec/containers/0/env/-
+              value:
+                name: IMAGE_API_SCHEMA
+                value: 'cached_images'
+            - op: add
+              path: /spec/template/spec/containers/0/env/-
+              value:
+                name: INDEXER_DATABASE_URL
+                value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/histoflux?sslmode=require'
+
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
