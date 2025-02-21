@@ -45,15 +45,26 @@ spec:
                   path: /spec/template/spec/serviceAccountName
                   value: '{{cluster}}-{{namespace}}-secrets-access-sa'
                 - op: add
+                  path: /spec/template/spec/containers/0/envFrom/-
+                  value:
+                    secretRef:
+                      name: 'main-db-creds'
+                    prefix: "MAINDB_"
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: DATABASE_URL
+                    value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/{{.namespace | replace "-" "_"}}?sslmode=require'
+                - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
                     name: RESOLVER_QUEUE_URL
-                    value: 'https://arn:aws:sqs:us-west-2:064662847354:{{cluster}}-{{namespace}}-resolver'
+                    value: 'https://sqs.us-west-2.amazonaws.com/064662847354/{{{cluster}}-{{namespace}}-resolver'
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
                     name: DECODED_LOGS_QUEUE_URL
-                    value: 'https://arn:aws:sqs:us-west-2:064662847354:{{cluster}}-{{namespace}}-decoded-logs.fifo'
+                    value: 'https://sqs.us-west-2.amazonaws.com/064662847354/{{{cluster}}-{{namespace}}-decoded-logs.fifo'
 
       destination:
         server: '{{ server }}'
