@@ -18,6 +18,7 @@ spec:
             namespace: dev-base-sepolia-v2-0-0
             intuitionContractAddress: '0x1A6950807E33d5bC9975067e6D6b5Ea4cD661665'
             startBlock: '12947309'
+            rpcURL: 'http://dev-rpc-proxy:3008/84532/proxy'
   template:
     metadata:
       name: '{{.cluster}}-histocrawler-{{.namespace}}'
@@ -63,7 +64,7 @@ spec:
                   path: /spec/template/spec/containers/0/env/-
                   value:
                     name: RPC_URL
-                    value: '{{.rpcUrl}}' # probably better to have all of that dynamically created
+                    value: '{{.rpcURL}}' # probably better to have all of that dynamically created
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
