@@ -4,6 +4,7 @@ metadata:
   name: consumer-resolver
   namespace: argocd
 spec:
+  goTemplate: true
   syncPolicy:
     preserveResourcesOnDeletion: true
   generators:
@@ -16,15 +17,15 @@ spec:
             namespace: dev-base-sepolia-v2-0-0
   template:
     metadata:
-      name: '{{ cluster }}-consumer-resolver-{{namespace}}'
+      name: '{{.cluster}}-consumer-resolver-{{.namespace}}'
       annotations:
         argocd.argoproj.io/manifest-generate-paths: '.;/devops/argocd'
     spec:
       project: default
       source:
         repoURL: https://github.com/0xintuition/intuition-rs.git
-        path: 'devops/aws/consumers/overlays/{{env}}/resolver'
-        targetRevision: '{{ revision }}'
+        path: 'devops/aws/consumers/overlays/{{.env}}/resolver'
+        targetRevision: '{{.revision}}'
         kustomize:
           patches:
             - target:
@@ -33,17 +34,17 @@ spec:
               patch: |-
                 - op: replace
                   path: /metadata/name
-                  value: '{{namespace}}-ipfs-upload'
+                  value: '{{.namespace}}-ipfs-upload'
                 - op: replace
                   path: /spec/forProvider/name
-                  value: '{{cluster}}-{{namespace}}-ipfs-upload'
+                  value: '{{.cluster}}-{{.namespace}}-ipfs-upload'
             - target:
                 kind: Deployment
                 name: resolver-consumer
               patch: |-
                 - op: replace
                   path: /spec/template/spec/serviceAccountName
-                  value: '{{cluster}}-{{namespace}}-secrets-access-sa'
+                  value: '{{.cluster}}-{{.namespace}}-secrets-access-sa'
                 - op: add
                   path: /spec/template/spec/containers/0/envFrom/-
                   value:
@@ -59,16 +60,16 @@ spec:
                   path: /spec/template/spec/containers/0/env/-
                   value:
                     name: RESOLVER_QUEUE_URL
-                    value: 'https://sqs.us-west-2.amazonaws.com/064662847354/{{{cluster}}-{{namespace}}-resolver'
+                    value: 'https://sqs.us-west-2.amazonaws.com/064662847354/{{.cluster}}-{{.namespace}}-resolver'
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
                     name: IPFS_UPLOAD_QUEUE_URL
-                    value: 'https://sqs.us-west-2.amazonaws.com/064662847354/{{{cluster}}-{{namespace}}-ipfs-upload'
+                    value: 'https://sqs.us-west-2.amazonaws.com/064662847354/{{.cluster}}-{{.namespace}}-ipfs-upload'
 
       destination:
-        server: '{{ server }}'
-        namespace: '{{ namespace }}'
+        server: '{{.server}}'
+        namespace: '{{.namespace}}'
       syncPolicy:
         automated:
           prune: true
