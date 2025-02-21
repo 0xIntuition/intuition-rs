@@ -42,7 +42,7 @@ spec:
                   value: '{{.cluster}}-{{.namespace}}-raw-logs.fifo'
             - target:
                 kind: Deployment
-                name: decoded-consumer
+                name: histoflux
               patch: |-
                 - op: replace
                   path: /spec/template/spec/serviceAccountName
