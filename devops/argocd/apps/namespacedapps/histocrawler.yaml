@@ -13,36 +13,27 @@ spec:
           - cluster: prod-eks
             server: 'https://kubernetes.default.svc'
             revision: francois/add-iac
-            cursorID: '1'
             chain: base-sepolia
             env: dev-base-sepolia
             namespace: dev-base-sepolia-v2-0-0
+            intuitionContractAddress: '0x1A6950807E33d5bC9975067e6D6b5Ea4cD661665'
+            startBlock: '12947309'
   template:
     metadata:
-      name: '{{.cluster}}-histoflux-{{.namespace}}'
+      name: '{{.cluster}}-histocrawler-{{.namespace}}'
       annotations:
         argocd.argoproj.io/manifest-generate-paths: '.;/devops/argocd'
     spec:
       project: default
       source:
         repoURL: https://github.com/0xintuition/intuition-rs.git
-        path: 'devops/aws/histoflux/overlays/{{.env}}'
+        path: 'devops/aws/histocrawler/overlays/{{.env}}'
         targetRevision: '{{.revision}}'
         kustomize:
           patches:
             - target:
-                kind: Queue
-                name: raw-logs-queue
-              patch: |-
-                - op: replace
-                  path: /metadata/name
-                  value: '{{.namespace}}-raw-logs'
-                - op: replace
-                  path: /spec/forProvider/name
-                  value: '{{.cluster}}-{{.namespace}}-raw-logs.fifo'
-            - target:
                 kind: Deployment
-                name: histoflux
+                name: histocrawler
               patch: |-
                 - op: replace
                   path: /spec/template/spec/serviceAccountName
@@ -56,12 +47,7 @@ spec:
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
-                    name: INDEXER_DATABASE_URL
-                    value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/histoflux?sslmode=require'
-                - op: add
-                  path: /spec/template/spec/containers/0/env/-
-                  value:
-                    name: INDEXER_DATABASE_URL
+                    name: HISTOCRAWLER_DATABASE_URL
                     value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/histoflux?sslmode=require'
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
@@ -71,13 +57,18 @@ spec:
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
-                    name: RAW_LOGS_CHANNEL
-                    value: '{{.chain | replace "-" "_"}}_raw_logs_channel'
+                    name: INTUITION_CONTRACT_ADDRESS
+                    value: '{{.intuitionContractAddress}}'
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
-                    name: HISTOFLUX_CURSOR_ID
-                    value: '{{.cursorID}}' # probably better to have all of that dynamically created
+                    name: RPC_URL
+                    value: '{{.rpcUrl}}' # probably better to have all of that dynamically created
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: START_BLOCK
+                    value: '{{.startBlock}}' # probably better to have all of that dynamically created
       destination:
         server: '{{.server}}'
         namespace: '{{.namespace}}'
