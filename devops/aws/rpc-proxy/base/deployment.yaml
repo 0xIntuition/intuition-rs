@@ -23,4 +23,5 @@ spec:
               value: "3008"
             - name: PROXY_SCHEMA
               value: "base_proxy"
-      
+          envFrom: []
+
