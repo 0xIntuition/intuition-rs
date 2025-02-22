@@ -13,7 +13,7 @@ spec:
           - cluster: prod-eks
             server: 'https://kubernetes.default.svc'
             revision: francois/add-iac
-            cursorID: '1'
+            cursorID: '9'
             chain: base-sepolia
             env: dev-base-sepolia
             namespace: dev-base-sepolia-v2-0-0

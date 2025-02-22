@@ -18,7 +18,7 @@ spec:
             namespace: dev-base-sepolia-v2-0-0
             intuitionContractAddress: '0x1A6950807E33d5bC9975067e6D6b5Ea4cD661665'
             startBlock: '12947309'
-            rpcURL: 'http://dev-rpc-proxy:3008/84532/proxy'
+            rpcURL: 'http://dev-rpc-proxy.default.svc.cluster.local:3008/84532/proxy'
   template:
     metadata:
       name: '{{.cluster}}-histocrawler-{{.namespace}}'
@@ -73,9 +73,9 @@ spec:
       destination:
         server: '{{.server}}'
         namespace: '{{.namespace}}'
-      syncPolicy:
-        automated:
-          prune: true
-          selfHeal: true
-        syncOptions:
-        - CreateNamespace=true
+      syncPolicy: {}
+        # automated:
+        #   prune: false
+        #   selfHeal: false
+        # syncOptions:
+        # - CreateNamespace=true
