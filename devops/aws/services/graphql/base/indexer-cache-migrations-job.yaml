@@ -1,0 +1,12 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: indexer-and-cache-migration
+spec:
+  template:
+    spec:
+      serviceAccountName: secrets-access-sa
+      containers:
+        - name: indexer-and-cache-migration
+          env: []
+          envFrom: []
