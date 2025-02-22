@@ -7,3 +7,4 @@ spec:
     name: raw-logs-queue
     region: us-west-2
     fifoQueue: true
+    contentBasedDeduplication: true

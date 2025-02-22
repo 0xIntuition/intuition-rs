@@ -7,3 +7,4 @@ spec:
     name: decoded-logs
     region: us-west-2
     fifoQueue: true
+    contentBasedDeduplication: true
