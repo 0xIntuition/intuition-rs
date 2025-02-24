@@ -1,5 +1,5 @@
-import { pinThing, pinJson } from '../graphql'
-import { getIntuition, getOrCreateAtom } from './utils'
+import { pinThing } from '../graphql'
+import { getIntuition, getOrCreateAtom, pinJson } from './utils'
 
 async function main() {
   const admin = await getIntuition(0)
@@ -43,6 +43,8 @@ async function main() {
     "link": "# GM Podcast @ EthDenver",
     "hosted_by": "Genzio"
   }))
+
+  console.log(`event: ${event}`)
 
   // await admin.multivault.createTriple({
   //   subjectId: event,

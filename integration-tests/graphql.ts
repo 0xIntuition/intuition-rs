@@ -30,14 +30,3 @@ mutation PinThing($thing: PinThingInput!) {
   console.log(`pinned thing: ${result}`)
   return result.pinThing.uri as string
 }
-
-export async function pinJson(json: any) {
-  const result: any = await graphqlClient.request(`
-mutation PinJson($json: PinJsonInput!) {
-  pinJson(json: $json) {
-    uri
-  }
-}`, { json })
-  console.log(`pinned json: ${result}`)
-  return result.pinJson.uri as string
-}

@@ -26,6 +26,10 @@ importers:
       viem:
         specifier: 2.18.8
         version: 2.18.8
+    devDependencies:
+      '@types/node':
+        specifier: ^22.13.5
+        version: 22.13.5
 
 packages:
 
@@ -323,6 +327,9 @@ packages:
     resolution: {integrity: sha512-sWMvxZ5VugPDgD1CzP7f0s9yFvjcXP3FXO5IVV2ndXlYqUCwykU8U69Kk05Qn5UvGRqB/gtj4J7vcTC6vtLHtQ==}
     peerDependencies:
       react: ^18 || ^19
+
+  '@types/node@22.13.5':
+    resolution: {integrity: sha512-+lTU0PxZXn0Dr1NBtC7Y8cR21AJr87dLLU953CWA6pMxxv/UDc7jYAY90upcrie1nRcD6XNG5HOYEDtgW5TxAg==}
 
   abitype@1.0.5:
     resolution: {integrity: sha512-YzDhti7cjlfaBhHutMaboYB21Ha3rXR9QTkNJFzYC4kC8YclaiwPBBBJY8ejFdu2wnJeZCVZSMlQJ7fi8S6hsw==}
@@ -637,6 +644,9 @@ packages:
   unc-path-regex@0.1.2:
     resolution: {integrity: sha512-eXL4nmJT7oCpkZsHZUOJo8hcX3GbsiDOa0Qu9F646fi8dT3XuSVopVqAcEiVzSKKH7UoDti23wNX3qGFxcW5Qg==}
     engines: {node: '>=0.10.0'}
+
+  undici-types@6.20.0:
+    resolution: {integrity: sha512-Ny6QZ2Nju20vw1SRHe3d9jVu6gJ+4e3+MMpqu7pqE5HT6WsTSlce++GQmK5UXS8mzV8DSYHrQH+Xrf2jVcuKNg==}
 
   upper-case-first@2.0.2:
     resolution: {integrity: sha512-514ppYHBaKwfJRK/pNC6c/OxfGa0obSnAl106u97Ed0I625Nin96KAjttZF6ZL3e1XLtphxnqrOi9iWgm+u+bg==}
@@ -961,6 +971,10 @@ snapshots:
     dependencies:
       '@tanstack/query-core': 5.66.3
       react: 19.0.0
+
+  '@types/node@22.13.5':
+    dependencies:
+      undici-types: 6.20.0
 
   abitype@1.0.5: {}
 
@@ -1306,6 +1320,8 @@ snapshots:
   ua-parser-js@1.0.40: {}
 
   unc-path-regex@0.1.2: {}
+
+  undici-types@6.20.0: {}
 
   upper-case-first@2.0.2:
     dependencies:

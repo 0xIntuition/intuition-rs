@@ -95,3 +95,18 @@ export async function getCreateOrDepositOnTriple(multivault: Multivault, subject
 //   return getOrCreateAtom(multivault, `ipfs://${cid}`)
 // }
 
+export async function pinJson(json: any) {
+  const apiEndpoint = "http://localhost:3000/upload_json_to_ipfs"
+  if (!apiEndpoint) {
+    throw new Error('API_ENDPOINT is not set')
+  }
+  const response = await fetch(apiEndpoint, {
+    method: 'POST',
+    body: JSON.stringify(json),
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+  const data = await response.json()
+  return data.Hash
+}
