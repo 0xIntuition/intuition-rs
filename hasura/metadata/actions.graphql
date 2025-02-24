@@ -1,4 +1,10 @@
 type Mutation {
+  pinJson(
+    thing: PinJsonInput!
+  ): PinOutput
+}
+
+type Mutation {
   pinOrganization(
     organization: PinOrganizationInput!
   ): PinOutput
@@ -38,6 +44,10 @@ input PinOrganizationInput {
   image: String
   url: String
   email: String
+}
+
+input PinJsonInput {
+  json: jsonb
 }
 
 type PinOutput {
