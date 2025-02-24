@@ -11,6 +11,7 @@ use utoipa::OpenApi;
     paths(
         endpoints::upload_image::upload_image,
         endpoints::upload_image_from_url::upload_image_from_url,
+        endpoints::upload_json_to_ipfs::upload_json_to_jpfs,
     ),
     components(
         schemas(
