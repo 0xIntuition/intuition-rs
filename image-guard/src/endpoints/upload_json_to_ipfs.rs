@@ -54,9 +54,9 @@ pub async fn upload_json_to_jpfs(
 
     // Construct the MultipartHandler
     let multi_part_handler = MultiPartHandler {
-        name: "json".to_string(),                     // Replace with actual name
-        content_type: "application/json".to_string(), // Replace with actual content type
-        data: json.to_string().into(),                // Convert Vec<u8> to Bytes
+        name: "json".to_string(),
+        content_type: "application/json".to_string(),
+        data: Bytes::from(serde_json::to_vec(&json)?), // Convert Value directly to Bytes
     };
 
     let ipfs_response = upload_json_to_ipfs(&state, multi_part_handler).await?;
