@@ -377,7 +377,6 @@ services:
       LOCALSTACK_URL: $LOCALSTACK_URL
       HISTOFLUX_CURSOR_ID: $HISTOFLUX_CURSOR_ID
       RAW_LOGS_CHANNEL: $RAW_LOGS_CHANNEL
-      INDEXER_SCHEMA: $INDEXER_SCHEMA
     depends_on:
       database:
         condition: service_healthy
