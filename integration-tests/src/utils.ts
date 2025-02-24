@@ -108,5 +108,5 @@ export async function pinJson(json: any) {
     },
   })
   const data = await response.json()
-  return data.Hash
+  return `ipfs://${data.Hash}`
 }
