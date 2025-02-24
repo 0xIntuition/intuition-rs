@@ -1,10 +1,4 @@
 type Mutation {
-  pinJson(
-    thing: PinJsonInput!
-  ): PinOutput
-}
-
-type Mutation {
   pinOrganization(
     organization: PinOrganizationInput!
   ): PinOutput

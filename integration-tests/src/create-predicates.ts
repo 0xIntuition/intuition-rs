@@ -1,4 +1,4 @@
-import { getIntuition, getOrCreateAtom, pinThing } from './utils'
+import { getIntuition, getOrCreateAtom } from './utils'
 
 async function main() {
   const admin = await getIntuition(0)
