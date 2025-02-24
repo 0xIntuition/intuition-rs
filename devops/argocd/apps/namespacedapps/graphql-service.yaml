@@ -59,11 +59,6 @@ spec:
                     name: HASURA_GRAPHQL_CACHE_DATABASE_URL
                     value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/histoflux?sslmode=require'
 
-                - op: add
-                  path: /spec/template/spec/containers/0/env/-
-                  value:
-                    name: HASURA_GRAPHQL_CACHE_DATABASE_URL
-                    value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/histoflux?sslmode=require'
 
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
@@ -75,7 +70,7 @@ spec:
                   path: /spec/template/spec/containers/0/env/-
                   value:
                     name: HASURA_GRAPHQL_METADATA_DATABASE_URL
-                    value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/histoflux?sslmode=require'
+                    value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/{{.namespace | replace "-" "_"}}?sslmode=require'
             - target:
                 kind: Job
                 name: indexer-and-cache-migration
@@ -110,12 +105,6 @@ spec:
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
-                    name: HASURA_GRAPHQL_CACHE_DATABASE_URL
-                    value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/histoflux?sslmode=require'
-
-                - op: add
-                  path: /spec/template/spec/containers/0/env/-
-                  value:
                     name: HASURA_GRAPHQL_ENDPOINT
                     value: 'http://{{.env}}-graphql-engine:8080'
 
@@ -123,7 +112,7 @@ spec:
                   path: /spec/template/spec/containers/0/env/-
                   value:
                     name: HASURA_GRAPHQL_METADATA_DATABASE_URL
-                    value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/histoflux?sslmode=require'
+                    value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/{{.namespace | replace "-" "_"}}?sslmode=require'
 
             - target:
                 kind: Job
@@ -159,12 +148,6 @@ spec:
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
-                    name: HASURA_GRAPHQL_CACHE_DATABASE_URL
-                    value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/histoflux?sslmode=require'
-
-                - op: add
-                  path: /spec/template/spec/containers/0/env/-
-                  value:
                     name: HASURA_GRAPHQL_ENDPOINT
                     value: 'http://{{.env}}-graphql-engine:8080'
 
@@ -172,7 +155,7 @@ spec:
                   path: /spec/template/spec/containers/0/env/-
                   value:
                     name: HASURA_GRAPHQL_METADATA_DATABASE_URL
-                    value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/histoflux?sslmode=require'
+                    value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/{{.namespace | replace "-" "_"}}?sslmode=require'
 
       destination:
         server: '{{.server}}'

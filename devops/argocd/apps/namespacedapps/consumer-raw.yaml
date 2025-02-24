@@ -15,6 +15,8 @@ spec:
             revision: francois/add-iac
             env: dev-base-sepolia
             namespace: dev-base-sepolia-v2-0-0
+            rpcURLBase: 'http://dev-rpc-proxy.default.svc.cluster.local:3008/84532/proxy'
+            rpcURL: 'http://dev-rpc-proxy.default.svc.cluster.local:3008/1/proxy'
   template:
     metadata:
       name: '{{.cluster}}-consumer-raw-{{.namespace}}'
@@ -82,18 +84,17 @@ spec:
                     name: DECODED_LOGS_QUEUE_URL
                     value: 'https://sqs.us-west-2.amazonaws.com/064662847354/{{.cluster}}-{{.namespace}}-decoded-logs.fifo'
 
-                # check other chains but probably need to template that
-                # somehow
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
                     name: RPC_URL_BASE
-                    value: 'http://dev-rpc-proxy:3008/84532/proxy'
+                    value: '{{.rpcURLBase}}' # probably better to have all of that dynamically created
+
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
                     name: RPC_URL_MAINNET
-                    value: 'http://dev-rpc-proxy:3008/1/proxy'
+                    value: '{{.rpcURL}}' # probably better to have all of that dynamically created
       destination:
         server: '{{.server}}'
         namespace: '{{.namespace}}'
