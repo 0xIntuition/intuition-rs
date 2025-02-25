@@ -151,7 +151,7 @@ pub fn create_byte_object_from_obj(atom: &Atom, obj: Vec<u8>) -> Result<ByteObje
 pub fn create_json_object_from_obj(atom: &Atom, obj: &Value) -> JsonObject {
     JsonObject::builder()
         .id(atom.id.clone())
-        .data(obj.to_string())
+        .data(obj.clone())
         .build()
 }
 
