@@ -6,6 +6,7 @@ use serde::Deserialize;
 
 #[derive(Deserialize)]
 pub struct RefetchAtomsRequest {
+    resolver_queue_url: String,
     atoms: Vec<String>,
 }
 /// Upload and classify an image
@@ -28,7 +29,7 @@ pub async fn refetch_atoms(
     info!("Starting to enqueue atoms for refetching");
     info!("Sending message to resolver queue: {:?}", json.atoms);
     state
-        .send_message(serde_json::to_string(&json.atoms)?, None)
+        .send_message(serde_json::to_string(&json.atoms)?, json.resolver_queue_url)
         .await?;
     Ok(Json("Atoms are being refetched".to_string()))
 }

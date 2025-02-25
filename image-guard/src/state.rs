@@ -32,7 +32,6 @@ pub struct AppState {
     pub ipfs_fetch_url: String,
     pub hf_token: Option<String>,
     pub client: AWSClient,
-    pub resolver_queue: String,
     pub flag: Flag,
 }
 
@@ -47,7 +46,6 @@ impl AppState {
             hf_token: env.hf_token.clone(),
             flag: Flag::enabled(env),
             client: Self::get_aws_client(env).await,
-            resolver_queue: env.resolver_queue_url.clone(),
         }
     }
     /// This function returns an [`aws_sdk_sqs::Client`] based on the
@@ -68,22 +66,13 @@ impl AppState {
 
     /// This function sends a message to the resolver queue so it can
     /// re-resolve the atoms
-    pub async fn send_message(
-        &self,
-        message: String,
-        group_id: Option<String>,
-    ) -> Result<(), ApiError> {
-        let mut message = self
-            .client
+    pub async fn send_message(&self, message: String, queue_url: String) -> Result<(), ApiError> {
+        self.client
             .send_message()
-            .queue_url(&*self.resolver_queue)
-            .message_body(&message);
-        // If we are using a FIFO queue, we need to set the message group id
-        if let Some(group_id) = group_id {
-            message = message.message_group_id(group_id);
-        }
-
-        message.send().await?;
+            .queue_url(&*queue_url)
+            .message_body(&message)
+            .send()
+            .await?;
 
         Ok(())
     }

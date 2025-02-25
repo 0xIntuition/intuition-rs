@@ -9,6 +9,7 @@ use crate::{error::ApiError, state::AppState};
 use axum::extract::multipart::Field;
 use log::info;
 use reqwest::Client;
+use shared_utils::types::MultiPartHandlerJson;
 use shared_utils::{
     ipfs::{IPFSResolver, IpfsResponse},
     types::MultiPartHandler,
@@ -90,7 +91,7 @@ async fn upload_image_to_ipfs(
 /// Uploads a json to IPFS and pins it
 async fn upload_json_to_ipfs(
     state: &AppState,
-    multi_part_handler: MultiPartHandler,
+    multi_part_handler: MultiPartHandlerJson,
 ) -> Result<IpfsResponse, ApiError> {
     IPFSResolver::builder()
         .http_client(Client::new())
@@ -98,7 +99,7 @@ async fn upload_json_to_ipfs(
         .ipfs_fetch_url(state.ipfs_fetch_url.clone())
         .pinata_jwt(state.pinata_api_jwt.clone())
         .build()
-        .upload_to_ipfs_and_pin(multi_part_handler)
+        .upload_json_to_ipfs_and_pin(multi_part_handler)
         .await
         .map_err(|e| ApiError::ExternalService(format!("IPFS error: {}", e)))
 }

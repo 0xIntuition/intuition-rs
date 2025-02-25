@@ -174,3 +174,23 @@ kubectl delete deployment --all
 ```
 
 There is a `devops` folder that contains yaml files to deploy our stack to both Minikube and AWS EKS.
+
+
+## Using local ethereum node
+
+Add the following to your `.env` file:
+
+```
+BASE_MAINNET_RPC_URL=http://geth:8545
+BASE_SEPOLIA_RPC_URL=http://geth:8545
+INTUITION_CONTRACT_ADDRESS=0x04056c43d0498b22f7a0c60d4c3584fb5fa881cc
+START_BLOCK=0
+```
+
+Then you can create local data by running the following command:
+
+```
+cd integration-tests
+npm install
+npm run create-predicates
+```

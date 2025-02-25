@@ -1,11 +1,12 @@
 use crate::{
     endpoints::upload_json_to_ipfs, error::ApiError, state::AppState, types::MultipartRequest,
 };
-use axum::{body::Bytes, extract::State, Json};
+use axum::{extract::State, Json};
 use axum_macros::debug_handler;
 use log::info;
 use serde::{Deserialize, Serialize};
-use shared_utils::{ipfs::IpfsResponse, types::MultiPartHandler};
+use serde_json::Value;
+use shared_utils::{ipfs::IpfsResponse, types::MultiPartHandlerJson};
 
 /// The response from the IPFS gateway
 #[derive(Deserialize, Serialize, Default, Debug)]
@@ -47,15 +48,15 @@ impl IpfsResponseStandard {
 #[debug_handler]
 pub async fn upload_json_to_jpfs(
     State(state): State<AppState>,
-    Json(json): Json<String>,
+    Json(json): Json<Value>,
 ) -> Result<Json<IpfsResponseStandard>, ApiError> {
     info!("Uploading JSON to IPFS");
 
     // Construct the MultipartHandler
-    let multi_part_handler = MultiPartHandler {
-        name: "json".to_string(),                     // Replace with actual name
-        content_type: "application/json".to_string(), // Replace with actual content type
-        data: Bytes::from(json),                      // Convert Vec<u8> to Bytes
+    let multi_part_handler = MultiPartHandlerJson {
+        name: "json".to_string(),
+        content_type: "application/json".to_string(),
+        data: json, // Convert Value directly to Bytes
     };
 
     let ipfs_response = upload_json_to_ipfs(&state, multi_part_handler).await?;
