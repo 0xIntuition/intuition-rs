@@ -1,7 +1,7 @@
 use crate::{
     endpoints::{
-        upload_image::upload_image, upload_image_from_url::upload_image_from_url,
-        upload_json_to_ipfs::upload_json_to_jpfs,
+        refetch_atoms::refetch_atoms, upload_image::upload_image,
+        upload_image_from_url::upload_image_from_url, upload_json_to_ipfs::upload_json_to_jpfs,
     },
     error::ApiError,
     openapi::ApiDoc,
@@ -96,6 +96,7 @@ impl App {
             .route("/upload", post(upload_image))
             .route("/upload_image_from_url", post(upload_image_from_url))
             .route("/upload_json_to_ipfs", post(upload_json_to_jpfs))
+            .route("/refetch_atoms", post(refetch_atoms))
             .route("/metrics", get(|| async move { metric_handle.render() }))
             .layer(prometheus_layer)
             .with_state(self.app_state.clone())

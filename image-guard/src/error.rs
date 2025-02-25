@@ -11,6 +11,14 @@ use thiserror::Error;
 /// libraries
 #[derive(Error, Debug)]
 pub enum ApiError {
+    #[error(transparent)]
+    AWSSendMessage(
+        #[from]
+        aws_smithy_runtime_api::client::result::SdkError<
+            aws_sdk_sqs::operation::send_message::SendMessageError,
+            aws_smithy_runtime_api::http::Response,
+        >,
+    ),
     #[error("Failed to extract name and extension from URL")]
     ExtractNameAndExtension,
     #[error(transparent)]

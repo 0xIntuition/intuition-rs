@@ -13,6 +13,8 @@ pub struct Env {
     pub flag_local_with_db_only: Option<bool>,
     pub pinata_api_jwt: String,
     pub image_api_schema: String,
+    pub resolver_queue_url: String,
+    pub localstack_url: Option<String>,
 }
 
 /// A multipart request with an image
