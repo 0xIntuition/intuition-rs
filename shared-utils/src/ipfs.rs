@@ -1,4 +1,7 @@
-use crate::{error::LibError, types::MultiPartHandler};
+use crate::{
+    error::LibError,
+    types::{MultiPartHandler, MultiPartHandlerJson},
+};
 use macon::Builder;
 use reqwest::{
     multipart::{Form, Part},
@@ -276,6 +279,17 @@ impl IPFSResolver {
         )
     }
 
+    /// Formats the multipart form to upload a json to IPFS
+    fn multipart_form_json(&self, multi_part_handler: MultiPartHandlerJson) -> Form {
+        Form::new().part(
+            multi_part_handler.name.clone(),
+            Part::bytes(serde_json::to_vec(&multi_part_handler.data).unwrap())
+                .file_name(multi_part_handler.name.clone())
+                .mime_str("application/json")
+                .unwrap(),
+        )
+    }
+
     /// Pins an already uploaded file hash to Pinata. Keep in mind that
     /// for this function to work, the file must have been uploaded to IPFS.
     #[allow(dead_code)]
@@ -380,6 +394,51 @@ impl IPFSResolver {
         }?
     }
 
+    /// Uploads and pins a file to IPFS using the configured gateway
+    /// Returns an [`IpfsResponse`] with the `name`, `hash` and `size` of
+    /// the uploaded file.
+    pub async fn upload_json_to_ipfs_and_pin(
+        &self,
+        multi_part_handler: MultiPartHandlerJson,
+    ) -> Result<IpfsResponse, LibError> {
+        let mut attempts = 0;
+
+        loop {
+            attempts += 1;
+
+            match self
+                .upload_json_to_ipfs_request(multi_part_handler.clone())
+                .await
+            {
+                Ok(resp) => {
+                    let status = resp.status();
+                    let body = resp.text().await.unwrap_or_default();
+
+                    if self.handle_upload_error_response(status, attempts).await? {
+                        continue;
+                    }
+
+                    // Attempt to parse JSON from the body
+                    let result: IpfsResponse = serde_json::from_str(&body).map_err(|e| {
+                        warn!("Failed to parse JSON response: {}", e);
+                        LibError::NetworkError(format!("Invalid JSON: {}", body))
+                    })?;
+
+                    // Pin the CID to local IPFS
+                    self.pin_with_cid(&result.hash).await?;
+                    // Add a remote pin to Pinata
+                    self.add_remote_pin_to_pinata(&result.hash, &multi_part_handler.name)
+                        .await?;
+
+                    return Ok(result);
+                }
+                Err(e) => match self.handle_upload_retry_error(e, attempts).await {
+                    Ok(()) => continue,
+                    Err(e) => break Err(e),
+                },
+            }
+        }?
+    }
     /// Pins a CID to local IPFS
     async fn pin_with_cid(&self, cid: &str) -> Result<Response, reqwest::Error> {
         self.http_client
@@ -396,6 +455,18 @@ impl IPFSResolver {
         self.http_client
             .post(self.format_ipfs_upload_url())
             .multipart(self.multipart_form(multi_part_handler.clone()))
+            .send()
+            .await
+    }
+
+    /// Sends a request to upload a file to IPFS
+    async fn upload_json_to_ipfs_request(
+        &self,
+        multi_part_handler: MultiPartHandlerJson,
+    ) -> Result<Response, reqwest::Error> {
+        self.http_client
+            .post(self.format_ipfs_upload_url())
+            .multipart(self.multipart_form_json(multi_part_handler.clone()))
             .send()
             .await
     }

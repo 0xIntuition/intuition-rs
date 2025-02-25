@@ -40,6 +40,10 @@ input PinOrganizationInput {
   email: String
 }
 
+input PinJsonInput {
+  json: jsonb
+}
+
 type PinOutput {
   uri: String
 }

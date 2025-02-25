@@ -1,5 +1,6 @@
 pub mod upload_image;
 pub mod upload_image_from_url;
+pub mod upload_json_to_ipfs;
 
 use crate::state::Flag;
 use crate::types::{ClassificationScore, ClassificationScoreParsed, LocalClassificationScore};
@@ -7,6 +8,7 @@ use crate::{error::ApiError, state::AppState};
 use axum::extract::multipart::Field;
 use log::info;
 use reqwest::Client;
+use shared_utils::types::MultiPartHandlerJson;
 use shared_utils::{
     ipfs::{IPFSResolver, IpfsResponse},
     types::MultiPartHandler,
@@ -81,6 +83,22 @@ async fn upload_image_to_ipfs(
         .pinata_jwt(state.pinata_api_jwt.clone())
         .build()
         .upload_to_ipfs_and_pin(multi_part_handler)
+        .await
+        .map_err(|e| ApiError::ExternalService(format!("IPFS error: {}", e)))
+}
+
+/// Uploads a json to IPFS and pins it
+async fn upload_json_to_ipfs(
+    state: &AppState,
+    multi_part_handler: MultiPartHandlerJson,
+) -> Result<IpfsResponse, ApiError> {
+    IPFSResolver::builder()
+        .http_client(Client::new())
+        .ipfs_upload_url(state.ipfs_upload_url.clone())
+        .ipfs_fetch_url(state.ipfs_fetch_url.clone())
+        .pinata_jwt(state.pinata_api_jwt.clone())
+        .build()
+        .upload_json_to_ipfs_and_pin(multi_part_handler)
         .await
         .map_err(|e| ApiError::ExternalService(format!("IPFS error: {}", e)))
 }
