@@ -173,6 +173,7 @@ services:
       FLAG_LOCAL_WITH_CLASSIFICATION: $FLAG_LOCAL_WITH_CLASSIFICATION
       BE_SCHEMA: $BACKEND_SCHEMA
       IMAGE_API_SCHEMA: $IMAGE_API_SCHEMA
+      INDEXER_DATABASE_URL: $INDEXER_DATABASE_URL
       # FLAG_LOCAL_WITH_DB_ONLY: $FLAG_LOCAL_WITH_DB_ONLY
       # FLAG_HF_CLASSIFICATION: $FLAG_HF_CLASSIFICATION 
     ports:
@@ -331,6 +332,8 @@ services:
       HISTOCRAWLER_DATABASE_URL: $DATABASE_URL
       INDEXER_SCHEMA: $INDEXER_SCHEMA
     depends_on:
+      geth:
+        condition: service_started
       database:
         condition: service_healthy
       local-migrations:
@@ -370,10 +373,10 @@ services:
       AWS_REGION: $AWS_REGION
       AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY 
       INDEXER_DATABASE_URL: $DATABASE_URL
+      INDEXER_SCHEMA: $INDEXER_SCHEMA
       LOCALSTACK_URL: $LOCALSTACK_URL
       HISTOFLUX_CURSOR_ID: $HISTOFLUX_CURSOR_ID
       RAW_LOGS_CHANNEL: $RAW_LOGS_CHANNEL
-      INDEXER_SCHEMA: $INDEXER_SCHEMA
     depends_on:
       database:
         condition: service_healthy
@@ -409,6 +412,24 @@ services:
     depends_on:
       - api
 
+  geth:
+    container_name: geth
+    image: ethereum/client-go
+    ports:
+      - '8545:8545'
+    healthcheck:
+      test: ['CMD', 'curl', 'http://localhost:8545']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    entrypoint: sh /root/init-script.sh
+    command: '--dev --dev.period=1 --cache=8192 --gcmode=full --history.state=0 --history.transactions=0 --syncmode=full --cache.gc=0 --http --http.api=eth,web3,net --mine  --http.port=8545 --http.vhosts=* --http.addr=0.0.0.0 --http.corsdomain="https://remix.ethereum.org" --datadir=/data --password=/root/password.txt'
+    volumes:
+      - data_geth:/data
+      - ./geth/genesis.json:/config/genesis.json
+      - ./geth/init-script.sh:/root/init-script.sh
+      - ./geth/keystore.json:/data/keystore/UTC--2024-06-03T19-15-34.118131000Z--63e87dc2366dc7f1be110ded239879422e165d96
+      - ./geth/password.txt:/root/password.txt
 
 networks:
   intuition-be:
@@ -422,3 +443,4 @@ volumes:
   pgadmin-data:
   ipfs_data:
   substreams-sink-data:
+  data_geth:

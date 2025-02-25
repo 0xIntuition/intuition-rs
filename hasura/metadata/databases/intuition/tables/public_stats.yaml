@@ -11,7 +11,6 @@ select_permissions:
   - role: anonymous
     permission:
       columns:
-        - last_processed_block_timestamp
         - id
         - total_accounts
         - total_atoms
@@ -19,9 +18,7 @@ select_permissions:
         - total_signals
         - total_triples
         - contract_balance
-        - last_processed_block_number
         - total_fees
-        - last_updated
       filter: {}
       limit: 98
       allow_aggregations: true
