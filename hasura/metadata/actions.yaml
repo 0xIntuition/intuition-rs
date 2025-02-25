@@ -128,6 +128,7 @@ custom_types:
     - name: PinThingInput
     - name: PinPersonInput
     - name: PinOrganizationInput
+    - name: PinJsonInput
   objects:
     - name: PinOutput
   scalars: []

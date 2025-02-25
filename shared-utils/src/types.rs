@@ -2,6 +2,7 @@ use std::fmt::Display;
 
 use bytes::Bytes;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use utoipa::ToSchema;
 
 #[derive(Debug, Serialize, Deserialize, ToSchema, Default)]
@@ -24,5 +25,13 @@ impl Display for ClassificationModel {
 pub struct MultiPartHandler {
     pub name: String,
     pub data: Bytes,
+    pub content_type: String,
+}
+
+/// Represents a multi-part handler
+#[derive(Clone, Debug)]
+pub struct MultiPartHandlerJson {
+    pub name: String,
+    pub data: Value,
     pub content_type: String,
 }
