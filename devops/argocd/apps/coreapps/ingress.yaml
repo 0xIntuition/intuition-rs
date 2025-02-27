@@ -1,14 +1,14 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: replicator
+  name: ingress-main
   namespace: argocd
 spec:
   project: prod
   source:
     repoURL: 'https://github.com/0xintuition/intuition-rs.git'
     targetRevision: francois/add-iac
-    path: devops/argocd/manifests/main-ingress
+    path: devops/argocd/manifests/ingress-main
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: default
