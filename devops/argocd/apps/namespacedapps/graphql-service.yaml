@@ -27,14 +27,25 @@ spec:
         path: 'devops/aws/services/graphql/overlays/{{.env}}'
         targetRevision: '{{.revision}}'
         kustomize:
+          namePrefix: '{{.namespace}}-'
           patches:
+            - target:
+                kind: SecretProviderClass
+                name: graphql-engine
+              patch: |-
+                - op: replace
+                  path: /spec/secretObjects/0/secretName
+                  value: '{{.namespace}}-hasura-aws-secrets'
             - target:
                 kind: Deployment
                 name: graphql-engine
               patch: |-
                 - op: replace
                   path: /spec/template/spec/serviceAccountName
-                  value: '{{.cluster}}-{{.namespace}}-secrets-access-sa'
+                  value: '{{.cluster}}-secrets-access-sa'
+                - op: replace
+                  path: /spec/template/spec/volumes/0/csi/volumeAttributes/secretProviderClass
+                  value: '{{.namespace}}-hasura-aws-secrets'
                 - op: add
                   path: /spec/template/spec/containers/0/envFrom/-
                   value:
@@ -64,7 +75,7 @@ spec:
                   path: /spec/template/spec/containers/0/env/-
                   value:
                     name: HASURA_GRAPHQL_ENDPOINT
-                    value: 'http://{{.env}}-graphql-engine:8080'
+                    value: 'http://{{.namespace}}-graphql-engine:8080'
 
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
@@ -106,7 +117,7 @@ spec:
                   path: /spec/template/spec/containers/0/env/-
                   value:
                     name: HASURA_GRAPHQL_ENDPOINT
-                    value: 'http://{{.env}}-graphql-engine:8080'
+                    value: 'http://{{.namespace}}-graphql-engine:8080'
 
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
@@ -149,7 +160,7 @@ spec:
                   path: /spec/template/spec/containers/0/env/-
                   value:
                     name: HASURA_GRAPHQL_ENDPOINT
-                    value: 'http://{{.env}}-graphql-engine:8080'
+                    value: 'http://{{.namespace}}-graphql-engine:8080'
 
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
@@ -159,7 +170,7 @@ spec:
 
       destination:
         server: '{{.server}}'
-        namespace: '{{.namespace}}'
+        namespace: 'default' # graphql is always deployed in default but the namespace is in the name
       syncPolicy:
         automated:
           prune: true

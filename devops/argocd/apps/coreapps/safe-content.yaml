@@ -4,7 +4,7 @@ metadata:
   name: safe-content
   namespace: argocd
 spec:
-  project: dev
+  project: prod
   source:
     repoURL: 'https://github.com/0xintuition/intuition-rs.git'
     targetRevision: francois/add-iac
