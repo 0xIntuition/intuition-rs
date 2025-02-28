@@ -1,4 +1,6 @@
 #![allow(clippy::result_large_err)]
+use std::sync::Arc;
+
 use alloy::sol;
 use app_context::Server;
 use clap::Parser;
@@ -60,7 +62,7 @@ async fn main() -> Result<(), ConsumerError> {
     // Build the server with the basic context
     let server = Server::new(init).await?;
     // Spawn the warp server
-    server.spawn_warp_server().await?;
+    server.spawn_warp_server(Arc::new(server.clone())).await?;
     // Start processing messages
     server.consumer_mode().process_messages().await
 }

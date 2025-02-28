@@ -1,11 +1,5 @@
 use crate::{
-    endpoints::{
-        upload_image::upload_image, upload_image_from_url::upload_image_from_url,
-        upload_json_to_ipfs::upload_json_to_jpfs,
-    },
-    error::ApiError,
-    openapi::ApiDoc,
-    state::AppState,
+    endpoints::refetch_atoms::refetch_atoms, error::ApiError, openapi::ApiDoc, state::AppState,
     types::Env,
 };
 use axum::{
@@ -32,9 +26,12 @@ pub struct App {
 impl App {
     /// Build a TCP listener for the application.
     async fn build_listener(&self) -> Result<TcpListener, ApiError> {
-        TcpListener::bind(format!("0.0.0.0:{}", self.env.classification_api_port))
-            .await
-            .map_err(ApiError::from)
+        TcpListener::bind(format!(
+            "0.0.0.0:{}",
+            self.env.consumer_api_port.unwrap_or(3003)
+        ))
+        .await
+        .map_err(ApiError::from)
     }
 
     /// Configure CORS. We are allowing GET and POST requests with the
@@ -53,25 +50,8 @@ impl App {
         // Read the .env file from the current directory or parents
         dotenvy::dotenv().ok();
         // Load the environment variables into our struct
-        let mut env = envy::from_env::<Env>().map_err(ApiError::from)?;
-        Self::check_env_conditions_and_default(&mut env)?;
+        let env = envy::from_env::<Env>().map_err(ApiError::from)?;
         Ok(env)
-    }
-
-    /// Check the environment variables and set the default values if needed.
-    fn check_env_conditions_and_default(env: &mut Env) -> Result<(), ApiError> {
-        if env.flag_local_with_classification.is_none()
-            && env.flag_local_with_db_only.is_none()
-            && env.flag_hf_classification.is_none()
-        {
-            env.flag_local_with_classification = Some(true);
-        } else if env.flag_local_with_classification.is_some()
-            && env.flag_local_with_db_only.is_some()
-            && env.flag_hf_classification.is_some()
-        {
-            return Err(ApiError::LocalWithClassificationAndDbOnly);
-        }
-        Ok(())
     }
 
     /// Merge the router with the Swagger UI.
@@ -93,9 +73,7 @@ impl App {
     fn router(&self) -> Router {
         let (prometheus_layer, metric_handle) = PrometheusMetricLayer::pair();
         Router::new()
-            .route("/upload", post(upload_image))
-            .route("/upload_image_from_url", post(upload_image_from_url))
-            .route("/upload_json_to_ipfs", post(upload_json_to_jpfs))
+            .route("/refetch_atoms", post(refetch_atoms))
             .route("/metrics", get(|| async move { metric_handle.render() }))
             .layer(prometheus_layer)
             .with_state(self.app_state.clone())
@@ -104,8 +82,8 @@ impl App {
     /// Serve the application.
     pub async fn serve(&self) -> Result<(), ApiError> {
         info!(
-            "Starting image-guard server on port {}...",
-            self.env.classification_api_port
+            "Starting consumer-api server on port {}...",
+            self.env.consumer_api_port.unwrap_or(3003)
         );
         let listener = self.build_listener().await?;
         info!("Ready to receive requests");

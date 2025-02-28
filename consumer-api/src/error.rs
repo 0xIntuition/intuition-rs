@@ -11,18 +11,18 @@ use thiserror::Error;
 /// libraries
 #[derive(Error, Debug)]
 pub enum ApiError {
-    #[error("Failed to extract name and extension from URL")]
-    ExtractNameAndExtension,
+    #[error(transparent)]
+    AWSSendMessage(
+        #[from]
+        aws_smithy_runtime_api::client::result::SdkError<
+            aws_sdk_sqs::operation::send_message::SendMessageError,
+            aws_smithy_runtime_api::http::Response,
+        >,
+    ),
     #[error(transparent)]
     Env(#[from] envy::Error),
-    #[error("External service error: {0}")]
-    ExternalService(String),
     #[error(transparent)]
     Axum(#[from] axum::Error),
-    #[error("HF token is not set")]
-    HFToken(String),
-    #[error("Invalid input: {0}")]
-    InvalidInput(String),
     #[error(transparent)]
     Lib(#[from] shared_utils::error::LibError),
     #[error(transparent)]
@@ -33,8 +33,6 @@ pub enum ApiError {
     IO(#[from] std::io::Error),
     #[error(transparent)]
     Serde(#[from] serde_json::Error),
-    #[error("flag_local_with_classification, flag_local_with_db_only, and flag_hf_classification cannot be set at the same time")]
-    LocalWithClassificationAndDbOnly,
 }
 
 impl IntoResponse for ApiError {

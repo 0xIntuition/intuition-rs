@@ -49,7 +49,7 @@ services:
       - ~/.aws/:/root/.aws:ro
       - ./logs:/app/logs
     deploy:
-      replicas: 5
+      replicas: 1
   
   ipfs_upload_consumer:
     image: ghcr.io/0xintuition/consumer:latest

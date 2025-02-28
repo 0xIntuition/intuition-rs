@@ -1,14 +1,42 @@
 use std::convert::Infallible;
+use std::sync::Arc;
 
-use crate::{config::Env, error::ConsumerError, mode::types::ConsumerMode, ConsumerArgs};
+use crate::{
+    config::Env,
+    error::ConsumerError,
+    mode::{
+        resolver::types::{ResolverConsumerMessage, ResolverMessageType},
+        types::{ConsumerMode, ResolverConsumerContext},
+    },
+    ConsumerArgs,
+};
 use clap::Parser;
 use prometheus::{gather, Encoder, TextEncoder};
+use serde::Deserialize;
 use tracing::info;
 use tracing_subscriber::{layer::SubscriberExt, EnvFilter};
 use warp::Filter;
 
+/// Define a struct for the incoming JSON
+#[derive(Deserialize)]
+struct RefetchAtomsRequest {
+    atom_ids: Vec<String>,
+}
+
+impl ConsumerMode {
+    // Assuming you have a field that holds the ResolverConsumerContext
+    pub fn resolver_consumer_context(&self) -> Option<&ResolverConsumerContext> {
+        // Return the context from the appropriate field
+        match self {
+            ConsumerMode::Resolver(resolver_consumer_context) => Some(resolver_consumer_context),
+            _ => None,
+        }
+    }
+}
+
 /// Represents the consumer server context. It contains the consumer mode,
 /// and each consumer mode has its own context with the required dependencies.
+#[derive(Clone)]
 pub struct Server {
     consumer_mode: ConsumerMode,
     consumer_metrics_api_port: Option<u16>,
@@ -96,19 +124,61 @@ impl Server {
     }
 
     /// Run the warp server
-    pub async fn spawn_warp_server(&self) -> Result<(), ConsumerError> {
+    pub async fn spawn_warp_server(&self, server: Arc<Server>) -> Result<(), ConsumerError> {
         // Serve the metrics endpoint
         let metrics_route = warp::path!("metrics")
             .and(warp::get())
             .and_then(Self::serve_metrics);
 
+        // Add the new refetch_atoms route with consumer_mode
+        let refetch_route = warp::path!("refetch_atoms")
+            .and(warp::post())
+            .and(warp::body::json())
+            .and_then({
+                let server = server.clone(); // Clone the Arc
+                move |req| {
+                    let server = server.clone(); // Clone the Arc again for use in the async block
+                    async move {
+                        Self::refetch_atoms(&server, req).await // Call refetch_atoms with a reference to the Arc
+                    }
+                }
+            });
+
         // Get the port
         let port = self.consumer_metrics_api_port.unwrap_or(3002);
         // Spawn the server
         tokio::spawn(async move {
-            warp::serve(metrics_route).run(([0, 0, 0, 0], port)).await;
+            warp::serve(metrics_route.or(refetch_route))
+                .run(([0, 0, 0, 0], port))
+                .await;
         });
         Ok(())
+    }
+
+    /// Add the refetch_atoms function
+    async fn refetch_atoms(
+        &self,
+        req: RefetchAtomsRequest,
+    ) -> Result<impl warp::Reply, warp::Rejection> {
+        info!("Refetching atoms: {:?}", req.atom_ids);
+        let resolver_message = ResolverMessageType::BatchAtomResolver(req.atom_ids.clone());
+
+        resolver_message
+            .process_batch_atoms(
+                &self
+                    .consumer_mode
+                    .resolver_consumer_context()
+                    .ok_or(ConsumerError::NoResolverConsumerContext)?
+                    .clone(),
+                &req.atom_ids,
+            )
+            .await
+            .map_err(|e| {
+                info!("Error processing batch atoms: {:?}", e);
+                warp::reject::custom(ConsumerError::WarpProcessingError(e.to_string()))
+            })?;
+
+        Ok(warp::reply::json(&"Atoms refetched successfully"))
     }
 }
 

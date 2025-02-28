@@ -41,7 +41,7 @@ pub struct ResolveAtom {
 /// resolver consumer
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ResolverMessageType {
-    Atom(Box<ResolveAtom>),
+    Atom(String),
     BatchAtomResolver(Vec<String>),
     Account(Account),
 }
@@ -126,25 +126,25 @@ impl ResolverMessageType {
     async fn process_atom(
         &self,
         resolver_consumer_context: &ResolverConsumerContext,
-        resolver_message: &ResolveAtom,
+        atom_id: &String,
     ) -> Result<(), ConsumerError> {
         let metadata = self
-            .resolve_and_parse_atom_data(resolver_consumer_context, resolver_message)
+            .resolve_and_parse_atom_data(resolver_consumer_context, atom_id)
             .await?;
 
         // If the atom type is not unknown, we handle the new atom type that was resolved
         if AtomType::from_str(&metadata.atom_type)? != AtomType::Unknown {
-            self.handle_known_atom_type(resolver_consumer_context, resolver_message, metadata)
+            self.handle_known_atom_type(resolver_consumer_context, atom_id, metadata)
                 .await?;
         } else {
-            self.mark_atom_as_failed(resolver_consumer_context, resolver_message)
+            self.mark_atom_as_failed(resolver_consumer_context, &U256Wrapper::from_str(atom_id)?)
                 .await?;
         }
         Ok(())
     }
 
     /// This function processes a batch of atoms
-    async fn process_batch_atoms(
+    pub async fn process_batch_atoms(
         &self,
         resolver_consumer_context: &ResolverConsumerContext,
         atoms: &Vec<String>,
@@ -165,8 +165,11 @@ impl ResolverMessageType {
                 info!("No atom found for ID: {}", atom);
                 return Ok(());
             };
-            self.process_atom(resolver_consumer_context, &resolver_message)
-                .await?;
+            self.process_atom(
+                resolver_consumer_context,
+                &resolver_message.atom.id.to_string(),
+            )
+            .await?;
         }
         Ok(())
     }
@@ -175,16 +178,25 @@ impl ResolverMessageType {
     async fn resolve_and_parse_atom_data(
         &self,
         resolver_consumer_context: &ResolverConsumerContext,
-        resolver_message: &ResolveAtom,
+        atom_id: &String,
     ) -> Result<AtomMetadata, ConsumerError> {
-        let atom_data = resolver_message
-            .atom
-            .data
-            .clone()
-            .ok_or(ConsumerError::AtomDataNotFound)?;
+        let atom = Atom::find_by_id(
+            U256Wrapper::from_str(atom_id)?,
+            &resolver_consumer_context.pg_pool,
+            &resolver_consumer_context
+                .server_initialize
+                .env
+                .backend_schema,
+        )
+        .await?
+        .ok_or(ConsumerError::AtomDataNotFound)?;
 
         // We check if the atom data is an IPFS URI and if it is, we fetch the data from the IPFS node
-        let data = try_to_resolve_ipfs_uri(&atom_data, resolver_consumer_context).await?;
+        let data = try_to_resolve_ipfs_uri(
+            &atom.clone().data.ok_or(ConsumerError::AtomDataNotFound)?,
+            resolver_consumer_context,
+        )
+        .await?;
         // let text = data.text().await;
         // let bytes = data.bytes().await;
 
@@ -200,21 +212,11 @@ impl ResolverMessageType {
                         Ok(text) => {
                             info!("Trying to get text from {}", text);
                             let data = text.replace('\u{feff}', "");
-                            try_to_parse_json_or_text(
-                                &data,
-                                &resolver_message.atom,
-                                resolver_consumer_context,
-                            )
-                            .await
+                            try_to_parse_json_or_text(&data, &atom, resolver_consumer_context).await
                         }
                         Err(_) => {
                             info!("Failed to parse as text, trying to parse atom data as Binary");
-                            handle_binary_data(
-                                resolver_consumer_context,
-                                &resolver_message.atom,
-                                bytes,
-                            )
-                            .await
+                            handle_binary_data(resolver_consumer_context, &atom, bytes).await
                         }
                     }
                 }
@@ -229,8 +231,8 @@ impl ResolverMessageType {
                 "No IPFS URI found or IPFS URI is not valid, trying to parse atom data as JSON or text..."
             );
             try_to_parse_json_or_text(
-                &atom_data,
-                &resolver_message.atom,
+                &atom.clone().data.ok_or(ConsumerError::AtomDataNotFound)?,
+                &atom,
                 resolver_consumer_context,
             )
             .await
@@ -241,11 +243,11 @@ impl ResolverMessageType {
     async fn handle_known_atom_type(
         &self,
         resolver_consumer_context: &ResolverConsumerContext,
-        resolver_message: &ResolveAtom,
+        atom_id: &String,
         metadata: AtomMetadata,
     ) -> Result<(), ConsumerError> {
         let atom = self
-            .find_and_update_atom(resolver_consumer_context, resolver_message, metadata)
+            .find_and_update_atom(resolver_consumer_context, atom_id, metadata)
             .await?;
 
         if let Some(image) = atom.image.clone() {
@@ -253,16 +255,14 @@ impl ResolverMessageType {
                 .await?;
         }
 
-        resolver_message
-            .atom
-            .mark_as_resolved(
-                &resolver_consumer_context.pg_pool,
-                &resolver_consumer_context
-                    .server_initialize
-                    .env
-                    .backend_schema,
-            )
-            .await?;
+        atom.mark_as_resolved(
+            &resolver_consumer_context.pg_pool,
+            &resolver_consumer_context
+                .server_initialize
+                .env
+                .backend_schema,
+        )
+        .await?;
 
         info!("Updated atom metadata: {atom:?}");
         Ok(())
@@ -272,11 +272,11 @@ impl ResolverMessageType {
     async fn find_and_update_atom(
         &self,
         resolver_consumer_context: &ResolverConsumerContext,
-        resolver_message: &ResolveAtom,
+        atom_id: &String,
         metadata: AtomMetadata,
     ) -> Result<Atom, ConsumerError> {
         let atom = Atom::find_by_id(
-            resolver_message.atom.id.clone(),
+            U256Wrapper::from_str(atom_id)?,
             &resolver_consumer_context.pg_pool,
             &resolver_consumer_context
                 .server_initialize
@@ -319,19 +319,27 @@ impl ResolverMessageType {
     async fn mark_atom_as_failed(
         &self,
         resolver_consumer_context: &ResolverConsumerContext,
-        resolver_message: &ResolveAtom,
+        atom_id: &U256Wrapper,
     ) -> Result<(), ConsumerError> {
-        resolver_message
-            .atom
-            .mark_as_failed(
-                &resolver_consumer_context.pg_pool,
-                &resolver_consumer_context
-                    .server_initialize
-                    .env
-                    .backend_schema,
-            )
-            .await
-            .map_err(ConsumerError::from)
+        let atom = Atom::find_by_id(
+            atom_id.clone(),
+            &resolver_consumer_context.pg_pool,
+            &resolver_consumer_context
+                .server_initialize
+                .env
+                .backend_schema,
+        )
+        .await?
+        .ok_or(ConsumerError::AtomNotFound)?;
+        atom.mark_as_failed(
+            &resolver_consumer_context.pg_pool,
+            &resolver_consumer_context
+                .server_initialize
+                .env
+                .backend_schema,
+        )
+        .await
+        .map_err(ConsumerError::from)
     }
 
     /// This function updates the account metadata
@@ -398,9 +406,9 @@ impl ResolverMessageType {
 
 impl ResolverConsumerMessage {
     /// This function creates a new atom message
-    pub fn new_atom(atom: Atom) -> Self {
+    pub fn new_atom(atom_id: String) -> Self {
         Self {
-            message: ResolverMessageType::Atom(Box::new(ResolveAtom { atom })),
+            message: ResolverMessageType::Atom(atom_id),
         }
     }
 

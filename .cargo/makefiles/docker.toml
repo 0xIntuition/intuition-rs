@@ -41,3 +41,7 @@ args = ["build", "-t", "ghcr.io/0xintuition/histocrawler:latest", "-f", "histocr
 [tasks.build-local-migrations]
 command = "docker"
 args = ["build", "-t", "ghcr.io/0xintuition/local-migrations:latest", "-f", "local/Dockerfile", "."]
+
+[tasks.build-consumer-api]
+command = "docker"
+args = ["build", "-t", "ghcr.io/0xintuition/consumer-api:latest", "-f", "consumer-api/Dockerfile", "."]

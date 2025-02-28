@@ -2060,6 +2060,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "consumer-api"
+version = "2.0.2"
+dependencies = [
+ "aws-config",
+ "aws-sdk-sqs",
+ "aws-smithy-runtime-api",
+ "axum 0.8.1",
+ "axum-macros",
+ "axum-prometheus",
+ "chrono",
+ "dotenvy",
+ "env_logger",
+ "envy",
+ "http 1.2.0",
+ "log",
+ "models",
+ "reqwest 0.12.9",
+ "serde",
+ "serde_json",
+ "shared-utils",
+ "sqlx",
+ "thiserror 2.0.11",
+ "tokio",
+ "tower-http",
+ "utoipa",
+ "utoipa-swagger-ui 8.1.1",
+]
+
+[[package]]
 name = "convert_case"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3686,9 +3715,6 @@ dependencies = [
 name = "image-guard"
 version = "2.0.2"
 dependencies = [
- "aws-config",
- "aws-sdk-sqs",
- "aws-smithy-runtime-api",
  "axum 0.8.1",
  "axum-macros",
  "axum-prometheus",
