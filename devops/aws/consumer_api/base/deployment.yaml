@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: consumer-api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      io.kompose.service: consumer-api
+  template:
+    metadata:
+      labels:
+        io.kompose.service: consumer-api
+    spec:
+      serviceAccountName: secrets-access-sa
+      containers:
+        - name: consumer-api
+          ports:
+          - containerPort: 3003
+            protocol: TCP
+      
