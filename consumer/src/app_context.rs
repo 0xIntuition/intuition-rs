@@ -5,7 +5,7 @@ use crate::{
     config::Env,
     error::ConsumerError,
     mode::{
-        resolver::types::{ResolverConsumerMessage, ResolverMessageType},
+        resolver::types::ResolverMessageType,
         types::{ConsumerMode, ResolverConsumerContext},
     },
     ConsumerArgs,

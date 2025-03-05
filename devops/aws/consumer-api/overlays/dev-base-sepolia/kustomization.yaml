@@ -5,7 +5,7 @@ resources:
   - ../../base
   - secret-provider.yaml
 
-namePrefix: "prod-base-mainnet" 
+namePrefix: "dev-base-sepolia-" 
 
 patches:
   - path: deployment-patch.yaml
@@ -14,4 +14,4 @@ patches:
       name: consumer-api
 
 commonLabels:
-  network: base-mainnet
+  network: base-sepolia

@@ -126,7 +126,7 @@ impl ResolverMessageType {
     async fn process_atom(
         &self,
         resolver_consumer_context: &ResolverConsumerContext,
-        atom_id: &String,
+        atom_id: &str,
     ) -> Result<(), ConsumerError> {
         let metadata = self
             .resolve_and_parse_atom_data(resolver_consumer_context, atom_id)
@@ -178,7 +178,7 @@ impl ResolverMessageType {
     async fn resolve_and_parse_atom_data(
         &self,
         resolver_consumer_context: &ResolverConsumerContext,
-        atom_id: &String,
+        atom_id: &str,
     ) -> Result<AtomMetadata, ConsumerError> {
         let atom = Atom::find_by_id(
             U256Wrapper::from_str(atom_id)?,
@@ -243,7 +243,7 @@ impl ResolverMessageType {
     async fn handle_known_atom_type(
         &self,
         resolver_consumer_context: &ResolverConsumerContext,
-        atom_id: &String,
+        atom_id: &str,
         metadata: AtomMetadata,
     ) -> Result<(), ConsumerError> {
         let atom = self
@@ -272,7 +272,7 @@ impl ResolverMessageType {
     async fn find_and_update_atom(
         &self,
         resolver_consumer_context: &ResolverConsumerContext,
-        atom_id: &String,
+        atom_id: &str,
         metadata: AtomMetadata,
     ) -> Result<Atom, ConsumerError> {
         let atom = Atom::find_by_id(

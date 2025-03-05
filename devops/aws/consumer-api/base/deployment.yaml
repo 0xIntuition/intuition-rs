@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: consumer-api
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       io.kompose.service: consumer-api
