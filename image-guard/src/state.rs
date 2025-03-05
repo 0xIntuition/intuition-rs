@@ -1,7 +1,6 @@
+use crate::types::Env;
 use shared_utils::postgres::connect_to_db;
 use sqlx::{Pool, Postgres};
-
-use crate::types::Env;
 
 #[derive(Clone, PartialEq)]
 pub enum Flag {

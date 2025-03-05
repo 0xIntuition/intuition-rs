@@ -107,6 +107,8 @@ pub enum ConsumerError {
     MaxRetriesExceeded,
     #[error(transparent)]
     ModelError(#[from] models::error::ModelError),
+    #[error("No resolver consumer context")]
+    NoResolverConsumerContext,
     #[error("Vault not found")]
     VaultNotFound,
     #[error("Network error: {0}")]
@@ -155,4 +157,9 @@ pub enum ConsumerError {
     UrlParse(#[from] sqlx_core::url::ParseError),
     #[error("Vault atom not found")]
     VaultAtomNotFound,
+    #[error("Warp processing error: {0}")]
+    WarpProcessingError(String),
 }
+
+// Implement the Reject trait for ConsumerError
+impl warp::reject::Reject for ConsumerError {}
