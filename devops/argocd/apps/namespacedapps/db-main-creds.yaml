@@ -15,7 +15,7 @@ spec:
             namespace: dev-base-sepolia-v2-0-0
   template:
     metadata:
-      name: '{{ cluster }}-main-db-creds-{{namespace}}'
+      name: '{{ cluster }}-db-main-creds-{{namespace}}'
     spec:
       project: default
       source:
