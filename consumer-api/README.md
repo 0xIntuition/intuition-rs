@@ -1,17 +1,16 @@
-# Image Guard
+# Consumer API
 
-Image Guard is a simple API that uploads images to IPFS and classifies them using the Falconsai model hosted on Hugging Face.
-The image is then pinned to Pinata for persistence, and we also store the classification scores in a database.
+The consumer API can be used to re-fetch atoms, either to conform to a new schema or to retry atoms that failed to resolve
 
 ## Environment Variables
 
-- `IPFS_UPLOAD_URL`: The URL of the IPFS upload service
-- `IPFS_FETCH_URL`: The URL of the IPFS fetch service
-- `PINATA_API_JWT`: The JWT for the Pinata API
+- `CONSUMER_API_PORT`: The port for the consumer API
+- `RESOLVER_QUEUE_URL`: The URL of the resolver queue
+- `LOCALSTACK_URL`: Option string representing the localstack URL, used for local development
 
 ## Endpoints
 
-- `/upload`: Uploads an image to IPFS and classifies it
+- `/refetch_atoms`: Enqueue the atoms to be re-fetched in the resolver consumer
 
 ### Swagger UI
 
@@ -20,6 +19,10 @@ The image is then pinned to Pinata for persistence, and we also store the classi
 ## Example
 
 ```bash
-curl -X POST http://localhost:3000/upload -F "file=@path/to/image.jpg"
+curl --location 'http://localhost:3003/refetch_atoms' \
+--header 'Content-Type: application/json' \
+--data '{
+    "AtomIds": ["1", "2", "3", "4", "8", "9"] 
+}'
 ```
 

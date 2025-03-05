@@ -42,7 +42,6 @@ pub struct ResolveAtom {
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ResolverMessageType {
     Atom(String),
-    BatchAtomResolver(Vec<String>),
     Account(Account),
 }
 
@@ -61,11 +60,6 @@ impl ResolverMessageType {
             ResolverMessageType::Account(account) => {
                 info!("Processing a resolved account: {account:?}");
                 self.process_account(resolver_consumer_context, &mut account.clone())
-                    .await
-            }
-            ResolverMessageType::BatchAtomResolver(atoms) => {
-                info!("Processing a batch of atoms: {:?}", atoms);
-                self.process_batch_atoms(resolver_consumer_context, atoms)
                     .await
             }
         }
@@ -139,37 +133,6 @@ impl ResolverMessageType {
         } else {
             self.mark_atom_as_failed(resolver_consumer_context, &U256Wrapper::from_str(atom_id)?)
                 .await?;
-        }
-        Ok(())
-    }
-
-    /// This function processes a batch of atoms
-    pub async fn process_batch_atoms(
-        &self,
-        resolver_consumer_context: &ResolverConsumerContext,
-        atoms: &Vec<String>,
-    ) -> Result<(), ConsumerError> {
-        for atom in atoms {
-            let resolver_message = if let Some(atom) = Atom::find_by_id(
-                U256Wrapper::from_str(atom)?,
-                &resolver_consumer_context.pg_pool,
-                &resolver_consumer_context
-                    .server_initialize
-                    .env
-                    .backend_schema,
-            )
-            .await?
-            {
-                ResolveAtom { atom }
-            } else {
-                info!("No atom found for ID: {}", atom);
-                return Ok(());
-            };
-            self.process_atom(
-                resolver_consumer_context,
-                &resolver_message.atom.id.to_string(),
-            )
-            .await?;
         }
         Ok(())
     }

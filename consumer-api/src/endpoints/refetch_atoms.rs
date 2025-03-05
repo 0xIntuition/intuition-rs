@@ -30,7 +30,7 @@ pub struct ResolverConsumerMessage {
     path = "/refetch_atoms",
     request_body = inline(RefetchAtomsRequest),
     responses(
-        (status = 200, description = "Atoms refetched successfully", body = String),
+        (status = 200, description = "Atoms enqueued for re-fetching", body = String),
         (status = 400, description = "Invalid input or wrong format", body = String),
         (status = 500, description = "Internal server error", body = String)
     ),
@@ -58,5 +58,5 @@ pub async fn refetch_atoms(
         info!("Message sent to SQS");
     }
 
-    Ok(Json("Atoms refetched successfully".to_string()))
+    Ok(Json("Atoms enqueued for re-fetching".to_string()))
 }

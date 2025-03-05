@@ -12,7 +12,7 @@ use utoipa::OpenApi;
         )
     ),
     tags(
-        (name = "images", description = "Image upload and classification endpoints")
+        (name = "atoms", description = "Atom re-fetch endpoints")
     )
 )]
 pub struct ApiDoc;
