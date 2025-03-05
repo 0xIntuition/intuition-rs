@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: main-db-creds
+  name: db-main-creds
   namespace: argocd
 spec:
   syncPolicy:
@@ -20,7 +20,7 @@ spec:
       project: default
       source:
         repoURL: https://github.com/0xintuition/intuition-rs.git
-        path: 'devops/argocd/manifests/main-db-creds'
+        path: 'devops/argocd/manifests/db-main-creds'
         targetRevision: '{{ revision }}'
       destination:
         server: '{{ server }}'
