@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["cli", "consumer", "envio-indexer", "histocrawler", "histoflux", "image-guard", "models", "rpc-proxy", "shared-utils", "substreams-sink"]
+members = ["cli", "consumer", "envio-indexer", "histocrawler", "histoflux", "image-guard", "models", "rpc-proxy", "shared-utils", "substreams-sink", "consumer-api"]
 
 [workspace.dependencies]
 alloy = { version = "0.9.2", features = ["full"] }

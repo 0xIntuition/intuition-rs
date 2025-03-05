@@ -1,26 +1,26 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: resolver-consumer
+  name: consumer-api
 spec:
   template:
     spec:
       serviceAccountName: secrets-access-sa
       containers:
-        - name: resolver-consumer
-          image: ghcr.io/0xintuition/consumer:2.0.22
-          imagePullPolicy: Always
+        - name: consumer-api
+          image: ghcr.io/0xintuition/consumer-api:2.0
+          imagePullPolicy: Always 
           volumeMounts:
             - name: secrets-store-inline
               mountPath: "/mnt/secrets"
               readOnly: true
           envFrom:
             - secretRef:
-                name: prod-base-sepolia-v2-resolver-consumer-secrets
+                name: prod-base-mainnet-consumer-api-aws-secrets
       volumes:
         - name: secrets-store-inline
           csi:
             driver: secrets-store.csi.k8s.io
             readOnly: true
             volumeAttributes:
-              secretProviderClass: "prod-base-sepolia-v2-prod-base-sepolia-v2-resolver-consumer-secrets"
+              secretProviderClass: "prod-base-mainnet-prod-base-mainnet-consumer-api-aws-secrets"
