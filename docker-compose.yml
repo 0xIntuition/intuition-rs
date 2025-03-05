@@ -49,7 +49,19 @@ services:
       - ~/.aws/:/root/.aws:ro
       - ./logs:/app/logs
     deploy:
-      replicas: 5
+      replicas: 1
+
+  consumer-api:
+    image: ghcr.io/0xintuition/consumer-api:latest
+    command: ./api
+    environment:
+      CONSUMER_API_PORT: $CONSUMER_API_PORT
+      RESOLVER_QUEUE_URL: $RESOLVER_QUEUE_URL
+      LOCALSTACK_URL: $LOCALSTACK_URL
+    restart: always
+    depends_on:
+      sqs:
+        condition: service_healthy
   
   ipfs_upload_consumer:
     image: ghcr.io/0xintuition/consumer:latest

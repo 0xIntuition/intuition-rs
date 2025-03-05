@@ -5,6 +5,7 @@ This workspace contains the following crates:
 
 * `cli`: contains the code to run the intuition TUI client.
 * `consumer`: contains the code to RAW, DECODED and RESOLVER consumers.
+* `consumer-api`: An API to re-fetch Atoms
 * `envio-indexer`: contains the code to index the base-sepolia events of our contract using envio.
 * `hasura`: contains the migrations and hasura config.
 * `histoflux`: streams historical/live events from the database to an SQS queue.`

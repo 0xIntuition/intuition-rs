@@ -219,7 +219,7 @@ impl TripleCreated {
             .await?;
 
         // Enqueue the atom for resolution
-        let message = ResolverConsumerMessage::new_atom(atom.clone());
+        let message = ResolverConsumerMessage::new_atom(atom.id.to_string());
         decoded_consumer_context
             .client
             .send_message(serde_json::to_string(&message)?, None)

@@ -1,14 +1,31 @@
 use std::convert::Infallible;
 
-use crate::{config::Env, error::ConsumerError, mode::types::ConsumerMode, ConsumerArgs};
+use crate::{
+    config::Env,
+    error::ConsumerError,
+    mode::types::{ConsumerMode, ResolverConsumerContext},
+    ConsumerArgs,
+};
 use clap::Parser;
 use prometheus::{gather, Encoder, TextEncoder};
 use tracing::info;
 use tracing_subscriber::{layer::SubscriberExt, EnvFilter};
 use warp::Filter;
 
+impl ConsumerMode {
+    // Assuming you have a field that holds the ResolverConsumerContext
+    pub fn resolver_consumer_context(&self) -> Option<&ResolverConsumerContext> {
+        // Return the context from the appropriate field
+        match self {
+            ConsumerMode::Resolver(resolver_consumer_context) => Some(resolver_consumer_context),
+            _ => None,
+        }
+    }
+}
+
 /// Represents the consumer server context. It contains the consumer mode,
 /// and each consumer mode has its own context with the required dependencies.
+#[derive(Clone)]
 pub struct Server {
     consumer_mode: ConsumerMode,
     consumer_metrics_api_port: Option<u16>,
