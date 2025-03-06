@@ -1,5 +1,5 @@
 # Stage 1 - Generate recipe file
-FROM rust:slim-bookworm AS chef
+FROM rust:1.85-slim AS chef
 RUN cargo install cargo-chef
 WORKDIR /app
 

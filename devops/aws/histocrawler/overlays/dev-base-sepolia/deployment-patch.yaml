@@ -8,7 +8,7 @@ spec:
       serviceAccountName: secrets-access-sa
       containers:
         - name: histocrawler
-          image: ghcr.io/0xintuition/histocrawler:1.0.51
+          image: ghcr.io/0xintuition/histocrawler:2.0.7
           imagePullPolicy: Always
           volumeMounts:
             - name: secrets-store-inline
