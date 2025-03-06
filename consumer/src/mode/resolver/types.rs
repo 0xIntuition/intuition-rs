@@ -275,7 +275,6 @@ impl ResolverMessageType {
             .client
             .send_message(serde_json::to_string(&IpfsUploadMessage { image })?, None)
             .await
-            .map_err(ConsumerError::from)
     }
 
     /// This function marks the atom as failed

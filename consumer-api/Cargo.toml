@@ -1,7 +1,7 @@
 [package]
 name = "consumer-api"
 version = "2.0.2"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 aws-sdk-sqs.workspace = true
