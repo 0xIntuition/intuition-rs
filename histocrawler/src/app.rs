@@ -1,4 +1,4 @@
-use crate::{error::HistoCrawlerError, Env};
+use crate::{Env, error::HistoCrawlerError};
 use alloy::{
     eips::BlockNumberOrTag,
     primitives::Address,
@@ -29,7 +29,7 @@ impl HistoCrawler {
         let contract_address = Address::from_str(&env.intuition_contract_address.to_lowercase())?;
         let pg_pool = connect_to_db(&env.histocrawler_database_url).await?;
         let provider = Self::get_provider(&env).await?;
-        let backoff_delay = Duration::from_secs(2);
+        let backoff_delay = Duration::from_millis(500);
         Ok(Self {
             contract_address,
             env,
