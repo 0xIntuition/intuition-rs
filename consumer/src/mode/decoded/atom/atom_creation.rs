@@ -33,7 +33,7 @@ impl AtomCreated {
         Event::builder()
             .id(DecodedMessage::event_id(event))
             .event_type(EventType::AtomCreated)
-            .atom_id(self.vaultID)
+            .atom_id(self.vaultId)
             .block_number(U256Wrapper::from_str(&event.block_number.to_string())?)
             .block_timestamp(event.block_timestamp)
             .transaction_hash(event.transaction_hash.clone())
@@ -124,7 +124,7 @@ impl AtomCreated {
         event: &DecodedMessage,
     ) -> Result<Atom, ConsumerError> {
         if let Some(atom) = Atom::find_by_id(
-            U256Wrapper::from_str(&self.vaultID.to_string())?,
+            U256Wrapper::from_str(&self.vaultId.to_string())?,
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
@@ -144,12 +144,12 @@ impl AtomCreated {
             // for now, this will be updated later with the resolver consumer.
             let atom = Atom::builder()
                 .id(U256Wrapper::from_str(
-                    &self.vaultID.to_string().to_lowercase(),
+                    &self.vaultId.to_string().to_lowercase(),
                 )?)
                 .wallet_id(atom_wallet_account.id.clone())
                 .creator_id(creator_account.id)
-                .vault_id(U256Wrapper::from_str(&self.vaultID.to_string())?)
-                .value_id(U256Wrapper::from_str(&self.vaultID.to_string())?)
+                .vault_id(U256Wrapper::from_str(&self.vaultId.to_string())?)
+                .value_id(U256Wrapper::from_str(&self.vaultId.to_string())?)
                 .raw_data(self.atomData.to_string())
                 .atom_type(AtomType::Unknown)
                 .block_number(U256Wrapper::from_str(&event.block_number.to_string())?)
@@ -225,7 +225,7 @@ impl AtomCreated {
         event: &DecodedMessage,
     ) -> Result<Vault, ConsumerError> {
         if let Some(vault) = Vault::find_by_id(
-            U256Wrapper::from_str(&self.vaultID.to_string())?,
+            U256Wrapper::from_str(&self.vaultId.to_string())?,
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
@@ -236,20 +236,20 @@ impl AtomCreated {
         } else {
             // create the vault
             Vault::builder()
-                .id(U256Wrapper::from_str(&self.vaultID.to_string())?)
+                .id(U256Wrapper::from_str(&self.vaultId.to_string())?)
                 .total_shares(
                     decoded_consumer_context
-                        .fetch_total_shares_in_vault(self.vaultID, event.block_number)
+                        .fetch_total_shares_in_vault(self.vaultId, event.block_number)
                         .await?,
                 )
                 .current_share_price(
                     decoded_consumer_context
-                        .fetch_current_share_price(self.vaultID, event.block_number)
+                        .fetch_current_share_price(self.vaultId, event.block_number)
                         .await?,
                 )
                 .position_count(
                     Position::count_by_vault(
-                        U256Wrapper::from_str(&self.vaultID.to_string())?,
+                        U256Wrapper::from_str(&self.vaultId.to_string())?,
                         &decoded_consumer_context.pg_pool,
                         &decoded_consumer_context.backend_schema,
                     )
@@ -273,7 +273,7 @@ impl AtomCreated {
     ) -> Result<(Vault, Atom), ConsumerError> {
         // Get the share price of the atom
         let current_share_price = decoded_consumer_context
-            .fetch_current_share_price(self.vaultID, event.block_number)
+            .fetch_current_share_price(self.vaultId, event.block_number)
             .await?;
 
         // Get or create the vault
@@ -290,7 +290,7 @@ impl AtomCreated {
             .await?;
         // Update the respective vault with the correct share price
         let vault = Vault::update_current_share_price(
-            U256Wrapper::from_str(&self.vaultID.to_string())?,
+            U256Wrapper::from_str(&self.vaultId.to_string())?,
             U256Wrapper::from_str(&current_share_price.to_string())?,
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
