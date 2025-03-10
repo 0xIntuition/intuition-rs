@@ -4,6 +4,8 @@ use ratatui::{
     widgets::{Block, Borders, Cell, Row, Table},
     Frame,
 };
+use chrono::{DateTime, Local, TimeZone, Utc};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use crate::app::App;
 
@@ -20,6 +22,27 @@ pub fn draw(f: &mut Frame, app: &App, area: Rect) {
                     .unwrap_or_default()
             )),
         ]));
+
+        if let Some(event) = aggregates.events.first() {
+            if let Ok(timestamp) = event.block_timestamp.parse::<i64>() {
+                let block_time = match Utc.timestamp_opt(timestamp, 0) {
+                    chrono::LocalResult::Single(dt) => dt,
+                    _ => Utc::now(),
+                };
+                let local_time = DateTime::<Local>::from(block_time);
+                let formatted_time = local_time.format("%b %d %Y, %I:%M %p").to_string();
+                
+                // Calculate time elapsed
+                let now = Utc::now();
+                let duration = now.signed_duration_since(block_time);
+                let elapsed = format_duration(duration);
+                
+                rows.push(Row::new(vec![
+                    Cell::from(Span::raw("Timestamp")),
+                    Cell::from(Span::raw(format!("{} - {} ago", formatted_time, elapsed))),
+                ]));
+            }
+        }
 
         rows.push(Row::new(vec![
             Cell::from(Span::raw("Accounts")),
@@ -226,4 +249,22 @@ pub fn draw(f: &mut Frame, app: &App, area: Rect) {
         .widths([Constraint::Max(18), Constraint::Fill(50)]);
 
     f.render_widget(table, area);
+}
+
+// Helper function to format duration in a human-readable way
+fn format_duration(duration: chrono::Duration) -> String {
+    let seconds = duration.num_seconds();
+    if seconds < 60 {
+        return format!("{} sec", seconds);
+    }
+    
+    let minutes = duration.num_minutes();
+    if minutes < 60 {
+        let remaining_seconds = seconds - (minutes * 60);
+        return format!("{} min {} sec", minutes, remaining_seconds);
+    }
+    
+    let hours = duration.num_hours();
+    let remaining_minutes = minutes - (hours * 60);
+    format!("{} hr {} min", hours, remaining_minutes)
 }
