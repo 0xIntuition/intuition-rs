@@ -265,6 +265,24 @@ fn format_duration(duration: chrono::Duration) -> String {
     }
     
     let hours = duration.num_hours();
-    let remaining_minutes = minutes - (hours * 60);
-    format!("{} hr {} min", hours, remaining_minutes)
+    if hours < 24 {
+        let remaining_minutes = minutes - (hours * 60);
+        return format!("{} hr {} min", hours, remaining_minutes);
+    }
+    
+    let days = duration.num_days();
+    if days < 30 {
+        let remaining_hours = hours - (days * 24);
+        return format!("{} days {} hr", days, remaining_hours);
+    }
+    
+    let months = days / 30; // Approximate months
+    if months < 12 {
+        let remaining_days = days % 30;
+        return format!("{} months {} days", months, remaining_days);
+    }
+    
+    let years = months / 12; // Years
+    let remaining_months = months % 12;
+    format!("{} years {} months", years, remaining_months)
 }
