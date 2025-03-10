@@ -15,6 +15,14 @@ spec:
             revision: francois/add-iac
             env: dev-base-sepolia
             namespace: dev-base-sepolia-v2-0-0
+
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: francois/test-new-env
+            env: dev-base-sepolia
+            namespace: dev-base-sepolia-2-0-23
+
+
   template:
     metadata:
       name: '{{.cluster}}-graphql-service-{{.namespace}}'
@@ -37,6 +45,13 @@ spec:
                   path: /spec/secretObjects/0/secretName
                   value: '{{.namespace}}-hasura-aws-secrets'
             - target:
+                kind: Service
+                name: graphql-engine
+              patch: |-
+                - op: add
+                  path: /spec/selector/env
+                  value: '{{.namespace}}'
+            - target:
                 kind: Deployment
                 name: graphql-engine
               patch: |-
@@ -46,6 +61,9 @@ spec:
                 - op: replace
                   path: /spec/template/spec/volumes/0/csi/volumeAttributes/secretProviderClass
                   value: '{{.namespace}}-hasura-aws-secrets'
+                - op: add
+                  path: /spec/template/metadata/labels/env
+                  value: '{{.namespace}}'
                 - op: add
                   path: /spec/template/spec/containers/0/envFrom/-
                   value:
@@ -57,26 +75,21 @@ spec:
                   value:
                     name: INDEXER_DATABASE_URL
                     value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/histoflux?sslmode=require'
-
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
                     name: DATABASE_URL
                     value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/{{.namespace | replace "-" "_"}}?sslmode=require'
-
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
                     name: HASURA_GRAPHQL_CACHE_DATABASE_URL
                     value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/histoflux?sslmode=require'
-
-
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
                     name: HASURA_GRAPHQL_ENDPOINT
                     value: 'http://{{.namespace}}-graphql-engine:8080'
-
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
@@ -88,7 +101,10 @@ spec:
               patch: |-
                 - op: replace
                   path: /spec/template/spec/serviceAccountName
-                  value: '{{.cluster}}-{{.namespace}}-secrets-access-sa'
+                  value: '{{.cluster}}-secrets-access-sa'
+                - op: replace
+                  path: /spec/template/spec/volumes/0/csi/volumeAttributes/secretProviderClass
+                  value: '{{.namespace}}-hasura-aws-secrets'
                 - op: add
                   path: /spec/template/spec/containers/0/envFrom/-
                   value:
@@ -131,7 +147,10 @@ spec:
               patch: |-
                 - op: replace
                   path: /spec/template/spec/serviceAccountName
-                  value: '{{.cluster}}-{{.namespace}}-secrets-access-sa'
+                  value: '{{.cluster}}-secrets-access-sa'
+                - op: replace
+                  path: /spec/template/spec/volumes/0/csi/volumeAttributes/secretProviderClass
+                  value: '{{.namespace}}-hasura-aws-secrets'
                 - op: add
                   path: /spec/template/spec/containers/0/envFrom/-
                   value:

@@ -15,6 +15,12 @@ spec:
             revision: francois/add-iac
             env: dev-base-sepolia
             namespace: dev-base-sepolia-v2-0-0
+
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: francois/test-new-env
+            env: dev-base-sepolia
+            namespace: dev-base-sepolia-2-0-23
   template:
     metadata:
       name: '{{.cluster}}-consumer-ipfs-upload-{{.namespace}}'

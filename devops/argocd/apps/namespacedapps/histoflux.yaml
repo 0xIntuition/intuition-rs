@@ -17,6 +17,13 @@ spec:
             chain: base-sepolia
             env: dev-base-sepolia
             namespace: dev-base-sepolia-v2-0-0
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: francois/test-new-env
+            cursorID: '10'
+            chain: base-sepolia
+            env: dev-base-sepolia
+            namespace: dev-base-sepolia-2-0-23
   template:
     metadata:
       name: '{{.cluster}}-histoflux-{{.namespace}}'
