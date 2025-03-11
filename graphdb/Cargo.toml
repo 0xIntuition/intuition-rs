@@ -7,7 +7,7 @@ edition = "2024"
 dotenvy.workspace = true
 env_logger.workspace = true
 envy.workspace = true
-indradb-lib = "4.0.0"
+indradb-lib.workspace = true
 md5 = "0.7"
 models = { path = "../models" }
 serde.workspace = true

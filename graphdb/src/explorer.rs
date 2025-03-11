@@ -18,51 +18,104 @@ const INDEX: &str = r#"
 "#;
 
 const ATOM_TEMPLATE: &str = r#"
-<h1>Atom {{ atom_id }}</h1>
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1, h3 {
+            color: #333;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-radius: 4px;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f8f9fa;
+            color: #666;
+            font-weight: 600;
+            width: 200px;
+        }
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        tr:hover {
+            background-color: #f2f2f2;
+        }
+        a {
+            color: #0366d6;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <h1>Atom {{ atom_id }}</h1>
 
-<h3>Properties</h3>
-<table>
-    <tr>
-        <th>Type</th>
-        <td>{{ atom_type }}</td>
-    </tr>
-    <tr>
-        <th>Label</th>
-        <td>{{ label }}</td>
-    </tr>
-</table>
+    <h3>Properties</h3>
+    <table>
+        {% for prop in properties %}
+        <tr>
+            <th>{{ prop.name }}</th>
+            <td>{{ prop.value }}</td>
+        </tr>
+        {% endfor %}
+    </table>
 
-{% if outbound_triples %}
-<h3>Outbound Relations</h3>
-<table>
-    <tr>
-        <th>Predicate</th>
-        <th>Object</th>
-    </tr>
-    {% for triple in outbound_triples %}
-    <tr>
-        <td><a href="/atom?id={{ triple.predicate }}">{{ triple.predicate }}</a></td>
-        <td><a href="/atom?id={{ triple.object }}">{{ triple.object }}</a></td>
-    </tr>
-    {% endfor %}
-</table>
-{% endif %}
+    {% if outbound_triples %}
+    <h3>Outbound Relations</h3>
+    <table>
+        <tr>
+            <th>Triple ID</th>
+            <th>Predicate</th>
+            <th>Object</th>
+        </tr>
+        {% for triple in outbound_triples %}
+        <tr>
+            <td>{{ triple.id }}</td>
+            <td><a href="/atom?id={{ triple.predicate }}">{{ triple.predicate_desc }}</a></td>
+            <td><a href="/atom?id={{ triple.object }}">{{ triple.object_desc }}</a></td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% endif %}
 
-{% if inbound_triples %}
-<h3>Inbound Relations</h3>
-<table>
-    <tr>
-        <th>Subject</th>
-        <th>Predicate</th>
-    </tr>
-    {% for triple in inbound_triples %}
-    <tr>
-        <td><a href="/atom?id={{ triple.subject }}">{{ triple.subject }}</a></td>
-        <td><a href="/atom?id={{ triple.predicate }}">{{ triple.predicate }}</a></td>
-    </tr>
-    {% endfor %}
-</table>
-{% endif %}
+    {% if inbound_triples %}
+    <h3>Inbound Relations</h3>
+    <table>
+        <tr>
+            <th>Triple ID</th>
+            <th>Subject</th>
+            <th>Predicate</th>
+        </tr>
+        {% for triple in inbound_triples %}
+        <tr>
+            <td>{{ triple.id }}</td>
+            <td><a href="/atom?id={{ triple.subject }}">{{ triple.subject_desc }}</a></td>
+            <td><a href="/atom?id={{ triple.predicate }}">{{ triple.predicate_desc }}</a></td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% endif %}
+</body>
+</html>
 "#;
 
 #[derive(Deserialize)]
@@ -80,7 +133,7 @@ async fn handle_atom(
     query: AtomQuery,
 ) -> Result<impl warp::Reply, warp::Rejection> {
     println!("Searching for atom ID: {}", query.id); // Debug
-    let atom_id = App::atom_id_to_uuid(&query.id).map_err(|e| reject::custom(e))?;
+    let atom_id = App::atom_id_to_uuid(&query.id)?;
     println!("Using UUID: {}", atom_id); // Debug
 
     // Get the vertex and its properties
@@ -113,6 +166,7 @@ async fn handle_atom(
     context.insert("atom_id", &query.id);
     context.insert("atom_type", "Not found");
     context.insert("label", "Not found");
+    context.insert("properties", &Vec::<serde_json::Value>::new());
 
     // Extract vertex properties
     if let Some(props) = indradb::util::extract_vertex_properties(results)
@@ -125,6 +179,48 @@ async fn handle_atom(
                 context.insert("label", &prop.value);
             }
         }
+        let properties = props
+            .props
+            .iter()
+            .map(|p| {
+                serde_json::json!({
+                    "name": p.name.to_string(),
+                    "value": p.value.to_string()
+                })
+            })
+            .collect::<Vec<_>>();
+        context.insert("properties", &properties);
+    }
+
+    // Helper function to get atom description
+    fn get_atom_description(db: &Database<MemoryDatastore>, id: &Uuid) -> String {
+        let vertex_q = indradb::SpecificVertexQuery::new(vec![*id])
+            .include()
+            .properties()
+            .unwrap();
+
+        if let Ok(results) = db.get(vertex_q) {
+            if let Some(props) = indradb::util::extract_vertex_properties(results)
+                .unwrap()
+                .first()
+            {
+                // Try to find description or label property
+                for prop in &props.props {
+                    if prop.name.to_string() == "description" || prop.name.to_string() == "label" {
+                        // Remove quotes from the value
+                        return prop
+                            .value
+                            .as_str()
+                            .unwrap_or_default()
+                            .trim_matches('"')
+                            .to_string();
+                    }
+                }
+                // Fallback to type if no description found
+                return props.vertex.t.to_string();
+            }
+        }
+        id.simple().to_string() // Fallback to UUID if nothing found
     }
 
     // Extract and format outbound triples
@@ -132,37 +228,44 @@ async fn handle_atom(
         .unwrap()
         .into_iter()
         .map(|e| {
+            // Get predicate description using the edge type as the atom ID
+            let pred_desc = get_atom_description(&db, &e.outbound_id);
+
+            // Get object description
+            let obj_desc = get_atom_description(&db, &e.inbound_id);
+
             serde_json::json!({
-                "predicate": e.t.to_string(),
-                "object": e.inbound_id.simple().to_string()
+                "id": e.outbound_id.simple().to_string(),  // Use outbound_id for ID
+                "predicate": e.t.to_string(),  // Original atom ID for the link
+                "predicate_desc": pred_desc,  // Description from the atom
+                "object": e.inbound_id.simple().to_string(),
+                "object_desc": obj_desc
             })
         })
         .collect::<Vec<_>>();
-    context.insert("outbound_triples", &outbound_triples);
 
     // Extract and format inbound triples
     let inbound_triples = indradb::util::extract_edges(inbound_results)
         .unwrap()
         .into_iter()
         .map(|e| {
-            // Need to reverse-lookup the original atom ID here
-            let vertex_q = indradb::SpecificVertexQuery::new(vec![e.outbound_id])
-                .include()
-                .properties()
-                .unwrap();
-            let vertex = db.get(vertex_q).unwrap();
-            let props = indradb::util::extract_vertex_properties(vertex).unwrap();
-            let atom_id = props
-                .first()
-                .map(|p| p.vertex.t.to_string())
-                .unwrap_or_default();
+            // Get subject description
+            let subj_desc = get_atom_description(&db, &e.outbound_id);
+
+            // Get predicate description using the edge type as the atom ID
+            let pred_desc = get_atom_description(&db, &e.inbound_id);
 
             serde_json::json!({
-                "subject": atom_id,
-                "predicate": e.t.to_string()
+                "id": e.inbound_id.simple().to_string(),  // Use inbound_id for ID
+                "subject": e.outbound_id.simple().to_string(),
+                "subject_desc": subj_desc,
+                "predicate": e.t.to_string(),  // Original atom ID for the link
+                "predicate_desc": pred_desc  // Description from the atom
             })
         })
         .collect::<Vec<_>>();
+
+    context.insert("outbound_triples", &outbound_triples);
     context.insert("inbound_triples", &inbound_triples);
 
     let rendered = tera

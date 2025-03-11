@@ -4309,6 +4309,7 @@ dependencies = [
  "chrono",
  "hex",
  "hypersync-client",
+ "indradb-lib",
  "macon",
  "rand",
  "serde",

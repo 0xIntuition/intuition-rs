@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use crate::error::GraphDBError;
-use indradb::{Database, Edge, Identifier, MemoryDatastore, Vertex};
+use indradb::{Database, Edge, Identifier, Json, MemoryDatastore, SpecificVertexQuery, Vertex};
 use md5;
 use models::{
     atom::Atom,
@@ -49,6 +49,7 @@ impl App {
         db
     }
 
+    /// This function connects to the postgres database.
     pub async fn connect_to_db(database_url: &str) -> Result<PgPool, GraphDBError> {
         PgPoolOptions::new()
             .min_connections(5)
@@ -56,6 +57,22 @@ impl App {
             .connect(database_url)
             .await
             .map_err(|error| GraphDBError::PostgresConnectError(error.to_string()))
+    }
+
+    /// This function sets the properties for an atom.
+    pub async fn set_properties_for_atom(
+        &self,
+        atom: &Atom,
+        vertex_id: Uuid,
+    ) -> Result<(), GraphDBError> {
+        for (key, value) in atom.properties() {
+            self.db.set_properties(
+                SpecificVertexQuery::new(vec![vertex_id]),
+                Identifier::new(key)?,
+                &value,
+            )?;
+        }
+        Ok(())
     }
 
     pub async fn upload_triples(&self) -> Result<(), GraphDBError> {
@@ -85,39 +102,32 @@ impl App {
 
                 // Create vertices with type
                 let subject_vertex = Vertex::with_id(
-                    Self::atom_id_to_uuid(subject_atom.id.to_string())?,
+                    Self::atom_id_to_uuid(&subject_atom.id.to_string())?,
                     Identifier::new(subject_atom.atom_type.to_string())?,
                 );
                 let predicate_vertex = Vertex::with_id(
-                    Self::atom_id_to_uuid(predicate_atom.id.to_string())?,
+                    Self::atom_id_to_uuid(&predicate_atom.id.to_string())?,
                     Identifier::new(predicate_atom.atom_type.to_string())?,
                 );
                 let object_vertex = Vertex::with_id(
-                    Self::atom_id_to_uuid(object_atom.id.to_string())?,
+                    Self::atom_id_to_uuid(&object_atom.id.to_string())?,
                     Identifier::new(object_atom.atom_type.to_string())?,
                 );
 
-                // Create vertices
+                // Creates a new vertex. Returns whether the vertex was successfully
+                // created - if this is false, it's because a vertex with the same UUID
+                // already exists.
                 self.db.create_vertex(&subject_vertex)?;
                 self.db.create_vertex(&predicate_vertex)?;
                 self.db.create_vertex(&object_vertex)?;
 
                 // Set vertex properties
-                self.db.set_properties(
-                    indradb::SpecificVertexQuery::new(vec![subject_vertex.id]),
-                    Identifier::new("label")?,
-                    &indradb::Json::new(serde_json::Value::String(
-                        subject_atom.label.clone().unwrap_or_default(),
-                    )),
-                )?;
-
-                self.db.set_properties(
-                    indradb::SpecificVertexQuery::new(vec![subject_vertex.id]),
-                    Identifier::new("type")?,
-                    &indradb::Json::new(serde_json::Value::String(
-                        subject_atom.atom_type.to_string(),
-                    )),
-                )?;
+                self.set_properties_for_atom(&subject_atom, subject_vertex.id)
+                    .await?;
+                self.set_properties_for_atom(&predicate_atom, predicate_vertex.id)
+                    .await?;
+                self.set_properties_for_atom(&object_atom, object_vertex.id)
+                    .await?;
 
                 // Create edge with type
                 let link_type = Identifier::new(predicate_atom.atom_type.to_string())?;
@@ -128,12 +138,12 @@ impl App {
         Ok(())
     }
 
-    pub fn atom_id_to_uuid(atom_id: impl AsRef<str>) -> Result<Uuid, GraphDBError> {
-        let id = atom_id.as_ref();
-        println!("Converting atom ID to UUID: {}", id); // Debug
-        let digest = md5::compute(id.as_bytes());
-        let uuid = Uuid::from_bytes(digest.0);
-        println!("Generated UUID: {}", uuid); // Debug
+    pub fn atom_id_to_uuid(atom_id: &str) -> Result<Uuid, GraphDBError> {
+        println!("Converting atom ID to UUID: {}", atom_id);
+        let namespace = Uuid::NAMESPACE_URL;
+        let id_str = format!("atom:{}", atom_id);
+        let uuid = Uuid::new_v5(&namespace, id_str.as_bytes());
+        println!("Generated UUID: {}", uuid);
         Ok(uuid)
     }
 }

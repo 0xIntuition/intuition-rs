@@ -3,6 +3,7 @@ use crate::{
     traits::{Model, Paginated, SimpleCrud},
     types::U256Wrapper,
 };
+use indradb::Json;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use strum_macros::{Display, EnumIter, EnumString};
@@ -225,6 +226,85 @@ impl Atom {
             .map_err(|e| ModelError::DecodingError(e.to_string()))?;
         let filtered_bytes: Vec<u8> = s.as_bytes().iter().filter(|&&b| b != 0).cloned().collect();
         String::from_utf8(filtered_bytes).map_err(|e| ModelError::DecodingError(e.to_string()))
+    }
+
+    /// This function returns the properties of the atom. This is used for GraphDB.
+    pub fn properties(&self) -> Vec<(String, Json)> {
+        vec![
+            (
+                "id".into(),
+                Json::new(serde_json::Value::String(self.id.to_string())),
+            ),
+            (
+                "wallet_id".into(),
+                Json::new(serde_json::Value::String(self.wallet_id.clone())),
+            ),
+            (
+                "creator_id".into(),
+                Json::new(serde_json::Value::String(self.creator_id.clone())),
+            ),
+            (
+                "vault_id".into(),
+                Json::new(serde_json::Value::String(self.vault_id.to_string())),
+            ),
+            (
+                "data".into(),
+                Json::new(serde_json::Value::String(
+                    self.data.clone().unwrap_or_default(),
+                )),
+            ),
+            (
+                "raw_data".into(),
+                Json::new(serde_json::Value::String(self.raw_data.clone())),
+            ),
+            (
+                "atom_type".into(),
+                Json::new(serde_json::Value::String(self.atom_type.to_string())),
+            ),
+            (
+                "emoji".into(),
+                Json::new(serde_json::Value::String(
+                    self.emoji.clone().unwrap_or_default(),
+                )),
+            ),
+            (
+                "label".into(),
+                Json::new(serde_json::Value::String(
+                    self.label.clone().unwrap_or_default(),
+                )),
+            ),
+            (
+                "image".into(),
+                Json::new(serde_json::Value::String(
+                    self.image.clone().unwrap_or_default(),
+                )),
+            ),
+            (
+                "value_id".into(),
+                Json::new(serde_json::Value::String(
+                    self.value_id
+                        .clone()
+                        .map(|v| v.to_string())
+                        .unwrap_or_default(),
+                )),
+            ),
+            (
+                "block_number".into(),
+                Json::new(serde_json::Value::String(self.block_number.to_string())),
+            ),
+            (
+                "block_timestamp".into(),
+                Json::new(serde_json::Value::Number(self.block_timestamp.into())),
+            ),
+            (
+                "transaction_hash".into(),
+                Json::new(serde_json::Value::String(self.transaction_hash.clone())),
+            ),
+            (
+                "resolving_status".into(),
+                Json::new(serde_json::Value::String(self.resolving_status.to_string())),
+            ),
+        ]
     }
 }
 
