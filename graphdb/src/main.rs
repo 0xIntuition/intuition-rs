@@ -3,6 +3,7 @@ use error::GraphDBError;
 
 pub mod app;
 pub mod error;
+pub mod explorer;
 // use indradb;
 
 // pub fn create_db() -> Result<(), indradb::Error> {
@@ -34,5 +35,8 @@ pub mod error;
 async fn main() -> Result<(), GraphDBError> {
     let app = App::new().await?;
     app.upload_triples().await?;
+
+    // Start the web interface
+    explorer::run(app.db, 3000).await?;
     Ok(())
 }

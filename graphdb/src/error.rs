@@ -1,4 +1,5 @@
 use thiserror::Error;
+use warp::reject;
 
 #[derive(Error, Debug)]
 pub enum GraphDBError {
@@ -20,6 +21,12 @@ pub enum GraphDBError {
     Sqlx(#[from] sqlx::Error),
     #[error(transparent)]
     SharedUtils(#[from] shared_utils::error::LibError),
+    #[error("Template error")]
+    TemplateError,
+    #[error(transparent)]
+    Tera(#[from] tera::Error),
     #[error(transparent)]
     Uuid(#[from] uuid::Error),
 }
+
+impl reject::Reject for GraphDBError {}

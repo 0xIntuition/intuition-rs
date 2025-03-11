@@ -4,15 +4,18 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-indradb-lib = "4.0.0"
-sqlx.workspace = true
-thiserror.workspace = true
-models = { path = "../models" }
-shared-utils = { path = "../shared-utils" }
-envy.workspace = true
-serde_json.workspace = true
-uuid = "1.15.1"
-env_logger.workspace = true
 dotenvy.workspace = true
+env_logger.workspace = true
+envy.workspace = true
+indradb-lib = "4.0.0"
+md5 = "0.7"
+models = { path = "../models" }
 serde.workspace = true
+serde_json.workspace = true
+shared-utils = { path = "../shared-utils" }
+sqlx.workspace = true
+tera = "1.19"
+thiserror.workspace = true
 tokio.workspace = true
+uuid = { version = "1.15.1", features = ["v5"] }
+warp = "0.3"

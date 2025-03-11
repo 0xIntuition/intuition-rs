@@ -2,6 +2,7 @@ use std::str::FromStr;
 
 use crate::error::GraphDBError;
 use indradb::{Database, Edge, Identifier, MemoryDatastore, Vertex};
+use md5;
 use models::{
     atom::Atom,
     traits::{Paginated, SimpleCrud},
@@ -84,15 +85,15 @@ impl App {
 
                 // Create vertices with type
                 let subject_vertex = Vertex::with_id(
-                    Uuid::from_str(&subject_atom.id.to_string())?,
+                    Self::atom_id_to_uuid(subject_atom.id.to_string())?,
                     Identifier::new(subject_atom.atom_type.to_string())?,
                 );
                 let predicate_vertex = Vertex::with_id(
-                    Uuid::from_str(&predicate_atom.id.to_string())?,
+                    Self::atom_id_to_uuid(predicate_atom.id.to_string())?,
                     Identifier::new(predicate_atom.atom_type.to_string())?,
                 );
                 let object_vertex = Vertex::with_id(
-                    Uuid::from_str(&object_atom.id.to_string())?,
+                    Self::atom_id_to_uuid(object_atom.id.to_string())?,
                     Identifier::new(object_atom.atom_type.to_string())?,
                 );
 
@@ -101,12 +102,38 @@ impl App {
                 self.db.create_vertex(&predicate_vertex)?;
                 self.db.create_vertex(&object_vertex)?;
 
+                // Set vertex properties
+                self.db.set_properties(
+                    indradb::SpecificVertexQuery::new(vec![subject_vertex.id]),
+                    Identifier::new("label")?,
+                    &indradb::Json::new(serde_json::Value::String(
+                        subject_atom.label.clone().unwrap_or_default(),
+                    )),
+                )?;
+
+                self.db.set_properties(
+                    indradb::SpecificVertexQuery::new(vec![subject_vertex.id]),
+                    Identifier::new("type")?,
+                    &indradb::Json::new(serde_json::Value::String(
+                        subject_atom.atom_type.to_string(),
+                    )),
+                )?;
+
                 // Create edge with type
-                let link_type = Identifier::new("triple")?;
+                let link_type = Identifier::new(predicate_atom.atom_type.to_string())?;
                 let edge = Edge::new(subject_vertex.id, link_type, object_vertex.id);
                 self.db.create_edge(&edge)?;
             }
         }
         Ok(())
+    }
+
+    pub fn atom_id_to_uuid(atom_id: impl AsRef<str>) -> Result<Uuid, GraphDBError> {
+        let id = atom_id.as_ref();
+        println!("Converting atom ID to UUID: {}", id); // Debug
+        let digest = md5::compute(id.as_bytes());
+        let uuid = Uuid::from_bytes(digest.0);
+        println!("Generated UUID: {}", uuid); // Debug
+        Ok(uuid)
     }
 }
