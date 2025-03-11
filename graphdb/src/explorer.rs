@@ -79,41 +79,21 @@ const ATOM_TEMPLATE: &str = r#"
         {% endfor %}
     </table>
 
-    {% if outbound_triples %}
-    <h3>Outbound Relations</h3>
+    <h3>Semantic Triples</h3>
     <table>
         <tr>
-            <th>Triple ID</th>
+            <th>Subject</th>
             <th>Predicate</th>
             <th>Object</th>
         </tr>
-        {% for triple in outbound_triples %}
+        {% for triple in all_triples %}
         <tr>
-            <td>{{ triple.id }}</td>
+            <td><a href="/atom?id={{ triple.subject }}">{{ triple.subject_desc }}</a></td>
             <td><a href="/atom?id={{ triple.predicate }}">{{ triple.predicate_desc }}</a></td>
             <td><a href="/atom?id={{ triple.object }}">{{ triple.object_desc }}</a></td>
         </tr>
         {% endfor %}
     </table>
-    {% endif %}
-
-    {% if inbound_triples %}
-    <h3>Inbound Relations</h3>
-    <table>
-        <tr>
-            <th>Triple ID</th>
-            <th>Subject</th>
-            <th>Predicate</th>
-        </tr>
-        {% for triple in inbound_triples %}
-        <tr>
-            <td>{{ triple.id }}</td>
-            <td><a href="/atom?id={{ triple.subject }}">{{ triple.subject_desc }}</a></td>
-            <td><a href="/atom?id={{ triple.predicate }}">{{ triple.predicate_desc }}</a></td>
-        </tr>
-        {% endfor %}
-    </table>
-    {% endif %}
 </body>
 </html>
 "#;
@@ -223,50 +203,50 @@ async fn handle_atom(
         id.simple().to_string() // Fallback to UUID if nothing found
     }
 
-    // Extract and format outbound triples
-    let outbound_triples = indradb::util::extract_edges(outbound_results)
+    // Extract and format all triples
+    let all_triples = indradb::util::extract_edges(outbound_results)
         .unwrap()
         .into_iter()
         .map(|e| {
-            // Get predicate description using the edge type as the atom ID
-            let pred_desc = get_atom_description(&db, &e.outbound_id);
-
-            // Get object description
+            let subj_desc = get_atom_description(&db, &e.outbound_id);
+            // Convert the predicate to UUID and fetch its description
+            let pred_uuid = App::atom_id_to_uuid(&e.t.to_string()).unwrap();
+            let pred_desc = get_atom_description(&db, &pred_uuid);
             let obj_desc = get_atom_description(&db, &e.inbound_id);
 
             serde_json::json!({
-                "id": e.outbound_id.simple().to_string(),  // Use outbound_id for ID
+                "subject": e.outbound_id.simple().to_string(),
+                "subject_desc": subj_desc,
                 "predicate": e.t.to_string(),  // Original atom ID for the link
                 "predicate_desc": pred_desc,  // Description from the atom
                 "object": e.inbound_id.simple().to_string(),
                 "object_desc": obj_desc
             })
         })
+        .chain(
+            indradb::util::extract_edges(inbound_results)
+                .unwrap()
+                .into_iter()
+                .map(|e| {
+                    let subj_desc = get_atom_description(&db, &e.outbound_id);
+                    // Convert the predicate to UUID and fetch its description
+                    let pred_uuid = App::atom_id_to_uuid(&e.t.to_string()).unwrap();
+                    let pred_desc = get_atom_description(&db, &pred_uuid);
+                    let obj_desc = get_atom_description(&db, &e.inbound_id);
+
+                    serde_json::json!({
+                        "subject": e.outbound_id.simple().to_string(),
+                        "subject_desc": subj_desc,
+                        "predicate": e.t.to_string(),  // Original atom ID for the link
+                        "predicate_desc": pred_desc,  // Description from the atom
+                        "object": e.inbound_id.simple().to_string(),
+                        "object_desc": obj_desc
+                    })
+                }),
+        )
         .collect::<Vec<_>>();
 
-    // Extract and format inbound triples
-    let inbound_triples = indradb::util::extract_edges(inbound_results)
-        .unwrap()
-        .into_iter()
-        .map(|e| {
-            // Get subject description
-            let subj_desc = get_atom_description(&db, &e.outbound_id);
-
-            // Get predicate description using the edge type as the atom ID
-            let pred_desc = get_atom_description(&db, &e.inbound_id);
-
-            serde_json::json!({
-                "id": e.inbound_id.simple().to_string(),  // Use inbound_id for ID
-                "subject": e.outbound_id.simple().to_string(),
-                "subject_desc": subj_desc,
-                "predicate": e.t.to_string(),  // Original atom ID for the link
-                "predicate_desc": pred_desc  // Description from the atom
-            })
-        })
-        .collect::<Vec<_>>();
-
-    context.insert("outbound_triples", &outbound_triples);
-    context.insert("inbound_triples", &inbound_triples);
+    context.insert("all_triples", &all_triples);
 
     let rendered = tera
         .render("atom.html", &context)

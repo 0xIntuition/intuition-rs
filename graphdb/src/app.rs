@@ -130,7 +130,7 @@ impl App {
                     .await?;
 
                 // Create edge with type
-                let link_type = Identifier::new(predicate_atom.atom_type.to_string())?;
+                let link_type = Identifier::new(predicate_atom.id.to_string())?;
                 let edge = Edge::new(subject_vertex.id, link_type, object_vertex.id);
                 self.db.create_edge(&edge)?;
             }
