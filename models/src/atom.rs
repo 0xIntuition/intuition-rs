@@ -1,11 +1,11 @@
 use crate::{
     error::ModelError,
-    traits::{Model, SimpleCrud},
+    traits::{Model, Paginated, SimpleCrud},
     types::U256Wrapper,
 };
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
-use strum_macros::{Display, EnumString};
+use strum_macros::{Display, EnumIter, EnumString};
 
 use async_trait::async_trait;
 /// This struct represents an atom in the database.
@@ -38,7 +38,10 @@ pub enum AtomResolvingStatus {
 }
 
 /// This enum represents the type of an atom.
-#[derive(sqlx::Type, Clone, Debug, Display, EnumString, PartialEq, Serialize, Deserialize)]
+#[derive(
+    sqlx::Type, Clone, Debug, Display, EnumString, PartialEq, Serialize, Deserialize, EnumIter,
+)]
+#[strum(serialize_all = "PascalCase")]
 #[sqlx(type_name = "atom_type")]
 pub enum AtomType {
     Account,
@@ -222,6 +225,50 @@ impl Atom {
             .map_err(|e| ModelError::DecodingError(e.to_string()))?;
         let filtered_bytes: Vec<u8> = s.as_bytes().iter().filter(|&&b| b != 0).cloned().collect();
         String::from_utf8(filtered_bytes).map_err(|e| ModelError::DecodingError(e.to_string()))
+    }
+}
+
+#[async_trait]
+impl Paginated for Atom {
+    /// This is a method to get paginated atoms from the database.
+    // TODO: create a trait for this
+    async fn get_paginated(
+        pg_pool: &PgPool,
+        page: i64,
+        page_size: i64,
+        schema: &str,
+    ) -> Result<Vec<Atom>, ModelError> {
+        let query = format!(
+            r#"
+            SELECT *
+            FROM {}.atom
+            ORDER BY block_timestamp ASC
+            LIMIT $1 OFFSET $2
+            "#,
+            schema,
+        );
+
+        sqlx::query_as::<_, Atom>(&query)
+            .bind(page_size)
+            .bind((page - 1) * page_size)
+            .fetch_all(pg_pool)
+            .await
+            .map_err(|error| ModelError::QueryError(error.to_string()))
+    }
+
+    /// This is a method to get the total count of atoms in the database.
+    async fn get_total_count(pg_pool: &PgPool, schema: &str) -> Result<i64, ModelError> {
+        let query = format!(
+            r#"
+            SELECT COUNT(*) FROM {}.atom
+            "#,
+            schema,
+        );
+
+        sqlx::query_scalar(&query)
+            .fetch_one(pg_pool)
+            .await
+            .map_err(|error| ModelError::QueryError(error.to_string()))
     }
 }
 

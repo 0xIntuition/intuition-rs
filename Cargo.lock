@@ -984,6 +984,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9ae037714f313c1353189ead58ef9eec30a8e8dc101b2622d461418fd59e28a9"
 
 [[package]]
+name = "atomic"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8d818003e740b63afc82337e3160717f4f63078720a810b7b903e70a5d1d2994"
+dependencies = [
+ "bytemuck",
+]
+
+[[package]]
 name = "atomic-waker"
 version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2948,6 +2957,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d2fabcfbdc87f4758337ca535fb41a6d701b65693ce38287d856d1674551ec9b"
 
 [[package]]
+name = "graphdb"
+version = "0.1.0"
+dependencies = [
+ "dotenvy",
+ "env_logger",
+ "envy",
+ "indradb-lib",
+ "models",
+ "serde",
+ "serde_json",
+ "shared-utils",
+ "sqlx",
+ "thiserror 2.0.11",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
 name = "graphql-introspection-query"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3785,6 +3812,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b248f5224d1d606005e02c97f5aa4e88eeb230488bcc03bc9ca4d7991399f2b5"
 
 [[package]]
+name = "indradb-lib"
+version = "4.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "de3614d240e0668db511181bc7f29a92cc18f413c4afd7fb71e623ee5eb46b64"
+dependencies = [
+ "byteorder",
+ "internment",
+ "once_cell",
+ "rmp-serde",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "uuid",
+]
+
+[[package]]
 name = "instability"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3796,6 +3839,16 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.90",
+]
+
+[[package]]
+name = "internment"
+version = "0.7.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "04e8e537b529b8674e97e9fb82c10ff168a290ac3867a0295f112061ffbca1ef"
+dependencies = [
+ "hashbrown 0.14.5",
+ "parking_lot",
 ]
 
 [[package]]
@@ -5371,6 +5424,28 @@ checksum = "bb919243f34364b6bd2fc10ef797edbfa75f33c252e7998527479c6d6b47e1ec"
 dependencies = [
  "bytes",
  "rustc-hex",
+]
+
+[[package]]
+name = "rmp"
+version = "0.8.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "228ed7c16fa39782c3b3468e974aec2795e9089153cd08ee2e9aefb3613334c4"
+dependencies = [
+ "byteorder",
+ "num-traits",
+ "paste",
+]
+
+[[package]]
+name = "rmp-serde"
+version = "1.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "52e599a477cf9840e92f2cde9a7189e67b42c57532749bf90aea6ec10facd4db"
+dependencies = [
+ "byteorder",
+ "rmp",
+ "serde",
 ]
 
 [[package]]
@@ -7324,9 +7399,13 @@ dependencies = [
 
 [[package]]
 name = "uuid"
-version = "1.11.0"
+version = "1.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f8c5f0a0af699448548ad1a2fbf920fb4bee257eae39953ba95cb84891a0446a"
+checksum = "e0f540e3240398cce6128b64ba83fdbdd86129c16a3aa1a3a252efd66eb3d587"
+dependencies = [
+ "atomic",
+ "serde",
+]
 
 [[package]]
 name = "valuable"

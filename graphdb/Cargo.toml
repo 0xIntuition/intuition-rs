@@ -1,0 +1,18 @@
+[package]
+name = "graphdb"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+indradb-lib = "4.0.0"
+sqlx.workspace = true
+thiserror.workspace = true
+models = { path = "../models" }
+shared-utils = { path = "../shared-utils" }
+envy.workspace = true
+serde_json.workspace = true
+uuid = "1.15.1"
+env_logger.workspace = true
+dotenvy.workspace = true
+serde.workspace = true
+tokio.workspace = true
