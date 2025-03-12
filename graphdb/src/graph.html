@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Graph Visualization</title>
+    <script src="https://unpkg.com/cytoscape@3.19.1/dist/cytoscape.min.js"></script>
+    <style>
+        #cy {
+            width: 800px;
+            height: 600px;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <h1>Graph Visualization</h1>
+    <div id="cy"></div>
+    <script>
+        // Replace 'your_atom_id' with the actual atom ID you want to visualize
+        fetch('/graph?id=your_atom_id')
+            .then(response => response.json())
+            .then(data => {
+                const cy = cytoscape({
+                    container: document.getElementById('cy'),
+                    elements: [
+                        ...data.nodes.map(node => ({ data: { id: node.id, label: node.label } })),
+                        ...data.edges.map(edge => ({ data: { source: edge.source, target: edge.target, label: edge.label } }))
+                    ],
+                    style: [
+                        {
+                            selector: 'node',
+                            style: {
+                                'label': 'data(label)',
+                                'background-color': '#0074D9'
+                            }
+                        },
+                        {
+                            selector: 'edge',
+                            style: {
+                                'label': 'data(label)',
+                                'line-color': '#FF4136',
+                                'target-arrow-color': '#FF4136',
+                                'target-arrow-shape': 'triangle'
+                            }
+                        }
+                    ],
+                    layout: {
+                        name: 'grid',
+                        rows: 1
+                    }
+                });
+            });
+    </script>
+</body>
+</html>
