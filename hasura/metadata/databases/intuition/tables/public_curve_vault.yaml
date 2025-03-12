@@ -4,10 +4,22 @@ table:
 object_relationships:
   - name: atom
     using:
-      foreign_key_constraint_on: atom_id
+      manual_configuration:
+        column_mapping:
+          atom_id: id
+        insertion_order: null
+        remote_table:
+          name: atom
+          schema: public
   - name: triple
     using:
-      foreign_key_constraint_on: triple_id
+      manual_configuration:
+        column_mapping:
+          triple_id: id
+        insertion_order: null
+        remote_table:
+          name: triple
+          schema: public
 select_permissions:
   - role: anonymous
     permission:
