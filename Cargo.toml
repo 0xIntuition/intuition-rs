@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["cli", "consumer", "envio-indexer", "histocrawler", "histoflux", "image-guard", "models", "rpc-proxy", "shared-utils", "substreams-sink", "consumer-api"]
+members = ["cli", "consumer", "envio-indexer", "histocrawler", "histoflux", "image-guard", "models", "rpc-proxy", "shared-utils", "substreams-sink", "consumer-api", "graphdb"]
 
 
 [workspace.dependencies]
@@ -18,6 +18,7 @@ envy = "0.4.2"
 env_logger = "0.11.5"
 hex = { version = "0.4.3", features = ["serde"] }
 hypersync-client = "0.17.2"
+indradb-lib = "4.0.0"
 log = "0.4.20"
 macon = "1.2.0"
 rand = "0.8.5"
