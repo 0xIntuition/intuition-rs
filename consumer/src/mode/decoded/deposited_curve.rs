@@ -23,7 +23,8 @@ impl DepositedCurve {
         decoded_consumer_context: &DecodedConsumerContext,
         curve_vault: &CurveVault,
     ) -> Result<(), ConsumerError> {
-        // Build the position ID
+        // Build the position ID using the curve vault ID for uniqueness
+        // but reference the base vault ID for the foreign key constraint
         let position_id = format!("{}-{}", curve_vault.id, self.receiver.to_string().to_lowercase());
 
         // Check if the position already exists
@@ -39,7 +40,8 @@ impl DepositedCurve {
                 Position::builder()
                     .id(position_id)
                     .account_id(self.receiver.to_string())
-                    .vault_id(curve_vault.id.clone())
+                    // Use the base vault ID for the foreign key constraint
+                    .vault_id(U256Wrapper::from(self.vaultId))
                     .shares(self.receiverTotalSharesInVault)
                     .build()
                     .upsert(
@@ -53,7 +55,8 @@ impl DepositedCurve {
                 Position::builder()
                     .id(position_id)
                     .account_id(self.receiver.to_string())
-                    .vault_id(curve_vault.id.clone())
+                    // Use the base vault ID for the foreign key constraint
+                    .vault_id(U256Wrapper::from(self.vaultId))
                     .shares(self.receiverTotalSharesInVault)
                     .build()
                     .upsert(
@@ -112,17 +115,58 @@ impl DepositedCurve {
         Ok(())
     }
 
+    /// This function creates a `Deposit` record for the `DepositedCurve` event
+    async fn create_deposit(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+        event: &DecodedMessage,
+    ) -> Result<String, ConsumerError> {
+        // Create the deposit record
+        let deposit_id = DecodedMessage::event_id(event);
+        
+        // Use sqlx to insert the deposit record directly
+        // Cast string values to numeric using PostgreSQL's CAST function
+        sqlx::query(&format!(
+            r#"
+            INSERT INTO {}.deposit 
+                (id, sender_id, receiver_id, receiver_total_shares_in_vault, sender_assets_after_total_fees, shares_for_receiver, entry_fee, vault_id, is_triple, is_atom_wallet, block_number, block_timestamp, transaction_hash) 
+            VALUES ($1, $2, $3, CAST($4 AS NUMERIC), CAST($5 AS NUMERIC), CAST($6 AS NUMERIC), CAST($7 AS NUMERIC), CAST($8 AS NUMERIC), $9, $10, $11, $12, $13) 
+            ON CONFLICT (id) DO NOTHING
+            "#,
+            decoded_consumer_context.backend_schema
+        ))
+        .bind(&deposit_id)
+        .bind(&self.sender.to_string().to_lowercase())
+        .bind(&self.receiver.to_string().to_lowercase())
+        .bind(self.receiverTotalSharesInVault.to_string())
+        .bind(self.senderAssetsAfterTotalFees.to_string())
+        .bind(self.sharesForReceiver.to_string())
+        .bind(self.entryFee.to_string())
+        .bind(self.vaultId.to_string())
+        .bind(false) // is_triple
+        .bind(self.isAtomWallet)
+        .bind(event.block_number)
+        .bind(event.block_timestamp)
+        .bind(&event.transaction_hash)
+        .execute(&decoded_consumer_context.pg_pool)
+        .await
+        .map_err(|e| ConsumerError::ModelError(e.into()))?;
+        
+        Ok(deposit_id)
+    }
+
     /// This function creates an `Event` for the `DepositedCurve` event
     async fn create_event(
         &self,
         event: &DecodedMessage,
         decoded_consumer_context: &DecodedConsumerContext,
+        deposit_id: &str,
     ) -> Result<Event, ConsumerError> {
         // Create the event
         let event = Event::builder()
             .id(DecodedMessage::event_id(event))
             .event_type(EventType::Deposited) // Reuse the same event type
-            .atom_id(U256Wrapper::from(self.vaultId))
+            .deposit_id(deposit_id.to_string()) // Set deposit_id
             .block_number(U256Wrapper::try_from(event.block_number)?)
             .block_timestamp(event.block_timestamp)
             .transaction_hash(event.transaction_hash.clone())
@@ -159,6 +203,35 @@ impl DepositedCurve {
         Ok(())
     }
 
+    /// This function handles the creation of a curve deposit
+    pub async fn handle_curve_deposit_creation(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+        event: &DecodedMessage,
+    ) -> Result<(), ConsumerError> {
+        info!("Processing DepositedCurve event: {:?}", self);
+
+        // Initialize accounts
+        self.initialize_accounts(decoded_consumer_context).await?;
+
+        // Get or create the curve vault
+        let curve_vault = self.get_or_create_curve_vault(decoded_consumer_context, event).await?;
+
+        // Create deposit record first
+        let deposit_id = self.create_deposit(decoded_consumer_context, event).await?;
+
+        // Create event with deposit_id
+        self.create_event(event, decoded_consumer_context, &deposit_id).await?;
+
+        // Handle position
+        self.handle_position(decoded_consumer_context, &curve_vault).await?;
+
+        // Create signal
+        self.create_signal(decoded_consumer_context, event, &curve_vault).await?;
+
+        Ok(())
+    }
+
     /// This function gets or creates a curve vault
     async fn get_or_create_curve_vault(
         &self,
@@ -185,19 +258,26 @@ impl DepositedCurve {
         let curve_id = U256Wrapper::from(self.vaultId.saturating_mul(U256::from(1000)).saturating_add(U256::from(2)));
         
         // Check if the curve vault already exists
-        match CurveVault::find_by_id(
+        let curve_vault = CurveVault::find_by_id(
             curve_id.clone(),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
-        .await?
-        {
+        .await?;
+
+        match curve_vault {
             Some(mut curve_vault) => {
                 // Update the existing curve vault
+                // For a deposit, we add the new shares to the existing total
+                // First get the current shares as a U256
+                let current_shares = match curve_vault.total_shares.to_string().parse::<U256>() {
+                    Ok(shares) => shares,
+                    Err(_) => U256::from(0),
+                };
+                
+                // Add the new shares
                 curve_vault.total_shares = U256Wrapper::from(
-                    decoded_consumer_context
-                        .fetch_total_shares_in_vault(self.vaultId, event.block_number)
-                        .await?,
+                    current_shares.saturating_add(self.sharesForReceiver)
                 );
                 curve_vault.current_share_price = U256Wrapper::from(current_share_price);
                 
@@ -217,11 +297,8 @@ impl DepositedCurve {
                         .atom_id(atom_id)
                         // Don't set triple_id at all, it will be NULL by default
                         .vault_number(2) // Assuming this is vault 2
-                        .total_shares(U256Wrapper::from(
-                            decoded_consumer_context
-                                .fetch_total_shares_in_vault(self.vaultId, event.block_number)
-                                .await?,
-                        ))
+                        // For a new curve vault, the total shares are the shares for the receiver
+                        .total_shares(U256Wrapper::from(self.sharesForReceiver))
                         .current_share_price(U256Wrapper::from(current_share_price))
                         .position_count(0)
                         .build()
@@ -231,11 +308,8 @@ impl DepositedCurve {
                         // Don't set atom_id at all, it will be NULL by default
                         .triple_id(triple_id)
                         .vault_number(2) // Assuming this is vault 2
-                        .total_shares(U256Wrapper::from(
-                            decoded_consumer_context
-                                .fetch_total_shares_in_vault(self.vaultId, event.block_number)
-                                .await?,
-                        ))
+                        // For a new curve vault, the total shares are the shares for the receiver
+                        .total_shares(U256Wrapper::from(self.sharesForReceiver))
                         .current_share_price(U256Wrapper::from(current_share_price))
                         .position_count(0)
                         .build()
@@ -243,6 +317,7 @@ impl DepositedCurve {
                     return Err(ConsumerError::VaultNotFound);
                 };
 
+                // Create the curve vault first to ensure it exists before creating positions
                 curve_vault
                     .upsert(
                         &decoded_consumer_context.pg_pool,
@@ -252,31 +327,5 @@ impl DepositedCurve {
                     .map_err(ConsumerError::ModelError)
             }
         }
-    }
-
-    /// This function handles the creation of a curve deposit
-    pub async fn handle_curve_deposit_creation(
-        &self,
-        decoded_consumer_context: &DecodedConsumerContext,
-        event: &DecodedMessage,
-    ) -> Result<(), ConsumerError> {
-        info!("Processing DepositedCurve event: {:?}", self);
-
-        // Initialize accounts
-        self.initialize_accounts(decoded_consumer_context).await?;
-
-        // Get or create the curve vault
-        let curve_vault = self.get_or_create_curve_vault(decoded_consumer_context, event).await?;
-
-        // Handle position
-        self.handle_position(decoded_consumer_context, &curve_vault).await?;
-
-        // Create event
-        self.create_event(event, decoded_consumer_context).await?;
-
-        // Create signal
-        self.create_signal(decoded_consumer_context, event, &curve_vault).await?;
-
-        Ok(())
     }
 } 
