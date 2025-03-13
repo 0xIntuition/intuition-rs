@@ -731,6 +731,36 @@ impl ConsumerMode {
                     .await?;
                 timer.observe_duration();
             }
+            EthMultiVaultEvents::DepositedCurve(deposited_curve_data) => {
+                let timer = get_event_processing_histogram()
+                    .with_label_values(&["DepositedCurve"])
+                    .start_timer();
+                info!("Received: {deposited_curve_data:#?}");
+                deposited_curve_data
+                    .handle_curve_deposit_creation(decoded_consumer_context, &decoded_message)
+                    .await?;
+                timer.observe_duration();
+            }
+            EthMultiVaultEvents::RedeemedCurve(redeemed_curve_data) => {
+                let timer = get_event_processing_histogram()
+                    .with_label_values(&["RedeemedCurve"])
+                    .start_timer();
+                info!("Received: {redeemed_curve_data:#?}");
+                redeemed_curve_data
+                    .handle_curve_redeemed_creation(decoded_consumer_context, &decoded_message)
+                    .await?;
+                timer.observe_duration();
+            }
+            EthMultiVaultEvents::SharePriceChangedCurve(share_price_changed_curve_data) => {
+                let timer = get_event_processing_histogram()
+                    .with_label_values(&["SharePriceChangedCurve"])
+                    .start_timer();
+                info!("Received: {share_price_changed_curve_data:#?}");
+                share_price_changed_curve_data
+                    .handle_share_price_changed_curve(decoded_consumer_context, &decoded_message)
+                    .await?;
+                timer.observe_duration();
+            }
             _ => {
                 warn!("Received event: {decoded_message:#?}");
             }
