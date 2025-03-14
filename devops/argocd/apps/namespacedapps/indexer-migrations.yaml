@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: indexer-and-cache-migration
+  name: indexer-migration
 spec:
   template:
     spec:

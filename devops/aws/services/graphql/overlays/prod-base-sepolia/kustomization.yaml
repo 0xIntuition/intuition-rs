@@ -6,8 +6,8 @@ resources:
 - secret-provider.yaml
 - indexer-migrations.yaml
 
-namePrefix: prod-base-sepolia-
-
+# namePrefix: prod-base-sepolia-
+nameSuffix: "-prod-sepolia"
 
 patches:
 - path: deployment-patch.yaml
