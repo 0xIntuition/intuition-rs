@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: indexer-and-cache-migration
+  name: prod-sepolia-indexer-migration
 spec:
   template:
     spec:
