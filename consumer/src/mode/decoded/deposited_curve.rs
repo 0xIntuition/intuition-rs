@@ -23,9 +23,15 @@ impl DepositedCurve {
         decoded_consumer_context: &DecodedConsumerContext,
         curve_vault: &CurveVault,
     ) -> Result<(), ConsumerError> {
-        // Build the position ID using the curve vault ID for uniqueness
+        // Build the position ID using the atom/triple ID and curve number for uniqueness
         // but reference the base vault ID for the foreign key constraint
-        let position_id = format!("{}-{}", curve_vault.id, self.receiver.to_string().to_lowercase());
+        let position_id = if let Some(atom_id) = &curve_vault.atom_id {
+            format!("{}-{}-{}", atom_id, curve_vault.curve_number, self.receiver.to_string().to_lowercase())
+        } else if let Some(triple_id) = &curve_vault.triple_id {
+            format!("{}-{}-{}", triple_id, curve_vault.curve_number, self.receiver.to_string().to_lowercase())
+        } else {
+            return Err(ConsumerError::VaultNotFound);
+        };
 
         // Check if the position already exists
         match Position::find_by_id(
@@ -243,8 +249,8 @@ impl DepositedCurve {
             .fetch_current_share_price(self.vaultId, event.block_number)
             .await?;
 
-        // Get the vault to determine if this is for an atom or triple
-        let vault = Vault::find_by_id(
+        // Get the base vault to determine if this is for an atom or triple
+        let base_vault = Vault::find_by_id(
             U256Wrapper::from(self.vaultId),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
@@ -252,18 +258,19 @@ impl DepositedCurve {
         .await?
         .ok_or(ConsumerError::VaultNotFound)?;
 
-        // Generate a unique ID for the curve vault
-        // In a real implementation, this would come from the contract
-        // For now, we'll use a simple formula: vaultId * 1000 + 2 (assuming vault 2)
-        let curve_id = U256Wrapper::from(self.vaultId.saturating_mul(U256::from(1000)).saturating_add(U256::from(2)));
+        // Use the curveId from the event as the curve number
+        let curve_number = U256Wrapper::from(self.curveId);
         
-        // Check if the curve vault already exists
+        info!("Processing curve vault for atom/triple ID: {} with curve number: {}", self.vaultId, curve_number);
+        
+        // Find the curve vault by atom_id/triple_id and curve_number
         let curve_vault = CurveVault::find_by_id(
-            curve_id.clone(),
+            (base_vault.atom_id.clone(), base_vault.triple_id.clone(), curve_number.clone()),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
-        .await?;
+        .await
+        .map_err(|e| ConsumerError::ModelError(e))?;
 
         match curve_vault {
             Some(mut curve_vault) => {
@@ -281,50 +288,39 @@ impl DepositedCurve {
                 );
                 curve_vault.current_share_price = U256Wrapper::from(current_share_price);
                 
-                curve_vault
+                // Update the curve vault using upsert
+                let updated_curve_vault = curve_vault
                     .upsert(
                         &decoded_consumer_context.pg_pool,
                         &decoded_consumer_context.backend_schema,
                     )
                     .await
-                    .map_err(ConsumerError::ModelError)
+                    .map_err(|e| ConsumerError::ModelError(e))?;
+                
+                Ok(updated_curve_vault)
             }
             None => {
                 // Create a new curve vault
-                let curve_vault = if let Some(atom_id) = vault.atom_id {
-                    CurveVault::builder()
-                        .id(curve_id.clone())
-                        .atom_id(atom_id)
-                        // Don't set triple_id at all, it will be NULL by default
-                        .vault_number(2) // Assuming this is vault 2
-                        // For a new curve vault, the total shares are the shares for the receiver
-                        .total_shares(U256Wrapper::from(self.sharesForReceiver))
-                        .current_share_price(U256Wrapper::from(current_share_price))
-                        .position_count(0)
-                        .build()
-                } else if let Some(triple_id) = vault.triple_id {
-                    CurveVault::builder()
-                        .id(curve_id)
-                        // Don't set atom_id at all, it will be NULL by default
-                        .triple_id(triple_id)
-                        .vault_number(2) // Assuming this is vault 2
-                        // For a new curve vault, the total shares are the shares for the receiver
-                        .total_shares(U256Wrapper::from(self.sharesForReceiver))
-                        .current_share_price(U256Wrapper::from(current_share_price))
-                        .position_count(0)
-                        .build()
-                } else {
-                    return Err(ConsumerError::VaultNotFound);
+                let new_curve_vault = CurveVault {
+                    id: U256Wrapper::default(), // Will be set by upsert
+                    atom_id: base_vault.atom_id.clone(),
+                    triple_id: base_vault.triple_id.clone(),
+                    curve_number,
+                    total_shares: U256Wrapper::from(self.sharesForReceiver),
+                    current_share_price: U256Wrapper::from(current_share_price),
+                    position_count: 0,
                 };
-
-                // Create the curve vault first to ensure it exists before creating positions
-                curve_vault
+                
+                // Insert the new curve vault using upsert
+                let inserted_curve_vault = new_curve_vault
                     .upsert(
                         &decoded_consumer_context.pg_pool,
                         &decoded_consumer_context.backend_schema,
                     )
                     .await
-                    .map_err(ConsumerError::ModelError)
+                    .map_err(|e| ConsumerError::ModelError(e))?;
+                
+                Ok(inserted_curve_vault)
             }
         }
     }

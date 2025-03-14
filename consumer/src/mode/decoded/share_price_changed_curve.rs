@@ -8,6 +8,7 @@ use models::{
     curve_vault::CurveVault,
     types::U256Wrapper,
     traits::SimpleCrud,
+    vault::Vault,
 };
 use tracing::info;
 
@@ -20,12 +21,28 @@ impl SharePriceChangedCurve {
     ) -> Result<(), ConsumerError> {
         info!("Processing SharePriceChangedCurve event: {:?}", self);
 
-        // In a real implementation, the curveId would be used directly
-        let curve_id = U256Wrapper::from(self.curveId);
-
-        // Find the curve vault
+        // Get the curve number from the event
+        let curve_number = U256Wrapper::from(self.curveId);
+        
+        // Get the vault ID from the event
+        let vault_id = U256Wrapper::from(self.vaultId);
+        
+        // Find the base vault to determine if it's for an atom or triple
+        let base_vault = Vault::find_by_id(
+            vault_id,
+            &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
+        )
+        .await?
+        .ok_or(ConsumerError::VaultNotFound)?;
+        
+        // Determine if this is for an atom or triple
+        let atom_id = base_vault.atom_id.clone();
+        let triple_id = base_vault.triple_id.clone();
+        
+        // Find the curve vault using the composite key
         let curve_vault = CurveVault::find_by_id(
-            curve_id.clone(),
+            (atom_id, triple_id, curve_number),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
@@ -44,7 +61,7 @@ impl SharePriceChangedCurve {
         } else {
             // If the curve vault doesn't exist, we might want to create it
             // This would depend on the business logic
-            info!("Curve vault with ID {} not found for SharePriceChangedCurve event", curve_id);
+            info!("Curve vault not found for vault ID {} and curve number {}", self.vaultId, self.curveId);
         }
 
         Ok(())

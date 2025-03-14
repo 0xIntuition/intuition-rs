@@ -140,7 +140,6 @@ impl Encode<'_, Postgres> for U256Wrapper {
 /// This is a method to decode the `U256Wrapper` type from a `PgValueRef`
 /// type. This is necessary because the `sqlx` library needs to be able to
 /// convert the type to the correct one.
-// Start of Selection
 /// Implements the `Decode` trait for `U256Wrapper` to enable decoding from PostgreSQL.
 /// This allows `sqlx` to correctly deserialize `numeric` types into `U256Wrapper`.
 impl<'r> sqlx::Decode<'r, Postgres> for U256Wrapper {

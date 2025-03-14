@@ -27,7 +27,7 @@ select_permissions:
         - id
         - atom_id
         - triple_id
-        - vault_number
+        - curve_number
         - total_shares
         - current_share_price
         - position_count

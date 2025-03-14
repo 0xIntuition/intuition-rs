@@ -11,18 +11,19 @@ CREATE TABLE IF NOT EXISTS public.curve_vault (
     id NUMERIC PRIMARY KEY,
     atom_id NUMERIC,
     triple_id NUMERIC,
-    vault_number INTEGER NOT NULL,
+    curve_number NUMERIC NOT NULL,
     total_shares NUMERIC NOT NULL DEFAULT 0,
     current_share_price NUMERIC NOT NULL DEFAULT 0,
     position_count INTEGER NOT NULL DEFAULT 0,
     CHECK (atom_id IS NOT NULL OR triple_id IS NOT NULL),
     CHECK (atom_id IS NULL OR triple_id IS NULL),
-    CONSTRAINT vault_number_check CHECK (vault_number > 1)
+    CONSTRAINT curve_number_check CHECK (curve_number > 1)
 );
 
 -- Create indexes for faster lookups if they don't exist
-CREATE INDEX IF NOT EXISTS curve_vault_atom_id_idx ON public.curve_vault(atom_id);
-CREATE INDEX IF NOT EXISTS curve_vault_triple_id_idx ON public.curve_vault(triple_id);
+CREATE INDEX IF NOT EXISTS curve_vault_atom_id_idx ON public.curve_vault(atom_id) WHERE atom_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS curve_vault_triple_id_idx ON public.curve_vault(triple_id) WHERE triple_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS curve_vault_composite_idx ON public.curve_vault(atom_id, triple_id, curve_number);
 
 -- Add foreign key constraints if the referenced tables exist
 DO $$
@@ -61,10 +62,10 @@ $$;
 
 -- Add comments for better documentation
 COMMENT ON TABLE public.curve_vault IS 'Table to track multiple vaults per atom/triple (vaults 2-N)';
-COMMENT ON COLUMN public.curve_vault.id IS 'Unique identifier for this curve vault';
+COMMENT ON COLUMN public.curve_vault.id IS 'Unique identifier for the curve vault';
 COMMENT ON COLUMN public.curve_vault.atom_id IS 'Reference to the atom this vault belongs to (if applicable)';
 COMMENT ON COLUMN public.curve_vault.triple_id IS 'Reference to the triple this vault belongs to (if applicable)';
-COMMENT ON COLUMN public.curve_vault.vault_number IS 'The vault number (2, 3, 4, etc.) where 1 is the original vault in the vault table';
+COMMENT ON COLUMN public.curve_vault.curve_number IS 'The curve number (2, 3, 4, etc.) where 1 is the original vault in the vault table';
 COMMENT ON COLUMN public.curve_vault.total_shares IS 'Total shares in this vault';
 COMMENT ON COLUMN public.curve_vault.current_share_price IS 'Current share price in this vault';
 COMMENT ON COLUMN public.curve_vault.position_count IS 'Number of positions in this vault'; 
