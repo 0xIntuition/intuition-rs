@@ -47,9 +47,6 @@ spec:
                 name: 'hasura-aws-secrets'
               patch: |-
                 - op: replace
-                  path: /metadata/name
-                  value: '{{.namespace}}-hasura-aws-secrets'
-                - op: replace
                   path: /spec/secretObjects/0/secretName
                   value: '{{.namespace}}-hasura-aws-secrets'
             - target:
