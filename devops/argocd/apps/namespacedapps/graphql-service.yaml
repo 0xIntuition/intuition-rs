@@ -69,6 +69,9 @@ spec:
                 - op: add
                   path: /spec/template/metadata/labels/env
                   value: '{{.namespace}}'
+                - op: replace
+                  path: /spec/template/spec/containers/0/envFrom/0/secretRef/name
+                  value: '{{.namespace}}-hasura-aws-secrets'
                 - op: add
                   path: /spec/template/spec/containers/0/envFrom/-
                   value:
@@ -109,6 +112,9 @@ spec:
                   value: '{{.cluster}}-secrets-access-sa'
                 - op: replace
                   path: /spec/template/spec/volumes/0/csi/volumeAttributes/secretProviderClass
+                  value: '{{.namespace}}-hasura-aws-secrets'
+                - op: replace
+                  path: /spec/template/spec/containers/0/envFrom/0/secretRef/name
                   value: '{{.namespace}}-hasura-aws-secrets'
                 - op: add
                   path: /spec/template/spec/containers/0/envFrom/-
@@ -155,6 +161,9 @@ spec:
                   value: '{{.cluster}}-secrets-access-sa'
                 - op: replace
                   path: /spec/template/spec/volumes/0/csi/volumeAttributes/secretProviderClass
+                  value: '{{.namespace}}-hasura-aws-secrets'
+                - op: replace
+                  path: /spec/template/spec/containers/0/envFrom/0/secretRef/name
                   value: '{{.namespace}}-hasura-aws-secrets'
                 - op: add
                   path: /spec/template/spec/containers/0/envFrom/-
