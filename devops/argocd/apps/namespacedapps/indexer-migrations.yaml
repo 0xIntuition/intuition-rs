@@ -1,0 +1,27 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: indexer-and-cache-migration
+spec:
+  template:
+    spec:
+      serviceAccountName: '{{.cluster}}-{{.namespace}}-secrets-access-sa'
+      containers:
+        - name: indexer-migrations
+          image: your-docker-repo/indexer-migrations:latest
+          env:
+            - name: INDEXER_DATABASE_URL
+              value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/histoflux?sslmode=require'
+            - name: DATABASE_URL
+              value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/{{.namespace | replace "-" "_"}}?sslmode=require'
+            - name: HASURA_GRAPHQL_CACHE_DATABASE_URL
+              value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/histoflux?sslmode=require'
+            - name: HASURA_GRAPHQL_ENDPOINT
+              value: 'http://{{.namespace}}-graphql-engine:8080'
+            - name: HASURA_GRAPHQL_METADATA_DATABASE_URL
+              value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/{{.namespace | replace "-" "_"}}?sslmode=require'
+          envFrom:
+            - secretRef:
+                name: main-db-creds
+                prefix: "MAINDB_"
+      restartPolicy: OnFailure

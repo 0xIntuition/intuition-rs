@@ -93,86 +93,15 @@ spec:
                 name: indexer-and-cache-migration
               patch: |-
                 - op: replace
-                  path: /spec/template/spec/serviceAccountName
-                  value: '{{.cluster}}-{{.namespace}}-secrets-access-sa'
-                - op: add
-                  path: /spec/template/spec/containers/0/envFrom/-
-                  value:
-                    secretRef:
-                      name: 'main-db-creds'
-                    prefix: "MAINDB_"
-                - op: add
-                  path: /spec/template/spec/containers/0/env/-
-                  value:
-                    name: INDEXER_DATABASE_URL
-                    value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/histoflux?sslmode=require'
-
-                - op: add
-                  path: /spec/template/spec/containers/0/env/-
-                  value:
-                    name: DATABASE_URL
-                    value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/{{.namespace | replace "-" "_"}}?sslmode=require'
-
-                - op: add
-                  path: /spec/template/spec/containers/0/env/-
-                  value:
-                    name: HASURA_GRAPHQL_CACHE_DATABASE_URL
-                    value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/histoflux?sslmode=require'
-
-                - op: add
-                  path: /spec/template/spec/containers/0/env/-
-                  value:
-                    name: HASURA_GRAPHQL_ENDPOINT
-                    value: 'http://{{.namespace}}-graphql-engine:8080'
-
-                - op: add
-                  path: /spec/template/spec/containers/0/env/-
-                  value:
-                    name: HASURA_GRAPHQL_METADATA_DATABASE_URL
-                    value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/{{.namespace | replace "-" "_"}}?sslmode=require'
-
+                  path: /metadata/name
+                  value: '{{.namespace}}-indexer-and-cache-migration'
             - target:
                 kind: Job
                 name: hasura-migrations
               patch: |-
                 - op: replace
-                  path: /spec/template/spec/serviceAccountName
-                  value: '{{.cluster}}-{{.namespace}}-secrets-access-sa'
-                - op: add
-                  path: /spec/template/spec/containers/0/envFrom/-
-                  value:
-                    secretRef:
-                      name: 'main-db-creds'
-                    prefix: "MAINDB_"
-                - op: add
-                  path: /spec/template/spec/containers/0/env/-
-                  value:
-                    name: INDEXER_DATABASE_URL
-                    value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/histoflux?sslmode=require'
-
-                - op: add
-                  path: /spec/template/spec/containers/0/env/-
-                  value:
-                    name: DATABASE_URL
-                    value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/{{.namespace | replace "-" "_"}}?sslmode=require'
-
-                - op: add
-                  path: /spec/template/spec/containers/0/env/-
-                  value:
-                    name: HASURA_GRAPHQL_CACHE_DATABASE_URL
-                    value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/histoflux?sslmode=require'
-
-                - op: add
-                  path: /spec/template/spec/containers/0/env/-
-                  value:
-                    name: HASURA_GRAPHQL_ENDPOINT
-                    value: 'http://{{.namespace}}-graphql-engine:8080'
-
-                - op: add
-                  path: /spec/template/spec/containers/0/env/-
-                  value:
-                    name: HASURA_GRAPHQL_METADATA_DATABASE_URL
-                    value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/{{.namespace | replace "-" "_"}}?sslmode=require'
+                  path: /metadata/name
+                  value: '{{.namespace}}-hasura-migrations'
 
       destination:
         server: '{{.server}}'
