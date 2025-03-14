@@ -18,6 +18,10 @@ spec:
             server: 'https://kubernetes.default.svc'
             revision: francois/test-new-env
             namespace: dev-base-sepolia-2-0-23
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: prod-base-sepolia-deployment
+            namespace: prod-base-sepolia-2-0-23
   template:
     metadata:
       name: '{{.cluster}}-create-db-{{.namespace}}'
