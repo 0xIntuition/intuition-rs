@@ -132,13 +132,47 @@ impl RedeemedCurve {
             return Err(ConsumerError::VaultNotFound);
         };
 
-        // Delete the position if it exists
-        Position::delete(
-            position_id.to_string(),
+        // Check if the position exists before deleting
+        let position_exists = Position::find_by_id(
+            position_id.clone(),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
-        .await?;
+        .await?
+        .is_some();
+
+        // Delete the position if it exists
+        if position_exists {
+            Position::delete(
+                position_id.to_string(),
+                &decoded_consumer_context.pg_pool,
+                &decoded_consumer_context.backend_schema,
+            )
+            .await?;
+
+            // Decrement the position count in the curve vault
+            if curve_vault.position_count > 0 {
+                // Create a new curve vault with decremented position count
+                let updated_curve_vault = CurveVault {
+                    id: curve_vault.id.clone(),
+                    atom_id: curve_vault.atom_id.clone(),
+                    triple_id: curve_vault.triple_id.clone(),
+                    curve_number: curve_vault.curve_number.clone(),
+                    total_shares: curve_vault.total_shares.clone(),
+                    current_share_price: curve_vault.current_share_price.clone(),
+                    position_count: curve_vault.position_count - 1,
+                };
+                
+                // Update the curve vault
+                updated_curve_vault
+                    .upsert(
+                        &decoded_consumer_context.pg_pool,
+                        &decoded_consumer_context.backend_schema,
+                    )
+                    .await
+                    .map_err(|e| ConsumerError::ModelError(e))?;
+            }
+        }
 
         Ok(())
     }

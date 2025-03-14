@@ -6,6 +6,9 @@ use crate::{
 use async_trait::async_trait;
 use sqlx::{PgPool, Result};
 use std::str::FromStr;
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
+use alloy::primitives::U256;
 
 /// This struct defines a curve vault in the database. It represents vaults 2-N for an atom or triple,
 /// where vault 1 is the original vault tracked in the `vault` table.
@@ -55,24 +58,21 @@ impl SimpleCrud<(Option<U256Wrapper>, Option<U256Wrapper>, U256Wrapper)> for Cur
         // Generate a unique ID if not already set
         let id = if self.id == U256Wrapper::default() {
             // Generate a unique ID based on atom_id/triple_id and curve_number
-            let id_base = if let Some(atom_id) = &self.atom_id {
-                atom_id.to_string()
+            let unique_string = if let Some(atom_id) = &self.atom_id {
+                format!("atom-{}-curve-{}", atom_id, self.curve_number)
             } else if let Some(triple_id) = &self.triple_id {
-                triple_id.to_string()
+                format!("triple-{}-curve-{}", triple_id, self.curve_number)
             } else {
                 return Err(ModelError::InsertError("Either atom_id or triple_id must be set".to_string()));
             };
             
-            // Combine with curve_number to create a unique ID
-            let unique_id = format!("{}-{}", id_base, self.curve_number);
-            // Parse the unique ID as a string to create a numeric ID
-            match U256Wrapper::from_str(&unique_id) {
-                Ok(id) => id,
-                Err(_) => {
-                    // Fallback to a simple numeric ID based on the curve_number
-                    self.curve_number.clone()
-                }
-            }
+            // Hash the unique string to create a numeric ID
+            let mut hasher = DefaultHasher::new();
+            unique_string.hash(&mut hasher);
+            let hash_value = hasher.finish();
+            
+            // Convert the hash to a U256Wrapper by first converting to U256
+            U256Wrapper::from(U256::from(hash_value))
         } else {
             self.id.clone()
         };

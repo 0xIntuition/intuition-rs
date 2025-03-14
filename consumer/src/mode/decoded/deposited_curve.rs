@@ -34,43 +34,49 @@ impl DepositedCurve {
         };
 
         // Check if the position already exists
-        match Position::find_by_id(
+        let position_exists = Position::find_by_id(
             position_id.clone(),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
         .await?
-        {
-            Some(_) => {
-                // Update the existing position
-                Position::builder()
-                    .id(position_id)
-                    .account_id(self.receiver.to_string())
-                    // Use the base vault ID for the foreign key constraint
-                    .vault_id(U256Wrapper::from(self.vaultId))
-                    .shares(self.receiverTotalSharesInVault)
-                    .build()
-                    .upsert(
-                        &decoded_consumer_context.pg_pool,
-                        &decoded_consumer_context.backend_schema,
-                    )
-                    .await?;
-            }
-            None => {
-                // Create a new position
-                Position::builder()
-                    .id(position_id)
-                    .account_id(self.receiver.to_string())
-                    // Use the base vault ID for the foreign key constraint
-                    .vault_id(U256Wrapper::from(self.vaultId))
-                    .shares(self.receiverTotalSharesInVault)
-                    .build()
-                    .upsert(
-                        &decoded_consumer_context.pg_pool,
-                        &decoded_consumer_context.backend_schema,
-                    )
-                    .await?;
-            }
+        .is_some();
+
+        // Create or update the position
+        Position::builder()
+            .id(position_id)
+            .account_id(self.receiver.to_string())
+            // Use the base vault ID for the foreign key constraint
+            .vault_id(U256Wrapper::from(self.vaultId))
+            .shares(self.receiverTotalSharesInVault)
+            .build()
+            .upsert(
+                &decoded_consumer_context.pg_pool,
+                &decoded_consumer_context.backend_schema,
+            )
+            .await?;
+
+        // If this is a new position, increment the position count in the curve vault
+        if !position_exists {
+            // Create a new curve vault with incremented position count
+            let updated_curve_vault = CurveVault {
+                id: curve_vault.id.clone(),
+                atom_id: curve_vault.atom_id.clone(),
+                triple_id: curve_vault.triple_id.clone(),
+                curve_number: curve_vault.curve_number.clone(),
+                total_shares: curve_vault.total_shares.clone(),
+                current_share_price: curve_vault.current_share_price.clone(),
+                position_count: curve_vault.position_count + 1,
+            };
+            
+            // Update the curve vault
+            updated_curve_vault
+                .upsert(
+                    &decoded_consumer_context.pg_pool,
+                    &decoded_consumer_context.backend_schema,
+                )
+                .await
+                .map_err(|e| ConsumerError::ModelError(e))?;
         }
 
         Ok(())
