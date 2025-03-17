@@ -73,7 +73,9 @@ spec:
       destination:
         server: '{{.server}}'
         namespace: '{{.namespace}}'
-      syncPolicy: {}
+      syncPolicy:
+        syncOptions:
+        - CreateNamespace=true
         # automated:
         #   prune: false
         #   selfHeal: false

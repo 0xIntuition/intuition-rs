@@ -9,18 +9,18 @@ spec:
       containers:
         - name: histoflux
           image: ghcr.io/0xintuition/histoflux:2.0.3
-          imagePullPolicy: Always 
+          imagePullPolicy: Always
           volumeMounts:
             - name: secrets-store-inline
               mountPath: "/mnt/secrets"
               readOnly: true
           envFrom:
             - secretRef:
-                name: prod-base-sepolia-prod-histoflux-aws-secrets
+                name: histoflux-aws-secrets
       volumes:
         - name: secrets-store-inline
           csi:
             driver: secrets-store.csi.k8s.io
             readOnly: true
             volumeAttributes:
-              secretProviderClass: "prod-base-sepolia-prod-base-sepolia-prod-histoflux-aws-secrets"
+              secretProviderClass: "histoflux-aws-secrets"
