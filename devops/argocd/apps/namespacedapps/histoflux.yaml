@@ -30,6 +30,7 @@ spec:
             cursorID: '3'
             chain: base-sepolia
             env: prod-base-sepolia
+            namespace: prod-base-sepolia-2-0-23
   template:
     metadata:
       name: '{{.cluster}}-histoflux-{{.namespace}}'
