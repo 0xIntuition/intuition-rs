@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pgadmin
+  namespace: default
+spec:
+  containers:
+  - env:
+    - name: PGADMIN_DEFAULT_EMAIL
+      value: luis@intuition.com
+    - name: PGADMIN_DEFAULT_PASSWORD
+      value: admin
+    image: dpage/pgadmin4:latest
+    name: pgadmin
+    ports:
+    - containerPort: 80
+      protocol: TCP
