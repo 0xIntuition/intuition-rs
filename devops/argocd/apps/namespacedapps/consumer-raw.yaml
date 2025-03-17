@@ -17,7 +17,6 @@ spec:
             namespace: dev-base-sepolia-v2-0-0
             rpcURLBase: 'http://dev-rpc-proxy.default.svc.cluster.local:3008/84532/proxy'
             rpcURL: 'http://dev-rpc-proxy.default.svc.cluster.local:3008/1/proxy'
-
           - cluster: prod-eks
             server: 'https://kubernetes.default.svc'
             revision: francois/test-new-env
@@ -25,6 +24,13 @@ spec:
             namespace: dev-base-sepolia-2-0-23
             rpcURLBase: 'http://dev-rpc-proxy.default.svc.cluster.local:3008/84532/proxy'
             rpcURL: 'http://dev-rpc-proxy.default.svc.cluster.local:3008/1/proxy'
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: prod-base-sepolia-deployment
+            env: prod-base-sepolia
+            namespace: prod-base-sepolia-2-0-23
+            rpcURLBase: 'http://prod-rpc-proxy.default.svc.cluster.local:3008/84532/proxy'
+            rpcURL: 'http://prod-rpc-proxy.default.svc.cluster.local:3008/1/proxy'
   template:
     metadata:
       name: '{{.cluster}}-consumer-raw-{{.namespace}}'
