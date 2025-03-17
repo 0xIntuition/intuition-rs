@@ -36,4 +36,5 @@ spec:
             runAsUser: 0
             runAsGroup: 0
           envFrom: []
+          env: []
       restartPolicy: Always
