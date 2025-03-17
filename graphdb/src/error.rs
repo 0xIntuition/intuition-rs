@@ -13,6 +13,8 @@ pub enum GraphDBError {
     Indradb(#[from] indradb::ValidationError),
     #[error(transparent)]
     IndradbError(#[from] indradb::Error),
+    #[error("Get triple error: {0}")]
+    GetTripleError(String),
     #[error("Postgres connect error: {0}")]
     PostgresConnectError(String),
     #[error(transparent)]
@@ -25,6 +27,8 @@ pub enum GraphDBError {
     TemplateError,
     #[error(transparent)]
     Tera(#[from] tera::Error),
+    #[error("Triple count error: {0}")]
+    TripleCountError(String),
     #[error(transparent)]
     Uuid(#[from] uuid::Error),
 }

@@ -1,0 +1,17 @@
+query GetAtoms($limit: Int!, $offset: Int!) {
+  atoms(limit: $limit, offset: $offset) {
+    id
+    label
+    type
+    creator_id
+  }
+}
+
+query GetAtomById($id: numeric!) {
+  atom(id: $id) {
+    id
+    label
+    type
+    creator_id
+  }
+}

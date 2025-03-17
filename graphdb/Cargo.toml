@@ -7,9 +7,11 @@ edition = "2024"
 dotenvy.workspace = true
 env_logger.workspace = true
 envy.workspace = true
+graphql_client = "0.14.0"
 indradb-lib.workspace = true
 md5 = "0.7"
 models = { path = "../models" }
+reqwest.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 shared-utils = { path = "../shared-utils" }

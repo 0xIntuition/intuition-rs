@@ -4,6 +4,7 @@ use error::GraphDBError;
 pub mod app;
 pub mod error;
 pub mod explorer;
+pub mod graphql;
 // use indradb;
 
 // pub fn create_db() -> Result<(), indradb::Error> {
