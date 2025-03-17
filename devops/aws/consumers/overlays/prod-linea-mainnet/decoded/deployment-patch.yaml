@@ -15,7 +15,7 @@ spec:
               cpu: "1"
               memory: "1Gi"
             limits:
-              cpu: "3" 
+              cpu: "3"
               memory: "4Gi"
           volumeMounts:
             - name: secrets-store-inline
@@ -23,11 +23,11 @@ spec:
               readOnly: true
           envFrom:
             - secretRef:
-                name: prod-linea-mainnet-decoded-consumer-secrets
+                name: decoded-consumer-secrets
       volumes:
         - name: secrets-store-inline
           csi:
             driver: secrets-store.csi.k8s.io
             readOnly: true
             volumeAttributes:
-              secretProviderClass: "prod-linea-mainnet-prod-linea-mainnet-decoded-consumer-secrets"
+              secretProviderClass: "decoded-consumer-secrets"
