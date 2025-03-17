@@ -24,6 +24,12 @@ spec:
             chain: base-sepolia
             env: dev-base-sepolia
             namespace: dev-base-sepolia-2-0-23
+          # - cluster: prod-eks
+          #   server: 'https://kubernetes.default.svc'
+          #   revision: prod-base-sepolia-deployment
+          #   cursorID: '9'
+          #   chain: base-sepolia
+          #   env: prod-base-sepolia
   template:
     metadata:
       name: '{{.cluster}}-histoflux-{{.namespace}}'
