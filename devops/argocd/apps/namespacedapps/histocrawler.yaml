@@ -19,6 +19,15 @@ spec:
             intuitionContractAddress: '0x1A6950807E33d5bC9975067e6D6b5Ea4cD661665'
             startBlock: '12947309'
             rpcURL: 'http://dev-rpc-proxy.default.svc.cluster.local:3008/84532/proxy'
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: prod-base-sepolia-deployment
+            chain: base-mainnet
+            env: prod-base-mainnet
+            namespace: base-mainnet
+            intuitionContractAddress: '0x430BbF52503Bd4801E51182f4cB9f8F534225DE5'
+            startBlock: '18528268'
+            rpcURL: 'http://prod-rpc-proxy.default.svc.cluster.local:3008/8453/proxy'
   template:
     metadata:
       name: '{{.cluster}}-histocrawler-{{.namespace}}'
