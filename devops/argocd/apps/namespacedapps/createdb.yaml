@@ -28,7 +28,7 @@ spec:
             namespace: prod-base-mainnet-2-0-23
           - cluster: prod-eks
             server: 'https://kubernetes.default.svc'
-            revision: prod-base-mainnet-deployment
+            revision: prod-base-sepolia-deployment
             namespace: base-mainnet
   template:
     metadata:
