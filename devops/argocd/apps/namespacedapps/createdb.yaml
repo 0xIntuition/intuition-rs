@@ -26,6 +26,10 @@ spec:
             server: 'https://kubernetes.default.svc'
             revision: prod-base-sepolia-deployment
             namespace: prod-base-mainnet-2-0-23
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: prod-base-mainnet-deployment
+            namespace: base-mainnet
   template:
     metadata:
       name: '{{.cluster}}-create-db-{{.namespace}}'
