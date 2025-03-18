@@ -1,0 +1,10 @@
+apiVersion: sqs.aws.upbound.io/v1beta1
+kind: Queue
+metadata:
+  name: decoded-logs
+spec:
+  forProvider:
+    name: decoded-logs
+    region: us-west-2
+    fifoQueue: true
+    contentBasedDeduplication: true

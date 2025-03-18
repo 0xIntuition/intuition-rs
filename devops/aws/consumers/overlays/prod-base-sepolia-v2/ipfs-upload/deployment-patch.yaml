@@ -16,11 +16,11 @@ spec:
               readOnly: true
           envFrom:
             - secretRef:
-                name: prod-base-sepolia-v2-ipfs-upload-consumer-secrets
+                name: ipfs-upload-consumer-secrets
       volumes:
         - name: secrets-store-inline
           csi:
             driver: secrets-store.csi.k8s.io
             readOnly: true
             volumeAttributes:
-              secretProviderClass: "prod-base-sepolia-v2-prod-base-sepolia-v2-ipfs-upload-consumer-secrets"
+              secretProviderClass: "ipfs-upload-consumer-secrets"

@@ -6,3 +6,4 @@ volume
 .env.dump
 logs/*
 devops/aws/test_postgres.yaml
+**/.terraform/**

@@ -1,0 +1,53 @@
+apiVersion: rds.aws.upbound.io/v1beta1
+kind: SubnetGroup
+metadata:
+  name: prod-eks-rds-subnetgroup
+spec:
+  forProvider:
+    region: us-west-2
+    subnetIds:
+      - subnet-01ca2e43ff4a25afe
+      - subnet-0434aeb6636ddb374
+    tags:
+      Name: RDS Subnet Group
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: main-db-creds
+  namespace: default
+  annotations:
+    replicator.v1.mittwald.de/replication-allowed: "true"
+    replicator.v1.mittwald.de/replication-allowed-namespaces: "*"
+type: connection.crossplane.io/v1alpha1
+---
+apiVersion: rds.aws.upbound.io/v1beta3
+kind: Instance
+metadata:
+  name: main-db
+spec:
+  forProvider:
+    allocatedStorage: 100
+    autoGeneratePassword: true
+    autoMinorVersionUpgrade: true
+    identifier: maindb
+    dbName: maindb
+    engine: postgres
+    engineVersion: "16.6"
+    instanceClass: db.t3.2xlarge
+    publiclyAccessible: false
+    region: us-west-2
+    skipFinalSnapshot: true
+    dbSubnetGroupName: prod-eks-rds-subnetgroup
+    storageEncrypted: false
+    storageType: gp2
+    username: intuition
+    passwordSecretRef:
+      key: password
+      name: main-db-master-password
+      namespace: default
+  writeConnectionSecretToRef:
+    name: main-db-creds
+    namespace: default
+  providerConfigRef:
+    name: default

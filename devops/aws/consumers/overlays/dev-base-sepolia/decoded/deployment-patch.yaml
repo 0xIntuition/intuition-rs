@@ -23,11 +23,11 @@ spec:
               readOnly: true
           envFrom:
             - secretRef:
-                name: dev-base-sepolia-decoded-consumer-secrets
+                name: decoded-consumer-secrets
       volumes:
         - name: secrets-store-inline
           csi:
             driver: secrets-store.csi.k8s.io
             readOnly: true
             volumeAttributes:
-              secretProviderClass: "dev-base-sepolia-dev-base-sepolia-decoded-consumer-secrets"
+              secretProviderClass: "decoded-consumer-secrets"

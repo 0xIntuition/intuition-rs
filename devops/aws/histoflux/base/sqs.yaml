@@ -1,0 +1,10 @@
+apiVersion: sqs.aws.upbound.io/v1beta1
+kind: Queue
+metadata:
+  name: raw-logs-queue
+spec:
+  forProvider:
+    name: raw-logs-queue
+    region: us-west-2
+    fifoQueue: true
+    contentBasedDeduplication: true

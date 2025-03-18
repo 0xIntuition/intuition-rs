@@ -6,8 +6,6 @@ resources:
   - secret-provider.yaml
   - pvc.yaml
 
-namePrefix: "prod-base-sepolia-" 
-
 patches:
   - path: deployment-patch.yaml
     target:

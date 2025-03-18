@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: main-db-creds
+  annotations:
+    replicator.v1.mittwald.de/replicate-from: default/main-db-creds
+data: {}

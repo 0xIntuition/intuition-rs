@@ -21,11 +21,11 @@ spec:
               readOnly: true
           envFrom:
             - secretRef:
-                name: prod-histocrawler-aws-secrets
+                name: histocrawler-aws-secrets
       volumes:
         - name: secrets-store-inline
           csi:
             driver: secrets-store.csi.k8s.io
             readOnly: true
             volumeAttributes:
-              secretProviderClass: "prod-base-mainnet-prod-histocrawler-aws-secrets"
+              secretProviderClass: "histocrawler-aws-secrets"

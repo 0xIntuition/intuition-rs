@@ -1,0 +1,51 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: db-main-creds
+  namespace: argocd
+spec:
+  syncPolicy:
+    preserveResourcesOnDeletion: true
+  generators:
+    - list:
+        elements:
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: francois/add-iac
+            namespace: dev-base-sepolia-v2-0-0
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: francois/test-new-env
+            namespace: dev-base-sepolia-2-0-23
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: prod-base-sepolia-deployment
+            namespace: prod-base-sepolia-2-0-23
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: prod-base-sepolia-deployment
+            namespace: prod-base-mainnet-2-0-23
+  template:
+    metadata:
+      name: '{{ cluster }}-db-main-creds-{{namespace}}'
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/0xintuition/intuition-rs.git
+        path: 'devops/argocd/manifests/db-main-creds'
+        targetRevision: '{{ revision }}'
+      destination:
+        server: '{{ server }}'
+        namespace: '{{ namespace }}'
+      syncPolicy:
+        automated:
+          prune: false
+          selfHeal: false
+        syncOptions:
+        - CreateNamespace=true
+      ignoreDifferences:
+      - group: ""
+        kind: Secret
+        name: main-db-creds
+        jsonPointers:
+          - /data
