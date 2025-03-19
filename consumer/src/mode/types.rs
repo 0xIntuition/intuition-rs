@@ -1,27 +1,27 @@
 use crate::{
+    ENSRegistry::{self, ENSRegistryInstance},
+    EthMultiVault::{self, EthMultiVaultEvents, EthMultiVaultInstance},
     app_context::ServerInitialize,
     config::{ConsumerType, IndexerSource},
     consumer_type::sqs::Sqs,
     error::ConsumerError,
     schemas::types::DecodedMessage,
     traits::BasicConsumer,
-    ENSRegistry::{self, ENSRegistryInstance},
-    EthMultiVault::{self, EthMultiVaultEvents, EthMultiVaultInstance},
 };
 use alloy::{
     eips::BlockId,
-    primitives::{Address, Bytes, Uint, U256},
+    primitives::{Address, Bytes, U256, Uint},
     providers::{Provider, ProviderBuilder, RootProvider},
     transports::http::Http,
 };
 use models::{stats::Stats, types::U256Wrapper};
 use once_cell::sync::OnceCell;
-use prometheus::{register_histogram_vec, HistogramVec};
+use prometheus::{HistogramVec, register_histogram_vec};
 use reqwest::Client;
 use shared_utils::{ipfs::IPFSResolver, postgres::connect_to_db};
 use sqlx::PgPool;
 use std::{str::FromStr, sync::Arc};
-use tokio::time::{sleep, Duration};
+use tokio::time::{Duration, sleep};
 use tracing::{debug, info, warn};
 
 use super::{ipfs_upload::types::IpfsUploadMessage, resolver::types::ResolverConsumerMessage};
@@ -758,6 +758,16 @@ impl ConsumerMode {
                 info!("Received: {share_price_changed_curve_data:#?}");
                 share_price_changed_curve_data
                     .handle_share_price_changed_curve(decoded_consumer_context, &decoded_message)
+                    .await?;
+                timer.observe_duration();
+            }
+            EthMultiVaultEvents::SharePriceChanged(share_price_changed_data) => {
+                let timer = get_event_processing_histogram()
+                    .with_label_values(&["SharePriceChanged"])
+                    .start_timer();
+                info!("Received: {share_price_changed_data:#?}");
+                share_price_changed_data
+                    .handle_share_price_changed(decoded_consumer_context, &decoded_message)
                     .await?;
                 timer.observe_duration();
             }

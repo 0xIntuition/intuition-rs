@@ -10,6 +10,7 @@ use sqlx::{PgPool, Result};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 
+/// This struct defines a composite key for a curve vault.
 pub struct CurveVaultId {
     pub atom_id: Option<U256Wrapper>,
     pub triple_id: Option<U256Wrapper>,
