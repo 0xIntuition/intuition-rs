@@ -1,16 +1,16 @@
 use crate::{
-    mode::{decoded::utils::get_or_create_account, types::DecodedConsumerContext},
-    schemas::types::DecodedMessage,
     ConsumerError,
     EthMultiVault::RedeemedCurve,
+    mode::{decoded::utils::get_or_create_account, types::DecodedConsumerContext},
+    schemas::types::DecodedMessage,
 };
-use alloy::primitives::{Uint, U256};
+use alloy::primitives::{U256, Uint};
 use models::{
     curve_vault::CurveVault,
     event::{Event, EventType},
     position::Position,
     signal::Signal,
-    traits::{SimpleCrud, Deletable},
+    traits::{Deletable, SimpleCrud},
     types::U256Wrapper,
     vault::Vault,
 };
@@ -125,9 +125,19 @@ impl RedeemedCurve {
     ) -> Result<(), ConsumerError> {
         // Build the position ID using the atom/triple ID and curve number for uniqueness
         let position_id = if let Some(atom_id) = &curve_vault.atom_id {
-            format!("{}-{}-{}", atom_id, curve_vault.curve_number, self.sender.to_string().to_lowercase())
+            format!(
+                "{}-{}-{}",
+                atom_id,
+                curve_vault.curve_number,
+                self.sender.to_string().to_lowercase()
+            )
         } else if let Some(triple_id) = &curve_vault.triple_id {
-            format!("{}-{}-{}", triple_id, curve_vault.curve_number, self.sender.to_string().to_lowercase())
+            format!(
+                "{}-{}-{}",
+                triple_id,
+                curve_vault.curve_number,
+                self.sender.to_string().to_lowercase()
+            )
         } else {
             return Err(ConsumerError::VaultNotFound);
         };
@@ -162,7 +172,7 @@ impl RedeemedCurve {
                     current_share_price: curve_vault.current_share_price.clone(),
                     position_count: curve_vault.position_count - 1,
                 };
-                
+
                 // Update the curve vault
                 updated_curve_vault
                     .upsert(
@@ -170,7 +180,7 @@ impl RedeemedCurve {
                         &decoded_consumer_context.backend_schema,
                     )
                     .await
-                    .map_err(|e| ConsumerError::ModelError(e))?;
+                    .map_err(ConsumerError::ModelError)?;
             }
         }
 
@@ -195,7 +205,7 @@ impl RedeemedCurve {
             current_share_price: U256Wrapper::from(current_share_price),
             position_count: curve_vault.position_count,
         };
-        
+
         // Update the curve vault using upsert
         updated_curve_vault
             .upsert(
@@ -203,7 +213,7 @@ impl RedeemedCurve {
                 &decoded_consumer_context.backend_schema,
             )
             .await
-            .map_err(|e| ConsumerError::ModelError(e))?;
+            .map_err(ConsumerError::ModelError)?;
 
         Ok(())
     }
@@ -214,18 +224,10 @@ impl RedeemedCurve {
         decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<(), ConsumerError> {
         // Create or get the sender account
-        get_or_create_account(
-            self.sender.to_string(),
-            decoded_consumer_context,
-        )
-        .await?;
+        get_or_create_account(self.sender.to_string(), decoded_consumer_context).await?;
 
         // Create or get the receiver account
-        get_or_create_account(
-            self.receiver.to_string(),
-            decoded_consumer_context,
-        )
-        .await?;
+        get_or_create_account(self.receiver.to_string(), decoded_consumer_context).await?;
 
         Ok(())
     }
@@ -252,22 +254,27 @@ impl RedeemedCurve {
 
         // Use the curveId from the event as the curve number
         let curve_number = U256Wrapper::from(self.curveId);
-        
-        info!("Processing curve vault for atom/triple ID: {} with curve number: {}", self.vaultId, curve_number);
-        
+
+        info!(
+            "Processing curve vault for atom/triple ID: {} with curve number: {}",
+            self.vaultId, curve_number
+        );
+
         // Find the curve vault by atom_id/triple_id and curve_number
         let curve_vault = CurveVault::find_by_id(
-            (base_vault.atom_id.clone(), base_vault.triple_id.clone(), curve_number.clone()),
+            (
+                base_vault.atom_id.clone(),
+                base_vault.triple_id.clone(),
+                curve_number.clone(),
+            ),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
         .await
-        .map_err(|e| ConsumerError::ModelError(e))?;
+        .map_err(ConsumerError::ModelError)?;
 
         match curve_vault {
-            Some(curve_vault) => {
-                Ok(curve_vault)
-            }
+            Some(curve_vault) => Ok(curve_vault),
             None => {
                 // Create a new curve vault
                 let new_curve_vault = CurveVault {
@@ -279,7 +286,7 @@ impl RedeemedCurve {
                     current_share_price: U256Wrapper::from(current_share_price),
                     position_count: 0,
                 };
-                
+
                 // Insert the new curve vault using upsert
                 let inserted_curve_vault = new_curve_vault
                     .upsert(
@@ -287,8 +294,8 @@ impl RedeemedCurve {
                         &decoded_consumer_context.backend_schema,
                     )
                     .await
-                    .map_err(|e| ConsumerError::ModelError(e))?;
-                
+                    .map_err(ConsumerError::ModelError)?;
+
                 Ok(inserted_curve_vault)
             }
         }
@@ -306,7 +313,9 @@ impl RedeemedCurve {
         self.initialize_accounts(decoded_consumer_context).await?;
 
         // Get the curve vault
-        let curve_vault = self.get_curve_vault(decoded_consumer_context, event).await?;
+        let curve_vault = self
+            .get_curve_vault(decoded_consumer_context, event)
+            .await?;
 
         // Get the current share price
         let current_share_price = decoded_consumer_context
@@ -339,4 +348,4 @@ impl RedeemedCurve {
 
         Ok(())
     }
-} 
+}

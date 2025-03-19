@@ -3,18 +3,17 @@ use crate::{
     traits::{Model, SimpleCrud},
     types::U256Wrapper,
 };
+use alloy::primitives::U256;
 use async_trait::async_trait;
 use sqlx::{PgPool, Result};
-use std::str::FromStr;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
-use alloy::primitives::U256;
 
 /// This struct defines a curve vault in the database. It represents vaults 2-N for an atom or triple,
 /// where vault 1 is the original vault tracked in the `vault` table.
 /// These vaults contain economic data emitted from curve events, which mostly match
 /// the deposit and redeem events, except they have the word 'curve' in the event name.
-#[derive(Debug, sqlx::FromRow, Builder)]
+#[derive(Debug, Default, sqlx::FromRow, Builder)]
 #[sqlx(type_name = "curve_vault")]
 pub struct CurveVault {
     /// Unique identifier for the curve vault
@@ -32,21 +31,6 @@ pub struct CurveVault {
     /// Number of positions in this vault
     pub position_count: i32,
 }
-
-impl Default for CurveVault {
-    fn default() -> Self {
-        Self {
-            id: U256Wrapper::default(),
-            atom_id: None,
-            triple_id: None,
-            curve_number: U256Wrapper::default(),
-            total_shares: U256Wrapper::default(),
-            current_share_price: U256Wrapper::default(),
-            position_count: 0,
-        }
-    }
-}
-
 /// This is a trait that all models must implement.
 impl Model for CurveVault {}
 
@@ -63,14 +47,16 @@ impl SimpleCrud<(Option<U256Wrapper>, Option<U256Wrapper>, U256Wrapper)> for Cur
             } else if let Some(triple_id) = &self.triple_id {
                 format!("triple-{}-curve-{}", triple_id, self.curve_number)
             } else {
-                return Err(ModelError::InsertError("Either atom_id or triple_id must be set".to_string()));
+                return Err(ModelError::InsertError(
+                    "Either atom_id or triple_id must be set".to_string(),
+                ));
             };
-            
+
             // Hash the unique string to create a numeric ID
             let mut hasher = DefaultHasher::new();
             unique_string.hash(&mut hasher);
             let hash_value = hasher.finish();
-            
+
             // Convert the hash to a U256Wrapper by first converting to U256
             U256Wrapper::from(U256::from(hash_value))
         } else {
@@ -114,7 +100,7 @@ impl SimpleCrud<(Option<U256Wrapper>, Option<U256Wrapper>, U256Wrapper)> for Cur
         schema: &str,
     ) -> Result<Option<Self>, ModelError> {
         let (atom_id, triple_id, curve_number) = id;
-        
+
         let query = format!(
             r#"
             SELECT 
