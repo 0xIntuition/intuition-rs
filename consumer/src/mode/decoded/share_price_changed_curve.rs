@@ -1,13 +1,11 @@
 use crate::{
-    mode::types::DecodedConsumerContext,
+    ConsumerError, EthMultiVault::SharePriceChangedCurve, mode::types::DecodedConsumerContext,
     schemas::types::DecodedMessage,
-    ConsumerError,
-    EthMultiVault::SharePriceChangedCurve,
 };
 use models::{
-    curve_vault::CurveVault,
-    types::U256Wrapper,
+    curve_vault::{CurveVault, CurveVaultId},
     traits::SimpleCrud,
+    types::U256Wrapper,
     vault::Vault,
 };
 use tracing::info;
@@ -23,10 +21,10 @@ impl SharePriceChangedCurve {
 
         // Get the curve number from the event
         let curve_number = U256Wrapper::from(self.curveId);
-        
+
         // Get the vault ID from the event
         let vault_id = U256Wrapper::from(self.vaultId);
-        
+
         // Find the base vault to determine if it's for an atom or triple
         let base_vault = Vault::find_by_id(
             vault_id,
@@ -35,14 +33,10 @@ impl SharePriceChangedCurve {
         )
         .await?
         .ok_or(ConsumerError::VaultNotFound)?;
-        
-        // Determine if this is for an atom or triple
-        let atom_id = base_vault.atom_id.clone();
-        let triple_id = base_vault.triple_id.clone();
-        
+
         // Find the curve vault using the composite key
         let curve_vault = CurveVault::find_by_id(
-            (atom_id, triple_id, curve_number),
+            CurveVaultId::new(&base_vault, curve_number.clone()),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
@@ -51,7 +45,7 @@ impl SharePriceChangedCurve {
         // If the curve vault exists, update its share price
         if let Some(mut curve_vault) = curve_vault {
             curve_vault.current_share_price = U256Wrapper::from(self.newSharePrice);
-            
+
             curve_vault
                 .upsert(
                     &decoded_consumer_context.pg_pool,
@@ -61,9 +55,12 @@ impl SharePriceChangedCurve {
         } else {
             // If the curve vault doesn't exist, we might want to create it
             // This would depend on the business logic
-            info!("Curve vault not found for vault ID {} and curve number {}", self.vaultId, self.curveId);
+            info!(
+                "Curve vault not found for vault ID {} and curve number {}",
+                self.vaultId, self.curveId
+            );
         }
 
         Ok(())
     }
-} 
+}

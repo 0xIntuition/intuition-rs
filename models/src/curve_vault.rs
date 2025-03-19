@@ -2,12 +2,29 @@ use crate::{
     error::ModelError,
     traits::{Model, SimpleCrud},
     types::U256Wrapper,
+    vault::Vault,
 };
 use alloy::primitives::U256;
 use async_trait::async_trait;
 use sqlx::{PgPool, Result};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
+
+pub struct CurveVaultId {
+    pub atom_id: Option<U256Wrapper>,
+    pub triple_id: Option<U256Wrapper>,
+    pub curve_number: U256Wrapper,
+}
+
+impl CurveVaultId {
+    pub fn new(vault: &Vault, curve_number: U256Wrapper) -> Self {
+        Self {
+            atom_id: vault.atom_id.clone(),
+            triple_id: vault.triple_id.clone(),
+            curve_number,
+        }
+    }
+}
 
 /// This struct defines a curve vault in the database. It represents vaults 2-N for an atom or triple,
 /// where vault 1 is the original vault tracked in the `vault` table.
@@ -36,7 +53,7 @@ impl Model for CurveVault {}
 
 /// This trait works as a contract for all models that need to be upserted into the database.
 #[async_trait]
-impl SimpleCrud<(Option<U256Wrapper>, Option<U256Wrapper>, U256Wrapper)> for CurveVault {
+impl SimpleCrud<CurveVaultId> for CurveVault {
     /// This method upserts a curve vault into the database.
     async fn upsert(&self, pool: &PgPool, schema: &str) -> Result<Self, ModelError> {
         // Generate a unique ID if not already set
@@ -95,12 +112,10 @@ impl SimpleCrud<(Option<U256Wrapper>, Option<U256Wrapper>, U256Wrapper)> for Cur
 
     /// Finds a curve vault by its composite key (atom_id, triple_id, curve_number).
     async fn find_by_id(
-        id: (Option<U256Wrapper>, Option<U256Wrapper>, U256Wrapper),
+        id: CurveVaultId,
         pool: &PgPool,
         schema: &str,
     ) -> Result<Option<Self>, ModelError> {
-        let (atom_id, triple_id, curve_number) = id;
-
         let query = format!(
             r#"
             SELECT 
@@ -121,9 +136,9 @@ impl SimpleCrud<(Option<U256Wrapper>, Option<U256Wrapper>, U256Wrapper)> for Cur
         );
 
         sqlx::query_as::<_, CurveVault>(&query)
-            .bind(atom_id.as_ref().and_then(|w| w.to_big_decimal().ok()))
-            .bind(triple_id.as_ref().and_then(|w| w.to_big_decimal().ok()))
-            .bind(curve_number.to_big_decimal()?)
+            .bind(id.atom_id.as_ref().and_then(|w| w.to_big_decimal().ok()))
+            .bind(id.triple_id.as_ref().and_then(|w| w.to_big_decimal().ok()))
+            .bind(id.curve_number.to_big_decimal()?)
             .fetch_optional(pool)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
@@ -133,9 +148,7 @@ impl SimpleCrud<(Option<U256Wrapper>, Option<U256Wrapper>, U256Wrapper)> for Cur
 impl CurveVault {
     /// Updates the current share price of a curve vault.
     pub async fn update_current_share_price(
-        atom_id: Option<U256Wrapper>,
-        triple_id: Option<U256Wrapper>,
-        curve_number: U256Wrapper,
+        id: CurveVaultId,
         current_share_price: U256Wrapper,
         pool: &PgPool,
         schema: &str,
@@ -155,9 +168,9 @@ impl CurveVault {
 
         sqlx::query_as::<_, CurveVault>(&query)
             .bind(current_share_price.to_big_decimal()?)
-            .bind(atom_id.as_ref().and_then(|w| w.to_big_decimal().ok()))
-            .bind(triple_id.as_ref().and_then(|w| w.to_big_decimal().ok()))
-            .bind(curve_number.to_big_decimal()?)
+            .bind(id.atom_id.as_ref().and_then(|w| w.to_big_decimal().ok()))
+            .bind(id.triple_id.as_ref().and_then(|w| w.to_big_decimal().ok()))
+            .bind(id.curve_number.to_big_decimal()?)
             .fetch_one(pool)
             .await
             .map_err(|e| ModelError::UpdateError(e.to_string()))

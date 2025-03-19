@@ -6,7 +6,7 @@ use crate::{
 };
 use alloy::primitives::U256;
 use models::{
-    curve_vault::CurveVault,
+    curve_vault::{CurveVault, CurveVaultId},
     event::{Event, EventType},
     position::Position,
     signal::Signal,
@@ -281,11 +281,7 @@ impl DepositedCurve {
 
         // Find the curve vault by atom_id/triple_id and curve_number
         let curve_vault = CurveVault::find_by_id(
-            (
-                base_vault.atom_id.clone(),
-                base_vault.triple_id.clone(),
-                curve_number.clone(),
-            ),
+            CurveVaultId::new(&base_vault, curve_number.clone()),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
