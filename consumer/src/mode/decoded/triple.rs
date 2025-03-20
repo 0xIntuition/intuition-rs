@@ -1,10 +1,10 @@
 use crate::{
+    EthMultiVault::TripleCreated,
     error::ConsumerError,
     mode::{resolver::types::ResolverConsumerMessage, types::DecodedConsumerContext},
     schemas::types::DecodedMessage,
-    EthMultiVault::TripleCreated,
 };
-use alloy::primitives::{Uint, U256};
+use alloy::primitives::{U256, Uint};
 use models::{
     account::{Account, AccountType},
     atom::{Atom, AtomResolvingStatus, AtomType},
@@ -102,8 +102,12 @@ impl TripleCreated {
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
-        counter_vault_id: U256,
     ) -> Result<Triple, ConsumerError> {
+        // Get the counter vault ID
+        let counter_vault_id = decoded_consumer_context
+            .get_counter_id_from_triple(self.vaultId)
+            .await?;
+
         let creator_account = self
             .get_or_create_creator_account(decoded_consumer_context)
             .await?;
@@ -387,9 +391,9 @@ impl TripleCreated {
     ) -> Result<(), ConsumerError> {
         info!("Handling triple creation: {self:#?}");
 
-        // Update the counter vault current share price and get the triple
+        // Get or create the triple
         let triple = self
-            .update_vaults_current_share_price_and_get_triple(decoded_consumer_context, event)
+            .get_or_create_triple(decoded_consumer_context, event)
             .await?;
 
         // Update the predicate object
@@ -592,51 +596,5 @@ impl TripleCreated {
                 .await?;
         }
         Ok(())
-    }
-
-    /// This function updates the vault and counter vault current share prices
-    async fn update_vaults_current_share_price_and_get_triple(
-        &self,
-        decoded_consumer_context: &DecodedConsumerContext,
-        event: &DecodedMessage,
-    ) -> Result<Triple, ConsumerError> {
-        // Get the counter vault ID
-        let counter_vault_id = decoded_consumer_context
-            .get_counter_id_from_triple(self.vaultId)
-            .await?;
-        // Get the share price of the atom
-        // Get the current share price of the counter vault
-        let counter_vault_current_share_price = decoded_consumer_context
-            .fetch_current_share_price(counter_vault_id, event.block_number)
-            .await?;
-
-        // Get the current share price of the vault
-        let vault_current_share_price = decoded_consumer_context
-            .fetch_current_share_price(self.vaultId, event.block_number)
-            .await?;
-
-        // Get or create the triple
-        let triple = self
-            .get_or_create_triple(decoded_consumer_context, event, counter_vault_id)
-            .await?;
-
-        // Get or update the vault
-        self.get_or_create_vault(
-            decoded_consumer_context,
-            self.vaultId,
-            vault_current_share_price,
-            event.block_number,
-        )
-        .await?;
-        // Get or update the counter vault
-        self.get_or_create_vault(
-            decoded_consumer_context,
-            counter_vault_id,
-            counter_vault_current_share_price,
-            event.block_number,
-        )
-        .await?;
-
-        Ok(triple)
     }
 }
