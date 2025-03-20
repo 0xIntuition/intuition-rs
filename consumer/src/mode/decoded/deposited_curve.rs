@@ -8,6 +8,7 @@ use crate::{
 };
 use alloy::primitives::U256;
 use models::{
+    deposit::Deposit,
     event::{Event, EventType},
     position::Position,
     signal::Signal,
@@ -112,46 +113,6 @@ impl DepositedCurve {
         Ok(())
     }
 
-    /// This function creates a `Deposit` record for the `DepositedCurve` event
-    async fn create_deposit(
-        &self,
-        decoded_consumer_context: &DecodedConsumerContext,
-        event: &DecodedMessage,
-    ) -> Result<String, ConsumerError> {
-        // Create the deposit record
-        let deposit_id = DecodedMessage::event_id(event);
-
-        // Use sqlx to insert the deposit record directly
-        // Cast string values to numeric using PostgreSQL's CAST function
-        sqlx::query(&format!(
-            r#"
-            INSERT INTO {}.deposit 
-                (id, sender_id, receiver_id, receiver_total_shares_in_vault, sender_assets_after_total_fees, shares_for_receiver, entry_fee, vault_id, is_triple, is_atom_wallet, block_number, block_timestamp, transaction_hash) 
-            VALUES ($1, $2, $3, CAST($4 AS NUMERIC), CAST($5 AS NUMERIC), CAST($6 AS NUMERIC), CAST($7 AS NUMERIC), CAST($8 AS NUMERIC), $9, $10, $11, $12, $13) 
-            ON CONFLICT (id) DO NOTHING
-            "#,
-            decoded_consumer_context.backend_schema
-        ))
-        .bind(&deposit_id)
-        .bind(self.sender.to_string().to_lowercase())
-        .bind(self.receiver.to_string().to_lowercase())
-        .bind(self.receiverTotalSharesInVault.to_string())
-        .bind(self.senderAssetsAfterTotalFees.to_string())
-        .bind(self.sharesForReceiver.to_string())
-        .bind(self.entryFee.to_string())
-        .bind(self.vaultId.to_string())
-        .bind(false) // is_triple
-        .bind(self.isAtomWallet)
-        .bind(event.block_number)
-        .bind(event.block_timestamp)
-        .bind(&event.transaction_hash)
-        .execute(&decoded_consumer_context.pg_pool)
-        .await
-        .map_err(|e| ConsumerError::ModelError(e.into()))?;
-
-        Ok(deposit_id)
-    }
-
     /// This function creates an `Event` for the `DepositedCurve` event
     async fn create_event(
         &self,
@@ -192,6 +153,35 @@ impl DepositedCurve {
         Ok(())
     }
 
+    /// This function creates a deposit
+    async fn create_deposit(
+        &self,
+        event: &DecodedMessage,
+        decoded_consumer_context: &DecodedConsumerContext,
+    ) -> Result<Deposit, ConsumerError> {
+        Deposit::builder()
+            .id(DecodedMessage::event_id(event))
+            .sender_id(self.sender.to_string())
+            .receiver_id(self.receiver.to_string())
+            .receiver_total_shares_in_vault(U256Wrapper::from(self.receiverTotalSharesInVault))
+            .sender_assets_after_total_fees(U256Wrapper::from(self.senderAssetsAfterTotalFees))
+            .shares_for_receiver(U256Wrapper::from(self.sharesForReceiver))
+            .entry_fee(U256Wrapper::from(self.entryFee))
+            .vault_id(self.vaultId)
+            .is_triple(self.isTriple)
+            .is_atom_wallet(self.isAtomWallet)
+            .block_number(U256Wrapper::try_from(event.block_number)?)
+            .block_timestamp(event.block_timestamp)
+            .transaction_hash(event.transaction_hash.clone())
+            .build()
+            .upsert(
+                &decoded_consumer_context.pg_pool,
+                &decoded_consumer_context.backend_schema,
+            )
+            .await
+            .map_err(ConsumerError::ModelError)
+    }
+
     /// This function handles the creation of a curve deposit
     pub async fn handle_curve_deposit_creation(
         &self,
@@ -209,10 +199,10 @@ impl DepositedCurve {
             .await?;
 
         // Create deposit record first
-        let deposit_id = self.create_deposit(decoded_consumer_context, event).await?;
+        let deposit = self.create_deposit(event, decoded_consumer_context).await?;
 
         // Create event with deposit_id
-        self.create_event(event, decoded_consumer_context, &deposit_id)
+        self.create_event(event, decoded_consumer_context, &deposit.id)
             .await?;
 
         // Handle position
