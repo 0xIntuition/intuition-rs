@@ -383,6 +383,47 @@ impl TripleCreated {
         Ok((subject_atom, predicate_atom, object_atom))
     }
 
+    /// This function updates the vault and counter vault current share prices
+    async fn get_or_create_vaults(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+        event: &DecodedMessage,
+    ) -> Result<(), ConsumerError> {
+        // Get the counter vault ID
+        let counter_vault_id = decoded_consumer_context
+            .get_counter_id_from_triple(self.vaultId)
+            .await?;
+        // Get the share price of the atom
+        // Get the current share price of the counter vault
+        let counter_vault_current_share_price = decoded_consumer_context
+            .fetch_current_share_price(counter_vault_id, event.block_number)
+            .await?;
+
+        // Get the current share price of the vault
+        let vault_current_share_price = decoded_consumer_context
+            .fetch_current_share_price(self.vaultId, event.block_number)
+            .await?;
+
+        // Get or update the vault
+        self.get_or_create_vault(
+            decoded_consumer_context,
+            self.vaultId,
+            vault_current_share_price,
+            event.block_number,
+        )
+        .await?;
+        // Get or update the counter vault
+        self.get_or_create_vault(
+            decoded_consumer_context,
+            counter_vault_id,
+            counter_vault_current_share_price,
+            event.block_number,
+        )
+        .await?;
+
+        Ok(())
+    }
+
     /// This function handles an `TripleCreated` event.
     pub async fn handle_triple_creation(
         &self,
@@ -390,6 +431,10 @@ impl TripleCreated {
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
         info!("Handling triple creation: {self:#?}");
+
+        // Ensure that the vault and counter vault exist
+        self.get_or_create_vaults(decoded_consumer_context, event)
+            .await?;
 
         // Get or create the triple
         let triple = self
