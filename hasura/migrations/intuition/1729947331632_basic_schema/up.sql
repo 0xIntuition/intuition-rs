@@ -89,6 +89,7 @@ CREATE TABLE triple (
 
 CREATE TABLE vault (
   id NUMERIC(78, 0) PRIMARY KEY NOT NULL,
+  curve_id NUMERIC(78, 0),
   atom_id NUMERIC(78, 0),
   triple_id NUMERIC(78, 0),
   total_shares NUMERIC(78, 0) NOT NULL,
@@ -96,9 +97,9 @@ CREATE TABLE vault (
   position_count INTEGER NOT NULL,
   -- Ensure that exactly one of atom_id or triple_id is set
   CONSTRAINT check_atom_or_triple CHECK (
-    (atom_id IS NULL AND triple_id IS NOT NULL)
-    OR
-    (atom_id IS NOT NULL AND triple_id IS NULL)
+    (CASE WHEN atom_id IS NOT NULL THEN 1 ELSE 0 END +
+     CASE WHEN triple_id IS NOT NULL THEN 1 ELSE 0 END +
+     CASE WHEN curve_id IS NOT NULL THEN 1 ELSE 0 END) = 1
   )
 );
 
@@ -301,3 +302,4 @@ CREATE INDEX idx_event_triple ON event(triple_id);
 CREATE INDEX idx_event_block_number ON event(block_number);
 CREATE INDEX idx_event_block_timestamp ON event(block_timestamp);
 CREATE INDEX idx_event_transaction_hash ON event(transaction_hash);
+CREATE INDEX idx_vault_curve ON vault(curve_id);

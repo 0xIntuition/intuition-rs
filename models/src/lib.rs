@@ -6,7 +6,6 @@ pub mod byte_object;
 pub mod cached_image;
 pub mod caip10;
 pub mod claim;
-pub mod curve_vault;
 pub mod deposit;
 pub mod error;
 pub mod event;

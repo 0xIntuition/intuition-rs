@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use crate::{
     ConsumerError,
     EthMultiVault::DepositedCurve,
@@ -6,13 +8,12 @@ use crate::{
 };
 use alloy::primitives::U256;
 use models::{
-    curve_vault::{CurveVault, CurveVaultId},
     event::{Event, EventType},
     position::Position,
     signal::Signal,
     traits::SimpleCrud,
     types::U256Wrapper,
-    vault::Vault,
+    vault::{CurveVaultTerms, Vault},
 };
 use tracing::info;
 
@@ -21,72 +22,44 @@ impl DepositedCurve {
     async fn handle_position(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
-        curve_vault: &CurveVault,
+        vault: &Vault,
     ) -> Result<(), ConsumerError> {
         // Build the position ID using the atom/triple ID and curve number for uniqueness
         // but reference the base vault ID for the foreign key constraint
-        let position_id = if let Some(atom_id) = &curve_vault.atom_id {
-            format!(
-                "{}-{}-{}",
-                atom_id,
-                curve_vault.curve_number,
-                self.receiver.to_string().to_lowercase()
-            )
-        } else if let Some(triple_id) = &curve_vault.triple_id {
-            format!(
-                "{}-{}-{}",
-                triple_id,
-                curve_vault.curve_number,
-                self.receiver.to_string().to_lowercase()
-            )
-        } else {
-            return Err(ConsumerError::VaultNotFound);
-        };
+        let position_id =
+            vault.format_position_id(U256Wrapper::from_str(&self.receiver.to_string())?);
 
         // Check if the position already exists
-        let position_exists = Position::find_by_id(
+        let position = Position::find_by_id(
             position_id.clone(),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
-        .await?
-        .is_some();
+        .await?;
 
-        // Create or update the position
-        Position::builder()
-            .id(position_id)
-            .account_id(self.receiver.to_string())
-            // Use the base vault ID for the foreign key constraint
-            .vault_id(U256Wrapper::from(self.vaultId))
-            .shares(self.receiverTotalSharesInVault)
-            .build()
-            .upsert(
-                &decoded_consumer_context.pg_pool,
-                &decoded_consumer_context.backend_schema,
-            )
-            .await?;
-
-        // If this is a new position, increment the position count in the curve vault
-        if !position_exists {
-            // Create a new curve vault with incremented position count
-            let updated_curve_vault = CurveVault {
-                id: curve_vault.id.clone(),
-                atom_id: curve_vault.atom_id.clone(),
-                triple_id: curve_vault.triple_id.clone(),
-                curve_number: curve_vault.curve_number.clone(),
-                total_shares: curve_vault.total_shares.clone(),
-                current_share_price: curve_vault.current_share_price.clone(),
-                position_count: curve_vault.position_count + 1,
-            };
-
-            // Update the curve vault
-            updated_curve_vault
+        if let Some(mut position) = position {
+            // Update the position
+            position.shares = U256Wrapper::from(self.receiverTotalSharesInVault);
+            position
                 .upsert(
                     &decoded_consumer_context.pg_pool,
                     &decoded_consumer_context.backend_schema,
                 )
-                .await
-                .map_err(ConsumerError::ModelError)?;
+                .await?;
+        } else {
+            // Create or update the position
+            Position::builder()
+                .id(position_id)
+                .account_id(self.receiver.to_string())
+                // Use the base vault ID for the foreign key constraint
+                .vault_id(U256Wrapper::from(self.vaultId))
+                .shares(self.receiverTotalSharesInVault)
+                .build()
+                .upsert(
+                    &decoded_consumer_context.pg_pool,
+                    &decoded_consumer_context.backend_schema,
+                )
+                .await?;
         }
 
         Ok(())
@@ -97,7 +70,7 @@ impl DepositedCurve {
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
-        curve_vault: &CurveVault,
+        curve_vault: &Vault,
     ) -> Result<(), ConsumerError> {
         if self.senderAssetsAfterTotalFees > U256::from(0) {
             if let Some(atom_id) = curve_vault.atom_id.clone() {
@@ -251,12 +224,13 @@ impl DepositedCurve {
         Ok(())
     }
 
+    // TODO: review this function
     /// This function gets or creates a curve vault
     async fn get_or_create_curve_vault(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
-    ) -> Result<CurveVault, ConsumerError> {
+    ) -> Result<Vault, ConsumerError> {
         // Get the current share price
         let current_share_price = decoded_consumer_context
             .fetch_current_share_price(self.vaultId, event.block_number)
@@ -280,8 +254,8 @@ impl DepositedCurve {
         );
 
         // Find the curve vault by atom_id/triple_id and curve_number
-        let curve_vault = CurveVault::find_by_id(
-            CurveVaultId::new(&base_vault, curve_number.clone()),
+        let curve_vault = Vault::find_by_term(
+            CurveVaultTerms::new(&base_vault, curve_number.clone()),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
@@ -316,11 +290,11 @@ impl DepositedCurve {
             }
             None => {
                 // Create a new curve vault
-                let new_curve_vault = CurveVault {
+                let new_curve_vault = Vault {
                     id: U256Wrapper::default(), // Will be set by upsert
                     atom_id: base_vault.atom_id.clone(),
                     triple_id: base_vault.triple_id.clone(),
-                    curve_number,
+                    curve_id: Some(U256Wrapper::from(self.curveId)),
                     total_shares: U256Wrapper::from(self.sharesForReceiver),
                     current_share_price: U256Wrapper::from(current_share_price),
                     position_count: 0,

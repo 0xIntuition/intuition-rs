@@ -3,10 +3,9 @@ use crate::{
     schemas::types::DecodedMessage,
 };
 use models::{
-    curve_vault::{CurveVault, CurveVaultId},
     traits::SimpleCrud,
     types::U256Wrapper,
-    vault::Vault,
+    vault::{CurveVaultTerms, Vault},
 };
 use tracing::info;
 
@@ -35,8 +34,8 @@ impl SharePriceChangedCurve {
         .ok_or(ConsumerError::VaultNotFound)?;
 
         // Find the curve vault using the composite key
-        let curve_vault = CurveVault::find_by_id(
-            CurveVaultId::new(&base_vault, curve_number.clone()),
+        let curve_vault = Vault::find_by_term(
+            CurveVaultTerms::new(&base_vault, curve_number.clone()),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
