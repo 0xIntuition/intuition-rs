@@ -251,6 +251,13 @@ CREATE TABLE atom_value (
   book_id NUMERIC(78, 0) REFERENCES book(id)
 );
 
+CREATE TABLE share_price_aggregate (
+    id BIGSERIAL PRIMARY KEY,
+    vault_id NUMERIC NOT NULL REFERENCES vault(id),
+    current_share_price NUMERIC NOT NULL,
+    last_time_updated TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+);
+
 -- Create indexes
 CREATE INDEX idx_atom_creator ON atom(creator_id);
 CREATE INDEX idx_atom_vault ON atom(vault_id);
@@ -303,3 +310,8 @@ CREATE INDEX idx_event_block_number ON event(block_number);
 CREATE INDEX idx_event_block_timestamp ON event(block_timestamp);
 CREATE INDEX idx_event_transaction_hash ON event(transaction_hash);
 CREATE INDEX idx_vault_curve ON vault(curve_id);
+CREATE INDEX idx_share_price_aggregate_vault ON share_price_aggregate(vault_id);
+CREATE INDEX idx_share_price_aggregate_last_time_updated ON share_price_aggregate(last_time_updated);
+CREATE INDEX idx_share_price_aggregate_vault_last_time_updated ON share_price_aggregate(vault_id, last_time_updated);
+CREATE INDEX idx_share_price_aggregate_id ON share_price_aggregate(id);
+CREATE INDEX idx_share_price_aggregate_current_share_price ON share_price_aggregate(current_share_price);

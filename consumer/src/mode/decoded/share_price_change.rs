@@ -4,7 +4,10 @@ use crate::{
     ConsumerError, EthMultiVault::SharePriceChanged, mode::types::DecodedConsumerContext,
     schemas::types::DecodedMessage,
 };
-use models::{traits::SimpleCrud, types::U256Wrapper, vault::Vault};
+use models::{
+    share_price_aggregate::SharePriceAggregate, traits::SimpleCrud, types::U256Wrapper,
+    vault::Vault,
+};
 use tracing::info;
 
 impl SharePriceChanged {
@@ -33,6 +36,25 @@ impl SharePriceChanged {
                 )
                 .await?;
         }
+        // Update the share price aggregate of the vault
+        self.update_share_price_aggregate(decoded_consumer_context)
+            .await?;
+
+        Ok(())
+    }
+
+    /// This function updates the share price aggregate of a curve vault
+    async fn update_share_price_aggregate(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+    ) -> Result<(), ConsumerError> {
+        SharePriceAggregate::insert(
+            &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
+            U256Wrapper::from_str(&self.vaultId.to_string())?,
+            U256Wrapper::from(self.newSharePrice),
+        )
+        .await?;
 
         Ok(())
     }
