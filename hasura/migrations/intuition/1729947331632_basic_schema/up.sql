@@ -98,8 +98,7 @@ CREATE TABLE vault (
   -- Ensure that exactly one of atom_id or triple_id is set
   CONSTRAINT check_atom_or_triple CHECK (
     (CASE WHEN atom_id IS NOT NULL THEN 1 ELSE 0 END +
-     CASE WHEN triple_id IS NOT NULL THEN 1 ELSE 0 END +
-     CASE WHEN curve_id IS NOT NULL THEN 1 ELSE 0 END) = 1
+     CASE WHEN triple_id IS NOT NULL THEN 1 ELSE 0 END) = 1
   )
 );
 
