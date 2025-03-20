@@ -1,9 +1,9 @@
 use super::utils::get_or_create_account;
 use crate::{
-    error::ConsumerError, mode::types::DecodedConsumerContext, schemas::types::DecodedMessage,
-    EthMultiVault::Redeemed,
+    EthMultiVault::Redeemed, error::ConsumerError, mode::types::DecodedConsumerContext,
+    schemas::types::DecodedMessage,
 };
-use alloy::primitives::{Uint, U256};
+use alloy::primitives::{U256, Uint};
 use models::{
     account::Account,
     claim::Claim,
@@ -233,11 +233,6 @@ impl Redeemed {
         )
         .await?;
 
-        // 3. Get vault and current share price
-        let current_share_price = decoded_consumer_context
-            .fetch_current_share_price(self.vaultId, event.block_number)
-            .await?;
-
         // When the redemption fully depletes the sender's shares:
         if self.senderTotalSharesInVault == Uint::from(0) {
             // Build the position ID
@@ -250,21 +245,13 @@ impl Redeemed {
                 .await?;
 
             // Optionally update vault stats (if needed)
-            self.update_vault_stats(
-                decoded_consumer_context,
-                current_share_price,
-                event.block_number,
-            )
-            .await?;
+            self.update_vault_total_shares(decoded_consumer_context, event.block_number)
+                .await?;
         } else {
             self.handle_remaining_shares(&vault, &sender_account, decoded_consumer_context)
                 .await?;
-            self.update_vault_stats(
-                decoded_consumer_context,
-                current_share_price,
-                event.block_number,
-            )
-            .await?;
+            self.update_vault_total_shares(decoded_consumer_context, event.block_number)
+                .await?;
         }
 
         // 4. Create event and signal records
@@ -391,10 +378,9 @@ impl Redeemed {
     }
 
     /// This function updates the vault stats
-    async fn update_vault_stats(
+    async fn update_vault_total_shares(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
-        current_share_price: U256,
         block_number: i64,
     ) -> Result<(), ConsumerError> {
         if let Some(mut vault) = Vault::find_by_id(
@@ -410,7 +396,6 @@ impl Redeemed {
                     .fetch_total_shares_in_vault(self.vaultId, block_number)
                     .await?,
             );
-            vault.current_share_price = U256Wrapper::from(current_share_price);
             vault
                 .upsert(
                     &decoded_consumer_context.pg_pool,

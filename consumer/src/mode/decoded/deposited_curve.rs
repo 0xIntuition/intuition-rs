@@ -13,9 +13,11 @@ use models::{
     signal::Signal,
     traits::SimpleCrud,
     types::U256Wrapper,
-    vault::{CurveVaultTerms, Vault},
+    vault::Vault,
 };
 use tracing::info;
+
+use super::utils::get_absolute_triple_id;
 
 impl DepositedCurve {
     /// This function creates a new position or updates an existing one
@@ -203,7 +205,7 @@ impl DepositedCurve {
 
         // Get or create the curve vault
         let curve_vault = self
-            .get_or_create_curve_vault(decoded_consumer_context, event)
+            .get_or_create_curve_vault(event, decoded_consumer_context)
             .await?;
 
         // Create deposit record first
@@ -224,92 +226,77 @@ impl DepositedCurve {
         Ok(())
     }
 
-    // TODO: review this function
     /// This function gets or creates a curve vault
     async fn get_or_create_curve_vault(
         &self,
-        decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
+        decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<Vault, ConsumerError> {
-        // Get the current share price
         let current_share_price = decoded_consumer_context
             .fetch_current_share_price(self.vaultId, event.block_number)
             .await?;
-
-        // Get the base vault to determine if this is for an atom or triple
-        let base_vault = Vault::find_by_id(
-            U256Wrapper::from(self.vaultId),
+        match Vault::find_by_id(
+            U256Wrapper::from_str(&self.vaultId.to_string())?,
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
         .await?
-        .ok_or(ConsumerError::VaultNotFound)?;
-
-        // Use the curveId from the event as the curve number
-        let curve_number = U256Wrapper::from(self.curveId);
-
-        info!(
-            "Processing curve vault for atom/triple ID: {} with curve number: {}",
-            self.vaultId, curve_number
-        );
-
-        // Find the curve vault by atom_id/triple_id and curve_number
-        let curve_vault = Vault::find_by_term(
-            CurveVaultTerms::new(&base_vault, curve_number.clone()),
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
-        )
-        .await
-        .map_err(ConsumerError::ModelError)?;
-
-        match curve_vault {
-            Some(mut curve_vault) => {
-                // Update the existing curve vault
-                // For a deposit, we add the new shares to the existing total
-                // First get the current shares as a U256
-                let current_shares = match curve_vault.total_shares.to_string().parse::<U256>() {
-                    Ok(shares) => shares,
-                    Err(_) => U256::from(0),
-                };
-
-                // Add the new shares
-                curve_vault.total_shares =
-                    U256Wrapper::from(current_shares.saturating_add(self.sharesForReceiver));
-                curve_vault.current_share_price = U256Wrapper::from(current_share_price);
-
-                // Update the curve vault using upsert
-                let updated_curve_vault = curve_vault
+        {
+            Some(mut vault) => {
+                vault.current_share_price = U256Wrapper::from(current_share_price);
+                vault.total_shares = U256Wrapper::from(
+                    decoded_consumer_context
+                        .fetch_total_shares_in_vault(self.vaultId, event.block_number)
+                        .await?,
+                );
+                vault
                     .upsert(
                         &decoded_consumer_context.pg_pool,
                         &decoded_consumer_context.backend_schema,
                     )
                     .await
-                    .map_err(ConsumerError::ModelError)?;
-
-                Ok(updated_curve_vault)
+                    .map_err(ConsumerError::ModelError)
             }
             None => {
-                // Create a new curve vault
-                let new_curve_vault = Vault {
-                    id: U256Wrapper::default(), // Will be set by upsert
-                    atom_id: base_vault.atom_id.clone(),
-                    triple_id: base_vault.triple_id.clone(),
-                    curve_id: Some(U256Wrapper::from(self.curveId)),
-                    total_shares: U256Wrapper::from(self.sharesForReceiver),
-                    current_share_price: U256Wrapper::from(current_share_price),
-                    position_count: 0,
-                };
-
-                // Insert the new curve vault using upsert
-                let inserted_curve_vault = new_curve_vault
-                    .upsert(
-                        &decoded_consumer_context.pg_pool,
-                        &decoded_consumer_context.backend_schema,
-                    )
-                    .await
-                    .map_err(ConsumerError::ModelError)?;
-
-                Ok(inserted_curve_vault)
+                if self.isTriple {
+                    Vault::builder()
+                        .id(self.vaultId)
+                        .current_share_price(U256Wrapper::from(current_share_price))
+                        .position_count(0)
+                        .curve_id(U256Wrapper::from(self.curveId))
+                        .triple_id(get_absolute_triple_id(self.vaultId))
+                        .total_shares(U256Wrapper::from(
+                            decoded_consumer_context
+                                .fetch_total_shares_in_vault(self.vaultId, event.block_number)
+                                .await?,
+                        ))
+                        .build()
+                        .upsert(
+                            &decoded_consumer_context.pg_pool,
+                            &decoded_consumer_context.backend_schema,
+                        )
+                        .await
+                        .map_err(ConsumerError::ModelError)
+                } else {
+                    Vault::builder()
+                        .id(self.vaultId)
+                        .current_share_price(U256Wrapper::from(current_share_price))
+                        .position_count(0)
+                        .curve_id(U256Wrapper::from(self.curveId))
+                        .atom_id(self.vaultId)
+                        .total_shares(U256Wrapper::from(
+                            decoded_consumer_context
+                                .fetch_total_shares_in_vault(self.vaultId, event.block_number)
+                                .await?,
+                        ))
+                        .build()
+                        .upsert(
+                            &decoded_consumer_context.pg_pool,
+                            &decoded_consumer_context.backend_schema,
+                        )
+                        .await
+                        .map_err(ConsumerError::ModelError)
+                }
             }
         }
     }

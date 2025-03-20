@@ -11,7 +11,7 @@ use models::{
     signal::Signal,
     traits::{Deletable, SimpleCrud},
     types::U256Wrapper,
-    vault::{CurveVaultTerms, Vault},
+    vault::Vault,
 };
 use tracing::info;
 
@@ -179,22 +179,11 @@ impl RedeemedCurve {
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         current_share_price: U256,
-        _block_number: i64,
-        curve_vault: &Vault,
+        curve_vault: &mut Vault,
     ) -> Result<(), ConsumerError> {
-        // Create a new curve vault with the same ID but updated values
-        let updated_curve_vault = Vault {
-            id: curve_vault.id.clone(),
-            atom_id: curve_vault.atom_id.clone(),
-            triple_id: curve_vault.triple_id.clone(),
-            curve_id: curve_vault.curve_id.clone(),
-            total_shares: U256Wrapper::from(self.senderTotalSharesInVault),
-            current_share_price: U256Wrapper::from(current_share_price),
-            position_count: curve_vault.position_count,
-        };
-
-        // Update the curve vault using upsert
-        updated_curve_vault
+        curve_vault.total_shares = U256Wrapper::from(self.senderTotalSharesInVault);
+        curve_vault.current_share_price = U256Wrapper::from(current_share_price);
+        curve_vault
             .upsert(
                 &decoded_consumer_context.pg_pool,
                 &decoded_consumer_context.backend_schema,
@@ -219,71 +208,6 @@ impl RedeemedCurve {
         Ok(())
     }
 
-    /// This function gets or creates the curve vault
-    async fn get_curve_vault(
-        &self,
-        decoded_consumer_context: &DecodedConsumerContext,
-        event: &DecodedMessage,
-    ) -> Result<Vault, ConsumerError> {
-        // Get the current share price
-        let current_share_price = decoded_consumer_context
-            .fetch_current_share_price(self.vaultId, event.block_number)
-            .await?;
-
-        // Get the base vault to determine if this is for an atom or triple
-        let base_vault = Vault::find_by_id(
-            U256Wrapper::from(self.vaultId),
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
-        )
-        .await?
-        .ok_or(ConsumerError::VaultNotFound)?;
-
-        // Use the curveId from the event as the curve number
-        let curve_number = U256Wrapper::from(self.curveId);
-
-        info!(
-            "Processing curve vault for atom/triple ID: {} with curve number: {}",
-            self.vaultId, curve_number
-        );
-
-        // Find the curve vault by atom_id/triple_id and curve_number
-        let curve_vault = Vault::find_by_term(
-            CurveVaultTerms::new(&base_vault, curve_number.clone()),
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
-        )
-        .await
-        .map_err(ConsumerError::ModelError)?;
-
-        match curve_vault {
-            Some(curve_vault) => Ok(curve_vault),
-            None => {
-                // Create a new curve vault
-                let new_curve_vault = Vault {
-                    id: U256Wrapper::default(), // Will be set by upsert
-                    atom_id: base_vault.atom_id.clone(),
-                    triple_id: base_vault.triple_id.clone(),
-                    curve_id: Some(U256Wrapper::from(self.curveId)),
-                    total_shares: U256Wrapper::from(self.senderTotalSharesInVault),
-                    current_share_price: U256Wrapper::from(current_share_price),
-                    position_count: 0,
-                };
-
-                // Insert the new curve vault using upsert
-                let inserted_curve_vault = new_curve_vault
-                    .upsert(
-                        &decoded_consumer_context.pg_pool,
-                        &decoded_consumer_context.backend_schema,
-                    )
-                    .await
-                    .map_err(ConsumerError::ModelError)?;
-
-                Ok(inserted_curve_vault)
-            }
-        }
-    }
-
     /// This function handles the creation of a curve redemption
     pub async fn handle_curve_redeemed_creation(
         &self,
@@ -296,9 +220,13 @@ impl RedeemedCurve {
         self.initialize_accounts(decoded_consumer_context).await?;
 
         // Get the curve vault
-        let curve_vault = self
-            .get_curve_vault(decoded_consumer_context, event)
-            .await?;
+        let mut curve_vault = Vault::find_by_id(
+            U256Wrapper::from(self.vaultId),
+            &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
+        )
+        .await?
+        .ok_or(ConsumerError::VaultNotFound)?;
 
         // Get the current share price
         let current_share_price = decoded_consumer_context
@@ -316,8 +244,7 @@ impl RedeemedCurve {
         self.update_curve_vault_stats(
             decoded_consumer_context,
             current_share_price,
-            event.block_number,
-            &curve_vault,
+            &mut curve_vault,
         )
         .await?;
 

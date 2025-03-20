@@ -1,4 +1,5 @@
 use crate::{
+    EthMultiVault::AtomCreated,
     error::ConsumerError,
     mode::{
         decoded::{
@@ -9,7 +10,6 @@ use crate::{
         types::DecodedConsumerContext,
     },
     schemas::types::DecodedMessage,
-    EthMultiVault::AtomCreated,
 };
 use models::{
     account::{Account, AccountType},
@@ -60,7 +60,7 @@ impl AtomCreated {
         } else {
             warn!(
                 "Failed to decode atom data. This is not a critical error, but this atom will be created with empty data and `Unknown` type.",
-                );
+            );
             // return an empty string
             String::new()
         };
@@ -271,13 +271,9 @@ impl AtomCreated {
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
     ) -> Result<(Vault, Atom), ConsumerError> {
-        // Get the share price of the atom
-        let current_share_price = decoded_consumer_context
-            .fetch_current_share_price(self.vaultId, event.block_number)
-            .await?;
-
         // Get or create the vault
-        self.get_or_create_vault(decoded_consumer_context, event)
+        let vault = self
+            .get_or_create_vault(decoded_consumer_context, event)
             .await?;
 
         // In order to upsert a [`Vault`] we need to have an [`Atom`] first.
@@ -288,14 +284,6 @@ impl AtomCreated {
         let atom = self
             .get_or_create_vault_atom(decoded_consumer_context, event)
             .await?;
-        // Update the respective vault with the correct share price
-        let vault = Vault::update_current_share_price(
-            U256Wrapper::from_str(&self.vaultId.to_string())?,
-            U256Wrapper::from_str(&current_share_price.to_string())?,
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
-        )
-        .await?;
 
         Ok((vault, atom))
     }
