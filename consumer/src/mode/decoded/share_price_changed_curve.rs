@@ -1,8 +1,13 @@
+use std::str::FromStr;
+
 use crate::{
     ConsumerError, EthMultiVault::SharePriceChangedCurve, mode::types::DecodedConsumerContext,
     schemas::types::DecodedMessage,
 };
 use models::{
+    share_price_changed_curve::{
+        SharePriceChangedCurve as SharePriceChangedCurveModel, SharePriceChangedCurveInternal,
+    },
     traits::SimpleCrud,
     types::U256Wrapper,
     vault::{CurveVaultTerms, Vault},
@@ -59,6 +64,32 @@ impl SharePriceChangedCurve {
                 self.termId, self.curveId
             );
         }
+
+        // Update the share price aggregate of the curve vault
+        self.update_share_price_changed_curve(decoded_consumer_context)
+            .await?;
+
+        Ok(())
+    }
+
+    /// This function updates the share price aggregate of a curve vault
+    async fn update_share_price_changed_curve(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+    ) -> Result<(), ConsumerError> {
+        let new_share_price = SharePriceChangedCurveInternal::builder()
+            .term_id(U256Wrapper::from_str(&self.termId.to_string())?)
+            .curve_id(U256Wrapper::from_str(&self.curveId.to_string())?)
+            .share_price(U256Wrapper::from(self.newSharePrice))
+            .total_assets(U256Wrapper::from(self.totalAssets))
+            .total_shares(U256Wrapper::from(self.totalShares))
+            .build();
+        SharePriceChangedCurveModel::insert(
+            &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
+            new_share_price,
+        )
+        .await?;
 
         Ok(())
     }

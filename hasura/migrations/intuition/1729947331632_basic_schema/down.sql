@@ -50,11 +50,12 @@ DROP INDEX IF EXISTS idx_triple_subject;
 DROP INDEX IF EXISTS idx_triple_vault;
 DROP INDEX IF EXISTS idx_vault_atom;
 DROP INDEX IF EXISTS idx_vault_triple;
-DROP INDEX IF EXISTS idx_share_price_aggregate_term_id;
-DROP INDEX IF EXISTS idx_share_price_aggregate_last_time_updated;
-DROP INDEX IF EXISTS idx_share_price_aggregate_term_id_last_time_updated;
-DROP INDEX IF EXISTS idx_share_price_aggregate_id;
-DROP INDEX IF EXISTS idx_share_price_aggregate_share_price;
+DROP INDEX IF EXISTS idx_share_price_changed_term_id;
+DROP INDEX IF EXISTS idx_share_price_changed_curve_id;
+DROP INDEX IF EXISTS idx_share_price_changed_last_time_updated;
+DROP INDEX IF EXISTS idx_share_price_changed_term_id_last_time_updated;
+DROP INDEX IF EXISTS idx_share_price_changed_id;
+DROP INDEX IF EXISTS idx_share_price_changed_share_price;
 
 -- Drop tables
 DROP TABLE IF EXISTS account;

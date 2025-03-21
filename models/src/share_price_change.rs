@@ -12,8 +12,8 @@ use sqlx::{PgPool, Result};
 /// an atom or a triple, but not both. We have SQL rails to prevent a vault from
 /// having both an atom_id and a triple_id.
 #[derive(Debug, sqlx::FromRow, Builder)]
-#[sqlx(type_name = "share_price_aggregate")]
-pub struct SharePriceAggregate {
+#[sqlx(type_name = "share_price_changed")]
+pub struct SharePriceChanged {
     pub id: U256Wrapper,
     pub term_id: U256Wrapper,
     pub share_price: U256Wrapper,
@@ -21,12 +21,22 @@ pub struct SharePriceAggregate {
     pub total_shares: U256Wrapper,
     pub last_time_updated: DateTime<Utc>,
 }
+
+/// This struct is used to build a `SharePriceChanged`.
+#[derive(Debug, Builder)]
+pub struct SharePriceChangedInternal {
+    pub term_id: U256Wrapper,
+    pub share_price: U256Wrapper,
+    pub total_shares: U256Wrapper,
+    pub total_assets: U256Wrapper,
+}
+
 /// This is a trait that all models must implement.
-impl Model for SharePriceAggregate {}
+impl Model for SharePriceChanged {}
 
 /// This trait works as a contract for all models that need to be upserted into the database.
 #[async_trait]
-impl SimpleCrud<U256Wrapper> for SharePriceAggregate {
+impl SimpleCrud<U256Wrapper> for SharePriceChanged {
     /// This method upserts a vault into the database.
     async fn upsert(&self, pool: &PgPool, schema: &str) -> Result<Self, ModelError> {
         let query = format!(
@@ -44,7 +54,7 @@ impl SimpleCrud<U256Wrapper> for SharePriceAggregate {
             schema,
         );
 
-        sqlx::query_as::<_, SharePriceAggregate>(&query)
+        sqlx::query_as::<_, SharePriceChanged>(&query)
             .bind(self.id.to_big_decimal()?)
             .bind(self.term_id.to_big_decimal()?)
             .bind(self.share_price.to_big_decimal()?)
@@ -77,7 +87,7 @@ impl SimpleCrud<U256Wrapper> for SharePriceAggregate {
             schema,
         );
 
-        sqlx::query_as::<_, SharePriceAggregate>(&query)
+        sqlx::query_as::<_, SharePriceChanged>(&query)
             .bind(id.to_big_decimal()?)
             .fetch_optional(pool)
             .await
@@ -85,14 +95,11 @@ impl SimpleCrud<U256Wrapper> for SharePriceAggregate {
     }
 }
 
-impl SharePriceAggregate {
+impl SharePriceChanged {
     pub async fn insert(
         pool: &PgPool,
         schema: &str,
-        term_id: U256Wrapper,
-        share_price: U256Wrapper,
-        total_assets: U256Wrapper,
-        total_shares: U256Wrapper,
+        share_price_change: SharePriceChangedInternal,
     ) -> Result<Self, ModelError> {
         let query = format!(
             r#"
@@ -103,11 +110,11 @@ impl SharePriceAggregate {
             schema,
         );
 
-        sqlx::query_as::<_, SharePriceAggregate>(&query)
-            .bind(term_id.to_big_decimal()?)
-            .bind(share_price.to_big_decimal()?)
-            .bind(total_assets.to_big_decimal()?)
-            .bind(total_shares.to_big_decimal()?)
+        sqlx::query_as::<_, SharePriceChanged>(&query)
+            .bind(share_price_change.term_id.to_big_decimal()?)
+            .bind(share_price_change.share_price.to_big_decimal()?)
+            .bind(share_price_change.total_assets.to_big_decimal()?)
+            .bind(share_price_change.total_shares.to_big_decimal()?)
             .fetch_one(pool)
             .await
             .map_err(|e| ModelError::InsertError(e.to_string()))
