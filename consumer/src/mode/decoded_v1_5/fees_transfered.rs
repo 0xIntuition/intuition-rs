@@ -130,14 +130,14 @@ impl FeesTransferred {
         decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<Account, ConsumerError> {
         Account::find_by_id(
-            self.protocolVault.to_string(),
+            self.protocolMultisig.to_string(),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
         .await?
         .unwrap_or_else(|| {
             Account::builder()
-                .id(self.protocolVault.to_string())
+                .id(self.protocolMultisig.to_string())
                 .label("Protocol Multisig")
                 .account_type(AccountType::ProtocolVault)
                 .build()

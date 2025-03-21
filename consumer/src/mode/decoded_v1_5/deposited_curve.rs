@@ -3,7 +3,7 @@ use std::str::FromStr;
 use crate::{
     ConsumerError,
     EthMultiVault::DepositedCurve,
-    mode::{decoded::utils::get_or_create_account, types::DecodedConsumerContext},
+    mode::{decoded_v1_5::utils::get_or_create_account, types::DecodedConsumerContext},
     schemas::types::DecodedMessage,
 };
 use alloy::primitives::U256;

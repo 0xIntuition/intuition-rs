@@ -1,9 +1,9 @@
 use super::utils::get_absolute_triple_id;
 use crate::{
-    mode::{decoded::utils::get_or_create_account, types::DecodedConsumerContext},
-    schemas::types::DecodedMessage,
     ConsumerError,
     EthMultiVault::Deposited,
+    mode::{decoded_v1_5::utils::get_or_create_account, types::DecodedConsumerContext},
+    schemas::types::DecodedMessage,
 };
 use alloy::primitives::U256;
 use futures::executor::block_on;
@@ -330,18 +330,9 @@ impl Deposited {
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
-        // Initialize core data
-        let current_share_price = decoded_consumer_context
-            .fetch_current_share_price(self.vaultId, event.block_number)
-            .await?;
-
         // Initialize accounts and vault. We need to block on this because it's async and
         // we need to ensure that the accounts and vault are initialized before we proceed
-        let vault = block_on(self.initialize_accounts_and_vault(
-            decoded_consumer_context,
-            current_share_price,
-            event,
-        ))?;
+        let vault = block_on(self.initialize_accounts_and_vault(decoded_consumer_context, event))?;
 
         // Create deposit record
         let deposit = self.create_deposit(event, decoded_consumer_context).await?;
@@ -436,7 +427,6 @@ impl Deposited {
     async fn initialize_accounts_and_vault(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
-        current_share_price: U256,
         event: &DecodedMessage,
     ) -> Result<Vault, ConsumerError> {
         // Create accounts concurrently
@@ -446,6 +436,10 @@ impl Deposited {
         );
         sender?;
         receiver?;
+
+        let current_share_price = decoded_consumer_context
+            .fetch_current_share_price(self.vaultId, event.block_number)
+            .await?;
 
         self.get_or_create_vault(
             event,

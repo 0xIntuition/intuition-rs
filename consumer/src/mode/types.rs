@@ -731,6 +731,7 @@ impl ConsumerMode {
                     .await?;
                 timer.observe_duration();
             }
+            #[cfg(feature = "v1_5_contract")]
             EthMultiVaultEvents::DepositedCurve(deposited_curve_data) => {
                 let timer = get_event_processing_histogram()
                     .with_label_values(&["DepositedCurve"])
@@ -741,6 +742,7 @@ impl ConsumerMode {
                     .await?;
                 timer.observe_duration();
             }
+            #[cfg(feature = "v1_5_contract")]
             EthMultiVaultEvents::RedeemedCurve(redeemed_curve_data) => {
                 let timer = get_event_processing_histogram()
                     .with_label_values(&["RedeemedCurve"])
@@ -751,6 +753,7 @@ impl ConsumerMode {
                     .await?;
                 timer.observe_duration();
             }
+            #[cfg(feature = "v1_5_contract")]
             EthMultiVaultEvents::SharePriceChangedCurve(share_price_changed_curve_data) => {
                 let timer = get_event_processing_histogram()
                     .with_label_values(&["SharePriceChangedCurve"])
@@ -761,6 +764,7 @@ impl ConsumerMode {
                     .await?;
                 timer.observe_duration();
             }
+            #[cfg(feature = "v1_5_contract")]
             EthMultiVaultEvents::SharePriceChanged(share_price_changed_data) => {
                 let timer = get_event_processing_histogram()
                     .with_label_values(&["SharePriceChanged"])
