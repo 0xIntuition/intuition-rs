@@ -22,7 +22,7 @@ impl SharePriceChangedCurve {
         let curve_number = U256Wrapper::from(self.curveId);
 
         // Get the vault ID from the event
-        let vault_id = U256Wrapper::from(self.vaultId);
+        let vault_id = U256Wrapper::from(self.termId);
 
         // Find the base vault to determine if it's for an atom or triple
         let base_vault = Vault::find_by_id(
@@ -56,7 +56,7 @@ impl SharePriceChangedCurve {
             // This would depend on the business logic
             info!(
                 "Curve vault not found for vault ID {} and curve number {}",
-                self.vaultId, self.curveId
+                self.termId, self.curveId
             );
         }
 

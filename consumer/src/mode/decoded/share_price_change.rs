@@ -20,7 +20,7 @@ impl SharePriceChanged {
         info!("Processing SharePriceChanged event: {:?}", self);
 
         let vault = Vault::find_by_id(
-            U256Wrapper::from_str(&self.vaultId.to_string())?,
+            U256Wrapper::from_str(&self.termId.to_string())?,
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
@@ -51,7 +51,7 @@ impl SharePriceChanged {
         SharePriceAggregate::insert(
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
-            U256Wrapper::from_str(&self.vaultId.to_string())?,
+            U256Wrapper::from_str(&self.termId.to_string())?,
             U256Wrapper::from(self.newSharePrice),
         )
         .await?;
