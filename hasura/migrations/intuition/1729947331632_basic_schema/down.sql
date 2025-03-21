@@ -52,8 +52,8 @@ DROP INDEX IF EXISTS idx_vault_atom;
 DROP INDEX IF EXISTS idx_vault_triple;
 DROP INDEX IF EXISTS idx_share_price_changed_term_id;
 DROP INDEX IF EXISTS idx_share_price_changed_curve_id;
-DROP INDEX IF EXISTS idx_share_price_changed_last_time_updated;
-DROP INDEX IF EXISTS idx_share_price_changed_term_id_last_time_updated;
+DROP INDEX IF EXISTS idx_share_price_changed_updated_at;
+DROP INDEX IF EXISTS idx_share_price_changed_term_id_updated_at;
 DROP INDEX IF EXISTS idx_share_price_changed_id;
 DROP INDEX IF EXISTS idx_share_price_changed_share_price;
 

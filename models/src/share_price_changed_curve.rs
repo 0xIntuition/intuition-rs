@@ -17,7 +17,7 @@ pub struct SharePriceChangedCurve {
     pub share_price: U256Wrapper,
     pub total_assets: U256Wrapper,
     pub total_shares: U256Wrapper,
-    pub last_time_updated: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 /// This struct is used to create a new share price change.
@@ -37,7 +37,7 @@ impl SimpleCrud<U256Wrapper> for SharePriceChangedCurve {
     async fn upsert(&self, pool: &PgPool, schema: &str) -> Result<Self, ModelError> {
         let query = format!(
             r#"
-            INSERT INTO {}.share_price_change (id, term_id, curve_id, share_price, total_assets, total_shares, last_time_updated)
+            INSERT INTO {}.share_price_change (id, term_id, curve_id, share_price, total_assets, total_shares, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             ON CONFLICT (id) DO UPDATE SET
                 term_id = EXCLUDED.term_id,
@@ -45,7 +45,7 @@ impl SimpleCrud<U256Wrapper> for SharePriceChangedCurve {
                 share_price = EXCLUDED.share_price,
                 total_assets = EXCLUDED.total_assets,
                 total_shares = EXCLUDED.total_shares,
-                last_time_updated = EXCLUDED.last_time_updated
+                updated_at = EXCLUDED.updated_at
             RETURNING *
             "#,
             schema,
@@ -58,7 +58,7 @@ impl SimpleCrud<U256Wrapper> for SharePriceChangedCurve {
             .bind(self.share_price.to_big_decimal()?)
             .bind(self.total_assets.to_big_decimal()?)
             .bind(self.total_shares.to_big_decimal()?)
-            .bind(self.last_time_updated)
+            .bind(self.updated_at)
             .fetch_one(pool)
             .await
             .map_err(|e| ModelError::InsertError(e.to_string()))
@@ -99,7 +99,7 @@ impl SharePriceChangedCurve {
             .share_price(share_price_change.share_price)
             .total_assets(share_price_change.total_assets)
             .total_shares(share_price_change.total_shares)
-            .last_time_updated(Utc::now())
+            .updated_at(Utc::now())
             .build();
 
         share_price_change.upsert(pool, schema).await
