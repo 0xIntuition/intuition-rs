@@ -174,26 +174,6 @@ impl RedeemedCurve {
         Ok(())
     }
 
-    /// This function updates the curve vault stats
-    async fn update_curve_vault_stats(
-        &self,
-        decoded_consumer_context: &DecodedConsumerContext,
-        current_share_price: U256,
-        curve_vault: &mut Vault,
-    ) -> Result<(), ConsumerError> {
-        curve_vault.total_shares = U256Wrapper::from(self.senderTotalSharesInVault);
-        curve_vault.current_share_price = U256Wrapper::from(current_share_price);
-        curve_vault
-            .upsert(
-                &decoded_consumer_context.pg_pool,
-                &decoded_consumer_context.backend_schema,
-            )
-            .await
-            .map_err(ConsumerError::ModelError)?;
-
-        Ok(())
-    }
-
     /// This function initializes accounts for sender and receiver
     async fn initialize_accounts(
         &self,
@@ -220,7 +200,7 @@ impl RedeemedCurve {
         self.initialize_accounts(decoded_consumer_context).await?;
 
         // Get the curve vault
-        let mut curve_vault = Vault::find_by_id(
+        let curve_vault = Vault::find_by_id(
             U256Wrapper::from(self.vaultId),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
@@ -228,25 +208,12 @@ impl RedeemedCurve {
         .await?
         .ok_or(ConsumerError::VaultNotFound)?;
 
-        // Get the current share price
-        let current_share_price = decoded_consumer_context
-            .fetch_current_share_price(self.vaultId, event.block_number)
-            .await?;
-
         // Handle position redemption if shares are fully redeemed
         if self.senderTotalSharesInVault == Uint::from(0) {
             // Call the handler to remove the position
             self.handle_position_redemption(decoded_consumer_context, &curve_vault)
                 .await?;
         }
-
-        // Update curve vault stats
-        self.update_curve_vault_stats(
-            decoded_consumer_context,
-            current_share_price,
-            &mut curve_vault,
-        )
-        .await?;
 
         // Create event
         self.create_event(decoded_consumer_context, event, &curve_vault)

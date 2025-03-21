@@ -150,7 +150,6 @@ impl TripleCreated {
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         id: U256,
-        current_share_price: U256,
         block_number: i64,
     ) -> Result<Vault, ConsumerError> {
         let vault = Vault::find_by_id(
@@ -163,6 +162,10 @@ impl TripleCreated {
         if let Some(vault) = vault {
             Ok(vault)
         } else {
+            // Get the current share price of the vault
+            let current_share_price = decoded_consumer_context
+                .fetch_current_share_price(id, block_number)
+                .await?;
             Vault::builder()
                 .id(id)
                 .triple_id(self.vaultId)
@@ -393,30 +396,14 @@ impl TripleCreated {
         let counter_vault_id = decoded_consumer_context
             .get_counter_id_from_triple(self.vaultId)
             .await?;
-        // Get the share price of the atom
-        // Get the current share price of the counter vault
-        let counter_vault_current_share_price = decoded_consumer_context
-            .fetch_current_share_price(counter_vault_id, event.block_number)
-            .await?;
-
-        // Get the current share price of the vault
-        let vault_current_share_price = decoded_consumer_context
-            .fetch_current_share_price(self.vaultId, event.block_number)
-            .await?;
 
         // Get or update the vault
-        self.get_or_create_vault(
-            decoded_consumer_context,
-            self.vaultId,
-            vault_current_share_price,
-            event.block_number,
-        )
-        .await?;
+        self.get_or_create_vault(decoded_consumer_context, self.vaultId, event.block_number)
+            .await?;
         // Get or update the counter vault
         self.get_or_create_vault(
             decoded_consumer_context,
             counter_vault_id,
-            counter_vault_current_share_price,
             event.block_number,
         )
         .await?;

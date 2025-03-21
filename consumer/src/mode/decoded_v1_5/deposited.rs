@@ -258,7 +258,6 @@ impl Deposited {
         event: &DecodedMessage,
         decoded_consumer_context: &DecodedConsumerContext,
         id: U256,
-        current_share_price: U256,
     ) -> Result<Vault, ConsumerError> {
         match Vault::find_by_id(
             U256Wrapper::from_str(&id.to_string())?,
@@ -267,22 +266,11 @@ impl Deposited {
         )
         .await?
         {
-            Some(mut vault) => {
-                vault.current_share_price = U256Wrapper::from(current_share_price);
-                vault.total_shares = U256Wrapper::from(
-                    decoded_consumer_context
-                        .fetch_total_shares_in_vault(id, event.block_number)
-                        .await?,
-                );
-                vault
-                    .upsert(
-                        &decoded_consumer_context.pg_pool,
-                        &decoded_consumer_context.backend_schema,
-                    )
-                    .await
-                    .map_err(ConsumerError::ModelError)
-            }
+            Some(vault) => Ok(vault),
             None => {
+                let current_share_price = decoded_consumer_context
+                    .fetch_current_share_price(self.vaultId, event.block_number)
+                    .await?;
                 if self.isTriple {
                     Vault::builder()
                         .id(id)
@@ -437,17 +425,8 @@ impl Deposited {
         sender?;
         receiver?;
 
-        let current_share_price = decoded_consumer_context
-            .fetch_current_share_price(self.vaultId, event.block_number)
-            .await?;
-
-        self.get_or_create_vault(
-            event,
-            decoded_consumer_context,
-            self.vaultId,
-            current_share_price,
-        )
-        .await
+        self.get_or_create_vault(event, decoded_consumer_context, self.vaultId)
+            .await
     }
 
     /// This function updates the claim

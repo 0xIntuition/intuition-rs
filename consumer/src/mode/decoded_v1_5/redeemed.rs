@@ -243,14 +243,8 @@ impl Redeemed {
             // Cleanup the triple related records
             self.handle_triple_cleanup(&vault, &sender_account, decoded_consumer_context)
                 .await?;
-
-            // Optionally update vault stats (if needed)
-            self.update_vault_total_shares(decoded_consumer_context, event.block_number)
-                .await?;
         } else {
             self.handle_remaining_shares(&vault, &sender_account, decoded_consumer_context)
-                .await?;
-            self.update_vault_total_shares(decoded_consumer_context, event.block_number)
                 .await?;
         }
 
@@ -375,37 +369,6 @@ impl Redeemed {
             );
         }
         Ok(())
-    }
-
-    /// This function updates the vault stats
-    async fn update_vault_total_shares(
-        &self,
-        decoded_consumer_context: &DecodedConsumerContext,
-        block_number: i64,
-    ) -> Result<(), ConsumerError> {
-        if let Some(mut vault) = Vault::find_by_id(
-            U256Wrapper::from(self.vaultId),
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
-        )
-        .await?
-        {
-            // Prevent underflow by using saturating subtraction.
-            vault.total_shares = U256Wrapper::from(
-                decoded_consumer_context
-                    .fetch_total_shares_in_vault(self.vaultId, block_number)
-                    .await?,
-            );
-            vault
-                .upsert(
-                    &decoded_consumer_context.pg_pool,
-                    &decoded_consumer_context.backend_schema,
-                )
-                .await?;
-            Ok(())
-        } else {
-            Err(ConsumerError::VaultNotFound)
-        }
     }
 
     /// This function handles the deletion of a position

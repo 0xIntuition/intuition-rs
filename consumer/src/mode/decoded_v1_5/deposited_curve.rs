@@ -222,9 +222,6 @@ impl DepositedCurve {
         event: &DecodedMessage,
         decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<Vault, ConsumerError> {
-        let current_share_price = decoded_consumer_context
-            .fetch_current_share_price(self.vaultId, event.block_number)
-            .await?;
         match Vault::find_by_id(
             U256Wrapper::from_str(&self.vaultId.to_string())?,
             &decoded_consumer_context.pg_pool,
@@ -232,22 +229,11 @@ impl DepositedCurve {
         )
         .await?
         {
-            Some(mut vault) => {
-                vault.current_share_price = U256Wrapper::from(current_share_price);
-                vault.total_shares = U256Wrapper::from(
-                    decoded_consumer_context
-                        .fetch_total_shares_in_vault(self.vaultId, event.block_number)
-                        .await?,
-                );
-                vault
-                    .upsert(
-                        &decoded_consumer_context.pg_pool,
-                        &decoded_consumer_context.backend_schema,
-                    )
-                    .await
-                    .map_err(ConsumerError::ModelError)
-            }
+            Some(vault) => Ok(vault),
             None => {
+                let current_share_price = decoded_consumer_context
+                    .fetch_current_share_price(self.vaultId, event.block_number)
+                    .await?;
                 if self.isTriple {
                     Vault::builder()
                         .id(self.vaultId)

@@ -31,6 +31,7 @@ impl SharePriceChanged {
         if let Some(mut vault) = vault {
             // Update the share price of the vault
             vault.current_share_price = U256Wrapper::from(self.newSharePrice);
+            vault.total_shares = U256Wrapper::from(self.totalShares);
             vault
                 .upsert(
                     &decoded_consumer_context.pg_pool,
