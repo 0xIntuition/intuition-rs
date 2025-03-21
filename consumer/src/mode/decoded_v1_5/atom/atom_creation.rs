@@ -237,6 +237,7 @@ impl AtomCreated {
             // create the vault
             Vault::builder()
                 .id(U256Wrapper::from_str(&self.vaultId.to_string())?)
+                .curve_id(U256Wrapper::from_str("1")?)
                 .total_shares(
                     decoded_consumer_context
                         .fetch_total_shares_in_vault(self.vaultId, event.block_number)

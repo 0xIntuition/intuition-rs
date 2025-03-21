@@ -30,7 +30,7 @@ impl CurveVaultTerms {
 #[sqlx(type_name = "vault")]
 pub struct Vault {
     pub id: U256Wrapper,
-    pub curve_id: Option<U256Wrapper>,
+    pub curve_id: U256Wrapper,
     pub atom_id: Option<U256Wrapper>,
     pub triple_id: Option<U256Wrapper>,
     pub total_shares: U256Wrapper,
@@ -63,7 +63,7 @@ impl SimpleCrud<U256Wrapper> for Vault {
 
         sqlx::query_as::<_, Vault>(&query)
             .bind(self.id.to_big_decimal()?)
-            .bind(self.curve_id.as_ref().and_then(|w| w.to_big_decimal().ok()))
+            .bind(self.curve_id.to_big_decimal()?)
             .bind(self.atom_id.as_ref().and_then(|w| w.to_big_decimal().ok()))
             .bind(
                 self.triple_id

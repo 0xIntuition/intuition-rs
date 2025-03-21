@@ -1,6 +1,8 @@
 // This test is going to be removed once we have a proper testing crate
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
     use alloy::primitives::U256;
     use models::{
         account::{Account, AccountType},
@@ -67,6 +69,7 @@ mod tests {
 
         let _alice_vault = Vault::builder()
             .id(alice_vault_id.clone())
+            .curve_id(U256Wrapper::from_str("1").unwrap())
             .atom_id(alice_vault_id.clone())
             .total_shares(create_random_u256wrapper())
             .current_share_price(create_random_u256wrapper())
@@ -109,6 +112,7 @@ mod tests {
         let _alice_person_vault = Vault::builder()
             .id(alice_person_vault_id.clone())
             .atom_id(alice_person_vault_id.clone())
+            .curve_id(U256Wrapper::from_str("1").unwrap())
             .total_shares(create_random_u256wrapper())
             .current_share_price(create_random_u256wrapper())
             .position_count(0)

@@ -89,7 +89,7 @@ CREATE TABLE triple (
 
 CREATE TABLE vault (
   id NUMERIC(78, 0) PRIMARY KEY NOT NULL,
-  curve_id NUMERIC(78, 0),
+  curve_id NUMERIC(78, 0) NOT NULL DEFAULT 1,
   atom_id NUMERIC(78, 0),
   triple_id NUMERIC(78, 0),
   total_shares NUMERIC(78, 0) NOT NULL,

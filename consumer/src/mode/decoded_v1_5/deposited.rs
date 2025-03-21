@@ -274,6 +274,7 @@ impl Deposited {
                 if self.isTriple {
                     Vault::builder()
                         .id(id)
+                        .curve_id(U256Wrapper::from_str("1")?)
                         .current_share_price(U256Wrapper::from(current_share_price))
                         .position_count(0)
                         .triple_id(get_absolute_triple_id(self.vaultId))
@@ -292,6 +293,7 @@ impl Deposited {
                 } else {
                     Vault::builder()
                         .id(id)
+                        .curve_id(U256Wrapper::from_str("1")?)
                         .current_share_price(U256Wrapper::from(current_share_price))
                         .position_count(0)
                         .atom_id(self.vaultId)

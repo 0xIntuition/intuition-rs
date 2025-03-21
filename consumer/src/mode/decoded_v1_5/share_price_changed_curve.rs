@@ -38,7 +38,7 @@ impl SharePriceChangedCurve {
         // With this, the vault became a curve vault.
         if let Some(mut curve_vault) = curve_vault {
             curve_vault.current_share_price = U256Wrapper::from(self.newSharePrice);
-            curve_vault.curve_id = Some(U256Wrapper::from(self.curveId));
+            curve_vault.curve_id = U256Wrapper::from(self.curveId);
 
             curve_vault
                 .upsert(

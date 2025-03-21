@@ -169,6 +169,7 @@ impl Redeemed {
             Vault::builder()
                 .id(id.clone())
                 .atom_id(id.clone())
+                .curve_id(U256Wrapper::from_str("1")?)
                 .total_shares(
                     decoded_consumer_context
                         .fetch_total_shares_in_vault(
