@@ -15,7 +15,7 @@ pub struct Atom {
     pub id: U256Wrapper,
     pub wallet_id: String,
     pub creator_id: String,
-    pub vault_id: U256Wrapper,
+    pub vault_id: String,
     pub data: Option<String>,
     pub raw_data: String,
     pub atom_type: AtomType,
@@ -114,7 +114,7 @@ impl SimpleCrud<U256Wrapper> for Atom {
             .bind(self.id.to_big_decimal()?)
             .bind(self.wallet_id.to_lowercase())
             .bind(self.creator_id.to_lowercase())
-            .bind(self.vault_id.to_big_decimal()?)
+            .bind(self.vault_id.clone())
             .bind(self.data.clone())
             .bind(self.raw_data.clone())
             .bind(self.atom_type.to_string())

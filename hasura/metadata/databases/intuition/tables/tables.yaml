@@ -7,7 +7,6 @@
 - "!include public_caip10.yaml"
 - "!include public_chainlink_price.yaml"
 - "!include public_claim.yaml"
-- "!include public_curve_vault.yaml"
 - "!include public_deposit.yaml"
 - "!include public_event.yaml"
 - "!include public_fee_transfer.yaml"

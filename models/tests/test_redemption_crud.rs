@@ -24,7 +24,7 @@ mod tests {
             .await?;
 
         // Create initial redemption
-        let redemption = create_test_redemption(sender.id, receiver.id, vault.id);
+        let redemption = create_test_redemption(sender.id, receiver.id, vault.id.clone());
 
         // Test initial upsert
         let upserted_redemption = redemption.upsert(&pool, TEST_SCHEMA).await?;

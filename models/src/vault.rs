@@ -22,6 +22,7 @@ impl CurveVaultTerms {
         }
     }
 }
+
 /// This struct defines the vault in the database. Note that both `atom_id` and
 /// `triple_id` are optional. This is because a vault can either be created by
 /// an atom or a triple, but not both. We have SQL rails to prevent a vault from
@@ -29,7 +30,7 @@ impl CurveVaultTerms {
 #[derive(Debug, sqlx::FromRow, Builder)]
 #[sqlx(type_name = "vault")]
 pub struct Vault {
-    pub id: U256Wrapper,
+    pub id: String,
     pub curve_id: U256Wrapper,
     pub atom_id: Option<U256Wrapper>,
     pub triple_id: Option<U256Wrapper>,
@@ -42,7 +43,7 @@ impl Model for Vault {}
 
 /// This trait works as a contract for all models that need to be upserted into the database.
 #[async_trait]
-impl SimpleCrud<U256Wrapper> for Vault {
+impl SimpleCrud<String> for Vault {
     /// This method upserts a vault into the database.
     async fn upsert(&self, pool: &PgPool, schema: &str) -> Result<Self, ModelError> {
         let query = format!(
@@ -62,7 +63,7 @@ impl SimpleCrud<U256Wrapper> for Vault {
         );
 
         sqlx::query_as::<_, Vault>(&query)
-            .bind(self.id.to_big_decimal()?)
+            .bind(self.id.clone())
             .bind(self.curve_id.to_big_decimal()?)
             .bind(self.atom_id.as_ref().and_then(|w| w.to_big_decimal().ok()))
             .bind(
@@ -80,7 +81,7 @@ impl SimpleCrud<U256Wrapper> for Vault {
 
     /// Finds a vault by its id.
     async fn find_by_id(
-        id: U256Wrapper,
+        id: String,
         pool: &PgPool,
         schema: &str,
     ) -> Result<Option<Self>, ModelError> {
@@ -101,7 +102,7 @@ impl SimpleCrud<U256Wrapper> for Vault {
         );
 
         sqlx::query_as::<_, Vault>(&query)
-            .bind(id.to_big_decimal()?)
+            .bind(id.clone())
             .fetch_optional(pool)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
@@ -110,7 +111,7 @@ impl SimpleCrud<U256Wrapper> for Vault {
 
 impl Vault {
     pub async fn update_current_share_price(
-        id: U256Wrapper,
+        id: String,
         current_share_price: U256Wrapper,
         pool: &PgPool,
         schema: &str,
@@ -127,15 +128,20 @@ impl Vault {
 
         sqlx::query_as::<_, Vault>(&query)
             .bind(current_share_price.to_big_decimal()?)
-            .bind(id.to_big_decimal()?)
+            .bind(id.clone())
             .fetch_one(pool)
             .await
             .map_err(|e| ModelError::UpdateError(e.to_string()))
     }
 
-    /// This function formats the position ID
-    pub fn format_position_id(&self, receiver_id: U256Wrapper) -> String {
-        format!("{}-{}", self.id, receiver_id.to_string().to_lowercase())
+    /// This function formats the vault ID
+    pub fn format_vault_id(vault_id: String, curve_id: Option<U256Wrapper>) -> String {
+        match curve_id {
+            // V1.5 vaults have a curve_id
+            Some(curve_id) => format!("{}-{}", vault_id, curve_id),
+            // V1 vaults and base V1.5 vaults are defaulting to curve_id = 1
+            None => format!("{}-1", vault_id),
+        }
     }
 
     /// Finds a curve vault by its composite key (atom_id, triple_id, curve_number).

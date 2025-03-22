@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use crate::{
     ConsumerError,
     EthMultiVault::DepositedCurve,
@@ -21,16 +19,22 @@ use tracing::info;
 use super::utils::get_absolute_triple_id;
 
 impl DepositedCurve {
+    /// This function formats the position ID
+    fn format_position_id(&self) -> String {
+        format!(
+            "{}-{}",
+            self.vaultId,
+            self.receiver.to_string().to_lowercase()
+        )
+    }
     /// This function creates a new position or updates an existing one
     async fn handle_position(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
-        vault: &Vault,
     ) -> Result<(), ConsumerError> {
         // Build the position ID using the atom/triple ID and curve number for uniqueness
         // but reference the base vault ID for the foreign key constraint
-        let position_id =
-            vault.format_position_id(U256Wrapper::from_str(&self.receiver.to_string())?);
+        let position_id = self.format_position_id();
 
         // Check if the position already exists
         let position = Position::find_by_id(
@@ -55,7 +59,7 @@ impl DepositedCurve {
                 .id(position_id)
                 .account_id(self.receiver.to_string())
                 // Use the base vault ID for the foreign key constraint
-                .vault_id(U256Wrapper::from(self.vaultId))
+                .vault_id(self.vaultId.to_string().clone())
                 .shares(self.receiverTotalSharesInVault)
                 .build()
                 .upsert(
@@ -167,7 +171,7 @@ impl DepositedCurve {
             .sender_assets_after_total_fees(U256Wrapper::from(self.senderAssetsAfterTotalFees))
             .shares_for_receiver(U256Wrapper::from(self.sharesForReceiver))
             .entry_fee(U256Wrapper::from(self.entryFee))
-            .vault_id(self.vaultId)
+            .vault_id(self.vaultId.to_string().clone())
             .is_triple(self.isTriple)
             .is_atom_wallet(self.isAtomWallet)
             .block_number(U256Wrapper::try_from(event.block_number)?)
@@ -206,8 +210,7 @@ impl DepositedCurve {
             .await?;
 
         // Handle position
-        self.handle_position(decoded_consumer_context, &curve_vault)
-            .await?;
+        self.handle_position(decoded_consumer_context).await?;
 
         // Create signal
         self.create_signal(decoded_consumer_context, event, &curve_vault)
@@ -223,7 +226,7 @@ impl DepositedCurve {
         decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<Vault, ConsumerError> {
         match Vault::find_by_id(
-            U256Wrapper::from_str(&self.vaultId.to_string())?,
+            self.vaultId.to_string(),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
@@ -236,7 +239,10 @@ impl DepositedCurve {
                     .await?;
                 if self.isTriple {
                     Vault::builder()
-                        .id(self.vaultId)
+                        .id(Vault::format_vault_id(
+                            self.vaultId.to_string(),
+                            Some(U256Wrapper::from(self.curveId)),
+                        ))
                         .current_share_price(U256Wrapper::from(current_share_price))
                         .position_count(0)
                         .curve_id(U256Wrapper::from(self.curveId))
@@ -255,7 +261,10 @@ impl DepositedCurve {
                         .map_err(ConsumerError::ModelError)
                 } else {
                     Vault::builder()
-                        .id(self.vaultId)
+                        .id(Vault::format_vault_id(
+                            self.vaultId.to_string(),
+                            Some(U256Wrapper::from(self.curveId)),
+                        ))
                         .current_share_price(U256Wrapper::from(current_share_price))
                         .position_count(0)
                         .curve_id(U256Wrapper::from(self.curveId))

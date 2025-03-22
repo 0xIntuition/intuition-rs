@@ -18,7 +18,7 @@ pub struct Deposit {
     pub sender_assets_after_total_fees: U256Wrapper,
     pub shares_for_receiver: U256Wrapper,
     pub entry_fee: U256Wrapper,
-    pub vault_id: U256Wrapper,
+    pub vault_id: String,
     pub is_triple: bool,
     pub is_atom_wallet: bool,
     pub block_number: U256Wrapper,
@@ -83,7 +83,7 @@ impl SimpleCrud<String> for Deposit {
             .bind(self.sender_assets_after_total_fees.to_big_decimal()?)
             .bind(self.shares_for_receiver.to_big_decimal()?)
             .bind(self.entry_fee.to_big_decimal()?)
-            .bind(self.vault_id.to_big_decimal()?)
+            .bind(self.vault_id.clone())
             .bind(self.is_triple)
             .bind(self.is_atom_wallet)
             .bind(self.block_number.to_big_decimal()?)

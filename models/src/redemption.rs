@@ -16,7 +16,7 @@ pub struct Redemption {
     pub assets_for_receiver: U256Wrapper,
     pub shares_redeemed_by_sender: U256Wrapper,
     pub exit_fee: U256Wrapper,
-    pub vault_id: U256Wrapper,
+    pub vault_id: String,
     pub block_number: U256Wrapper,
     pub block_timestamp: i64,
     pub transaction_hash: String,
@@ -71,7 +71,7 @@ impl SimpleCrud<String> for Redemption {
             .bind(self.assets_for_receiver.to_big_decimal()?)
             .bind(self.shares_redeemed_by_sender.to_big_decimal()?)
             .bind(self.exit_fee.to_big_decimal()?)
-            .bind(self.vault_id.to_big_decimal()?)
+            .bind(self.vault_id.clone())
             .bind(self.block_number.to_big_decimal()?)
             .bind(self.block_timestamp)
             .bind(self.transaction_hash.clone())

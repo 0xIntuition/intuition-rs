@@ -1,9 +1,9 @@
 use super::utils::get_absolute_triple_id;
 use crate::{
-    mode::{decoded::utils::get_or_create_account, types::DecodedConsumerContext},
-    schemas::types::DecodedMessage,
     ConsumerError,
     EthMultiVault::Deposited,
+    mode::{decoded::utils::get_or_create_account, types::DecodedConsumerContext},
+    schemas::types::DecodedMessage,
 };
 use alloy::primitives::U256;
 use futures::executor::block_on;
@@ -261,7 +261,7 @@ impl Deposited {
         current_share_price: U256,
     ) -> Result<Vault, ConsumerError> {
         match Vault::find_by_id(
-            U256Wrapper::from_str(&id.to_string())?,
+            Vault::format_position_id(id.to_string(), U256Wrapper::from_str("1")?),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
@@ -285,7 +285,7 @@ impl Deposited {
             None => {
                 if self.isTriple {
                     Vault::builder()
-                        .id(id)
+                        .id(Vault::format_vault_id(id.to_string(), None))
                         .current_share_price(U256Wrapper::from(current_share_price))
                         .position_count(0)
                         .triple_id(get_absolute_triple_id(self.vaultId))
@@ -303,7 +303,7 @@ impl Deposited {
                         .map_err(ConsumerError::ModelError)
                 } else {
                     Vault::builder()
-                        .id(id)
+                        .id(Vault::format_vault_id(id.to_string(), None))
                         .current_share_price(U256Wrapper::from(current_share_price))
                         .position_count(0)
                         .atom_id(self.vaultId)

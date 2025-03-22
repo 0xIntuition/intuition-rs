@@ -15,8 +15,8 @@ pub struct Triple {
     pub subject_id: U256Wrapper,
     pub predicate_id: U256Wrapper,
     pub object_id: U256Wrapper,
-    pub vault_id: U256Wrapper,
-    pub counter_vault_id: U256Wrapper,
+    pub vault_id: String,
+    pub counter_vault_id: String,
     pub block_number: U256Wrapper,
     pub block_timestamp: i64,
     pub transaction_hash: String,
@@ -56,8 +56,8 @@ impl SimpleCrud<U256Wrapper> for Triple {
             .bind(self.subject_id.to_big_decimal()?)
             .bind(self.predicate_id.to_big_decimal()?)
             .bind(self.object_id.to_big_decimal()?)
-            .bind(self.vault_id.to_big_decimal()?)
-            .bind(self.counter_vault_id.to_big_decimal()?)
+            .bind(self.vault_id.clone())
+            .bind(self.counter_vault_id.clone())
             .bind(self.block_number.to_big_decimal()?)
             .bind(self.block_timestamp)
             .bind(&self.transaction_hash)

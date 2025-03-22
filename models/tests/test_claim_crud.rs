@@ -57,8 +57,8 @@ mod tests {
             .object_id(object.id)
             .shares(U256Wrapper::from_str("100").unwrap())
             .counter_shares(U256Wrapper::from_str("0").unwrap())
-            .vault_id(vault.id)
-            .counter_vault_id(counter_vault.id)
+            .vault_id(vault.id.clone())
+            .counter_vault_id(counter_vault.id.clone())
             .build()
             .upsert(&pool, TEST_SCHEMA)
             .await

@@ -1,9 +1,9 @@
 use super::utils::get_or_create_account;
 use crate::{
-    error::ConsumerError, mode::types::DecodedConsumerContext, schemas::types::DecodedMessage,
-    EthMultiVault::Redeemed,
+    EthMultiVault::Redeemed, error::ConsumerError, mode::types::DecodedConsumerContext,
+    schemas::types::DecodedMessage,
 };
-use alloy::primitives::{Uint, U256};
+use alloy::primitives::{U256, Uint};
 use models::{
     account::Account,
     claim::Claim,
@@ -158,7 +158,7 @@ impl Redeemed {
         block_number: i64,
     ) -> Result<Vault, ConsumerError> {
         if let Some(vault) = Vault::find_by_id(
-            id.clone(),
+            Vault::format_position_id(id.to_string(), U256Wrapper::from_str("1")?),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
@@ -167,7 +167,7 @@ impl Redeemed {
             Ok(vault)
         } else {
             Vault::builder()
-                .id(id.clone())
+                .id(Vault::format_vault_id(id.to_string(), None))
                 .atom_id(id.clone())
                 .total_shares(
                     decoded_consumer_context
@@ -398,7 +398,7 @@ impl Redeemed {
         block_number: i64,
     ) -> Result<(), ConsumerError> {
         if let Some(mut vault) = Vault::find_by_id(
-            U256Wrapper::from(self.vaultId),
+            Vault::format_position_id(self.vaultId.to_string(), U256Wrapper::from_str("1")?),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )

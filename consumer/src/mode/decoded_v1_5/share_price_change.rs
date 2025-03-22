@@ -22,7 +22,7 @@ impl SharePriceChanged {
         info!("Processing SharePriceChanged event: {:?}", self);
 
         let vault = Vault::find_by_id(
-            U256Wrapper::from_str(&self.termId.to_string())?,
+            self.termId.to_string(),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
@@ -32,6 +32,22 @@ impl SharePriceChanged {
             // Update the share price of the vault
             vault.current_share_price = U256Wrapper::from(self.newSharePrice);
             vault.total_shares = U256Wrapper::from(self.totalShares);
+            vault
+                .upsert(
+                    &decoded_consumer_context.pg_pool,
+                    &decoded_consumer_context.backend_schema,
+                )
+                .await?;
+        } else {
+            // Create a new vault
+            let vault = Vault::builder()
+                // We are defaulting to curve 1 for share price changes
+                .curve_id(U256Wrapper::from_str("1")?)
+                .id(Vault::format_vault_id(self.termId.to_string(), None))
+                .current_share_price(U256Wrapper::from(self.newSharePrice))
+                .total_shares(U256Wrapper::from(self.totalShares))
+                .position_count(0)
+                .build();
             vault
                 .upsert(
                     &decoded_consumer_context.pg_pool,

@@ -17,8 +17,8 @@ pub struct Claim {
     pub object_id: U256Wrapper,
     pub shares: U256Wrapper,
     pub counter_shares: U256Wrapper,
-    pub vault_id: U256Wrapper,
-    pub counter_vault_id: U256Wrapper,
+    pub vault_id: String,
+    pub counter_vault_id: String,
 }
 
 /// This is a trait that all models must implement.
@@ -71,8 +71,8 @@ impl SimpleCrud<String> for Claim {
             .bind(self.object_id.to_big_decimal()?)
             .bind(self.shares.to_big_decimal()?)
             .bind(self.counter_shares.to_big_decimal()?)
-            .bind(self.vault_id.to_big_decimal()?)
-            .bind(self.counter_vault_id.to_big_decimal()?)
+            .bind(self.vault_id.clone())
+            .bind(self.counter_vault_id.clone())
             .fetch_one(pool)
             .await
             .map_err(|e| ModelError::InsertError(e.to_string()))

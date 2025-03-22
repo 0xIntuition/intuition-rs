@@ -83,7 +83,7 @@ impl Redeemed {
             .assets_for_receiver(self.assetsForReceiver)
             .shares_redeemed_by_sender(self.sharesRedeemedBySender)
             .exit_fee(self.exitFee)
-            .vault_id(U256Wrapper::from(self.vaultId))
+            .vault_id(self.vaultId.to_string().clone())
             .block_number(U256Wrapper::try_from(event.block_number)?)
             .block_timestamp(event.block_timestamp)
             .transaction_hash(event.transaction_hash.clone())
@@ -158,7 +158,7 @@ impl Redeemed {
         block_number: i64,
     ) -> Result<Vault, ConsumerError> {
         if let Some(vault) = Vault::find_by_id(
-            id.clone(),
+            id.to_string(),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
@@ -167,7 +167,7 @@ impl Redeemed {
             Ok(vault)
         } else {
             Vault::builder()
-                .id(id.clone())
+                .id(Vault::format_vault_id(id.to_string(), None))
                 .atom_id(id.clone())
                 .curve_id(U256Wrapper::from_str("1")?)
                 .total_shares(

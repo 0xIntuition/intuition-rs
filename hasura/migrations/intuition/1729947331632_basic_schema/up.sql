@@ -89,17 +89,11 @@ CREATE TABLE triple (
 
 CREATE TABLE vault (
   id NUMERIC(78, 0) PRIMARY KEY NOT NULL,
-  curve_id NUMERIC(78, 0) NOT NULL DEFAULT 1,
   atom_id NUMERIC(78, 0),
   triple_id NUMERIC(78, 0),
   total_shares NUMERIC(78, 0) NOT NULL,
   current_share_price NUMERIC(78, 0) NOT NULL,
-  position_count INTEGER NOT NULL,
-  -- Ensure that exactly one of atom_id or triple_id is set
-  CONSTRAINT check_atom_or_triple CHECK (
-    (CASE WHEN atom_id IS NOT NULL THEN 1 ELSE 0 END +
-     CASE WHEN triple_id IS NOT NULL THEN 1 ELSE 0 END) = 1
-  )
+  position_count INTEGER NOT NULL
 );
 
 CREATE TABLE fee_transfer (
@@ -250,25 +244,6 @@ CREATE TABLE atom_value (
   book_id NUMERIC(78, 0) REFERENCES book(id)
 );
 
-CREATE TABLE share_price_changed (
-    id BIGSERIAL PRIMARY KEY,
-    term_id NUMERIC(78, 0) NOT NULL REFERENCES vault(id),
-    share_price NUMERIC(78, 0) NOT NULL,
-    total_assets NUMERIC(78, 0) NOT NULL,
-    total_shares NUMERIC(78, 0) NOT NULL,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE share_price_changed_curve (
-    id BIGSERIAL PRIMARY KEY,
-    term_id NUMERIC(78, 0) NOT NULL REFERENCES vault(id),
-    curve_id NUMERIC(78, 0) NOT NULL,
-    share_price NUMERIC(78, 0) NOT NULL,
-    total_assets NUMERIC(78, 0) NOT NULL,
-    total_shares NUMERIC(78, 0) NOT NULL,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
 -- Create indexes
 CREATE INDEX idx_atom_creator ON atom(creator_id);
 CREATE INDEX idx_atom_vault ON atom(vault_id);
@@ -320,11 +295,4 @@ CREATE INDEX idx_event_triple ON event(triple_id);
 CREATE INDEX idx_event_block_number ON event(block_number);
 CREATE INDEX idx_event_block_timestamp ON event(block_timestamp);
 CREATE INDEX idx_event_transaction_hash ON event(transaction_hash);
-CREATE INDEX idx_vault_curve ON vault(curve_id);
-CREATE INDEX idx_share_price_changed_term_id ON share_price_changed(term_id);
-CREATE INDEX idx_share_price_changed_curve_id ON share_price_changed_curve(curve_id);
-CREATE INDEX idx_share_price_changed_updated_at ON share_price_changed(updated_at);
-CREATE INDEX idx_share_price_changed_term_id_updated_at ON share_price_changed(term_id, updated_at);
-CREATE INDEX idx_share_price_changed_id ON share_price_changed(id);
-CREATE INDEX idx_share_price_changed_share_price ON share_price_changed(share_price);
 

@@ -50,12 +50,6 @@ DROP INDEX IF EXISTS idx_triple_subject;
 DROP INDEX IF EXISTS idx_triple_vault;
 DROP INDEX IF EXISTS idx_vault_atom;
 DROP INDEX IF EXISTS idx_vault_triple;
-DROP INDEX IF EXISTS idx_share_price_changed_term_id;
-DROP INDEX IF EXISTS idx_share_price_changed_curve_id;
-DROP INDEX IF EXISTS idx_share_price_changed_updated_at;
-DROP INDEX IF EXISTS idx_share_price_changed_term_id_updated_at;
-DROP INDEX IF EXISTS idx_share_price_changed_id;
-DROP INDEX IF EXISTS idx_share_price_changed_share_price;
 
 -- Drop tables
 DROP TABLE IF EXISTS account;
@@ -80,7 +74,6 @@ DROP TABLE IF EXISTS stats_hour;
 DROP TABLE IF EXISTS thing;
 DROP TABLE IF EXISTS triple;
 DROP TABLE IF EXISTS vault;
-DROP TABLE IF EXISTS share_price_changed;
 
 -- Drop custom enum types
 DROP TYPE IF EXISTS account_type;

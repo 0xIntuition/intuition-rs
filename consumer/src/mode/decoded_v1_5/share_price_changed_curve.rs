@@ -28,7 +28,7 @@ impl SharePriceChangedCurve {
 
         // Find the curve_vault
         let curve_vault = Vault::find_by_id(
-            vault_id,
+            Vault::format_vault_id(vault_id.to_string(), Some(U256Wrapper::from(self.curveId))),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )

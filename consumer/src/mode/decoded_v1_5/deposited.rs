@@ -39,13 +39,17 @@ impl Deposited {
             .object_id(triple.object_id.clone())
             .vault_id(triple.vault_id.clone())
             .counter_vault_id(triple.counter_vault_id.clone())
-            .shares(if U256Wrapper::from(self.vaultId) == triple.vault_id {
-                self.receiverTotalSharesInVault
-            } else {
-                U256::from(0)
-            })
+            .shares(
+                if U256Wrapper::from(self.vaultId) == U256Wrapper::from_str(&triple.vault_id)? {
+                    self.receiverTotalSharesInVault
+                } else {
+                    U256::from(0)
+                },
+            )
             .counter_shares(
-                if U256Wrapper::from(self.vaultId) == triple.counter_vault_id {
+                if U256Wrapper::from(self.vaultId)
+                    == U256Wrapper::from_str(&triple.counter_vault_id)?
+                {
                     self.receiverTotalSharesInVault
                 } else {
                     U256::from(0)
@@ -108,7 +112,7 @@ impl Deposited {
             .sender_assets_after_total_fees(U256Wrapper::from(self.senderAssetsAfterTotalFees))
             .shares_for_receiver(U256Wrapper::from(self.sharesForReceiver))
             .entry_fee(U256Wrapper::from(self.entryFee))
-            .vault_id(self.vaultId)
+            .vault_id(self.vaultId.to_string().clone())
             .is_triple(self.isTriple)
             .is_atom_wallet(self.isAtomWallet)
             .block_number(U256Wrapper::try_from(event.block_number)?)
@@ -171,7 +175,7 @@ impl Deposited {
         Position::builder()
             .id(position_id.clone())
             .account_id(self.receiver.to_string())
-            .vault_id(self.vaultId)
+            .vault_id(self.vaultId.to_string().clone())
             .shares(self.receiverTotalSharesInVault)
             .build()
             .upsert(
@@ -244,7 +248,7 @@ impl Deposited {
     }
 
     /// This function formats the position ID
-    fn format_position_id(&self) -> String {
+    pub fn format_position_id(&self) -> String {
         format!(
             "{}-{}",
             self.vaultId,
@@ -260,7 +264,7 @@ impl Deposited {
         id: U256,
     ) -> Result<Vault, ConsumerError> {
         match Vault::find_by_id(
-            U256Wrapper::from_str(&id.to_string())?,
+            id.to_string(),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
@@ -273,7 +277,7 @@ impl Deposited {
                     .await?;
                 if self.isTriple {
                     Vault::builder()
-                        .id(id)
+                        .id(Vault::format_vault_id(id.to_string(), None))
                         .curve_id(U256Wrapper::from_str("1")?)
                         .current_share_price(U256Wrapper::from(current_share_price))
                         .position_count(0)
@@ -292,7 +296,7 @@ impl Deposited {
                         .map_err(ConsumerError::ModelError)
                 } else {
                     Vault::builder()
-                        .id(id)
+                        .id(Vault::format_vault_id(id.to_string(), None))
                         .curve_id(U256Wrapper::from_str("1")?)
                         .current_share_price(U256Wrapper::from(current_share_price))
                         .position_count(0)

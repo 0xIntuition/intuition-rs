@@ -1,10 +1,10 @@
 use crate::{
+    EthMultiVault::TripleCreated,
     error::ConsumerError,
     mode::{resolver::types::ResolverConsumerMessage, types::DecodedConsumerContext},
     schemas::types::DecodedMessage,
-    EthMultiVault::TripleCreated,
 };
-use alloy::primitives::{Uint, U256};
+use alloy::primitives::{U256, Uint};
 use models::{
     account::{Account, AccountType},
     atom::{Atom, AtomResolvingStatus, AtomType},
@@ -150,7 +150,7 @@ impl TripleCreated {
         block_number: i64,
     ) -> Result<Vault, ConsumerError> {
         let vault = Vault::find_by_id(
-            U256Wrapper::from_str(&id.to_string())?,
+            Vault::format_position_id(id.to_string(), U256Wrapper::from_str("1")?),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
@@ -160,7 +160,7 @@ impl TripleCreated {
             Ok(vault)
         } else {
             Vault::builder()
-                .id(id)
+                .id(Vault::format_vault_id(id.to_string(), None))
                 .triple_id(self.vaultID)
                 .total_shares(
                     decoded_consumer_context
@@ -287,7 +287,7 @@ impl TripleCreated {
             Ok(vault)
         } else {
             Vault::builder()
-                .id(id.clone())
+                .id(Vault::format_vault_id(id.to_string(), None))
                 .atom_id(id.clone())
                 .total_shares(
                     decoded_consumer_context

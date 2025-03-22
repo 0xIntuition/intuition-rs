@@ -1,4 +1,5 @@
 use crate::{
+    EthMultiVault::AtomCreated,
     error::ConsumerError,
     mode::{
         decoded::{
@@ -9,7 +10,6 @@ use crate::{
         types::DecodedConsumerContext,
     },
     schemas::types::DecodedMessage,
-    EthMultiVault::AtomCreated,
 };
 use models::{
     account::{Account, AccountType},
@@ -60,7 +60,7 @@ impl AtomCreated {
         } else {
             warn!(
                 "Failed to decode atom data. This is not a critical error, but this atom will be created with empty data and `Unknown` type.",
-                );
+            );
             // return an empty string
             String::new()
         };
@@ -236,7 +236,7 @@ impl AtomCreated {
         } else {
             // create the vault
             Vault::builder()
-                .id(U256Wrapper::from_str(&self.vaultID.to_string())?)
+                .id(Vault::format_vault_id(self.vaultID.to_string(), None))
                 .total_shares(
                     decoded_consumer_context
                         .fetch_total_shares_in_vault(self.vaultID, event.block_number)

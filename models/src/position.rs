@@ -15,7 +15,7 @@ pub struct Position {
     /// Reference to the account that owns this position
     pub account_id: String,
     /// Reference to the vault this position is in
-    pub vault_id: U256Wrapper,
+    pub vault_id: String,
     /// Number of shares held in this position
     pub shares: U256Wrapper,
 }
@@ -49,7 +49,7 @@ impl SimpleCrud<String> for Position {
         sqlx::query_as::<_, Position>(&query)
             .bind(self.id.to_lowercase())
             .bind(self.account_id.to_lowercase())
-            .bind(self.vault_id.to_big_decimal()?)
+            .bind(self.vault_id.clone())
             .bind(self.shares.to_big_decimal()?)
             .fetch_one(pool)
             .await

@@ -201,7 +201,7 @@ impl RedeemedCurve {
 
         // Get the curve vault
         let curve_vault = Vault::find_by_id(
-            U256Wrapper::from(self.vaultId),
+            Vault::format_vault_id(self.vaultId.to_string(), None),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )

@@ -28,7 +28,7 @@ mod tests {
         let stored_vault = test_vault.upsert(&pool, TEST_SCHEMA).await.unwrap();
 
         // Create initial position
-        let position = create_test_position(wallet.id, stored_vault.id);
+        let position = create_test_position(wallet.id, stored_vault.id.clone());
 
         // Insert the position
         position.upsert(&pool, TEST_SCHEMA).await?;
