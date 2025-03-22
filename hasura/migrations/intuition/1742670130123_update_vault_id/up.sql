@@ -85,3 +85,17 @@ ALTER TABLE triple ADD CONSTRAINT triple_vault_id_fkey
     FOREIGN KEY (vault_id) REFERENCES vault(id);
 ALTER TABLE triple ADD CONSTRAINT triple_counter_vault_id_fkey
     FOREIGN KEY (counter_vault_id) REFERENCES vault(id);
+
+-- Add temporary column to atom
+ALTER TABLE atom ADD COLUMN temp_vault_id TEXT;
+
+-- Update the temporary column
+UPDATE atom SET temp_vault_id = CONCAT(vault_id::text, '-', '1');
+
+-- Drop old column and rename temp column
+ALTER TABLE atom DROP COLUMN vault_id;
+ALTER TABLE atom RENAME COLUMN temp_vault_id TO vault_id;
+
+-- Add back foreign key constraint
+ALTER TABLE atom ADD CONSTRAINT atom_vault_id_fkey
+    FOREIGN KEY (vault_id) REFERENCES vault(id);
