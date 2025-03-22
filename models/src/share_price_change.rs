@@ -41,7 +41,7 @@ impl SimpleCrud<U256Wrapper> for SharePriceChanged {
     async fn upsert(&self, pool: &PgPool, schema: &str) -> Result<Self, ModelError> {
         let query = format!(
             r#"
-            INSERT INTO {}.share_price_aggregate (id, term_id, share_price, total_assets, total_shares, updated_at)
+            INSERT INTO {}.share_price_changed (id, term_id, share_price, total_assets, total_shares, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6)
             ON CONFLICT (id) DO UPDATE SET
                 term_id = EXCLUDED.term_id,
@@ -81,7 +81,7 @@ impl SimpleCrud<U256Wrapper> for SharePriceChanged {
                 total_assets,
                 total_shares,
                 updated_at
-            FROM {}.share_price_aggregate 
+            FROM {}.share_price_changed 
             WHERE id = $1
             "#,
             schema,
@@ -103,7 +103,7 @@ impl SharePriceChanged {
     ) -> Result<Self, ModelError> {
         let query = format!(
             r#"
-            INSERT INTO {}.share_price_aggregate (term_id, share_price, total_assets, total_shares)
+            INSERT INTO {}.share_price_changed (term_id, share_price, total_assets, total_shares)
             VALUES ($1, $2, $3, $4)
             RETURNING id, term_id, share_price, total_assets, total_shares, updated_at
             "#,

@@ -80,7 +80,7 @@ DROP TABLE IF EXISTS stats_hour;
 DROP TABLE IF EXISTS thing;
 DROP TABLE IF EXISTS triple;
 DROP TABLE IF EXISTS vault;
-DROP TABLE IF EXISTS share_price_aggregate;
+DROP TABLE IF EXISTS share_price_changed;
 
 -- Drop custom enum types
 DROP TYPE IF EXISTS account_type;
