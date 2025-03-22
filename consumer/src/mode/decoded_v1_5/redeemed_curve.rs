@@ -151,7 +151,10 @@ impl RedeemedCurve {
             if curve_vault.position_count > 0 {
                 // Create a new curve vault with decremented position count
                 let updated_curve_vault = Vault {
-                    id: curve_vault.id.clone(),
+                    id: Vault::format_vault_id(
+                        curve_vault.id.clone(),
+                        Some(U256Wrapper::from(self.curveId)),
+                    ),
                     atom_id: curve_vault.atom_id.clone(),
                     triple_id: curve_vault.triple_id.clone(),
                     curve_id: curve_vault.curve_id.clone(),

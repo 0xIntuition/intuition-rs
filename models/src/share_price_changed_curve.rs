@@ -12,7 +12,7 @@ use sqlx::{PgPool, Result};
 #[derive(Debug, sqlx::FromRow, Builder)]
 pub struct SharePriceChangedCurve {
     pub id: U256Wrapper,
-    pub term_id: U256Wrapper,
+    pub term_id: String,
     pub curve_id: U256Wrapper,
     pub share_price: U256Wrapper,
     pub total_assets: U256Wrapper,
@@ -23,7 +23,7 @@ pub struct SharePriceChangedCurve {
 /// This struct is used to create a new share price change.
 #[derive(Debug, Builder)]
 pub struct SharePriceChangedCurveInternal {
-    pub term_id: U256Wrapper,
+    pub term_id: String,
     pub curve_id: U256Wrapper,
     pub share_price: U256Wrapper,
     pub total_assets: U256Wrapper,
@@ -53,7 +53,7 @@ impl SimpleCrud<U256Wrapper> for SharePriceChangedCurve {
 
         sqlx::query_as::<_, Self>(&query)
             .bind(self.id.to_big_decimal()?)
-            .bind(self.term_id.to_big_decimal()?)
+            .bind(self.term_id.clone())
             .bind(self.curve_id.to_big_decimal()?)
             .bind(self.share_price.to_big_decimal()?)
             .bind(self.total_assets.to_big_decimal()?)

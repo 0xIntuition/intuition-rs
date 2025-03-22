@@ -125,7 +125,7 @@ impl TripleCreated {
                 .subject_id(subject_atom.id.clone())
                 .predicate_id(predicate_atom.id.clone())
                 .object_id(object_atom.id.clone())
-                .vault_id(U256Wrapper::from(self.vaultID))
+                .vault_id(Vault::format_vault_id(self.vaultID.to_string(), None))
                 .counter_vault_id(U256Wrapper::from(counter_vault_id))
                 .block_number(U256Wrapper::try_from(event.block_number).unwrap_or_default())
                 .block_timestamp(event.block_timestamp)
@@ -278,7 +278,7 @@ impl TripleCreated {
         block_number: i64,
     ) -> Result<Vault, ConsumerError> {
         if let Some(vault) = Vault::find_by_id(
-            id.clone(),
+            Vault::format_vault_id(id.to_string(), None),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
@@ -329,7 +329,7 @@ impl TripleCreated {
             .id(id)
             .wallet_id(account.id.clone())
             .creator_id(account.id)
-            .vault_id(vault.id.clone())
+            .vault_id(Vault::format_vault_id(vault.id.clone(), None))
             .value_id(vault.id.clone())
             .data(Atom::decode_data(atom_data.to_string())?)
             .raw_data(atom_data.to_string())
@@ -497,7 +497,7 @@ impl TripleCreated {
                 .subject_id(self.subjectId)
                 .predicate_id(self.predicateId)
                 .object_id(self.objectId)
-                .vault_id(U256Wrapper::from(self.vaultID))
+                .vault_id(Vault::format_vault_id(self.vaultID.to_string(), None))
                 .counter_vault_id(triple.counter_vault_id.clone())
                 .shares(position.shares.clone())
                 .counter_shares(position.shares)

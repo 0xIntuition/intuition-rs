@@ -14,8 +14,8 @@ use sqlx::{PgPool, Result};
 #[derive(Debug, sqlx::FromRow, Builder)]
 #[sqlx(type_name = "share_price_changed")]
 pub struct SharePriceChanged {
-    pub id: U256Wrapper,
-    pub term_id: U256Wrapper,
+    pub id: i64,
+    pub term_id: String,
     pub share_price: U256Wrapper,
     pub total_assets: U256Wrapper,
     pub total_shares: U256Wrapper,
@@ -25,7 +25,7 @@ pub struct SharePriceChanged {
 /// This struct is used to build a `SharePriceChanged`.
 #[derive(Debug, Builder)]
 pub struct SharePriceChangedInternal {
-    pub term_id: U256Wrapper,
+    pub term_id: String,
     pub share_price: U256Wrapper,
     pub total_shares: U256Wrapper,
     pub total_assets: U256Wrapper,
@@ -55,8 +55,8 @@ impl SimpleCrud<U256Wrapper> for SharePriceChanged {
         );
 
         sqlx::query_as::<_, SharePriceChanged>(&query)
-            .bind(self.id.to_big_decimal()?)
-            .bind(self.term_id.to_big_decimal()?)
+            .bind(self.id)
+            .bind(self.term_id.clone())
             .bind(self.share_price.to_big_decimal()?)
             .bind(self.total_assets.to_big_decimal()?)
             .bind(self.total_shares.to_big_decimal()?)
@@ -88,7 +88,7 @@ impl SimpleCrud<U256Wrapper> for SharePriceChanged {
         );
 
         sqlx::query_as::<_, SharePriceChanged>(&query)
-            .bind(id.to_big_decimal()?)
+            .bind(id.to_string())
             .fetch_optional(pool)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
@@ -111,7 +111,7 @@ impl SharePriceChanged {
         );
 
         sqlx::query_as::<_, SharePriceChanged>(&query)
-            .bind(share_price_change.term_id.to_big_decimal()?)
+            .bind(share_price_change.term_id.clone())
             .bind(share_price_change.share_price.to_big_decimal()?)
             .bind(share_price_change.total_assets.to_big_decimal()?)
             .bind(share_price_change.total_shares.to_big_decimal()?)

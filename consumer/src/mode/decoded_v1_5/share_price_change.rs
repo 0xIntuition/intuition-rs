@@ -22,13 +22,14 @@ impl SharePriceChanged {
         info!("Processing SharePriceChanged event: {:?}", self);
 
         let vault = Vault::find_by_id(
-            self.termId.to_string(),
+            Vault::format_vault_id(self.termId.to_string(), None),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
         .await?;
 
         if let Some(mut vault) = vault {
+            info!("Updating vault share price and total shares");
             // Update the share price of the vault
             vault.current_share_price = U256Wrapper::from(self.newSharePrice);
             vault.total_shares = U256Wrapper::from(self.totalShares);
@@ -39,6 +40,7 @@ impl SharePriceChanged {
                 )
                 .await?;
         } else {
+            info!("Vault not found, creating it");
             // Create a new vault
             let vault = Vault::builder()
                 // We are defaulting to curve 1 for share price changes
@@ -55,6 +57,7 @@ impl SharePriceChanged {
                 )
                 .await?;
         }
+        info!("Finished updating vault, updating share price aggregate");
         // Update the share price aggregate of the vault
         self.update_share_price_changed(decoded_consumer_context)
             .await?;
@@ -68,7 +71,7 @@ impl SharePriceChanged {
         decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<(), ConsumerError> {
         let new_share_price = SharePriceChangedInternal::builder()
-            .term_id(U256Wrapper::from_str(&self.termId.to_string())?)
+            .term_id(Vault::format_vault_id(self.termId.to_string(), None))
             .share_price(U256Wrapper::from(self.newSharePrice))
             .total_assets(U256Wrapper::from(self.totalAssets))
             .total_shares(U256Wrapper::from(self.totalShares))

@@ -148,7 +148,7 @@ impl AtomCreated {
                 )?)
                 .wallet_id(atom_wallet_account.id.clone())
                 .creator_id(creator_account.id)
-                .vault_id(self.vaultId.to_string().clone())
+                .vault_id(Vault::format_vault_id(self.vaultId.to_string(), None))
                 .value_id(U256Wrapper::from_str(&self.vaultId.to_string())?)
                 .raw_data(self.atomData.to_string())
                 .atom_type(AtomType::Unknown)
@@ -224,18 +224,28 @@ impl AtomCreated {
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
     ) -> Result<Vault, ConsumerError> {
-        if let Some(vault) = Vault::find_by_id(
+        if let Some(mut vault) = Vault::find_by_id(
             Vault::format_vault_id(self.vaultId.to_string(), None),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
         .await?
         {
+            if vault.atom_id.is_none() {
+                vault.atom_id = Some(U256Wrapper::from_str(&self.vaultId.to_string())?);
+                vault
+                    .upsert(
+                        &decoded_consumer_context.pg_pool,
+                        &decoded_consumer_context.backend_schema,
+                    )
+                    .await?;
+            }
             info!("Vault already exists, returning it");
             Ok(vault)
         } else {
             // create the vault
             Vault::builder()
+                .atom_id(self.vaultId)
                 .id(Vault::format_vault_id(self.vaultId.to_string(), None))
                 .curve_id(U256Wrapper::from_str("1")?)
                 .total_shares(

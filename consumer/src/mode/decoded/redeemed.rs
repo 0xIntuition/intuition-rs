@@ -83,7 +83,7 @@ impl Redeemed {
             .assets_for_receiver(self.assetsForReceiver)
             .shares_redeemed_by_sender(self.sharesRedeemedBySender)
             .exit_fee(self.exitFee)
-            .vault_id(U256Wrapper::from(self.vaultId))
+            .vault_id(Vault::format_vault_id(self.vaultId.to_string(), None))
             .block_number(U256Wrapper::try_from(event.block_number)?)
             .block_timestamp(event.block_timestamp)
             .transaction_hash(event.transaction_hash.clone())

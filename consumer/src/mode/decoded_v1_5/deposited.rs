@@ -112,7 +112,7 @@ impl Deposited {
             .sender_assets_after_total_fees(U256Wrapper::from(self.senderAssetsAfterTotalFees))
             .shares_for_receiver(U256Wrapper::from(self.sharesForReceiver))
             .entry_fee(U256Wrapper::from(self.entryFee))
-            .vault_id(self.vaultId.to_string().clone())
+            .vault_id(Vault::format_vault_id(self.vaultId.to_string(), None))
             .is_triple(self.isTriple)
             .is_atom_wallet(self.isAtomWallet)
             .block_number(U256Wrapper::try_from(event.block_number)?)
@@ -175,7 +175,7 @@ impl Deposited {
         Position::builder()
             .id(position_id.clone())
             .account_id(self.receiver.to_string())
-            .vault_id(self.vaultId.to_string().clone())
+            .vault_id(Vault::format_vault_id(self.vaultId.to_string(), None))
             .shares(self.receiverTotalSharesInVault)
             .build()
             .upsert(
@@ -264,7 +264,7 @@ impl Deposited {
         id: U256,
     ) -> Result<Vault, ConsumerError> {
         match Vault::find_by_id(
-            id.to_string(),
+            Vault::format_vault_id(id.to_string(), None),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )

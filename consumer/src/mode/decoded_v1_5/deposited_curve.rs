@@ -59,7 +59,10 @@ impl DepositedCurve {
                 .id(position_id)
                 .account_id(self.receiver.to_string())
                 // Use the base vault ID for the foreign key constraint
-                .vault_id(self.vaultId.to_string().clone())
+                .vault_id(Vault::format_vault_id(
+                    self.vaultId.to_string(),
+                    Some(U256Wrapper::from(self.curveId)),
+                ))
                 .shares(self.receiverTotalSharesInVault)
                 .build()
                 .upsert(
@@ -171,7 +174,10 @@ impl DepositedCurve {
             .sender_assets_after_total_fees(U256Wrapper::from(self.senderAssetsAfterTotalFees))
             .shares_for_receiver(U256Wrapper::from(self.sharesForReceiver))
             .entry_fee(U256Wrapper::from(self.entryFee))
-            .vault_id(self.vaultId.to_string().clone())
+            .vault_id(Vault::format_vault_id(
+                self.vaultId.to_string(),
+                Some(U256Wrapper::from(self.curveId)),
+            ))
             .is_triple(self.isTriple)
             .is_atom_wallet(self.isAtomWallet)
             .block_number(U256Wrapper::try_from(event.block_number)?)
@@ -226,7 +232,7 @@ impl DepositedCurve {
         decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<Vault, ConsumerError> {
         match Vault::find_by_id(
-            self.vaultId.to_string(),
+            Vault::format_vault_id(self.vaultId.to_string(), None),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )

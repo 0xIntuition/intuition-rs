@@ -129,7 +129,7 @@ impl TripleCreated {
                 .subject_id(subject_atom.id.clone())
                 .predicate_id(predicate_atom.id.clone())
                 .object_id(object_atom.id.clone())
-                .vault_id(self.vaultId.to_string().clone())
+                .vault_id(Vault::format_vault_id(self.vaultId.to_string(), None))
                 .counter_vault_id(counter_vault_id.to_string().clone())
                 .block_number(U256Wrapper::try_from(event.block_number).unwrap_or_default())
                 .block_timestamp(event.block_timestamp)
@@ -153,13 +153,23 @@ impl TripleCreated {
         block_number: i64,
     ) -> Result<Vault, ConsumerError> {
         let vault = Vault::find_by_id(
-            id.to_string(),
+            Vault::format_vault_id(id.to_string(), None),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
         .await?;
 
-        if let Some(vault) = vault {
+        if let Some(mut vault) = vault {
+            // Handle the case where the vault was created by a share price changed event
+            if vault.triple_id.is_none() {
+                vault.triple_id = Some(U256Wrapper::from_str(&self.vaultId.to_string())?);
+                vault
+                    .upsert(
+                        &decoded_consumer_context.pg_pool,
+                        &decoded_consumer_context.backend_schema,
+                    )
+                    .await?;
+            }
             Ok(vault)
         } else {
             // Get the current share price of the vault
@@ -286,7 +296,7 @@ impl TripleCreated {
         block_number: i64,
     ) -> Result<Vault, ConsumerError> {
         if let Some(vault) = Vault::find_by_id(
-            id.to_string(),
+            Vault::format_vault_id(id.to_string(), None),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
@@ -338,7 +348,7 @@ impl TripleCreated {
             .id(id)
             .wallet_id(account.id.clone())
             .creator_id(account.id)
-            .vault_id(vault.id.clone())
+            .vault_id(Vault::format_vault_id(vault.id.clone(), None))
             .value_id(U256Wrapper::from_str(&vault.id)?)
             .data(Atom::decode_data(atom_data.to_string())?)
             .raw_data(atom_data.to_string())
@@ -535,7 +545,7 @@ impl TripleCreated {
                 .subject_id(self.subjectId)
                 .predicate_id(self.predicateId)
                 .object_id(self.objectId)
-                .vault_id(self.vaultId.to_string().clone())
+                .vault_id(Vault::format_vault_id(self.vaultId.to_string(), None))
                 .counter_vault_id(triple.counter_vault_id.clone())
                 .shares(position.shares.clone())
                 .counter_shares(position.shares)
