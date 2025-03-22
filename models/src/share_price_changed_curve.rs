@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use crate::{
     error::ModelError,
     traits::{Model, SimpleCrud},
@@ -11,7 +9,7 @@ use sqlx::{PgPool, Result};
 
 #[derive(Debug, sqlx::FromRow, Builder)]
 pub struct SharePriceChangedCurve {
-    pub id: U256Wrapper,
+    pub id: i64,
     pub term_id: String,
     pub curve_id: U256Wrapper,
     pub share_price: U256Wrapper,
@@ -52,7 +50,7 @@ impl SimpleCrud<U256Wrapper> for SharePriceChangedCurve {
         );
 
         sqlx::query_as::<_, Self>(&query)
-            .bind(self.id.to_big_decimal()?)
+            .bind(self.id)
             .bind(self.term_id.clone())
             .bind(self.curve_id.to_big_decimal()?)
             .bind(self.share_price.to_big_decimal()?)
@@ -90,18 +88,23 @@ impl SharePriceChangedCurve {
         schema: &str,
         share_price_change: SharePriceChangedCurveInternal,
     ) -> Result<Self, ModelError> {
-        let share_price_change = Self::builder()
-            .id(U256Wrapper::from_str(
-                &share_price_change.term_id.to_string(),
-            )?)
-            .term_id(share_price_change.term_id)
-            .curve_id(share_price_change.curve_id)
-            .share_price(share_price_change.share_price)
-            .total_assets(share_price_change.total_assets)
-            .total_shares(share_price_change.total_shares)
-            .updated_at(Utc::now())
-            .build();
+        let query = format!(
+            r#"
+            INSERT INTO {}.share_price_changed_curve (term_id, curve_id, share_price, total_assets, total_shares)
+            VALUES ($1, $2, $3, $4, $5)
+            RETURNING id, term_id, curve_id, share_price, total_assets, total_shares, updated_at
+            "#,
+            schema,
+        );
 
-        share_price_change.upsert(pool, schema).await
+        sqlx::query_as::<_, SharePriceChangedCurve>(&query)
+            .bind(share_price_change.term_id.clone())
+            .bind(share_price_change.curve_id.to_big_decimal()?)
+            .bind(share_price_change.share_price.to_big_decimal()?)
+            .bind(share_price_change.total_assets.to_big_decimal()?)
+            .bind(share_price_change.total_shares.to_big_decimal()?)
+            .fetch_one(pool)
+            .await
+            .map_err(|e| ModelError::InsertError(e.to_string()))
     }
 }

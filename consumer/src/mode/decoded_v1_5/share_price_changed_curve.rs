@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use crate::{
     ConsumerError, EthMultiVault::SharePriceChangedCurve, mode::types::DecodedConsumerContext,
     schemas::types::DecodedMessage,
@@ -59,7 +57,10 @@ impl SharePriceChangedCurve {
             let vault = Vault::builder()
                 // We are defaulting to curve 1 for share price changes
                 .curve_id(self.curveId)
-                .id(Vault::format_vault_id(self.termId.to_string(), None))
+                .id(Vault::format_vault_id(
+                    self.termId.to_string(),
+                    Some(U256Wrapper::from(self.curveId)),
+                ))
                 .current_share_price(U256Wrapper::from(self.newSharePrice))
                 .total_shares(U256Wrapper::from(self.totalShares))
                 .position_count(0)
@@ -89,7 +90,7 @@ impl SharePriceChangedCurve {
                 self.termId.to_string(),
                 Some(U256Wrapper::from(self.curveId)),
             ))
-            .curve_id(U256Wrapper::from_str(&self.curveId.to_string())?)
+            .curve_id(U256Wrapper::from(self.curveId))
             .share_price(U256Wrapper::from(self.newSharePrice))
             .total_assets(U256Wrapper::from(self.totalAssets))
             .total_shares(U256Wrapper::from(self.totalShares))
