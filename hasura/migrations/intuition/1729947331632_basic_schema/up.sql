@@ -256,7 +256,7 @@ CREATE TABLE share_price_changed (
     share_price NUMERIC(78, 0) NOT NULL,
     total_assets NUMERIC(78, 0) NOT NULL,
     total_shares NUMERIC(78, 0) NOT NULL,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE share_price_changed_curve (
@@ -266,7 +266,7 @@ CREATE TABLE share_price_changed_curve (
     share_price NUMERIC(78, 0) NOT NULL,
     total_assets NUMERIC(78, 0) NOT NULL,
     total_shares NUMERIC(78, 0) NOT NULL,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Create indexes
