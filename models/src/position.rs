@@ -101,7 +101,7 @@ impl Deletable for Position {
 impl Position {
     /// Returns the number of positions in the given vault.
     pub async fn count_by_vault(
-        vault_id: U256Wrapper,
+        vault_id: String,
         pg_pool: &sqlx::PgPool,
         schema: &str,
     ) -> Result<i64, ModelError> {
@@ -110,7 +110,7 @@ impl Position {
             schema
         );
         let count: i64 = sqlx::query_scalar(&query)
-            .bind(vault_id.to_big_decimal()?)
+            .bind(vault_id.clone())
             .fetch_one(pg_pool)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))?;
@@ -118,7 +118,7 @@ impl Position {
     }
     /// Finds positions by vault ID
     pub async fn find_by_vault_id(
-        vault_id: U256Wrapper,
+        vault_id: String,
         pool: &PgPool,
         schema: &str,
     ) -> Result<Vec<Self>, ModelError> {
@@ -136,7 +136,7 @@ impl Position {
         );
 
         sqlx::query_as::<_, Position>(&query)
-            .bind(vault_id.to_big_decimal()?)
+            .bind(vault_id.clone())
             .fetch_all(pool)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))

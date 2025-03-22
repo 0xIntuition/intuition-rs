@@ -188,7 +188,7 @@ impl Redeemed {
                 )
                 .position_count(
                     Position::count_by_vault(
-                        U256Wrapper::from_str(&id.to_string())?,
+                        Vault::format_vault_id(id.to_string(), None),
                         &decoded_consumer_context.pg_pool,
                         &decoded_consumer_context.backend_schema,
                     )

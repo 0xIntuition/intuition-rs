@@ -130,7 +130,7 @@ impl TripleCreated {
                 .predicate_id(predicate_atom.id.clone())
                 .object_id(object_atom.id.clone())
                 .vault_id(Vault::format_vault_id(self.vaultId.to_string(), None))
-                .counter_vault_id(counter_vault_id.to_string().clone())
+                .counter_vault_id(Vault::format_vault_id(counter_vault_id.to_string(), None))
                 .block_number(U256Wrapper::try_from(event.block_number).unwrap_or_default())
                 .block_timestamp(event.block_timestamp)
                 .transaction_hash(event.transaction_hash.clone())
@@ -188,7 +188,7 @@ impl TripleCreated {
                 .current_share_price(U256Wrapper::from(current_share_price))
                 .position_count(
                     Position::count_by_vault(
-                        U256Wrapper::from_str(&id.to_string())?,
+                        Vault::format_vault_id(id.to_string(), None),
                         &decoded_consumer_context.pg_pool,
                         &decoded_consumer_context.backend_schema,
                     )
@@ -319,7 +319,7 @@ impl TripleCreated {
                 .current_share_price(U256Wrapper::from_str("0")?)
                 .position_count(
                     Position::count_by_vault(
-                        U256Wrapper::from_str(&id.to_string())?,
+                        Vault::format_vault_id(id.to_string(), None),
                         &decoded_consumer_context.pg_pool,
                         &decoded_consumer_context.backend_schema,
                     )
@@ -532,7 +532,7 @@ impl TripleCreated {
         block_number: i64,
     ) -> Result<(), ConsumerError> {
         let positions = Position::find_by_vault_id(
-            U256Wrapper::from(self.vaultId),
+            Vault::format_vault_id(self.vaultId.to_string(), None),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
