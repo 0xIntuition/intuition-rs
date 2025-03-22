@@ -1,6 +1,6 @@
 table:
   name: cached_image
-  schema: public
+  schema: cached_images
 configuration:
   column_config: {}
   custom_column_names: {}
@@ -19,4 +19,4 @@ select_permissions:
         - created_at
       filter: {}
       limit: 100
-    comment: ""
+    comment: ''

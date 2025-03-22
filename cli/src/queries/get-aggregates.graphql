@@ -1,6 +1,7 @@
 query GetAggregates {
   events(limit: 1, order_by: {block_number: desc}) {
     block_number
+    block_timestamp
   }
   accounts_aggregate {
     aggregate {

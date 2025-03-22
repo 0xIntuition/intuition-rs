@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 alloy.workspace = true
+chrono = "0.4"
 crossterm = "0.28.1"
 graphql_client = { version = "0.14", features = ["reqwest"] }
 lazy_static = "1.4.0"

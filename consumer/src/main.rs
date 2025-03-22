@@ -13,13 +13,24 @@ mod mode;
 mod schemas;
 mod traits;
 
+#[cfg(feature = "v1_0_contract")]
 // Codegen from ABI file to interact with the Intuition contract.
 sol!(
     #[derive(Debug, Deserialize, Serialize)]
     #[allow(missing_docs)]
     #[sol(rpc)]
     EthMultiVault,
-    "contracts/EthMultiVault.json"
+    "contracts/EthMultiVault_v_1_0.json"
+);
+
+#[cfg(feature = "v1_5_contract")]
+// Codegen from ABI file to interact with the Intuition contract.
+sol!(
+    #[derive(Debug, Deserialize, Serialize)]
+    #[allow(missing_docs)]
+    #[sol(rpc)]
+    EthMultiVault,
+    "contracts/EthMultiVault_v_1_5.json"
 );
 
 // Codegen to interact with the ENS contract.
