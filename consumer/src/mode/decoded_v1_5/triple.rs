@@ -532,7 +532,7 @@ impl TripleCreated {
         block_number: i64,
     ) -> Result<(), ConsumerError> {
         let positions = Position::find_by_vault_id(
-            Vault::format_vault_id(self.vaultId.to_string(), None),
+            format!("{}-1-{}", self.vaultId, self.subjectId),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )

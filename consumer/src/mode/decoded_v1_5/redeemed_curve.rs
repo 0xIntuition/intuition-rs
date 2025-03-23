@@ -124,8 +124,9 @@ impl RedeemedCurve {
     ) -> Result<(), ConsumerError> {
         // Build the position ID using the atom/triple ID and curve number for uniqueness
         let position_id = format!(
-            "{}-{}",
+            "{}-{}-{}",
             curve_vault.id,
+            self.curveId,
             self.sender.to_string().to_lowercase()
         );
 
