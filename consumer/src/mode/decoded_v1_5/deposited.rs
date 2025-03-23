@@ -270,22 +270,7 @@ impl Deposited {
         )
         .await?
         {
-            Some(mut vault) => {
-                if self.isTriple {
-                    if vault.triple_id.is_none() {
-                        vault.triple_id = Some(U256Wrapper::from(self.vaultId));
-                    }
-                } else if vault.atom_id.is_none() {
-                    vault.atom_id = Some(U256Wrapper::from_str(&self.vaultId.to_string())?);
-                }
-                vault
-                    .upsert(
-                        &decoded_consumer_context.pg_pool,
-                        &decoded_consumer_context.backend_schema,
-                    )
-                    .await?;
-                Ok(vault)
-            }
+            Some(vault) => Ok(vault),
             None => {
                 let current_share_price = decoded_consumer_context
                     .fetch_current_share_price(self.vaultId, event.block_number)

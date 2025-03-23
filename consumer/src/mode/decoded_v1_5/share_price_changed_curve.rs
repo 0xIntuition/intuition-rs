@@ -53,18 +53,35 @@ impl SharePriceChangedCurve {
                 "Curve vault not found for vault ID {} and curve number {}, creating it",
                 self.termId, self.curveId
             );
-            // Create a new vault
-            let vault = Vault::builder()
-                // We are defaulting to curve 1 for share price changes
-                .curve_id(self.curveId)
-                .id(Vault::format_vault_id(
-                    self.termId.to_string(),
-                    Some(U256Wrapper::from(self.curveId)),
-                ))
-                .current_share_price(U256Wrapper::from(self.newSharePrice))
-                .total_shares(U256Wrapper::from(self.totalShares))
-                .position_count(0)
-                .build();
+            let vault = if decoded_consumer_context.is_triple_id(self.termId).await? {
+                info!("Vault is a triple id, creating it");
+                // Create a new vault
+                Vault::builder()
+                    // We are defaulting to curve 1 for share price changes
+                    .triple_id(self.termId)
+                    .curve_id(self.curveId)
+                    .id(Vault::format_vault_id(
+                        self.termId.to_string(),
+                        Some(U256Wrapper::from(self.curveId)),
+                    ))
+                    .current_share_price(U256Wrapper::from(self.newSharePrice))
+                    .total_shares(U256Wrapper::from(self.totalShares))
+                    .position_count(0)
+                    .build()
+            } else {
+                info!("Vault is an atom id, creating it");
+                Vault::builder()
+                    .atom_id(self.termId)
+                    .curve_id(self.curveId)
+                    .id(Vault::format_vault_id(
+                        self.termId.to_string(),
+                        Some(U256Wrapper::from(self.curveId)),
+                    ))
+                    .current_share_price(U256Wrapper::from(self.newSharePrice))
+                    .total_shares(U256Wrapper::from(self.totalShares))
+                    .position_count(0)
+                    .build()
+            };
             vault
                 .upsert(
                     &decoded_consumer_context.pg_pool,

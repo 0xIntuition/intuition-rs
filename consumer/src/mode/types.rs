@@ -151,6 +151,25 @@ impl DecodedConsumerContext {
         .await
     }
 
+    /// This function fetches the current share price from the vault
+    pub async fn is_triple_id(&self, id: Uint<256, 4>) -> Result<bool, ConsumerError> {
+        self.retry_with_backoff(|| async {
+            let is_triple_id = self.base_client.isTripleId(id).call().await;
+            match &is_triple_id {
+                Ok(is_triple_id) => {
+                    info!("Is triple id: {:?}", is_triple_id);
+                    Ok(is_triple_id._0)
+                }
+                Err(e) => {
+                    warn!("Response: {:?}", is_triple_id);
+                    warn!("Error fetching is triple id: {}", e);
+                    Err(ConsumerError::MaxRetriesExceeded)
+                }
+            }
+        })
+        .await
+    }
+
     /// This function fetches the total shares in the vault
     pub async fn fetch_total_shares_in_vault(
         &self,
