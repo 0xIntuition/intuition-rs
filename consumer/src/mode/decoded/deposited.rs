@@ -246,7 +246,7 @@ impl Deposited {
     /// This function formats the position ID
     fn format_position_id(&self) -> String {
         format!(
-            "{}-{}",
+            "{}-1-{}",
             self.vaultId,
             self.receiver.to_string().to_lowercase()
         )

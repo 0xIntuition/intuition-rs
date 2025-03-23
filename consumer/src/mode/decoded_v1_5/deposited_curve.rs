@@ -22,8 +22,9 @@ impl DepositedCurve {
     /// This function formats the position ID
     fn format_position_id(&self) -> String {
         format!(
-            "{}-{}",
+            "{}-{}-{}",
             self.vaultId,
+            self.curveId,
             self.receiver.to_string().to_lowercase()
         )
     }
