@@ -1,9 +1,9 @@
 use super::utils::get_absolute_triple_id;
 use crate::{
-    ConsumerError,
-    EthMultiVault::Deposited,
     mode::{decoded::utils::get_or_create_account, types::DecodedConsumerContext},
     schemas::types::DecodedMessage,
+    ConsumerError,
+    EthMultiVault::Deposited,
 };
 use alloy::primitives::U256;
 use futures::executor::block_on;
@@ -108,7 +108,7 @@ impl Deposited {
             .sender_assets_after_total_fees(U256Wrapper::from(self.senderAssetsAfterTotalFees))
             .shares_for_receiver(U256Wrapper::from(self.sharesForReceiver))
             .entry_fee(U256Wrapper::from(self.entryFee))
-            .vault_id(Vault::format_vault_id(self.vaultId.to_string(), None))
+            .vault_id(self.vaultId)
             .is_triple(self.isTriple)
             .is_atom_wallet(self.isAtomWallet)
             .block_number(U256Wrapper::try_from(event.block_number)?)
@@ -171,7 +171,7 @@ impl Deposited {
         Position::builder()
             .id(position_id.clone())
             .account_id(self.receiver.to_string())
-            .vault_id(Vault::format_vault_id(self.vaultId.to_string(), None))
+            .vault_id(self.vaultId)
             .shares(self.receiverTotalSharesInVault)
             .build()
             .upsert(
@@ -246,7 +246,7 @@ impl Deposited {
     /// This function formats the position ID
     fn format_position_id(&self) -> String {
         format!(
-            "{}-1-{}",
+            "{}-{}",
             self.vaultId,
             self.receiver.to_string().to_lowercase()
         )
@@ -261,7 +261,7 @@ impl Deposited {
         current_share_price: U256,
     ) -> Result<Vault, ConsumerError> {
         match Vault::find_by_id(
-            Vault::format_position_id(id.to_string(), U256Wrapper::from_str("1")?),
+            U256Wrapper::from_str(&id.to_string())?,
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
@@ -285,7 +285,7 @@ impl Deposited {
             None => {
                 if self.isTriple {
                     Vault::builder()
-                        .id(Vault::format_vault_id(id.to_string(), None))
+                        .id(id)
                         .current_share_price(U256Wrapper::from(current_share_price))
                         .position_count(0)
                         .triple_id(get_absolute_triple_id(self.vaultId))
@@ -303,7 +303,7 @@ impl Deposited {
                         .map_err(ConsumerError::ModelError)
                 } else {
                     Vault::builder()
-                        .id(Vault::format_vault_id(id.to_string(), None))
+                        .id(id)
                         .current_share_price(U256Wrapper::from(current_share_price))
                         .position_count(0)
                         .atom_id(self.vaultId)

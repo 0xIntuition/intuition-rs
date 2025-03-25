@@ -1,9 +1,9 @@
 use super::utils::get_or_create_account;
 use crate::{
-    EthMultiVault::Redeemed, error::ConsumerError, mode::types::DecodedConsumerContext,
-    schemas::types::DecodedMessage,
+    error::ConsumerError, mode::types::DecodedConsumerContext, schemas::types::DecodedMessage,
+    EthMultiVault::Redeemed,
 };
-use alloy::primitives::{U256, Uint};
+use alloy::primitives::{Uint, U256};
 use models::{
     account::Account,
     claim::Claim,
@@ -83,7 +83,7 @@ impl Redeemed {
             .assets_for_receiver(self.assetsForReceiver)
             .shares_redeemed_by_sender(self.sharesRedeemedBySender)
             .exit_fee(self.exitFee)
-            .vault_id(Vault::format_vault_id(self.vaultId.to_string(), None))
+            .vault_id(U256Wrapper::from(self.vaultId))
             .block_number(U256Wrapper::try_from(event.block_number)?)
             .block_timestamp(event.block_timestamp)
             .transaction_hash(event.transaction_hash.clone())
@@ -158,7 +158,7 @@ impl Redeemed {
         block_number: i64,
     ) -> Result<Vault, ConsumerError> {
         if let Some(vault) = Vault::find_by_id(
-            Vault::format_position_id(id.to_string(), U256Wrapper::from_str("1")?),
+            id.clone(),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
@@ -167,7 +167,7 @@ impl Redeemed {
             Ok(vault)
         } else {
             Vault::builder()
-                .id(Vault::format_vault_id(id.to_string(), None))
+                .id(id.clone())
                 .atom_id(id.clone())
                 .total_shares(
                     decoded_consumer_context
@@ -241,7 +241,7 @@ impl Redeemed {
         // When the redemption fully depletes the sender's shares:
         if self.senderTotalSharesInVault == Uint::from(0) {
             // Build the position ID
-            let position_id = format!("{}-1-{}", vault.id, sender_account.id.to_lowercase());
+            let position_id = format!("{}-{}", vault.id, sender_account.id.to_lowercase());
             // Call the handler to remove the position
             self.handle_position_redemption(decoded_consumer_context, &position_id)
                 .await?;
@@ -285,7 +285,7 @@ impl Redeemed {
     ) -> Result<(), ConsumerError> {
         // Update position
         if let Some(mut position) = Position::find_by_id(
-            format!("{}-1-{}", vault.id, sender_account.id.to_lowercase()),
+            format!("{}-{}", vault.id, sender_account.id.to_lowercase()),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
@@ -398,7 +398,7 @@ impl Redeemed {
         block_number: i64,
     ) -> Result<(), ConsumerError> {
         if let Some(mut vault) = Vault::find_by_id(
-            Vault::format_position_id(self.vaultId.to_string(), U256Wrapper::from_str("1")?),
+            U256Wrapper::from(self.vaultId),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )

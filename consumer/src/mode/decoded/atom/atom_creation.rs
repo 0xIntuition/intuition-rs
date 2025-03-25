@@ -1,5 +1,4 @@
 use crate::{
-    EthMultiVault::AtomCreated,
     error::ConsumerError,
     mode::{
         decoded::{
@@ -10,6 +9,7 @@ use crate::{
         types::DecodedConsumerContext,
     },
     schemas::types::DecodedMessage,
+    EthMultiVault::AtomCreated,
 };
 use models::{
     account::{Account, AccountType},
@@ -60,7 +60,7 @@ impl AtomCreated {
         } else {
             warn!(
                 "Failed to decode atom data. This is not a critical error, but this atom will be created with empty data and `Unknown` type.",
-            );
+                );
             // return an empty string
             String::new()
         };
@@ -148,10 +148,7 @@ impl AtomCreated {
                 )?)
                 .wallet_id(atom_wallet_account.id.clone())
                 .creator_id(creator_account.id)
-                .vault_id(Vault::format_vault_id(
-                    U256Wrapper::from_str(&self.vaultID.to_string())?,
-                    None,
-                ))
+                .vault_id(U256Wrapper::from_str(&self.vaultID.to_string())?)
                 .value_id(U256Wrapper::from_str(&self.vaultID.to_string())?)
                 .raw_data(self.atomData.to_string())
                 .atom_type(AtomType::Unknown)
@@ -228,7 +225,7 @@ impl AtomCreated {
         event: &DecodedMessage,
     ) -> Result<Vault, ConsumerError> {
         if let Some(vault) = Vault::find_by_id(
-            Vault::format_vault_id(self.vaultID.to_string(), None),
+            U256Wrapper::from_str(&self.vaultID.to_string())?,
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
@@ -239,7 +236,7 @@ impl AtomCreated {
         } else {
             // create the vault
             Vault::builder()
-                .id(Vault::format_vault_id(self.vaultID.to_string(), None))
+                .id(U256Wrapper::from_str(&self.vaultID.to_string())?)
                 .total_shares(
                     decoded_consumer_context
                         .fetch_total_shares_in_vault(self.vaultID, event.block_number)
