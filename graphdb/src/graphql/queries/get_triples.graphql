@@ -1,0 +1,24 @@
+query GetTriples($limit: Int!, $offset: Int!) {
+     triples(limit: $limit, offset: $offset) {
+       id
+       subject_id
+       subject {
+         id
+         label
+         type
+       }
+       predicate_id
+       predicate {
+         id
+         label
+         type
+       }
+       object_id
+       object {
+         id
+         label
+         type
+       }
+       creator_id
+     }
+   }

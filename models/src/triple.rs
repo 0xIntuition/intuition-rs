@@ -1,6 +1,6 @@
 use crate::{
     error::ModelError,
-    traits::{Model, SimpleCrud},
+    traits::{Model, Paginated, SimpleCrud},
     types::U256Wrapper,
 };
 use async_trait::async_trait;
@@ -96,5 +96,48 @@ impl SimpleCrud<U256Wrapper> for Triple {
             .fetch_optional(pool)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
+    }
+}
+
+#[async_trait]
+impl Paginated for Triple {
+    /// This is a method to get paginated triples from the database.
+    async fn get_paginated(
+        pg_pool: &PgPool,
+        page: i64,
+        page_size: i64,
+        schema: &str,
+    ) -> Result<Vec<Self>, ModelError> {
+        let query = format!(
+            r#"
+            SELECT *
+            FROM {}.triple
+            ORDER BY block_timestamp ASC
+            LIMIT $1 OFFSET $2
+            "#,
+            schema,
+        );
+
+        sqlx::query_as::<_, Triple>(&query)
+            .bind(page_size)
+            .bind((page - 1) * page_size)
+            .fetch_all(pg_pool)
+            .await
+            .map_err(|error| ModelError::QueryError(error.to_string()))
+    }
+
+    /// This is a method to get the total count of triples in the database.
+    async fn get_total_count(pg_pool: &PgPool, schema: &str) -> Result<i64, ModelError> {
+        let query = format!(
+            r#"
+            SELECT COUNT(*) FROM {}.triple
+            "#,
+            schema,
+        );
+
+        sqlx::query_scalar(&query)
+            .fetch_one(pg_pool)
+            .await
+            .map_err(|error| ModelError::QueryError(error.to_string()))
     }
 }
