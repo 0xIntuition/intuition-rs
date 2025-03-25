@@ -1,6 +1,8 @@
 // This test is going to be removed once we have a proper testing crate
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
     use alloy::primitives::U256;
     use models::{
         account::{Account, AccountType},
@@ -44,7 +46,7 @@ mod tests {
             .id(alice_vault_id.clone())
             .wallet_id(alice_atom_wallet_account.id.clone())
             .creator_id(alice_account.id.clone())
-            .vault_id(alice_vault_id.clone())
+            .vault_id(alice_vault_id.to_string())
             .data(alice_account.id.clone())
             .raw_data(alice_account.id.clone())
             .atom_type(AtomType::Account)
@@ -66,7 +68,8 @@ mod tests {
             .expect("Failed to update account");
 
         let _alice_vault = Vault::builder()
-            .id(alice_vault_id.clone())
+            .id(alice_vault_id.to_string())
+            .curve_id(U256Wrapper::from_str("1").unwrap())
             .atom_id(alice_vault_id.clone())
             .total_shares(create_random_u256wrapper())
             .current_share_price(create_random_u256wrapper())
@@ -91,7 +94,7 @@ mod tests {
             .id(alice_person_vault_id.clone())
             .wallet_id(alice_person_atom_wallet_account.id.clone())
             .creator_id(alice_account.id.clone())
-            .vault_id(alice_person_vault_id.clone())
+            .vault_id(alice_person_vault_id.to_string())
             .data("ipfs://Qm...".to_string())
             .raw_data("ipfs://Qm...".to_string())
             .atom_type(AtomType::Person)
@@ -107,8 +110,9 @@ mod tests {
             .expect("Failed to store atom");
 
         let _alice_person_vault = Vault::builder()
-            .id(alice_person_vault_id.clone())
+            .id(alice_person_vault_id.to_string())
             .atom_id(alice_person_vault_id.clone())
+            .curve_id(U256Wrapper::from_str("1").unwrap())
             .total_shares(create_random_u256wrapper())
             .current_share_price(create_random_u256wrapper())
             .position_count(0)

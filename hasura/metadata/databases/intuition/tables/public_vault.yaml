@@ -69,6 +69,7 @@ select_permissions:
         - position_count
         - atom_id
         - current_share_price
+        - curve_id
         - id
         - total_shares
         - triple_id

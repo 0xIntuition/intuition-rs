@@ -33,7 +33,7 @@ mod tests {
             .unwrap();
 
         // Create initial deposit
-        let deposit = create_test_deposit(sender.id, receiver.id, vault.id);
+        let deposit = create_test_deposit(sender.id, receiver.id, vault.id.clone());
 
         // Test initial upsert
         let upserted_deposit = deposit.upsert(&pool, TEST_SCHEMA).await?;

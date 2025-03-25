@@ -38,3 +38,11 @@ tracing = "0.1"
 tracing-appender = "0.2"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 warp = "0.3.7"
+
+# We currently support two versions of the contract:
+# - v1_5_contract: The latest version of the contract
+# - v1_0_contract: The previous version of the contract
+[features]
+v1_5_contract = []
+v1_0_contract = []
+default = ["v1_5_contract"]

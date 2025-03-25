@@ -1,0 +1,8 @@
+-- Revert changes
+ALTER TABLE vault ADD COLUMN temp_id NUMERIC(78, 0);
+UPDATE vault SET temp_id = SPLIT_PART(id, '-', 1)::NUMERIC;
+ALTER TABLE vault DROP CONSTRAINT vault_pkey;
+ALTER TABLE vault DROP COLUMN id;
+ALTER TABLE vault RENAME COLUMN temp_id TO id;
+ALTER TABLE vault ADD PRIMARY KEY (id);
+ALTER TABLE vault ALTER COLUMN curve_id DROP DEFAULT;

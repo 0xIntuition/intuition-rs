@@ -1,9 +1,9 @@
 use super::utils::get_or_create_account;
 use crate::{
-    error::ConsumerError, mode::types::DecodedConsumerContext, schemas::types::DecodedMessage,
-    EthMultiVault::Redeemed,
+    EthMultiVault::Redeemed, error::ConsumerError, mode::types::DecodedConsumerContext,
+    schemas::types::DecodedMessage,
 };
-use alloy::primitives::{Uint, U256};
+use alloy::primitives::{U256, Uint};
 use models::{
     account::Account,
     claim::Claim,
@@ -83,7 +83,7 @@ impl Redeemed {
             .assets_for_receiver(self.assetsForReceiver)
             .shares_redeemed_by_sender(self.sharesRedeemedBySender)
             .exit_fee(self.exitFee)
-            .vault_id(U256Wrapper::from(self.vaultId))
+            .vault_id(self.vaultId.to_string())
             .block_number(U256Wrapper::try_from(event.block_number)?)
             .block_timestamp(event.block_timestamp)
             .transaction_hash(event.transaction_hash.clone())
@@ -158,7 +158,7 @@ impl Redeemed {
         block_number: i64,
     ) -> Result<Vault, ConsumerError> {
         if let Some(vault) = Vault::find_by_id(
-            id.clone(),
+            id.to_string(),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
@@ -167,7 +167,7 @@ impl Redeemed {
             Ok(vault)
         } else {
             Vault::builder()
-                .id(id.clone())
+                .id(id.to_string())
                 .atom_id(id.clone())
                 .total_shares(
                     decoded_consumer_context
@@ -187,12 +187,13 @@ impl Redeemed {
                 )
                 .position_count(
                     Position::count_by_vault(
-                        U256Wrapper::from_str(&id.to_string())?,
+                        id.to_string(),
                         &decoded_consumer_context.pg_pool,
                         &decoded_consumer_context.backend_schema,
                     )
                     .await? as i32,
                 )
+                .curve_id(U256Wrapper::from_str("1")?)
                 .build()
                 .upsert(
                     &decoded_consumer_context.pg_pool,
@@ -398,7 +399,7 @@ impl Redeemed {
         block_number: i64,
     ) -> Result<(), ConsumerError> {
         if let Some(mut vault) = Vault::find_by_id(
-            U256Wrapper::from(self.vaultId),
+            self.vaultId.to_string(),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )

@@ -29,7 +29,7 @@ mod tests {
             .upsert(&pool, TEST_SCHEMA)
             .await?;
 
-        let deposit = create_test_deposit(sender.id, receiver.id, vault.id)
+        let deposit = create_test_deposit(sender.id, receiver.id, vault.id.clone())
             .upsert(&pool, TEST_SCHEMA)
             .await?;
         // Create initial signal

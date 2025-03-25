@@ -26,7 +26,12 @@ mod tests {
         let stored_vault = test_vault.upsert(&pool, TEST_SCHEMA).await?;
 
         // Test find_by_id
-        let found_vault = Vault::find_by_id(stored_vault.id.clone(), &pool, TEST_SCHEMA).await?;
+        let found_vault = Vault::find_by_id(
+            Vault::format_vault_id(stored_vault.id.clone(), None),
+            &pool,
+            TEST_SCHEMA,
+        )
+        .await?;
         assert!(found_vault.is_some());
         let found_vault = found_vault.unwrap();
         assert_eq!(found_vault.id, stored_vault.id);
