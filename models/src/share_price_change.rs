@@ -119,4 +119,26 @@ impl SharePriceChanged {
             .await
             .map_err(|e| ModelError::InsertError(e.to_string()))
     }
+
+    pub async fn fetch_current_share_price(
+        vault_id: String,
+        pool: &PgPool,
+        schema: &str,
+    ) -> Result<Self, ModelError> {
+        let query = format!(
+            r#"
+            SELECT * FROM {}.share_price_changed 
+            WHERE term_id = $1
+            ORDER BY updated_at DESC
+            LIMIT 1
+            "#,
+            schema,
+        );
+
+        sqlx::query_as::<_, SharePriceChanged>(&query)
+            .bind(vault_id.clone())
+            .fetch_one(pool)
+            .await
+            .map_err(|e| ModelError::QueryError(e.to_string()))
+    }
 }

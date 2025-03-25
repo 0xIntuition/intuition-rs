@@ -1,4 +1,5 @@
 use crate::{error::ConsumerError, mode::types::ConsumerMode, schemas::goldsky::RawMessage};
+use alloy::primitives::Uint;
 use async_trait::async_trait;
 use aws_sdk_sqs::{operation::receive_message::ReceiveMessageOutput, types::Message};
 
@@ -24,4 +25,13 @@ pub trait BasicConsumer: Send + Sync {
 /// raw message into a `RawMessage` struct.
 pub trait IntoRawMessage {
     fn into_raw_message(self) -> Result<RawMessage, ConsumerError>;
+}
+
+#[cfg(feature = "v1_5_contract")]
+/// This trait is implemented by all share price events.
+pub trait SharePriceEvent {
+    fn term_id(&self) -> Uint<256, 4>;
+    fn new_share_price(&self) -> Uint<256, 4>;
+    fn total_shares(&self) -> Uint<256, 4>;
+    fn curve_id(&self) -> Option<Uint<256, 4>>;
 }

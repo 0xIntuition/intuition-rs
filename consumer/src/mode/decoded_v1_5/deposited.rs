@@ -13,6 +13,7 @@ use models::{
     event::{Event, EventType},
     position::Position,
     predicate_object::PredicateObject,
+    share_price_change::SharePriceChanged,
     signal::Signal,
     traits::SimpleCrud,
     triple::Triple,
@@ -259,7 +260,6 @@ impl Deposited {
     /// This function gets or creates a vault
     async fn get_or_create_vault(
         &self,
-        event: &DecodedMessage,
         decoded_consumer_context: &DecodedConsumerContext,
         id: U256,
     ) -> Result<Vault, ConsumerError> {
@@ -272,21 +272,20 @@ impl Deposited {
         {
             Some(vault) => Ok(vault),
             None => {
-                let current_share_price = decoded_consumer_context
-                    .fetch_current_share_price(self.vaultId, event.block_number)
-                    .await?;
+                let current_share_price = SharePriceChanged::fetch_current_share_price(
+                    self.vaultId.to_string(),
+                    &decoded_consumer_context.pg_pool,
+                    &decoded_consumer_context.backend_schema,
+                )
+                .await?;
                 if self.isTriple {
                     Vault::builder()
                         .id(Vault::format_vault_id(id.to_string(), None))
                         .curve_id(U256Wrapper::from_str("1")?)
-                        .current_share_price(U256Wrapper::from(current_share_price))
+                        .current_share_price(current_share_price.share_price)
                         .position_count(0)
                         .triple_id(get_absolute_triple_id(self.vaultId))
-                        .total_shares(U256Wrapper::from(
-                            decoded_consumer_context
-                                .fetch_total_shares_in_vault(id, event.block_number)
-                                .await?,
-                        ))
+                        .total_shares(current_share_price.total_shares)
                         .build()
                         .upsert(
                             &decoded_consumer_context.pg_pool,
@@ -298,14 +297,10 @@ impl Deposited {
                     Vault::builder()
                         .id(Vault::format_vault_id(id.to_string(), None))
                         .curve_id(U256Wrapper::from_str("1")?)
-                        .current_share_price(U256Wrapper::from(current_share_price))
+                        .current_share_price(current_share_price.share_price)
                         .position_count(0)
                         .atom_id(self.vaultId)
-                        .total_shares(U256Wrapper::from(
-                            decoded_consumer_context
-                                .fetch_total_shares_in_vault(id, event.block_number)
-                                .await?,
-                        ))
+                        .total_shares(current_share_price.total_shares)
                         .build()
                         .upsert(
                             &decoded_consumer_context.pg_pool,
@@ -326,7 +321,7 @@ impl Deposited {
     ) -> Result<(), ConsumerError> {
         // Initialize accounts and vault. We need to block on this because it's async and
         // we need to ensure that the accounts and vault are initialized before we proceed
-        let vault = block_on(self.initialize_accounts_and_vault(decoded_consumer_context, event))?;
+        let vault = block_on(self.initialize_accounts_and_vault(decoded_consumer_context))?;
 
         // Create deposit record
         let deposit = self.create_deposit(event, decoded_consumer_context).await?;
@@ -421,7 +416,6 @@ impl Deposited {
     async fn initialize_accounts_and_vault(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
-        event: &DecodedMessage,
     ) -> Result<Vault, ConsumerError> {
         // Create accounts concurrently
         let (sender, receiver) = futures::join!(
@@ -431,7 +425,7 @@ impl Deposited {
         sender?;
         receiver?;
 
-        self.get_or_create_vault(event, decoded_consumer_context, self.vaultId)
+        self.get_or_create_vault(decoded_consumer_context, self.vaultId)
             .await
     }
 

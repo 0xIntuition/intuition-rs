@@ -107,4 +107,28 @@ impl SharePriceChangedCurve {
             .await
             .map_err(|e| ModelError::InsertError(e.to_string()))
     }
+
+    pub async fn fetch_current_share_price(
+        vault_id: String,
+        curve_id: U256Wrapper,
+        pool: &PgPool,
+        schema: &str,
+    ) -> Result<Self, ModelError> {
+        let query = format!(
+            r#"
+            SELECT * FROM {}.share_price_changed 
+            WHERE term_id = $1 and curve_id = $2
+            ORDER BY updated_at DESC
+            LIMIT 1
+            "#,
+            schema,
+        );
+
+        sqlx::query_as::<_, SharePriceChangedCurve>(&query)
+            .bind(vault_id.clone())
+            .bind(curve_id.to_big_decimal()?)
+            .fetch_one(pool)
+            .await
+            .map_err(|e| ModelError::QueryError(e.to_string()))
+    }
 }

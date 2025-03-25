@@ -9,6 +9,7 @@ use models::{
     deposit::Deposit,
     event::{Event, EventType},
     position::Position,
+    share_price_changed_curve::SharePriceChangedCurve,
     signal::Signal,
     traits::SimpleCrud,
     types::U256Wrapper,
@@ -206,7 +207,7 @@ impl DepositedCurve {
 
         // Get or create the curve vault
         let curve_vault = self
-            .get_or_create_curve_vault(event, decoded_consumer_context)
+            .get_or_create_curve_vault(decoded_consumer_context)
             .await?;
 
         // Create deposit record first
@@ -229,7 +230,6 @@ impl DepositedCurve {
     /// This function gets or creates a curve vault
     async fn get_or_create_curve_vault(
         &self,
-        event: &DecodedMessage,
         decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<Vault, ConsumerError> {
         match Vault::find_by_id(
@@ -241,24 +241,24 @@ impl DepositedCurve {
         {
             Some(vault) => Ok(vault),
             None => {
-                let current_share_price = decoded_consumer_context
-                    .fetch_current_share_price(self.vaultId, event.block_number)
-                    .await?;
+                let current_share_price = SharePriceChangedCurve::fetch_current_share_price(
+                    self.vaultId.to_string(),
+                    U256Wrapper::from(self.curveId),
+                    &decoded_consumer_context.pg_pool,
+                    &decoded_consumer_context.backend_schema,
+                )
+                .await?;
                 if self.isTriple {
                     Vault::builder()
                         .id(Vault::format_vault_id(
                             self.vaultId.to_string(),
                             Some(U256Wrapper::from(self.curveId)),
                         ))
-                        .current_share_price(U256Wrapper::from(current_share_price))
+                        .current_share_price(current_share_price.share_price)
                         .position_count(0)
                         .curve_id(U256Wrapper::from(self.curveId))
                         .triple_id(get_absolute_triple_id(self.vaultId))
-                        .total_shares(U256Wrapper::from(
-                            decoded_consumer_context
-                                .fetch_total_shares_in_vault(self.vaultId, event.block_number)
-                                .await?,
-                        ))
+                        .total_shares(current_share_price.total_shares)
                         .build()
                         .upsert(
                             &decoded_consumer_context.pg_pool,
@@ -272,15 +272,11 @@ impl DepositedCurve {
                             self.vaultId.to_string(),
                             Some(U256Wrapper::from(self.curveId)),
                         ))
-                        .current_share_price(U256Wrapper::from(current_share_price))
+                        .current_share_price(current_share_price.share_price)
                         .position_count(0)
                         .curve_id(U256Wrapper::from(self.curveId))
                         .atom_id(self.vaultId)
-                        .total_shares(U256Wrapper::from(
-                            decoded_consumer_context
-                                .fetch_total_shares_in_vault(self.vaultId, event.block_number)
-                                .await?,
-                        ))
+                        .total_shares(current_share_price.total_shares)
                         .build()
                         .upsert(
                             &decoded_consumer_context.pg_pool,

@@ -1,16 +1,37 @@
 use crate::{
-    ConsumerError, EthMultiVault::SharePriceChangedCurve, mode::types::DecodedConsumerContext,
+    ConsumerError,
+    EthMultiVault::SharePriceChangedCurve,
+    mode::{
+        decoded_v1_5::utils::update_vault_from_share_price_changed_events,
+        types::DecodedConsumerContext,
+    },
     schemas::types::DecodedMessage,
+    traits::SharePriceEvent,
 };
+use alloy::primitives::Uint;
 use models::{
     share_price_changed_curve::{
         SharePriceChangedCurve as SharePriceChangedCurveModel, SharePriceChangedCurveInternal,
     },
-    traits::SimpleCrud,
     types::U256Wrapper,
     vault::Vault,
 };
 use tracing::info;
+
+impl SharePriceEvent for &SharePriceChangedCurve {
+    fn term_id(&self) -> Uint<256, 4> {
+        self.termId
+    }
+    fn new_share_price(&self) -> Uint<256, 4> {
+        self.newSharePrice
+    }
+    fn total_shares(&self) -> Uint<256, 4> {
+        self.totalShares
+    }
+    fn curve_id(&self) -> Option<Uint<256, 4>> {
+        Some(self.curveId)
+    }
+}
 
 impl SharePriceChangedCurve {
     /// This function updates the share price of a curve vault
@@ -20,76 +41,8 @@ impl SharePriceChangedCurve {
         _event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
         info!("Processing SharePriceChangedCurve event: {:?}", self);
-
-        // Find the curve_vault
-        let curve_vault = Vault::find_by_id(
-            Vault::format_vault_id(
-                self.termId.to_string(),
-                Some(U256Wrapper::from(self.curveId)),
-            ),
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
-        )
-        .await?;
-
-        // If the curve vault exists, update its share price and curve_id.
-        // With this, the vault became a curve vault.
-        if let Some(mut curve_vault) = curve_vault {
-            info!("Updating curve vault share price and curve_id");
-
-            curve_vault.current_share_price = U256Wrapper::from(self.newSharePrice);
-            curve_vault.curve_id = U256Wrapper::from(self.curveId);
-
-            curve_vault
-                .upsert(
-                    &decoded_consumer_context.pg_pool,
-                    &decoded_consumer_context.backend_schema,
-                )
-                .await?;
-        } else {
-            // If the curve vault doesn't exist, we might want to create it
-            // This would depend on the business logic
-            info!(
-                "Curve vault not found for vault ID {} and curve number {}, creating it",
-                self.termId, self.curveId
-            );
-            let vault = if decoded_consumer_context.is_triple_id(self.termId).await? {
-                info!("Vault is a triple id, creating it");
-                // Create a new vault
-                Vault::builder()
-                    // We are defaulting to curve 1 for share price changes
-                    .triple_id(self.termId)
-                    .curve_id(self.curveId)
-                    .id(Vault::format_vault_id(
-                        self.termId.to_string(),
-                        Some(U256Wrapper::from(self.curveId)),
-                    ))
-                    .current_share_price(U256Wrapper::from(self.newSharePrice))
-                    .total_shares(U256Wrapper::from(self.totalShares))
-                    .position_count(0)
-                    .build()
-            } else {
-                info!("Vault is an atom id, creating it");
-                Vault::builder()
-                    .atom_id(self.termId)
-                    .curve_id(self.curveId)
-                    .id(Vault::format_vault_id(
-                        self.termId.to_string(),
-                        Some(U256Wrapper::from(self.curveId)),
-                    ))
-                    .current_share_price(U256Wrapper::from(self.newSharePrice))
-                    .total_shares(U256Wrapper::from(self.totalShares))
-                    .position_count(0)
-                    .build()
-            };
-            vault
-                .upsert(
-                    &decoded_consumer_context.pg_pool,
-                    &decoded_consumer_context.backend_schema,
-                )
-                .await?;
-        }
-
+        // Update the vault from the share price changed event
+        update_vault_from_share_price_changed_events(self, decoded_consumer_context).await?;
         // Update the share price aggregate of the curve vault
         self.update_share_price_changed_curve(decoded_consumer_context)
             .await?;

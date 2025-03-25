@@ -1,12 +1,16 @@
+use std::{fmt::Debug, str::FromStr};
+
 use crate::{
     error::ConsumerError,
     mode::{resolver::types::ResolverConsumerMessage, types::DecodedConsumerContext},
+    traits::SharePriceEvent,
 };
 use alloy::primitives::U256;
 use models::{
     account::{Account, AccountType},
     traits::SimpleCrud,
     types::U256Wrapper,
+    vault::Vault,
 };
 use tracing::info;
 
@@ -103,4 +107,92 @@ pub async fn update_account_with_atom_id(
         .send_message(serde_json::to_string(&message)?, None)
         .await?;
     Ok(account)
+}
+
+#[cfg(feature = "v1_5_contract")]
+/// This function gets or creates a vault from a share price changed event
+pub async fn update_vault_from_share_price_changed_events(
+    share_price_changed: impl SharePriceEvent + Debug,
+    decoded_consumer_context: &DecodedConsumerContext,
+) -> Result<(), ConsumerError> {
+    info!(
+        "Processing SharePriceChanged event: {:?}",
+        share_price_changed
+    );
+
+    let vault = Vault::find_by_id(
+        Vault::format_vault_id(
+            share_price_changed.term_id().to_string(),
+            share_price_changed.curve_id().map(U256Wrapper::from),
+        ),
+        &decoded_consumer_context.pg_pool,
+        &decoded_consumer_context.backend_schema,
+    )
+    .await?;
+
+    if let Some(mut vault) = vault {
+        info!("Updating vault share price and total shares");
+        // Update the share price of the vault
+        vault.current_share_price = U256Wrapper::from(share_price_changed.new_share_price());
+        vault.total_shares = U256Wrapper::from(share_price_changed.total_shares());
+        // If the share price changed event is for a curve vault, update the curve_id
+        if let Some(curve_id) = share_price_changed.curve_id() {
+            vault.curve_id = U256Wrapper::from(curve_id);
+        }
+        vault
+            .upsert(
+                &decoded_consumer_context.pg_pool,
+                &decoded_consumer_context.backend_schema,
+            )
+            .await?;
+    } else {
+        info!("Vault not found, creating it");
+        build_vault_from_share_price_changed(share_price_changed, decoded_consumer_context)
+            .await?
+            .upsert(
+                &decoded_consumer_context.pg_pool,
+                &decoded_consumer_context.backend_schema,
+            )
+            .await?;
+    }
+    info!("Finished updating vault, updating share price aggregate");
+
+    Ok(())
+}
+
+#[cfg(feature = "v1_5_contract")]
+/// This function builds a vault from a share price changed event
+pub async fn build_vault_from_share_price_changed(
+    share_price_changed: impl SharePriceEvent,
+    decoded_consumer_context: &DecodedConsumerContext,
+) -> Result<Vault, ConsumerError> {
+    let is_triple = decoded_consumer_context
+        .is_triple_id(share_price_changed.term_id())
+        .await?;
+
+    if is_triple {
+        Ok(Vault::builder()
+            .curve_id(U256Wrapper::from_str("1")?)
+            .id(Vault::format_vault_id(
+                share_price_changed.term_id().to_string(),
+                None,
+            ))
+            .current_share_price(U256Wrapper::from(share_price_changed.new_share_price()))
+            .total_shares(U256Wrapper::from(share_price_changed.total_shares()))
+            .position_count(0)
+            .triple_id(U256Wrapper::from(share_price_changed.term_id()))
+            .build())
+    } else {
+        Ok(Vault::builder()
+            .curve_id(U256Wrapper::from_str("1")?)
+            .id(Vault::format_vault_id(
+                share_price_changed.term_id().to_string(),
+                share_price_changed.curve_id().map(U256Wrapper::from),
+            ))
+            .current_share_price(U256Wrapper::from(share_price_changed.new_share_price()))
+            .total_shares(U256Wrapper::from(share_price_changed.total_shares()))
+            .position_count(0)
+            .atom_id(U256Wrapper::from(share_price_changed.term_id()))
+            .build())
+    }
 }

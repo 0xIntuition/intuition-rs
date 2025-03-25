@@ -11,6 +11,7 @@ use models::{
     position::Position,
     predicate_object::PredicateObject,
     redemption::Redemption,
+    share_price_change::SharePriceChanged,
     signal::Signal,
     traits::{Deletable, SimpleCrud},
     triple::Triple,
@@ -155,7 +156,6 @@ impl Redeemed {
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         id: &U256Wrapper,
-        block_number: i64,
     ) -> Result<Vault, ConsumerError> {
         if let Some(vault) = Vault::find_by_id(
             Vault::format_vault_id(id.to_string(), None),
@@ -166,26 +166,18 @@ impl Redeemed {
         {
             Ok(vault)
         } else {
+            let share_price = SharePriceChanged::fetch_current_share_price(
+                id.to_string(),
+                &decoded_consumer_context.pg_pool,
+                &decoded_consumer_context.backend_schema,
+            )
+            .await?;
             Vault::builder()
                 .id(Vault::format_vault_id(id.to_string(), None))
                 .atom_id(id.clone())
                 .curve_id(U256Wrapper::from_str("1")?)
-                .total_shares(
-                    decoded_consumer_context
-                        .fetch_total_shares_in_vault(
-                            Uint::<256, 4>::from_str(&id.to_string())?,
-                            block_number,
-                        )
-                        .await?,
-                )
-                .current_share_price(
-                    decoded_consumer_context
-                        .fetch_current_share_price(
-                            Uint::<256, 4>::from_str(&id.to_string())?,
-                            block_number,
-                        )
-                        .await?,
-                )
+                .total_shares(share_price.total_shares)
+                .current_share_price(share_price.share_price)
                 .position_count(
                     Position::count_by_vault(
                         Vault::format_vault_id(id.to_string(), None),
@@ -221,7 +213,6 @@ impl Redeemed {
             .get_or_create_temporary_vault(
                 decoded_consumer_context,
                 &U256Wrapper::from(self.vaultId),
-                event.block_number,
             )
             .await?;
 
