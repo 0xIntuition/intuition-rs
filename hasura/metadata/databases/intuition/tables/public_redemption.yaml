@@ -7,6 +7,9 @@ configuration:
   custom_name: redemptions
   custom_root_fields:
     select_by_pk: redemption
+  query_configuration:
+    default_limit: 250
+    max_limit: 250
 object_relationships:
   - name: receiver
     using:

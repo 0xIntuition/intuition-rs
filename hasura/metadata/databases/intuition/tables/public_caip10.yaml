@@ -7,6 +7,9 @@ configuration:
   custom_root_fields:
     select: caip10s
     select_by_pk: caip10
+  query_configuration:
+    default_limit: 250
+    max_limit: 250
 select_permissions:
   - role: anonymous
     permission:

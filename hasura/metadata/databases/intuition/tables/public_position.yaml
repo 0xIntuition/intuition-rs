@@ -7,6 +7,9 @@ configuration:
   custom_name: positions
   custom_root_fields:
     select_by_pk: position
+  query_configuration:
+    default_limit: 250
+    max_limit: 250
 object_relationships:
   - name: account
     using:
