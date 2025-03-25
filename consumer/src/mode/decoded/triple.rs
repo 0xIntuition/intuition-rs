@@ -617,11 +617,6 @@ impl TripleCreated {
             .fetch_current_share_price(self.vaultID, event.block_number)
             .await?;
 
-        // Get or create the triple
-        let triple = self
-            .get_or_create_triple(decoded_consumer_context, event, counter_vault_id)
-            .await?;
-
         // Get or update the vault
         self.get_or_create_vault(
             decoded_consumer_context,
@@ -638,6 +633,11 @@ impl TripleCreated {
             event.block_number,
         )
         .await?;
+
+        // Get or create the triple
+        let triple = self
+            .get_or_create_triple(decoded_consumer_context, event, counter_vault_id)
+            .await?;
 
         Ok(triple)
     }
