@@ -73,6 +73,6 @@ select_permissions:
         - total_shares
         - triple_id
       filter: {}
-      limit: 100
+      limit: 250
       allow_aggregations: true
     comment: ""

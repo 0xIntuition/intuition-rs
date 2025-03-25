@@ -50,6 +50,6 @@ select_permissions:
         - account_id
         - id
       filter: {}
-      limit: 100
+      limit: 250
       allow_aggregations: true
     comment: ""

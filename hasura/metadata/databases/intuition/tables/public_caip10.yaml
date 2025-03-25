@@ -16,6 +16,6 @@ select_permissions:
         - account_address
         - namespace
       filter: {}
-      limit: 100
+      limit: 250
       allow_aggregations: true
     comment: ""

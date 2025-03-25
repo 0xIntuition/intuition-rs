@@ -76,6 +76,6 @@ select_permissions:
         - vault_id
         - creator_id
       filter: {}
-      limit: 100
+      limit: 250
       allow_aggregations: true
     comment: ""

@@ -27,6 +27,6 @@ select_permissions:
         - name
         - url
       filter: {}
-      limit: 100
+      limit: 250
       allow_aggregations: true
     comment: ""

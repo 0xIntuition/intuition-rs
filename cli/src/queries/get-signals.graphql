@@ -1,5 +1,5 @@
 query GetSignals {
-  signals(limit: 100, order_by: {block_timestamp: desc}) {
+  signals(limit: 250, order_by: {block_timestamp: desc}) {
     id
     delta
     block_timestamp
