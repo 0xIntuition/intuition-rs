@@ -1,4 +1,5 @@
 use crate::{error::ConsumerError, mode::types::ConsumerMode, schemas::goldsky::RawMessage};
+#[cfg(feature = "v1_5_contract")]
 use alloy::primitives::Uint;
 use async_trait::async_trait;
 use aws_sdk_sqs::{operation::receive_message::ReceiveMessageOutput, types::Message};
