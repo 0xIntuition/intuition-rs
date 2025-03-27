@@ -77,22 +77,34 @@ pub async fn update_account_with_atom_id(
     atom_id: U256Wrapper,
     decoded_consumer_context: &DecodedConsumerContext,
 ) -> Result<Account, ConsumerError> {
-    let mut account = Account::find_by_id(
+    let account = if let Some(mut account) = Account::find_by_id(
         id.clone(),
         &decoded_consumer_context.pg_pool,
         &decoded_consumer_context.backend_schema,
     )
     .await?
-    .ok_or(ConsumerError::AccountNotFound)?;
-
-    account.atom_id = Some(atom_id);
-    account
-        .upsert(
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
-        )
-        .await?;
-    info!("Updated account: {:?}", account);
+    {
+        account.atom_id = Some(atom_id);
+        account
+            .upsert(
+                &decoded_consumer_context.pg_pool,
+                &decoded_consumer_context.backend_schema,
+            )
+            .await?
+    } else {
+        info!("Account not found for: {}, creating it", id);
+        Account::builder()
+            .id(id.clone())
+            .label(short_id(&id))
+            .account_type(AccountType::Default)
+            .build()
+            .upsert(
+                &decoded_consumer_context.pg_pool,
+                &decoded_consumer_context.backend_schema,
+            )
+            .await
+            .map_err(ConsumerError::ModelError)?
+    };
 
     // Now we need to enqueue the message to be processed by the resolver. In this
     // process we check if the account has ENS data associated, and if it does, we

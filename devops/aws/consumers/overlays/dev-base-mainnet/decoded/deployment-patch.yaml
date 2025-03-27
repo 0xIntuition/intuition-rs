@@ -8,7 +8,7 @@ spec:
       serviceAccountName: secrets-access-sa
       containers:
         - name: decoded-consumer
-          image: ghcr.io/0xintuition/consumer:2.0.23
+          image: ghcr.io/0xintuition/consumer:2.0.25
           imagePullPolicy: Always
           resources:
             requests:

@@ -7,6 +7,9 @@ configuration:
   custom_name: cached_images
   custom_root_fields:
     select_by_pk: cached_image
+  query_configuration:
+    default_limit: 250
+    max_limit: 250
 select_permissions:
   - role: anonymous
     permission:
@@ -18,5 +21,5 @@ select_permissions:
         - url
         - created_at
       filter: {}
-      limit: 100
+      limit: 250
     comment: ""
