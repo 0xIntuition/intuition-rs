@@ -39,7 +39,6 @@ spec:
             value: "true"
           - name: HASURA_GRAPHQL_PERSISTED_QUERIES_TTL
             value: "300"
-          envFrom: []
           image: hasura/graphql-engine:v2.44.0
           livenessProbe:
             exec:
@@ -55,4 +54,4 @@ spec:
             - containerPort: 8080
               protocol: TCP
       restartPolicy: Always
-
+      

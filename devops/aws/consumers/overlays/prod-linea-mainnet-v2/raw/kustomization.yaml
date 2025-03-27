@@ -5,6 +5,7 @@ resources:
   - ../../../base/raw
   - secret-provider.yaml
 
+namePrefix: "prod-linea-mainnet-v2-" 
 
 patches:
   - path: deployment-patch.yaml

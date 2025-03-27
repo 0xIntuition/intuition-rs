@@ -16,11 +16,11 @@ spec:
               readOnly: true
           envFrom:
             - secretRef:
-                name: resolver-consumer-secrets
+                name: prod-linea-mainnet-resolver-consumer-secrets
       volumes:
         - name: secrets-store-inline
           csi:
             driver: secrets-store.csi.k8s.io
             readOnly: true
             volumeAttributes:
-              secretProviderClass: "resolver-consumer-secrets"
+              secretProviderClass: "prod-linea-mainnet-prod-linea-mainnet-resolver-consumer-secrets"

@@ -25,6 +25,4 @@ spec:
       serviceAccountName: secrets-access-sa
       containers:
         - name: histocrawler
-          env: []
-          envFrom: []
       restartPolicy: Always

@@ -47,7 +47,7 @@ spec:
       project: default
       source:
         repoURL: https://github.com/0xintuition/intuition-rs.git
-        path: 'devops/aws/consumers/overlays/{{.env}}/raw'
+        path: 'devops/aws-rolling-releases/consumers/overlays/{{.env}}/raw'
         targetRevision: '{{.revision}}'
         kustomize:
           patches:

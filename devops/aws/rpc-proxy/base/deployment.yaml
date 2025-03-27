@@ -18,10 +18,4 @@ spec:
           ports:
           - containerPort: 3008
             protocol: TCP
-          env:
-            - name: PROXY_API_PORT
-              value: "3008"
-            - name: PROXY_SCHEMA
-              value: "base_proxy"
-          envFrom: []
-
+      

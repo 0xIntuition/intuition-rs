@@ -5,6 +5,8 @@ resources:
   - ../../../base/ipfs-upload
   - secret-provider.yaml
 
+namePrefix: "dev-base-sepolia-" 
+
 patches:
   - path: deployment-patch.yaml
     target:

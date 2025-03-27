@@ -4,6 +4,7 @@ kind: Kustomization
 resources:
   - ../../base
   - secret-provider.yaml
+  - indexer-migrations.yaml
 
 namePrefix: "dev-base-sepolia-"
 
@@ -17,12 +18,6 @@ patches:
     target:
       kind: Job
       name: hasura-migrations
-
-
-  - path: indexer-migrations-patch.yaml
-    target:
-      kind: Job
-      name: indexer-and-cache-migration
 
 commonLabels:
   network: base-sepolia

@@ -43,7 +43,7 @@ spec:
       project: default
       source:
         repoURL: https://github.com/0xintuition/intuition-rs.git
-        path: 'devops/aws/services/graphql/overlays/{{.env}}'
+        path: 'devops/aws-rolling-releases/services/graphql/overlays/{{.env}}'
         targetRevision: '{{.revision}}'
         kustomize:
           namePrefix: '{{.namespace}}-'

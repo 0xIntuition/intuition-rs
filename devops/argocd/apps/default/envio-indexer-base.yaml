@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: 'https://github.com/0xintuition/intuition-rs.git'
     targetRevision: HEAD
-    path: devops/aws/envio-indexer/overlays/dev-base-sepolia
+    path: devops/aws-rolling-releases/envio-indexer/overlays/dev-base-sepolia
     kustomize:
       patches:
         - target:

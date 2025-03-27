@@ -18,14 +18,14 @@ spec:
               name: resolver-logs
           envFrom:
             - secretRef:
-                name: resolver-consumer-secrets
+                name: prod-mainnet-resolver-consumer-secrets
       volumes:
         - name: secrets-store-inline
           csi:
             driver: secrets-store.csi.k8s.io
             readOnly: true
             volumeAttributes:
-              secretProviderClass: "resolver-consumer-secrets"
+              secretProviderClass: "prod-base-mainnet-prod-mainnet-resolver-consumer-secrets"
         - name: resolver-logs
           persistentVolumeClaim:
             claimName: prod-base-mainnet-resolver-logs

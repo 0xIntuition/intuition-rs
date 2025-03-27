@@ -5,12 +5,14 @@ resources:
   - ../../../base/raw
   - secret-provider.yaml
 
+namePrefix: "dev-base-sepolia-" 
 
 patches:
   - path: deployment-patch.yaml
     target:
       kind: Deployment
       name: raw-consumer
+
 
 commonLabels:
   network: base-sepolia

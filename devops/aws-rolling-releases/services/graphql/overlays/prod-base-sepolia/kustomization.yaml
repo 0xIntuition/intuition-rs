@@ -1,0 +1,29 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base  # Adjusted to point to the base directory
+  - secret-provider.yaml
+
+namePrefix: "prod-base-sepolia-"
+
+patches:
+  - path: deployment-patch.yaml
+    target:
+      kind: Deployment
+      name: graphql-engine
+
+  - path: migrations-patch.yaml
+    target:
+      kind: Job
+      name: hasura-migrations
+
+  - path: indexer-migrations-patch.yaml
+    target:
+      kind: Job
+      name: indexer-and-cache-migration
+
+commonLabels:
+  network: base-sepolia
+  io.kompose.service: prod-base-sepolia-graphql-engine
+

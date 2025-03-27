@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: 'https://github.com/0xintuition/intuition-rs.git'
     targetRevision: francois/add-iac
-    path: devops/aws/ipfs
+    path: devops/aws-rolling-releases/ipfs
     kustomize:
       patches:
         - target:

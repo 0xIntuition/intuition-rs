@@ -18,6 +18,4 @@ spec:
           ports:
           - containerPort: 3009
             protocol: TCP
-          envFrom: []
-          env: []
-
+      

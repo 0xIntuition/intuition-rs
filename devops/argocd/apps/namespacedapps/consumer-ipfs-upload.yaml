@@ -42,7 +42,7 @@ spec:
       project: default
       source:
         repoURL: https://github.com/0xintuition/intuition-rs.git
-        path: 'devops/aws/consumers/overlays/{{.env}}/ipfs-upload'
+        path: 'devops/aws-rolling-releases/consumers/overlays/{{.env}}/ipfs-upload'
         targetRevision: '{{.revision}}'
         kustomize:
           patches:

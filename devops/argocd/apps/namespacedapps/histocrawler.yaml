@@ -28,7 +28,7 @@ spec:
       project: default
       source:
         repoURL: https://github.com/0xintuition/intuition-rs.git
-        path: 'devops/aws/histocrawler/overlays/{{.env}}'
+        path: 'devops/aws-rolling-releases/histocrawler/overlays/{{.env}}'
         targetRevision: '{{.revision}}'
         kustomize:
           patches:

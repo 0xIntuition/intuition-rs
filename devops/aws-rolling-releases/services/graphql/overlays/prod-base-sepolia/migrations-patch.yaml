@@ -1,0 +1,25 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: hasura-migrations
+spec:
+  template:
+    spec:
+      containers:
+        - name: hasura-migrations
+          image: ghcr.io/0xintuition/hasura-migrations:2.0.12
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: secrets-store-inline
+              mountPath: "/mnt/secrets"
+              readOnly: true
+          envFrom:
+            - secretRef:
+                name: prod-sepolia-hasura-aws-secrets
+      volumes:
+        - name: secrets-store-inline
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: "prod-base-sepolia-prod-sepolia-hasura-aws-secrets"

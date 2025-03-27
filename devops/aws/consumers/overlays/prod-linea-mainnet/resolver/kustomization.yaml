@@ -5,6 +5,7 @@ resources:
   - ../../../base/resolver
   - secret-provider.yaml
 
+namePrefix: "prod-linea-mainnet-" 
 
 patches:
   - path: deployment-patch.yaml
