@@ -12,5 +12,5 @@ select_permissions:
         - url
         - created_at
       filter: {}
-      limit: 100
+      limit: 250
     comment: ""

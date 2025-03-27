@@ -7,6 +7,9 @@ configuration:
   custom_name: text_objects
   custom_root_fields:
     select_by_pk: text_object
+  query_configuration:
+    default_limit: 250
+    max_limit: 250
 select_permissions:
   - role: anonymous
     permission:
