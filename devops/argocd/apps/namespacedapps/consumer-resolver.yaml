@@ -1,0 +1,140 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: consumer-resolver
+  namespace: argocd
+spec:
+  goTemplate: true
+  syncPolicy:
+    preserveResourcesOnDeletion: true
+  generators:
+    - list:
+        elements:
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: francois/add-iac
+            env: dev-base-sepolia
+            namespace: dev-base-sepolia-v2-0-0
+            rpcURLBase: 'http://dev-rpc-proxy.default.svc.cluster.local:3008/84532/proxy'
+            rpcURL: 'http://dev-rpc-proxy.default.svc.cluster.local:3008/1/proxy'
+            ensContractAddress: '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e'
+            imageGuardURL: 'http://prod-base-api:3000'
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: francois/test-new-env
+            env: dev-base-sepolia
+            namespace: dev-base-sepolia-2-0-23
+            rpcURLBase: 'http://dev-rpc-proxy.default.svc.cluster.local:3008/84532/proxy'
+            rpcURL: 'http://dev-rpc-proxy.default.svc.cluster.local:3008/1/proxy'
+            ensContractAddress: '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e'
+            imageGuardURL: 'http://prod-base-api:3000'
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: prod-base-sepolia-deployment
+            env: prod-base-sepolia
+            namespace: prod-base-sepolia-2-0-23
+            rpcURLBase: 'http://prod-rpc-proxy.default.svc.cluster.local:3008/84532/proxy'
+            rpcURL: 'http://prod-rpc-proxy.default.svc.cluster.local:3008/1/proxy'
+            ensContractAddress: '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e'
+            imageGuardURL: 'http://prod-base-api:3000'
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: prod-base-sepolia-deployment
+            env: prod-base-mainnet
+            namespace: prod-base-mainnet-2-0-23
+            rpcURLBase: 'http://prod-rpc-proxy.default.svc.cluster.local:3008/8453/proxy'
+            rpcURL: 'http://prod-rpc-proxy.default.svc.cluster.local:3008/1/proxy'
+            ensContractAddress: '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e'
+            imageGuardURL: 'http://prod-base-api:3000'
+            
+  template:
+    metadata:
+      name: '{{.cluster}}-consumer-resolver-{{.namespace}}'
+      annotations:
+        argocd.argoproj.io/manifest-generate-paths: '.;/devops/argocd'
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/0xintuition/intuition-rs.git
+        path: 'devops/aws-rolling-releases/consumers/overlays/{{.env}}/resolver'
+        targetRevision: '{{.revision}}'
+        kustomize:
+          patches:
+            - target:
+                kind: Queue
+                name: ipfs-upload
+              patch: |-
+                - op: replace
+                  path: /metadata/name
+                  value: '{{.namespace}}-ipfs-upload'
+                - op: replace
+                  path: /spec/forProvider/name
+                  value: '{{.cluster}}-{{.namespace}}-ipfs-upload'
+            - target:
+                kind: Deployment
+                name: resolver-consumer
+              patch: |-
+                - op: replace
+                  path: /spec/template/spec/serviceAccountName
+                  value: '{{.cluster}}-{{.namespace}}-secrets-access-sa'
+                - op: add
+                  path: /spec/template/spec/containers/0/envFrom/-
+                  value:
+                    secretRef:
+                      name: 'main-db-creds'
+                    prefix: "MAINDB_"
+
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: IPFS_GATEWAY_URL
+                    value: 'http://ipfs.default.svc.cluster.local:8080' # probably better to have all of that dynamically created
+
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: DATABASE_URL
+                    value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/{{.namespace | replace "-" "_"}}?sslmode=require'
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: RESOLVER_QUEUE_URL
+                    value: 'https://sqs.us-west-2.amazonaws.com/064662847354/{{.cluster}}-{{.namespace}}-resolver'
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: IPFS_UPLOAD_QUEUE_URL
+                    value: 'https://sqs.us-west-2.amazonaws.com/064662847354/{{.cluster}}-{{.namespace}}-ipfs-upload'
+
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: RPC_URL_BASE
+                    value: '{{.rpcURLBase}}' # probably better to have all of that dynamically created
+
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: RPC_URL_MAINNET
+                    value: '{{.rpcURL}}' # probably better to have all of that dynamically created
+
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: ENS_CONTRACT_ADDRESS
+                    value: '{{.ensContractAddress}}' # probably better to have all of that dynamically created
+
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: IMAGE_GUARD_URL
+                    value: '{{.imageGuardURL}}' # probably better to have all of that dynamically created
+      destination:
+        server: '{{.server}}'
+        namespace: '{{.namespace}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+        - CreateNamespace=true

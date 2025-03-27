@@ -1,0 +1,31 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base  # Adjusted to point to the base directory
+  - secret-provider.yaml
+  - migrations-patch.yaml
+  - indexer-migrations.yaml
+
+namePrefix: "dev-base-mainnet-"
+
+patches:
+  - path: deployment-patch.yaml
+    target:
+      kind: Deployment
+      name: graphql-engine
+
+  - path: migrations-patch.yaml
+    target:
+      kind: Job
+      name: hasura-migrations
+
+  - path: indexer-migrations.yaml
+    target:
+      kind: Job
+      name: indexer-migrations
+
+commonLabels:
+  network: base-mainnet
+  io.kompose.service: dev-base-mainnet-graphql-engine
+

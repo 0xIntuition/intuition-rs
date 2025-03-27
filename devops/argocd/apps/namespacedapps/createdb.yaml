@@ -1,0 +1,57 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: createdb
+  namespace: argocd
+spec:
+  goTemplate: true
+  syncPolicy:
+    preserveResourcesOnDeletion: true
+  generators:
+    - list:
+        elements:
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: francois/add-iac
+            namespace: dev-base-sepolia-v2-0-0
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: francois/test-new-env
+            namespace: dev-base-sepolia-2-0-23
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: prod-base-sepolia-deployment
+            namespace: prod-base-sepolia-2-0-23
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: prod-base-sepolia-deployment
+            namespace: prod-base-mainnet-2-0-23
+  template:
+    metadata:
+      name: '{{.cluster}}-create-db-{{.namespace}}'
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/0xintuition/intuition-rs.git
+        path: 'devops/argocd/kustomize/create-db'
+        targetRevision: '{{.revision}}'
+        kustomize:
+          patches:
+            - target:
+                kind: Job
+                name: create-database-job
+              patch: |-
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: DBNAME
+                    value: '{{.namespace | replace "-" "_"}}'
+      destination:
+        server: '{{.server}}'
+        namespace: '{{.namespace}}'
+      syncPolicy:
+        automated:
+          prune: false
+          selfHeal: false
+        syncOptions:
+        - CreateNamespace=true

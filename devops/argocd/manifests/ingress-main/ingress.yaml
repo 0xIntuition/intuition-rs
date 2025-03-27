@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-main
+  annotations:
+    alb.ingress.kubernetes.io/scheme: "internet-facing"
+    alb.ingress.kubernetes.io/target-type: "ip"
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/certificate-arn: >-
+      arn:aws:acm:us-west-2:064662847354:certificate/8bc44099-61f9-41a9-a2b1-4d68b739dd5b
+    external-dns.alpha.kubernetes.io/hostname: dev.base-sepolia.intuition.sh
+spec:
+  ingressClassName: alb
+  rules:
+  - host: dev.base-sepolia.intuition.sh
+    http:
+      paths:
+      - path: /v1/graphql
+        pathType: Prefix
+        backend:
+          service:
+            name: dev-base-sepolia-v2-0-0-graphql-engine
+            port:
+              number: 8080

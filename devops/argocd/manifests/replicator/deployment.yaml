@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: replicator-kubernetes-replicator
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: kubernetes-replicator
+    app.kubernetes.io/instance: replicator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kubernetes-replicator
+      app.kubernetes.io/instance: replicator
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: kubernetes-replicator
+        app.kubernetes.io/instance: replicator
+    spec:
+      serviceAccountName: replicator-kubernetes-replicator
+      securityContext: {}
+      containers:
+      - name: kubernetes-replicator
+        securityContext: {}
+        image: quay.io/mittwald/kubernetes-replicator:latest
+        imagePullPolicy: Always
+        args: []
+        ports:
+        - name: health
+          containerPort: 9102
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: health
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: health
+        resources: {}

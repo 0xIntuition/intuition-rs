@@ -1,0 +1,110 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: histoflux
+  namespace: argocd
+spec:
+  goTemplate: true
+  syncPolicy:
+    preserveResourcesOnDeletion: true
+  generators:
+    - list:
+        elements:
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: francois/add-iac
+            cursorID: '9'
+            chain: base-sepolia
+            env: dev-base-sepolia
+            namespace: dev-base-sepolia-v2-0-0
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: francois/test-new-env
+            cursorID: '10'
+            chain: base-sepolia
+            env: dev-base-sepolia
+            namespace: dev-base-sepolia-2-0-23
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: prod-base-sepolia-deployment
+            cursorID: '3'
+            chain: base-sepolia
+            env: prod-base-sepolia
+            namespace: prod-base-sepolia-2-0-23
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: prod-base-sepolia-deployment
+            cursorID: '2'
+            chain: base-mainnet
+            env: prod-base-mainnet
+            namespace: prod-base-mainnet-2-0-23
+  template:
+    metadata:
+      name: '{{.cluster}}-histoflux-{{.namespace}}'
+      annotations:
+        argocd.argoproj.io/manifest-generate-paths: '.;/devops/argocd'
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/0xintuition/intuition-rs.git
+        path: 'devops/aws-rolling-releases/histoflux/overlays/{{.env}}'
+        targetRevision: '{{.revision}}'
+        kustomize:
+          patches:
+            - target:
+                kind: Queue
+                name: raw-logs-queue
+              patch: |-
+                - op: replace
+                  path: /metadata/name
+                  value: '{{.namespace}}-raw-logs'
+                - op: replace
+                  path: /spec/forProvider/name
+                  value: '{{.cluster}}-{{.namespace}}-raw-logs.fifo'
+            - target:
+                kind: Deployment
+                name: histoflux
+              patch: |-
+                - op: replace
+                  path: /spec/template/spec/serviceAccountName
+                  value: '{{.cluster}}-{{.namespace}}-secrets-access-sa'
+                - op: add
+                  path: /spec/template/spec/containers/0/envFrom/-
+                  value:
+                    secretRef:
+                      name: 'main-db-creds'
+                    prefix: "MAINDB_"
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: INDEXER_DATABASE_URL
+                    value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/histoflux?sslmode=require'
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: INDEXER_DATABASE_URL
+                    value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/histoflux?sslmode=require'
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: INDEXER_SCHEMA
+                    value: '{{.chain | replace "-" "_"}}_indexer'
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: RAW_LOGS_CHANNEL
+                    value: '{{.chain | replace "-" "_"}}_raw_logs_channel'
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: HISTOFLUX_CURSOR_ID
+                    value: '{{.cursorID}}' # probably better to have all of that dynamically created
+      destination:
+        server: '{{.server}}'
+        namespace: '{{.namespace}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+        - CreateNamespace=true
