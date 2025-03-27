@@ -5,6 +5,8 @@ resources:
   - ../../base
   - secret-provider.yaml
 
+namePrefix: "prod-base-sepolia-v2-" 
+
 patches:
   - path: deployment-patch.yaml
     target:

@@ -1,8 +1,0 @@
-apiVersion: sqs.aws.upbound.io/v1beta1
-kind: Queue
-metadata:
-  name: resolver-queue
-spec:
-  forProvider:
-    name: resolver-queue
-    region: us-west-2

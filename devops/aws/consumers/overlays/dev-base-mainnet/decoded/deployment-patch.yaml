@@ -23,11 +23,11 @@ spec:
               readOnly: true
           envFrom:
             - secretRef:
-                name: decoded-consumer-secrets
+                name: dev-decoded-consumer-secrets
       volumes:
         - name: secrets-store-inline
           csi:
             driver: secrets-store.csi.k8s.io
             readOnly: true
             volumeAttributes:
-              secretProviderClass: "decoded-consumer-secrets"
+              secretProviderClass: "dev-base-mainnet-dev-decoded-consumer-secrets"

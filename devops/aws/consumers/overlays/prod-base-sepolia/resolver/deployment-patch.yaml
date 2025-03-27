@@ -18,14 +18,14 @@ spec:
               name: resolver-logs
           envFrom:
             - secretRef:
-                name: resolver-consumer-secrets
+                name: prod-resolver-consumer-secrets
       volumes:
         - name: secrets-store-inline
           csi:
             driver: secrets-store.csi.k8s.io
             readOnly: true
             volumeAttributes:
-              secretProviderClass: "resolver-consumer-secrets"
+              secretProviderClass: "prod-base-sepolia-prod-resolver-consumer-secrets"
         - name: resolver-logs
           persistentVolumeClaim:
             claimName: prod-base-sepolia-resolver-logs

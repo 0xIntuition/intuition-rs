@@ -5,7 +5,6 @@ resources:
   - service.yaml
   - deployment.yaml
   - migrations-deployment.yaml
-  - indexer-cache-migrations-job.yaml
   # - migrations-pod.yaml
 commonLabels:
-  component: graphql
+  component: graphql 

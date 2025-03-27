@@ -1,8 +1,0 @@
-apiVersion: sqs.aws.upbound.io/v1beta1
-kind: Queue
-metadata:
-  name: ipfs-upload
-spec:
-  forProvider:
-    name: ipfs-upload
-    region: us-west-2

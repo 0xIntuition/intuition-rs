@@ -5,6 +5,7 @@ resources:
   - ../../../base/decoded
   - secret-provider.yaml
 
+namePrefix: "prod-linea-mainnet-" 
 
 patches:
   - path: deployment-patch.yaml
