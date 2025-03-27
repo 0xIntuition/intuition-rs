@@ -47,7 +47,7 @@ spec:
       project: default
       source:
         repoURL: https://github.com/0xintuition/intuition-rs.git
-        path: 'devops/aws/histoflux/overlays/{{.env}}'
+        path: 'devops/aws-rolling-releases/histoflux/overlays/{{.env}}'
         targetRevision: '{{.revision}}'
         kustomize:
           patches:

@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: envio-indexer
+spec:
+  template:
+    spec:
+      serviceAccountName: secrets-access-sa
+      containers:
+        - name: envio-indexer
+          args:
+            - --network
+            - base-mainnet
+            - --output
+            - postgres
+          image: ghcr.io/0xintuition/envio-indexer:1.0.42
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: secrets-store-inline
+              mountPath: "/mnt/secrets"
+              readOnly: true
+          envFrom:
+            - secretRef:
+                name: prod-mainnet-envio-indexer-aws-secrets
+      volumes:
+        - name: secrets-store-inline
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: "prod-base-mainnet-prod-mainnet-envio-indexer-aws-secrets"

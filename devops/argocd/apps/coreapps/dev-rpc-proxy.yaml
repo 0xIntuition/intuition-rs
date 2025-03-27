@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: 'https://github.com/0xintuition/intuition-rs.git'
     targetRevision: francois/add-iac
-    path: devops/aws/rpc-proxy/overlays/dev
+    path: devops/aws-rolling-releases/rpc-proxy/overlays/dev
     kustomize:
       patches:
         - target:

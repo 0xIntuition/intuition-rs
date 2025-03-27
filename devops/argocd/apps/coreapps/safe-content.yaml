@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: 'https://github.com/0xintuition/intuition-rs.git'
     targetRevision: francois/add-iac
-    path: devops/aws/safe-content-api/
+    path: devops/aws-rolling-releases/safe-content-api/
     kustomize:
       patches:
         - target:

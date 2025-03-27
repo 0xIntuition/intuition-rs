@@ -56,7 +56,7 @@ spec:
       project: default
       source:
         repoURL: https://github.com/0xintuition/intuition-rs.git
-        path: 'devops/aws/consumers/overlays/{{.env}}/resolver'
+        path: 'devops/aws-rolling-releases/consumers/overlays/{{.env}}/resolver'
         targetRevision: '{{.revision}}'
         kustomize:
           patches:
