@@ -48,13 +48,6 @@ object_relationships:
           name: vault
           schema: public
 array_relationships:
-  - name: accounts
-    using:
-      foreign_key_constraint_on:
-        column: atom_id
-        table:
-          name: account
-          schema: public
   - name: as_object_claims
     using:
       foreign_key_constraint_on:
