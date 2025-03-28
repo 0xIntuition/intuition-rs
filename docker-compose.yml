@@ -54,6 +54,8 @@ services:
   consumer-api:
     image: ghcr.io/0xintuition/consumer-api:latest
     command: ./api
+    ports:
+      - 3001:3001
     environment:
       CONSUMER_API_PORT: $CONSUMER_API_PORT
       RESOLVER_QUEUE_URL: $RESOLVER_QUEUE_URL
