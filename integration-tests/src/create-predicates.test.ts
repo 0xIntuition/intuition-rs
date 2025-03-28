@@ -1,60 +1,61 @@
-import { expect, test } from 'vitest'
-import { getIntuition, getOrCreateAtom } from './setup/utils'
+import { expect, test, suite } from 'vitest'
+import { getIntuition, PredicateType } from './setup/utils'
 import { pinThing } from './graphql'
 
-test('create predicates', async () => {
+suite('create system predicates', async () => {
   const admin = await getIntuition(0)
 
-  const followAtomId = await getOrCreateAtom(
-    admin.multivault,
-    'https://schema.org/FollowAction',
+  const followAtomId = await admin.getOrCreateAtom(
+    PredicateType.FollowAction,
+  )
+
+  const keywordsAtomId = await admin.getOrCreateAtom(
+    PredicateType.Keywords,
+  )
+
+  const thingAtomId = await admin.getOrCreateAtom(
+    PredicateType.Thing,
+  )
+
+  const organizationPredicate = await admin.getOrCreateAtom(
+    PredicateType.Organization,
+  )
+
+  const personAtomId = await admin.getOrCreateAtom(
+    PredicateType.Person,
   )
   expect(followAtomId).toBeDefined()
-
-  const keywordsAtomId = await getOrCreateAtom(
-    admin.multivault,
-    'https://schema.org/keywords',
-  )
   expect(keywordsAtomId).toBeDefined()
-
-  const thingAtomId = await getOrCreateAtom(
-    admin.multivault,
-    'https://schema.org/Thing',
-  )
   expect(thingAtomId).toBeDefined()
-
-  const organizationPredicate = await getOrCreateAtom(
-    admin.multivault,
-    'https://schema.org/Organization',
-  )
   expect(organizationPredicate).toBeDefined()
-
-  const personAtomId = await getOrCreateAtom(
-    admin.multivault,
-    'https://schema.org/Person',
-  )
   expect(personAtomId).toBeDefined()
 
-  const adminAccount = await getOrCreateAtom(admin.multivault, admin.account.address)
-  expect(adminAccount).toBeDefined()
+  test('create admin atom and org triple', async () => {
 
-  const uri = await pinThing({
-    name: 'Intuition Systems',
-    description: 'Intuition Systems',
-    image: 'https://avatars.githubusercontent.com/u/94311139?s=200&v=4',
-    url: 'https://intuition.systems',
+    const adminAtomId = await admin.getOrCreateAtom(admin.account.address)
+
+    expect(adminAtomId).toBeDefined()
+
+    const uri = await pinThing({
+      name: 'Intuition Systems',
+      description: 'Intuition Systems',
+      image: 'https://avatars.githubusercontent.com/u/94311139?s=200&v=4',
+      url: 'https://intuition.systems',
+    })
+
+    expect(uri).toBeDefined()
+
+    const intuitionSystems = await admin.getOrCreateAtom(uri)
+
+    expect(intuitionSystems).toBeDefined()
+
+    const vaultId = await admin.getCreateOrDepositOnTriple(
+      adminAtomId,
+      organizationPredicate,
+      intuitionSystems,
+    )
+
+    expect(vaultId).toBeDefined()
   })
-  expect(uri).toBeDefined()
-
-  const intuitionSystems = await getOrCreateAtom(admin.multivault, uri)
-  expect(intuitionSystems).toBeDefined()
-
-  const { vaultId } = await admin.multivault.createTriple({
-    subjectId: adminAccount,
-    predicateId: organizationPredicate,
-    objectId: intuitionSystems,
-  })
-
-  expect(vaultId).toBeDefined()
 
 })
