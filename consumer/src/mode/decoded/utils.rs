@@ -95,6 +95,7 @@ pub async fn update_account_with_atom_id(
         info!("Account not found for: {}, creating it", id);
         Account::builder()
             .id(id.clone())
+            .atom_id(atom_id)
             .label(short_id(&id))
             .account_type(AccountType::Default)
             .build()
