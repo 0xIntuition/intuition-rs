@@ -11,7 +11,7 @@ spec:
         elements:
           - cluster: prod-eks
             server: 'https://kubernetes.default.svc'
-            revision: francois/add-iac
+            revision: main
             namespace: default
   template:
     metadata:
