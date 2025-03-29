@@ -444,6 +444,20 @@ services:
       - ./geth/init-script.sh:/root/init-script.sh
       - ./geth/keystore.json:/data/keystore/UTC--2024-06-03T19-15-34.118131000Z--63e87dc2366dc7f1be110ded239879422e165d96
       - ./geth/password.txt:/root/password.txt
+  integration-tests:
+    container_name: integration-tests
+    build:
+      context: ./integration-tests
+      dockerfile: Dockerfile
+    environment:
+      - ETHEREUM_RPC_URL=http://geth:8545
+      - GRAPHQL_API_URL=http://graphql-engine:8080/v1/graphql
+      - IPFS_API_URL=http://consumer-api:3001/upload_json_to_ipfs 
+    depends_on:
+      - geth
+      - graphql-engine
+      - consumer-api
+
 
 networks:
   intuition-be:

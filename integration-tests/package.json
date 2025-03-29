@@ -6,10 +6,7 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "test": "vitest",
-    "create-predicates": "tsx src/create-predicates.ts",
-    "triple-positions": "tsx src/triple-positions.ts",
-    "denver-events": "tsx src/denver-events.ts"
+    "test": "vitest"
   },
   "keywords": [],
   "author": "",
