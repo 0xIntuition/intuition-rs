@@ -82,7 +82,7 @@ impl SqsProducer {
         pg_pool: &PgPool,
         env: &Env,
     ) -> Result<HistoFluxCursor, HistoFluxError> {
-        let cursor = HistoFluxCursor::find(pg_pool, env.histoflux_cursor_id).await?;
+        let cursor = HistoFluxCursor::find_by_environment(pg_pool, &env.environment).await?;
         if let Some(cursor) = cursor {
             Ok(cursor)
         } else {

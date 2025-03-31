@@ -77,6 +77,24 @@ impl HistoFluxCursor {
             .map_err(HistoFluxError::SQLXError)
     }
 
+    /// Find the cursor in the DB by environment.
+    pub async fn find_by_environment(
+        db: &PgPool,
+        environment: &str,
+    ) -> Result<Option<Self>, HistoFluxError> {
+        let query = r#"
+        SELECT id, last_processed_id, environment, paused, queue_url, updated_at::timestamptz as updated_at
+        FROM cursors.histoflux_cursor 
+        WHERE environment = $1
+        "#;
+
+        sqlx::query_as::<_, HistoFluxCursor>(query)
+            .bind(environment)
+            .fetch_optional(db)
+            .await
+            .map_err(HistoFluxError::SQLXError)
+    }
+
     /// Update the cursor's last_processed_id in the DB.
     pub async fn update_last_processed_id(
         db: &PgPool,
