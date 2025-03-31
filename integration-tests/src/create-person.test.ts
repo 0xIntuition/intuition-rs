@@ -13,6 +13,7 @@ test('create person triple', async () => {
     alice.account.address
   )
 
+
   const uri = await pinPerson({
     identifier: alice.account.address,
     name: 'Alice',

@@ -52,6 +52,7 @@ services:
       replicas: 1
 
   consumer-api:
+    container_name: consumer-api
     image: ghcr.io/0xintuition/consumer-api:latest
     command: ./api
     ports:
@@ -452,7 +453,7 @@ services:
     environment:
       - ETHEREUM_RPC_URL=http://geth:8545
       - GRAPHQL_API_URL=http://graphql-engine:8080/v1/graphql
-      - IPFS_API_URL=http://consumer-api:3001/upload_json_to_ipfs 
+      - IPFS_API_URL=http://api:3000/upload_json_to_ipfs 
     depends_on:
       - geth
       - graphql-engine
