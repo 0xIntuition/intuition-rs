@@ -1,6 +1,6 @@
 import { expect, test, suite } from 'vitest'
-import { getIntuition, pinJson, PredicateType } from './setup/utils'
-import { pinThing } from './graphql'
+import { getIntuition, pinJson, PredicateType } from './setup/utils.js'
+import { pinThing } from './graphql.js'
 
 test('create json_object with a tag', async () => {
   const bob = await getIntuition(2)

@@ -1,8 +1,9 @@
 import { createPublicClient, createWalletClient, defineChain, http, parseEther } from 'viem'
-import { ADMIN, MNEMONIC } from './constants'
-import { getOrDeployAndInit } from './deploy'
+import { ADMIN, MNEMONIC } from './constants.js'
+import { getOrDeployAndInit } from './deploy.js'
 import { mnemonicToAccount } from 'viem/accounts'
 import { Multivault } from '@0xintuition/protocol'
+import type { TypedDocumentString } from '../graphql/graphql.js'
 
 const local = defineChain({
   id: 1337,
@@ -43,6 +44,7 @@ export async function getIntuition(accountIndex: number) {
   if (balance.valueOf() < parseEther('0.01').valueOf()) {
 
     // Faucet
+    //@ts-ignore
     const hash = await adminClient.sendTransaction({
       account: ADMIN,
       value: parseEther('0.01'),
@@ -126,3 +128,27 @@ export enum PredicateType {
   Keywords = 'https://schema.org/keywords',
 }
 
+
+export async function execute<TResult, TVariables>(
+  query: TypedDocumentString<TResult, TVariables>,
+  ...[variables]: TVariables extends Record<string, never> ? [] : [TVariables]
+) {
+  const response = await fetch('http://localhost:8080/v1/graphql', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/graphql-response+json'
+    },
+    body: JSON.stringify({
+      query,
+      variables
+    })
+  })
+
+  if (!response.ok) {
+    throw new Error('Network response was not ok')
+  }
+  const json: { data: TResult } = await response.json()
+
+  return json.data
+}

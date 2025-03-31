@@ -1,8 +1,9 @@
-import { expect, test } from 'vitest'
-import { getIntuition, PredicateType } from './setup/utils'
-import { pinPerson } from './graphql'
+import { expect, test, suite } from 'vitest'
+import { execute, getIntuition, PredicateType } from './setup/utils.js'
+import { pinPerson } from './graphql.js'
+import { graphql } from './graphql/gql.js'
 
-test('create person triple', async () => {
+suite('create person triple', async () => {
   const alice = await getIntuition(1)
 
   const personPredicateId = await alice.getOrCreateAtom(
@@ -12,7 +13,6 @@ test('create person triple', async () => {
   const aliceAtomId = await alice.getOrCreateAtom(
     alice.account.address
   )
-
 
   const uri = await pinPerson({
     identifier: alice.account.address,
@@ -36,5 +36,17 @@ test('create person triple', async () => {
   expect(uri).toBeDefined()
   expect(alicePersonId).toBeDefined()
   expect(vaultId).toBeDefined()
+
+  test('query person', async () => {
+    const result = await execute(
+      graphql(`query Atom($atomId: numeric!) {
+        atom(id: $atomId) {
+          label
+        }
+      }`),
+      { atomId: alicePersonId.toString() })
+    expect(result).toBeDefined()
+    expect(result.atom.label).toBe('Alice')
+  })
 
 })

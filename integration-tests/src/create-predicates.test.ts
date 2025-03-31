@@ -1,6 +1,6 @@
 import { expect, test, suite } from 'vitest'
-import { getIntuition, PredicateType } from './setup/utils'
-import { pinThing } from './graphql'
+import { getIntuition, PredicateType } from './setup/utils.js'
+import { pinThing } from './graphql.js'
 
 suite('create system predicates', async () => {
   const admin = await getIntuition(0)
