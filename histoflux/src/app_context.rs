@@ -1,12 +1,12 @@
 use crate::error::HistoFluxError;
-use crate::models::cursor::HistoFluxCursor;
+use crate::models::cursor::{HistoFluxCursor, NewHistoFluxCursor};
 use aws_sdk_sqs::Client as AWSClient;
 use log::info;
 use models::raw_logs::RawLog;
 use serde::Deserialize;
 use shared_utils::postgres::connect_to_db;
-use sqlx::postgres::{PgListener, PgNotification};
 use sqlx::PgPool;
+use sqlx::postgres::{PgListener, PgNotification};
 
 /// The environment variables
 #[derive(Clone, Deserialize, Debug)]
@@ -16,6 +16,7 @@ pub struct Env {
     pub histoflux_cursor_id: i32,
     pub raw_logs_channel: String,
     pub indexer_schema: String,
+    pub environment: String,
 }
 
 /// Represents the SQS producer
@@ -62,9 +63,8 @@ impl SqsProducer {
         // Connect to the database
         let pg_pool = connect_to_db(&env.indexer_database_url).await?;
         let indexer_schema = env.indexer_schema.clone();
-        let cursor = HistoFluxCursor::find(&pg_pool, env.histoflux_cursor_id)
-            .await?
-            .ok_or(HistoFluxError::CursorNotSet)?;
+        // Get or create the cursor
+        let cursor = Self::get_or_create_cursor(&pg_pool, &env).await?;
         let raw_queue_url = cursor.queue_url.clone();
 
         Ok(Self {
@@ -74,6 +74,40 @@ impl SqsProducer {
             raw_queue_url,
             indexer_schema,
         })
+    }
+
+    /// This function returns a [`HistoFluxCursor`] from the database. If the
+    /// cursor does not exist, it creates a new one and returns it.
+    async fn get_or_create_cursor(
+        pg_pool: &PgPool,
+        env: &Env,
+    ) -> Result<HistoFluxCursor, HistoFluxError> {
+        let cursor = HistoFluxCursor::find(pg_pool, env.histoflux_cursor_id).await?;
+        if let Some(cursor) = cursor {
+            Ok(cursor)
+        } else {
+            NewHistoFluxCursor::builder()
+                .last_processed_id(0)
+                .environment(env.environment.clone())
+                .paused(false)
+                .queue_url(Self::get_queue_url(env))
+                .build()
+                .insert(pg_pool)
+                .await
+        }
+    }
+
+    /// This function returns the queue URL based on the environment.
+    fn get_queue_url(env: &Env) -> String {
+        if let Some(_localstack_url) = &env.localstack_url {
+            "http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/raw_logs.fifo"
+                .to_string()
+        } else {
+            format!(
+                "https://sqs.us-west-2.amazonaws.com/064662847354/prod-eks-prod-{}-raw-logs.fifo",
+                env.environment
+            )
+        }
     }
 
     /// This function returns an [`aws_sdk_sqs::Client`] based on the
