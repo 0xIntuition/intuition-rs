@@ -4,11 +4,11 @@ table:
 configuration:
   column_config: {}
   custom_column_names: {}
-  custom_name: share_price_changes
+  custom_name: share_price_changed
   custom_root_fields:
-    select_by_pk: share_price_changed
+    select: share_price_changed
+    select_by_pk: share_price_changed_by_pk
     select_by_term_id: share_price_changed_by_term_id
-    select_by_term_curve_id: share_price_changed_by_term_curve_id
 object_relationships:
   - name: term
     using:
