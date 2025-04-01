@@ -7,7 +7,7 @@ spec:
     spec:
       containers:
         - name: hasura-migrations
-          image: ghcr.io/0xintuition/hasura-migrations:2.0.20-v15
+          image: ghcr.io/0xintuition/hasura-migrations:2.0.22-v15
           imagePullPolicy: Always
           volumeMounts:
             - name: secrets-store-inline
