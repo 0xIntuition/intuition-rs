@@ -60,7 +60,7 @@ impl SharePriceChanged {
             .share_price(U256Wrapper::from(self.newSharePrice))
             .total_assets(U256Wrapper::from(self.totalAssets))
             .total_shares(U256Wrapper::from(self.totalShares))
-            .block_number(event.block_number)
+            .block_number(U256Wrapper::try_from(event.block_number)?)
             .block_timestamp(event.block_timestamp)
             .transaction_hash(event.transaction_hash.clone())
             .build();

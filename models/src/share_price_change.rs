@@ -19,7 +19,7 @@ pub struct SharePriceChanged {
     pub share_price: U256Wrapper,
     pub total_assets: U256Wrapper,
     pub total_shares: U256Wrapper,
-    pub block_number: i64,
+    pub block_number: U256Wrapper,
     pub block_timestamp: i64,
     pub transaction_hash: String,
     pub updated_at: DateTime<Utc>,
@@ -32,7 +32,7 @@ pub struct SharePriceChangedInternal {
     pub share_price: U256Wrapper,
     pub total_shares: U256Wrapper,
     pub total_assets: U256Wrapper,
-    pub block_number: i64,
+    pub block_number: U256Wrapper,
     pub block_timestamp: i64,
     pub transaction_hash: String,
 }
@@ -69,7 +69,7 @@ impl SimpleCrud<U256Wrapper> for SharePriceChanged {
             .bind(self.share_price.to_big_decimal()?)
             .bind(self.total_assets.to_big_decimal()?)
             .bind(self.total_shares.to_big_decimal()?)
-            .bind(self.block_number)
+            .bind(self.block_number.to_big_decimal()?)
             .bind(self.block_timestamp)
             .bind(self.transaction_hash.clone())
             .bind(self.updated_at)
@@ -130,7 +130,7 @@ impl SharePriceChanged {
             .bind(share_price_change.share_price.to_big_decimal()?)
             .bind(share_price_change.total_assets.to_big_decimal()?)
             .bind(share_price_change.total_shares.to_big_decimal()?)
-            .bind(share_price_change.block_number)
+            .bind(share_price_change.block_number.to_big_decimal()?)
             .bind(share_price_change.block_timestamp)
             .bind(share_price_change.transaction_hash.clone())
             .fetch_one(pool)
