@@ -93,7 +93,6 @@ impl SimpleCrud<String> for Deposit {
             .await
             .map_err(|e| crate::error::ModelError::InsertError(e.to_string()))
     }
-
     /// Finds a deposit record by its ID.
     /// Returns None if no record is found.
     async fn find_by_id(
@@ -126,5 +125,33 @@ impl SimpleCrud<String> for Deposit {
             .fetch_optional(pool)
             .await
             .map_err(|e| crate::error::ModelError::QueryError(e.to_string()))
+    }
+}
+
+impl Deposit {
+    /// Gets the total shares for a receiver in a vault.
+    pub async fn get_total_shares_for_receiver_in_vault(
+        receiver_id: String,
+        vault_id: String,
+        pool: &PgPool,
+        schema: &str,
+    ) -> Result<U256Wrapper, crate::error::ModelError> {
+        let query = format!(
+            r#"
+            SELECT COALESCE(SUM(receiver_total_shares_in_vault), 0) as total_shares
+            FROM {}.deposit
+            WHERE receiver_id = $1 AND vault_id = $2
+            "#,
+            schema,
+        );
+
+        let result: Option<U256Wrapper> = sqlx::query_scalar(&query)
+            .bind(receiver_id.to_lowercase())
+            .bind(vault_id.to_lowercase())
+            .fetch_optional(pool)
+            .await
+            .map_err(|e| crate::error::ModelError::QueryError(e.to_string()))?;
+
+        Ok(result.unwrap_or_default())
     }
 }

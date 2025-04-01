@@ -112,3 +112,31 @@ impl SimpleCrud<String> for Redemption {
             .map_err(|e| crate::error::ModelError::QueryError(e.to_string()))
     }
 }
+
+impl Redemption {
+    /// Gets the total shares redeemed by a sender in a vault.
+    pub async fn get_total_shares_redeemed_by_sender(
+        sender_id: String,
+        vault_id: String,
+        pool: &sqlx::PgPool,
+        schema: &str,
+    ) -> Result<U256Wrapper, ModelError> {
+        let query = format!(
+            r#"
+            SELECT COALESCE(SUM(shares_redeemed_by_sender), 0) as total_shares
+            FROM {}.redemption
+            WHERE sender_id = $1 AND vault_id = $2
+            "#,
+            schema,
+        );
+
+        let result: Option<U256Wrapper> = sqlx::query_scalar(&query)
+            .bind(sender_id.to_lowercase())
+            .bind(vault_id.to_lowercase())
+            .fetch_optional(pool)
+            .await
+            .map_err(|e| ModelError::QueryError(e.to_string()))?;
+
+        Ok(result.unwrap_or_default())
+    }
+}
