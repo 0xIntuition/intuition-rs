@@ -8891,19 +8891,13 @@ export type AtomQueryVariables = Exact<{
 
 export type AtomQuery = { __typename?: 'query_root', atom?: { __typename?: 'atoms', label?: string | null } | null };
 
-export type PinThingMutationVariables = Exact<{
-  thing: PinThingInput;
+export type AtomWithClaimsQueryVariables = Exact<{
+  atomId: Scalars['numeric']['input'];
+  address?: InputMaybe<Scalars['String']['input']>;
 }>;
 
 
-export type PinThingMutation = { __typename?: 'mutation_root', pinThing?: { __typename?: 'PinOutput', uri?: string | null } | null };
-
-export type PinPersonMutationVariables = Exact<{
-  person: PinPersonInput;
-}>;
-
-
-export type PinPersonMutation = { __typename?: 'mutation_root', pinPerson?: { __typename?: 'PinOutput', uri?: string | null } | null };
+export type AtomWithClaimsQuery = { __typename?: 'query_root', atom?: { __typename?: 'atoms', id: any, label?: string | null, value?: { __typename?: 'atom_values', thing?: { __typename?: 'things', name?: string | null, description?: string | null, url?: string | null, image?: string | null } | null } | null } | null, claims: Array<{ __typename?: 'claims', predicate: { __typename?: 'atoms', id: any, type: any, label?: string | null }, object: { __typename?: 'atoms', value?: { __typename?: 'atom_values', thing?: { __typename?: 'things', name?: string | null, description?: string | null, url?: string | null, image?: string | null } | null } | null } }>, claims_from_following: Array<{ __typename?: 'claims', predicate: { __typename?: 'atoms', id: any, type: any, label?: string | null }, object: { __typename?: 'atoms', value?: { __typename?: 'atom_values', thing?: { __typename?: 'things', name?: string | null, description?: string | null, url?: string | null, image?: string | null } | null } | null } }> };
 
 export type GetTransactionEventsQueryVariables = Exact<{
   hash: Scalars['String']['input'];
@@ -8938,20 +8932,62 @@ export const AtomDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<AtomQuery, AtomQueryVariables>;
-export const PinThingDocument = new TypedDocumentString(`
-    mutation PinThing($thing: PinThingInput!) {
-  pinThing(thing: $thing) {
-    uri
+export const AtomWithClaimsDocument = new TypedDocumentString(`
+    query AtomWithClaims($atomId: numeric!, $address: String) {
+  atom(id: $atomId) {
+    id
+    label
+    value {
+      thing {
+        name
+        description
+        url
+        image
+      }
+    }
+  }
+  claims(
+    where: {account_id: {_eq: $address}, subject_id: {_eq: $atomId}}
+    order_by: [{shares: desc}]
+  ) {
+    predicate {
+      id
+      type
+      label
+    }
+    object {
+      value {
+        thing {
+          name
+          description
+          url
+          image
+        }
+      }
+    }
+  }
+  claims_from_following(
+    args: {address: $address}
+    where: {subject_id: {_eq: $atomId}}
+  ) {
+    predicate {
+      id
+      type
+      label
+    }
+    object {
+      value {
+        thing {
+          name
+          description
+          url
+          image
+        }
+      }
+    }
   }
 }
-    `) as unknown as TypedDocumentString<PinThingMutation, PinThingMutationVariables>;
-export const PinPersonDocument = new TypedDocumentString(`
-    mutation PinPerson($person: PinPersonInput!) {
-  pinPerson(person: $person) {
-    uri
-  }
-}
-    `) as unknown as TypedDocumentString<PinPersonMutation, PinPersonMutationVariables>;
+    `) as unknown as TypedDocumentString<AtomWithClaimsQuery, AtomWithClaimsQueryVariables>;
 export const GetTransactionEventsDocument = new TypedDocumentString(`
     query GetTransactionEvents($hash: String!) {
   events(where: {transaction_hash: {_eq: $hash}}) {

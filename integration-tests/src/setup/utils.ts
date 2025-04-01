@@ -1,4 +1,4 @@
-import { createPublicClient, createWalletClient, defineChain, http, parseEther } from 'viem'
+import { createPublicClient, createWalletClient, defineChain, formatEther, http, parseEther } from 'viem'
 import { ADMIN, MNEMONIC } from './constants.js'
 import { getOrDeployAndInit } from './deploy.js'
 import { mnemonicToAccount } from 'viem/accounts'
@@ -40,9 +40,10 @@ export async function getIntuition(accountIndex: number) {
 
   // balance
   const balance = await publicClient.getBalance({ address: account.address })
-  console.log(`Balance: ${balance}`)
+  console.log(`Balance: ${parseFloat(formatEther(balance)).toFixed(6)} ETH, account: ${account.address}`)
 
   if (balance.valueOf() < parseEther('0.01').valueOf()) {
+    console.log(`Fauceting 0.01 ETH to ${account.address}...`)
 
     // Faucet
     //@ts-ignore

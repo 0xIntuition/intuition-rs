@@ -16,14 +16,12 @@ import * as types from './graphql';
  */
 type Documents = {
     "query Atom($atomId: numeric!) {\n        atom(id: $atomId) {\n          label\n        }\n      }": typeof types.AtomDocument,
-    "mutation PinThing($thing: PinThingInput!) {\n  pinThing(thing: $thing) {\n    uri\n  }\n}": typeof types.PinThingDocument,
-    "mutation PinPerson($person: PinPersonInput!) {\n  pinPerson(person: $person) {\n    uri\n  }\n}": typeof types.PinPersonDocument,
+    "query AtomWithClaims($atomId: numeric!, $address: String) {\n        atom(id: $atomId) {\n          id\n          label\n          value {\n            thing {\n              name\n              description\n              url\n              image\n            }\n          }\n        }\n        claims(\n          where: { account_id: { _eq: $address }, subject_id: { _eq: $atomId } }\n          order_by: [{ shares: desc }]\n        ) {\n          predicate {\n            id\n            type\n            label\n          }\n          object {\n            value {\n              thing {\n                name\n                description\n                url\n                image\n              }\n            }\n          }\n        }\n        claims_from_following(\n          args: { address: $address }\n          where: { subject_id: { _eq: $atomId } }\n        ) {\n          predicate {\n            id\n            type\n            label\n          }\n          object {\n            value {\n              thing {\n                name\n                description\n                url\n                image\n              }\n            }\n          }\n        }\n      }": typeof types.AtomWithClaimsDocument,
     "\n        query GetTransactionEvents($hash: String!) {\n          events(where: { transaction_hash: { _eq: $hash } }) {\n            transaction_hash\n          }\n        }\n      ": typeof types.GetTransactionEventsDocument,
 };
 const documents: Documents = {
     "query Atom($atomId: numeric!) {\n        atom(id: $atomId) {\n          label\n        }\n      }": types.AtomDocument,
-    "mutation PinThing($thing: PinThingInput!) {\n  pinThing(thing: $thing) {\n    uri\n  }\n}": types.PinThingDocument,
-    "mutation PinPerson($person: PinPersonInput!) {\n  pinPerson(person: $person) {\n    uri\n  }\n}": types.PinPersonDocument,
+    "query AtomWithClaims($atomId: numeric!, $address: String) {\n        atom(id: $atomId) {\n          id\n          label\n          value {\n            thing {\n              name\n              description\n              url\n              image\n            }\n          }\n        }\n        claims(\n          where: { account_id: { _eq: $address }, subject_id: { _eq: $atomId } }\n          order_by: [{ shares: desc }]\n        ) {\n          predicate {\n            id\n            type\n            label\n          }\n          object {\n            value {\n              thing {\n                name\n                description\n                url\n                image\n              }\n            }\n          }\n        }\n        claims_from_following(\n          args: { address: $address }\n          where: { subject_id: { _eq: $atomId } }\n        ) {\n          predicate {\n            id\n            type\n            label\n          }\n          object {\n            value {\n              thing {\n                name\n                description\n                url\n                image\n              }\n            }\n          }\n        }\n      }": types.AtomWithClaimsDocument,
     "\n        query GetTransactionEvents($hash: String!) {\n          events(where: { transaction_hash: { _eq: $hash } }) {\n            transaction_hash\n          }\n        }\n      ": types.GetTransactionEventsDocument,
 };
 
@@ -34,11 +32,7 @@ export function graphql(source: "query Atom($atomId: numeric!) {\n        atom(i
 /**
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
-export function graphql(source: "mutation PinThing($thing: PinThingInput!) {\n  pinThing(thing: $thing) {\n    uri\n  }\n}"): typeof import('./graphql').PinThingDocument;
-/**
- * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
- */
-export function graphql(source: "mutation PinPerson($person: PinPersonInput!) {\n  pinPerson(person: $person) {\n    uri\n  }\n}"): typeof import('./graphql').PinPersonDocument;
+export function graphql(source: "query AtomWithClaims($atomId: numeric!, $address: String) {\n        atom(id: $atomId) {\n          id\n          label\n          value {\n            thing {\n              name\n              description\n              url\n              image\n            }\n          }\n        }\n        claims(\n          where: { account_id: { _eq: $address }, subject_id: { _eq: $atomId } }\n          order_by: [{ shares: desc }]\n        ) {\n          predicate {\n            id\n            type\n            label\n          }\n          object {\n            value {\n              thing {\n                name\n                description\n                url\n                image\n              }\n            }\n          }\n        }\n        claims_from_following(\n          args: { address: $address }\n          where: { subject_id: { _eq: $atomId } }\n        ) {\n          predicate {\n            id\n            type\n            label\n          }\n          object {\n            value {\n              thing {\n                name\n                description\n                url\n                image\n              }\n            }\n          }\n        }\n      }"): typeof import('./graphql').AtomWithClaimsDocument;
 /**
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
