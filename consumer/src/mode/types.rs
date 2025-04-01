@@ -790,7 +790,7 @@ impl ConsumerMode {
                     .start_timer();
                 info!("Received: {share_price_changed_data:#?}");
                 share_price_changed_data
-                    .handle_share_price_changed(decoded_consumer_context)
+                    .handle_share_price_changed(decoded_consumer_context, &decoded_message)
                     .await?;
                 timer.observe_duration();
             }

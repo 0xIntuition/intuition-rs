@@ -5,6 +5,7 @@ use crate::{
         decoded_v1_5::utils::update_vault_from_share_price_changed_events,
         types::DecodedConsumerContext,
     },
+    schemas::types::DecodedMessage,
     traits::SharePriceEvent,
 };
 use alloy::primitives::Uint;
@@ -35,13 +36,14 @@ impl SharePriceChanged {
     pub async fn handle_share_price_changed(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
+        event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
         info!("Processing SharePriceChanged event: {:?}", self);
         // Update the vault from the share price changed event
         update_vault_from_share_price_changed_events(self, decoded_consumer_context).await?;
         info!("Finished updating vault, updating share price aggregate");
         // Update the share price aggregate of the vault
-        self.update_share_price_changed(decoded_consumer_context)
+        self.update_share_price_changed(decoded_consumer_context, event)
             .await?;
 
         Ok(())
@@ -51,12 +53,16 @@ impl SharePriceChanged {
     async fn update_share_price_changed(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
+        event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
         let new_share_price = SharePriceChangedInternal::builder()
             .term_id(Vault::format_vault_id(self.termId.to_string(), None))
             .share_price(U256Wrapper::from(self.newSharePrice))
             .total_assets(U256Wrapper::from(self.totalAssets))
             .total_shares(U256Wrapper::from(self.totalShares))
+            .block_number(event.block_number)
+            .block_timestamp(event.block_timestamp)
+            .transaction_hash(event.transaction_hash.clone())
             .build();
         SharePriceChangedModel::insert(
             &decoded_consumer_context.pg_pool,

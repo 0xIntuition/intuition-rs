@@ -19,6 +19,9 @@ pub struct SharePriceChanged {
     pub share_price: U256Wrapper,
     pub total_assets: U256Wrapper,
     pub total_shares: U256Wrapper,
+    pub block_number: i64,
+    pub block_timestamp: i64,
+    pub transaction_hash: String,
     pub updated_at: DateTime<Utc>,
 }
 
@@ -29,6 +32,9 @@ pub struct SharePriceChangedInternal {
     pub share_price: U256Wrapper,
     pub total_shares: U256Wrapper,
     pub total_assets: U256Wrapper,
+    pub block_number: i64,
+    pub block_timestamp: i64,
+    pub transaction_hash: String,
 }
 
 /// This is a trait that all models must implement.
@@ -41,15 +47,18 @@ impl SimpleCrud<U256Wrapper> for SharePriceChanged {
     async fn upsert(&self, pool: &PgPool, schema: &str) -> Result<Self, ModelError> {
         let query = format!(
             r#"
-            INSERT INTO {}.share_price_changed (id, term_id, share_price, total_assets, total_shares, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6)
+            INSERT INTO {}.share_price_changed (id, term_id, share_price, total_assets, total_shares, block_number, block_timestamp, transaction_hash, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             ON CONFLICT (id) DO UPDATE SET
                 term_id = EXCLUDED.term_id,
                 share_price = EXCLUDED.share_price,
                 total_assets = EXCLUDED.total_assets,
                 total_shares = EXCLUDED.total_shares,
+                block_number = EXCLUDED.block_number,
+                block_timestamp = EXCLUDED.block_timestamp,
+                transaction_hash = EXCLUDED.transaction_hash,
                 updated_at = EXCLUDED.updated_at
-            RETURNING id, term_id, share_price, total_assets, total_shares, updated_at
+            RETURNING id, term_id, share_price, total_assets, total_shares, block_number, block_timestamp, transaction_hash, updated_at
             "#,
             schema,
         );
@@ -60,6 +69,9 @@ impl SimpleCrud<U256Wrapper> for SharePriceChanged {
             .bind(self.share_price.to_big_decimal()?)
             .bind(self.total_assets.to_big_decimal()?)
             .bind(self.total_shares.to_big_decimal()?)
+            .bind(self.block_number)
+            .bind(self.block_timestamp)
+            .bind(self.transaction_hash.clone())
             .bind(self.updated_at)
             .fetch_one(pool)
             .await
@@ -80,6 +92,9 @@ impl SimpleCrud<U256Wrapper> for SharePriceChanged {
                 share_price,
                 total_assets,
                 total_shares,
+                block_number,
+                block_timestamp,
+                transaction_hash,
                 updated_at
             FROM {}.share_price_changed 
             WHERE id = $1
@@ -103,9 +118,9 @@ impl SharePriceChanged {
     ) -> Result<Self, ModelError> {
         let query = format!(
             r#"
-            INSERT INTO {}.share_price_changed (term_id, share_price, total_assets, total_shares)
-            VALUES ($1, $2, $3, $4)
-            RETURNING id, term_id, share_price, total_assets, total_shares, updated_at
+            INSERT INTO {}.share_price_changed (term_id, share_price, total_assets, total_shares, block_number, block_timestamp, transaction_hash)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            RETURNING id, term_id, share_price, total_assets, total_shares, block_number, block_timestamp, transaction_hash, updated_at
             "#,
             schema,
         );
@@ -115,6 +130,9 @@ impl SharePriceChanged {
             .bind(share_price_change.share_price.to_big_decimal()?)
             .bind(share_price_change.total_assets.to_big_decimal()?)
             .bind(share_price_change.total_shares.to_big_decimal()?)
+            .bind(share_price_change.block_number)
+            .bind(share_price_change.block_timestamp)
+            .bind(share_price_change.transaction_hash.clone())
             .fetch_one(pool)
             .await
             .map_err(|e| ModelError::InsertError(e.to_string()))
