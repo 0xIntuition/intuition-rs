@@ -18,11 +18,13 @@ type Documents = {
     "query Atom($atomId: numeric!) {\n        atom(id: $atomId) {\n          label\n        }\n      }": typeof types.AtomDocument,
     "mutation PinThing($thing: PinThingInput!) {\n  pinThing(thing: $thing) {\n    uri\n  }\n}": typeof types.PinThingDocument,
     "mutation PinPerson($person: PinPersonInput!) {\n  pinPerson(person: $person) {\n    uri\n  }\n}": typeof types.PinPersonDocument,
+    "\n        query GetTransactionEvents($hash: String!) {\n          events(where: { transaction_hash: { _eq: $hash } }) {\n            transaction_hash\n          }\n        }\n      ": typeof types.GetTransactionEventsDocument,
 };
 const documents: Documents = {
     "query Atom($atomId: numeric!) {\n        atom(id: $atomId) {\n          label\n        }\n      }": types.AtomDocument,
     "mutation PinThing($thing: PinThingInput!) {\n  pinThing(thing: $thing) {\n    uri\n  }\n}": types.PinThingDocument,
     "mutation PinPerson($person: PinPersonInput!) {\n  pinPerson(person: $person) {\n    uri\n  }\n}": types.PinPersonDocument,
+    "\n        query GetTransactionEvents($hash: String!) {\n          events(where: { transaction_hash: { _eq: $hash } }) {\n            transaction_hash\n          }\n        }\n      ": types.GetTransactionEventsDocument,
 };
 
 /**
@@ -37,6 +39,10 @@ export function graphql(source: "mutation PinThing($thing: PinThingInput!) {\n  
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
 export function graphql(source: "mutation PinPerson($person: PinPersonInput!) {\n  pinPerson(person: $person) {\n    uri\n  }\n}"): typeof import('./graphql').PinPersonDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n        query GetTransactionEvents($hash: String!) {\n          events(where: { transaction_hash: { _eq: $hash } }) {\n            transaction_hash\n          }\n        }\n      "): typeof import('./graphql').GetTransactionEventsDocument;
 
 
 export function graphql(source: string) {

@@ -5,15 +5,15 @@ import { pinThing } from './graphql.js'
 suite('create system predicates', async () => {
   const admin = await getIntuition(0)
 
-  const followAtomId = await admin.getOrCreateAtom(
+  const followAtom = await admin.getOrCreateAtom(
     PredicateType.FollowAction,
   )
 
-  const keywordsAtomId = await admin.getOrCreateAtom(
+  const keywordsAtom = await admin.getOrCreateAtom(
     PredicateType.Keywords,
   )
 
-  const thingAtomId = await admin.getOrCreateAtom(
+  const thingAtom = await admin.getOrCreateAtom(
     PredicateType.Thing,
   )
 
@@ -21,20 +21,20 @@ suite('create system predicates', async () => {
     PredicateType.Organization,
   )
 
-  const personAtomId = await admin.getOrCreateAtom(
+  const personAtom = await admin.getOrCreateAtom(
     PredicateType.Person,
   )
-  expect(followAtomId).toBeDefined()
-  expect(keywordsAtomId).toBeDefined()
-  expect(thingAtomId).toBeDefined()
+  expect(followAtom).toBeDefined()
+  expect(keywordsAtom).toBeDefined()
+  expect(thingAtom).toBeDefined()
   expect(organizationPredicate).toBeDefined()
-  expect(personAtomId).toBeDefined()
+  expect(personAtom).toBeDefined()
 
   test('create admin atom and org triple', async () => {
 
-    const adminAtomId = await admin.getOrCreateAtom(admin.account.address)
+    const adminAtom = await admin.getOrCreateAtom(admin.account.address)
 
-    expect(adminAtomId).toBeDefined()
+    expect(adminAtom).toBeDefined()
 
     const uri = await pinThing({
       name: 'Intuition Systems',
@@ -49,10 +49,10 @@ suite('create system predicates', async () => {
 
     expect(intuitionSystems).toBeDefined()
 
-    const vaultId = await admin.getCreateOrDepositOnTriple(
-      adminAtomId,
-      organizationPredicate,
-      intuitionSystems,
+    const { vaultId } = await admin.getCreateOrDepositOnTriple(
+      adminAtom.vaultId,
+      organizationPredicate.vaultId,
+      intuitionSystems.vaultId,
     )
 
     expect(vaultId).toBeDefined()

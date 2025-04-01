@@ -4,6 +4,7 @@ import { getOrDeployAndInit } from './deploy.js'
 import { mnemonicToAccount } from 'viem/accounts'
 import { Multivault } from '@0xintuition/protocol'
 import type { TypedDocumentString } from '../graphql/graphql.js'
+import { graphql } from '../graphql/gql.js'
 
 const local = defineChain({
   id: 1337,
@@ -67,30 +68,30 @@ export async function getIntuition(accountIndex: number) {
   }, address)
 
   async function getOrCreateAtom(uri: string) {
-    const atomId = await multivault.getVaultIdFromUri(uri)
-    if (atomId) {
-      return atomId
+    const vaultId = await multivault.getVaultIdFromUri(uri)
+    if (vaultId) {
+      return { vaultId, hash: null }
     } else {
       console.log(`Creating atom: ${uri} ...`)
-      const { vaultId } = await multivault.createAtom({ uri })
+      const { vaultId, hash } = await multivault.createAtom({ uri })
       console.log(`vaultId: ${vaultId}`)
-      return vaultId
+      return { vaultId, hash }
     }
   }
 
   async function getCreateOrDepositOnTriple(subjectId: bigint, predicateId: bigint, objectId: bigint, initialDeposit?: bigint) {
 
-    const tripleId = await multivault.getTripleIdFromAtoms(subjectId, predicateId, objectId)
-    if (tripleId) {
+    const vaultId = await multivault.getTripleIdFromAtoms(subjectId, predicateId, objectId)
+    if (vaultId) {
       if (initialDeposit) {
-        await multivault.depositTriple(tripleId, initialDeposit)
+        await multivault.depositTriple(vaultId, initialDeposit)
       }
-      return tripleId
+      return { vaultId, hash: null }
     } else {
       console.log(`Creating triple: ${subjectId} ${predicateId} ${objectId} ...`)
-      const { vaultId } = await multivault.createTriple({ subjectId, predicateId, objectId, initialDeposit })
+      const { vaultId, hash } = await multivault.createTriple({ subjectId, predicateId, objectId, initialDeposit })
       console.log(`vaultId: ${vaultId}`)
-      return vaultId
+      return { vaultId, hash }
     }
   }
 
@@ -151,4 +152,33 @@ export async function execute<TResult, TVariables>(
   const json: { data: TResult } = await response.json()
 
   return json.data
+}
+
+export async function wait(hash: string | null) {
+  if (hash === null) {
+    return
+  }
+  const promise = new Promise(async (resolve, reject) => {
+    let count = 0
+    while (true) {
+      console.log(`Waiting for transaction ${hash}...`)
+      console.log(`Count: ${count}`)
+      const data = await execute(graphql(`
+        query GetTransactionEvents($hash: String!) {
+          events(where: { transaction_hash: { _eq: $hash } }) {
+            transaction_hash
+          }
+        }
+      `), { hash });
+      if (data?.events.length > 0) {
+        return resolve(true);
+      }
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      count++
+      if (count > 10) {
+        return reject(new Error('Transaction not found'))
+      }
+    }
+  });
+  return promise;
 }

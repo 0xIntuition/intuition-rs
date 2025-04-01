@@ -1,16 +1,16 @@
 import { expect, test, suite } from 'vitest'
-import { execute, getIntuition, PredicateType } from './setup/utils.js'
+import { execute, getIntuition, PredicateType, wait } from './setup/utils.js'
 import { pinPerson } from './graphql.js'
 import { graphql } from './graphql/gql.js'
 
 suite('create person triple', async () => {
   const alice = await getIntuition(1)
 
-  const personPredicateId = await alice.getOrCreateAtom(
+  const personPredicate = await alice.getOrCreateAtom(
     PredicateType.Person,
   )
 
-  const aliceAtomId = await alice.getOrCreateAtom(
+  const aliceAtom = await alice.getOrCreateAtom(
     alice.account.address
   )
 
@@ -23,28 +23,29 @@ suite('create person triple', async () => {
     url: 'https://intuition.systems',
   })
 
-  const alicePersonId = await alice.getOrCreateAtom(uri)
+  const alicePerson = await alice.getOrCreateAtom(uri)
 
-  const vaultId = await alice.getCreateOrDepositOnTriple(
-    aliceAtomId,
-    personPredicateId,
-    alicePersonId,
+  const triple = await alice.getCreateOrDepositOnTriple(
+    aliceAtom.vaultId,
+    personPredicate.vaultId,
+    alicePerson.vaultId,
   )
 
-  expect(personPredicateId).toBeDefined()
-  expect(aliceAtomId).toBeDefined()
+  expect(personPredicate).toBeDefined()
+  expect(aliceAtom).toBeDefined()
   expect(uri).toBeDefined()
-  expect(alicePersonId).toBeDefined()
-  expect(vaultId).toBeDefined()
+  expect(alicePerson).toBeDefined()
+  expect(triple.vaultId).toBeDefined()
 
   test('query person', async () => {
+    await wait(triple.hash)
     const result = await execute(
       graphql(`query Atom($atomId: numeric!) {
         atom(id: $atomId) {
           label
         }
       }`),
-      { atomId: alicePersonId.toString() })
+      { atomId: alicePerson.vaultId.toString() })
     expect(result).toBeDefined()
     expect(result.atom.label).toBe('Alice')
   })

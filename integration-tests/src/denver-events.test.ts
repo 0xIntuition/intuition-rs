@@ -34,9 +34,9 @@ test('create json_object with a tag', async () => {
   }))
 
   const triple = await bob.getCreateOrDepositOnTriple(
-    event,
-    hasTag,
-    denverEvents,
+    event.vaultId,
+    hasTag.vaultId,
+    denverEvents.vaultId,
   )
 
   expect(hasTag).toBeDefined()

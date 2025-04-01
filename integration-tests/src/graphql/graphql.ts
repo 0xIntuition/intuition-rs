@@ -8905,6 +8905,13 @@ export type PinPersonMutationVariables = Exact<{
 
 export type PinPersonMutation = { __typename?: 'mutation_root', pinPerson?: { __typename?: 'PinOutput', uri?: string | null } | null };
 
+export type GetTransactionEventsQueryVariables = Exact<{
+  hash: Scalars['String']['input'];
+}>;
+
+
+export type GetTransactionEventsQuery = { __typename?: 'query_root', events: Array<{ __typename?: 'events', transaction_hash: string }> };
+
 export class TypedDocumentString<TResult, TVariables>
   extends String
   implements DocumentTypeDecoration<TResult, TVariables>
@@ -8945,3 +8952,10 @@ export const PinPersonDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<PinPersonMutation, PinPersonMutationVariables>;
+export const GetTransactionEventsDocument = new TypedDocumentString(`
+    query GetTransactionEvents($hash: String!) {
+  events(where: {transaction_hash: {_eq: $hash}}) {
+    transaction_hash
+  }
+}
+    `) as unknown as TypedDocumentString<GetTransactionEventsQuery, GetTransactionEventsQueryVariables>;
