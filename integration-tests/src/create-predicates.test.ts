@@ -1,6 +1,5 @@
 import { expect, test, suite } from 'vitest'
-import { getIntuition, PredicateType } from './setup/utils.js'
-import { pinThing } from './graphql.js'
+import { getIntuition, pinJson, PredicateType } from './setup/utils.js'
 
 suite('create system predicates', async () => {
   const admin = await getIntuition(0)
@@ -36,7 +35,9 @@ suite('create system predicates', async () => {
 
     expect(adminAtom).toBeDefined()
 
-    const uri = await pinThing({
+    const uri = await pinJson({
+      '@context': 'https://schema.org',
+      '@type': 'Organization',
       name: 'Intuition Systems',
       description: 'Intuition Systems',
       image: 'https://avatars.githubusercontent.com/u/94311139?s=200&v=4',

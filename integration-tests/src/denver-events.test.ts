@@ -1,6 +1,5 @@
 import { expect, test, suite } from 'vitest'
 import { getIntuition, pinJson, PredicateType } from './setup/utils.js'
-import { pinThing } from './graphql.js'
 
 test('create json_object with a tag', async () => {
   const bob = await getIntuition(2)
@@ -9,7 +8,9 @@ test('create json_object with a tag', async () => {
     PredicateType.Keywords,
   )
 
-  const denverEvents = await bob.getOrCreateAtom(await pinThing({
+  const denverEvents = await bob.getOrCreateAtom(await pinJson({
+    '@context': 'https://schema.org',
+    '@type': 'Thing',
     name: 'Denver Events',
     description: 'Denver Events',
     image: '',

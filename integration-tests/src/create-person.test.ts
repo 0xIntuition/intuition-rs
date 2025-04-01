@@ -1,6 +1,5 @@
 import { expect, test, suite } from 'vitest'
-import { execute, getIntuition, PredicateType, wait } from './setup/utils.js'
-import { pinPerson } from './graphql.js'
+import { execute, getIntuition, pinJson, PredicateType, wait } from './setup/utils.js'
 import { graphql } from './graphql/gql.js'
 
 suite('create person triple', async () => {
@@ -14,8 +13,9 @@ suite('create person triple', async () => {
     alice.account.address
   )
 
-  const uri = await pinPerson({
-    identifier: alice.account.address,
+  const uri = await pinJson({
+    '@context': 'https://schema.org',
+    '@type': 'Person',
     name: 'Alice',
     description: 'Intern at Intuition Systems',
     email: 'alice@intuition.systems',
