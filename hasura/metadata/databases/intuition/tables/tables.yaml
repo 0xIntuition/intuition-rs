@@ -23,3 +23,5 @@
 - "!include public_thing.yaml"
 - "!include public_triple.yaml"
 - "!include public_vault.yaml"
+- "!include public_share_price_changed.yaml"
+- "!include public_share_price_changed_curve.yaml"
