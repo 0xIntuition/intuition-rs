@@ -1,39 +1,39 @@
 import { expect, test, suite } from 'vitest'
-import { getIntuition, pinJson, PredicateType } from './setup/utils.js'
+import { getIntuition, pinJson, SystemAtom } from './setup/utils.js'
 
 suite('create system predicates', async () => {
   const admin = await getIntuition(0)
 
-  const followAtom = await admin.getOrCreateAtom(
-    PredicateType.FollowAction,
+  const followAction = await admin.getOrCreateAtom(
+    SystemAtom.FollowAction,
   )
 
-  const keywordsAtom = await admin.getOrCreateAtom(
-    PredicateType.Keywords,
+  const hasTag = await admin.getOrCreateAtom(
+    SystemAtom.Keywords,
   )
 
-  const thingAtom = await admin.getOrCreateAtom(
-    PredicateType.Thing,
+  const thing = await admin.getOrCreateAtom(
+    SystemAtom.Thing,
   )
 
-  const organizationPredicate = await admin.getOrCreateAtom(
-    PredicateType.Organization,
+  const organization = await admin.getOrCreateAtom(
+    SystemAtom.Organization,
   )
 
   const personAtom = await admin.getOrCreateAtom(
-    PredicateType.Person,
+    SystemAtom.Person,
   )
-  expect(followAtom).toBeDefined()
-  expect(keywordsAtom).toBeDefined()
-  expect(thingAtom).toBeDefined()
-  expect(organizationPredicate).toBeDefined()
+  expect(followAction).toBeDefined()
+  expect(hasTag).toBeDefined()
+  expect(thing).toBeDefined()
+  expect(organization).toBeDefined()
   expect(personAtom).toBeDefined()
 
   test('create admin atom and org triple', async () => {
 
-    const adminAtom = await admin.getOrCreateAtom(admin.account.address)
+    const adminAccount = await admin.getOrCreateAtom(admin.account.address)
 
-    expect(adminAtom).toBeDefined()
+    expect(adminAccount).toBeDefined()
 
     const uri = await pinJson({
       '@context': 'https://schema.org',
@@ -51,8 +51,8 @@ suite('create system predicates', async () => {
     expect(intuitionSystems).toBeDefined()
 
     const { vaultId } = await admin.getCreateOrDepositOnTriple(
-      adminAtom.vaultId,
-      organizationPredicate.vaultId,
+      adminAccount.vaultId,
+      organization.vaultId,
       intuitionSystems.vaultId,
     )
 
