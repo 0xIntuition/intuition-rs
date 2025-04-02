@@ -13,7 +13,6 @@ use sqlx::postgres::{PgListener, PgNotification};
 pub struct Env {
     pub localstack_url: Option<String>,
     pub indexer_database_url: String,
-    pub histoflux_cursor_id: i32,
     pub raw_logs_channel: String,
     pub indexer_schema: String,
     pub environment: String,
@@ -175,11 +174,10 @@ impl SqsProducer {
         // Get the last processed id from the database, if it doesnt exist,
         // it will return the default value.
         info!("Getting last processed id from the DB");
-        let mut last_processed_id =
-            HistoFluxCursor::find(&self.pg_pool, self.env.histoflux_cursor_id)
-                .await?
-                .ok_or(HistoFluxError::NotFound)?
-                .last_processed_id;
+        let mut last_processed_id = HistoFluxCursor::find(&self.pg_pool, &self.env.environment)
+            .await?
+            .ok_or(HistoFluxError::NotFound)?
+            .last_processed_id;
         info!("Last processed id: {}", last_processed_id);
         let amount_of_logs =
             RawLog::get_total_count(&self.pg_pool, &self.indexer_schema.to_string()).await?;

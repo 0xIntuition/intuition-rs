@@ -342,7 +342,7 @@ services:
       START_BLOCK: $START_BLOCK
       INTUITION_CONTRACT_ADDRESS: $INTUITION_CONTRACT_ADDRESS
       HISTOCRAWLER_DATABASE_URL: $DATABASE_URL
-      INDEXER_SCHEMA: $INDEXER_SCHEMA
+      INDEXER_SCHEMA: "base_sepolia_v_1_5"
     depends_on:
       geth:
         condition: service_started
@@ -384,11 +384,10 @@ services:
       AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
       AWS_REGION: $AWS_REGION
       AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY 
-      INDEXER_DATABASE_URL: $DATABASE_URL
-      INDEXER_SCHEMA: $INDEXER_SCHEMA
-      LOCALSTACK_URL: $LOCALSTACK_URL
-      HISTOFLUX_CURSOR_ID: $HISTOFLUX_CURSOR_ID
-      RAW_LOGS_CHANNEL: $RAW_LOGS_CHANNEL
+      INDEXER_DATABASE_URL: "postgres://testuser:test@database:5435/storage"
+      INDEXER_SCHEMA: "base_sepolia_v_1_5"
+      LOCALSTACK_URL: "http://sqs:4566/"
+      RAW_LOGS_CHANNEL: "base_sepolia_v_1_5_raw_logs_channel"
       ENVIRONMENT: "local_v_1_5"
     depends_on:
       database:

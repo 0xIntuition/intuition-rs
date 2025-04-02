@@ -7,7 +7,6 @@ use sqlx::PgPool;
 #[derive(sqlx::FromRow, Debug, PartialEq, Clone, Builder, Serialize, Deserialize)]
 #[sqlx(type_name = "histoflux_cursor")]
 pub struct HistoFluxCursor {
-    pub id: i32,
     pub last_processed_id: i64,
     pub environment: String,
     pub paused: bool,
@@ -28,7 +27,7 @@ impl NewHistoFluxCursor {
         let query = r#"
         INSERT INTO cursors.histoflux_cursor (last_processed_id, environment, paused, queue_url) 
         VALUES ($1, $2, $3, $4) 
-        RETURNING id, last_processed_id, environment, paused, queue_url, updated_at::timestamptz as updated_at
+        RETURNING last_processed_id, environment, paused, queue_url, updated_at::timestamptz as updated_at
         "#;
 
         sqlx::query_as::<_, HistoFluxCursor>(query)
@@ -49,7 +48,7 @@ impl HistoFluxCursor {
         let query = r#"
         INSERT INTO cursors.histoflux_cursor (last_processed_id, environment, paused, queue_url) 
         VALUES ($1, $2, $3, $4) 
-        RETURNING id, last_processed_id, environment, paused, queue_url, updated_at::timestamptz as updated_at
+        RETURNING last_processed_id, environment, paused, queue_url, updated_at::timestamptz as updated_at
         "#;
 
         sqlx::query_as::<_, HistoFluxCursor>(query)
@@ -63,15 +62,15 @@ impl HistoFluxCursor {
     }
 
     /// Find the cursor in the DB.
-    pub async fn find(db: &PgPool, id: i32) -> Result<Option<Self>, HistoFluxError> {
+    pub async fn find(db: &PgPool, environment: &str) -> Result<Option<Self>, HistoFluxError> {
         let query = r#"
-        SELECT id, last_processed_id, environment, paused, queue_url, updated_at::timestamptz as updated_at
+        SELECT last_processed_id, environment, paused, queue_url, updated_at::timestamptz as updated_at
         FROM cursors.histoflux_cursor 
-        WHERE id = $1
+        WHERE environment = $1
         "#;
 
         sqlx::query_as::<_, HistoFluxCursor>(query)
-            .bind(id)
+            .bind(environment)
             .fetch_optional(db)
             .await
             .map_err(HistoFluxError::SQLXError)
@@ -83,7 +82,7 @@ impl HistoFluxCursor {
         environment: &str,
     ) -> Result<Option<Self>, HistoFluxError> {
         let query = r#"
-        SELECT id, last_processed_id, environment, paused, queue_url, updated_at::timestamptz as updated_at
+        SELECT last_processed_id, environment, paused, queue_url, updated_at::timestamptz as updated_at
         FROM cursors.histoflux_cursor 
         WHERE environment = $1
         "#;
@@ -105,7 +104,7 @@ impl HistoFluxCursor {
         UPDATE cursors.histoflux_cursor 
         SET last_processed_id = $1, updated_at = NOW()
         WHERE environment = $2
-        RETURNING id, last_processed_id, environment, paused, queue_url, updated_at::timestamptz as updated_at
+        RETURNING last_processed_id, environment, paused, queue_url, updated_at::timestamptz as updated_at
         "#;
 
         sqlx::query_as::<_, HistoFluxCursor>(query)
@@ -128,7 +127,6 @@ mod tests {
         let pool = setup_test_db().await;
 
         let cursor = HistoFluxCursor {
-            id: 4,
             queue_url: "test_url".to_string(),
             environment: "DevBase".to_string(),
             paused: false,
@@ -140,7 +138,7 @@ mod tests {
         let saved = cursor.insert(&pool).await.unwrap();
 
         // Find and verify first insert
-        let found = HistoFluxCursor::find(&pool, saved.id)
+        let found = HistoFluxCursor::find(&pool, &saved.environment)
             .await
             .unwrap()
             .unwrap();
@@ -157,7 +155,7 @@ mod tests {
                 .unwrap();
 
         // Find and verify update
-        let found2 = HistoFluxCursor::find(&pool, saved2.id)
+        let found2 = HistoFluxCursor::find(&pool, &saved2.environment)
             .await
             .unwrap()
             .unwrap();
