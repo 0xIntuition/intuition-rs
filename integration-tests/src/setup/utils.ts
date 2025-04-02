@@ -80,7 +80,9 @@ export async function getIntuition(accountIndex: number) {
     }
   }
 
-  async function getCreateOrDepositOnTriple(subjectId: bigint, predicateId: bigint, objectId: bigint, initialDeposit?: bigint) {
+  async function getCreateOrDepositOnTriple(subjectId: bigint, predicateId: bigint, objectId: bigint, customInitialDeposit?: bigint) {
+    const generalConfig = await multivault.getGeneralConfig()
+    const initialDeposit = customInitialDeposit ?? generalConfig.minDeposit
 
     const vaultId = await multivault.getTripleIdFromAtoms(subjectId, predicateId, objectId)
     if (vaultId) {
@@ -122,7 +124,7 @@ export async function pinJson(json: any) {
   return `ipfs://${data.Hash}`
 }
 
-export enum PredicateType {
+export enum SystemAtom {
   Person = 'https://schema.org/Person',
   Organization = 'https://schema.org/Organization',
   Thing = 'https://schema.org/Thing',

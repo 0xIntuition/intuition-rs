@@ -8899,6 +8899,13 @@ export type AtomWithClaimsQueryVariables = Exact<{
 
 export type AtomWithClaimsQuery = { __typename?: 'query_root', atom?: { __typename?: 'atoms', id: any, label?: string | null, value?: { __typename?: 'atom_values', thing?: { __typename?: 'things', name?: string | null, description?: string | null, url?: string | null, image?: string | null } | null } | null } | null, claims: Array<{ __typename?: 'claims', predicate: { __typename?: 'atoms', id: any, type: any, label?: string | null }, object: { __typename?: 'atoms', value?: { __typename?: 'atom_values', thing?: { __typename?: 'things', name?: string | null, description?: string | null, url?: string | null, image?: string | null } | null } | null } }>, claims_from_following: Array<{ __typename?: 'claims', predicate: { __typename?: 'atoms', id: any, type: any, label?: string | null }, object: { __typename?: 'atoms', value?: { __typename?: 'atom_values', thing?: { __typename?: 'things', name?: string | null, description?: string | null, url?: string | null, image?: string | null } | null } | null } }> };
 
+export type FollowingQueryVariables = Exact<{
+  address: Scalars['String']['input'];
+}>;
+
+
+export type FollowingQuery = { __typename?: 'query_root', following: Array<{ __typename?: 'accounts', id: string, atom_id?: any | null }> };
+
 export type GetTransactionEventsQueryVariables = Exact<{
   hash: Scalars['String']['input'];
 }>;
@@ -8988,6 +8995,14 @@ export const AtomWithClaimsDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<AtomWithClaimsQuery, AtomWithClaimsQueryVariables>;
+export const FollowingDocument = new TypedDocumentString(`
+    query Following($address: String!) {
+  following(args: {address: $address}) {
+    id
+    atom_id
+  }
+}
+    `) as unknown as TypedDocumentString<FollowingQuery, FollowingQueryVariables>;
 export const GetTransactionEventsDocument = new TypedDocumentString(`
     query GetTransactionEvents($hash: String!) {
   events(where: {transaction_hash: {_eq: $hash}}) {
