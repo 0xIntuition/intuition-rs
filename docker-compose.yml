@@ -389,6 +389,7 @@ services:
       LOCALSTACK_URL: $LOCALSTACK_URL
       HISTOFLUX_CURSOR_ID: $HISTOFLUX_CURSOR_ID
       RAW_LOGS_CHANNEL: $RAW_LOGS_CHANNEL
+      ENVIRONMENT: "local_v_1_5"
     depends_on:
       database:
         condition: service_healthy

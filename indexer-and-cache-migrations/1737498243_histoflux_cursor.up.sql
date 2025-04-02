@@ -20,10 +20,10 @@ CREATE INDEX idx_histoflux_cursor_environment ON cursors.histoflux_cursor(enviro
 
 -- Insert the initial cursor for each environment
 -- dev-base
-INSERT INTO cursors.histoflux_cursor (id, last_processed_id, environment, queue_url) VALUES (0, 0, 'DevBase', 'https://sqs.us-west-2.amazonaws.com/064662847354/raw_messages.fifo');
+INSERT INTO cursors.histoflux_cursor (last_processed_id, environment, queue_url) VALUES (0, 'DevBase', 'https://sqs.us-west-2.amazonaws.com/064662847354/raw_messages.fifo');
 -- dev-base-sepolia
-INSERT INTO cursors.histoflux_cursor (id, last_processed_id, environment, queue_url) VALUES (1, 0, 'DevBaseSepolia', 'https://sqs.us-west-2.amazonaws.com/064662847354/base-sepolia-raw-logs.fifo');
+INSERT INTO cursors.histoflux_cursor (last_processed_id, environment, queue_url) VALUES (0, 'DevBaseSepolia', 'https://sqs.us-west-2.amazonaws.com/064662847354/base-sepolia-raw-logs.fifo');
 -- prod-base
-INSERT INTO cursors.histoflux_cursor (id, last_processed_id, environment, queue_url) VALUES (2, 0, 'ProdBase', 'https://sqs.us-west-2.amazonaws.com/064662847354/prod-base-mainnet-raw-logs.fifo');
+INSERT INTO cursors.histoflux_cursor (last_processed_id, environment, queue_url) VALUES (0, 'ProdBase', 'https://sqs.us-west-2.amazonaws.com/064662847354/prod-base-mainnet-raw-logs.fifo');
 -- prod-base-sepolia
-INSERT INTO cursors.histoflux_cursor (id, last_processed_id, environment, queue_url) VALUES (3, 50232, 'ProdBaseSepolia', 'https://sqs.us-west-2.amazonaws.com/064662847354/prod-base-sepolia-raw-logs.fifo');
+INSERT INTO cursors.histoflux_cursor (last_processed_id, environment, queue_url) VALUES (50232, 'ProdBaseSepolia', 'https://sqs.us-west-2.amazonaws.com/064662847354/prod-base-sepolia-raw-logs.fifo');

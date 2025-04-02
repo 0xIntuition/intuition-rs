@@ -233,7 +233,7 @@ impl SqsProducer {
     ) -> Result<(), HistoFluxError> {
         HistoFluxCursor::update_last_processed_id(
             &self.pg_pool,
-            self.env.histoflux_cursor_id,
+            &self.env.environment,
             last_processed_id,
         )
         .await?;

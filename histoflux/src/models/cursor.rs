@@ -98,19 +98,19 @@ impl HistoFluxCursor {
     /// Update the cursor's last_processed_id in the DB.
     pub async fn update_last_processed_id(
         db: &PgPool,
-        id: i32,
+        environment: &str,
         last_processed_id: i64,
     ) -> Result<Self, HistoFluxError> {
         let query = r#"
         UPDATE cursors.histoflux_cursor 
         SET last_processed_id = $1, updated_at = NOW()
-        WHERE id = $2
+        WHERE environment = $2
         RETURNING id, last_processed_id, environment, paused, queue_url, updated_at::timestamptz as updated_at
         "#;
 
         sqlx::query_as::<_, HistoFluxCursor>(query)
             .bind(last_processed_id)
-            .bind(id)
+            .bind(environment)
             .fetch_one(db)
             .await
             .map_err(HistoFluxError::SQLXError)
@@ -151,9 +151,10 @@ mod tests {
         tokio::time::sleep(Duration::milliseconds(100).to_std().unwrap()).await;
 
         // Second update with new block number
-        let saved2 = HistoFluxCursor::update_last_processed_id(&pool, found.id, 200)
-            .await
-            .unwrap();
+        let saved2 =
+            HistoFluxCursor::update_last_processed_id(&pool, &found.environment.clone(), 200)
+                .await
+                .unwrap();
 
         // Find and verify update
         let found2 = HistoFluxCursor::find(&pool, saved2.id)
