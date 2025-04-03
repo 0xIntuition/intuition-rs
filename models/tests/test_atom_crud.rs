@@ -36,7 +36,7 @@ mod tests {
         );
 
         // Step 5: Fetch the Atom from the database using find_by_id
-        let fetched_atom = Atom::find_by_id(test_atom.id.clone(), &pool, TEST_SCHEMA)
+        let fetched_atom = Atom::find_by_id(test_atom.term_id.clone(), &pool, TEST_SCHEMA)
             .await
             .expect("Failed to fetch atom")
             .expect("Atom not found");
@@ -70,7 +70,7 @@ mod tests {
         );
 
         // Step 10: Fetch the Atom again to ensure the update was persisted
-        let re_fetched_atom = Atom::find_by_id(test_atom.id.clone(), &pool, TEST_SCHEMA)
+        let re_fetched_atom = Atom::find_by_id(test_atom.term_id.clone(), &pool, TEST_SCHEMA)
             .await
             .expect("Failed to re-fetch atom")
             .expect("Updated atom not found");

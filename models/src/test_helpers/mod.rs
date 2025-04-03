@@ -77,10 +77,9 @@ pub async fn create_test_account_db(pool: &PgPool) -> Account {
 /// This function creates a test atom.
 pub fn create_test_atom(wallet_id: String, creator_id: String) -> Atom {
     Atom::builder()
-        .id(create_random_u256wrapper())
         .wallet_id(wallet_id)
         .creator_id(creator_id)
-        .vault_id(create_random_string())
+        .term_id(create_random_u256wrapper())
         .data(create_random_string())
         .raw_data(create_random_string())
         .atom_type(AtomType::Thing)
@@ -101,13 +100,12 @@ pub fn create_test_triple(
     object_id: U256Wrapper,
 ) -> Triple {
     Triple::builder()
-        .id(create_random_u256wrapper())
         .creator_id(creator_id)
         .subject_id(subject_id)
         .predicate_id(predicate_id)
         .object_id(object_id)
-        .vault_id(create_random_string())
-        .counter_vault_id(create_random_string())
+        .term_id(create_random_u256wrapper())
+        .counter_term_id(create_random_u256wrapper())
         .block_number(create_random_u256wrapper())
         .block_timestamp(create_random_number())
         .transaction_hash(create_random_string())
@@ -117,9 +115,8 @@ pub fn create_test_triple(
 /// This function creates a test vault with an atom_id.
 pub fn create_test_vault_with_atom(atom_id: U256Wrapper) -> Vault {
     Vault::builder()
-        .id(create_random_string())
+        .term_id(atom_id)
         .curve_id(U256Wrapper::from_str("1").unwrap())
-        .atom_id(atom_id)
         .total_shares(create_random_u256wrapper())
         .current_share_price(create_random_u256wrapper())
         .position_count(1)
@@ -129,9 +126,8 @@ pub fn create_test_vault_with_atom(atom_id: U256Wrapper) -> Vault {
 /// This function creates a test vault with a triple_id.
 pub fn create_test_vault_with_triple(triple_id: U256Wrapper) -> Vault {
     Vault::builder()
-        .id(create_random_string())
+        .term_id(triple_id)
         .curve_id(U256Wrapper::from_str("1").unwrap())
-        .triple_id(triple_id)
         .total_shares(create_random_u256wrapper())
         .current_share_price(create_random_u256wrapper())
         .position_count(1)
@@ -169,7 +165,11 @@ pub async fn create_test_atom_db(pool: &PgPool) -> Atom {
 }
 
 /// This function creates a test deposit.
-pub fn create_test_deposit(sender_id: String, receiver_id: String, vault_id: String) -> Deposit {
+pub fn create_test_deposit(
+    sender_id: String,
+    receiver_id: String,
+    term_id: U256Wrapper,
+) -> Deposit {
     Deposit::builder()
         .id(create_random_string())
         .sender_id(sender_id)
@@ -178,7 +178,8 @@ pub fn create_test_deposit(sender_id: String, receiver_id: String, vault_id: Str
         .sender_assets_after_total_fees(create_random_u256wrapper())
         .shares_for_receiver(create_random_u256wrapper())
         .entry_fee(create_random_u256wrapper())
-        .vault_id(vault_id)
+        .term_id(term_id)
+        .curve_id(U256Wrapper::from_str("1").unwrap())
         .is_triple(false)
         .is_atom_wallet(false)
         .block_number(create_random_u256wrapper())
@@ -252,7 +253,7 @@ pub async fn create_test_fee_transfer_db(pool: &PgPool, fee_transfer: FeeTransfe
 pub fn create_test_redemption(
     sender_id: String,
     receiver_id: String,
-    vault_id: String,
+    term_id: U256Wrapper,
 ) -> Redemption {
     Redemption::builder()
         .id(create_random_string())
@@ -262,7 +263,8 @@ pub fn create_test_redemption(
         .assets_for_receiver(create_random_u256wrapper())
         .shares_redeemed_by_sender(create_random_u256wrapper())
         .exit_fee(create_random_u256wrapper())
-        .vault_id(vault_id)
+        .term_id(term_id)
+        .curve_id(U256Wrapper::from_str("1").unwrap())
         .block_number(create_random_u256wrapper())
         .block_timestamp(create_random_number())
         .transaction_hash(create_random_string())
@@ -309,12 +311,13 @@ pub async fn create_test_person_db(pool: &PgPool, person: Person) -> Person {
 }
 
 /// This function creates a test position.
-pub fn create_test_position(account_id: String, vault_id: String) -> Position {
+pub fn create_test_position(account_id: String, term_id: U256Wrapper) -> Position {
     Position::builder()
         .id(create_random_string())
         .account_id(account_id)
-        .vault_id(vault_id)
+        .term_id(term_id)
         .shares(create_random_u256wrapper())
+        .curve_id(U256Wrapper::from_str("1").unwrap())
         .build()
 }
 

@@ -143,12 +143,11 @@ impl AtomCreated {
             // Create the `Atom` and upsert it. Note that we are using the raw_data as the data
             // for now, this will be updated later with the resolver consumer.
             let atom = Atom::builder()
-                .id(U256Wrapper::from_str(
+                .term_id(U256Wrapper::from_str(
                     &self.vaultId.to_string().to_lowercase(),
                 )?)
                 .wallet_id(atom_wallet_account.id.clone())
                 .creator_id(creator_account.id)
-                .vault_id(Vault::format_vault_id(self.vaultId.to_string(), None))
                 .value_id(U256Wrapper::from_str(&self.vaultId.to_string())?)
                 .raw_data(self.atomData.to_string())
                 .atom_type(AtomType::Unknown)
@@ -165,7 +164,7 @@ impl AtomCreated {
             //updating the account with the atom id
             update_account_with_atom_id(
                 atom_wallet_account.id,
-                atom.id.clone(),
+                atom.term_id.clone(),
                 decoded_consumer_context,
             )
             .await?;
@@ -224,8 +223,9 @@ impl AtomCreated {
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
     ) -> Result<Vault, ConsumerError> {
-        if let Some(vault) = Vault::find_by_id(
-            Vault::format_vault_id(self.vaultId.to_string(), None),
+        if let Some(vault) = Vault::find_by_term_id_and_curve_id(
+            U256Wrapper::from_str(&self.vaultId.to_string())?,
+            U256Wrapper::from_str("1")?,
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
@@ -236,8 +236,7 @@ impl AtomCreated {
         } else {
             // create the vault
             Vault::builder()
-                .atom_id(self.vaultId)
-                .id(Vault::format_vault_id(self.vaultId.to_string(), None))
+                .term_id(U256Wrapper::from_str(&self.vaultId.to_string())?)
                 .curve_id(U256Wrapper::from_str("1")?)
                 .total_shares(
                     decoded_consumer_context
@@ -250,8 +249,9 @@ impl AtomCreated {
                         .await?,
                 )
                 .position_count(
-                    Position::count_by_vault(
-                        Vault::format_vault_id(self.vaultId.to_string(), None),
+                    Position::count_by_vault_and_curve(
+                        self.vaultId.to_string(),
+                        "1".to_string(),
                         &decoded_consumer_context.pg_pool,
                         &decoded_consumer_context.backend_schema,
                     )

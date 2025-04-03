@@ -131,7 +131,7 @@ impl AtomMetadata {
                     resolved_atom.atom.data.clone().unwrap()
                 );
                 Self::create_caip10(
-                    resolved_atom.atom.id.clone(),
+                    resolved_atom.atom.term_id.clone(),
                     resolved_atom.atom.data.clone().unwrap(),
                     decoded_consumer_context,
                 )
@@ -279,7 +279,7 @@ impl AtomMetadata {
                 .data
                 .clone()
                 .ok_or(ConsumerError::AtomDataNotFound)?,
-            resolved_atom.atom.id.clone(),
+            resolved_atom.atom.term_id.clone(),
             decoded_consumer_context,
         )
         .await?;
@@ -425,7 +425,7 @@ pub async fn get_supported_atom_metadata(
     } else {
         info!("Atom data is not an address, verifying if it's an IPFS URI...");
         // 4. Now we need to enqueue the message to be processed by the resolver
-        let message = ResolverConsumerMessage::new_atom(atom.id.to_string());
+        let message = ResolverConsumerMessage::new_atom(atom.term_id.to_string());
         decoded_consumer_context
             .client
             .send_message(serde_json::to_string(&message)?, None)

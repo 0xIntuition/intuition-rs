@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use crate::{
     ConsumerError,
     EthMultiVault::DepositedCurve,
@@ -61,11 +63,9 @@ impl DepositedCurve {
                 .id(position_id)
                 .account_id(self.receiver.to_string())
                 // Use the base vault ID for the foreign key constraint
-                .vault_id(Vault::format_vault_id(
-                    self.vaultId.to_string(),
-                    Some(U256Wrapper::from(self.curveId)),
-                ))
+                .term_id(U256Wrapper::from_str(&self.vaultId.to_string())?)
                 .shares(self.receiverTotalSharesInVault)
+                .curve_id(U256Wrapper::from(self.curveId))
                 .build()
                 .upsert(
                     &decoded_consumer_context.pg_pool,
@@ -176,15 +176,13 @@ impl DepositedCurve {
             .sender_assets_after_total_fees(U256Wrapper::from(self.senderAssetsAfterTotalFees))
             .shares_for_receiver(U256Wrapper::from(self.sharesForReceiver))
             .entry_fee(U256Wrapper::from(self.entryFee))
-            .vault_id(Vault::format_vault_id(
-                self.vaultId.to_string(),
-                Some(U256Wrapper::from(self.curveId)),
-            ))
+            .term_id(U256Wrapper::from_str(&self.vaultId.to_string())?)
             .is_triple(self.isTriple)
             .is_atom_wallet(self.isAtomWallet)
             .block_number(U256Wrapper::try_from(event.block_number)?)
             .block_timestamp(event.block_timestamp)
             .transaction_hash(event.transaction_hash.clone())
+            .curve_id(U256Wrapper::from(self.curveId))
             .build()
             .upsert(
                 &decoded_consumer_context.pg_pool,
@@ -232,8 +230,9 @@ impl DepositedCurve {
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<Vault, ConsumerError> {
-        match Vault::find_by_id(
-            Vault::format_vault_id(self.vaultId.to_string(), None),
+        match Vault::find_by_term_id_and_curve_id(
+            U256Wrapper::from_str(&self.vaultId.to_string())?,
+            U256Wrapper::from(self.curveId),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
@@ -248,43 +247,19 @@ impl DepositedCurve {
                     &decoded_consumer_context.backend_schema,
                 )
                 .await?;
-                if self.isTriple {
-                    Vault::builder()
-                        .id(Vault::format_vault_id(
-                            self.vaultId.to_string(),
-                            Some(U256Wrapper::from(self.curveId)),
-                        ))
-                        .current_share_price(current_share_price.share_price)
-                        .position_count(0)
-                        .curve_id(U256Wrapper::from(self.curveId))
-                        .triple_id(get_absolute_triple_id(self.vaultId))
-                        .total_shares(current_share_price.total_shares)
-                        .build()
-                        .upsert(
-                            &decoded_consumer_context.pg_pool,
-                            &decoded_consumer_context.backend_schema,
-                        )
-                        .await
-                        .map_err(ConsumerError::ModelError)
-                } else {
-                    Vault::builder()
-                        .id(Vault::format_vault_id(
-                            self.vaultId.to_string(),
-                            Some(U256Wrapper::from(self.curveId)),
-                        ))
-                        .current_share_price(current_share_price.share_price)
-                        .position_count(0)
-                        .curve_id(U256Wrapper::from(self.curveId))
-                        .atom_id(self.vaultId)
-                        .total_shares(current_share_price.total_shares)
-                        .build()
-                        .upsert(
-                            &decoded_consumer_context.pg_pool,
-                            &decoded_consumer_context.backend_schema,
-                        )
-                        .await
-                        .map_err(ConsumerError::ModelError)
-                }
+                Vault::builder()
+                    .term_id(U256Wrapper::from_str(&self.vaultId.to_string())?)
+                    .current_share_price(current_share_price.share_price)
+                    .position_count(0)
+                    .curve_id(U256Wrapper::from(self.curveId))
+                    .total_shares(current_share_price.total_shares)
+                    .build()
+                    .upsert(
+                        &decoded_consumer_context.pg_pool,
+                        &decoded_consumer_context.backend_schema,
+                    )
+                    .await
+                    .map_err(ConsumerError::ModelError)
             }
         }
     }

@@ -17,8 +17,10 @@ pub struct Claim {
     pub object_id: U256Wrapper,
     pub shares: U256Wrapper,
     pub counter_shares: U256Wrapper,
-    pub vault_id: String,
-    pub counter_vault_id: String,
+    pub term_id: U256Wrapper,
+    pub counter_term_id: U256Wrapper,
+    pub curve_id: U256Wrapper,
+    pub counter_curve_id: U256Wrapper,
 }
 
 /// This is a trait that all models must implement.
@@ -33,9 +35,9 @@ impl SimpleCrud<String> for Claim {
             r#"
             INSERT INTO {}.claim (
                 id, account_id, triple_id, subject_id, predicate_id, object_id,
-                shares, counter_shares, vault_id, counter_vault_id
+                shares, counter_shares, term_id, counter_term_id, curve_id, counter_curve_id
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
             ON CONFLICT (id) 
             DO UPDATE SET
                 account_id = EXCLUDED.account_id,
@@ -45,8 +47,10 @@ impl SimpleCrud<String> for Claim {
                 object_id = EXCLUDED.object_id,
                 shares = EXCLUDED.shares,
                 counter_shares = EXCLUDED.counter_shares,
-                vault_id = EXCLUDED.vault_id,
-                counter_vault_id = EXCLUDED.counter_vault_id
+                term_id = EXCLUDED.term_id,
+                counter_term_id = EXCLUDED.counter_term_id,
+                curve_id = EXCLUDED.curve_id,
+                counter_curve_id = EXCLUDED.counter_curve_id
             RETURNING 
                 id, 
                 account_id, 
@@ -56,8 +60,10 @@ impl SimpleCrud<String> for Claim {
                 object_id, 
                 shares, 
                 counter_shares, 
-                vault_id, 
-                counter_vault_id
+                term_id, 
+                counter_term_id,
+                curve_id,
+                counter_curve_id
             "#,
             schema,
         );
@@ -71,8 +77,10 @@ impl SimpleCrud<String> for Claim {
             .bind(self.object_id.to_big_decimal()?)
             .bind(self.shares.to_big_decimal()?)
             .bind(self.counter_shares.to_big_decimal()?)
-            .bind(self.vault_id.clone())
-            .bind(self.counter_vault_id.clone())
+            .bind(self.term_id.to_big_decimal()?)
+            .bind(self.counter_term_id.to_big_decimal()?)
+            .bind(self.curve_id.to_big_decimal()?)
+            .bind(self.counter_curve_id.to_big_decimal()?)
             .fetch_one(pool)
             .await
             .map_err(|e| ModelError::InsertError(e.to_string()))
@@ -95,8 +103,10 @@ impl SimpleCrud<String> for Claim {
                 object_id,
                 shares,
                 counter_shares,
-                vault_id,
-                counter_vault_id
+                term_id,
+                counter_term_id,
+                curve_id,
+                counter_curve_id
             FROM {}.claim
             WHERE id = $1
             "#,

@@ -1,1 +1,0 @@
-DROP FUNCTION IF EXISTS public.share_price_changed_by_term_curve_id(numeric); 

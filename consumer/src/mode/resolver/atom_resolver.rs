@@ -138,7 +138,10 @@ async fn try_to_resolve_schema_org_properties(
 
 /// Creates a ByteObject from a schema.org object
 pub fn create_byte_object_from_obj(atom: &Atom, obj: Vec<u8>) -> Result<ByteObject, ConsumerError> {
-    let byte_object = ByteObject::builder().id(atom.id.clone()).data(obj).build();
+    let byte_object = ByteObject::builder()
+        .id(atom.term_id.clone())
+        .data(obj)
+        .build();
     if !byte_object.data.is_empty() && byte_object.data.len() <= 1_000_000 {
         Ok(byte_object)
     } else {
@@ -151,20 +154,23 @@ pub fn create_byte_object_from_obj(atom: &Atom, obj: Vec<u8>) -> Result<ByteObje
 /// Creates a JsonObject from a schema.org object
 pub fn create_json_object_from_obj(atom: &Atom, obj: &Value) -> JsonObject {
     JsonObject::builder()
-        .id(atom.id.clone())
+        .id(atom.term_id.clone())
         .data(obj.clone())
         .build()
 }
 
 /// Creates a TextObject from a schema.org object
 pub fn create_text_object_from_obj(atom: &Atom, obj: &str) -> TextObject {
-    TextObject::builder().id(atom.id.clone()).data(obj).build()
+    TextObject::builder()
+        .id(atom.term_id.clone())
+        .data(obj)
+        .build()
 }
 
 /// Creates a Thing from a schema.org object
 pub fn create_thing_from_obj(atom: &Atom, obj: &Value) -> Thing {
     Thing::builder()
-        .id(atom.id.clone())
+        .id(atom.term_id.clone())
         .name(
             obj.get("name")
                 .and_then(|name| name.as_str())
@@ -195,7 +201,7 @@ pub fn create_thing_from_obj(atom: &Atom, obj: &Value) -> Thing {
 /// Creates a Person from a schema.org object
 pub fn create_person_from_obj(atom: &Atom, obj: &Value) -> Person {
     Person::builder()
-        .id(atom.id.clone())
+        .id(atom.term_id.clone())
         .identifier(
             obj.get("identifier")
                 .and_then(|identifier| identifier.as_str())
@@ -238,7 +244,7 @@ pub fn create_person_from_obj(atom: &Atom, obj: &Value) -> Person {
 /// Creates an Organization from a schema.org object
 pub fn create_organization_from_obj(atom: &Atom, obj: &Value) -> Organization {
     Organization::builder()
-        .id(atom.id.clone())
+        .id(atom.term_id.clone())
         .name(
             obj.get("name")
                 .and_then(|name| name.as_str())
@@ -269,7 +275,7 @@ pub fn create_organization_from_obj(atom: &Atom, obj: &Value) -> Organization {
 /// Creates a Book from a schema.org object
 pub fn create_book_from_obj(atom: &Atom, obj: &Value) -> Book {
     Book::builder()
-        .id(atom.id.clone())
+        .id(atom.term_id.clone())
         .name(
             obj.get("name")
                 .and_then(|name| name.as_str())
@@ -392,7 +398,7 @@ pub async fn create_byte_object_atom_value(
     consumer_context: &impl AtomUpdater,
 ) -> Result<(), ConsumerError> {
     AtomValue::builder()
-        .id(atom.id.clone())
+        .id(atom.term_id.clone())
         .byte_object_id(byte_object.id.clone())
         .build()
         .upsert(consumer_context.pool(), consumer_context.backend_schema())
@@ -407,7 +413,7 @@ pub async fn create_text_object_atom_value(
     consumer_context: &impl AtomUpdater,
 ) -> Result<(), ConsumerError> {
     AtomValue::builder()
-        .id(atom.id.clone())
+        .id(atom.term_id.clone())
         .text_object_id(text_object.id.clone())
         .build()
         .upsert(consumer_context.pool(), consumer_context.backend_schema())
@@ -422,7 +428,7 @@ pub async fn create_json_object_atom_value(
     consumer_context: &impl AtomUpdater,
 ) -> Result<(), ConsumerError> {
     AtomValue::builder()
-        .id(atom.id.clone())
+        .id(atom.term_id.clone())
         .json_object_id(json_object.id.clone())
         .build()
         .upsert(consumer_context.pool(), consumer_context.backend_schema())
@@ -437,7 +443,7 @@ pub async fn create_thing_atom_value(
     consumer_context: &impl AtomUpdater,
 ) -> Result<(), ConsumerError> {
     AtomValue::builder()
-        .id(atom.id.clone())
+        .id(atom.term_id.clone())
         .thing_id(thing.id.clone())
         .build()
         .upsert(consumer_context.pool(), consumer_context.backend_schema())
@@ -452,7 +458,7 @@ pub async fn create_person_atom_value(
     consumer_context: &impl AtomUpdater,
 ) -> Result<(), ConsumerError> {
     AtomValue::builder()
-        .id(atom.id.clone())
+        .id(atom.term_id.clone())
         .person_id(person.id.clone())
         .build()
         .upsert(consumer_context.pool(), consumer_context.backend_schema())
@@ -467,7 +473,7 @@ pub async fn create_organization_atom_value(
     consumer_context: &impl AtomUpdater,
 ) -> Result<(), ConsumerError> {
     AtomValue::builder()
-        .id(atom.id.clone())
+        .id(atom.term_id.clone())
         .organization_id(organization.id.clone())
         .build()
         .upsert(consumer_context.pool(), consumer_context.backend_schema())
@@ -482,7 +488,7 @@ pub async fn create_book_atom_value(
     consumer_context: &impl AtomUpdater,
 ) -> Result<(), ConsumerError> {
     AtomValue::builder()
-        .id(atom.id.clone())
+        .id(atom.term_id.clone())
         .book_id(book.id.clone())
         .build()
         .upsert(consumer_context.pool(), consumer_context.backend_schema())

@@ -27,22 +27,22 @@ mod tests {
         // Create a Triple
         let triple = create_test_triple(
             creator.id.clone(),
-            subject.id.clone(),
-            predicate.id.clone(),
-            object.id.clone(),
+            subject.term_id.clone(),
+            predicate.term_id.clone(),
+            object.term_id.clone(),
         )
         .upsert(&pool, TEST_SCHEMA)
         .await
         .unwrap();
 
         // Create and store a test Vault
-        let vault = create_test_vault_with_atom(object.id.clone())
+        let vault = create_test_vault_with_atom(object.term_id.clone())
             .upsert(&pool, TEST_SCHEMA)
             .await
             .unwrap();
 
         // Create and store a test Counter Vault
-        let counter_vault = create_test_vault_with_atom(subject.id.clone())
+        let counter_vault = create_test_vault_with_atom(subject.term_id.clone())
             .upsert(&pool, TEST_SCHEMA)
             .await
             .unwrap();
@@ -51,14 +51,16 @@ mod tests {
         let mut claim = Claim::builder()
             .id(create_random_string())
             .account_id(creator.id.clone())
-            .triple_id(triple.id)
-            .subject_id(subject.id)
-            .predicate_id(predicate.id)
-            .object_id(object.id)
+            .triple_id(triple.term_id)
+            .subject_id(subject.term_id.clone())
+            .predicate_id(predicate.term_id.clone())
+            .object_id(object.term_id.clone())
             .shares(U256Wrapper::from_str("100").unwrap())
             .counter_shares(U256Wrapper::from_str("0").unwrap())
-            .vault_id(vault.id.clone())
-            .counter_vault_id(counter_vault.id.clone())
+            .term_id(vault.term_id.clone())
+            .counter_term_id(counter_vault.term_id.clone())
+            .curve_id(vault.curve_id.clone())
+            .counter_curve_id(counter_vault.curve_id.clone())
             .build()
             .upsert(&pool, TEST_SCHEMA)
             .await

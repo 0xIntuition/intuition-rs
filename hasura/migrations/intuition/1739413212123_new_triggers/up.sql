@@ -44,5 +44,5 @@ UPDATE vault
 SET position_count = (
   SELECT COUNT(*)
   FROM position
-  WHERE position.vault_id = vault.id
+  WHERE position.term_id = vault.id
 );

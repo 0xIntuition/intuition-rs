@@ -34,7 +34,7 @@ impl Deposited {
         Claim::builder()
             .id(self.format_claim_id())
             .account_id(self.receiver.to_string())
-            .triple_id(triple.id.clone())
+            .triple_id(triple.term_id.clone())
             .subject_id(triple.subject_id.clone())
             .predicate_id(triple.predicate_id.clone())
             .object_id(triple.object_id.clone())
@@ -436,7 +436,11 @@ impl Deposited {
         triple: &Triple,
         vault: &Vault,
     ) -> Result<Claim, ConsumerError> {
-        let claim_id = format!("{}-{}", triple.id, self.receiver.to_string().to_lowercase());
+        let claim_id = format!(
+            "{}-{}",
+            triple.term_id,
+            self.receiver.to_string().to_lowercase()
+        );
 
         let claim = match Claim::find_by_id(
             claim_id.clone(),
@@ -456,7 +460,7 @@ impl Deposited {
             None => Claim::builder()
                 .id(claim_id)
                 .account_id(self.receiver.to_string())
-                .triple_id(triple.id.clone())
+                .triple_id(triple.term_id.clone())
                 .subject_id(triple.subject_id.clone())
                 .predicate_id(triple.predicate_id.clone())
                 .object_id(triple.object_id.clone())

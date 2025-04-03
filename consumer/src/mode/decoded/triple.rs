@@ -122,9 +122,9 @@ impl TripleCreated {
             Triple::builder()
                 .id(self.vaultID)
                 .creator_id(creator_account.id)
-                .subject_id(subject_atom.id.clone())
-                .predicate_id(predicate_atom.id.clone())
-                .object_id(object_atom.id.clone())
+                .subject_id(subject_atom.term_id.clone())
+                .predicate_id(predicate_atom.term_id.clone())
+                .object_id(object_atom.term_id.clone())
                 .vault_id(self.vaultID.to_string())
                 .counter_vault_id(counter_vault_id.to_string())
                 .block_number(U256Wrapper::try_from(event.block_number).unwrap_or_default())
@@ -220,7 +220,7 @@ impl TripleCreated {
             .await?;
 
         // Enqueue the atom for resolution
-        let message = ResolverConsumerMessage::new_atom(atom.id.to_string());
+        let message = ResolverConsumerMessage::new_atom(atom.term_id.to_string());
         decoded_consumer_context
             .client
             .send_message(serde_json::to_string(&message)?, None)
