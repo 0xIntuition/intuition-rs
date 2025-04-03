@@ -4,24 +4,100 @@ use crate::{
     mode::{
         decoded_v1_5::{
             atom::atom_supported_types::get_supported_atom_metadata,
-            utils::{get_or_create_account, short_id, update_account_with_atom_id},
+            utils::{
+                get_or_create_account, get_or_create_account_from_event, get_or_create_vault,
+                short_id, update_account_with_atom_id,
+            },
         },
         resolver::types::ResolveAtom,
         types::DecodedConsumerContext,
     },
     schemas::types::DecodedMessage,
+    traits::{AccountManager, VaultManager},
 };
+use async_trait::async_trait;
 use models::{
     account::{Account, AccountType},
     atom::{Atom, AtomResolvingStatus, AtomType},
     event::{Event, EventType},
     position::Position,
+    share_price_change::SharePriceChanged,
+    term::TermType,
     traits::SimpleCrud,
     types::U256Wrapper,
     vault::Vault,
 };
 use std::str::FromStr;
 use tracing::{info, warn};
+
+/// This impl is used to convert the `AtomCreated` event into an `AccountManager`
+/// and we can use the general account creation logic for this.
+impl AccountManager for &AtomCreated {
+    fn account_id(&self) -> String {
+        self.atomWallet.to_string()
+    }
+
+    fn label(&self) -> String {
+        short_id(&self.atomWallet.to_string())
+    }
+
+    fn account_type(&self) -> AccountType {
+        AccountType::AtomWallet
+    }
+}
+
+#[async_trait]
+/// This impl is used to convert the `AtomCreated` event into a `VaultManager`
+/// and we can use the general vault creation logic for this.
+impl VaultManager for &AtomCreated {
+    fn term_id(&self) -> Result<U256Wrapper, ConsumerError> {
+        Ok(U256Wrapper::from(self.vaultId))
+    }
+
+    fn curve_id(&self) -> Result<U256Wrapper, ConsumerError> {
+        U256Wrapper::from_str("1").map_err(ConsumerError::ModelError)
+    }
+
+    async fn total_shares(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+    ) -> Result<U256Wrapper, ConsumerError> {
+        Ok(SharePriceChanged::fetch_current_share_price(
+            U256Wrapper::from(self.vaultId),
+            &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
+        )
+        .await?
+        .total_shares)
+    }
+
+    async fn current_share_price(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+    ) -> Result<U256Wrapper, ConsumerError> {
+        Ok(SharePriceChanged::fetch_current_share_price(
+            U256Wrapper::from(self.vaultId),
+            &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
+        )
+        .await?
+        .share_price)
+    }
+
+    async fn position_count(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+    ) -> Result<i32, ConsumerError> {
+        Ok(Position::count_by_vault_and_curve(
+            self.vaultId.to_string(),
+            "1".to_string(),
+            &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
+        )
+        .await? as i32)
+    }
+}
+
 impl AtomCreated {
     /// This function creates an `Event` for the `AtomCreated` event
     async fn create_event(
@@ -82,38 +158,19 @@ impl AtomCreated {
         decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<Account, ConsumerError> {
         // First try to find existing account
-        if let Some(mut account) = Account::find_by_id(
-            self.atomWallet.to_string(),
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
-        )
-        .await?
-        {
-            // We update the account type to `AtomWallet` if it is not already set
-            if account.account_type != AccountType::AtomWallet {
-                account.account_type = AccountType::AtomWallet;
-                account
-                    .upsert(
-                        &decoded_consumer_context.pg_pool,
-                        &decoded_consumer_context.backend_schema,
-                    )
-                    .await?;
-            }
-            return Ok(account);
-        }
+        let mut account = get_or_create_account_from_event(self, decoded_consumer_context).await?;
 
-        // Only create new account if none exists
-        Account::builder()
-            .id(self.atomWallet.to_string())
-            .label(short_id(&self.atomWallet.to_string()))
-            .account_type(AccountType::AtomWallet)
-            .build()
-            .upsert(
-                &decoded_consumer_context.pg_pool,
-                &decoded_consumer_context.backend_schema,
-            )
-            .await
-            .map_err(ConsumerError::ModelError)
+        // We update the account type to `AtomWallet` if it is not already set
+        if account.account_type != AccountType::AtomWallet {
+            account.account_type = AccountType::AtomWallet;
+            account
+                .upsert(
+                    &decoded_consumer_context.pg_pool,
+                    &decoded_consumer_context.backend_schema,
+                )
+                .await?;
+        }
+        Ok(account)
     }
 
     /// This function verifies if the atom exists in our DB. If it does, it returns it.
@@ -143,12 +200,10 @@ impl AtomCreated {
             // Create the `Atom` and upsert it. Note that we are using the raw_data as the data
             // for now, this will be updated later with the resolver consumer.
             let atom = Atom::builder()
-                .term_id(U256Wrapper::from_str(
-                    &self.vaultId.to_string().to_lowercase(),
-                )?)
+                .term_id(U256Wrapper::from(self.vaultId))
                 .wallet_id(atom_wallet_account.id.clone())
                 .creator_id(creator_account.id)
-                .value_id(U256Wrapper::from_str(&self.vaultId.to_string())?)
+                .value_id(U256Wrapper::from(self.vaultId))
                 .raw_data(self.atomData.to_string())
                 .atom_type(AtomType::Unknown)
                 .block_number(U256Wrapper::from_str(&event.block_number.to_string())?)
@@ -216,57 +271,6 @@ impl AtomCreated {
         Ok(())
     }
 
-    /// This function verifies if the vault exists in our DB. If it does, it returns it.
-    /// If it does not, it creates it.
-    async fn get_or_create_vault(
-        &self,
-        decoded_consumer_context: &DecodedConsumerContext,
-        event: &DecodedMessage,
-    ) -> Result<Vault, ConsumerError> {
-        if let Some(vault) = Vault::find_by_term_id_and_curve_id(
-            U256Wrapper::from_str(&self.vaultId.to_string())?,
-            U256Wrapper::from_str("1")?,
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
-        )
-        .await?
-        {
-            info!("Vault already exists, returning it");
-            Ok(vault)
-        } else {
-            // create the vault
-            Vault::builder()
-                .term_id(U256Wrapper::from_str(&self.vaultId.to_string())?)
-                .curve_id(U256Wrapper::from_str("1")?)
-                .total_shares(
-                    decoded_consumer_context
-                        .fetch_total_shares_in_vault(self.vaultId, event.block_number)
-                        .await?,
-                )
-                .current_share_price(
-                    decoded_consumer_context
-                        .fetch_current_share_price(self.vaultId, event.block_number)
-                        .await?,
-                )
-                .position_count(
-                    Position::count_by_vault_and_curve(
-                        self.vaultId.to_string(),
-                        "1".to_string(),
-                        &decoded_consumer_context.pg_pool,
-                        &decoded_consumer_context.backend_schema,
-                    )
-                    .await? as i32,
-                )
-                .build()
-                .upsert(
-                    &decoded_consumer_context.pg_pool,
-                    &decoded_consumer_context.backend_schema,
-                )
-                .await
-                .map_err(ConsumerError::ModelError)
-        }
-    }
-
     /// This function updates the vault current share price and it returns the vault and atom
     async fn update_vault_current_share_price(
         &self,
@@ -274,9 +278,7 @@ impl AtomCreated {
         event: &DecodedMessage,
     ) -> Result<(Vault, Atom), ConsumerError> {
         // Get or create the vault
-        let vault = self
-            .get_or_create_vault(decoded_consumer_context, event)
-            .await?;
+        let vault = get_or_create_vault(self, decoded_consumer_context, TermType::Atom).await?;
 
         // In order to upsert a [`Vault`] we need to have an [`Atom`] first.
         // Verify that the atom exists, if not, create it. Note that in order

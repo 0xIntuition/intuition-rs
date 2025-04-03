@@ -1,11 +1,12 @@
-use super::utils::get_absolute_triple_id;
 use crate::{
     ConsumerError,
     EthMultiVault::Deposited,
     mode::{decoded_v1_5::utils::get_or_create_account, types::DecodedConsumerContext},
     schemas::types::DecodedMessage,
+    traits::VaultManager,
 };
 use alloy::primitives::U256;
+use async_trait::async_trait;
 use futures::executor::block_on;
 use models::{
     claim::Claim,
@@ -15,6 +16,7 @@ use models::{
     predicate_object::PredicateObject,
     share_price_change::SharePriceChanged,
     signal::Signal,
+    term::TermType,
     traits::SimpleCrud,
     triple::Triple,
     types::U256Wrapper,
@@ -22,6 +24,52 @@ use models::{
 };
 use std::str::FromStr;
 use tracing::info;
+
+use super::utils::get_or_create_vault;
+
+#[async_trait]
+impl VaultManager for &Deposited {
+    fn term_id(&self) -> Result<U256Wrapper, ConsumerError> {
+        Ok(U256Wrapper::from(self.vaultId))
+    }
+
+    fn curve_id(&self) -> Result<U256Wrapper, ConsumerError> {
+        Ok(U256Wrapper::from_str("1")?)
+    }
+
+    async fn total_shares(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+    ) -> Result<U256Wrapper, ConsumerError> {
+        Ok(SharePriceChanged::fetch_current_share_price(
+            U256Wrapper::from(self.vaultId),
+            &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
+        )
+        .await?
+        .total_shares)
+    }
+
+    async fn current_share_price(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+    ) -> Result<U256Wrapper, ConsumerError> {
+        Ok(SharePriceChanged::fetch_current_share_price(
+            U256Wrapper::from(self.vaultId),
+            &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
+        )
+        .await?
+        .share_price)
+    }
+
+    async fn position_count(
+        &self,
+        _decoded_consumer_context: &DecodedConsumerContext,
+    ) -> Result<i32, ConsumerError> {
+        Ok(0)
+    }
+}
 
 impl Deposited {
     /// This function creates a claim and predicate object
@@ -38,19 +86,17 @@ impl Deposited {
             .subject_id(triple.subject_id.clone())
             .predicate_id(triple.predicate_id.clone())
             .object_id(triple.object_id.clone())
-            .vault_id(triple.vault_id.clone())
-            .counter_vault_id(triple.counter_vault_id.clone())
-            .shares(
-                if U256Wrapper::from(self.vaultId) == U256Wrapper::from_str(&triple.vault_id)? {
-                    self.receiverTotalSharesInVault
-                } else {
-                    U256::from(0)
-                },
-            )
+            .term_id(triple.term_id.clone())
+            .counter_term_id(triple.counter_term_id.clone())
+            .curve_id(U256Wrapper::from_str("1")?)
+            .counter_curve_id(U256Wrapper::from_str("1")?)
+            .shares(if U256Wrapper::from(self.vaultId) == triple.term_id {
+                self.receiverTotalSharesInVault
+            } else {
+                U256::from(0)
+            })
             .counter_shares(
-                if U256Wrapper::from(self.vaultId)
-                    == U256Wrapper::from_str(&triple.counter_vault_id)?
-                {
+                if U256Wrapper::from(self.vaultId) == triple.counter_term_id {
                     self.receiverTotalSharesInVault
                 } else {
                     U256::from(0)
@@ -113,7 +159,8 @@ impl Deposited {
             .sender_assets_after_total_fees(U256Wrapper::from(self.senderAssetsAfterTotalFees))
             .shares_for_receiver(U256Wrapper::from(self.sharesForReceiver))
             .entry_fee(U256Wrapper::from(self.entryFee))
-            .vault_id(Vault::format_vault_id(self.vaultId.to_string(), None))
+            .term_id(U256Wrapper::from(self.vaultId))
+            .curve_id(U256Wrapper::from_str("1")?)
             .is_triple(self.isTriple)
             .is_atom_wallet(self.isAtomWallet)
             .block_number(U256Wrapper::try_from(event.block_number)?)
@@ -176,7 +223,8 @@ impl Deposited {
         Position::builder()
             .id(position_id.clone())
             .account_id(self.receiver.to_string())
-            .vault_id(Vault::format_vault_id(self.vaultId.to_string(), None))
+            .term_id(U256Wrapper::from(self.vaultId))
+            .curve_id(U256Wrapper::from_str("1")?)
             .shares(self.receiverTotalSharesInVault)
             .build()
             .upsert(
@@ -195,12 +243,12 @@ impl Deposited {
         vault: &Vault,
     ) -> Result<(), ConsumerError> {
         if self.senderAssetsAfterTotalFees > U256::from(0) {
-            if let Some(atom_id) = vault.atom_id.clone() {
+            if !self.isTriple {
                 Signal::builder()
                     .id(DecodedMessage::event_id(event))
                     .account_id(self.sender.to_string().to_lowercase())
                     .delta(U256Wrapper::from(self.senderAssetsAfterTotalFees))
-                    .atom_id(atom_id)
+                    .atom_id(vault.term_id.clone())
                     .deposit_id(DecodedMessage::event_id(event))
                     .block_number(U256Wrapper::try_from(event.block_number)?)
                     .block_timestamp(event.block_timestamp)
@@ -216,12 +264,7 @@ impl Deposited {
                     .id(DecodedMessage::event_id(event))
                     .account_id(self.sender.to_string().to_lowercase())
                     .delta(U256Wrapper::from(self.senderAssetsAfterTotalFees))
-                    .triple_id(
-                        vault
-                            .triple_id
-                            .clone()
-                            .ok_or(ConsumerError::TripleNotFound)?,
-                    )
+                    .triple_id(vault.term_id.clone())
                     .deposit_id(DecodedMessage::event_id(event))
                     .block_number(U256Wrapper::try_from(event.block_number)?)
                     .block_timestamp(event.block_timestamp)
@@ -255,62 +298,6 @@ impl Deposited {
             self.vaultId,
             self.receiver.to_string().to_lowercase()
         )
-    }
-
-    /// This function gets or creates a vault
-    async fn get_or_create_vault(
-        &self,
-        decoded_consumer_context: &DecodedConsumerContext,
-        id: U256,
-    ) -> Result<Vault, ConsumerError> {
-        match Vault::find_by_id(
-            Vault::format_vault_id(id.to_string(), None),
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
-        )
-        .await?
-        {
-            Some(vault) => Ok(vault),
-            None => {
-                let current_share_price = SharePriceChanged::fetch_current_share_price(
-                    self.vaultId.to_string(),
-                    &decoded_consumer_context.pg_pool,
-                    &decoded_consumer_context.backend_schema,
-                )
-                .await?;
-                if self.isTriple {
-                    Vault::builder()
-                        .id(Vault::format_vault_id(id.to_string(), None))
-                        .curve_id(U256Wrapper::from_str("1")?)
-                        .current_share_price(current_share_price.share_price)
-                        .position_count(0)
-                        .triple_id(get_absolute_triple_id(self.vaultId))
-                        .total_shares(current_share_price.total_shares)
-                        .build()
-                        .upsert(
-                            &decoded_consumer_context.pg_pool,
-                            &decoded_consumer_context.backend_schema,
-                        )
-                        .await
-                        .map_err(ConsumerError::ModelError)
-                } else {
-                    Vault::builder()
-                        .id(Vault::format_vault_id(id.to_string(), None))
-                        .curve_id(U256Wrapper::from_str("1")?)
-                        .current_share_price(current_share_price.share_price)
-                        .position_count(0)
-                        .atom_id(self.vaultId)
-                        .total_shares(current_share_price.total_shares)
-                        .build()
-                        .upsert(
-                            &decoded_consumer_context.pg_pool,
-                            &decoded_consumer_context.backend_schema,
-                        )
-                        .await
-                        .map_err(ConsumerError::ModelError)
-                }
-            }
-        }
     }
 
     /// This function handles the creation of a `Deposit`
@@ -425,8 +412,16 @@ impl Deposited {
         sender?;
         receiver?;
 
-        self.get_or_create_vault(decoded_consumer_context, self.vaultId)
-            .await
+        get_or_create_vault(
+            self,
+            decoded_consumer_context,
+            if self.isTriple {
+                TermType::Triple
+            } else {
+                TermType::Atom
+            },
+        )
+        .await
     }
 
     /// This function updates the claim
@@ -450,7 +445,7 @@ impl Deposited {
         .await?
         {
             Some(mut claim) => {
-                if vault.id == triple.vault_id {
+                if vault.term_id == triple.term_id {
                     claim.shares = U256Wrapper::from(self.sharesForReceiver);
                 } else {
                     claim.counter_shares = U256Wrapper::from(self.sharesForReceiver);
@@ -464,8 +459,10 @@ impl Deposited {
                 .subject_id(triple.subject_id.clone())
                 .predicate_id(triple.predicate_id.clone())
                 .object_id(triple.object_id.clone())
-                .vault_id(triple.vault_id.clone())
-                .counter_vault_id(triple.counter_vault_id.clone())
+                .term_id(triple.term_id.clone())
+                .counter_term_id(triple.counter_term_id.clone())
+                .curve_id(U256Wrapper::from_str("1")?)
+                .counter_curve_id(U256Wrapper::from_str("1")?)
                 .shares(U256Wrapper::from(self.sharesForReceiver))
                 .counter_shares(U256Wrapper::from(self.sharesForReceiver))
                 .build(),

@@ -157,6 +157,8 @@ pub enum ConsumerError {
     UrlParse(#[from] sqlx_core::url::ParseError),
     #[error("Vault atom not found")]
     VaultAtomNotFound,
+    #[error("Term not found")]
+    TermNotFound,
     #[error("Warp processing error: {0}")]
     WarpProcessingError(String),
 }

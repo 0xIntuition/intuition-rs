@@ -10,7 +10,7 @@ use sqlx::{PgPool, Result};
 #[derive(Debug, sqlx::FromRow, Builder)]
 pub struct SharePriceChangedCurve {
     pub id: i64,
-    pub term_id: String,
+    pub term_id: U256Wrapper,
     pub curve_id: U256Wrapper,
     pub share_price: U256Wrapper,
     pub total_assets: U256Wrapper,
@@ -24,7 +24,7 @@ pub struct SharePriceChangedCurve {
 /// This struct is used to create a new share price change.
 #[derive(Debug, Builder)]
 pub struct SharePriceChangedCurveInternal {
-    pub term_id: String,
+    pub term_id: U256Wrapper,
     pub curve_id: U256Wrapper,
     pub share_price: U256Wrapper,
     pub total_assets: U256Wrapper,
@@ -60,7 +60,7 @@ impl SimpleCrud<U256Wrapper> for SharePriceChangedCurve {
 
         sqlx::query_as::<_, Self>(&query)
             .bind(self.id)
-            .bind(self.term_id.clone())
+            .bind(self.term_id.to_big_decimal()?)
             .bind(self.curve_id.to_big_decimal()?)
             .bind(self.share_price.to_big_decimal()?)
             .bind(self.total_assets.to_big_decimal()?)
@@ -110,7 +110,7 @@ impl SharePriceChangedCurve {
         );
 
         sqlx::query_as::<_, SharePriceChangedCurve>(&query)
-            .bind(share_price_change.term_id.clone())
+            .bind(share_price_change.term_id.to_big_decimal()?)
             .bind(share_price_change.curve_id.to_big_decimal()?)
             .bind(share_price_change.share_price.to_big_decimal()?)
             .bind(share_price_change.total_assets.to_big_decimal()?)
@@ -124,7 +124,7 @@ impl SharePriceChangedCurve {
     }
 
     pub async fn fetch_current_share_price(
-        vault_id: String,
+        vault_id: U256Wrapper,
         curve_id: U256Wrapper,
         pool: &PgPool,
         schema: &str,
@@ -140,7 +140,7 @@ impl SharePriceChangedCurve {
         );
 
         sqlx::query_as::<_, SharePriceChangedCurve>(&query)
-            .bind(vault_id.clone())
+            .bind(vault_id.to_big_decimal()?)
             .bind(curve_id.to_big_decimal()?)
             .fetch_one(pool)
             .await

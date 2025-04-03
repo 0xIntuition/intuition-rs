@@ -54,6 +54,17 @@ BEGIN
     END IF;
 END $$;
 
+-- Create term_type enum
+CREATE TYPE term_type AS ENUM ('Atom', 'Triple');
+
+-- Create term table
+CREATE TABLE term (
+    id NUMERIC(78, 0) PRIMARY KEY,
+    type term_type NOT NULL,
+    atom_id NUMERIC(78, 0),
+    triple_id NUMERIC(78, 0)
+);
+
 -- Add term_id column
 ALTER TABLE vault ADD COLUMN term_id NUMERIC(78, 0);
 
@@ -61,6 +72,25 @@ ALTER TABLE vault ADD COLUMN term_id NUMERIC(78, 0);
 UPDATE vault 
 SET term_id = COALESCE(atom_id, triple_id)
 WHERE atom_id IS NOT NULL OR triple_id IS NOT NULL;
+
+-- Insert data into term table
+INSERT INTO term (id, type, atom_id, triple_id)
+SELECT 
+    COALESCE(atom_id, triple_id) as id,
+    CASE 
+        WHEN atom_id IS NOT NULL THEN 'Atom'::term_type
+        ELSE 'Triple'::term_type
+    END as type,
+    atom_id,
+    triple_id
+FROM vault
+WHERE atom_id IS NOT NULL OR triple_id IS NOT NULL;
+
+-- Add indexes for term table
+CREATE INDEX idx_term_id ON term(id);
+CREATE INDEX idx_term_type ON term(type);
+CREATE INDEX idx_term_atom_id ON term(atom_id);
+CREATE INDEX idx_term_triple_id ON term(triple_id);
 
 -- Drop old columns
 ALTER TABLE vault DROP COLUMN atom_id;
@@ -97,34 +127,6 @@ ALTER TABLE triple ALTER COLUMN term_id SET NOT NULL;
 ALTER TABLE atom ADD PRIMARY KEY (term_id);
 ALTER TABLE triple ADD PRIMARY KEY (term_id);
 
--- Create junction tables for atom/triple to vault relationships
-CREATE TABLE atom_vault (
-    term_id NUMERIC(78, 0) NOT NULL,
-    curve_id NUMERIC(78, 0) NOT NULL,
-    PRIMARY KEY (term_id, curve_id),
-    FOREIGN KEY (term_id) REFERENCES atom(term_id),
-    FOREIGN KEY (term_id, curve_id) REFERENCES vault(term_id, curve_id)
-);
-
-CREATE TABLE triple_vault (
-    term_id NUMERIC(78, 0) NOT NULL,
-    curve_id NUMERIC(78, 0) NOT NULL,
-    PRIMARY KEY (term_id, curve_id),
-    FOREIGN KEY (term_id) REFERENCES triple(term_id),
-    FOREIGN KEY (term_id, curve_id) REFERENCES vault(term_id, curve_id)
-);
-
--- Migrate existing relationships to junction tables
-INSERT INTO atom_vault (term_id, curve_id)
-SELECT a.term_id, v.curve_id
-FROM atom a
-JOIN vault v ON v.term_id = a.term_id;
-
-INSERT INTO triple_vault (term_id, curve_id)
-SELECT t.term_id, v.curve_id
-FROM triple t
-JOIN vault v ON v.term_id = t.term_id;
-
 -- Add new columns for composite key references
 ALTER TABLE deposit ADD COLUMN curve_id NUMERIC(78, 0);
 ALTER TABLE redemption ADD COLUMN curve_id NUMERIC(78, 0);
@@ -145,7 +147,25 @@ ALTER TABLE position ALTER COLUMN curve_id SET NOT NULL;
 ALTER TABLE claim ALTER COLUMN curve_id SET NOT NULL;
 ALTER TABLE claim ALTER COLUMN counter_curve_id SET NOT NULL;
 
--- Add new foreign key constraints
+-- Add foreign key constraints to term table
+ALTER TABLE vault ADD CONSTRAINT vault_term_fkey 
+    FOREIGN KEY (term_id) REFERENCES term(id);
+ALTER TABLE atom ADD CONSTRAINT atom_term_fkey 
+    FOREIGN KEY (term_id) REFERENCES term(id);
+ALTER TABLE triple ADD CONSTRAINT triple_term_fkey 
+    FOREIGN KEY (term_id) REFERENCES term(id);
+ALTER TABLE deposit ADD CONSTRAINT deposit_term_fkey 
+    FOREIGN KEY (term_id) REFERENCES term(id);
+ALTER TABLE redemption ADD CONSTRAINT redemption_term_fkey 
+    FOREIGN KEY (term_id) REFERENCES term(id);
+ALTER TABLE position ADD CONSTRAINT position_term_fkey 
+    FOREIGN KEY (term_id) REFERENCES term(id);
+ALTER TABLE claim ADD CONSTRAINT claim_term_fkey 
+    FOREIGN KEY (term_id) REFERENCES term(id);
+ALTER TABLE claim ADD CONSTRAINT claim_counter_term_fkey 
+    FOREIGN KEY (counter_term_id) REFERENCES term(id);
+
+-- Add new foreign key constraints for vault references
 ALTER TABLE deposit ADD CONSTRAINT deposit_vault_fkey 
     FOREIGN KEY (term_id, curve_id) REFERENCES vault(term_id, curve_id);
 ALTER TABLE redemption ADD CONSTRAINT redemption_vault_fkey 
@@ -156,3 +176,18 @@ ALTER TABLE claim ADD CONSTRAINT claim_vault_fkey
     FOREIGN KEY (term_id, curve_id) REFERENCES vault(term_id, curve_id);
 ALTER TABLE claim ADD CONSTRAINT claim_counter_vault_fkey 
     FOREIGN KEY (counter_term_id, counter_curve_id) REFERENCES vault(term_id, curve_id);
+
+-- Create a temporary table to store position counts
+CREATE TEMPORARY TABLE temp_position_counts AS
+SELECT term_id, curve_id, COUNT(*) as count
+FROM position
+GROUP BY term_id, curve_id;
+
+-- Update vault position counts
+UPDATE vault v
+SET position_count = COALESCE(t.count, 0)
+FROM temp_position_counts t
+WHERE v.term_id = t.term_id AND v.curve_id = t.curve_id;
+
+-- Drop the temporary table
+DROP TABLE temp_position_counts;

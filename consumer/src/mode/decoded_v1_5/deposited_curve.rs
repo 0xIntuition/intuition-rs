@@ -3,23 +3,73 @@ use std::str::FromStr;
 use crate::{
     ConsumerError,
     EthMultiVault::DepositedCurve,
-    mode::{decoded_v1_5::utils::get_or_create_account, types::DecodedConsumerContext},
+    mode::{
+        decoded_v1_5::utils::{get_or_create_account, get_or_create_vault},
+        types::DecodedConsumerContext,
+    },
     schemas::types::DecodedMessage,
+    traits::VaultManager,
 };
 use alloy::primitives::U256;
+use async_trait::async_trait;
 use models::{
     deposit::Deposit,
     event::{Event, EventType},
     position::Position,
     share_price_changed_curve::SharePriceChangedCurve,
     signal::Signal,
+    term::TermType,
     traits::SimpleCrud,
     types::U256Wrapper,
     vault::Vault,
 };
 use tracing::info;
 
-use super::utils::get_absolute_triple_id;
+#[async_trait]
+impl VaultManager for &DepositedCurve {
+    fn term_id(&self) -> Result<U256Wrapper, ConsumerError> {
+        Ok(U256Wrapper::from(self.vaultId))
+    }
+
+    fn curve_id(&self) -> Result<U256Wrapper, ConsumerError> {
+        Ok(U256Wrapper::from(self.curveId))
+    }
+
+    async fn total_shares(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+    ) -> Result<U256Wrapper, ConsumerError> {
+        Ok(SharePriceChangedCurve::fetch_current_share_price(
+            U256Wrapper::from(self.vaultId),
+            U256Wrapper::from(self.curveId),
+            &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
+        )
+        .await?
+        .total_shares)
+    }
+
+    async fn current_share_price(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+    ) -> Result<U256Wrapper, ConsumerError> {
+        Ok(SharePriceChangedCurve::fetch_current_share_price(
+            U256Wrapper::from(self.vaultId),
+            U256Wrapper::from(self.curveId),
+            &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
+        )
+        .await?
+        .share_price)
+    }
+
+    async fn position_count(
+        &self,
+        _decoded_consumer_context: &DecodedConsumerContext,
+    ) -> Result<i32, ConsumerError> {
+        Ok(0)
+    }
+}
 
 impl DepositedCurve {
     /// This function formats the position ID
@@ -85,12 +135,13 @@ impl DepositedCurve {
         curve_vault: &Vault,
     ) -> Result<(), ConsumerError> {
         if self.senderAssetsAfterTotalFees > U256::from(0) {
-            if let Some(atom_id) = curve_vault.atom_id.clone() {
+            // send the RPC to check if its triple
+            if !self.isTriple {
                 Signal::builder()
                     .id(DecodedMessage::event_id(event))
                     .account_id(self.sender.to_string().to_lowercase())
                     .delta(U256Wrapper::from(self.senderAssetsAfterTotalFees))
-                    .atom_id(atom_id)
+                    .atom_id(curve_vault.term_id.clone())
                     .deposit_id(DecodedMessage::event_id(event))
                     .block_number(U256Wrapper::try_from(event.block_number)?)
                     .block_timestamp(event.block_timestamp)
@@ -101,12 +152,12 @@ impl DepositedCurve {
                         &decoded_consumer_context.backend_schema,
                     )
                     .await?;
-            } else if let Some(triple_id) = curve_vault.triple_id.clone() {
+            } else {
                 Signal::builder()
                     .id(DecodedMessage::event_id(event))
                     .account_id(self.sender.to_string().to_lowercase())
                     .delta(U256Wrapper::from(self.senderAssetsAfterTotalFees))
-                    .triple_id(triple_id)
+                    .triple_id(curve_vault.term_id.clone())
                     .deposit_id(DecodedMessage::event_id(event))
                     .block_number(U256Wrapper::try_from(event.block_number)?)
                     .block_timestamp(event.block_timestamp)
@@ -204,9 +255,16 @@ impl DepositedCurve {
         self.initialize_accounts(decoded_consumer_context).await?;
 
         // Get or create the curve vault
-        let curve_vault = self
-            .get_or_create_curve_vault(decoded_consumer_context)
-            .await?;
+        let curve_vault = get_or_create_vault(
+            self,
+            decoded_consumer_context,
+            if self.isTriple {
+                TermType::Triple
+            } else {
+                TermType::Atom
+            },
+        )
+        .await?;
 
         // Create deposit record first
         let deposit = self.create_deposit(event, decoded_consumer_context).await?;
@@ -223,44 +281,5 @@ impl DepositedCurve {
             .await?;
 
         Ok(())
-    }
-
-    /// This function gets or creates a curve vault
-    async fn get_or_create_curve_vault(
-        &self,
-        decoded_consumer_context: &DecodedConsumerContext,
-    ) -> Result<Vault, ConsumerError> {
-        match Vault::find_by_term_id_and_curve_id(
-            U256Wrapper::from_str(&self.vaultId.to_string())?,
-            U256Wrapper::from(self.curveId),
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
-        )
-        .await?
-        {
-            Some(vault) => Ok(vault),
-            None => {
-                let current_share_price = SharePriceChangedCurve::fetch_current_share_price(
-                    self.vaultId.to_string(),
-                    U256Wrapper::from(self.curveId),
-                    &decoded_consumer_context.pg_pool,
-                    &decoded_consumer_context.backend_schema,
-                )
-                .await?;
-                Vault::builder()
-                    .term_id(U256Wrapper::from_str(&self.vaultId.to_string())?)
-                    .current_share_price(current_share_price.share_price)
-                    .position_count(0)
-                    .curve_id(U256Wrapper::from(self.curveId))
-                    .total_shares(current_share_price.total_shares)
-                    .build()
-                    .upsert(
-                        &decoded_consumer_context.pg_pool,
-                        &decoded_consumer_context.backend_schema,
-                    )
-                    .await
-                    .map_err(ConsumerError::ModelError)
-            }
-        }
     }
 }
