@@ -55,7 +55,7 @@ impl SimpleCrud<U256Wrapper> for Triple {
             .bind(self.predicate_id.to_big_decimal()?)
             .bind(self.object_id.to_big_decimal()?)
             .bind(self.term_id.to_big_decimal()?)
-            .bind(self.counter_term_id.clone())
+            .bind(self.counter_term_id.to_big_decimal()?)
             .bind(self.block_number.to_big_decimal()?)
             .bind(self.block_timestamp)
             .bind(&self.transaction_hash)
@@ -88,8 +88,12 @@ impl SimpleCrud<U256Wrapper> for Triple {
             schema,
         );
 
+        let big_decimal = term_id.to_big_decimal().ok().ok_or_else(|| {
+            ModelError::QueryError("Failed to convert U256Wrapper to BigDecimal".to_string())
+        })?;
+
         sqlx::query_as::<_, Triple>(&query)
-            .bind(term_id.to_big_decimal()?)
+            .bind(big_decimal)
             .fetch_optional(pool)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))

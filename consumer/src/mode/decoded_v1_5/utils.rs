@@ -210,6 +210,9 @@ pub async fn get_or_create_vault(
     if let Some(vault) = vault {
         Ok(vault)
     } else {
+        // Ensure that the term exists for the vault
+        get_or_create_term(event.term_id()?, decoded_consumer_context, term_type).await?;
+
         let new_vault = Vault::builder()
             .term_id(event.term_id()?)
             .curve_id(event.curve_id()?)
@@ -223,8 +226,6 @@ pub async fn get_or_create_vault(
             )
             .await
             .map_err(ConsumerError::ModelError)?;
-        // Ensure that the term exists for the vault
-        get_or_create_term(event.term_id()?, decoded_consumer_context, term_type).await?;
 
         Ok(new_vault)
     }

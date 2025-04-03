@@ -31,8 +31,7 @@ impl SimpleCrud<U256Wrapper> for Vault {
             r#"
             INSERT INTO {}.vault (term_id, curve_id, total_shares, current_share_price, position_count)
             VALUES ($1, $2, $3, $4, $5)
-            ON CONFLICT (term_id) DO UPDATE SET
-                curve_id = EXCLUDED.curve_id,
+            ON CONFLICT (term_id, curve_id) DO UPDATE SET
                 total_shares = EXCLUDED.total_shares,
                 current_share_price = EXCLUDED.current_share_price,
                 position_count = EXCLUDED.position_count

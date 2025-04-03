@@ -430,6 +430,10 @@ impl TripleCreated {
         if let Some(vault) = vault {
             Ok(vault)
         } else {
+            // Ensure that the term exists for the vault
+            get_or_create_term(counter_vault_id, decoded_consumer_context, TermType::Triple)
+                .await?;
+
             let new_vault = Vault::builder()
                 .term_id(U256Wrapper::from(self.vaultId))
                 .curve_id(U256Wrapper::from_str("1")?)
@@ -443,9 +447,6 @@ impl TripleCreated {
                 )
                 .await
                 .map_err(ConsumerError::ModelError)?;
-            // Ensure that the term exists for the vault
-            get_or_create_term(counter_vault_id, decoded_consumer_context, TermType::Triple)
-                .await?;
 
             Ok(new_vault)
         }
@@ -467,14 +468,16 @@ impl TripleCreated {
             .get_or_create_triple(decoded_consumer_context, event)
             .await?;
 
+        info!("Triple created: {triple:#?}");
         // Update the predicate object
         self.update_predicate_object_triple_count(decoded_consumer_context)
             .await?;
+        info!("Predicate object triple count updated");
 
         // Update the positions
         self.update_positions(decoded_consumer_context, &triple, event)
             .await?;
-
+        info!("Positions updated");
         // Create the event
         self.create_event(event, decoded_consumer_context).await?;
         Ok(())

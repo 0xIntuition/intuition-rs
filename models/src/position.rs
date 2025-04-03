@@ -126,7 +126,7 @@ impl Position {
     }
     /// Finds positions by vault ID
     pub async fn find_by_vault_id(
-        term_id: String,
+        id: String,
         pool: &PgPool,
         schema: &str,
     ) -> Result<Vec<Self>, ModelError> {
@@ -139,13 +139,13 @@ impl Position {
                 shares,
                 curve_id
             FROM {}.position 
-            WHERE term_id = $1
+            WHERE id = $1
             "#,
             schema,
         );
 
         sqlx::query_as::<_, Position>(&query)
-            .bind(term_id.clone())
+            .bind(id.clone())
             .fetch_all(pool)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
