@@ -159,39 +159,6 @@ pub async fn update_vault_from_share_price_changed_events(
     Ok(())
 }
 
-// #[cfg(feature = "v1_5_contract")]
-// /// This function builds a vault from a share price changed event
-// pub async fn build_vault_from_share_price_changed(
-//     share_price_changed: impl SharePriceEvent + Debug,
-//     decoded_consumer_context: &DecodedConsumerContext,
-// ) -> Result<Vault, ConsumerError> {
-//     info!(
-//         "Building vault from share price changed event: {:?}",
-//         share_price_changed
-//     );
-//     let is_triple = decoded_consumer_context
-//         .is_triple_id(share_price_changed.term_id())
-//         .await?;
-
-//     if is_triple {
-//         Ok(Vault::builder()
-//             .curve_id(share_price_changed.curve_id().unwrap_or(U256::from(1)))
-//             .term_id(U256Wrapper::from(share_price_changed.term_id()))
-//             .current_share_price(U256Wrapper::from(share_price_changed.new_share_price()))
-//             .total_shares(U256Wrapper::from(share_price_changed.total_shares()))
-//             .position_count(0)
-//             .build())
-//     } else {
-//         Ok(Vault::builder()
-//             .curve_id(share_price_changed.curve_id().unwrap_or(U256::from(1)))
-//             .term_id(U256Wrapper::from(share_price_changed.term_id()))
-//             .current_share_price(U256Wrapper::from(share_price_changed.new_share_price()))
-//             .total_shares(U256Wrapper::from(share_price_changed.total_shares()))
-//             .position_count(0)
-//             .build())
-//     }
-// }
-
 #[cfg(feature = "v1_5_contract")]
 /// This function gets or creates a vault from a vault manager
 pub async fn get_or_create_vault(

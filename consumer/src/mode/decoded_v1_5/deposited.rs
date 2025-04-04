@@ -79,6 +79,7 @@ impl Deposited {
         triple: &Triple,
     ) -> Result<(), ConsumerError> {
         // Create claim
+        info!("Creating claim");
         Claim::builder()
             .id(self.format_claim_id())
             .account_id(self.receiver.to_string())
@@ -109,7 +110,9 @@ impl Deposited {
             )
             .await?;
 
+        info!("Claim created");
         // Update or create predicate object
+        info!("Creating predicate object");
         let predicate_object_id = format!("{}-{}", triple.predicate_id, triple.object_id);
         match PredicateObject::find_by_id(
             predicate_object_id,
@@ -359,7 +362,9 @@ impl Deposited {
         self.create_new_position(position_id.to_string(), decoded_consumer_context)
             .await?;
 
+        info!("New position created");
         if let Some(triple) = triple {
+            info!("Creating claim and predicate object");
             self.create_claim_and_predicate_object(decoded_consumer_context, &triple)
                 .await?;
         }
@@ -374,12 +379,17 @@ impl Deposited {
         vault: &Vault,
     ) -> Result<(), ConsumerError> {
         let position_id = self.format_position_id();
+        info!("Finding triple");
         let triple = Triple::find_by_id(
             U256Wrapper::from(self.vaultId),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
         .await?;
+        info!(
+            "Triple found: {triple:#?} for id {:?}",
+            U256Wrapper::from(self.vaultId)
+        );
         let position = Position::find_by_id(
             position_id.clone(),
             &decoded_consumer_context.pg_pool,
@@ -388,9 +398,11 @@ impl Deposited {
         .await?;
 
         if position.is_none() && self.receiverTotalSharesInVault > U256::from(0) {
+            info!("Creating new position");
             self.handle_new_position(decoded_consumer_context, &position_id, triple)
                 .await?;
         } else if position.is_some() && self.receiverTotalSharesInVault > U256::from(0) {
+            info!("Position found, updating existing position");
             self.handle_existing_position(decoded_consumer_context, &position_id, triple, vault)
                 .await?;
         } else {
