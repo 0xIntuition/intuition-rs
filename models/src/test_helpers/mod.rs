@@ -367,6 +367,8 @@ pub fn create_test_signal_with_atom_and_deposit(
         .block_timestamp(create_random_number())
         .deposit_id(deposit_id)
         .transaction_hash(create_random_string())
+        .term_id(create_random_u256wrapper())
+        .curve_id(U256Wrapper::from_str("1").unwrap())
         .build()
 }
 

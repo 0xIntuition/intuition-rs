@@ -4,7 +4,6 @@ use crate::{
     schemas::goldsky::RawMessage,
 };
 #[cfg(feature = "v1_5_contract")]
-use alloy::primitives::Uint;
 use async_trait::async_trait;
 use aws_sdk_sqs::{operation::receive_message::ReceiveMessageOutput, types::Message};
 use models::{account::AccountType, types::U256Wrapper};
@@ -36,7 +35,8 @@ pub trait IntoRawMessage {
 #[cfg(feature = "v1_5_contract")]
 /// This trait is implemented by all share price events.
 pub trait SharePriceEvent: VaultManager {
-    fn new_share_price(&self) -> Uint<256, 4>;
+    fn new_share_price(&self) -> Result<U256Wrapper, ConsumerError>;
+    fn total_assets(&self) -> Result<U256Wrapper, ConsumerError>;
 }
 
 #[cfg(feature = "v1_5_contract")]

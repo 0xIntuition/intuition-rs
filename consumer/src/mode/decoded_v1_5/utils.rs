@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use crate::{
     error::ConsumerError,
     mode::{resolver::types::ResolverConsumerMessage, types::DecodedConsumerContext},
-    traits::{AccountManager, SharePriceEvent, VaultManager},
+    traits::{AccountManager, SharePriceEvent},
 };
 use alloy::primitives::U256;
 use models::{
@@ -134,7 +134,7 @@ pub async fn update_vault_from_share_price_changed_events(
     if let Some(mut vault) = vault {
         info!("Updating vault share price and total shares");
         // Update the share price of the vault
-        vault.current_share_price = U256Wrapper::from(share_price_changed.new_share_price());
+        vault.current_share_price = share_price_changed.new_share_price()?;
         vault.total_shares = share_price_changed
             .total_shares(decoded_consumer_context)
             .await?;
@@ -162,7 +162,7 @@ pub async fn update_vault_from_share_price_changed_events(
 #[cfg(feature = "v1_5_contract")]
 /// This function gets or creates a vault from a vault manager
 pub async fn get_or_create_vault(
-    event: impl VaultManager + Debug,
+    event: impl SharePriceEvent,
     decoded_consumer_context: &DecodedConsumerContext,
     term_type: TermType,
 ) -> Result<Vault, ConsumerError> {
@@ -178,7 +178,7 @@ pub async fn get_or_create_vault(
         Ok(vault)
     } else {
         // Ensure that the term exists for the vault
-        get_or_create_term(event.term_id()?, decoded_consumer_context, term_type).await?;
+        get_or_create_term(&event, None, decoded_consumer_context, term_type).await?;
 
         let new_vault = Vault::builder()
             .term_id(event.term_id()?)
@@ -199,12 +199,18 @@ pub async fn get_or_create_vault(
 }
 
 #[cfg(feature = "v1_5_contract")]
-/// This function gets or creates a term
+/// This function gets or creates a term. We receive the term_id separately to handle counter vaults
 pub async fn get_or_create_term(
-    term_id: U256Wrapper,
+    event: &impl SharePriceEvent,
+    term_id: Option<U256Wrapper>,
     decoded_consumer_context: &DecodedConsumerContext,
     term_type: TermType,
 ) -> Result<Term, ConsumerError> {
+    let term_id = match term_id {
+        Some(term_id) => term_id,
+        None => event.term_id()?,
+    };
+
     let term = Term::find_by_id(
         term_id.clone(),
         &decoded_consumer_context.pg_pool,
@@ -217,9 +223,14 @@ pub async fn get_or_create_term(
     } else {
         let term = Term::builder()
             .id(term_id.clone())
-            .term_type(term_type.clone());
+            .term_type(term_type.clone())
+            .total_assets(event.total_assets()?)
+            .total_theoretical_value_locked(
+                event.total_assets()? * event.current_share_price(decoded_consumer_context).await?,
+            );
+
         if let TermType::Atom = term_type {
-            term.atom_id(term_id)
+            term.atom_id(term_id.clone())
                 .build()
                 .upsert(
                     &decoded_consumer_context.pg_pool,

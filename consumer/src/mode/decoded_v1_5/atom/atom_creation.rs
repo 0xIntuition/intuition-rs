@@ -13,7 +13,7 @@ use crate::{
         types::DecodedConsumerContext,
     },
     schemas::types::DecodedMessage,
-    traits::{AccountManager, VaultManager},
+    traits::{AccountManager, SharePriceEvent, VaultManager},
 };
 use async_trait::async_trait;
 use models::{
@@ -29,6 +29,18 @@ use models::{
 };
 use std::str::FromStr;
 use tracing::{info, warn};
+
+#[async_trait]
+/// This impl is used to convert the `AtomCreated` event into a `SharePriceEvent`
+impl SharePriceEvent for &AtomCreated {
+    fn total_assets(&self) -> Result<U256Wrapper, ConsumerError> {
+        Ok(U256Wrapper::from_str("0")?)
+    }
+
+    fn new_share_price(&self) -> Result<U256Wrapper, ConsumerError> {
+        Ok(U256Wrapper::from_str("0")?)
+    }
+}
 
 /// This impl is used to convert the `AtomCreated` event into an `AccountManager`
 /// and we can use the general account creation logic for this.

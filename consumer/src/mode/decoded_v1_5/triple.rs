@@ -3,7 +3,7 @@ use crate::{
     error::ConsumerError,
     mode::{resolver::types::ResolverConsumerMessage, types::DecodedConsumerContext},
     schemas::types::DecodedMessage,
-    traits::VaultManager,
+    traits::{SharePriceEvent, VaultManager},
 };
 use alloy::primitives::Uint;
 use async_trait::async_trait;
@@ -26,9 +26,23 @@ use tracing::info;
 
 use super::utils::{get_or_create_term, get_or_create_vault, short_id};
 
+/// This impl is used to convert the `TripleCreated` event into a `SharePriceEvent`
+/// and we can use the general share price change logic for this. We need this because
+/// we may need to create new vaults while handling the `TripleCreated` event.
 #[async_trait]
+impl SharePriceEvent for &TripleCreated {
+    fn total_assets(&self) -> Result<U256Wrapper, ConsumerError> {
+        Ok(U256Wrapper::from_str("0")?)
+    }
+
+    fn new_share_price(&self) -> Result<U256Wrapper, ConsumerError> {
+        Ok(U256Wrapper::from_str("0")?)
+    }
+}
+
 /// This impl is used to convert the `AtomCreated` event into a `VaultManager`
 /// and we can use the general vault creation logic for this.
+#[async_trait]
 impl VaultManager for &TripleCreated {
     fn term_id(&self) -> Result<U256Wrapper, ConsumerError> {
         Ok(U256Wrapper::from(self.vaultId))
@@ -431,8 +445,13 @@ impl TripleCreated {
             Ok(vault)
         } else {
             // Ensure that the term exists for the vault
-            get_or_create_term(counter_vault_id, decoded_consumer_context, TermType::Triple)
-                .await?;
+            get_or_create_term(
+                &self,
+                Some(counter_vault_id),
+                decoded_consumer_context,
+                TermType::Triple,
+            )
+            .await?;
 
             let new_vault = Vault::builder()
                 .term_id(U256Wrapper::from(self.vaultId))
@@ -475,7 +494,7 @@ impl TripleCreated {
         info!("Predicate object triple count updated");
 
         // Update the positions
-        self.update_positions(decoded_consumer_context, &triple, event)
+        self.update_positions(decoded_consumer_context, event)
             .await?;
         info!("Positions updated");
         // Create the event
@@ -558,7 +577,6 @@ impl TripleCreated {
     async fn update_positions(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
-        triple: &Triple,
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
         let positions = Position::find_by_vault_id(
@@ -571,16 +589,7 @@ impl TripleCreated {
             Claim::builder()
                 .id(format!("{}-{}", self.vaultId, position.account_id))
                 .account_id(position.account_id.clone())
-                .triple_id(self.vaultId)
-                .subject_id(self.subjectId)
-                .predicate_id(self.predicateId)
-                .object_id(self.objectId)
-                .term_id(U256Wrapper::from(self.vaultId))
-                .counter_term_id(triple.counter_term_id.clone())
-                .shares(position.shares.clone())
-                .counter_shares(position.shares)
-                .curve_id(U256Wrapper::from_str("1")?)
-                .counter_curve_id(U256Wrapper::from_str("1")?)
+                .position_id(position.id.clone())
                 .build()
                 .upsert(
                     &decoded_consumer_context.pg_pool,

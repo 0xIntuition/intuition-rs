@@ -10,7 +10,6 @@ use crate::{
     schemas::types::DecodedMessage,
     traits::{SharePriceEvent, VaultManager},
 };
-use alloy::primitives::Uint;
 use async_trait::async_trait;
 use models::{
     share_price_change::{SharePriceChanged as SharePriceChangedModel, SharePriceChangedInternal},
@@ -52,8 +51,11 @@ impl VaultManager for &SharePriceChanged {
 }
 
 impl SharePriceEvent for &SharePriceChanged {
-    fn new_share_price(&self) -> Uint<256, 4> {
-        self.newSharePrice
+    fn new_share_price(&self) -> Result<U256Wrapper, ConsumerError> {
+        Ok(U256Wrapper::from(self.newSharePrice))
+    }
+    fn total_assets(&self) -> Result<U256Wrapper, ConsumerError> {
+        Ok(U256Wrapper::from(self.totalAssets))
     }
 }
 

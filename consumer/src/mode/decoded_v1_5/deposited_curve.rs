@@ -8,11 +8,12 @@ use crate::{
         types::DecodedConsumerContext,
     },
     schemas::types::DecodedMessage,
-    traits::VaultManager,
+    traits::{SharePriceEvent, VaultManager},
 };
 use alloy::primitives::U256;
 use async_trait::async_trait;
 use models::{
+    claim::Claim,
     deposit::Deposit,
     event::{Event, EventType},
     position::Position,
@@ -24,6 +25,18 @@ use models::{
     vault::Vault,
 };
 use tracing::info;
+
+#[async_trait]
+/// This impl is used to convert the `DepositedCurve` event into a `SharePriceEvent`
+impl SharePriceEvent for &DepositedCurve {
+    fn total_assets(&self) -> Result<U256Wrapper, ConsumerError> {
+        Ok(U256Wrapper::from_str("0")?)
+    }
+
+    fn new_share_price(&self) -> Result<U256Wrapper, ConsumerError> {
+        Ok(U256Wrapper::from_str("0")?)
+    }
+}
 
 #[async_trait]
 impl VaultManager for &DepositedCurve {
@@ -72,6 +85,15 @@ impl VaultManager for &DepositedCurve {
 }
 
 impl DepositedCurve {
+    fn format_claim_id(&self) -> String {
+        format!(
+            "{}-{}-{}",
+            self.vaultId,
+            self.curveId,
+            self.receiver.to_string().to_lowercase()
+        )
+    }
+
     /// This function formats the position ID
     fn format_position_id(&self) -> String {
         format!(
@@ -110,12 +132,24 @@ impl DepositedCurve {
         } else {
             // Create or update the position
             Position::builder()
-                .id(position_id)
+                .id(position_id.clone())
                 .account_id(self.receiver.to_string())
                 // Use the base vault ID for the foreign key constraint
                 .term_id(U256Wrapper::from_str(&self.vaultId.to_string())?)
                 .shares(self.receiverTotalSharesInVault)
                 .curve_id(U256Wrapper::from(self.curveId))
+                .build()
+                .upsert(
+                    &decoded_consumer_context.pg_pool,
+                    &decoded_consumer_context.backend_schema,
+                )
+                .await?;
+
+            // Create a claim
+            Claim::builder()
+                .id(self.format_claim_id())
+                .account_id(self.receiver.to_string())
+                .position_id(position_id)
                 .build()
                 .upsert(
                     &decoded_consumer_context.pg_pool,
@@ -146,6 +180,8 @@ impl DepositedCurve {
                     .block_number(U256Wrapper::try_from(event.block_number)?)
                     .block_timestamp(event.block_timestamp)
                     .transaction_hash(event.transaction_hash.clone())
+                    .term_id(curve_vault.term_id.clone())
+                    .curve_id(U256Wrapper::from(self.curveId))
                     .build()
                     .upsert(
                         &decoded_consumer_context.pg_pool,
@@ -162,6 +198,8 @@ impl DepositedCurve {
                     .block_number(U256Wrapper::try_from(event.block_number)?)
                     .block_timestamp(event.block_timestamp)
                     .transaction_hash(event.transaction_hash.clone())
+                    .term_id(curve_vault.term_id.clone())
+                    .curve_id(U256Wrapper::from(self.curveId))
                     .build()
                     .upsert(
                         &decoded_consumer_context.pg_pool,

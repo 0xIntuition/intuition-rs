@@ -94,6 +94,8 @@ impl RedeemedCurve {
                     .block_number(U256Wrapper::try_from(event.block_number)?)
                     .block_timestamp(event.block_timestamp)
                     .transaction_hash(event.transaction_hash.clone())
+                    .term_id(curve_vault.term_id.clone())
+                    .curve_id(U256Wrapper::from(self.curveId))
                     .build()
                     .upsert(
                         &decoded_consumer_context.pg_pool,
@@ -113,6 +115,8 @@ impl RedeemedCurve {
                     .block_number(U256Wrapper::try_from(event.block_number)?)
                     .block_timestamp(event.block_timestamp)
                     .transaction_hash(event.transaction_hash.clone())
+                    .term_id(curve_vault.term_id.clone())
+                    .curve_id(U256Wrapper::from(self.curveId))
                     .build()
                     .upsert(
                         &decoded_consumer_context.pg_pool,

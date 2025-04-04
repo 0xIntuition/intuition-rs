@@ -25,6 +25,8 @@ pub struct Term {
     pub term_type: TermType,
     pub atom_id: Option<U256Wrapper>,
     pub triple_id: Option<U256Wrapper>,
+    pub total_assets: U256Wrapper,
+    pub total_theoretical_value_locked: U256Wrapper,
 }
 /// This is a trait that all models must implement.
 impl Model for Term {}
@@ -36,13 +38,15 @@ impl SimpleCrud<U256Wrapper> for Term {
     async fn upsert(&self, pool: &PgPool, schema: &str) -> Result<Self, ModelError> {
         let query = format!(
             r#"
-            INSERT INTO {}.term (id, type, atom_id, triple_id)
-            VALUES ($1, $2, $3, $4)
+            INSERT INTO {}.term (id, type, atom_id, triple_id, total_assets, total_theoretical_value_locked)
+            VALUES ($1, $2, $3, $4, $5, $6)
             ON CONFLICT (id) DO UPDATE SET
                 type = EXCLUDED.type,
                 atom_id = EXCLUDED.atom_id,
-                triple_id = EXCLUDED.triple_id
-            RETURNING id, type, atom_id, triple_id
+                triple_id = EXCLUDED.triple_id,
+                total_assets = EXCLUDED.total_assets,
+                total_theoretical_value_locked = EXCLUDED.total_theoretical_value_locked
+            RETURNING id, type, atom_id, triple_id, total_assets, total_theoretical_value_locked
             "#,
             schema,
         );
@@ -56,6 +60,8 @@ impl SimpleCrud<U256Wrapper> for Term {
                     .as_ref()
                     .and_then(|w| w.to_big_decimal().ok()),
             )
+            .bind(self.total_assets.to_big_decimal()?)
+            .bind(self.total_theoretical_value_locked.to_big_decimal()?)
             .fetch_one(pool)
             .await
             .map_err(|e| ModelError::InsertError(e.to_string()))
@@ -73,7 +79,9 @@ impl SimpleCrud<U256Wrapper> for Term {
                 id, 
                 type,
                 atom_id,
-                triple_id
+                triple_id,
+                total_assets,
+                total_theoretical_value_locked
             FROM {}.term 
             WHERE id = $1
             "#,

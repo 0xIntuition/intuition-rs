@@ -130,6 +130,8 @@ impl Redeemed {
                 .block_number(U256Wrapper::try_from(event.block_number)?)
                 .block_timestamp(event.block_timestamp)
                 .transaction_hash(event.transaction_hash.clone())
+                .term_id(vault.term_id.clone())
+                .curve_id(U256Wrapper::from_str("1")?)
                 .build()
                 .upsert(
                     &decoded_consumer_context.pg_pool,
@@ -149,6 +151,8 @@ impl Redeemed {
                 .block_number(U256Wrapper::try_from(event.block_number)?)
                 .block_timestamp(event.block_timestamp)
                 .transaction_hash(event.transaction_hash.clone())
+                .term_id(vault.term_id.clone())
+                .curve_id(U256Wrapper::from_str("1")?)
                 .build()
                 .upsert(
                     &decoded_consumer_context.pg_pool,
@@ -280,40 +284,6 @@ impl Redeemed {
                     &decoded_consumer_context.backend_schema,
                 )
                 .await?;
-        }
-
-        // Update claim if triple exists
-        if let Some(triple) = Triple::find_by_id(
-            vault.term_id.clone(),
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
-        )
-        .await?
-        {
-            if let Some(mut claim) = Claim::find_by_id(
-                format!("{}-{}", triple.term_id, sender_account.id.to_lowercase()),
-                &decoded_consumer_context.pg_pool,
-                &decoded_consumer_context.backend_schema,
-            )
-            .await?
-            {
-                claim.shares = if vault.term_id == triple.term_id {
-                    U256Wrapper::from(self.senderTotalSharesInVault)
-                } else {
-                    claim.shares
-                };
-                claim.counter_shares = if vault.term_id == triple.counter_term_id {
-                    U256Wrapper::from(self.senderTotalSharesInVault)
-                } else {
-                    claim.counter_shares
-                };
-                claim
-                    .upsert(
-                        &decoded_consumer_context.pg_pool,
-                        &decoded_consumer_context.backend_schema,
-                    )
-                    .await?;
-            }
         }
 
         Ok(())

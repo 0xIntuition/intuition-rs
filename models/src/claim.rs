@@ -1,7 +1,6 @@
 use crate::{
     error::ModelError,
     traits::{Deletable, Model, SimpleCrud},
-    types::U256Wrapper,
 };
 use async_trait::async_trait;
 use sqlx::PgPool;
@@ -11,16 +10,7 @@ use sqlx::PgPool;
 pub struct Claim {
     pub id: String,
     pub account_id: String,
-    pub triple_id: U256Wrapper,
-    pub subject_id: U256Wrapper,
-    pub predicate_id: U256Wrapper,
-    pub object_id: U256Wrapper,
-    pub shares: U256Wrapper,
-    pub counter_shares: U256Wrapper,
-    pub term_id: U256Wrapper,
-    pub counter_term_id: U256Wrapper,
-    pub curve_id: U256Wrapper,
-    pub counter_curve_id: U256Wrapper,
+    pub position_id: String,
 }
 
 /// This is a trait that all models must implement.
@@ -34,36 +24,17 @@ impl SimpleCrud<String> for Claim {
         let query = format!(
             r#"
             INSERT INTO {}.claim (
-                id, account_id, triple_id, subject_id, predicate_id, object_id,
-                shares, counter_shares, term_id, counter_term_id, curve_id, counter_curve_id
+                id, account_id, position_id
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            VALUES ($1, $2, $3)
             ON CONFLICT (id) 
             DO UPDATE SET
                 account_id = EXCLUDED.account_id,
-                triple_id = EXCLUDED.triple_id,
-                subject_id = EXCLUDED.subject_id,
-                predicate_id = EXCLUDED.predicate_id,
-                object_id = EXCLUDED.object_id,
-                shares = EXCLUDED.shares,
-                counter_shares = EXCLUDED.counter_shares,
-                term_id = EXCLUDED.term_id,
-                counter_term_id = EXCLUDED.counter_term_id,
-                curve_id = EXCLUDED.curve_id,
-                counter_curve_id = EXCLUDED.counter_curve_id
+                position_id = EXCLUDED.position_id
             RETURNING 
                 id, 
                 account_id, 
-                triple_id, 
-                subject_id, 
-                predicate_id, 
-                object_id, 
-                shares, 
-                counter_shares, 
-                term_id, 
-                counter_term_id,
-                curve_id,
-                counter_curve_id
+                position_id
             "#,
             schema,
         );
@@ -71,16 +42,7 @@ impl SimpleCrud<String> for Claim {
         sqlx::query_as::<_, Claim>(&query)
             .bind(self.id.to_lowercase())
             .bind(self.account_id.to_lowercase())
-            .bind(self.triple_id.to_big_decimal()?)
-            .bind(self.subject_id.to_big_decimal()?)
-            .bind(self.predicate_id.to_big_decimal()?)
-            .bind(self.object_id.to_big_decimal()?)
-            .bind(self.shares.to_big_decimal()?)
-            .bind(self.counter_shares.to_big_decimal()?)
-            .bind(self.term_id.to_big_decimal()?)
-            .bind(self.counter_term_id.to_big_decimal()?)
-            .bind(self.curve_id.to_big_decimal()?)
-            .bind(self.counter_curve_id.to_big_decimal()?)
+            .bind(self.position_id.to_lowercase())
             .fetch_one(pool)
             .await
             .map_err(|e| ModelError::InsertError(e.to_string()))
@@ -97,13 +59,7 @@ impl SimpleCrud<String> for Claim {
             SELECT 
                 id,
                 account_id,
-                triple_id,
-                subject_id,
-                predicate_id,
-                object_id,
-                shares,
-                counter_shares,
-                term_id,
+                position_id
                 counter_term_id,
                 curve_id,
                 counter_curve_id
@@ -133,5 +89,16 @@ impl Deletable for Claim {
             .await
             .map(|_| ())
             .map_err(|e| ModelError::DeleteError(e.to_string()))
+    }
+}
+
+impl Claim {
+    pub fn build_id(triple_term_id: String, curve_id: String, account_id: String) -> String {
+        format!(
+            "{}-{}-{}",
+            triple_term_id,
+            curve_id,
+            account_id.to_lowercase()
+        )
     }
 }
