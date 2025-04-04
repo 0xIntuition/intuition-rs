@@ -8,7 +8,7 @@ spec:
       serviceAccountName: secrets-access-sa
       containers:
         - name: ipfs-upload-consumer
-          image: ghcr.io/0xintuition/consumer:2.0.30-v15
+          image: ghcr.io/0xintuition/consumer:2.0.31-v15
           imagePullPolicy: Always
           volumeMounts:
             - name: secrets-store-inline
