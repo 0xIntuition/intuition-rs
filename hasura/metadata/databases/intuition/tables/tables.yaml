@@ -19,6 +19,7 @@
 - "!include public_signal.yaml"
 - "!include public_stats.yaml"
 - "!include public_stats_hour.yaml"
+- "!include public_term.yaml"
 - "!include public_text_object.yaml"
 - "!include public_thing.yaml"
 - "!include public_triple.yaml"

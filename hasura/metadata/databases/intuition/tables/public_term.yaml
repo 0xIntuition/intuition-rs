@@ -1,0 +1,48 @@
+table:
+  name: term
+  schema: public
+configuration:
+  column_config: {}
+  custom_column_names: {}
+  custom_name: terms
+  custom_root_fields:
+    select_by_pk: term
+object_relationships:
+  - name: atom
+    using:
+      manual_configuration:
+        column_mapping:
+          atom_id: term_id
+        insertion_order: null
+        remote_table:
+          name: atom
+          schema: public
+  - name: triple
+    using:
+      manual_configuration:
+        column_mapping:
+          triple_id: term_id
+        insertion_order: null
+        remote_table:
+          name: triple
+          schema: public
+array_relationships:
+  - name: vaults
+    using:
+      foreign_key_constraint_on:
+        column: term_id
+        table:
+          name: vault
+          schema: public
+select_permissions:
+  - role: anonymous
+    permission:
+      columns:
+        - id
+        - type
+        - atom_id
+        - triple_id
+      filter: {}
+      limit: 100
+      allow_aggregations: true
+    comment: "" 

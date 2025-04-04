@@ -8,14 +8,14 @@ configuration:
   custom_root_fields:
     select_by_pk: triple
 object_relationships:
-  - name: counter_vault
+  - name: counter_term
     using:
       manual_configuration:
         column_mapping:
-          counter_vault_id: id
+          counter_term_id: id
         insertion_order: null
         remote_table:
-          name: vault
+          name: term
           schema: public
   - name: creator
     using:
@@ -35,14 +35,14 @@ object_relationships:
   - name: subject
     using:
       foreign_key_constraint_on: subject_id
-  - name: vault
+  - name: term
     using:
       manual_configuration:
         column_mapping:
-          vault_id: id
+          term_id: id
         insertion_order: null
         remote_table:
-          name: vault
+          name: term
           schema: public
 array_relationships:
   - name: claims
@@ -68,12 +68,11 @@ select_permissions:
         - transaction_hash
         - block_number
         - block_timestamp
-        - counter_vault_id
-        - id
+        - counter_term_id
+        - term_id
         - object_id
         - predicate_id
         - subject_id
-        - vault_id
         - creator_id
       filter: {}
       limit: 100

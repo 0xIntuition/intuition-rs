@@ -35,14 +35,14 @@ object_relationships:
         remote_table:
           name: atom_value
           schema: public
-  - name: vault
+  - name: term
     using:
       manual_configuration:
         column_mapping:
-          vault_id: id
+          term_id: id
         insertion_order: null
         remote_table:
-          name: vault
+          name: term
           schema: public
 array_relationships:
   - name: accounts
@@ -121,9 +121,8 @@ select_permissions:
         - transaction_hash
         - block_number
         - block_timestamp
-        - id
+        - term_id
         - value_id
-        - vault_id
         - creator_id
         - data
         - emoji

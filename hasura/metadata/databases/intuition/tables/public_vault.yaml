@@ -8,57 +8,48 @@ configuration:
   custom_root_fields:
     select_by_pk: vault
 object_relationships:
-  - name: atom
+  - name: term
     using:
       manual_configuration:
         column_mapping:
-          atom_id: id
+          term_id: id
         insertion_order: null
         remote_table:
-          name: atom
-          schema: public
-  - name: triple
-    using:
-      manual_configuration:
-        column_mapping:
-          triple_id: id
-        insertion_order: null
-        remote_table:
-          name: triple
+          name: term
           schema: public
 array_relationships:
   - name: claims
     using:
       foreign_key_constraint_on:
-        column: vault_id
+        column: term_id
         table:
           name: claim
           schema: public
   - name: counter_claims
     using:
       foreign_key_constraint_on:
-        column: counter_vault_id
+        column: counter_term_id
         table:
           name: claim
           schema: public
   - name: deposits
     using:
       foreign_key_constraint_on:
-        column: vault_id
+        column: term_id
         table:
           name: deposit
           schema: public
   - name: positions
     using:
       foreign_key_constraint_on:
-        column: vault_id
+        column: term_id
         table:
           name: position
           schema: public
   - name: redemptions
     using:
       foreign_key_constraint_on:
-        column: vault_id
+        column: term_id
         table:
           name: redemption
           schema: public
@@ -67,12 +58,10 @@ select_permissions:
     permission:
       columns:
         - position_count
-        - atom_id
         - current_share_price
         - curve_id
-        - id
+        - term_id
         - total_shares
-        - triple_id
       filter: {}
       limit: 100
       allow_aggregations: true
