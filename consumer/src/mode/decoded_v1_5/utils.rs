@@ -144,6 +144,27 @@ pub async fn update_vault_from_share_price_changed_events(
                 &decoded_consumer_context.backend_schema,
             )
             .await?;
+        info!("Updated vault share price and total shares");
+        // now we need to update the term
+        let term = Term::find_by_id(
+            share_price_changed.term_id()?,
+            &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
+        )
+        .await?;
+        if let Some(mut term) = term {
+            term.total_assets = term.total_assets + share_price_changed.total_assets()?;
+            term.total_theoretical_value_locked = term.total_theoretical_value_locked
+                + share_price_changed.total_assets()?
+                    * share_price_changed
+                        .current_share_price(decoded_consumer_context)
+                        .await?;
+            term.upsert(
+                &decoded_consumer_context.pg_pool,
+                &decoded_consumer_context.backend_schema,
+            )
+            .await?;
+        }
     } else {
         info!("Vault not found, creating it");
         get_or_create_vault(share_price_changed, decoded_consumer_context, term_type)

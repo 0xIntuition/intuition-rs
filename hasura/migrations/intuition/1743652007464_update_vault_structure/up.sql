@@ -21,10 +21,6 @@ BEGIN
         ALTER TABLE claim DROP CONSTRAINT claim_counter_vault_id_fkey CASCADE;
     END IF;
     
-    IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'share_price_changed_term_id_fkey') THEN
-        ALTER TABLE share_price_changed DROP CONSTRAINT share_price_changed_term_id_fkey CASCADE;
-    END IF;
-    
     IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'share_price_changed_curve_term_id_fkey') THEN
         ALTER TABLE share_price_changed_curve DROP CONSTRAINT share_price_changed_curve_term_id_fkey CASCADE;
     END IF;

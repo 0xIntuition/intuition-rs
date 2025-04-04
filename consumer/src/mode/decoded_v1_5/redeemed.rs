@@ -11,7 +11,7 @@ use models::{
     position::Position,
     predicate_object::PredicateObject,
     redemption::Redemption,
-    share_price_change::SharePriceChanged,
+    share_price_changed_curve::SharePriceChangedCurve,
     signal::Signal,
     term::{Term, TermType},
     traits::{Deletable, SimpleCrud},
@@ -179,8 +179,9 @@ impl Redeemed {
         {
             Ok(vault)
         } else {
-            let share_price = SharePriceChanged::fetch_current_share_price(
+            let share_price = SharePriceChangedCurve::fetch_current_share_price(
                 id.clone(),
+                U256Wrapper::from_str("1")?,
                 &decoded_consumer_context.pg_pool,
                 &decoded_consumer_context.backend_schema,
             )

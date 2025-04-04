@@ -12,7 +12,9 @@ use crate::{
 };
 use async_trait::async_trait;
 use models::{
-    share_price_change::{SharePriceChanged as SharePriceChangedModel, SharePriceChangedInternal},
+    share_price_changed_curve::{
+        SharePriceChangedCurve as SharePriceChangedCurveModel, SharePriceChangedCurveInternal,
+    },
     term::TermType,
     types::U256Wrapper,
 };
@@ -79,20 +81,21 @@ impl SharePriceChanged {
             .await?;
         info!("Finished updating vault, updating share price aggregate");
         // Update the share price aggregate of the vault
-        self.update_share_price_changed(decoded_consumer_context, event)
+        self.update_share_price_changed_curve(decoded_consumer_context, event)
             .await?;
 
         Ok(())
     }
 
     /// This function updates the share price aggregate of a curve vault
-    async fn update_share_price_changed(
+    async fn update_share_price_changed_curve(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
-        let new_share_price = SharePriceChangedInternal::builder()
+        let new_share_price = SharePriceChangedCurveInternal::builder()
             .term_id(U256Wrapper::from(self.termId))
+            .curve_id(U256Wrapper::from_str("1")?)
             .share_price(U256Wrapper::from(self.newSharePrice))
             .total_assets(U256Wrapper::from(self.totalAssets))
             .total_shares(U256Wrapper::from(self.totalShares))
@@ -100,7 +103,7 @@ impl SharePriceChanged {
             .block_timestamp(event.block_timestamp)
             .transaction_hash(event.transaction_hash.clone())
             .build();
-        SharePriceChangedModel::insert(
+        SharePriceChangedCurveModel::insert(
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
             new_share_price,
