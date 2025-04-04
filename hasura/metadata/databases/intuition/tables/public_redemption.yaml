@@ -20,9 +20,9 @@ object_relationships:
         remote_table:
           name: account
           schema: public
-  - name: vault
+  - name: term
     using:
-      foreign_key_constraint_on: vault_id
+      foreign_key_constraint_on: term_id
 array_relationships:
   - name: events
     using:
@@ -49,7 +49,8 @@ select_permissions:
         - exit_fee
         - sender_total_shares_in_vault
         - shares_redeemed_by_sender
-        - vault_id
+        - term_id
+        - curve_id
         - id
         - receiver_id
         - sender_id

@@ -22,6 +22,16 @@ array_relationships:
         remote_table:
           name: deposit
           schema: public
+  - name: redemptions
+    using:
+      manual_configuration:
+        column_mapping:
+          term_id: term_id
+          curve_id: curve_id
+        insertion_order: null
+        remote_table:
+          name: redemption
+          schema: public
 select_permissions:
   - role: anonymous
     permission:
