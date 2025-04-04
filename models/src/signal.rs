@@ -20,6 +20,8 @@ pub struct Signal {
     pub block_number: U256Wrapper,
     pub block_timestamp: i64,
     pub transaction_hash: String,
+    pub term_id: U256Wrapper,
+    pub curve_id: U256Wrapper,
 }
 
 /// Implement the `Model` trait for the `Signal` struct
@@ -33,8 +35,8 @@ impl SimpleCrud<String> for Signal {
         let query = format!(
             r#"
             INSERT INTO {}.signal 
-                (id, delta, account_id, atom_id, triple_id, deposit_id, redemption_id, block_number, block_timestamp, transaction_hash) 
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
+                (id, delta, account_id, atom_id, triple_id, deposit_id, redemption_id, block_number, block_timestamp, transaction_hash, term_id, curve_id) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) 
             ON CONFLICT (id) DO UPDATE SET 
                 delta = EXCLUDED.delta, 
                 account_id = EXCLUDED.account_id, 
@@ -44,7 +46,9 @@ impl SimpleCrud<String> for Signal {
                 redemption_id = EXCLUDED.redemption_id, 
                 block_number = EXCLUDED.block_number, 
                 block_timestamp = EXCLUDED.block_timestamp, 
-                transaction_hash = EXCLUDED.transaction_hash 
+                transaction_hash = EXCLUDED.transaction_hash,
+                term_id = EXCLUDED.term_id,
+                curve_id = EXCLUDED.curve_id
             RETURNING 
                 id, 
                 delta, 
@@ -55,7 +59,9 @@ impl SimpleCrud<String> for Signal {
                 redemption_id, 
                 block_number, 
                 block_timestamp, 
-                transaction_hash
+                transaction_hash,
+                term_id,
+                curve_id
             "#,
             schema,
         );
@@ -75,6 +81,8 @@ impl SimpleCrud<String> for Signal {
             .bind(self.block_number.to_big_decimal()?)
             .bind(self.block_timestamp)
             .bind(self.transaction_hash.clone())
+            .bind(self.term_id.to_big_decimal()?)
+            .bind(self.curve_id.to_big_decimal()?)
             .fetch_one(pool)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
@@ -98,7 +106,9 @@ impl SimpleCrud<String> for Signal {
                 redemption_id, 
                 block_number, 
                 block_timestamp, 
-                transaction_hash 
+                transaction_hash,
+                term_id,
+                curve_id
             FROM {}.signal 
             WHERE id = $1
             "#,

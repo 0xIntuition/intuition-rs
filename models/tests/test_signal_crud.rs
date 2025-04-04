@@ -25,15 +25,16 @@ mod tests {
         let sender = create_test_account_db(&pool).await;
         let receiver = create_test_account_db(&pool).await;
         let atom = create_test_atom_db(&pool).await;
-        let vault = create_test_vault_with_atom(atom.id.clone())
+        let vault = create_test_vault_with_atom(atom.term_id.clone())
             .upsert(&pool, TEST_SCHEMA)
             .await?;
 
-        let deposit = create_test_deposit(sender.id, receiver.id, vault.id.clone())
+        let deposit = create_test_deposit(sender.id, receiver.id, vault.term_id.clone())
             .upsert(&pool, TEST_SCHEMA)
             .await?;
         // Create initial signal
-        let signal = create_test_signal_with_atom_and_deposit(account.id, atom.id, deposit.id);
+        let signal =
+            create_test_signal_with_atom_and_deposit(account.id, atom.term_id.clone(), deposit.id);
 
         // Test initial upsert
         let inserted = signal.upsert(&pool, TEST_SCHEMA).await?;

@@ -311,7 +311,7 @@ impl Redeemed {
             .await?
             {
                 if let Some(mut claim) = Claim::find_by_id(
-                    format!("{}-{}", triple.id, sender_account.id.to_lowercase()),
+                    format!("{}-{}", triple.term_id, sender_account.id.to_lowercase()),
                     &decoded_consumer_context.pg_pool,
                     &decoded_consumer_context.backend_schema,
                 )
@@ -356,7 +356,7 @@ impl Redeemed {
             .await?
             {
                 // Delete claim
-                let claim_id = format!("{}-{}", triple.id, sender_account.id.to_lowercase());
+                let claim_id = format!("{}-{}", triple.term_id, sender_account.id.to_lowercase());
                 Claim::delete(
                     claim_id,
                     &decoded_consumer_context.pg_pool,

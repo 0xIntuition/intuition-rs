@@ -22,7 +22,8 @@ mod tests {
             .upsert(&pool, TEST_SCHEMA)
             .await?;
         // Create initial predicate_object
-        let predicate_object = create_test_predicate_object(predicate.id, object.id);
+        let predicate_object =
+            create_test_predicate_object(predicate.term_id.clone(), object.term_id.clone());
 
         // Test initial upsert
         let inserted = predicate_object.upsert(&pool, TEST_SCHEMA).await?;

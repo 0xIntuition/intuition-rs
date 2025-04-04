@@ -27,13 +27,13 @@ mod tests {
             .await
             .unwrap();
 
-        let vault = create_test_vault_with_atom(atom.id.clone())
+        let vault = create_test_vault_with_atom(atom.term_id.clone())
             .upsert(&pool, TEST_SCHEMA)
             .await
             .unwrap();
 
         // Create initial deposit
-        let deposit = create_test_deposit(sender.id, receiver.id, vault.id.clone());
+        let deposit = create_test_deposit(sender.id, receiver.id, vault.term_id.clone());
 
         // Test initial upsert
         let upserted_deposit = deposit.upsert(&pool, TEST_SCHEMA).await?;

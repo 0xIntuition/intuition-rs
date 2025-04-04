@@ -165,7 +165,7 @@ impl AtomCreated {
             //updating the account with the atom id
             update_account_with_atom_id(
                 atom_wallet_account.id,
-                atom.id.clone(),
+                atom.term_id.clone(),
                 decoded_consumer_context,
             )
             .await?;

@@ -40,25 +40,30 @@ mod tests {
         let object = create_test_atom_db(&pool).await;
 
         // Create a Triple
-        let triple = create_test_triple(creator.id, subject.id, predicate.id, object.id);
+        let triple = create_test_triple(
+            creator.id.clone(),
+            subject.term_id.clone(),
+            predicate.term_id.clone(),
+            object.term_id.clone(),
+        );
 
         // Test insertion
         let inserted_triple: Triple = triple.upsert(&pool, TEST_SCHEMA).await?;
 
         assert_eq!(inserted_triple, triple);
-        assert_eq!(inserted_triple.id, triple.id);
+        assert_eq!(inserted_triple.term_id, triple.term_id);
 
         // Test retrieval
-        let retrieved_triple = Triple::find_by_id(triple.id.clone(), &pool, TEST_SCHEMA)
+        let retrieved_triple = Triple::find_by_id(triple.term_id.clone(), &pool, TEST_SCHEMA)
             .await?
             .expect("Triple not found");
-        assert_eq!(retrieved_triple.id, triple.id);
+        assert_eq!(retrieved_triple.term_id, triple.term_id);
         assert_eq!(retrieved_triple.creator_id, triple.creator_id);
         assert_eq!(retrieved_triple.subject_id, triple.subject_id);
         assert_eq!(retrieved_triple.predicate_id, triple.predicate_id);
         assert_eq!(retrieved_triple.object_id, triple.object_id);
-        assert_eq!(retrieved_triple.vault_id, triple.vault_id);
-        assert_eq!(retrieved_triple.counter_vault_id, triple.counter_vault_id);
+        assert_eq!(retrieved_triple.term_id, triple.term_id);
+        assert_eq!(retrieved_triple.counter_term_id, triple.counter_term_id);
         assert_eq!(retrieved_triple.block_number, triple.block_number);
         assert_eq!(retrieved_triple.block_timestamp, triple.block_timestamp);
         assert_eq!(retrieved_triple.transaction_hash, triple.transaction_hash);
@@ -68,11 +73,11 @@ mod tests {
         updated_triple.block_number = U256Wrapper::from_str("2").unwrap();
 
         let upserted_triple = updated_triple.upsert(&pool, TEST_SCHEMA).await?;
-        assert_eq!(upserted_triple.id, updated_triple.id);
+        assert_eq!(upserted_triple.term_id, updated_triple.term_id);
         assert_eq!(upserted_triple.block_number, updated_triple.block_number);
 
         // Verify update
-        let final_triple = Triple::find_by_id(triple.id, &pool, TEST_SCHEMA)
+        let final_triple = Triple::find_by_id(triple.term_id.clone(), &pool, TEST_SCHEMA)
             .await?
             .expect("Triple not found");
         assert_eq!(
