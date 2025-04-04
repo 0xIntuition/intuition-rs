@@ -6,8 +6,10 @@ use crate::{
 };
 use alloy::primitives::{U256, Uint};
 use models::{
+    account::Account,
     event::{Event, EventType},
     position::Position,
+    redemption::Redemption,
     signal::Signal,
     term::{Term, TermType},
     traits::{Deletable, SimpleCrud},
@@ -183,14 +185,16 @@ impl RedeemedCurve {
     async fn initialize_accounts(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
-    ) -> Result<(), ConsumerError> {
+    ) -> Result<(Account, Account), ConsumerError> {
         // Create or get the sender account
-        get_or_create_account(self.sender.to_string(), decoded_consumer_context).await?;
+        let sender_account =
+            get_or_create_account(self.sender.to_string(), decoded_consumer_context).await?;
 
         // Create or get the receiver account
-        get_or_create_account(self.receiver.to_string(), decoded_consumer_context).await?;
+        let receiver_account =
+            get_or_create_account(self.receiver.to_string(), decoded_consumer_context).await?;
 
-        Ok(())
+        Ok((sender_account, receiver_account))
     }
 
     /// This function handles the creation of a curve redemption
@@ -202,7 +206,8 @@ impl RedeemedCurve {
         info!("Processing RedeemedCurve event: {:?}", self);
 
         // Initialize accounts
-        self.initialize_accounts(decoded_consumer_context).await?;
+        let (sender_account, receiver_account) =
+            self.initialize_accounts(decoded_consumer_context).await?;
 
         // Get the curve vault
         let curve_vault = Vault::find_by_term_id_and_curve_id(
@@ -213,6 +218,15 @@ impl RedeemedCurve {
         )
         .await?
         .ok_or(ConsumerError::VaultNotFound)?;
+
+        // Create redemption record
+        self.create_redemption_record(
+            decoded_consumer_context,
+            &sender_account,
+            &receiver_account,
+            event,
+        )
+        .await?;
 
         // Handle position redemption if shares are fully redeemed
         if self.senderTotalSharesInVault == Uint::from(0) {
@@ -230,5 +244,35 @@ impl RedeemedCurve {
             .await?;
 
         Ok(())
+    }
+
+    // Helper methods to break down the complexity:
+    async fn create_redemption_record(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+        sender_account: &Account,
+        receiver_account: &Account,
+        event: &DecodedMessage,
+    ) -> Result<Redemption, ConsumerError> {
+        Redemption::builder()
+            .id(DecodedMessage::event_id(event))
+            .sender_id(sender_account.id.clone())
+            .receiver_id(receiver_account.id.clone())
+            .sender_total_shares_in_vault(self.senderTotalSharesInVault)
+            .assets_for_receiver(self.assetsForReceiver)
+            .shares_redeemed_by_sender(self.sharesRedeemedBySender)
+            .exit_fee(self.exitFee)
+            .term_id(U256Wrapper::from(self.vaultId))
+            .block_number(U256Wrapper::try_from(event.block_number)?)
+            .block_timestamp(event.block_timestamp)
+            .transaction_hash(event.transaction_hash.clone())
+            .curve_id(U256Wrapper::from(self.curveId))
+            .build()
+            .upsert(
+                &decoded_consumer_context.pg_pool,
+                &decoded_consumer_context.backend_schema,
+            )
+            .await
+            .map_err(ConsumerError::ModelError)
     }
 }
