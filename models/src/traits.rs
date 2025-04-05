@@ -22,3 +22,16 @@ where
 pub trait Deletable: Model {
     async fn delete(id: String, pool: &PgPool, schema: &str) -> Result<(), ModelError>;
 }
+
+/// This trait works as a contract for all models that need to be paginated.
+#[async_trait]
+pub trait Paginated: Model {
+    async fn get_paginated(
+        pg_pool: &PgPool,
+        page: i64,
+        page_size: i64,
+        schema: &str,
+    ) -> Result<Vec<Self>, ModelError>;
+
+    async fn get_total_count(pg_pool: &PgPool, schema: &str) -> Result<i64, ModelError>;
+}

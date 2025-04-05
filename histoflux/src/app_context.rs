@@ -4,9 +4,9 @@ use aws_sdk_sqs::Client as AWSClient;
 use log::info;
 use models::raw_logs::RawLog;
 use serde::Deserialize;
-use shared_utils::postgres::connect_to_db;
-use sqlx::postgres::{PgListener, PgNotification};
+use shared_utils::postgres::{ceiling_div, connect_to_db};
 use sqlx::PgPool;
+use sqlx::postgres::{PgListener, PgNotification};
 
 /// The environment variables
 #[derive(Clone, Deserialize, Debug)]
@@ -119,22 +119,6 @@ impl SqsProducer {
         }
     }
 
-    /// This function returns the ceiling division of two numbers.
-    fn ceiling_div(a: i64, b: i64) -> i64 {
-        if (a > 0) == (b > 0) {
-            // Same signs: use regular ceiling division
-            let result = (a.abs() + b.abs() - 1) / b.abs();
-            if a < 0 && b < 0 {
-                result // When both negative, result is positive
-            } else {
-                result * if a < 0 { -1 } else { 1 }
-            }
-        } else {
-            // Different signs: use floor division
-            a / b
-        }
-    }
-
     /// This function processes all existing records in the database and sends
     /// them to the SQS queue.
     pub async fn process_historical_records(&self) -> Result<(), HistoFluxError> {
@@ -154,7 +138,7 @@ impl SqsProducer {
             return Ok(());
         }
         let page_size = Self::get_page_size(amount_of_logs);
-        let pages = Self::ceiling_div(amount_of_logs, page_size);
+        let pages = ceiling_div(amount_of_logs, page_size).await;
         info!("Processing {} pages with page size {}", pages, page_size);
 
         // Initialize the processed logs counter. This is used to avoid processing
@@ -276,27 +260,27 @@ impl SqsProducer {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_ceiling_div() {
+    #[tokio::test]
+    async fn test_ceiling_div() {
         // Even division cases
-        assert_eq!(SqsProducer::ceiling_div(10, 2), 5);
-        assert_eq!(SqsProducer::ceiling_div(100, 10), 10);
-        assert_eq!(SqsProducer::ceiling_div(2, 100), 1);
+        assert_eq!(ceiling_div(10, 2).await, 5);
+        assert_eq!(ceiling_div(100, 10).await, 10);
+        assert_eq!(ceiling_div(2, 100).await, 1);
 
         // Uneven division cases (should round up)
-        assert_eq!(SqsProducer::ceiling_div(11, 2), 6);
-        assert_eq!(SqsProducer::ceiling_div(99, 10), 10);
+        assert_eq!(ceiling_div(11, 2).await, 6);
+        assert_eq!(ceiling_div(99, 10).await, 10);
 
         // Edge cases
-        assert_eq!(SqsProducer::ceiling_div(1, 1), 1);
-        assert_eq!(SqsProducer::ceiling_div(0, 5), 0);
+        assert_eq!(ceiling_div(1, 1).await, 1);
+        assert_eq!(ceiling_div(0, 5).await, 0);
 
         // Large numbers
-        assert_eq!(SqsProducer::ceiling_div(1000000, 3), 333334);
+        assert_eq!(ceiling_div(1000000, 3).await, 333334);
 
         // Negative numbers (following integer division rules)
-        assert_eq!(SqsProducer::ceiling_div(-10, 3), -3);
-        assert_eq!(SqsProducer::ceiling_div(10, -3), -3);
-        assert_eq!(SqsProducer::ceiling_div(-10, -3), 4);
+        assert_eq!(ceiling_div(-10, 3).await, -3);
+        assert_eq!(ceiling_div(10, -3).await, -3);
+        assert_eq!(ceiling_div(-10, -3).await, 4);
     }
 }

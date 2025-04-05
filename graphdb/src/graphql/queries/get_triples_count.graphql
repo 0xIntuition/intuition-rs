@@ -1,0 +1,7 @@
+query GetTriplesCount {
+  triples_aggregate {
+    aggregate {
+      count
+    }
+  }
+}

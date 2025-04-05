@@ -1,11 +1,12 @@
 use crate::{
     error::ModelError,
-    traits::{Model, SimpleCrud},
+    traits::{Model, Paginated, SimpleCrud},
     types::U256Wrapper,
 };
+use indradb::Json;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
-use strum_macros::{Display, EnumString};
+use strum_macros::{Display, EnumIter, EnumString};
 
 use async_trait::async_trait;
 /// This struct represents an atom in the database.
@@ -38,7 +39,10 @@ pub enum AtomResolvingStatus {
 }
 
 /// This enum represents the type of an atom.
-#[derive(sqlx::Type, Clone, Debug, Display, EnumString, PartialEq, Serialize, Deserialize)]
+#[derive(
+    sqlx::Type, Clone, Debug, Display, EnumString, PartialEq, Serialize, Deserialize, EnumIter,
+)]
+#[strum(serialize_all = "PascalCase")]
 #[sqlx(type_name = "atom_type")]
 pub enum AtomType {
     Account,
@@ -222,6 +226,129 @@ impl Atom {
             .map_err(|e| ModelError::DecodingError(e.to_string()))?;
         let filtered_bytes: Vec<u8> = s.as_bytes().iter().filter(|&&b| b != 0).cloned().collect();
         String::from_utf8(filtered_bytes).map_err(|e| ModelError::DecodingError(e.to_string()))
+    }
+
+    /// This function returns the properties of the atom. This is used for GraphDB.
+    pub fn properties(&self) -> Vec<(String, Json)> {
+        vec![
+            (
+                "id".into(),
+                Json::new(serde_json::Value::String(self.id.to_string())),
+            ),
+            (
+                "wallet_id".into(),
+                Json::new(serde_json::Value::String(self.wallet_id.clone())),
+            ),
+            (
+                "creator_id".into(),
+                Json::new(serde_json::Value::String(self.creator_id.clone())),
+            ),
+            (
+                "vault_id".into(),
+                Json::new(serde_json::Value::String(self.vault_id.to_string())),
+            ),
+            (
+                "data".into(),
+                Json::new(serde_json::Value::String(
+                    self.data.clone().unwrap_or_default(),
+                )),
+            ),
+            (
+                "raw_data".into(),
+                Json::new(serde_json::Value::String(self.raw_data.clone())),
+            ),
+            (
+                "atom_type".into(),
+                Json::new(serde_json::Value::String(self.atom_type.to_string())),
+            ),
+            (
+                "emoji".into(),
+                Json::new(serde_json::Value::String(
+                    self.emoji.clone().unwrap_or_default(),
+                )),
+            ),
+            (
+                "label".into(),
+                Json::new(serde_json::Value::String(
+                    self.label.clone().unwrap_or_default(),
+                )),
+            ),
+            (
+                "image".into(),
+                Json::new(serde_json::Value::String(
+                    self.image.clone().unwrap_or_default(),
+                )),
+            ),
+            (
+                "value_id".into(),
+                Json::new(serde_json::Value::String(
+                    self.value_id
+                        .clone()
+                        .map(|v| v.to_string())
+                        .unwrap_or_default(),
+                )),
+            ),
+            (
+                "block_number".into(),
+                Json::new(serde_json::Value::String(self.block_number.to_string())),
+            ),
+            (
+                "block_timestamp".into(),
+                Json::new(serde_json::Value::Number(self.block_timestamp.into())),
+            ),
+            (
+                "transaction_hash".into(),
+                Json::new(serde_json::Value::String(self.transaction_hash.clone())),
+            ),
+            (
+                "resolving_status".into(),
+                Json::new(serde_json::Value::String(self.resolving_status.to_string())),
+            ),
+        ]
+    }
+}
+
+#[async_trait]
+impl Paginated for Atom {
+    /// This is a method to get paginated atoms from the database.
+    // TODO: create a trait for this
+    async fn get_paginated(
+        pg_pool: &PgPool,
+        page: i64,
+        page_size: i64,
+        schema: &str,
+    ) -> Result<Vec<Atom>, ModelError> {
+        let query = format!(
+            r#"
+            SELECT *
+            FROM {}.atom
+            ORDER BY block_timestamp ASC
+            LIMIT $1 OFFSET $2
+            "#,
+            schema,
+        );
+
+        sqlx::query_as::<_, Atom>(&query)
+            .bind(page_size)
+            .bind((page - 1) * page_size)
+            .fetch_all(pg_pool)
+            .await
+            .map_err(|error| ModelError::QueryError(error.to_string()))
+    }
+
+    /// This is a method to get the total count of atoms in the database.
+    async fn get_total_count(pg_pool: &PgPool, schema: &str) -> Result<i64, ModelError> {
+        let query = format!(
+            r#"
+            SELECT COUNT(*) FROM {}.atom
+            "#,
+            schema,
+        );
+
+        sqlx::query_scalar(&query)
+            .fetch_one(pg_pool)
+            .await
+            .map_err(|error| ModelError::QueryError(error.to_string()))
     }
 }
 
