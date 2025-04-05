@@ -12,7 +12,7 @@ spec:
         elements:
           - cluster: prod-eks
             server: 'https://kubernetes.default.svc'
-            revision: francois/add-iac
+            revision: main
             env: dev-base-sepolia
             namespace: dev-base-sepolia-v2-0-0
             rpcURL: 'http://dev-rpc-proxy.default.svc.cluster.local:3008/84532/proxy'

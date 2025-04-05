@@ -7,7 +7,7 @@ spec:
   project: prod
   source:
     repoURL: 'https://github.com/0xintuition/intuition-rs.git'
-    targetRevision: francois/add-iac
+    targetRevision: main
     path: devops/argocd/manifests/pgadmin
   destination:
     server: 'https://kubernetes.default.svc'
