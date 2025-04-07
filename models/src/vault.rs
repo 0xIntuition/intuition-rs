@@ -96,6 +96,7 @@ impl SimpleCrud<U256Wrapper> for Vault {
 }
 
 impl Vault {
+    /// This function finds a vault by its term_id and curve_id
     pub async fn find_by_term_id_and_curve_id(
         term_id: U256Wrapper,
         curve_id: U256Wrapper,
@@ -117,6 +118,7 @@ impl Vault {
             .map_err(|e| ModelError::QueryError(e.to_string()))
     }
 
+    /// This function sums the total assets of all the vaults for a given term
     pub async fn sum_total_assets(
         term_id: U256Wrapper,
         pool: &PgPool,
@@ -133,6 +135,24 @@ impl Vault {
             .map_err(|e| ModelError::QueryError(e.to_string()))
     }
 
+    /// This function sums the theoretical value locked of all the vaults for a given term
+    pub async fn sum_theoretical_value_locked(
+        term_id: U256Wrapper,
+        pool: &PgPool,
+        schema: &str,
+    ) -> Result<U256Wrapper, ModelError> {
+        let query = format!(
+            r#"SELECT SUM(theoretical_value_locked) FROM {}.vault WHERE term_id = $1"#,
+            schema
+        );
+        sqlx::query_scalar::<_, U256Wrapper>(&query)
+            .bind(term_id.to_big_decimal()?)
+            .fetch_one(pool)
+            .await
+            .map_err(|e| ModelError::QueryError(e.to_string()))
+    }
+
+    /// This function updates the vault stats
     pub async fn update_vault_stats(
         term_id: U256Wrapper,
         current_share_price: U256Wrapper,

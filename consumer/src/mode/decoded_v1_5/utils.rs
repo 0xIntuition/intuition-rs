@@ -140,7 +140,9 @@ pub async fn update_vault_from_share_price_changed_events(
             .await?;
         vault.total_assets = Some(share_price_changed.total_assets()?);
         vault.theoretical_value_locked = Some(
-            share_price_changed.total_assets()?
+            share_price_changed
+                .total_shares(decoded_consumer_context)
+                .await?
                 * share_price_changed
                     .current_share_price(decoded_consumer_context)
                     .await?,
@@ -196,10 +198,12 @@ pub async fn update_term_total_assets_and_theoretical_value_locked(
     term.total_assets = total_assets.clone();
     // The term theoretical value locked is the sum of all the vaults theoretical value locked that are associated with the term,
     // independent of the curve_id, multiplied by the share price
-    term.total_theoretical_value_locked = total_assets
-        * share_price_changed
-            .current_share_price(decoded_consumer_context)
-            .await?;
+    term.total_theoretical_value_locked = Vault::sum_theoretical_value_locked(
+        share_price_changed.term_id()?,
+        &decoded_consumer_context.pg_pool,
+        &decoded_consumer_context.backend_schema,
+    )
+    .await?;
     term.upsert(
         &decoded_consumer_context.pg_pool,
         &decoded_consumer_context.backend_schema,

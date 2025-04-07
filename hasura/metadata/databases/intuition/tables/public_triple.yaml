@@ -45,13 +45,6 @@ object_relationships:
           name: term
           schema: public
 array_relationships:
-  - name: claims
-    using:
-      foreign_key_constraint_on:
-        column: triple_id
-        table:
-          name: claim
-          schema: public
   - name: signals
     using:
       manual_configuration:

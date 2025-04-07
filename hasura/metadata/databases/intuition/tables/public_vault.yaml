@@ -62,6 +62,8 @@ select_permissions:
         - curve_id
         - term_id
         - total_shares
+        - total_assets
+        - theoretical_value_locked
       filter: {}
       limit: 100
       allow_aggregations: true

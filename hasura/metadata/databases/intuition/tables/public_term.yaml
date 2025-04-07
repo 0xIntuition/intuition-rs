@@ -42,6 +42,8 @@ select_permissions:
         - type
         - atom_id
         - triple_id
+        - total_assets
+        - total_theoretical_value_locked
       filter: {}
       limit: 100
       allow_aggregations: true
