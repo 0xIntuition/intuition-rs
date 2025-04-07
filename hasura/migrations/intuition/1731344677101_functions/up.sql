@@ -18,7 +18,7 @@ CREATE FUNCTION following(address text) RETURNS SETOF account
 SELECT *
 FROM accounts_that_claim_about_account(
     address,
-    (SELECT id FROM atom WHERE type = 'PersonPredicate'),
+    (SELECT id FROM atom WHERE type = 'ThingPredicate'),
     (SELECT id FROM atom WHERE type = 'FollowAction')
 );
 $$;

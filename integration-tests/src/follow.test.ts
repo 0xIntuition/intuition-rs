@@ -7,8 +7,8 @@ suite('follow account', async () => {
   const alice = await getIntuition(1)
   const bob = await getIntuition(2)
 
-  const person = await admin.getOrCreateAtom(
-    SystemAtom.Person,
+  const thing = await admin.getOrCreateAtom(
+    SystemAtom.Thing,
   )
 
   const followAction = await admin.getOrCreateAtom(
@@ -20,7 +20,7 @@ suite('follow account', async () => {
   )
 
   const triple = await alice.getCreateOrDepositOnTriple(
-    person.vaultId,
+    thing.vaultId,
     followAction.vaultId,
     bobAtom.vaultId,
   )
