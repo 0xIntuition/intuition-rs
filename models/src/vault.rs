@@ -18,6 +18,8 @@ pub struct Vault {
     pub total_shares: U256Wrapper,
     pub current_share_price: U256Wrapper,
     pub position_count: i32,
+    pub total_assets: Option<U256Wrapper>,
+    pub theoretical_value_locked: Option<U256Wrapper>,
 }
 /// This is a trait that all models must implement.
 impl Model for Vault {}
@@ -29,13 +31,15 @@ impl SimpleCrud<U256Wrapper> for Vault {
     async fn upsert(&self, pool: &PgPool, schema: &str) -> Result<Self, ModelError> {
         let query = format!(
             r#"
-            INSERT INTO {}.vault (term_id, curve_id, total_shares, current_share_price, position_count)
-            VALUES ($1, $2, $3, $4, $5)
+            INSERT INTO {}.vault (term_id, curve_id, total_shares, current_share_price, position_count, total_assets, theoretical_value_locked)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
             ON CONFLICT (term_id, curve_id) DO UPDATE SET
                 total_shares = EXCLUDED.total_shares,
                 current_share_price = EXCLUDED.current_share_price,
-                position_count = EXCLUDED.position_count
-            RETURNING term_id, curve_id, total_shares, current_share_price, position_count
+                position_count = EXCLUDED.position_count,
+                total_assets = EXCLUDED.total_assets,
+                theoretical_value_locked = EXCLUDED.theoretical_value_locked
+            RETURNING term_id, curve_id, total_shares, current_share_price, position_count, total_assets, theoretical_value_locked
             "#,
             schema,
         );
@@ -46,6 +50,16 @@ impl SimpleCrud<U256Wrapper> for Vault {
             .bind(self.total_shares.to_big_decimal()?)
             .bind(self.current_share_price.to_big_decimal()?)
             .bind(self.position_count)
+            .bind(
+                self.total_assets
+                    .as_ref()
+                    .and_then(|w| w.to_big_decimal().ok()),
+            )
+            .bind(
+                self.theoretical_value_locked
+                    .as_ref()
+                    .and_then(|w| w.to_big_decimal().ok()),
+            )
             .fetch_one(pool)
             .await
             .map_err(|e| ModelError::InsertError(e.to_string()))
@@ -64,7 +78,9 @@ impl SimpleCrud<U256Wrapper> for Vault {
                 curve_id,
                 total_shares, 
                 current_share_price,
-                position_count
+                position_count,
+                total_assets,
+                theoretical_value_locked
             FROM {}.vault 
             WHERE term_id = $1
             "#,
@@ -101,24 +117,43 @@ impl Vault {
             .map_err(|e| ModelError::QueryError(e.to_string()))
     }
 
-    pub async fn update_current_share_price(
+    pub async fn sum_total_assets(
+        term_id: U256Wrapper,
+        pool: &PgPool,
+        schema: &str,
+    ) -> Result<U256Wrapper, ModelError> {
+        let query = format!(
+            r#"SELECT SUM(total_assets) FROM {}.vault WHERE term_id = $1"#,
+            schema
+        );
+        sqlx::query_scalar::<_, U256Wrapper>(&query)
+            .bind(term_id.to_big_decimal()?)
+            .fetch_one(pool)
+            .await
+            .map_err(|e| ModelError::QueryError(e.to_string()))
+    }
+
+    pub async fn update_vault_stats(
         term_id: U256Wrapper,
         current_share_price: U256Wrapper,
+        total_assets: U256Wrapper,
         pool: &PgPool,
         schema: &str,
     ) -> Result<Self, ModelError> {
         let query = format!(
             r#"
             UPDATE {}.vault 
-            SET current_share_price = $1 
-            WHERE term_id = $2
-            RETURNING term_id, curve_id, total_shares, current_share_price, position_count
+            SET current_share_price = $1, total_assets = $2, theoretical_value_locked = $3
+            WHERE term_id = $4
+            RETURNING term_id, curve_id, total_shares, current_share_price, position_count, total_assets, theoretical_value_locked
             "#,
             schema,
         );
 
         sqlx::query_as::<_, Vault>(&query)
             .bind(current_share_price.to_big_decimal()?)
+            .bind(total_assets.to_big_decimal()?)
+            .bind(total_assets.to_big_decimal()? * current_share_price.to_big_decimal()?)
             .bind(term_id.to_big_decimal()?)
             .fetch_one(pool)
             .await

@@ -2,6 +2,7 @@ use crate::{
     error::ModelError,
     traits::{Model, SimpleCrud},
     types::U256Wrapper,
+    vault::Vault,
 };
 use async_trait::async_trait;
 use sqlx::{PgPool, Result};
@@ -93,5 +94,36 @@ impl SimpleCrud<U256Wrapper> for Term {
             .fetch_optional(pool)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
+    }
+}
+
+impl Term {
+    pub async fn update_total_assets_and_tvl(
+        &self,
+        pool: &PgPool,
+        schema: &str,
+        current_share_price: U256Wrapper,
+    ) -> Result<Self, ModelError> {
+        // First we need to get the total assets of the term
+        let total_assets = Vault::sum_total_assets(self.id.clone(), pool, schema).await?;
+
+        // Then we update the term
+        let query = format!(
+            r#"
+            UPDATE {}.term 
+            SET total_assets = $1, total_theoretical_value_locked = $2
+            WHERE id = $3
+            RETURNING id, type, atom_id, triple_id, total_assets, total_theoretical_value_locked
+            "#,
+            schema,
+        );
+
+        sqlx::query_as::<_, Term>(&query)
+            .bind(total_assets.to_big_decimal()?)
+            .bind(total_assets.to_big_decimal()? * current_share_price.to_big_decimal()?)
+            .bind(self.id.to_big_decimal()?)
+            .fetch_one(pool)
+            .await
+            .map_err(|e| ModelError::UpdateError(e.to_string()))
     }
 }

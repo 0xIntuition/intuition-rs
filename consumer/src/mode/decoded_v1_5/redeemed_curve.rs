@@ -133,7 +133,7 @@ impl RedeemedCurve {
     async fn handle_position_redemption(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
-        curve_vault: &Vault,
+        curve_vault: &mut Vault,
     ) -> Result<(), ConsumerError> {
         // Build the position ID using the atom/triple ID and curve number for uniqueness
         let position_id = format!(
@@ -173,16 +173,9 @@ impl RedeemedCurve {
             // Decrement the position count in the curve vault
             if curve_vault.position_count > 0 {
                 // Create a new curve vault with decremented position count
-                let updated_curve_vault = Vault {
-                    term_id: curve_vault.term_id.clone(),
-                    curve_id: curve_vault.curve_id.clone(),
-                    total_shares: curve_vault.total_shares.clone(),
-                    current_share_price: curve_vault.current_share_price.clone(),
-                    position_count: curve_vault.position_count - 1,
-                };
-
+                curve_vault.position_count -= 1;
                 // Update the curve vault
-                updated_curve_vault
+                curve_vault
                     .upsert(
                         &decoded_consumer_context.pg_pool,
                         &decoded_consumer_context.backend_schema,
@@ -224,7 +217,7 @@ impl RedeemedCurve {
             self.initialize_accounts(decoded_consumer_context).await?;
 
         // Get the curve vault
-        let curve_vault = Vault::find_by_term_id_and_curve_id(
+        let mut curve_vault = Vault::find_by_term_id_and_curve_id(
             U256Wrapper::from(self.vaultId),
             U256Wrapper::from(self.curveId),
             &decoded_consumer_context.pg_pool,
@@ -245,7 +238,7 @@ impl RedeemedCurve {
         // Handle position redemption if shares are fully redeemed
         if self.senderTotalSharesInVault == Uint::from(0) {
             // Call the handler to remove the position
-            self.handle_position_redemption(decoded_consumer_context, &curve_vault)
+            self.handle_position_redemption(decoded_consumer_context, &mut curve_vault)
                 .await?;
         }
 
