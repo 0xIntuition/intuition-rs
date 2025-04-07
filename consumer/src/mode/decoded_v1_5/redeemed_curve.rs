@@ -7,6 +7,7 @@ use crate::{
 use alloy::primitives::{U256, Uint};
 use models::{
     account::Account,
+    claim::Claim,
     event::{Event, EventType},
     position::Position,
     redemption::Redemption,
@@ -153,6 +154,15 @@ impl RedeemedCurve {
 
         // Delete the position if it exists
         if position_exists {
+            // delete the claims
+            Claim::delete(
+                position_id.clone(),
+                &decoded_consumer_context.pg_pool,
+                &decoded_consumer_context.backend_schema,
+            )
+            .await?;
+
+            // delete the position
             Position::delete(
                 position_id.to_string(),
                 &decoded_consumer_context.pg_pool,

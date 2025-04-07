@@ -358,6 +358,13 @@ impl Redeemed {
         // For instance, if the redemption fully depletes the position:
         if let Some(_pos) = position {
             info!("Position shares are zero, removing position record.");
+            // delete the claims
+            Claim::delete(
+                position_id.to_string(),
+                &decoded_consumer_context.pg_pool,
+                &decoded_consumer_context.backend_schema,
+            )
+            .await?;
             // Remove the position record..
             Position::delete(
                 position_id.to_string(),

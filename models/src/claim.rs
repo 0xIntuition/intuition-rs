@@ -81,7 +81,7 @@ impl SimpleCrud<String> for Claim {
 #[async_trait]
 impl Deletable for Claim {
     async fn delete(id: String, pool: &PgPool, schema: &str) -> Result<(), ModelError> {
-        let query = format!(r#"DELETE FROM {}.claim WHERE id = $1"#, schema);
+        let query = format!(r#"DELETE FROM {}.claim WHERE position_id = $1"#, schema);
 
         sqlx::query(&query)
             .bind(id.to_lowercase())
