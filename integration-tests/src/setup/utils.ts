@@ -1,6 +1,6 @@
 import { createPublicClient, createWalletClient, defineChain, formatEther, http, parseEther } from 'viem'
 import { ADMIN, MNEMONIC } from './constants.js'
-import { getOrDeployAndInit } from './deploy.js'
+import { getContractAddress } from './deploy.js'
 import { mnemonicToAccount } from 'viem/accounts'
 import { Multivault } from '@0xintuition/protocol'
 import type { TypedDocumentString } from '../graphql/graphql.js'
@@ -36,7 +36,7 @@ export async function getIntuition(accountIndex: number) {
     { accountIndex },
   )
 
-  const address = await getOrDeployAndInit()
+  const address = await getContractAddress()
 
   // balance
   const balance = await publicClient.getBalance({ address: account.address })

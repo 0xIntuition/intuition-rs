@@ -20,9 +20,6 @@ importers:
       '@graphql-typed-document-node/core':
         specifier: ^3.2.0
         version: 3.2.0(graphql@16.10.0)
-      dotenv:
-        specifier: ^16.4.5
-        version: 16.4.7
       tsx:
         specifier: ^4.16.5
         version: 4.19.2

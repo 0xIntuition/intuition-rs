@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     git \
     curl \
+    jq \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy Foundry binaries and dependencies from the foundry stage
@@ -23,9 +24,10 @@ RUN npm install
 RUN forge build
 
 # Create a script to run the forge command
-RUN echo '#!/bin/sh\n\
-forge script script/DeployToLocalGeth.s.sol --rpc-url http://geth:8545 --keystore /data/keystore.json --password-file /data/password.txt --broadcast\n\
-' > /app/deploy.sh && chmod +x /app/deploy.sh
+RUN echo '#!/bin/sh' > /app/deploy.sh && \
+    echo 'forge script script/DeployToLocalGeth.s.sol --rpc-url http://geth:8545 --keystore /data/keystore.json --password-file /data/password.txt --broadcast' >> /app/deploy.sh && \
+    echo 'echo "MULTIVAULT_ADDRESS=$(jq -r '\''.transactions[] | select(.contractName=="TransparentUpgradeableProxy") | .contractAddress'\'' ./broadcast/DeployToLocalGeth.s.sol/1337/run-latest.json)" >> /shared_env/.env' >> /app/deploy.sh && \
+    chmod +x /app/deploy.sh
 
 # Set the entrypoint to the script
 ENTRYPOINT ["/app/deploy.sh"]
