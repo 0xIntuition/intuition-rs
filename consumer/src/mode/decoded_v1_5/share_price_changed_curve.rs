@@ -10,9 +10,7 @@ use crate::{
 };
 use async_trait::async_trait;
 use models::{
-    share_price_changed_curve::{
-        SharePriceChangedCurve as SharePriceChangedCurveModel, SharePriceChangedCurveInternal,
-    },
+    share_price_change::{SharePriceChange as SharePriceChangeModel, SharePriceChangeInternal},
     term::TermType,
     types::U256Wrapper,
 };
@@ -90,7 +88,7 @@ impl SharePriceChangedCurve {
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
-        let new_share_price = SharePriceChangedCurveInternal::builder()
+        let new_share_price = SharePriceChangeInternal::builder()
             .term_id(U256Wrapper::from(self.termId))
             .curve_id(U256Wrapper::from(self.curveId))
             .share_price(U256Wrapper::from(self.newSharePrice))
@@ -100,7 +98,7 @@ impl SharePriceChangedCurve {
             .block_timestamp(event.block_timestamp)
             .transaction_hash(event.transaction_hash.clone())
             .build();
-        SharePriceChangedCurveModel::insert(
+        SharePriceChangeModel::insert(
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
             new_share_price,

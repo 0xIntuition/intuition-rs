@@ -20,9 +20,9 @@ ALTER TABLE signal DROP CONSTRAINT signal_term_fkey;
 ALTER TABLE signal DROP COLUMN curve_id;
 ALTER TABLE signal DROP COLUMN term_id;
 
--- Restore share_price_changed table relations
-ALTER TABLE share_price_changed_curve DROP CONSTRAINT share_price_changed_curve_term_fkey;
-ALTER TABLE share_price_changed_curve ADD CONSTRAINT share_price_changed_curve_term_id_fkey 
+-- Restore share_price_change table relations
+ALTER TABLE share_price_change DROP CONSTRAINT share_price_change_term_fkey;
+ALTER TABLE share_price_change ADD CONSTRAINT share_price_change_term_id_fkey 
     FOREIGN KEY (term_id) REFERENCES vault(id);
 
 -- Remove new columns from term table

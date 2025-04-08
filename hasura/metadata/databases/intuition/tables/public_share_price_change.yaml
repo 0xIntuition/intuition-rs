@@ -1,12 +1,12 @@
 table:
-  name: share_price_changed_curve
+  name: share_price_change
   schema: public
 configuration:
   column_config: {}
   custom_column_names: {}
-  custom_name: share_price_changed_curves
+  custom_name: share_price_change
   custom_root_fields:
-    select_by_pk: share_price_changed_curve
+    select_by_pk: share_price_change
 object_relationships:
   - name: term
     using:

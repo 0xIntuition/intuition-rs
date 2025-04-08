@@ -159,7 +159,7 @@ ALTER TABLE claim ADD CONSTRAINT claim_vault_id_fkey
     FOREIGN KEY (vault_id) REFERENCES vault(id);
 ALTER TABLE claim ADD CONSTRAINT claim_counter_vault_id_fkey 
     FOREIGN KEY (counter_vault_id) REFERENCES vault(id);
-ALTER TABLE share_price_changed_curve ADD CONSTRAINT share_price_changed_curve_term_id_fkey
+ALTER TABLE share_price_change ADD CONSTRAINT share_price_change_term_id_fkey
     FOREIGN KEY (term_id) REFERENCES vault(id);
 ALTER TABLE triple ADD CONSTRAINT triple_vault_id_fkey
     FOREIGN KEY (vault_id) REFERENCES vault(id);

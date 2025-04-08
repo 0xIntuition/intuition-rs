@@ -1,4 +1,4 @@
-CREATE TABLE share_price_changed_curve (
+CREATE TABLE share_price_change(
     id BIGSERIAL PRIMARY KEY,
     term_id NUMERIC(78, 0) NOT NULL REFERENCES vault(id),
     curve_id NUMERIC(78, 0) NOT NULL,
@@ -11,10 +11,10 @@ CREATE TABLE share_price_changed_curve (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_share_price_changed_curve_id ON share_price_changed_curve(curve_id);
-CREATE INDEX idx_share_price_changed_curve_updated_at ON share_price_changed_curve(updated_at);
-CREATE INDEX idx_share_price_changed_curve_term_updated_at ON share_price_changed_curve(updated_at);
-CREATE INDEX idx_share_price_changed_curve_block_number ON share_price_changed_curve(block_number);
-CREATE INDEX idx_share_price_changed_curve_term_block_number ON share_price_changed_curve(block_number);
-CREATE INDEX idx_share_price_changed_curve_transaction_hash ON share_price_changed_curve(transaction_hash);
-CREATE INDEX idx_share_price_changed_curve_term_transaction_hash ON share_price_changed_curve(transaction_hash);
+CREATE INDEX idx_share_price_change_curve_id ON share_price_change(curve_id);
+CREATE INDEX idx_share_price_change_updated_at ON share_price_change(updated_at);
+CREATE INDEX idx_share_price_change_term_updated_at ON share_price_change(updated_at);
+CREATE INDEX idx_share_price_change_block_number ON share_price_change(block_number);
+CREATE INDEX idx_share_price_change_term_block_number ON share_price_change(block_number);
+CREATE INDEX idx_share_price_change_transaction_hash ON share_price_change(transaction_hash);
+CREATE INDEX idx_share_price_change_term_transaction_hash ON share_price_change(transaction_hash);

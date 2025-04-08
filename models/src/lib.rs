@@ -17,7 +17,7 @@ pub mod position;
 pub mod predicate_object;
 pub mod raw_logs;
 pub mod redemption;
-pub mod share_price_changed_curve;
+pub mod share_price_change;
 pub mod signal;
 pub mod stats;
 pub mod stats_hour;

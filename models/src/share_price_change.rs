@@ -8,7 +8,7 @@ use chrono::{DateTime, Utc};
 use sqlx::{PgPool, Result};
 
 #[derive(Debug, sqlx::FromRow, Builder)]
-pub struct SharePriceChangedCurve {
+pub struct SharePriceChange {
     pub id: i64,
     pub term_id: U256Wrapper,
     pub curve_id: U256Wrapper,
@@ -23,7 +23,7 @@ pub struct SharePriceChangedCurve {
 
 /// This struct is used to create a new share price change.
 #[derive(Debug, Builder)]
-pub struct SharePriceChangedCurveInternal {
+pub struct SharePriceChangeInternal {
     pub term_id: U256Wrapper,
     pub curve_id: U256Wrapper,
     pub share_price: U256Wrapper,
@@ -34,10 +34,10 @@ pub struct SharePriceChangedCurveInternal {
     pub transaction_hash: String,
 }
 
-impl Model for SharePriceChangedCurve {}
+impl Model for SharePriceChange {}
 
 #[async_trait]
-impl SimpleCrud<U256Wrapper> for SharePriceChangedCurve {
+impl SimpleCrud<U256Wrapper> for SharePriceChange {
     async fn upsert(&self, pool: &PgPool, schema: &str) -> Result<Self, ModelError> {
         let query = format!(
             r#"
@@ -81,7 +81,7 @@ impl SimpleCrud<U256Wrapper> for SharePriceChangedCurve {
     ) -> Result<Option<Self>, ModelError> {
         let query = format!(
             r#"
-            SELECT * FROM {}.share_price_changed_curve WHERE id = $1
+            SELECT * FROM {}.share_price_change WHERE id = $1
             "#,
             schema,
         );
@@ -94,22 +94,22 @@ impl SimpleCrud<U256Wrapper> for SharePriceChangedCurve {
     }
 }
 
-impl SharePriceChangedCurve {
+impl SharePriceChange {
     pub async fn insert(
         pool: &PgPool,
         schema: &str,
-        share_price_change: SharePriceChangedCurveInternal,
+        share_price_change: SharePriceChangeInternal,
     ) -> Result<Self, ModelError> {
         let query = format!(
             r#"
-            INSERT INTO {}.share_price_changed_curve (term_id, curve_id, share_price, total_assets, total_shares, block_number, block_timestamp, transaction_hash)
+            INSERT INTO {}.share_price_change (term_id, curve_id, share_price, total_assets, total_shares, block_number, block_timestamp, transaction_hash)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING id, term_id, curve_id, share_price, total_assets, total_shares, block_number, block_timestamp, transaction_hash, updated_at
             "#,
             schema,
         );
 
-        sqlx::query_as::<_, SharePriceChangedCurve>(&query)
+        sqlx::query_as::<_, SharePriceChange>(&query)
             .bind(share_price_change.term_id.to_big_decimal()?)
             .bind(share_price_change.curve_id.to_big_decimal()?)
             .bind(share_price_change.share_price.to_big_decimal()?)
@@ -139,7 +139,7 @@ impl SharePriceChangedCurve {
             schema,
         );
 
-        sqlx::query_as::<_, SharePriceChangedCurve>(&query)
+        sqlx::query_as::<_, SharePriceChange>(&query)
             .bind(vault_id.to_big_decimal()?)
             .bind(curve_id.to_big_decimal()?)
             .fetch_one(pool)

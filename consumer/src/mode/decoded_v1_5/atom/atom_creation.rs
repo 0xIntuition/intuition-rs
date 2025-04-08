@@ -21,7 +21,7 @@ use models::{
     atom::{Atom, AtomResolvingStatus, AtomType},
     event::{Event, EventType},
     position::Position,
-    share_price_changed_curve::SharePriceChangedCurve,
+    share_price_change::SharePriceChange,
     term::TermType,
     traits::SimpleCrud,
     types::U256Wrapper,
@@ -74,7 +74,7 @@ impl VaultManager for &AtomCreated {
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<U256Wrapper, ConsumerError> {
-        Ok(SharePriceChangedCurve::fetch_current_share_price(
+        Ok(SharePriceChange::fetch_current_share_price(
             U256Wrapper::from(self.vaultId),
             U256Wrapper::from_str("1")?,
             &decoded_consumer_context.pg_pool,
@@ -88,7 +88,7 @@ impl VaultManager for &AtomCreated {
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<U256Wrapper, ConsumerError> {
-        Ok(SharePriceChangedCurve::fetch_current_share_price(
+        Ok(SharePriceChange::fetch_current_share_price(
             U256Wrapper::from(self.vaultId),
             U256Wrapper::from_str("1")?,
             &decoded_consumer_context.pg_pool,

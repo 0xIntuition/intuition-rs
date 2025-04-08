@@ -9,26 +9,26 @@ ALTER TABLE claim ADD COLUMN position_id TEXT;
 ALTER TABLE signal ADD COLUMN term_id NUMERIC(78, 0);
 ALTER TABLE signal ADD COLUMN curve_id NUMERIC(78, 0);
 
--- Fix share_price_changed table relations
+-- Fix share_price_change table relations
 DO $$ 
 BEGIN
-    -- Check if share_price_changed table exists
-    IF EXISTS (SELECT 1 FROM pg_tables WHERE tablename = 'share_price_changed') THEN
-        IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'share_price_changed_term_id_fkey') THEN
-            ALTER TABLE share_price_changed DROP CONSTRAINT share_price_changed_term_id_fkey;
+    -- Check if share_price_change table exists
+    IF EXISTS (SELECT 1 FROM pg_tables WHERE tablename = 'share_price_change') THEN
+        IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'share_price_change_term_id_fkey') THEN
+            ALTER TABLE share_price_change DROP CONSTRAINT share_price_change_term_id_fkey;
         END IF;
         
-        ALTER TABLE share_price_changed ADD CONSTRAINT share_price_changed_term_fkey 
+        ALTER TABLE share_price_change ADD CONSTRAINT share_price_change_term_fkey 
             FOREIGN KEY (term_id) REFERENCES term(id);
     END IF;
     
-    -- Check if share_price_changed_curve table exists
-    IF EXISTS (SELECT 1 FROM pg_tables WHERE tablename = 'share_price_changed_curve') THEN
-        IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'share_price_changed_curve_term_id_fkey') THEN
-            ALTER TABLE share_price_changed_curve DROP CONSTRAINT share_price_changed_curve_term_id_fkey;
+    -- Check if share_price_change_curve table exists
+    IF EXISTS (SELECT 1 FROM pg_tables WHERE tablename = 'share_price_change_curve') THEN
+        IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'share_price_change_curve_term_id_fkey') THEN
+            ALTER TABLE share_price_change_curve DROP CONSTRAINT share_price_change_curve_term_id_fkey;
         END IF;
         
-        ALTER TABLE share_price_changed_curve ADD CONSTRAINT share_price_changed_curve_term_fkey 
+        ALTER TABLE share_price_change_curve ADD CONSTRAINT share_price_change_curve_term_fkey 
             FOREIGN KEY (term_id) REFERENCES term(id);
     END IF;
 END $$;
