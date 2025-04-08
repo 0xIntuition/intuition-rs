@@ -23,20 +23,15 @@ object_relationships:
   - name: term
     using:
       foreign_key_constraint_on: term_id
-array_relationships:
-  - name: events
+  - name: vault
     using:
-      foreign_key_constraint_on:
-        column: redemption_id
-        table:
-          name: event
-          schema: public
-  - name: signals
-    using:
-      foreign_key_constraint_on:
-        column: redemption_id
-        table:
-          name: signal
+      manual_configuration:
+        column_mapping:
+          curve_id: curve_id
+          term_id: term_id
+        insertion_order: null
+        remote_table:
+          name: vault
           schema: public
 select_permissions:
   - role: anonymous

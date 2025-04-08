@@ -11,8 +11,7 @@ object_relationships:
   - name: term
     using:
       foreign_key_constraint_on: term_id
-array_relationships:
-  - name: deposits
+  - name: vault
     using:
       manual_configuration:
         column_mapping:
@@ -20,17 +19,7 @@ array_relationships:
           term_id: term_id
         insertion_order: null
         remote_table:
-          name: deposit
-          schema: public
-  - name: redemptions
-    using:
-      manual_configuration:
-        column_mapping:
-          curve_id: curve_id
-          term_id: term_id
-        insertion_order: null
-        remote_table:
-          name: redemption
+          name: vault
           schema: public
 select_permissions:
   - role: anonymous

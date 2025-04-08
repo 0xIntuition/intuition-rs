@@ -10,36 +10,13 @@ configuration:
 object_relationships:
   - name: term
     using:
-      manual_configuration:
-        column_mapping:
-          term_id: term_id
-        insertion_order: null
-        remote_table:
-          name: term
-          schema: public
+      foreign_key_constraint_on: term_id
 array_relationships:
-  - name: claims
-    using:
-      manual_configuration:
-        column_mapping:
-          term_id: term_id
-        insertion_order: null
-        remote_table:
-          name: claim
-          schema: public
-  - name: counter_claims
-    using:
-      manual_configuration:
-        column_mapping:
-          counter_term_id: term_id
-        insertion_order: null
-        remote_table:
-          name: claim
-          schema: public
   - name: deposits
     using:
       manual_configuration:
         column_mapping:
+          curve_id: curve_id
           term_id: term_id
         insertion_order: null
         remote_table:
@@ -49,6 +26,7 @@ array_relationships:
     using:
       manual_configuration:
         column_mapping:
+          curve_id: curve_id
           term_id: term_id
         insertion_order: null
         remote_table:
@@ -58,10 +36,31 @@ array_relationships:
     using:
       manual_configuration:
         column_mapping:
+          curve_id: curve_id
           term_id: term_id
         insertion_order: null
         remote_table:
           name: redemption
+          schema: public
+  - name: share_price_changes
+    using:
+      manual_configuration:
+        column_mapping:
+          curve_id: curve_id
+          term_id: term_id
+        insertion_order: null
+        remote_table:
+          name: share_price_change
+          schema: public
+  - name: signals
+    using:
+      manual_configuration:
+        column_mapping:
+          curve_id: curve_id
+          term_id: term_id
+        insertion_order: null
+        remote_table:
+          name: signal
           schema: public
 select_permissions:
   - role: anonymous
