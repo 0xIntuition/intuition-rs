@@ -8,7 +8,7 @@ spec:
       serviceAccountName: secrets-access-sa
       containers:
         - name: resolver-consumer
-          image: ghcr.io/0xintuition/consumer:2.0.35-v15
+          image: ghcr.io/0xintuition/consumer:2.0.37-v15
           imagePullPolicy: Always
           volumeMounts:
             - name: secrets-store-inline

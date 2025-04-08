@@ -242,7 +242,9 @@ pub async fn get_or_create_vault(
             .position_count(event.position_count(decoded_consumer_context).await?)
             .total_assets(event.total_assets()?)
             .theoretical_value_locked(
-                event.total_assets()? * event.current_share_price(decoded_consumer_context).await?,
+                (event.total_shares(decoded_consumer_context).await?
+                    * event.current_share_price(decoded_consumer_context).await?)
+                    / U256Wrapper::from(U256::from(10).pow(U256::from(18))),
             )
             .build()
             .upsert(

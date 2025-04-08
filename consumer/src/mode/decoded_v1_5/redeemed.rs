@@ -11,7 +11,6 @@ use models::{
     position::Position,
     predicate_object::PredicateObject,
     redemption::Redemption,
-    share_price_changed_curve::SharePriceChangedCurve,
     signal::Signal,
     term::{Term, TermType},
     traits::{Deletable, SimpleCrud},
@@ -163,53 +162,6 @@ impl Redeemed {
         Ok(())
     }
 
-    /// This function gets or creates a vault
-    async fn get_or_create_temporary_vault(
-        &self,
-        decoded_consumer_context: &DecodedConsumerContext,
-        id: &U256Wrapper,
-    ) -> Result<Vault, ConsumerError> {
-        if let Some(vault) = Vault::find_by_term_id_and_curve_id(
-            id.clone(),
-            U256Wrapper::from_str("1")?,
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
-        )
-        .await?
-        {
-            Ok(vault)
-        } else {
-            let share_price = SharePriceChangedCurve::fetch_current_share_price(
-                id.clone(),
-                U256Wrapper::from_str("1")?,
-                &decoded_consumer_context.pg_pool,
-                &decoded_consumer_context.backend_schema,
-            )
-            .await?;
-            Vault::builder()
-                .term_id(id.clone())
-                .curve_id(U256Wrapper::from_str("1")?)
-                .total_shares(share_price.total_shares)
-                .current_share_price(share_price.share_price)
-                .position_count(
-                    Position::count_by_vault_and_curve(
-                        id.to_string(),
-                        "1".to_string(),
-                        &decoded_consumer_context.pg_pool,
-                        &decoded_consumer_context.backend_schema,
-                    )
-                    .await? as i32,
-                )
-                .build()
-                .upsert(
-                    &decoded_consumer_context.pg_pool,
-                    &decoded_consumer_context.backend_schema,
-                )
-                .await
-                .map_err(ConsumerError::ModelError)
-        }
-    }
-
     /// This function handles the creation of a `Redeemed`
     pub async fn handle_redeemed_creation(
         &self,
@@ -223,12 +175,14 @@ impl Redeemed {
             get_or_create_account(self.receiver.to_string(), decoded_consumer_context).await?;
 
         // 2. Ensure the vault exists
-        let vault = self
-            .get_or_create_temporary_vault(
-                decoded_consumer_context,
-                &U256Wrapper::from(self.vaultId),
-            )
-            .await?;
+        let vault = Vault::find_by_term_id_and_curve_id(
+            U256Wrapper::from(self.vaultId),
+            U256Wrapper::from_str("1")?,
+            &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
+        )
+        .await?
+        .ok_or(ConsumerError::VaultNotFound)?;
 
         // 3. Create redemption record
         self.create_redemption_record(

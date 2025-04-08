@@ -151,32 +151,4 @@ impl Vault {
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
     }
-
-    /// This function updates the vault stats
-    pub async fn update_vault_stats(
-        term_id: U256Wrapper,
-        current_share_price: U256Wrapper,
-        total_assets: U256Wrapper,
-        pool: &PgPool,
-        schema: &str,
-    ) -> Result<Self, ModelError> {
-        let query = format!(
-            r#"
-            UPDATE {}.vault 
-            SET current_share_price = $1, total_assets = $2, theoretical_value_locked = $3
-            WHERE term_id = $4
-            RETURNING term_id, curve_id, total_shares, current_share_price, position_count, total_assets, theoretical_value_locked
-            "#,
-            schema,
-        );
-
-        sqlx::query_as::<_, Vault>(&query)
-            .bind(current_share_price.to_big_decimal()?)
-            .bind(total_assets.to_big_decimal()?)
-            .bind(total_assets.to_big_decimal()? * current_share_price.to_big_decimal()?)
-            .bind(term_id.to_big_decimal()?)
-            .fetch_one(pool)
-            .await
-            .map_err(|e| ModelError::UpdateError(e.to_string()))
-    }
 }
