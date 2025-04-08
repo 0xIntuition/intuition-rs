@@ -13,13 +13,7 @@ object_relationships:
       foreign_key_constraint_on: account_id
   - name: atom
     using:
-      manual_configuration:
-        column_mapping:
-          id: id
-        insertion_order: null
-        remote_table:
-          name: atom
-          schema: public
+      foreign_key_constraint_on: id
   - name: book
     using:
       manual_configuration:

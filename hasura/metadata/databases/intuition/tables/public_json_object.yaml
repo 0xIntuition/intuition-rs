@@ -7,6 +7,16 @@ configuration:
   custom_name: json_objects
   custom_root_fields:
     select_by_pk: json_object
+object_relationships:
+  - name: atom
+    using:
+      manual_configuration:
+        column_mapping:
+          id: term_id
+        insertion_order: null
+        remote_table:
+          name: atom
+          schema: public
 select_permissions:
   - role: anonymous
     permission:

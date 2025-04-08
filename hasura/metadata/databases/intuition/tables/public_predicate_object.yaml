@@ -12,13 +12,7 @@ object_relationships:
       foreign_key_constraint_on: object_id
   - name: predicate
     using:
-      manual_configuration:
-        column_mapping:
-          predicate_id: id
-        insertion_order: null
-        remote_table:
-          name: atom
-          schema: public
+      foreign_key_constraint_on: predicate_id
 select_permissions:
   - role: anonymous
     permission:

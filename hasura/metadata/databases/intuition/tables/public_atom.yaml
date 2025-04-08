@@ -8,42 +8,28 @@ configuration:
   custom_root_fields:
     select_by_pk: atom
 object_relationships:
-  - name: controler
+  - name: atom_value
+    using:
+      foreign_key_constraint_on:
+        column: id
+        table:
+          name: atom_value
+          schema: public
+  - name: controller
     using:
       manual_configuration:
         column_mapping:
-          wallet_id: term_id
+          wallet_id: id
         insertion_order: null
         remote_table:
           name: account
           schema: public
   - name: creator
     using:
-      manual_configuration:
-        column_mapping:
-          creator_id: term_id
-        insertion_order: null
-        remote_table:
-          name: account
-          schema: public
+      foreign_key_constraint_on: creator_id
   - name: term
     using:
-      manual_configuration:
-        column_mapping:
-          term_id: term_id
-        insertion_order: null
-        remote_table:
-          name: term
-          schema: public
-  - name: value
-    using:
-      manual_configuration:
-        column_mapping:
-          value_id: term_id
-        insertion_order: null
-        remote_table:
-          name: atom_value
-          schema: public
+      foreign_key_constraint_on: term_id
 array_relationships:
   - name: accounts
     using:
@@ -52,12 +38,12 @@ array_relationships:
         table:
           name: account
           schema: public
-  - name: as_object_claims
+  - name: as_object_predicate_objects
     using:
       foreign_key_constraint_on:
         column: object_id
         table:
-          name: claim
+          name: predicate_object
           schema: public
   - name: as_object_triples
     using:
@@ -66,12 +52,12 @@ array_relationships:
         table:
           name: triple
           schema: public
-  - name: as_predicate_claims
+  - name: as_predicate_predicate_objects
     using:
       foreign_key_constraint_on:
         column: predicate_id
         table:
-          name: claim
+          name: predicate_object
           schema: public
   - name: as_predicate_triples
     using:
@@ -80,19 +66,21 @@ array_relationships:
         table:
           name: triple
           schema: public
-  - name: as_subject_claims
-    using:
-      foreign_key_constraint_on:
-        column: subject_id
-        table:
-          name: claim
-          schema: public
   - name: as_subject_triples
     using:
       foreign_key_constraint_on:
         column: subject_id
         table:
           name: triple
+          schema: public
+  - name: positions
+    using:
+      manual_configuration:
+        column_mapping:
+          term_id: term_id
+        insertion_order: null
+        remote_table:
+          name: position
           schema: public
   - name: signals
     using:

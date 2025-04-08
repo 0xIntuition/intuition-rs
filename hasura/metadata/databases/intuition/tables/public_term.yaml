@@ -17,6 +17,13 @@ object_relationships:
         remote_table:
           name: atom
           schema: public
+  - name: atomById
+    using:
+      foreign_key_constraint_on:
+        column: term_id
+        table:
+          name: atom
+          schema: public
   - name: triple
     using:
       manual_configuration:
@@ -26,7 +33,49 @@ object_relationships:
         remote_table:
           name: triple
           schema: public
+  - name: tripleById
+    using:
+      foreign_key_constraint_on:
+        column: term_id
+        table:
+          name: triple
+          schema: public
 array_relationships:
+  - name: deposits
+    using:
+      foreign_key_constraint_on:
+        column: term_id
+        table:
+          name: deposit
+          schema: public
+  - name: positions
+    using:
+      foreign_key_constraint_on:
+        column: term_id
+        table:
+          name: position
+          schema: public
+  - name: redemptions
+    using:
+      foreign_key_constraint_on:
+        column: term_id
+        table:
+          name: redemption
+          schema: public
+  - name: share_price_changes
+    using:
+      foreign_key_constraint_on:
+        column: term_id
+        table:
+          name: share_price_change
+          schema: public
+  - name: signals
+    using:
+      foreign_key_constraint_on:
+        column: term_id
+        table:
+          name: signal
+          schema: public
   - name: vaults
     using:
       foreign_key_constraint_on:
