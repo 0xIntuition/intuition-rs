@@ -89,6 +89,8 @@ services:
     depends_on:
       sqs:
         condition: service_healthy
+      ipfs:
+        condition: service_healthy
     volumes:
       - ~/.aws/:/root/.aws:ro
       - ./logs:/app/logs
@@ -299,11 +301,11 @@ services:
       INDEXER_SCHEMA: "histo_base_sepolia_1_5"
     depends_on:
       geth:
-        condition: service_started
+        condition: service_healthy
       database:
         condition: service_healthy
       local-migrations:
-        condition: service_started
+        condition: service_completed_successfully
 
   local-migrations:
     container_name: local-migrations
@@ -318,7 +320,7 @@ services:
       database:
         condition: service_healthy
       indexer-migrations:
-        condition: service_started
+        condition: service_completed_successfully
     restart: "no"
 
   indexer-migrations:
@@ -349,7 +351,7 @@ services:
       sqs:
         condition: service_healthy
       local-migrations:
-        condition: service_started
+        condition: service_completed_successfully
 
   hasura-migrations:
     container_name: hasura-migrations
@@ -380,14 +382,14 @@ services:
 
   geth:
     container_name: geth
-    image: ethereum/client-go
+    image: ethereum/client-go:latest
     ports:
       - '8545:8545'
     healthcheck:
-      test: ['CMD', 'curl', 'http://localhost:8545']
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      test: ["CMD", "geth", "attach", "--exec", "eth.blockNumber", "http://localhost:8545"]
+      interval: 2s
+      timeout: 2s
+      retries: 10
     entrypoint: sh /root/init-script.sh
     command: '--dev --dev.period=1 --cache=8192 --gcmode=full --history.state=0 --history.transactions=0 --syncmode=full --cache.gc=0 --http --http.api=eth,web3,net --mine  --http.port=8545 --http.vhosts=* --http.addr=0.0.0.0 --http.corsdomain="https://remix.ethereum.org" --datadir=/data --password=/root/password.txt'
     volumes:
@@ -396,6 +398,7 @@ services:
       - ./geth/init-script.sh:/root/init-script.sh
       - ./geth/keystore.json:/data/keystore/UTC--2024-06-03T19-15-34.118131000Z--63e87dc2366dc7f1be110ded239879422e165d96
       - ./geth/password.txt:/root/password.txt
+  
   integration-tests:
     container_name: integration-tests
     build:
@@ -406,9 +409,27 @@ services:
       - GRAPHQL_API_URL=http://graphql-engine:8080/v1/graphql
       - IPFS_API_URL=http://api:3000/upload_json_to_ipfs 
     depends_on:
-      - geth
-      - graphql-engine
-      - consumer-api
+      geth:
+        condition: service_healthy
+      graphql-engine:
+        condition: service_healthy
+      consumer-api:
+        condition: service_started
+      contract-deployer:
+        condition: service_completed_successfully
+
+  contract-deployer:
+    container_name: contract-deployer
+    build:
+      context: ./integration-tests/contract-deployer
+      dockerfile: Dockerfile
+    depends_on:
+      geth:
+        condition: service_healthy 
+    volumes:
+      - deployer_data:/app
+      - ./geth/keystore.json:/data/keystore.json
+      - ./geth/password.txt:/data/password.txt
 
 
 networks:
@@ -424,3 +445,4 @@ volumes:
   ipfs_data:
   substreams-sink-data:
   data_geth:
+  deployer_data:
