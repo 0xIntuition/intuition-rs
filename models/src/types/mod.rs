@@ -1,6 +1,6 @@
 use std::{
     fmt::Display,
-    ops::{Add, Mul, Sub, SubAssign},
+    ops::{Add, Div, Mul, Sub, SubAssign},
     str::FromStr,
 };
 
@@ -32,6 +32,14 @@ impl Mul for U256Wrapper {
 
     fn mul(self, other: Self) -> Self {
         U256Wrapper::from(self.0 * other.0)
+    }
+}
+
+impl Div for U256Wrapper {
+    type Output = Self;
+
+    fn div(self, other: Self) -> Self {
+        U256Wrapper::from(self.0 / other.0)
     }
 }
 

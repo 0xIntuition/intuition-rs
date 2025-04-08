@@ -140,12 +140,13 @@ pub async fn update_vault_from_share_price_changed_events(
             .await?;
         vault.total_assets = Some(share_price_changed.total_assets()?);
         vault.theoretical_value_locked = Some(
-            share_price_changed
+            (share_price_changed
                 .total_shares(decoded_consumer_context)
                 .await?
                 * share_price_changed
                     .current_share_price(decoded_consumer_context)
-                    .await?,
+                    .await?)
+                / U256Wrapper::from(U256::from(10).pow(U256::from(18))),
         );
         vault
             .upsert(
