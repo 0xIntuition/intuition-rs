@@ -26,6 +26,34 @@ mod tests {
         Ok(())
     }
 
+    #[test]
+    fn test_u256_wrapper_mul_and_div() {
+        // Test multiplication
+        let a = U256Wrapper::from(U256::from(100));
+        let b = U256Wrapper::from(U256::from(5));
+        let result_mul = a * b;
+        assert_eq!(result_mul.0, U256::from(500));
+
+        // Test division
+        let c = U256Wrapper::from(U256::from(1000));
+        let d = U256Wrapper::from(U256::from(10));
+        let result_div = c / d;
+        assert_eq!(result_div.0, U256::from(100));
+
+        // Test division with 1e18
+        let e = U256Wrapper::from(U256::from(10).pow(U256::from(20))); // 10^20
+        let f = U256Wrapper::from(U256::from(10).pow(U256::from(18))); // 10^18
+        let result_div_1e18 = e / f;
+        assert_eq!(result_div_1e18.0, U256::from(100));
+
+        println!("Multiplication test: 100 * 5 = {}", result_mul.0);
+        println!("Division test: 1000 / 10 = {}", result_div.0);
+        println!(
+            "Division by 1e18 test: 10^20 / 10^18 = {}",
+            result_div_1e18.0
+        );
+    }
+
     #[sqlx::test]
     async fn test_triple_upsert_and_find() -> Result<(), ModelError> {
         // Setup: Create a database connection
