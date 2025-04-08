@@ -63,7 +63,7 @@ select_permissions:
         - term_id
         - total_shares
         - total_assets
-        - theoretical_value_locked
+        - market_cap
       filter: {}
       limit: 100
       allow_aggregations: true

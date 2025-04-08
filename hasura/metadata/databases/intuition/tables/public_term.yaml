@@ -43,7 +43,7 @@ select_permissions:
         - atom_id
         - triple_id
         - total_assets
-        - total_theoretical_value_locked
+        - total_market_cap
       filter: {}
       limit: 100
       allow_aggregations: true
