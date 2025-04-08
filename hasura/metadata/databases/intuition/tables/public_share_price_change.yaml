@@ -4,7 +4,7 @@ table:
 configuration:
   column_config: {}
   custom_column_names: {}
-  custom_name: share_price_change
+  custom_name: share_price_changes
   custom_root_fields:
     select_by_pk: share_price_change
 object_relationships:
@@ -16,8 +16,8 @@ array_relationships:
     using:
       manual_configuration:
         column_mapping:
-          term_id: term_id
           curve_id: curve_id
+          term_id: term_id
         insertion_order: null
         remote_table:
           name: deposit
@@ -26,8 +26,8 @@ array_relationships:
     using:
       manual_configuration:
         column_mapping:
-          term_id: term_id
           curve_id: curve_id
+          term_id: term_id
         insertion_order: null
         remote_table:
           name: redemption

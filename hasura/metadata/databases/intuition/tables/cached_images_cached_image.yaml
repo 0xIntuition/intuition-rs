@@ -1,0 +1,22 @@
+table:
+  name: cached_image
+  schema: cached_images
+configuration:
+  column_config: {}
+  custom_column_names: {}
+  custom_name: cached_images
+  custom_root_fields:
+    select_by_pk: cached_image
+select_permissions:
+  - role: anonymous
+    permission:
+      columns:
+        - safe
+        - score
+        - model
+        - original_url
+        - url
+        - created_at
+      filter: {}
+      limit: 100
+    comment: ""

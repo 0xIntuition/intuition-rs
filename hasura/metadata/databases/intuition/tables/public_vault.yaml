@@ -12,7 +12,7 @@ object_relationships:
     using:
       manual_configuration:
         column_mapping:
-          term_id: id
+          term_id: term_id
         insertion_order: null
         remote_table:
           name: term
@@ -20,37 +20,47 @@ object_relationships:
 array_relationships:
   - name: claims
     using:
-      foreign_key_constraint_on:
-        column: term_id
-        table:
+      manual_configuration:
+        column_mapping:
+          term_id: term_id
+        insertion_order: null
+        remote_table:
           name: claim
           schema: public
   - name: counter_claims
     using:
-      foreign_key_constraint_on:
-        column: counter_term_id
-        table:
+      manual_configuration:
+        column_mapping:
+          counter_term_id: term_id
+        insertion_order: null
+        remote_table:
           name: claim
           schema: public
   - name: deposits
     using:
-      foreign_key_constraint_on:
-        column: term_id
-        table:
+      manual_configuration:
+        column_mapping:
+          term_id: term_id
+        insertion_order: null
+        remote_table:
           name: deposit
           schema: public
   - name: positions
     using:
-      foreign_key_constraint_on:
-        column: term_id
-        table:
+      manual_configuration:
+        column_mapping:
+          term_id: term_id
+        insertion_order: null
+        remote_table:
           name: position
           schema: public
   - name: redemptions
     using:
-      foreign_key_constraint_on:
-        column: term_id
-        table:
+      manual_configuration:
+        column_mapping:
+          term_id: term_id
+        insertion_order: null
+        remote_table:
           name: redemption
           schema: public
 select_permissions:
