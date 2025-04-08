@@ -19,7 +19,7 @@ pub struct Vault {
     pub current_share_price: U256Wrapper,
     pub position_count: i32,
     pub total_assets: Option<U256Wrapper>,
-    pub theoretical_value_locked: Option<U256Wrapper>,
+    pub market_cap: Option<U256Wrapper>,
 }
 /// This is a trait that all models must implement.
 impl Model for Vault {}
@@ -31,15 +31,15 @@ impl SimpleCrud<U256Wrapper> for Vault {
     async fn upsert(&self, pool: &PgPool, schema: &str) -> Result<Self, ModelError> {
         let query = format!(
             r#"
-            INSERT INTO {}.vault (term_id, curve_id, total_shares, current_share_price, position_count, total_assets, theoretical_value_locked)
+            INSERT INTO {}.vault (term_id, curve_id, total_shares, current_share_price, position_count, total_assets, market_cap)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             ON CONFLICT (term_id, curve_id) DO UPDATE SET
                 total_shares = EXCLUDED.total_shares,
                 current_share_price = EXCLUDED.current_share_price,
                 position_count = EXCLUDED.position_count,
                 total_assets = EXCLUDED.total_assets,
-                theoretical_value_locked = EXCLUDED.theoretical_value_locked
-            RETURNING term_id, curve_id, total_shares, current_share_price, position_count, total_assets, theoretical_value_locked
+                market_cap = EXCLUDED.market_cap
+            RETURNING term_id, curve_id, total_shares, current_share_price, position_count, total_assets, market_cap
             "#,
             schema,
         );
@@ -56,7 +56,7 @@ impl SimpleCrud<U256Wrapper> for Vault {
                     .and_then(|w| w.to_big_decimal().ok()),
             )
             .bind(
-                self.theoretical_value_locked
+                self.market_cap
                     .as_ref()
                     .and_then(|w| w.to_big_decimal().ok()),
             )
@@ -80,7 +80,7 @@ impl SimpleCrud<U256Wrapper> for Vault {
                 current_share_price,
                 position_count,
                 total_assets,
-                theoretical_value_locked
+                market_cap
             FROM {}.vault 
             WHERE term_id = $1
             "#,
@@ -135,14 +135,14 @@ impl Vault {
             .map_err(|e| ModelError::QueryError(e.to_string()))
     }
 
-    /// This function sums the theoretical value locked of all the vaults for a given term
-    pub async fn sum_theoretical_value_locked(
+    /// This function sums the market cap of all the vaults for a given term
+    pub async fn sum_market_cap(
         term_id: U256Wrapper,
         pool: &PgPool,
         schema: &str,
     ) -> Result<U256Wrapper, ModelError> {
         let query = format!(
-            r#"SELECT SUM(theoretical_value_locked) FROM {}.vault WHERE term_id = $1"#,
+            r#"SELECT SUM(market_cap) FROM {}.vault WHERE term_id = $1"#,
             schema
         );
         sqlx::query_scalar::<_, U256Wrapper>(&query)

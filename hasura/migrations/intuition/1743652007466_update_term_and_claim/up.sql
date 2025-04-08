@@ -1,6 +1,6 @@
 -- Add new columns to term table
 ALTER TABLE term ADD COLUMN total_assets NUMERIC(78, 0);
-ALTER TABLE term ADD COLUMN total_theoretical_value_locked NUMERIC(78, 0);
+ALTER TABLE term ADD COLUMN total_market_cap NUMERIC(78, 0);
 
 -- Add position_id to claim table
 ALTER TABLE claim ADD COLUMN position_id TEXT;

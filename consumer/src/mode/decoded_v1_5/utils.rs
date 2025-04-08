@@ -139,7 +139,7 @@ pub async fn update_vault_from_share_price_changed_events(
             .total_shares(decoded_consumer_context)
             .await?;
         vault.total_assets = Some(share_price_changed.total_assets()?);
-        vault.theoretical_value_locked = Some(
+        vault.market_cap = Some(
             (share_price_changed
                 .total_shares(decoded_consumer_context)
                 .await?
@@ -155,12 +155,7 @@ pub async fn update_vault_from_share_price_changed_events(
             )
             .await?;
         info!("Updated vault share price and total shares");
-        // now we need to update the term
-        update_term_total_assets_and_theoretical_value_locked(
-            decoded_consumer_context,
-            share_price_changed,
-        )
-        .await?;
+        // The term is going to be updated by the trigger on the vault table
     } else {
         info!("Vault not found, creating it");
         get_or_create_vault(share_price_changed, decoded_consumer_context, term_type)
@@ -174,43 +169,6 @@ pub async fn update_vault_from_share_price_changed_events(
     info!("Finished updating vault, updating share price aggregate");
 
     Ok(())
-}
-
-#[cfg(feature = "v1_5_contract")]
-/// This function updates the term total assets and theoretical value locked
-pub async fn update_term_total_assets_and_theoretical_value_locked(
-    decoded_consumer_context: &DecodedConsumerContext,
-    share_price_changed: impl SharePriceEvent + Debug,
-) -> Result<Term, ConsumerError> {
-    let mut term = Term::find_by_id(
-        share_price_changed.term_id()?,
-        &decoded_consumer_context.pg_pool,
-        &decoded_consumer_context.backend_schema,
-    )
-    .await?
-    .ok_or(ConsumerError::TermNotFound)?;
-    // The term total assets is the sum of all the vaults total assets that are associated with the term
-    let total_assets = Vault::sum_total_assets(
-        share_price_changed.term_id()?,
-        &decoded_consumer_context.pg_pool,
-        &decoded_consumer_context.backend_schema,
-    )
-    .await?;
-    term.total_assets = total_assets.clone();
-    // The term theoretical value locked is the sum of all the vaults theoretical value locked that are associated with the term,
-    // independent of the curve_id, multiplied by the share price
-    term.total_theoretical_value_locked = Vault::sum_theoretical_value_locked(
-        share_price_changed.term_id()?,
-        &decoded_consumer_context.pg_pool,
-        &decoded_consumer_context.backend_schema,
-    )
-    .await?;
-    term.upsert(
-        &decoded_consumer_context.pg_pool,
-        &decoded_consumer_context.backend_schema,
-    )
-    .await
-    .map_err(ConsumerError::ModelError)
 }
 
 #[cfg(feature = "v1_5_contract")]
@@ -241,7 +199,7 @@ pub async fn get_or_create_vault(
             .total_shares(event.total_shares(decoded_consumer_context).await?)
             .position_count(event.position_count(decoded_consumer_context).await?)
             .total_assets(event.total_assets()?)
-            .theoretical_value_locked(
+            .market_cap(
                 (event.total_shares(decoded_consumer_context).await?
                     * event.current_share_price(decoded_consumer_context).await?)
                     / U256Wrapper::from(U256::from(10).pow(U256::from(18))),
@@ -286,9 +244,9 @@ pub async fn get_or_create_term(
         let term = Term::builder()
             .id(term_id.clone())
             .term_type(term_type.clone())
-            // Everytime we create a new term, we need to set the total assets and theoretical value locked to 0
+            // Everytime we create a new term, we need to set the total assets and market cap to 0
             .total_assets(U256Wrapper::from_str("0")?)
-            .total_theoretical_value_locked(U256Wrapper::from_str("0")?);
+            .total_market_cap(U256Wrapper::from_str("0")?);
 
         if let TermType::Atom = term_type {
             term.atom_id(term_id.clone())

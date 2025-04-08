@@ -21,8 +21,8 @@ BEGIN
         ALTER TABLE vault ADD COLUMN total_assets NUMERIC(78, 0);
     END IF;
     
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'vault' AND column_name = 'theoretical_value_locked') THEN
-        ALTER TABLE vault ADD COLUMN theoretical_value_locked NUMERIC(78, 0);
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'vault' AND column_name = 'market_cap') THEN
+        ALTER TABLE vault ADD COLUMN market_cap NUMERIC(78, 0);
     END IF;
 END $$;
 

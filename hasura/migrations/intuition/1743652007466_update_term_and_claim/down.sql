@@ -27,4 +27,4 @@ ALTER TABLE share_price_changed_curve ADD CONSTRAINT share_price_changed_curve_t
 
 -- Remove new columns from term table
 ALTER TABLE term DROP COLUMN total_assets;
-ALTER TABLE term DROP COLUMN total_theoretical_value_locked; 
+ALTER TABLE term DROP COLUMN total_market_cap; 
