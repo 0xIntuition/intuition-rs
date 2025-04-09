@@ -8,6 +8,13 @@ spec:
       serviceAccountName: secrets-access-sa
       containers:
         - name: graphql-engine
+          resources:
+            limits:
+              cpu: "3"
+              memory: "6Gi"
+            requests:
+              cpu: "3"
+              memory: "6Gi"
           volumeMounts:
             - name: secrets-store-inline
               mountPath: "/mnt/secrets"
