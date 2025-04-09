@@ -16,6 +16,7 @@ pub struct Env {
     pub raw_logs_channel: String,
     pub indexer_schema: String,
     pub environment: String,
+    pub raw_consumer_queue_url: String,
 }
 
 /// Represents the SQS producer
@@ -89,23 +90,10 @@ impl SqsProducer {
                 .last_processed_id(0)
                 .environment(env.environment.clone())
                 .paused(false)
-                .queue_url(Self::get_queue_url(env))
+                .queue_url(env.raw_consumer_queue_url.clone())
                 .build()
                 .insert(pg_pool)
                 .await
-        }
-    }
-
-    /// This function returns the queue URL based on the environment.
-    fn get_queue_url(env: &Env) -> String {
-        if let Some(_localstack_url) = &env.localstack_url {
-            "http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/raw_logs.fifo"
-                .to_string()
-        } else {
-            format!(
-                "https://sqs.us-west-2.amazonaws.com/064662847354/prod-eks-prod-{}-raw-logs.fifo",
-                env.environment
-            )
         }
     }
 

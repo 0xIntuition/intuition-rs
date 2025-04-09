@@ -389,6 +389,7 @@ services:
       LOCALSTACK_URL: "http://sqs:4566/"
       RAW_LOGS_CHANNEL: "base_sepolia_v_1_5_raw_logs_channel"
       ENVIRONMENT: "local_v_1_5"
+      RAW_CONSUMER_QUEUE_URL: "http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/raw_logs.fifo"
     depends_on:
       database:
         condition: service_healthy
