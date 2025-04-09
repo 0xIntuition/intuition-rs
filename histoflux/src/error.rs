@@ -10,8 +10,6 @@ pub enum HistoFluxError {
             aws_smithy_runtime_api::http::Response,
         >,
     ),
-    #[error("Cursor not set")]
-    CursorNotSet,
     #[error(transparent)]
     EnvError(#[from] envy::Error),
     #[error(transparent)]

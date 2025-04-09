@@ -18,12 +18,12 @@ CREATE TABLE IF NOT EXISTS base_mainnet_indexer.raw_data (
 CREATE OR REPLACE FUNCTION base_mainnet_indexer.notify_raw_logs()
 RETURNS trigger AS $$
 BEGIN
-    PERFORM pg_notify('base_mainnet_indexer_raw_logs_channel', row_to_json(NEW)::text);
+    PERFORM pg_notify('base_mainnet_raw_logs_channel', row_to_json(NEW)::text);
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER raw_logs_notify_trigger
+CREATE TRIGGER base_mainnet_raw_logs_notify_trigger
     AFTER INSERT ON base_mainnet_indexer.raw_data
     FOR EACH ROW
     EXECUTE FUNCTION base_mainnet_indexer.notify_raw_logs();
