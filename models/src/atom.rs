@@ -12,10 +12,9 @@ use async_trait::async_trait;
 #[derive(sqlx::FromRow, Debug, PartialEq, Clone, Builder, Serialize, Deserialize)]
 #[sqlx(type_name = "atom")]
 pub struct Atom {
-    pub id: U256Wrapper,
+    pub term_id: U256Wrapper,
     pub wallet_id: String,
     pub creator_id: String,
-    pub vault_id: U256Wrapper,
     pub data: Option<String>,
     pub raw_data: String,
     pub atom_type: AtomType,
@@ -73,12 +72,12 @@ impl SimpleCrud<U256Wrapper> for Atom {
         let query = format!(
             r#"
             INSERT INTO {}.atom 
-                (id, wallet_id, creator_id, vault_id, data, raw_data, type, emoji, label, image, value_id, block_number, block_timestamp, transaction_hash, resolving_status)
-            VALUES ($1, $2, $3, $4, $5, $6, $7::text::{}.atom_type, $8, $9, $10, $11, $12, $13, $14, $15::text::{}.atom_resolving_status)
-            ON CONFLICT (id) DO UPDATE SET
+                (wallet_id, creator_id, term_id, data, raw_data, type, emoji, label, image, value_id, block_number, block_timestamp, transaction_hash, resolving_status)
+            VALUES ($1, $2, $3, $4, $5, $6::text::{}.atom_type, $7, $8, $9, $10, $11, $12, $13, $14::text::{}.atom_resolving_status)
+            ON CONFLICT (term_id) DO UPDATE SET
                 wallet_id = EXCLUDED.wallet_id,
                 creator_id = EXCLUDED.creator_id,
-                vault_id = EXCLUDED.vault_id,
+                term_id = EXCLUDED.term_id,
                 data = EXCLUDED.data,
                 raw_data = EXCLUDED.raw_data,
                 type = EXCLUDED.type,
@@ -91,10 +90,9 @@ impl SimpleCrud<U256Wrapper> for Atom {
                 transaction_hash = EXCLUDED.transaction_hash,
                 resolving_status = EXCLUDED.resolving_status
             RETURNING 
-                "id", 
                 "wallet_id", 
                 "creator_id", 
-                "vault_id", 
+                "term_id", 
                 "data", 
                 "raw_data",
                 "type" as "atom_type", 
@@ -111,10 +109,9 @@ impl SimpleCrud<U256Wrapper> for Atom {
         );
 
         sqlx::query_as::<_, Atom>(&query)
-            .bind(self.id.to_big_decimal()?)
             .bind(self.wallet_id.to_lowercase())
             .bind(self.creator_id.to_lowercase())
-            .bind(self.vault_id.to_big_decimal()?)
+            .bind(self.term_id.to_big_decimal()?)
             .bind(self.data.clone())
             .bind(self.raw_data.clone())
             .bind(self.atom_type.to_string())
@@ -145,16 +142,15 @@ impl SimpleCrud<U256Wrapper> for Atom {
     ///
     /// Returns a Result containing an Option<Atom>. The Result is Err if there's a database error.
     async fn find_by_id(
-        id: U256Wrapper,
+        term_id: U256Wrapper,
         pool: &PgPool,
         schema: &str,
     ) -> Result<Option<Self>, ModelError> {
         let query = format!(
             r#"
-            SELECT id, 
-                   wallet_id, 
+            SELECT wallet_id, 
                    creator_id, 
-                   vault_id, 
+                   term_id, 
                    data, 
                    raw_data,
                    type as atom_type, 
@@ -167,13 +163,13 @@ impl SimpleCrud<U256Wrapper> for Atom {
                    transaction_hash,
                    resolving_status
             FROM {}.atom
-            WHERE id = $1
+            WHERE term_id = $1
             "#,
             schema,
         );
 
         sqlx::query_as::<_, Atom>(&query)
-            .bind(id.to_big_decimal()?)
+            .bind(term_id.to_big_decimal()?)
             .fetch_optional(pool)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
@@ -184,12 +180,12 @@ impl Atom {
     /// Marks the atom as resolved
     pub async fn mark_as_resolved(&self, pool: &PgPool, schema: &str) -> Result<(), ModelError> {
         let query = format!(
-            r#"UPDATE {}.atom SET resolving_status = 'Resolved' WHERE id = $1"#,
+            r#"UPDATE {}.atom SET resolving_status = 'Resolved' WHERE term_id = $1"#,
             schema
         );
 
         sqlx::query(&query)
-            .bind(self.id.to_big_decimal()?)
+            .bind(self.term_id.to_big_decimal()?)
             .execute(pool)
             .await
             .map_err(ModelError::from)
@@ -199,12 +195,12 @@ impl Atom {
     /// Marks the atom as failed
     pub async fn mark_as_failed(&self, pool: &PgPool, schema: &str) -> Result<(), ModelError> {
         let query = format!(
-            r#"UPDATE {}.atom SET resolving_status = 'Failed' WHERE id = $1"#,
+            r#"UPDATE {}.atom SET resolving_status = 'Failed' WHERE term_id = $1"#,
             schema
         );
 
         sqlx::query(&query)
-            .bind(self.id.to_big_decimal()?)
+            .bind(self.term_id.to_big_decimal()?)
             .execute(pool)
             .await
             .map_err(ModelError::from)

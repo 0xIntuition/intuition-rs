@@ -1,10 +1,10 @@
 use crate::{
+    EthMultiVault::TripleCreated,
     error::ConsumerError,
     mode::{resolver::types::ResolverConsumerMessage, types::DecodedConsumerContext},
     schemas::types::DecodedMessage,
-    EthMultiVault::TripleCreated,
 };
-use alloy::primitives::{Uint, U256};
+use alloy::primitives::{U256, Uint};
 use models::{
     account::{Account, AccountType},
     atom::{Atom, AtomResolvingStatus, AtomType},
@@ -122,11 +122,11 @@ impl TripleCreated {
             Triple::builder()
                 .id(self.vaultID)
                 .creator_id(creator_account.id)
-                .subject_id(subject_atom.id.clone())
-                .predicate_id(predicate_atom.id.clone())
-                .object_id(object_atom.id.clone())
-                .vault_id(U256Wrapper::from(self.vaultID))
-                .counter_vault_id(U256Wrapper::from(counter_vault_id))
+                .subject_id(subject_atom.term_id.clone())
+                .predicate_id(predicate_atom.term_id.clone())
+                .object_id(object_atom.term_id.clone())
+                .vault_id(self.vaultID.to_string())
+                .counter_vault_id(counter_vault_id.to_string())
                 .block_number(U256Wrapper::try_from(event.block_number).unwrap_or_default())
                 .block_timestamp(event.block_timestamp)
                 .transaction_hash(event.transaction_hash.clone())
@@ -150,7 +150,7 @@ impl TripleCreated {
         block_number: i64,
     ) -> Result<Vault, ConsumerError> {
         let vault = Vault::find_by_id(
-            U256Wrapper::from_str(&id.to_string())?,
+            id.to_string(),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
@@ -160,7 +160,8 @@ impl TripleCreated {
             Ok(vault)
         } else {
             Vault::builder()
-                .id(id)
+                .id(id.to_string())
+                .curve_id(U256Wrapper::from_str("1")?)
                 .triple_id(self.vaultID)
                 .total_shares(
                     decoded_consumer_context
@@ -170,7 +171,7 @@ impl TripleCreated {
                 .current_share_price(U256Wrapper::from(current_share_price))
                 .position_count(
                     Position::count_by_vault(
-                        U256Wrapper::from_str(&id.to_string())?,
+                        id.to_string(),
                         &decoded_consumer_context.pg_pool,
                         &decoded_consumer_context.backend_schema,
                     )
@@ -219,7 +220,7 @@ impl TripleCreated {
             .await?;
 
         // Enqueue the atom for resolution
-        let message = ResolverConsumerMessage::new_atom(atom.id.to_string());
+        let message = ResolverConsumerMessage::new_atom(atom.term_id.to_string());
         decoded_consumer_context
             .client
             .send_message(serde_json::to_string(&message)?, None)
@@ -278,7 +279,7 @@ impl TripleCreated {
         block_number: i64,
     ) -> Result<Vault, ConsumerError> {
         if let Some(vault) = Vault::find_by_id(
-            id.clone(),
+            id.to_string(),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
@@ -287,8 +288,9 @@ impl TripleCreated {
             Ok(vault)
         } else {
             Vault::builder()
-                .id(id.clone())
-                .atom_id(id.clone())
+                .id(id.to_string())
+                .curve_id(U256Wrapper::from_str("1")?)
+                .atom_id(U256Wrapper::from_str(&id.to_string())?)
                 .total_shares(
                     decoded_consumer_context
                         .fetch_total_shares_in_vault(
@@ -300,7 +302,7 @@ impl TripleCreated {
                 .current_share_price(U256Wrapper::from_str("0")?)
                 .position_count(
                     Position::count_by_vault(
-                        U256Wrapper::from_str(&id.to_string())?,
+                        id.to_string(),
                         &decoded_consumer_context.pg_pool,
                         &decoded_consumer_context.backend_schema,
                     )
@@ -330,7 +332,7 @@ impl TripleCreated {
             .wallet_id(account.id.clone())
             .creator_id(account.id)
             .vault_id(vault.id.clone())
-            .value_id(vault.id.clone())
+            .value_id(U256Wrapper::from_str(&vault.id)?)
             .data(Atom::decode_data(atom_data.to_string())?)
             .raw_data(atom_data.to_string())
             .atom_type(AtomType::Unknown)
@@ -484,7 +486,7 @@ impl TripleCreated {
         block_number: i64,
     ) -> Result<(), ConsumerError> {
         let positions = Position::find_by_vault_id(
-            U256Wrapper::from(self.vaultID),
+            self.vaultID.to_string(),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
@@ -497,7 +499,7 @@ impl TripleCreated {
                 .subject_id(self.subjectId)
                 .predicate_id(self.predicateId)
                 .object_id(self.objectId)
-                .vault_id(U256Wrapper::from(self.vaultID))
+                .vault_id(self.vaultID.to_string())
                 .counter_vault_id(triple.counter_vault_id.clone())
                 .shares(position.shares.clone())
                 .counter_shares(position.shares)
@@ -615,11 +617,6 @@ impl TripleCreated {
             .fetch_current_share_price(self.vaultID, event.block_number)
             .await?;
 
-        // Get or create the triple
-        let triple = self
-            .get_or_create_triple(decoded_consumer_context, event, counter_vault_id)
-            .await?;
-
         // Get or update the vault
         self.get_or_create_vault(
             decoded_consumer_context,
@@ -636,6 +633,11 @@ impl TripleCreated {
             event.block_number,
         )
         .await?;
+
+        // Get or create the triple
+        let triple = self
+            .get_or_create_triple(decoded_consumer_context, event, counter_vault_id)
+            .await?;
 
         Ok(triple)
     }

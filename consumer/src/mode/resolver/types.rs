@@ -1,7 +1,10 @@
+#[cfg(feature = "v1_0_contract")]
+use crate::mode::decoded::atom::atom_supported_types::AtomMetadata;
+#[cfg(feature = "v1_5_contract")]
+use crate::mode::decoded_v1_5::atom::atom_supported_types::AtomMetadata;
 use crate::{
     error::ConsumerError,
     mode::{
-        decoded::atom::atom_supported_types::AtomMetadata,
         ipfs_upload::types::IpfsUploadMessage,
         resolver::{
             atom_resolver::{

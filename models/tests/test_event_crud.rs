@@ -27,7 +27,7 @@ mod tests {
             .await?;
 
         // Create initial event
-        let event = create_test_event_with_atom(atom.id);
+        let event = create_test_event_with_atom(atom.term_id.clone());
 
         // Test initial upsert
         let upserted_event = event.upsert(&pool, TEST_SCHEMA).await?;
@@ -84,15 +84,15 @@ mod tests {
         // Create a triple
         let triple = create_test_triple(
             creator.id,
-            subject_atom.id,
-            predicate_atom.id,
-            object_atom.id,
+            subject_atom.term_id.clone(),
+            predicate_atom.term_id.clone(),
+            object_atom.term_id.clone(),
         )
         .upsert(&pool, TEST_SCHEMA)
         .await?;
 
         // Create event with triple_id
-        let event = create_test_event_with_triple(triple.id);
+        let event = create_test_event_with_triple(triple.term_id.clone());
 
         // Test initial upsert
         let upserted_event = event.upsert(&pool, TEST_SCHEMA).await?;

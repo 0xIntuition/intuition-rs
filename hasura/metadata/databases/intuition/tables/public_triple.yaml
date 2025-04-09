@@ -11,14 +11,14 @@ configuration:
     default_limit: 250
     max_limit: 250
 object_relationships:
-  - name: counter_vault
+  - name: counter_term
     using:
       manual_configuration:
         column_mapping:
-          counter_vault_id: id
+          counter_term_id: id
         insertion_order: null
         remote_table:
-          name: vault
+          name: term
           schema: public
   - name: creator
     using:
@@ -38,31 +38,33 @@ object_relationships:
   - name: subject
     using:
       foreign_key_constraint_on: subject_id
-  - name: vault
+  - name: term
     using:
       manual_configuration:
         column_mapping:
-          vault_id: id
+          term_id: id
         insertion_order: null
         remote_table:
-          name: vault
+          name: term
           schema: public
 array_relationships:
-  - name: claims
-    using:
-      foreign_key_constraint_on:
-        column: triple_id
-        table:
-          name: claim
-          schema: public
-  - name: signals
+  - name: counter_positions
     using:
       manual_configuration:
         column_mapping:
-          id: triple_id
+          counter_term_id: term_id
         insertion_order: null
         remote_table:
-          name: signal
+          name: position
+          schema: public
+  - name: positions
+    using:
+      manual_configuration:
+        column_mapping:
+          term_id: term_id
+        insertion_order: null
+        remote_table:
+          name: position
           schema: public
 select_permissions:
   - role: anonymous
@@ -71,12 +73,11 @@ select_permissions:
         - transaction_hash
         - block_number
         - block_timestamp
-        - counter_vault_id
-        - id
+        - counter_term_id
+        - term_id
         - object_id
         - predicate_id
         - subject_id
-        - vault_id
         - creator_id
       filter: {}
       limit: 250

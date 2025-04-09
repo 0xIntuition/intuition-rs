@@ -23,23 +23,18 @@ object_relationships:
         remote_table:
           name: account
           schema: public
+  - name: term
+    using:
+      foreign_key_constraint_on: term_id
   - name: vault
     using:
-      foreign_key_constraint_on: vault_id
-array_relationships:
-  - name: events
-    using:
-      foreign_key_constraint_on:
-        column: deposit_id
-        table:
-          name: event
-          schema: public
-  - name: signals
-    using:
-      foreign_key_constraint_on:
-        column: deposit_id
-        table:
-          name: signal
+      manual_configuration:
+        column_mapping:
+          curve_id: curve_id
+          term_id: term_id
+        insertion_order: null
+        remote_table:
+          name: vault
           schema: public
 select_permissions:
   - role: anonymous
@@ -54,7 +49,8 @@ select_permissions:
         - receiver_total_shares_in_vault
         - sender_assets_after_total_fees
         - shares_for_receiver
-        - vault_id
+        - term_id
+        - curve_id
         - id
         - receiver_id
         - sender_id

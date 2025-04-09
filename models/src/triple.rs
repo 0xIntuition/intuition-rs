@@ -10,13 +10,12 @@ use sqlx::{PgPool, Result};
 #[derive(Debug, sqlx::FromRow, PartialEq, Clone, Builder)]
 #[sqlx(type_name = "triple")]
 pub struct Triple {
-    pub id: U256Wrapper,
+    pub term_id: U256Wrapper,
     pub creator_id: String,
     pub subject_id: U256Wrapper,
     pub predicate_id: U256Wrapper,
     pub object_id: U256Wrapper,
-    pub vault_id: U256Wrapper,
-    pub counter_vault_id: U256Wrapper,
+    pub counter_term_id: U256Wrapper,
     pub block_number: U256Wrapper,
     pub block_timestamp: i64,
     pub transaction_hash: String,
@@ -32,32 +31,31 @@ impl SimpleCrud<U256Wrapper> for Triple {
     async fn upsert(&self, pool: &PgPool, schema: &str) -> Result<Self, ModelError> {
         let query = format!(
             r#"
-            INSERT INTO {}.triple (id, creator_id, subject_id, predicate_id, object_id, vault_id, counter_vault_id, block_number, block_timestamp, transaction_hash)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-            ON CONFLICT (id) DO UPDATE SET
+            INSERT INTO {}.triple (creator_id, subject_id, predicate_id, object_id, term_id, counter_term_id, block_number, block_timestamp, transaction_hash)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            ON CONFLICT (term_id) DO UPDATE SET
                 creator_id = EXCLUDED.creator_id,
                 subject_id = EXCLUDED.subject_id,
                 predicate_id = EXCLUDED.predicate_id,
                 object_id = EXCLUDED.object_id,
-                vault_id = EXCLUDED.vault_id,
-                counter_vault_id = EXCLUDED.counter_vault_id,
+                term_id = EXCLUDED.term_id,
+                counter_term_id = EXCLUDED.counter_term_id,
                 block_number = EXCLUDED.block_number,
                 block_timestamp = EXCLUDED.block_timestamp,
                 transaction_hash = EXCLUDED.transaction_hash
-            RETURNING id, creator_id, subject_id, predicate_id, object_id, 
-                      vault_id, counter_vault_id, block_number, block_timestamp, transaction_hash
+            RETURNING creator_id, subject_id, predicate_id, object_id, 
+                      term_id, counter_term_id, block_number, block_timestamp, transaction_hash
             "#,
             schema,
         );
 
         sqlx::query_as::<_, Triple>(&query)
-            .bind(self.id.to_big_decimal()?)
             .bind(self.creator_id.clone())
             .bind(self.subject_id.to_big_decimal()?)
             .bind(self.predicate_id.to_big_decimal()?)
             .bind(self.object_id.to_big_decimal()?)
-            .bind(self.vault_id.to_big_decimal()?)
-            .bind(self.counter_vault_id.to_big_decimal()?)
+            .bind(self.term_id.to_big_decimal()?)
+            .bind(self.counter_term_id.to_big_decimal()?)
             .bind(self.block_number.to_big_decimal()?)
             .bind(self.block_timestamp)
             .bind(&self.transaction_hash)
@@ -68,31 +66,30 @@ impl SimpleCrud<U256Wrapper> for Triple {
 
     /// Finds a triple by its id.
     async fn find_by_id(
-        id: U256Wrapper,
+        term_id: U256Wrapper,
         pool: &PgPool,
         schema: &str,
     ) -> Result<Option<Self>, ModelError> {
         let query = format!(
             r#"
             SELECT 
-                id, 
                 creator_id, 
                 subject_id, 
                 predicate_id, 
                 object_id, 
-                vault_id, 
-                counter_vault_id, 
+                term_id, 
+                counter_term_id, 
                 block_number, 
                 block_timestamp, 
                 transaction_hash
             FROM {}.triple
-            WHERE id = $1
+            WHERE term_id = $1 OR counter_term_id = $1
             "#,
             schema,
         );
 
         sqlx::query_as::<_, Triple>(&query)
-            .bind(id.to_big_decimal()?)
+            .bind(term_id.to_big_decimal()?)
             .fetch_optional(pool)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))

@@ -1,6 +1,6 @@
 use std::{
     fmt::Display,
-    ops::{Add, Sub, SubAssign},
+    ops::{Add, Div, Mul, Sub, SubAssign},
     str::FromStr,
 };
 
@@ -24,6 +24,22 @@ impl TryInto<U256> for U256Wrapper {
 
     fn try_into(self) -> Result<U256, Self::Error> {
         Ok(self.0)
+    }
+}
+
+impl Mul for U256Wrapper {
+    type Output = Self;
+
+    fn mul(self, other: Self) -> Self {
+        U256Wrapper::from(self.0 * other.0)
+    }
+}
+
+impl Div for U256Wrapper {
+    type Output = Self;
+
+    fn div(self, other: Self) -> Self {
+        U256Wrapper::from(self.0 / other.0)
     }
 }
 
@@ -140,7 +156,6 @@ impl Encode<'_, Postgres> for U256Wrapper {
 /// This is a method to decode the `U256Wrapper` type from a `PgValueRef`
 /// type. This is necessary because the `sqlx` library needs to be able to
 /// convert the type to the correct one.
-// Start of Selection
 /// Implements the `Decode` trait for `U256Wrapper` to enable decoding from PostgreSQL.
 /// This allows `sqlx` to correctly deserialize `numeric` types into `U256Wrapper`.
 impl<'r> sqlx::Decode<'r, Postgres> for U256Wrapper {

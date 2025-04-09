@@ -9,11 +9,11 @@ spec:
       containers:
         - name: graphql-engine
           resources:
-            requests:
-              cpu: "1"
-              memory: "2Gi"
             limits:
-              cpu: "4"
+              cpu: "3"
+              memory: "6Gi"
+            requests:
+              cpu: "3"
               memory: "6Gi"
           volumeMounts:
             - name: secrets-store-inline

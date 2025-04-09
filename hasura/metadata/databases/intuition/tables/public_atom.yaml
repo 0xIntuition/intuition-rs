@@ -11,7 +11,14 @@ configuration:
     default_limit: 250
     max_limit: 250
 object_relationships:
-  - name: controler
+  - name: atom_value
+    using:
+      foreign_key_constraint_on:
+        column: id
+        table:
+          name: atom_value
+          schema: public
+  - name: controller
     using:
       manual_configuration:
         column_mapping:
@@ -22,38 +29,24 @@ object_relationships:
           schema: public
   - name: creator
     using:
-      manual_configuration:
-        column_mapping:
-          creator_id: id
-        insertion_order: null
-        remote_table:
+      foreign_key_constraint_on: creator_id
+  - name: term
+    using:
+      foreign_key_constraint_on: term_id
+array_relationships:
+  - name: accounts
+    using:
+      foreign_key_constraint_on:
+        column: atom_id
+        table:
           name: account
           schema: public
-  - name: value
-    using:
-      manual_configuration:
-        column_mapping:
-          value_id: id
-        insertion_order: null
-        remote_table:
-          name: atom_value
-          schema: public
-  - name: vault
-    using:
-      manual_configuration:
-        column_mapping:
-          vault_id: id
-        insertion_order: null
-        remote_table:
-          name: vault
-          schema: public
-array_relationships:
-  - name: as_object_claims
+  - name: as_object_predicate_objects
     using:
       foreign_key_constraint_on:
         column: object_id
         table:
-          name: claim
+          name: predicate_object
           schema: public
   - name: as_object_triples
     using:
@@ -62,12 +55,12 @@ array_relationships:
         table:
           name: triple
           schema: public
-  - name: as_predicate_claims
+  - name: as_predicate_predicate_objects
     using:
       foreign_key_constraint_on:
         column: predicate_id
         table:
-          name: claim
+          name: predicate_object
           schema: public
   - name: as_predicate_triples
     using:
@@ -76,13 +69,6 @@ array_relationships:
         table:
           name: triple
           schema: public
-  - name: as_subject_claims
-    using:
-      foreign_key_constraint_on:
-        column: subject_id
-        table:
-          name: claim
-          schema: public
   - name: as_subject_triples
     using:
       foreign_key_constraint_on:
@@ -90,11 +76,20 @@ array_relationships:
         table:
           name: triple
           schema: public
+  - name: positions
+    using:
+      manual_configuration:
+        column_mapping:
+          term_id: term_id
+        insertion_order: null
+        remote_table:
+          name: position
+          schema: public
   - name: signals
     using:
       manual_configuration:
         column_mapping:
-          id: atom_id
+          term_id: atom_id
         insertion_order: null
         remote_table:
           name: signal
@@ -117,9 +112,8 @@ select_permissions:
         - transaction_hash
         - block_number
         - block_timestamp
-        - id
+        - term_id
         - value_id
-        - vault_id
         - creator_id
         - data
         - emoji

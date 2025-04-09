@@ -13,12 +13,13 @@ use sqlx::{PgPool, Result};
 #[derive(Debug, sqlx::FromRow, Builder)]
 #[sqlx(type_name = "vault")]
 pub struct Vault {
-    pub id: U256Wrapper,
-    pub atom_id: Option<U256Wrapper>,
-    pub triple_id: Option<U256Wrapper>,
+    pub term_id: U256Wrapper,
+    pub curve_id: U256Wrapper,
     pub total_shares: U256Wrapper,
     pub current_share_price: U256Wrapper,
     pub position_count: i32,
+    pub total_assets: Option<U256Wrapper>,
+    pub market_cap: Option<U256Wrapper>,
 }
 /// This is a trait that all models must implement.
 impl Model for Vault {}
@@ -30,30 +31,35 @@ impl SimpleCrud<U256Wrapper> for Vault {
     async fn upsert(&self, pool: &PgPool, schema: &str) -> Result<Self, ModelError> {
         let query = format!(
             r#"
-            INSERT INTO {}.vault (id, atom_id, triple_id, total_shares, current_share_price, position_count)
-            VALUES ($1, $2, $3, $4, $5, $6)
-            ON CONFLICT (id) DO UPDATE SET
-                atom_id = EXCLUDED.atom_id,
-                triple_id = EXCLUDED.triple_id,
+            INSERT INTO {}.vault (term_id, curve_id, total_shares, current_share_price, position_count, total_assets, market_cap)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            ON CONFLICT (term_id, curve_id) DO UPDATE SET
                 total_shares = EXCLUDED.total_shares,
                 current_share_price = EXCLUDED.current_share_price,
-                position_count = EXCLUDED.position_count
-                RETURNING id, atom_id, triple_id, total_shares, current_share_price, position_count
+                position_count = EXCLUDED.position_count,
+                total_assets = EXCLUDED.total_assets,
+                market_cap = EXCLUDED.market_cap
+            RETURNING term_id, curve_id, total_shares, current_share_price, position_count, total_assets, market_cap
             "#,
             schema,
         );
 
         sqlx::query_as::<_, Vault>(&query)
-            .bind(self.id.to_big_decimal()?)
-            .bind(self.atom_id.as_ref().and_then(|w| w.to_big_decimal().ok()))
-            .bind(
-                self.triple_id
-                    .as_ref()
-                    .and_then(|w| w.to_big_decimal().ok()),
-            )
+            .bind(self.term_id.to_big_decimal()?)
+            .bind(self.curve_id.to_big_decimal()?)
             .bind(self.total_shares.to_big_decimal()?)
             .bind(self.current_share_price.to_big_decimal()?)
             .bind(self.position_count)
+            .bind(
+                self.total_assets
+                    .as_ref()
+                    .and_then(|w| w.to_big_decimal().ok()),
+            )
+            .bind(
+                self.market_cap
+                    .as_ref()
+                    .and_then(|w| w.to_big_decimal().ok()),
+            )
             .fetch_one(pool)
             .await
             .map_err(|e| ModelError::InsertError(e.to_string()))
@@ -61,27 +67,28 @@ impl SimpleCrud<U256Wrapper> for Vault {
 
     /// Finds a vault by its id.
     async fn find_by_id(
-        id: U256Wrapper,
+        term_id: U256Wrapper,
         pool: &PgPool,
         schema: &str,
     ) -> Result<Option<Self>, ModelError> {
         let query = format!(
             r#"
             SELECT 
-                id, 
-                atom_id, 
-                triple_id,
+                term_id, 
+                curve_id,
                 total_shares, 
                 current_share_price,
-                position_count
+                position_count,
+                total_assets,
+                market_cap
             FROM {}.vault 
-            WHERE id = $1
+            WHERE term_id = $1
             "#,
             schema,
         );
 
         sqlx::query_as::<_, Vault>(&query)
-            .bind(id.to_big_decimal()?)
+            .bind(term_id.to_big_decimal()?)
             .fetch_optional(pool)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
@@ -89,27 +96,59 @@ impl SimpleCrud<U256Wrapper> for Vault {
 }
 
 impl Vault {
-    pub async fn update_current_share_price(
-        id: U256Wrapper,
-        current_share_price: U256Wrapper,
+    /// This function finds a vault by its term_id and curve_id
+    pub async fn find_by_term_id_and_curve_id(
+        term_id: U256Wrapper,
+        curve_id: U256Wrapper,
         pool: &PgPool,
         schema: &str,
-    ) -> Result<Self, ModelError> {
+    ) -> Result<Option<Self>, ModelError> {
         let query = format!(
             r#"
-            UPDATE {}.vault 
-            SET current_share_price = $1 
-            WHERE id = $2
-            RETURNING id, atom_id, triple_id, total_shares, current_share_price, position_count
+            SELECT * FROM {}.vault WHERE term_id = $1 AND curve_id = $2
             "#,
             schema,
         );
 
         sqlx::query_as::<_, Vault>(&query)
-            .bind(current_share_price.to_big_decimal()?)
-            .bind(id.to_big_decimal()?)
+            .bind(term_id.to_big_decimal()?)
+            .bind(curve_id.to_big_decimal()?)
+            .fetch_optional(pool)
+            .await
+            .map_err(|e| ModelError::QueryError(e.to_string()))
+    }
+
+    /// This function sums the total assets of all the vaults for a given term
+    pub async fn sum_total_assets(
+        term_id: U256Wrapper,
+        pool: &PgPool,
+        schema: &str,
+    ) -> Result<U256Wrapper, ModelError> {
+        let query = format!(
+            r#"SELECT SUM(total_assets) FROM {}.vault WHERE term_id = $1"#,
+            schema
+        );
+        sqlx::query_scalar::<_, U256Wrapper>(&query)
+            .bind(term_id.to_big_decimal()?)
             .fetch_one(pool)
             .await
-            .map_err(|e| ModelError::UpdateError(e.to_string()))
+            .map_err(|e| ModelError::QueryError(e.to_string()))
+    }
+
+    /// This function sums the market cap of all the vaults for a given term
+    pub async fn sum_market_cap(
+        term_id: U256Wrapper,
+        pool: &PgPool,
+        schema: &str,
+    ) -> Result<U256Wrapper, ModelError> {
+        let query = format!(
+            r#"SELECT SUM(market_cap) FROM {}.vault WHERE term_id = $1"#,
+            schema
+        );
+        sqlx::query_scalar::<_, U256Wrapper>(&query)
+            .bind(term_id.to_big_decimal()?)
+            .fetch_one(pool)
+            .await
+            .map_err(|e| ModelError::QueryError(e.to_string()))
     }
 }

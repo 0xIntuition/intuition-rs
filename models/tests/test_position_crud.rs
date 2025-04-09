@@ -23,12 +23,12 @@ mod tests {
         let stored_atom = atom.upsert(&pool, TEST_SCHEMA).await.unwrap();
 
         // Create and store a test Vault
-        let test_vault = create_test_vault_with_atom(stored_atom.id);
+        let test_vault = create_test_vault_with_atom(stored_atom.term_id.clone());
 
         let stored_vault = test_vault.upsert(&pool, TEST_SCHEMA).await.unwrap();
 
         // Create initial position
-        let position = create_test_position(wallet.id, stored_vault.id);
+        let position = create_test_position(wallet.id, stored_vault.term_id.clone());
 
         // Insert the position
         position.upsert(&pool, TEST_SCHEMA).await?;
@@ -37,8 +37,9 @@ mod tests {
         let updated_position = Position {
             id: position.id.clone(),
             account_id: position.account_id.clone(),
-            vault_id: position.vault_id.clone(),
+            term_id: position.term_id.clone(),
             shares: U256Wrapper::from_str("200").unwrap(), // Update shares
+            curve_id: position.curve_id.clone(),
         };
 
         // Update using upsert
@@ -51,7 +52,7 @@ mod tests {
 
         assert_eq!(retrieved_position.id, position.id.to_lowercase());
         assert_eq!(retrieved_position.account_id, position.account_id);
-        assert_eq!(retrieved_position.vault_id, position.vault_id);
+        assert_eq!(retrieved_position.term_id, position.term_id);
         assert_eq!(retrieved_position.shares, updated_position.shares);
 
         Ok(())

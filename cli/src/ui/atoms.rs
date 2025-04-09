@@ -1,8 +1,8 @@
 use ratatui::{
+    Frame,
     layout::{Constraint, Rect},
     style::{Color, Style},
     widgets::{Block, Borders, Cell, Row, Table},
-    Frame,
 };
 
 use crate::app::App;
@@ -24,10 +24,7 @@ pub fn draw(f: &mut Frame, app: &App, area: Rect) {
     let table = Table::new(rows, vec![Constraint::Percentage(100)])
         .header(header)
         .block(Block::default().title("Atoms").borders(Borders::ALL))
-        .widths([
-            Constraint::Max(5),
-            Constraint::Percentage(50),
-        ]);
+        .widths([Constraint::Max(5), Constraint::Percentage(50)]);
 
     f.render_widget(table, area);
 }

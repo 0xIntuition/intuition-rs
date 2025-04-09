@@ -20,18 +20,16 @@ object_relationships:
         remote_table:
           name: account
           schema: public
+  - name: term
+    using:
+      foreign_key_constraint_on: term_id
   - name: vault
     using:
-      foreign_key_constraint_on: vault_id
-select_permissions:
-  - role: anonymous
-    permission:
-      columns:
-        - shares
-        - vault_id
-        - account_id
-        - id
-      filter: {}
-      limit: 250
-      allow_aggregations: true
-    comment: ""
+      manual_configuration:
+        column_mapping:
+          curve_id: curve_id
+          term_id: term_id
+        insertion_order: null
+        remote_table:
+          name: vault
+          schema: public

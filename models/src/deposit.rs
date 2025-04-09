@@ -6,7 +6,7 @@ use async_trait::async_trait;
 use sqlx::PgPool;
 
 /// This struct represents a deposit in the database. Note that `sender_id`,
-/// `receiver_id` and `vault_id` are foreign keys to the `account` and `vault`
+/// `receiver_id` and `term_id` are foreign keys to the `account` and `vault`
 /// tables respectively.
 #[derive(sqlx::FromRow, Debug, PartialEq, Clone, Builder)]
 #[sqlx(type_name = "deposit")]
@@ -18,12 +18,13 @@ pub struct Deposit {
     pub sender_assets_after_total_fees: U256Wrapper,
     pub shares_for_receiver: U256Wrapper,
     pub entry_fee: U256Wrapper,
-    pub vault_id: U256Wrapper,
+    pub term_id: U256Wrapper,
     pub is_triple: bool,
     pub is_atom_wallet: bool,
     pub block_number: U256Wrapper,
     pub block_timestamp: i64,
     pub transaction_hash: String,
+    pub curve_id: U256Wrapper,
 }
 
 /// This is a trait that all models must implement.
@@ -43,9 +44,9 @@ impl SimpleCrud<String> for Deposit {
             r#"
             INSERT INTO {}.deposit (
                 id, sender_id, receiver_id, receiver_total_shares_in_vault,
-                sender_assets_after_total_fees, shares_for_receiver, entry_fee, vault_id,
-                is_triple, is_atom_wallet, block_number, block_timestamp, transaction_hash
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+                sender_assets_after_total_fees, shares_for_receiver, entry_fee, term_id,
+                is_triple, is_atom_wallet, block_number, block_timestamp, transaction_hash, curve_id
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
             ON CONFLICT (id) DO UPDATE SET
                 sender_id = EXCLUDED.sender_id,
                 receiver_id = EXCLUDED.receiver_id,
@@ -53,24 +54,26 @@ impl SimpleCrud<String> for Deposit {
                 sender_assets_after_total_fees = EXCLUDED.sender_assets_after_total_fees,
                 shares_for_receiver = EXCLUDED.shares_for_receiver,
                 entry_fee = EXCLUDED.entry_fee,
-                vault_id = EXCLUDED.vault_id,
+                term_id = EXCLUDED.term_id,
                 is_triple = EXCLUDED.is_triple,
                 is_atom_wallet = EXCLUDED.is_atom_wallet,
                 block_number = EXCLUDED.block_number,
                 block_timestamp = EXCLUDED.block_timestamp,
-                transaction_hash = EXCLUDED.transaction_hash
+                transaction_hash = EXCLUDED.transaction_hash,
+                curve_id = EXCLUDED.curve_id
             RETURNING 
                 id, sender_id, receiver_id,
                 receiver_total_shares_in_vault,
                 sender_assets_after_total_fees,
                 shares_for_receiver,
                 entry_fee,
-                vault_id,
+                term_id,
                 is_triple,
                 is_atom_wallet,
                 block_number,
                 block_timestamp,
-                transaction_hash
+                transaction_hash,
+                curve_id
             "#,
             schema,
         );
@@ -83,17 +86,17 @@ impl SimpleCrud<String> for Deposit {
             .bind(self.sender_assets_after_total_fees.to_big_decimal()?)
             .bind(self.shares_for_receiver.to_big_decimal()?)
             .bind(self.entry_fee.to_big_decimal()?)
-            .bind(self.vault_id.to_big_decimal()?)
+            .bind(self.term_id.to_big_decimal()?)
             .bind(self.is_triple)
             .bind(self.is_atom_wallet)
             .bind(self.block_number.to_big_decimal()?)
             .bind(self.block_timestamp)
             .bind(self.transaction_hash.clone())
+            .bind(self.curve_id.to_big_decimal()?)
             .fetch_one(pool)
             .await
             .map_err(|e| crate::error::ModelError::InsertError(e.to_string()))
     }
-
     /// Finds a deposit record by its ID.
     /// Returns None if no record is found.
     async fn find_by_id(
@@ -109,12 +112,13 @@ impl SimpleCrud<String> for Deposit {
                 sender_assets_after_total_fees,
                 shares_for_receiver,
                 entry_fee,
-                vault_id,
+                term_id,
                 is_triple,
                 is_atom_wallet,
                 block_number,
                 block_timestamp,
-                transaction_hash
+                transaction_hash,
+                curve_id
             FROM {}.deposit
             WHERE id = $1
             "#,
@@ -126,5 +130,35 @@ impl SimpleCrud<String> for Deposit {
             .fetch_optional(pool)
             .await
             .map_err(|e| crate::error::ModelError::QueryError(e.to_string()))
+    }
+}
+
+impl Deposit {
+    /// Gets the total shares for a receiver in a vault.
+    pub async fn get_total_shares_for_receiver_in_vault(
+        receiver_id: String,
+        term_id: U256Wrapper,
+        curve_id: U256Wrapper,
+        pool: &PgPool,
+        schema: &str,
+    ) -> Result<U256Wrapper, crate::error::ModelError> {
+        let query = format!(
+            r#"
+            SELECT COALESCE(SUM(receiver_total_shares_in_vault), 0) as total_shares
+            FROM {}.deposit
+            WHERE receiver_id = $1 AND term_id = $2 AND curve_id = $3
+            "#,
+            schema,
+        );
+
+        let result: Option<U256Wrapper> = sqlx::query_scalar(&query)
+            .bind(receiver_id.to_lowercase())
+            .bind(term_id.to_big_decimal()?)
+            .bind(curve_id.to_big_decimal()?)
+            .fetch_optional(pool)
+            .await
+            .map_err(|e| crate::error::ModelError::QueryError(e.to_string()))?;
+
+        Ok(result.unwrap_or_default())
     }
 }

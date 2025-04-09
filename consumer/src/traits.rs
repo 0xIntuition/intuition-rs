@@ -1,6 +1,12 @@
-use crate::{error::ConsumerError, mode::types::ConsumerMode, schemas::goldsky::RawMessage};
+use crate::{
+    error::ConsumerError,
+    mode::types::{ConsumerMode, DecodedConsumerContext},
+    schemas::goldsky::RawMessage,
+};
+#[cfg(feature = "v1_5_contract")]
 use async_trait::async_trait;
 use aws_sdk_sqs::{operation::receive_message::ReceiveMessageOutput, types::Message};
+use models::{account::AccountType, types::U256Wrapper};
 
 /// This is a generic trait for Consumers. It contains all of the
 /// basic methods to provide basic functionality.
@@ -24,4 +30,39 @@ pub trait BasicConsumer: Send + Sync {
 /// raw message into a `RawMessage` struct.
 pub trait IntoRawMessage {
     fn into_raw_message(self) -> Result<RawMessage, ConsumerError>;
+}
+
+#[cfg(feature = "v1_5_contract")]
+/// This trait is implemented by all share price events.
+pub trait SharePriceEvent: VaultManager {
+    fn new_share_price(&self) -> Result<U256Wrapper, ConsumerError>;
+    fn total_assets(&self) -> Result<U256Wrapper, ConsumerError>;
+}
+
+#[cfg(feature = "v1_5_contract")]
+#[async_trait]
+/// This trait is implemented by all vault managers.
+pub trait VaultManager {
+    fn term_id(&self) -> Result<U256Wrapper, ConsumerError>;
+    fn curve_id(&self) -> Result<U256Wrapper, ConsumerError>;
+    async fn total_shares(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+    ) -> Result<U256Wrapper, ConsumerError>;
+    async fn current_share_price(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+    ) -> Result<U256Wrapper, ConsumerError>;
+    async fn position_count(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+    ) -> Result<i32, ConsumerError>;
+}
+
+#[cfg(feature = "v1_5_contract")]
+#[async_trait]
+pub trait AccountManager {
+    fn account_id(&self) -> String;
+    fn label(&self) -> String;
+    fn account_type(&self) -> AccountType;
 }

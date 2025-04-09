@@ -19,12 +19,12 @@ mod tests {
         let sender = create_test_account_db(&pool).await;
         let receiver = create_test_account_db(&pool).await;
         let atom = create_test_atom_db(&pool).await;
-        let vault = create_test_vault_with_atom(atom.id)
+        let vault = create_test_vault_with_atom(atom.term_id.clone())
             .upsert(&pool, TEST_SCHEMA)
             .await?;
 
         // Create initial redemption
-        let redemption = create_test_redemption(sender.id, receiver.id, vault.id);
+        let redemption = create_test_redemption(sender.id, receiver.id, vault.term_id.clone());
 
         // Test initial upsert
         let upserted_redemption = redemption.upsert(&pool, TEST_SCHEMA).await?;

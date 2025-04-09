@@ -23,14 +23,6 @@ object_relationships:
         remote_table:
           name: account
           schema: public
-array_relationships:
-  - name: events
-    using:
-      foreign_key_constraint_on:
-        column: fee_transfer_id
-        table:
-          name: event
-          schema: public
 select_permissions:
   - role: anonymous
     permission:

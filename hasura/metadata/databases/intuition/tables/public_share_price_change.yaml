@@ -1,0 +1,41 @@
+table:
+  name: share_price_change
+  schema: public
+configuration:
+  column_config: {}
+  custom_column_names: {}
+  custom_name: share_price_changes
+  custom_root_fields:
+    select_by_pk: share_price_change
+object_relationships:
+  - name: term
+    using:
+      foreign_key_constraint_on: term_id
+  - name: vault
+    using:
+      manual_configuration:
+        column_mapping:
+          curve_id: curve_id
+          term_id: term_id
+        insertion_order: null
+        remote_table:
+          name: vault
+          schema: public
+select_permissions:
+  - role: anonymous
+    permission:
+      columns:
+        - id
+        - term_id
+        - curve_id
+        - share_price
+        - total_assets
+        - total_shares
+        - block_number
+        - block_timestamp
+        - transaction_hash
+        - updated_at
+      filter: {}
+      limit: 100
+      allow_aggregations: true
+    comment: ""

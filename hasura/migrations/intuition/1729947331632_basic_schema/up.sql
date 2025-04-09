@@ -93,13 +93,7 @@ CREATE TABLE vault (
   triple_id NUMERIC(78, 0),
   total_shares NUMERIC(78, 0) NOT NULL,
   current_share_price NUMERIC(78, 0) NOT NULL,
-  position_count INTEGER NOT NULL,
-  -- Ensure that exactly one of atom_id or triple_id is set
-  CONSTRAINT check_atom_or_triple CHECK (
-    (atom_id IS NULL AND triple_id IS NOT NULL)
-    OR
-    (atom_id IS NOT NULL AND triple_id IS NULL)
-  )
+  position_count INTEGER NOT NULL
 );
 
 CREATE TABLE fee_transfer (
@@ -301,3 +295,4 @@ CREATE INDEX idx_event_triple ON event(triple_id);
 CREATE INDEX idx_event_block_number ON event(block_number);
 CREATE INDEX idx_event_block_timestamp ON event(block_timestamp);
 CREATE INDEX idx_event_transaction_hash ON event(transaction_hash);
+

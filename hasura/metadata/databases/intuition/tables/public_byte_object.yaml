@@ -1,6 +1,16 @@
 table:
   name: byte_object
   schema: public
+object_relationships:
+  - name: atom
+    using:
+      manual_configuration:
+        column_mapping:
+          id: term_id
+        insertion_order: null
+        remote_table:
+          name: atom
+          schema: public
 select_permissions:
   - role: anonymous
     permission:

@@ -1,0 +1,13 @@
+functions:
+  - function:
+      name: share_price_changed_by_term_curve_id
+      schema: public
+    configuration:
+      exposed_as: query
+      arguments:
+        - name: curve_id
+          type: numeric
+    permissions:
+      - role: anonymous
+        definition:
+          allow: true 

@@ -16,7 +16,7 @@ mod tests {
         let test_atom = create_test_atom_db(&pool).await;
 
         let atom_value = AtomValue::builder()
-            .id(test_atom.id.clone())
+            .id(test_atom.term_id.clone())
             .account_id(test_account.id.clone())
             .build();
 

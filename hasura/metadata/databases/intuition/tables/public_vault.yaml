@@ -11,70 +11,71 @@ configuration:
     default_limit: 250
     max_limit: 250
 object_relationships:
-  - name: atom
+  - name: term
     using:
-      manual_configuration:
-        column_mapping:
-          atom_id: id
-        insertion_order: null
-        remote_table:
-          name: atom
-          schema: public
-  - name: triple
-    using:
-      manual_configuration:
-        column_mapping:
-          triple_id: id
-        insertion_order: null
-        remote_table:
-          name: triple
-          schema: public
+      foreign_key_constraint_on: term_id
 array_relationships:
-  - name: claims
-    using:
-      foreign_key_constraint_on:
-        column: vault_id
-        table:
-          name: claim
-          schema: public
-  - name: counter_claims
-    using:
-      foreign_key_constraint_on:
-        column: counter_vault_id
-        table:
-          name: claim
-          schema: public
   - name: deposits
     using:
-      foreign_key_constraint_on:
-        column: vault_id
-        table:
+      manual_configuration:
+        column_mapping:
+          curve_id: curve_id
+          term_id: term_id
+        insertion_order: null
+        remote_table:
           name: deposit
           schema: public
   - name: positions
     using:
-      foreign_key_constraint_on:
-        column: vault_id
-        table:
+      manual_configuration:
+        column_mapping:
+          curve_id: curve_id
+          term_id: term_id
+        insertion_order: null
+        remote_table:
           name: position
           schema: public
   - name: redemptions
     using:
-      foreign_key_constraint_on:
-        column: vault_id
-        table:
+      manual_configuration:
+        column_mapping:
+          curve_id: curve_id
+          term_id: term_id
+        insertion_order: null
+        remote_table:
           name: redemption
+          schema: public
+  - name: share_price_changes
+    using:
+      manual_configuration:
+        column_mapping:
+          curve_id: curve_id
+          term_id: term_id
+        insertion_order: null
+        remote_table:
+          name: share_price_change
+          schema: public
+  - name: signals
+    using:
+      manual_configuration:
+        column_mapping:
+          curve_id: curve_id
+          term_id: term_id
+        insertion_order: null
+        remote_table:
+          name: signal
           schema: public
 select_permissions:
   - role: anonymous
     permission:
       columns:
         - position_count
-        - atom_id
         - current_share_price
-        - id
+        - curve_id
+        - term_id
         - total_shares
-        - triple_id
+        - total_assets
+        - market_cap
       filter: {}
       limit: 250
       allow_aggregations: true

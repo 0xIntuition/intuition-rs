@@ -1,0 +1,99 @@
+table:
+  name: term
+  schema: public
+configuration:
+  column_config: {}
+  custom_column_names: {}
+  custom_name: terms
+  custom_root_fields:
+    select_by_pk: term
+object_relationships:
+  - name: atom
+    using:
+      manual_configuration:
+        column_mapping:
+          atom_id: term_id
+        insertion_order: null
+        remote_table:
+          name: atom
+          schema: public
+  - name: atomById
+    using:
+      foreign_key_constraint_on:
+        column: term_id
+        table:
+          name: atom
+          schema: public
+  - name: triple
+    using:
+      manual_configuration:
+        column_mapping:
+          triple_id: term_id
+        insertion_order: null
+        remote_table:
+          name: triple
+          schema: public
+  - name: tripleById
+    using:
+      foreign_key_constraint_on:
+        column: term_id
+        table:
+          name: triple
+          schema: public
+array_relationships:
+  - name: deposits
+    using:
+      foreign_key_constraint_on:
+        column: term_id
+        table:
+          name: deposit
+          schema: public
+  - name: positions
+    using:
+      foreign_key_constraint_on:
+        column: term_id
+        table:
+          name: position
+          schema: public
+  - name: redemptions
+    using:
+      foreign_key_constraint_on:
+        column: term_id
+        table:
+          name: redemption
+          schema: public
+  - name: share_price_changes
+    using:
+      foreign_key_constraint_on:
+        column: term_id
+        table:
+          name: share_price_change
+          schema: public
+  - name: signals
+    using:
+      foreign_key_constraint_on:
+        column: term_id
+        table:
+          name: signal
+          schema: public
+  - name: vaults
+    using:
+      foreign_key_constraint_on:
+        column: term_id
+        table:
+          name: vault
+          schema: public
+select_permissions:
+  - role: anonymous
+    permission:
+      columns:
+        - id
+        - type
+        - atom_id
+        - triple_id
+        - total_assets
+        - total_market_cap
+      filter: {}
+      limit: 100
+      allow_aggregations: true
+    comment: ""

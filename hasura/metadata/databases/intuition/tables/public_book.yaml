@@ -15,7 +15,7 @@ object_relationships:
     using:
       manual_configuration:
         column_mapping:
-          id: id
+          id: term_id
         insertion_order: null
         remote_table:
           name: atom

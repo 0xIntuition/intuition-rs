@@ -1,6 +1,8 @@
 // This test is going to be removed once we have a proper testing crate
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
     use alloy::primitives::U256;
     use models::{
         account::{Account, AccountType},
@@ -41,10 +43,9 @@ mod tests {
         let alice_vault_id = U256Wrapper::from(U256::from(1u64));
 
         let alice_atom = Atom::builder()
-            .id(alice_vault_id.clone())
+            .term_id(alice_vault_id.clone())
             .wallet_id(alice_atom_wallet_account.id.clone())
             .creator_id(alice_account.id.clone())
-            .vault_id(alice_vault_id.clone())
             .data(alice_account.id.clone())
             .raw_data(alice_account.id.clone())
             .atom_type(AtomType::Account)
@@ -59,15 +60,15 @@ mod tests {
             .await
             .expect("Failed to store atom");
 
-        alice_account.atom_id = Some(alice_atom.id.clone());
+        alice_account.atom_id = Some(alice_atom.term_id.clone());
         alice_account
             .upsert(&pool, TEST_SCHEMA)
             .await
             .expect("Failed to update account");
 
         let _alice_vault = Vault::builder()
-            .id(alice_vault_id.clone())
-            .atom_id(alice_vault_id.clone())
+            .term_id(alice_vault_id.clone())
+            .curve_id(U256Wrapper::from_str("1").unwrap())
             .total_shares(create_random_u256wrapper())
             .current_share_price(create_random_u256wrapper())
             .position_count(0)
@@ -88,10 +89,9 @@ mod tests {
             .expect("Failed to store account");
 
         let mut alice_person_atom = Atom::builder()
-            .id(alice_person_vault_id.clone())
+            .term_id(alice_person_vault_id.clone())
             .wallet_id(alice_person_atom_wallet_account.id.clone())
             .creator_id(alice_account.id.clone())
-            .vault_id(alice_person_vault_id.clone())
             .data("ipfs://Qm...".to_string())
             .raw_data("ipfs://Qm...".to_string())
             .atom_type(AtomType::Person)
@@ -107,8 +107,8 @@ mod tests {
             .expect("Failed to store atom");
 
         let _alice_person_vault = Vault::builder()
-            .id(alice_person_vault_id.clone())
-            .atom_id(alice_person_vault_id.clone())
+            .term_id(alice_person_vault_id.clone())
+            .curve_id(U256Wrapper::from_str("1").unwrap())
             .total_shares(create_random_u256wrapper())
             .current_share_price(create_random_u256wrapper())
             .position_count(0)
@@ -118,7 +118,7 @@ mod tests {
             .expect("Failed to store vault");
 
         let alice_person = Person::builder()
-            .id(alice_person_atom.id.clone())
+            .id(alice_person_atom.term_id.clone())
             .name("Alice".to_string())
             .image("https://example.com/image.jpg".to_string())
             .build()
@@ -127,7 +127,7 @@ mod tests {
             .expect("Failed to store account");
 
         let alice_person_atom_value = AtomValue::builder()
-            .id(alice_person_atom.id.clone())
+            .id(alice_person_atom.term_id.clone())
             .person_id(alice_person.id.clone())
             .build()
             .upsert(&pool, TEST_SCHEMA)
