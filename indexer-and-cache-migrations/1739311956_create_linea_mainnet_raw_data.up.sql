@@ -33,3 +33,6 @@ CREATE INDEX idx_raw_data_block_timestamp ON linea_mainnet_indexer.raw_data(bloc
 CREATE INDEX idx_raw_data_transaction_hash ON linea_mainnet_indexer.raw_data(transaction_hash);
 CREATE INDEX idx_raw_data_address ON linea_mainnet_indexer.raw_data(address);
 CREATE INDEX idx_raw_data_topics ON linea_mainnet_indexer.raw_data(topics);
+
+-- now we need to insert the reference for histocrawler
+INSERT INTO histocrawler.app_config (indexer_schema, rpc_url, start_block, contract_address, raw_logs_channel) VALUES ('linea_mainnet_indexer', 'http://prod-rpc-proxy:3008/59144/proxy', 16021721, '0xB4375293a13017BCe71a034bB588786A3D3C7295', 'linea_mainnet_raw_logs_channel');

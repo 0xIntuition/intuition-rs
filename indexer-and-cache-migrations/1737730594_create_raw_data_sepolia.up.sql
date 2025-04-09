@@ -33,3 +33,6 @@ CREATE INDEX idx_raw_data_block_timestamp ON base_sepolia_indexer.raw_data(block
 CREATE INDEX idx_raw_data_transaction_hash ON base_sepolia_indexer.raw_data(transaction_hash);
 CREATE INDEX idx_raw_data_address ON base_sepolia_indexer.raw_data(address);
 CREATE INDEX idx_raw_data_topics ON base_sepolia_indexer.raw_data(topics);
+
+-- now we need to insert the reference for histocrawler
+INSERT INTO histocrawler.app_config (indexer_schema, rpc_url, start_block, contract_address, raw_logs_channel) VALUES ('base_sepolia_indexer', 'http://prod-rpc-proxy:3008/84532/proxy', 12947309, '0x1A6950807E33d5bC9975067e6D6b5Ea4cD661665', 'base_sepolia_raw_logs_channel');
