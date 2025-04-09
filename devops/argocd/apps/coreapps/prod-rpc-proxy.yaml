@@ -1,0 +1,51 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: prod-rpc-proxy
+  namespace: argocd
+spec:
+  project: prod
+  source:
+    repoURL: 'https://github.com/0xintuition/intuition-rs.git'
+    targetRevision: francois/add-iac
+    path: devops/aws-rolling-releases/rpc-proxy/overlays/prod
+    kustomize:
+      patches:
+        - target:
+            kind: Deployment
+            name: rpc-proxy
+          patch: |-
+            - op: replace
+              path: /spec/template/spec/serviceAccountName
+              value: prod-eks-secrets-access-sa
+            - op: add
+              path: /spec/template/spec/containers/0/envFrom/-
+              value:
+                secretRef:
+                  name: 'main-db-creds'
+                prefix: "MAINDB_"
+            - op: add
+              path: /spec/template/spec/containers/0/env/-
+              value:
+                name: PROXY_API_PORT
+                value: '3008'
+            - op: add
+              path: /spec/template/spec/containers/0/env/-
+              value:
+                name: PROXY_DATABASE_URL
+                value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/histoflux?sslmode=require'
+            - op: add
+              path: /spec/template/spec/containers/0/env/-
+              value:
+                name: PROXY_SCHEMA
+                value: 'base_proxy'
+
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true

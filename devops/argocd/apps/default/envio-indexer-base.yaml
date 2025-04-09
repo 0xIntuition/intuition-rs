@@ -1,0 +1,29 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: envio-indexer-base
+  namespace: argocd
+spec:
+  project: prod
+  source:
+    repoURL: 'https://github.com/0xintuition/intuition-rs.git'
+    targetRevision: HEAD
+    path: devops/aws-rolling-releases/envio-indexer/overlays/dev-base-sepolia
+    kustomize:
+      patches:
+        - target:
+            kind: Deployment
+            name: envio-indexer
+          patch: |-
+            - op: replace
+              path: /spec/template/spec/serviceAccountName
+              value: prod-eks-secrets-access-sa
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true

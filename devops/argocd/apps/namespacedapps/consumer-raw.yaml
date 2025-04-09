@@ -1,0 +1,127 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: consumer-raw
+  namespace: argocd
+spec:
+  goTemplate: true
+  syncPolicy:
+    preserveResourcesOnDeletion: true
+  generators:
+    - list:
+        elements:
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: francois/add-iac
+            env: dev-base-sepolia
+            namespace: dev-base-sepolia-v2-0-0
+            rpcURLBase: 'http://dev-rpc-proxy.default.svc.cluster.local:3008/84532/proxy'
+            rpcURL: 'http://dev-rpc-proxy.default.svc.cluster.local:3008/1/proxy'
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: francois/test-new-env
+            env: dev-base-sepolia
+            namespace: dev-base-sepolia-2-0-23
+            rpcURLBase: 'http://dev-rpc-proxy.default.svc.cluster.local:3008/84532/proxy'
+            rpcURL: 'http://dev-rpc-proxy.default.svc.cluster.local:3008/1/proxy'
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: prod-base-sepolia-deployment
+            env: prod-base-sepolia
+            namespace: prod-base-sepolia-2-0-23
+            rpcURLBase: 'http://prod-rpc-proxy.default.svc.cluster.local:3008/84532/proxy'
+            rpcURL: 'http://prod-rpc-proxy.default.svc.cluster.local:3008/1/proxy'
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: prod-base-sepolia-deployment
+            env: prod-base-mainnet
+            namespace: prod-base-mainnet-2-0-23
+            rpcURLBase: 'http://prod-rpc-proxy.default.svc.cluster.local:3008/8453/proxy'
+            rpcURL: 'http://prod-rpc-proxy.default.svc.cluster.local:3008/1/proxy'
+  template:
+    metadata:
+      name: '{{.cluster}}-consumer-raw-{{.namespace}}'
+      annotations:
+        argocd.argoproj.io/manifest-generate-paths: '.;/devops/argocd'
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/0xintuition/intuition-rs.git
+        path: 'devops/aws-rolling-releases/consumers/overlays/{{.env}}/raw'
+        targetRevision: '{{.revision}}'
+        kustomize:
+          patches:
+            - target:
+                kind: Queue
+                name: decoded-logs
+              patch: |-
+                - op: replace
+                  path: /metadata/name
+                  value: '{{.namespace}}-decoded-logs'
+                - op: replace
+                  path: /spec/forProvider/name
+                  value: '{{.cluster}}-{{.namespace}}-decoded-logs.fifo'
+            - target:
+                kind: Deployment
+                name: raw-consumer
+              patch: |-
+                - op: replace
+                  path: /spec/template/spec/serviceAccountName
+                  value: '{{.cluster}}-{{.namespace}}-secrets-access-sa'
+                - op: add
+                  path: /spec/template/spec/containers/0/envFrom/-
+                  value:
+                    secretRef:
+                      name: 'main-db-creds'
+                    prefix: "MAINDB_"
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: BACKEND_SCHEMA
+                    value: 'public' # not sure if needs to be templated
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: CONSUMER_TYPE
+                    value: 'sqs'
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: INDEXING_SOURCE
+                    value: 'substreams' # not sure if needs to be templated
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: DATABASE_URL
+                    value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/{{.namespace | replace "-" "_"}}?sslmode=require'
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: RAW_CONSUMER_QUEUE_URL
+                    value: 'https://sqs.us-west-2.amazonaws.com/064662847354/{{.cluster}}-{{.namespace}}-raw-logs.fifo'
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: DECODED_LOGS_QUEUE_URL
+                    value: 'https://sqs.us-west-2.amazonaws.com/064662847354/{{.cluster}}-{{.namespace}}-decoded-logs.fifo'
+
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: RPC_URL_BASE
+                    value: '{{.rpcURLBase}}' # probably better to have all of that dynamically created
+
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: RPC_URL_MAINNET
+                    value: '{{.rpcURL}}' # probably better to have all of that dynamically created
+      destination:
+        server: '{{.server}}'
+        namespace: '{{.namespace}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+        - CreateNamespace=true

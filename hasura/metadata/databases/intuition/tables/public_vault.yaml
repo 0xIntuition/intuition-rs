@@ -7,6 +7,9 @@ configuration:
   custom_name: vaults
   custom_root_fields:
     select_by_pk: vault
+  query_configuration:
+    default_limit: 250
+    max_limit: 250
 object_relationships:
   - name: term
     using:
@@ -74,6 +77,6 @@ select_permissions:
         - total_assets
         - market_cap
       filter: {}
-      limit: 100
+      limit: 250
       allow_aggregations: true
     comment: ""

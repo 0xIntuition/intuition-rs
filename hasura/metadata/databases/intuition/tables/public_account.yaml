@@ -7,6 +7,9 @@ configuration:
   custom_name: accounts
   custom_root_fields:
     select_by_pk: account
+  query_configuration:
+    default_limit: 250
+    max_limit: 250
 object_relationships:
   - name: atom
     using:
@@ -103,6 +106,6 @@ select_permissions:
         - label
         - type
       filter: {}
-      limit: 100
+      limit: 250
       allow_aggregations: true
     comment: ""

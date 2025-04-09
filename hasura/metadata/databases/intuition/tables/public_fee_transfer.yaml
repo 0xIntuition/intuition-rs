@@ -7,6 +7,9 @@ configuration:
   custom_name: fee_transfers
   custom_root_fields:
     select_by_pk: fee_transfer
+  query_configuration:
+    default_limit: 250
+    max_limit: 250
 object_relationships:
   - name: receiver
     using:
@@ -32,6 +35,6 @@ select_permissions:
         - receiver_id
         - sender_id
       filter: {}
-      limit: 100
+      limit: 250
       allow_aggregations: true
     comment: ""

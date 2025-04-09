@@ -7,6 +7,9 @@ configuration:
   custom_name: atoms
   custom_root_fields:
     select_by_pk: atom
+  query_configuration:
+    default_limit: 250
+    max_limit: 250
 object_relationships:
   - name: atom_value
     using:
@@ -119,6 +122,6 @@ select_permissions:
         - wallet_id
         - type
       filter: {}
-      limit: 100
+      limit: 250
       allow_aggregations: true
     comment: ""

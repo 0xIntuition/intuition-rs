@@ -7,6 +7,9 @@ configuration:
   custom_name: events
   custom_root_fields:
     select_by_pk: event
+  query_configuration:
+    default_limit: 250
+    max_limit: 250
 object_relationships:
   - name: deposit
     using:
@@ -32,6 +35,6 @@ select_permissions:
         - redemption_id
         - type
       filter: {}
-      limit: 100
+      limit: 250
       allow_aggregations: true
     comment: ""

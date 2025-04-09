@@ -1,0 +1,23 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: create-database-job
+spec:
+  template:
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:16
+        command:
+          - "sh"
+          - "-c"
+          - 'psql $DATABASE_URL -c "CREATE DATABASE $DBNAME;"'
+        env:
+          - name: DATABASE_URL
+            value: "postgresql://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/postgres?sslmode=require"
+        envFrom:
+          - secretRef:
+              name: main-db-creds
+            prefix: "MAINDB_"
+      restartPolicy: Never
+  backoffLimit: 2

@@ -7,6 +7,9 @@ configuration:
   custom_name: things
   custom_root_fields:
     select_by_pk: thing
+  query_configuration:
+    default_limit: 250
+    max_limit: 250
 object_relationships:
   - name: atom
     using:
@@ -38,6 +41,6 @@ select_permissions:
         - name
         - url
       filter: {}
-      limit: 100
+      limit: 250
       allow_aggregations: true
     comment: ""

@@ -6,23 +6,27 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "create-predicates": "tsx src/create-predicates.ts",
-    "triple-positions": "tsx src/triple-positions.ts",
-    "denver-events": "tsx src/denver-events.ts"
+    "codegen": "graphql-codegen --config codegen.ts",
+    "test": "vitest --no-file-parallelism"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@0xintuition/graphql": "^0.5.0",
     "@0xintuition/protocol": "^0.1.4",
     "@faker-js/faker": "^9.0.3",
+    "@graphql-codegen/client-preset": "^4.8.0",
+    "@graphql-typed-document-node/core": "^3.2.0",
     "dotenv": "^16.4.5",
     "tsx": "^4.16.5",
     "viem": "2.18.8"
   },
   "packageManager": "pnpm@9.15.3+sha512.1f79bc245a66eb0b07c5d4d83131240774642caaa86ef7d0434ab47c0d16f66b04e21e0c086eb61e62c77efc4d7f7ec071afad3796af64892fae66509173893a",
   "devDependencies": {
-    "@types/node": "^22.13.5"
+    "@0no-co/graphqlsp": "^1.12.16",
+    "@graphql-codegen/cli": "^5.0.5",
+    "@graphql-codegen/schema-ast": "^4.1.0",
+    "@types/node": "^22.13.5",
+    "vitest": "^3.0.9"
   }
 }

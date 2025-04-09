@@ -1,5 +1,5 @@
 query GetAtoms {
-  atoms(limit: 100) {
+  atoms(limit: 250) {
     id
     label
     type

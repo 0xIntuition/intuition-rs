@@ -6,6 +6,9 @@ configuration:
   custom_column_names: {}
   custom_name: predicate_objects
   custom_root_fields: {}
+  query_configuration:
+    default_limit: 250
+    max_limit: 250
 object_relationships:
   - name: object
     using:
@@ -23,6 +26,6 @@ select_permissions:
         - predicate_id
         - id
       filter: {}
-      limit: 100
+      limit: 250
       allow_aggregations: true
     comment: ""

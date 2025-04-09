@@ -18,6 +18,6 @@ select_permissions:
         - data
         - id
       filter: {}
-      limit: 100
+      limit: 250
       allow_aggregations: true
     comment: ""

@@ -7,6 +7,9 @@ configuration:
   custom_name: signals
   custom_root_fields:
     select_by_pk: signal
+  query_configuration:
+    default_limit: 250
+    max_limit: 250
 object_relationships:
   - name: account
     using:
@@ -51,6 +54,6 @@ select_permissions:
         - id
         - redemption_id
       filter: {}
-      limit: 100
+      limit: 250
       allow_aggregations: true
     comment: ""

@@ -1,0 +1,218 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: graphql-service
+  namespace: argocd
+spec:
+  goTemplate: true
+  syncPolicy:
+    preserveResourcesOnDeletion: true
+  generators:
+    - list:
+        elements:
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: francois/add-iac
+            env: dev-base-sepolia
+            namespace: dev-base-sepolia-v2-0-0
+
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: francois/test-new-env
+            env: dev-base-sepolia
+            namespace: dev-base-sepolia-2-0-23
+
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: prod-base-sepolia-deployment
+            env: prod-base-sepolia
+            namespace: prod-base-sepolia-2-0-23
+
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: prod-base-sepolia-deployment
+            env: prod-base-mainnet
+            namespace: prod-base-mainnet-2-0-23
+
+  template:
+    metadata:
+      name: '{{.cluster}}-graphql-service-{{.namespace}}'
+      annotations:
+        argocd.argoproj.io/manifest-generate-paths: '.;/devops/argocd'
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/0xintuition/intuition-rs.git
+        path: 'devops/aws-rolling-releases/services/graphql/overlays/{{.env}}'
+        targetRevision: '{{.revision}}'
+        kustomize:
+          namePrefix: '{{.namespace}}-'
+          patches:
+            - target:
+                kind: SecretProviderClass
+                name: 'hasura-aws-secrets'
+              patch: |-
+                - op: replace
+                  path: /spec/secretObjects/0/secretName
+                  value: '{{.namespace}}-hasura-aws-secrets'
+            - target:
+                kind: Service
+                name: graphql-engine
+              patch: |-
+                - op: add
+                  path: /spec/selector/env
+                  value: '{{.namespace}}'
+            - target:
+                kind: Deployment
+                name: graphql-engine
+              patch: |-
+                - op: replace
+                  path: /spec/template/spec/serviceAccountName
+                  value: '{{.cluster}}-secrets-access-sa'
+                - op: replace
+                  path: /spec/template/spec/volumes/0/csi/volumeAttributes/secretProviderClass
+                  value: '{{.namespace}}-hasura-aws-secrets'
+                - op: add
+                  path: /spec/template/metadata/labels/env
+                  value: '{{.namespace}}'
+                - op: replace
+                  path: /spec/template/spec/containers/0/envFrom/0/secretRef/name
+                  value: '{{.namespace}}-hasura-aws-secrets'
+                - op: add
+                  path: /spec/template/spec/containers/0/envFrom/-
+                  value:
+                    secretRef:
+                      name: 'main-db-creds'
+                    prefix: "MAINDB_"
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: INDEXER_DATABASE_URL
+                    value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/histoflux?sslmode=require'
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: DATABASE_URL
+                    value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/{{.namespace | replace "-" "_"}}?sslmode=require'
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: HASURA_GRAPHQL_CACHE_DATABASE_URL
+                    value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/histoflux?sslmode=require'
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: HASURA_GRAPHQL_ENDPOINT
+                    value: 'http://{{.namespace}}-graphql-engine:8080'
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: HASURA_GRAPHQL_METADATA_DATABASE_URL
+                    value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/{{.namespace | replace "-" "_"}}?sslmode=require'
+            - target:
+                kind: Job
+                name: indexer-and-cache-migration
+              patch: |-
+                - op: replace
+                  path: /spec/template/spec/serviceAccountName
+                  value: '{{.cluster}}-secrets-access-sa'
+                - op: replace
+                  path: /spec/template/spec/volumes/0/csi/volumeAttributes/secretProviderClass
+                  value: '{{.namespace}}-hasura-aws-secrets'
+                - op: replace
+                  path: /spec/template/spec/containers/0/envFrom/0/secretRef/name
+                  value: '{{.namespace}}-hasura-aws-secrets'
+                - op: add
+                  path: /spec/template/spec/containers/0/envFrom/-
+                  value:
+                    secretRef:
+                      name: 'main-db-creds'
+                    prefix: "MAINDB_"
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: INDEXER_DATABASE_URL
+                    value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/histoflux?sslmode=require'
+
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: DATABASE_URL
+                    value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/{{.namespace | replace "-" "_"}}?sslmode=require'
+
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: HASURA_GRAPHQL_CACHE_DATABASE_URL
+                    value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/histoflux?sslmode=require'
+
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: HASURA_GRAPHQL_ENDPOINT
+                    value: 'http://{{.namespace}}-graphql-engine:8080'
+
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: HASURA_GRAPHQL_METADATA_DATABASE_URL
+                    value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/{{.namespace | replace "-" "_"}}?sslmode=require'
+
+            - target:
+                kind: Job
+                name: hasura-migrations
+              patch: |-
+                - op: replace
+                  path: /spec/template/spec/serviceAccountName
+                  value: '{{.cluster}}-secrets-access-sa'
+                - op: replace
+                  path: /spec/template/spec/volumes/0/csi/volumeAttributes/secretProviderClass
+                  value: '{{.namespace}}-hasura-aws-secrets'
+                - op: replace
+                  path: /spec/template/spec/containers/0/envFrom/0/secretRef/name
+                  value: '{{.namespace}}-hasura-aws-secrets'
+                - op: add
+                  path: /spec/template/spec/containers/0/envFrom/-
+                  value:
+                    secretRef:
+                      name: 'main-db-creds'
+                    prefix: "MAINDB_"
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: INDEXER_DATABASE_URL
+                    value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/histoflux?sslmode=require'
+
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: DATABASE_URL
+                    value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/{{.namespace | replace "-" "_"}}?sslmode=require'
+
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: HASURA_GRAPHQL_CACHE_DATABASE_URL
+                    value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/histoflux?sslmode=require'
+
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: HASURA_GRAPHQL_ENDPOINT
+                    value: 'http://{{.namespace}}-graphql-engine:8080'
+
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: HASURA_GRAPHQL_METADATA_DATABASE_URL
+                    value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/{{.namespace | replace "-" "_"}}?sslmode=require'
+
+      destination:
+        server: '{{.server}}'
+        namespace: 'default' # graphql is always deployed in default but the namespace is in the name
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+        - CreateNamespace=true
