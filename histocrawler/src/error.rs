@@ -4,6 +4,8 @@ use thiserror::Error;
 pub enum HistoCrawlerError {
     #[error(transparent)]
     Address(#[from] alloy::hex::FromHexError),
+    #[error("App config not found")]
+    AppConfigNotFound,
     #[error("Block number not found {0}")]
     BlockNotFound(u64),
     #[error("Block number not found")]

@@ -37,8 +37,8 @@ services:
       PINATA_GATEWAY_TOKEN: $PINATA_GATEWAY_TOKEN
       PG_MIN_CONNECTIONS: $PG_MIN_CONNECTIONS
       RESOLVER_QUEUE_URL: $RESOLVER_QUEUE_URL
-      RPC_URL_BASE: $RPC_URL_BASE
-      RPC_URL_MAINNET: $RPC_URL_MAINNET
+      RPC_URL_BASE: "http://prod-rpc-proxy:3008/84532/proxy"
+      RPC_URL_MAINNET: "http://prod-rpc-proxy:3008/1/proxy"
       RUST_LOG: $RUST_LOG
       BACKEND_SCHEMA: $BACKEND_SCHEMA
     restart: always
@@ -111,7 +111,7 @@ services:
       LOCALSTACK_URL: $LOCALSTACK_URL
       PG_MIN_CONNECTIONS: $PG_MIN_CONNECTIONS
       RESOLVER_QUEUE_URL: $RESOLVER_QUEUE_URL
-      RPC_URL_BASE: $RPC_URL_BASE
+      RPC_URL_BASE: "http://prod-rpc-proxy:3008/84532/proxy"
       RUST_LOG: $RUST_LOG
       BACKEND_SCHEMA: $BACKEND_SCHEMA
     restart: always
@@ -139,8 +139,8 @@ services:
       LOCALSTACK_URL: $LOCALSTACK_URL
       PG_MIN_CONNECTIONS: $PG_MIN_CONNECTIONS
       RAW_CONSUMER_QUEUE_URL: $RAW_CONSUMER_QUEUE_URL
-      RPC_URL_BASE: $RPC_URL_BASE
-      RPC_URL_MAINNET: $RPC_URL_MAINNET
+      RPC_URL_BASE: "http://prod-rpc-proxy:3008/84532/proxy"
+      RPC_URL_MAINNET: 
       RUST_LOG: $RUST_LOG
       BACKEND_SCHEMA: $BACKEND_SCHEMA
     restart: always
@@ -194,16 +194,18 @@ services:
     ports:
       - 3000:3000
     
-  rpc-proxy:
-    container_name: rpc-proxy
+  prod-rpc-proxy:
+    container_name: prod-rpc-proxy
     image: ghcr.io/0xintuition/rpc-proxy:latest
     environment:
       PROXY_DATABASE_URL: $DATABASE_URL
       PROXY_API_PORT: $PROXY_API_PORT
-      PROXY_SCHEMA: $PROXY_SCHEMA
+      PROXY_SCHEMA: "rpc_proxy"
       BASE_MAINNET_RPC_URL: $BASE_MAINNET_RPC_URL
       BASE_SEPOLIA_RPC_URL: $BASE_SEPOLIA_RPC_URL
       ETHEREUM_MAINNET_RPC_URL: $ETHEREUM_MAINNET_RPC_URL
+      LINEA_MAINNET_RPC_URL: $LINEA_MAINNET_RPC_URL
+      LINEA_SEPOLIA_RPC_URL: $LINEA_SEPOLIA_RPC_URL
       RUST_LOG: $RUST_LOG
     ports:
       - $PROXY_API_PORT:$PROXY_API_PORT
@@ -289,63 +291,12 @@ services:
         soft: 65536
         hard: 65536
 
-  # substreams-sink:
-  #   container_name: substreams-sink
-  #   image: ghcr.io/0xintuition/substreams-sink:latest
-  #   restart: always
-  #   entrypoint: ["./substreams-sink"]
-  #   environment:
-  #     LOCALSTACK_URL: $LOCALSTACK_URL
-  #     AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
-  #     AWS_REGION: $AWS_REGION
-  #     AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
-  #     INDEXER_DATABASE_URL: $DATABASE_URL
-  #     RAW_CONSUMER_QUEUE_URL: $RAW_CONSUMER_QUEUE_URL
-  #     SUBSTREAMS_ENDPOINT: $SUBSTREAMS_ENDPOINT
-  #     SUBSTREAMS_PACKAGE: $SUBSTREAMS_PACKAGE
-  #     SUBSTREAMS_MODULE: $SUBSTREAMS_MODULE
-  #     SUBSTREAMS_START_BLOCK: $SUBSTREAMS_START_BLOCK
-  #     SUBSTREAMS_API_TOKEN: $SUBSTREAMS_API_TOKEN
-  #     SUBSTREAMS_OUTPUT: $SUBSTREAMS_OUTPUT
-  #     INDEXER_SCHEMA: $INDEXER_SCHEMA
-  #     INTUITION_CONTRACT_ADDRESS: $INTUITION_CONTRACT_ADDRESS
-  #   command: ["$SUBSTREAMS_ENDPOINT", "$SUBSTREAMS_PACKAGE", "$SUBSTREAMS_MODULE", "$SUBSTREAMS_START_BLOCK:"]
-  #   depends_on:
-  #     sqs:
-  #       condition: service_healthy
-  #     hasura-migrations:
-  #       condition: service_started
-  #   volumes:
-  #     - substreams-sink-data:/data
-
-  # envio-indexer:
-  #   container_name: envio-indexer
-  #   image: ghcr.io/0xintuition/envio-indexer:latest
-  #   environment:
-  #     LOCALSTACK_URL: $LOCALSTACK_URL
-  #     AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
-  #     AWS_REGION: $AWS_REGION
-  #     AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
-  #     INDEXER_DATABASE_URL: $DATABASE_URL
-  #     RAW_CONSUMER_QUEUE_URL: $RAW_CONSUMER_QUEUE_URL
-  #     HYPERSYNC_TOKEN: $HYPERSYNC_TOKEN
-  #     INDEXER_SCHEMA: $INDEXER_SCHEMA
-  #   depends_on:
-  #     sqs:
-  #       condition: service_healthy
-  #     indexer-migrations:
-  #       condition: service_started
-  #   command: ["--network", "base-mainnet", "--output", "postgres"]
-
   histocrawler:
     container_name: histocrawler
     image: ghcr.io/0xintuition/histocrawler:latest
     environment:
-      RPC_URL: $RPC_URL
-      START_BLOCK: $START_BLOCK
-      INTUITION_CONTRACT_ADDRESS: $INTUITION_CONTRACT_ADDRESS
       HISTOCRAWLER_DATABASE_URL: $DATABASE_URL
-      INDEXER_SCHEMA: "base_sepolia_v_1_5"
+      INDEXER_SCHEMA: "histo_base_sepolia_1_5"
     depends_on:
       geth:
         condition: service_started
@@ -388,10 +339,9 @@ services:
       AWS_REGION: $AWS_REGION
       AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY 
       INDEXER_DATABASE_URL: "postgres://testuser:test@database:5435/storage"
-      INDEXER_SCHEMA: "base_sepolia_v_1_5"
+      INDEXER_SCHEMA: "histo_base_sepolia_1_5"
       LOCALSTACK_URL: "http://sqs:4566/"
-      RAW_LOGS_CHANNEL: "base_sepolia_v_1_5_raw_logs_channel"
-      ENVIRONMENT: "local_v_1_5"
+      ENVIRONMENT_NAME: "local_v_1_5"
       RAW_CONSUMER_QUEUE_URL: "http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/raw_logs.fifo"
     depends_on:
       database:

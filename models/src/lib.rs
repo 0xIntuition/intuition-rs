@@ -10,6 +10,7 @@ pub mod deposit;
 pub mod error;
 pub mod event;
 pub mod fee_transfer;
+pub mod histocrawler;
 pub mod json_object;
 pub mod organization;
 pub mod person;

@@ -2,6 +2,7 @@ use crate::error::HistoFluxError;
 use crate::models::cursor::{HistoFluxCursor, NewHistoFluxCursor};
 use aws_sdk_sqs::Client as AWSClient;
 use log::info;
+use models::histocrawler::AppConfig;
 use models::raw_logs::RawLog;
 use serde::Deserialize;
 use shared_utils::postgres::connect_to_db;
@@ -13,19 +14,19 @@ use sqlx::postgres::{PgListener, PgNotification};
 pub struct Env {
     pub localstack_url: Option<String>,
     pub indexer_database_url: String,
-    pub raw_logs_channel: String,
     pub indexer_schema: String,
-    pub environment: String,
+    pub environment_name: String,
     pub raw_consumer_queue_url: String,
 }
 
 /// Represents the SQS producer
-pub struct SqsProducer {
+pub struct HistoFlux {
     client: AWSClient,
     pg_pool: PgPool,
     raw_queue_url: String,
     env: Env,
     indexer_schema: String,
+    histocrawler_config: AppConfig,
 }
 
 #[derive(Debug, Deserialize)]
@@ -49,7 +50,7 @@ struct NotificationPayload {
     raw_log: DbRawLog,
 }
 
-impl SqsProducer {
+impl HistoFlux {
     /// Initialize the application
     pub async fn init() -> Result<Self, HistoFluxError> {
         // Initialize the logger
@@ -66,6 +67,9 @@ impl SqsProducer {
         // Get or create the cursor
         let cursor = Self::get_or_create_cursor(&pg_pool, &env).await?;
         let raw_queue_url = cursor.queue_url.clone();
+        let histocrawler_config = AppConfig::find_by_indexer_schema(&env.indexer_schema, &pg_pool)
+            .await?
+            .ok_or(HistoFluxError::AppConfigNotFound)?;
 
         Ok(Self {
             client,
@@ -73,6 +77,7 @@ impl SqsProducer {
             env,
             raw_queue_url,
             indexer_schema,
+            histocrawler_config,
         })
     }
 
@@ -82,13 +87,13 @@ impl SqsProducer {
         pg_pool: &PgPool,
         env: &Env,
     ) -> Result<HistoFluxCursor, HistoFluxError> {
-        let cursor = HistoFluxCursor::find_by_environment(pg_pool, &env.environment).await?;
+        let cursor = HistoFluxCursor::find_by_environment(pg_pool, &env.environment_name).await?;
         if let Some(cursor) = cursor {
             Ok(cursor)
         } else {
             NewHistoFluxCursor::builder()
                 .last_processed_id(0)
-                .environment(env.environment.clone())
+                .environment(env.environment_name.clone())
                 .paused(false)
                 .queue_url(env.raw_consumer_queue_url.clone())
                 .build()
@@ -162,10 +167,11 @@ impl SqsProducer {
         // Get the last processed id from the database, if it doesnt exist,
         // it will return the default value.
         info!("Getting last processed id from the DB");
-        let mut last_processed_id = HistoFluxCursor::find(&self.pg_pool, &self.env.environment)
-            .await?
-            .ok_or(HistoFluxError::NotFound)?
-            .last_processed_id;
+        let mut last_processed_id =
+            HistoFluxCursor::find(&self.pg_pool, &self.env.environment_name)
+                .await?
+                .ok_or(HistoFluxError::NotFound)?
+                .last_processed_id;
         info!("Last processed id: {}", last_processed_id);
         let amount_of_logs =
             RawLog::get_total_count(&self.pg_pool, &self.indexer_schema.to_string()).await?;
@@ -219,7 +225,7 @@ impl SqsProducer {
     ) -> Result<(), HistoFluxError> {
         HistoFluxCursor::update_last_processed_id(
             &self.pg_pool,
-            &self.env.environment,
+            &self.env.environment_name,
             last_processed_id,
         )
         .await?;
@@ -232,7 +238,9 @@ impl SqsProducer {
 
         // Start listening BEFORE processing historical records
         let mut listener = PgListener::connect(&self.env.indexer_database_url).await?;
-        listener.listen(&self.env.raw_logs_channel).await?;
+        listener
+            .listen(&self.histocrawler_config.raw_logs_channel)
+            .await?;
 
         info!("Start pulling historical records");
         self.process_historical_records().await?;
@@ -299,24 +307,24 @@ mod tests {
     #[test]
     fn test_ceiling_div() {
         // Even division cases
-        assert_eq!(SqsProducer::ceiling_div(10, 2), 5);
-        assert_eq!(SqsProducer::ceiling_div(100, 10), 10);
-        assert_eq!(SqsProducer::ceiling_div(2, 100), 1);
+        assert_eq!(HistoFlux::ceiling_div(10, 2), 5);
+        assert_eq!(HistoFlux::ceiling_div(100, 10), 10);
+        assert_eq!(HistoFlux::ceiling_div(2, 100), 1);
 
         // Uneven division cases (should round up)
-        assert_eq!(SqsProducer::ceiling_div(11, 2), 6);
-        assert_eq!(SqsProducer::ceiling_div(99, 10), 10);
+        assert_eq!(HistoFlux::ceiling_div(11, 2), 6);
+        assert_eq!(HistoFlux::ceiling_div(99, 10), 10);
 
         // Edge cases
-        assert_eq!(SqsProducer::ceiling_div(1, 1), 1);
-        assert_eq!(SqsProducer::ceiling_div(0, 5), 0);
+        assert_eq!(HistoFlux::ceiling_div(1, 1), 1);
+        assert_eq!(HistoFlux::ceiling_div(0, 5), 0);
 
         // Large numbers
-        assert_eq!(SqsProducer::ceiling_div(1000000, 3), 333334);
+        assert_eq!(HistoFlux::ceiling_div(1000000, 3), 333334);
 
         // Negative numbers (following integer division rules)
-        assert_eq!(SqsProducer::ceiling_div(-10, 3), -3);
-        assert_eq!(SqsProducer::ceiling_div(10, -3), -3);
-        assert_eq!(SqsProducer::ceiling_div(-10, -3), 4);
+        assert_eq!(HistoFlux::ceiling_div(-10, 3), -3);
+        assert_eq!(HistoFlux::ceiling_div(10, -3), -3);
+        assert_eq!(HistoFlux::ceiling_div(-10, -3), 4);
     }
 }
