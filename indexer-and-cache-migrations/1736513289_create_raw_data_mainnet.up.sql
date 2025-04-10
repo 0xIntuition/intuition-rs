@@ -35,4 +35,4 @@ CREATE INDEX idx_raw_data_address ON base_mainnet_indexer.raw_data(address);
 CREATE INDEX idx_raw_data_topics ON base_mainnet_indexer.raw_data(topics);
 
 -- now we need to insert the reference for histocrawler
-INSERT INTO histocrawler.app_config (indexer_schema, rpc_url, start_block, contract_address, raw_logs_channel) VALUES ('base_mainnet_indexer', 'http://prod-rpc-proxy:3008/8453/proxy', 18528268, '0x430BbF52503Bd4801E51182f4cB9f8F534225DE5', 'base_mainnet_raw_logs_channel');
+INSERT INTO histocrawler.app_config (indexer_schema, rpc_url, start_block, end_block, contract_address, raw_logs_channel) VALUES ('base_mainnet_indexer', 'http://prod-rpc-proxy:3008/8453/proxy', 18528268, NULL, '0x430BbF52503Bd4801E51182f4cB9f8F534225DE5', 'base_mainnet_raw_logs_channel');
