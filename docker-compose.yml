@@ -294,7 +294,7 @@ services:
     image: ghcr.io/0xintuition/histocrawler:latest
     environment:
       HISTOCRAWLER_DATABASE_URL: $DATABASE_URL
-      INDEXER_SCHEMA: "base_sepolia_v_1_5_indexer"
+      INDEXER_SCHEMA: "histo_base_sepolia_1_5"
     depends_on:
       geth:
         condition: service_started
@@ -337,7 +337,7 @@ services:
       AWS_REGION: $AWS_REGION
       AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY 
       INDEXER_DATABASE_URL: "postgres://testuser:test@database:5435/storage"
-      INDEXER_SCHEMA: "base_sepolia_v_1_5_indexer"
+      INDEXER_SCHEMA: "histo_base_sepolia_1_5"
       LOCALSTACK_URL: "http://sqs:4566/"
       ENVIRONMENT_NAME: "local_v_1_5"
       RAW_CONSUMER_QUEUE_URL: "http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/raw_logs.fifo"
