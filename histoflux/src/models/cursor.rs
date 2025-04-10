@@ -25,7 +25,7 @@ impl NewHistoFluxCursor {
     /// insert the cursor into the DB.
     pub async fn insert(&self, db: &PgPool) -> Result<HistoFluxCursor, HistoFluxError> {
         let query = r#"
-        INSERT INTO cursors.histoflux_cursor (last_processed_id, environment, paused, queue_url) 
+        INSERT INTO histocrawler.histoflux_cursor (last_processed_id, environment, paused, queue_url) 
         VALUES ($1, $2, $3, $4) 
         RETURNING last_processed_id, environment, paused, queue_url, updated_at::timestamptz as updated_at
         "#;
@@ -46,7 +46,7 @@ impl HistoFluxCursor {
     /// insert the cursor into the DB.
     pub async fn insert(&self, db: &PgPool) -> Result<Self, HistoFluxError> {
         let query = r#"
-        INSERT INTO cursors.histoflux_cursor (last_processed_id, environment, paused, queue_url) 
+        INSERT INTO histocrawler.histoflux_cursor (last_processed_id, environment, paused, queue_url) 
         VALUES ($1, $2, $3, $4) 
         RETURNING last_processed_id, environment, paused, queue_url, updated_at::timestamptz as updated_at
         "#;
@@ -65,7 +65,7 @@ impl HistoFluxCursor {
     pub async fn find(db: &PgPool, environment: &str) -> Result<Option<Self>, HistoFluxError> {
         let query = r#"
         SELECT last_processed_id, environment, paused, queue_url, updated_at::timestamptz as updated_at
-        FROM cursors.histoflux_cursor 
+        FROM histocrawler.histoflux_cursor 
         WHERE environment = $1
         "#;
 
@@ -83,7 +83,7 @@ impl HistoFluxCursor {
     ) -> Result<Option<Self>, HistoFluxError> {
         let query = r#"
         SELECT last_processed_id, environment, paused, queue_url, updated_at::timestamptz as updated_at
-        FROM cursors.histoflux_cursor 
+        FROM histocrawler.histoflux_cursor 
         WHERE environment = $1
         "#;
 
@@ -101,7 +101,7 @@ impl HistoFluxCursor {
         last_processed_id: i64,
     ) -> Result<Self, HistoFluxError> {
         let query = r#"
-        UPDATE cursors.histoflux_cursor 
+        UPDATE histocrawler.histoflux_cursor 
         SET last_processed_id = $1, updated_at = NOW()
         WHERE environment = $2
         RETURNING last_processed_id, environment, paused, queue_url, updated_at::timestamptz as updated_at
