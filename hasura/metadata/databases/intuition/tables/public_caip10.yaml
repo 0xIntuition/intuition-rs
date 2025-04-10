@@ -2,12 +2,14 @@ table:
   name: caip10
   schema: public
 configuration:
+  query_configuration:
+    default_limit: 250
+    max_limit: 250
   column_config: {}
   custom_column_names: {}
   custom_root_fields:
     select: caip10s
     select_by_pk: caip10
-<<<<<<< HEAD
 object_relationships:
   - name: atom
     using:
@@ -18,11 +20,6 @@ object_relationships:
         remote_table:
           name: atom
           schema: public
-=======
-  query_configuration:
-    default_limit: 250
-    max_limit: 250
->>>>>>> next
 select_permissions:
   - role: anonymous
     permission:
