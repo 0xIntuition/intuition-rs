@@ -2,6 +2,8 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum HistoFluxError {
+    #[error("App config not found")]
+    AppConfigNotFound,
     #[error(transparent)]
     AWSSendMessage(
         #[from]

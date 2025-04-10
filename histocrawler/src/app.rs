@@ -1,4 +1,4 @@
-use crate::{Env, error::HistoCrawlerError, model::AppConfig};
+use crate::{Env, error::HistoCrawlerError};
 use alloy::{
     eips::BlockNumberOrTag,
     primitives::Address,
@@ -7,7 +7,7 @@ use alloy::{
     transports::http::{Client, Http},
 };
 use log::info;
-use models::raw_logs::RawLog;
+use models::{histocrawler::AppConfig, raw_logs::RawLog};
 use shared_utils::postgres::connect_to_db;
 use sqlx::PgPool;
 use std::{ops::Add, str::FromStr, time::Duration};

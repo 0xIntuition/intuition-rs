@@ -4,7 +4,6 @@ use serde::Deserialize;
 
 mod app;
 mod error;
-mod model;
 
 #[derive(Debug, Deserialize)]
 pub struct Env {
