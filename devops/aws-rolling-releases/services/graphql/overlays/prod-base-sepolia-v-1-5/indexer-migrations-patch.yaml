@@ -16,7 +16,7 @@ spec:
               readOnly: true
           envFrom:
             - secretRef:
-                name: prod-base-sepolia-v-1-5-hasura-aws-secrets
+                name: prod-sepolia-hasura-aws-secrets
       volumes:
         - name: secrets-store-inline
           csi:
