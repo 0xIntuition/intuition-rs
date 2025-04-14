@@ -34,8 +34,6 @@ spec:
             chain: base-sepolia
             env: base-sepolia
             namespace: prod-base-sepolia-v-1-5
-            startBlock: '23414250'
-            rpcURL: 'http://dev-rpc-proxy.default.svc.cluster.local:3008/84532/proxy'
 
   template:
     metadata:
