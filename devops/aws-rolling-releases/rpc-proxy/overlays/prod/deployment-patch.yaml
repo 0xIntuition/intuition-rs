@@ -9,7 +9,7 @@ spec:
       serviceAccountName: secrets-access-sa
       containers:
         - name: rpc-proxy
-          image: ghcr.io/0xintuition/rpc-proxy:2.0.4
+          image: ghcr.io/0xintuition/rpc-proxy:2.0.5-v15
           imagePullPolicy: Always 
           volumeMounts:
             - name: secrets-store-inline

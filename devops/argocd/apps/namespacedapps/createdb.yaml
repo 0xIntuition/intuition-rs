@@ -10,26 +10,30 @@ spec:
   generators:
     - list:
         elements:
-          - cluster: prod-eks
-            server: 'https://kubernetes.default.svc'
-            revision: main
-            namespace: dev-base-sepolia-v2-0-0
-          - cluster: prod-eks
-            server: 'https://kubernetes.default.svc'
-            revision: francois/test-new-env
-            namespace: dev-base-sepolia-2-0-23
+          # - cluster: prod-eks
+          #   server: 'https://kubernetes.default.svc'
+          #   revision: main
+          #   namespace: dev-base-sepolia-v2-0-0
+          # - cluster: prod-eks
+          #   server: 'https://kubernetes.default.svc'
+          #   revision: francois/test-new-env
+          #   namespace: dev-base-sepolia-2-0-23
+          # - cluster: prod-eks
+          #   server: 'https://kubernetes.default.svc'
+          #   revision: prod-base-sepolia-deployment
+          #   namespace: prod-base-sepolia-2-0-23
+          # - cluster: prod-eks
+          #   server: 'https://kubernetes.default.svc'
+          #   revision: prod-base-sepolia-deployment
+          #   namespace: prod-base-mainnet-2-0-23
+          # - cluster: prod-eks
+          #   server: 'https://kubernetes.default.svc'
+          #   revision: prod-base-sepolia-deployment
+          #   namespace: base-mainnet
           - cluster: prod-eks
             server: 'https://kubernetes.default.svc'
             revision: prod-base-sepolia-deployment
-            namespace: prod-base-sepolia-2-0-23
-          - cluster: prod-eks
-            server: 'https://kubernetes.default.svc'
-            revision: prod-base-sepolia-deployment
-            namespace: prod-base-mainnet-2-0-23
-          - cluster: prod-eks
-            server: 'https://kubernetes.default.svc'
-            revision: prod-base-sepolia-deployment
-            namespace: base-mainnet
+            namespace: prod-base-sepolia-v-1-5
   template:
     metadata:
       name: '{{.cluster}}-create-db-{{.namespace}}'
