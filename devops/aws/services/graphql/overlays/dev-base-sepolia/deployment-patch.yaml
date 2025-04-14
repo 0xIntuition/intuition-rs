@@ -14,11 +14,11 @@ spec:
               readOnly: true
           envFrom:
             - secretRef:
-                name: prod-sepolia-hasura-aws-secrets
+                name: dev-sepolia-hasura-aws-secrets
       volumes:
         - name: secrets-store-inline
           csi:
             driver: secrets-store.csi.k8s.io
             readOnly: true
             volumeAttributes:
-              secretProviderClass: "prod-base-sepolia-prod-sepolia-hasura-aws-secrets"
+              secretProviderClass: "dev-base-sepolia-dev-sepolia-hasura-aws-secrets"

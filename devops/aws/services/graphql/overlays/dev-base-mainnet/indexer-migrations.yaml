@@ -8,7 +8,7 @@ spec:
       serviceAccountName: secrets-access-sa
       containers:
         - name: indexer-and-cache-migration
-          image: ghcr.io/0xintuition/indexer-and-cache-migrations:2.0.16-v15
+          image: ghcr.io/0xintuition/indexer-and-cache-migrations:2.0.14
           imagePullPolicy: Always
           volumeMounts:
             - name: secrets-store-inline
@@ -16,12 +16,12 @@ spec:
               readOnly: true
           envFrom:
             - secretRef:
-                name: prod-sepolia-hasura-aws-secrets
+                name: dev-hasura-aws-secrets
       volumes:
         - name: secrets-store-inline
           csi:
             driver: secrets-store.csi.k8s.io
             readOnly: true
             volumeAttributes:
-              secretProviderClass: "prod-base-sepolia-prod-sepolia-hasura-aws-secrets"
+              secretProviderClass: "dev-base-mainnet-dev-hasura-aws-secrets"
       restartPolicy: Never 

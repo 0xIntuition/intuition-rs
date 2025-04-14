@@ -1,14 +1,14 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: Job
 metadata:
-  name: raw-consumer
+  name: hasura-migrations
 spec:
   template:
     spec:
       serviceAccountName: secrets-access-sa
       containers:
-        - name: raw-consumer
-          image: ghcr.io/0xintuition/consumer:2.0.39-v15
+        - name: hasura-migrations
+          image: ghcr.io/0xintuition/hasura-migrations:2.0.12
           imagePullPolicy: Always
           volumeMounts:
             - name: secrets-store-inline
@@ -16,11 +16,11 @@ spec:
               readOnly: true
           envFrom:
             - secretRef:
-                name: prod-raw-consumer-secrets
+                name: dev-hasura-aws-secrets
       volumes:
         - name: secrets-store-inline
           csi:
             driver: secrets-store.csi.k8s.io
             readOnly: true
             volumeAttributes:
-              secretProviderClass: "prod-base-sepolia-prod-raw-consumer-secrets"
+              secretProviderClass: "dev-base-mainnet-dev-hasura-aws-secrets"
