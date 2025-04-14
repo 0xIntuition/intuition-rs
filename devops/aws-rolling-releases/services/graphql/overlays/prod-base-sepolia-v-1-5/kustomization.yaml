@@ -4,7 +4,7 @@ kind: Kustomization
 resources:
   - ../../base  # Adjusted to point to the base directory
   - secret-provider.yaml
-  - indexer-migrations.yaml
+  # - indexer-migrations.yaml
 
 namePrefix: "prod-base-sepolia-"
 
