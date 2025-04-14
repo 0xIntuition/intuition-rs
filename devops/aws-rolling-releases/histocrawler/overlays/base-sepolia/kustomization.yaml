@@ -12,4 +12,4 @@ patches:
       name: histocrawler
 
 commonLabels:
-  network: base-mainnet
+  network: base-sepolia

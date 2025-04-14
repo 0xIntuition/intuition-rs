@@ -8,7 +8,12 @@ spec:
       serviceAccountName: secrets-access-sa
       containers:
         - name: histocrawler
-          image: ghcr.io/0xintuition/histocrawler:2.0.8
+          args:
+            - --network
+            - base-mainnet
+            - --output
+            - postgres
+          image: ghcr.io/0xintuition/histocrawler:2.0.7
           imagePullPolicy: Always
           volumeMounts:
             - name: secrets-store-inline
@@ -16,11 +21,11 @@ spec:
               readOnly: true
           envFrom:
             - secretRef:
-                name: dev-histocrawler-aws-secrets
+                name: histocrawler-aws-secrets
       volumes:
         - name: secrets-store-inline
           csi:
             driver: secrets-store.csi.k8s.io
             readOnly: true
             volumeAttributes:
-              secretProviderClass: "dev-base-sepolia-dev-histocrawler-aws-secrets"
+              secretProviderClass: "histocrawler-aws-secrets"
