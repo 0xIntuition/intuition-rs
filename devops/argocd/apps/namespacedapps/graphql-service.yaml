@@ -10,29 +10,29 @@ spec:
   generators:
     - list:
         elements:
-          - cluster: prod-eks
-            server: 'https://kubernetes.default.svc'
-            revision: main
-            env: dev-base-sepolia
-            namespace: dev-base-sepolia-v2-0-0
+          # - cluster: prod-eks
+          #   server: 'https://kubernetes.default.svc'
+          #   revision: main
+          #   env: dev-base-sepolia
+          #   namespace: dev-base-sepolia-v2-0-0
 
-          - cluster: prod-eks
-            server: 'https://kubernetes.default.svc'
-            revision: francois/test-new-env
-            env: dev-base-sepolia
-            namespace: dev-base-sepolia-2-0-23
+          # - cluster: prod-eks
+          #   server: 'https://kubernetes.default.svc'
+          #   revision: francois/test-new-env
+          #   env: dev-base-sepolia
+          #   namespace: dev-base-sepolia-2-0-23
+
+          # - cluster: prod-eks
+          #   server: 'https://kubernetes.default.svc'
+          #   revision: prod-base-sepolia-deployment
+          #   env: prod-base-sepolia
+          #   namespace: prod-base-sepolia-2-0-23
 
           - cluster: prod-eks
             server: 'https://kubernetes.default.svc'
             revision: prod-base-sepolia-deployment
-            env: prod-base-sepolia
-            namespace: prod-base-sepolia-2-0-23
-
-          - cluster: prod-eks
-            server: 'https://kubernetes.default.svc'
-            revision: prod-base-sepolia-deployment
-            env: prod-base-mainnet
-            namespace: prod-base-mainnet-2-0-23
+            env: prod-base-sepolia-v-1-5
+            namespace: prod-base-sepolia-v-1-5
 
   template:
     metadata:
