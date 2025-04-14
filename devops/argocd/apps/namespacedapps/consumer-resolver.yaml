@@ -12,16 +12,13 @@ spec:
         elements:
           - cluster: prod-eks
             server: 'https://kubernetes.default.svc'
-            revision: main
-            env: dev-base-sepolia
-            namespace: dev-base-sepolia-v2-0-0
-          - cluster: prod-eks
-            server: 'https://kubernetes.default.svc'
             revision: prod-base-sepolia-deployment
             env: prod-base-sepolia-v-1-5
             namespace: prod-base-sepolia-v-1-5
             rpcURL: 'http://prod-rpc-proxy.default.svc.cluster.local:3008/1/proxy'
             rpcURLBase: 'http://prod-rpc-proxy.default.svc.cluster.local:3008/84532/proxy'
+            ensContractAddress: '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e'
+            imageGuardURL: 'http://prod-base-api:3000'
             
             
   template:
