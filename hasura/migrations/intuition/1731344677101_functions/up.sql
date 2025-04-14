@@ -6,16 +6,21 @@ SELECT account.*
 FROM claim
 JOIN account ON account.atom_id = claim.object_id
 WHERE 
- claim.subject_id = subject
-AND claim.predicate_id = predicate
-AND claim.account_id = LOWER(address);
+ account.type = 'Default'
+ AND claim.subject_id = subject
+ AND claim.predicate_id = predicate
+ AND claim.account_id = LOWER(address);
 $$;
 
 CREATE FUNCTION following(address text) RETURNS SETOF account
     LANGUAGE sql STABLE
     AS $$
 SELECT *
-FROM accounts_that_claim_about_account( address, 11, 3);
+FROM accounts_that_claim_about_account(
+    address,
+    (SELECT id FROM atom WHERE type = 'ThingPredicate'),
+    (SELECT id FROM atom WHERE type = 'FollowAction')
+);
 $$;
 
 CREATE FUNCTION claims_from_following(address text) RETURNS SETOF claim

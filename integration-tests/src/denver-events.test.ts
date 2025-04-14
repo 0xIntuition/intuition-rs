@@ -1,11 +1,11 @@
 import { expect, test, suite } from 'vitest'
-import { getIntuition, pinJson, PredicateType } from './setup/utils.js'
+import { getIntuition, pinJson, SystemAtom } from './setup/utils.js'
 
 test('create json_object with a tag', async () => {
   const bob = await getIntuition(2)
 
   const hasTag = await bob.getOrCreateAtom(
-    PredicateType.Keywords,
+    SystemAtom.Keywords,
   )
 
   const denverEvents = await bob.getOrCreateAtom(await pinJson({
