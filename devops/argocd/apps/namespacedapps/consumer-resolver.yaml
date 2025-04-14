@@ -20,7 +20,7 @@ spec:
             revision: prod-base-sepolia-deployment
             env: prod-base-sepolia-v-1-5
             namespace: prod-base-sepolia-v-1-5
-            rpcURL: 'http://prod-rpc-proxy.default.svc.cluster.local:3008/84532/proxy'
+            rpcURL: 'http://prod-rpc-proxy.default.svc.cluster.local:3008/1/proxy'
             rpcURLBase: 'http://prod-rpc-proxy.default.svc.cluster.local:3008/84532/proxy'
             
             
