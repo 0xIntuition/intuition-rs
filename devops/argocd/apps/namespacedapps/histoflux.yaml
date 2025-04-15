@@ -16,6 +16,12 @@ spec:
             chain: base-sepolia
             env: prod-base-sepolia-v-1-5
             namespace: prod-base-sepolia-v-1-5
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: prod-base-sepolia-deployment
+            chain: base-sepolia
+            env: prod-base-sepolia-v-1-0
+            namespace: prod-base-sepolia-v-1-0
   template:
     metadata:
       name: '{{.cluster}}-histoflux-{{.namespace}}'
@@ -57,16 +63,6 @@ spec:
                   value:
                     name: INDEXER_DATABASE_URL
                     value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/histoflux?sslmode=require'
-                - op: add
-                  path: /spec/template/spec/containers/0/env/-
-                  value:
-                    name: INDEXER_SCHEMA
-                    value: 'histo_base_sepolia_1_5'
-                - op: add
-                  path: /spec/template/spec/containers/0/env/-
-                  value:
-                    name: ENVIRONMENT_NAME
-                    value: 'prod_base_sepolia_v_1_5'
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:

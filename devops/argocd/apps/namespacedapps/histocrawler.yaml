@@ -22,6 +22,12 @@ spec:
             chain: base-sepolia
             env: base-sepolia-v1
             namespace: prod-base-sepolia-v-1-0
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: prod-base-sepolia-deployment
+            chain: base-mainnet
+            env: base-mainnet
+            namespace: prod-base-mainnet-v-1-0
 
   template:
     metadata:
