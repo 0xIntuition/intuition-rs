@@ -1,10 +1,10 @@
 use crate::{
+    EthMultiVault::TripleCreated,
     error::ConsumerError,
     mode::{resolver::types::ResolverConsumerMessage, types::DecodedConsumerContext},
     schemas::types::DecodedMessage,
-    EthMultiVault::TripleCreated,
 };
-use alloy::primitives::{Uint, U256};
+use alloy::primitives::{U256, Uint};
 use models::{
     account::{Account, AccountType},
     atom::{Atom, AtomResolvingStatus, AtomType},

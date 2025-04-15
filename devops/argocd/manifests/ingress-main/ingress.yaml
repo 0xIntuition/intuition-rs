@@ -7,8 +7,9 @@ metadata:
     alb.ingress.kubernetes.io/target-type: "ip"
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
     alb.ingress.kubernetes.io/certificate-arn: >-
-      arn:aws:acm:us-west-2:064662847354:certificate/38a72658-5246-41a6-8e6f-643dbf40bcde
-    external-dns.alpha.kubernetes.io/hostname: prod.base-sepolia-v-1-5.intuition.sh
+      arn:aws:acm:us-west-2:064662847354:certificate/38a72658-5246-41a6-8e6f-643dbf40bcde,
+      arn:aws:acm:us-west-2:064662847354:certificate/abc30744-f258-4b61-8363-c0a15b893e78
+    external-dns.alpha.kubernetes.io/hostname: prod.base-sepolia-v-1-5.intuition.sh, prod.base-mainnet-v-1-0.intuition.sh
 spec:
   ingressClassName: alb
   rules:
@@ -22,3 +23,13 @@ spec:
             name: prod-base-sepolia-v-1-5-graphql-engine
             port:
               number: 8080
+  - host: prod.base-mainnet-v-1-0.intuition.sh
+    http:
+      paths:
+      - path: /v1/graphql
+          pathType: Prefix
+          backend:
+            service:
+              name: prod-base-mainnet-v-1-0-graphql-engine
+              port:
+                number: 8080
