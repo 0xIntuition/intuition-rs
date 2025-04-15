@@ -27,9 +27,9 @@ spec:
     http:
       paths:
       - path: /v1/graphql
-          pathType: Prefix
-          backend:
-            service:
-              name: prod-base-mainnet-v-1-0-graphql-engine
-              port:
-                number: 8080
+        pathType: Prefix
+        backend:
+          service:
+            name: prod-base-mainnet-v-1-0-graphql-engine
+            port:
+              number: 8080
