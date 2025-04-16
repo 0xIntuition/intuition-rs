@@ -19,7 +19,7 @@ services:
       retries: 10
   
   resolver_consumer:
-    image: ghcr.io/0xintuition/consumer:latest
+    image: ghcr.io/0xintuition/apps:latest
     command: ./consumer --mode resolver
     environment:
       AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
@@ -53,8 +53,8 @@ services:
 
   consumer-api:
     container_name: consumer-api
-    image: ghcr.io/0xintuition/consumer-api:latest
-    command: ./api
+    image: ghcr.io/0xintuition/apps:latest
+    command: ./consumer-api
     ports:
       - 3001:3001
     environment:
@@ -67,7 +67,7 @@ services:
         condition: service_healthy
   
   ipfs_upload_consumer:
-    image: ghcr.io/0xintuition/consumer:latest
+    image: ghcr.io/0xintuition/apps:latest
     command: ./consumer --mode ipfs-upload
     environment:
       AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
@@ -99,7 +99,7 @@ services:
     
   decoded_consumer:
     container_name: decoded_consumer
-    image: ghcr.io/0xintuition/consumer:latest
+    image: ghcr.io/0xintuition/apps:latest
     command: ./consumer --mode decoded
     environment:
       AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
@@ -128,7 +128,7 @@ services:
     
   raw_consumer:
     container_name: raw_consumer
-    image: ghcr.io/0xintuition/consumer:latest
+    image: ghcr.io/0xintuition/apps:latest
     command: ./consumer --mode raw
     environment:
       AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
@@ -178,7 +178,8 @@ services:
     
   api:
     container_name: api
-    image: ghcr.io/0xintuition/image-guard:latest
+    image: ghcr.io/0xintuition/apps:latest
+    command: ./image-guard
     environment:
       CLASSIFICATION_API_PORT: $CLASSIFICATION_API_PORT
       DATABASE_URL: $DATABASE_URL
@@ -198,7 +199,8 @@ services:
     
   prod-rpc-proxy:
     container_name: prod-rpc-proxy
-    image: ghcr.io/0xintuition/rpc-proxy:latest
+    image: ghcr.io/0xintuition/apps:latest
+    command: ./rpc-proxy
     environment:
       PROXY_DATABASE_URL: $DATABASE_URL
       PROXY_API_PORT: $PROXY_API_PORT
@@ -295,7 +297,8 @@ services:
 
   histocrawler:
     container_name: histocrawler
-    image: ghcr.io/0xintuition/histocrawler:latest
+    image: ghcr.io/0xintuition/apps:latest
+    command: ./histocrawler
     environment:
       HISTOCRAWLER_DATABASE_URL: $DATABASE_URL
       INDEXER_SCHEMA: "histo_base_sepolia_1_5"
@@ -335,7 +338,8 @@ services:
   
   histoflux:
     container_name: histoflux
-    image: ghcr.io/0xintuition/histoflux:latest
+    image: ghcr.io/0xintuition/apps:latest
+    command: ./histoflux
     environment:
       AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
       AWS_REGION: $AWS_REGION
@@ -419,22 +423,22 @@ services:
         condition: service_healthy
       consumer-api:
         condition: service_started
-      contract-deployer:
-        condition: service_completed_successfully
+      # contract-deployer:
+      #   condition: service_completed_successfully
 
-  contract-deployer:
-    container_name: contract-deployer
-    build:
-      context: ./integration-tests/contract-deployer
-      dockerfile: Dockerfile
-    depends_on:
-      geth:
-        condition: service_healthy 
-    volumes:
-      - shared_env:/shared_env
-      - deployer_data:/app
-      - ./geth/keystore.json:/data/keystore.json
-      - ./geth/password.txt:/data/password.txt
+  # contract-deployer:
+  #   container_name: contract-deployer
+  #   build:
+  #     context: ./integration-tests/contract-deployer
+  #     dockerfile: Dockerfile
+  #   depends_on:
+  #     geth:
+  #       condition: service_healthy 
+  #   volumes:
+  #     - shared_env:/shared_env
+  #     - deployer_data:/app
+  #     - ./geth/keystore.json:/data/keystore.json
+  #     - ./geth/password.txt:/data/password.txt
 
 
 networks:
