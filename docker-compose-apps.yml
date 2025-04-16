@@ -81,7 +81,7 @@ services:
       CONSUMER_TYPE: 'sqs'
       DATABASE_URL: 'postgres://testuser:test@database:5435/storage'
       DECODED_LOGS_QUEUE_URL: 'http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/decoded_logs.fifo'
-      INTUITION_CONTRACT_ADDRESS: '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e'
+      INTUITION_CONTRACT_ADDRESS: $INTUITION_CONTRACT_ADDRESS
       LOCALSTACK_URL: 'http://sqs:4566/'
       PG_MIN_CONNECTIONS: '5'
       RESOLVER_QUEUE_URL: 'http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/resolver'
@@ -165,13 +165,10 @@ services:
     environment:
       HISTOCRAWLER_DATABASE_URL: 'postgres://testuser:test@database:5435/storage'
       INDEXER_SCHEMA: "histo_base_sepolia_1_5"
-    # depends_on:
-    #   geth:
-    #     condition: service_healthy
-    #   database:
-    #     condition: service_healthy
-    #   local-migrations:
-    #     condition: service_completed_successfully
+    depends_on:
+      prod-rpc-proxy:
+        condition: service_healthy
+      
 
   histoflux:
     container_name: histoflux
@@ -205,7 +202,7 @@ services:
       - ETHEREUM_RPC_URL=http://geth:8545
       - GRAPHQL_API_URL=http://graphql-engine:8080/v1/graphql
       - IPFS_API_URL=http://api:3000/upload_json_to_ipfs 
-      - VITE_CONTRACT_DEPLOYER_INFO_PATH=/app/broadcast/DeployToLocalGeth.s.sol/1337/run-latest.json
+      - VITE_INTUITION_CONTRACT_ADDRESS=$INTUITION_CONTRACT_ADDRESS
     # depends_on:
     #   geth:
     #     condition: service_healthy
