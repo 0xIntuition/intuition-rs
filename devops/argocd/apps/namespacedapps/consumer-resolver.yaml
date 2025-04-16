@@ -37,6 +37,15 @@ spec:
             rpcURLBase: 'http://prod-rpc-proxy.default.svc.cluster.local:3008/8453/proxy'
             ensContractAddress: '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e'
             imageGuardURL: 'http://prod-base-api.default.svc.cluster.local:3000'
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: prod-base-sepolia-deployment
+            env: prod-linea-mainnet-v-1-0
+            namespace: prod-linea-mainnet-v-1-0
+            rpcURL: 'http://prod-rpc-proxy.default.svc.cluster.local:3008/1/proxy'
+            rpcURLBase: 'http://prod-rpc-proxy.default.svc.cluster.local:3008/59144/proxy'
+            ensContractAddress: '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e'
+            imageGuardURL: 'http://prod-base-api.default.svc.cluster.local:3000'
   template:
     metadata:
       name: '{{.cluster}}-consumer-resolver-{{.namespace}}'
