@@ -12,22 +12,22 @@ spec:
         elements:
           - cluster: prod-eks
             server: 'https://kubernetes.default.svc'
-            revision: prod-base-sepolia-deployment
+            revision: next
             env: prod-base-sepolia-v-1-5
             namespace: prod-base-sepolia-v-1-5
           - cluster: prod-eks
             server: 'https://kubernetes.default.svc'
-            revision: prod-base-sepolia-deployment
+            revision: next
             env: prod-base-sepolia-v-1-0
             namespace: prod-base-sepolia-v-1-0
           - cluster: prod-eks
             server: 'https://kubernetes.default.svc'
-            revision: prod-base-sepolia-deployment
+            revision: next
             env: prod-base-mainnet-v-1-0
             namespace: prod-base-mainnet-v-1-0
           - cluster: prod-eks
             server: 'https://kubernetes.default.svc'
-            revision: prod-base-sepolia-deployment
+            revision: next
             env: prod-linea-mainnet-v-1-0
             namespace: prod-linea-mainnet-v-1-0
 

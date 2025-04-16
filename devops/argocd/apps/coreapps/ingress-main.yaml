@@ -7,7 +7,7 @@ spec:
   project: prod
   source:
     repoURL: 'https://github.com/0xintuition/intuition-rs.git'
-    targetRevision: prod-base-sepolia-deployment
+    targetRevision: next
     path: devops/argocd/manifests/ingress-main
   destination:
     server: 'https://kubernetes.default.svc'
