@@ -131,7 +131,7 @@ impl SharePriceChange {
     ) -> Result<Self, ModelError> {
         let query = format!(
             r#"
-            SELECT * FROM {}.share_price_changed 
+            SELECT * FROM {}.share_price_change 
             WHERE term_id = $1 and curve_id = $2
             ORDER BY updated_at DESC
             LIMIT 1
