@@ -51,23 +51,31 @@ args = [
 ]
 
 # Remove docker volumes
-[tasks.remove-docker-volumes]
+[tasks.remove-docker-volumes-shared]
 command = "docker"
-args = ["compose", "down", "-v"]
+args = ["compose", "-f", "docker-compose-shared.yml", "down", "-v"]
+
+[tasks.remove-docker-volumes-apps]
+command = "docker"
+args = ["compose", "-f", "docker-compose-apps.yml", "down", "-v"]
 
 # Start the docker compose stack
-[tasks.start-docker]
+[tasks.start-docker-shared]
 command = "docker"
-args = ["compose", "up", "-d", "--force-recreate"]
+args = ["compose", "-f", "docker-compose-shared.yml", "up", "-d", "--force-recreate"]
+
+[tasks.start-docker-apps]
+command = "docker"
+args = ["compose", "-f", "docker-compose-apps.yml", "up", "-d", "--force-recreate"]
 
 # Migrate the database
 [tasks.migrate-database]
 command = "hasura"
-args = ["deploy", "--project", "hasura"]
+args =["deploy", "--project", "hasura"]
 
 # This task remove the docker volumes, start the docker compose stack, and migrate the database
 [tasks.start-docker-and-migrate]
-dependencies = ["remove-docker-volumes", "build-docker-images", "start-docker"]
+dependencies = ["remove-docker-volumes-apps", "remove-docker-volumes-shared", "build-docker-images", "start-docker-shared", "migrate-database", "start-docker-apps"]
 
 [tasks.build-docker-images]
 dependencies = [ "build-apps",  "build-image-hasura-migrations", "build-indexer-and-cache-migrations", "build-local-migrations", "build-contract-deployer"]
@@ -75,7 +83,7 @@ dependencies = [ "build-apps",  "build-image-hasura-migrations", "build-indexer-
 
 # This task remove the docker volumes, start the docker compose stack
 [tasks.restart]
-dependencies = ["remove-docker-volumes", "start-docker"]
+dependencies = ["remove-docker-volumes-apps", "remove-docker-volumes-shared", "start-docker-shared", "migrate-database", "start-docker-apps"]
 
 # Simply format and lint checking with `cargo clippy` for all targets
 # in the workspace, promoting `warnings` to `errors`
