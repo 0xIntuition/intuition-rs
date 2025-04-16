@@ -413,9 +413,6 @@ services:
       - GRAPHQL_API_URL=http://graphql-engine:8080/v1/graphql
       - IPFS_API_URL=http://api:3000/upload_json_to_ipfs 
       - VITE_CONTRACT_DEPLOYER_INFO_PATH=/app/broadcast/DeployToLocalGeth.s.sol/1337/run-latest.json
-    volumes:
-      - deployer_data:/app
-      - shared_env:/shared_env
     depends_on:
       geth:
         condition: service_healthy
@@ -423,22 +420,19 @@ services:
         condition: service_healthy
       consumer-api:
         condition: service_started
-      # contract-deployer:
-      #   condition: service_completed_successfully
+      contract-deployer:
+        condition: service_completed_successfully
 
-  # contract-deployer:
-  #   container_name: contract-deployer
-  #   build:
-  #     context: ./integration-tests/contract-deployer
-  #     dockerfile: Dockerfile
-  #   depends_on:
-  #     geth:
-  #       condition: service_healthy 
-  #   volumes:
-  #     - shared_env:/shared_env
-  #     - deployer_data:/app
-  #     - ./geth/keystore.json:/data/keystore.json
-  #     - ./geth/password.txt:/data/password.txt
+  contract-deployer:
+    container_name: contract-deployer
+    image: ghcr.io/0xintuition/contract-deployer:latest
+    depends_on:
+      geth:
+        condition: service_healthy 
+    volumes:
+      - deployer_data:/app
+      - ./geth/keystore.json:/data/keystore.json
+      - ./geth/password.txt:/data/password.txt
 
 
 networks:
@@ -455,4 +449,3 @@ volumes:
   substreams-sink-data:
   data_geth:
   deployer_data:
-  shared_env:
