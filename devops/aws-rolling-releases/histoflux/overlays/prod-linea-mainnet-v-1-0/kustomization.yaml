@@ -12,4 +12,4 @@ patches:
       name: histoflux
 
 commonLabels:
-  network: base-sepolia
+  network: linea-mainnet

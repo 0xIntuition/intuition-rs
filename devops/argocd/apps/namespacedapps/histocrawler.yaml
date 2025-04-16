@@ -28,6 +28,13 @@ spec:
             chain: base-mainnet
             env: base-mainnet
             namespace: prod-base-mainnet-v-1-0
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: prod-base-sepolia-deployment
+            chain: linea-mainnet
+            env: linea-mainnet
+            namespace: prod-linea-mainnet-v-1-0
+
 
   template:
     metadata:
