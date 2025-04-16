@@ -32,39 +32,20 @@ RUN cargo build --release --bin rpc-proxy
 RUN cargo build --release --bin histoflux
 RUN cargo build --release --bin histocrawler
 
-
 # Stage 3 - Final runtime image
-FROM debian:bookworm-slim AS runtime
-
-# Create non-root user
-RUN groupadd -r appuser && useradd -r -g appuser appuser
-
-# Install runtime dependencies only
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    ca-certificates \
-    libssl3 \
-    && rm -rf /var/lib/apt/lists/*
+FROM gcr.io/distroless/cc-debian12
 
 # Copy binary from builder
-COPY --from=builder /app/target/release/consumer /app/consumer
-COPY --from=builder /app/target/release/consumer-api /app/consumer-api
-COPY --from=builder /app/target/release/cli /app/cli
-COPY --from=builder /app/target/release/rpc-proxy /app/rpc-proxy
-COPY --from=builder /app/target/release/histoflux /app/histoflux
-COPY --from=builder /app/target/release/histocrawler /app/histocrawler
-COPY --from=builder /app/target/release/image-guard /app/image-guard
+COPY --from=builder --chown=nonroot:nonroot /app/target/release/consumer /app/consumer
+COPY --from=builder --chown=nonroot:nonroot /app/target/release/consumer-api /app/consumer-api
+COPY --from=builder --chown=nonroot:nonroot /app/target/release/cli /app/cli
+COPY --from=builder --chown=nonroot:nonroot /app/target/release/rpc-proxy /app/rpc-proxy
+COPY --from=builder --chown=nonroot:nonroot /app/target/release/histoflux /app/histoflux
+COPY --from=builder --chown=nonroot:nonroot /app/target/release/histocrawler /app/histocrawler
+COPY --from=builder --chown=nonroot:nonroot /app/target/release/image-guard /app/image-guard
 
-# Set ownership
-RUN chown appuser:appuser /app/consumer
-RUN chown appuser:appuser /app/consumer-api
-RUN chown appuser:appuser /app/cli
-RUN chown appuser:appuser /app/rpc-proxy
-RUN chown appuser:appuser /app/histoflux
-RUN chown appuser:appuser /app/histocrawler
-RUN chown appuser:appuser /app/image-guard
 # Use non-root user
-USER appuser
+USER nonroot:nonroot
 
 # Set runtime configs
 ENV RUST_LOG=info
