@@ -12,27 +12,25 @@ spec:
         elements:
           - cluster: prod-eks
             server: 'https://kubernetes.default.svc'
-            revision: francois/add-iac
-            env: dev-base-sepolia
-            namespace: dev-base-sepolia-v2-0-0
-
-          - cluster: prod-eks
-            server: 'https://kubernetes.default.svc'
-            revision: francois/test-new-env
-            env: dev-base-sepolia
-            namespace: dev-base-sepolia-2-0-23
-
+            revision: prod-base-sepolia-deployment
+            env: prod-base-sepolia-v-1-5
+            namespace: prod-base-sepolia-v-1-5
           - cluster: prod-eks
             server: 'https://kubernetes.default.svc'
             revision: prod-base-sepolia-deployment
-            env: prod-base-sepolia
-            namespace: prod-base-sepolia-2-0-23
-
+            env: prod-base-sepolia-v-1-0
+            namespace: prod-base-sepolia-v-1-0
           - cluster: prod-eks
             server: 'https://kubernetes.default.svc'
             revision: prod-base-sepolia-deployment
-            env: prod-base-mainnet
-            namespace: prod-base-mainnet-2-0-23
+            env: prod-base-mainnet-v-1-0
+            namespace: prod-base-mainnet-v-1-0
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: prod-base-sepolia-deployment
+            env: prod-linea-mainnet-v-1-0
+            namespace: prod-linea-mainnet-v-1-0
+
   template:
     metadata:
       name: '{{.cluster}}-consumer-ipfs-upload-{{.namespace}}'

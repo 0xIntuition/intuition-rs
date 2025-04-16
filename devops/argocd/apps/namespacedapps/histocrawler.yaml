@@ -12,13 +12,30 @@ spec:
         elements:
           - cluster: prod-eks
             server: 'https://kubernetes.default.svc'
-            revision: francois/add-iac
+            revision: prod-base-sepolia-deployment
             chain: base-sepolia
-            env: dev-base-sepolia
-            namespace: dev-base-sepolia-v2-0-0
-            intuitionContractAddress: '0x1A6950807E33d5bC9975067e6D6b5Ea4cD661665'
-            startBlock: '12947309'
-            rpcURL: 'http://dev-rpc-proxy.default.svc.cluster.local:3008/84532/proxy'
+            env: base-sepolia
+            namespace: prod-base-sepolia-v-1-5
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: prod-base-sepolia-deployment
+            chain: base-sepolia
+            env: base-sepolia-v1
+            namespace: prod-base-sepolia-v-1-0
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: prod-base-sepolia-deployment
+            chain: base-mainnet
+            env: base-mainnet
+            namespace: prod-base-mainnet-v-1-0
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: prod-base-sepolia-deployment
+            chain: linea-mainnet
+            env: linea-mainnet
+            namespace: prod-linea-mainnet-v-1-0
+
+
   template:
     metadata:
       name: '{{.cluster}}-histocrawler-{{.namespace}}'
@@ -50,34 +67,9 @@ spec:
                   value:
                     name: HISTOCRAWLER_DATABASE_URL
                     value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/histoflux?sslmode=require'
-                - op: add
-                  path: /spec/template/spec/containers/0/env/-
-                  value:
-                    name: INDEXER_SCHEMA
-                    value: '{{.chain | replace "-" "_"}}_indexer'
-                - op: add
-                  path: /spec/template/spec/containers/0/env/-
-                  value:
-                    name: INTUITION_CONTRACT_ADDRESS
-                    value: '{{.intuitionContractAddress}}'
-                - op: add
-                  path: /spec/template/spec/containers/0/env/-
-                  value:
-                    name: RPC_URL
-                    value: '{{.rpcURL}}' # probably better to have all of that dynamically created
-                - op: add
-                  path: /spec/template/spec/containers/0/env/-
-                  value:
-                    name: START_BLOCK
-                    value: '{{.startBlock}}' # probably better to have all of that dynamically created
       destination:
         server: '{{.server}}'
         namespace: '{{.namespace}}'
       syncPolicy:
         syncOptions:
         - CreateNamespace=true
-        # automated:
-        #   prune: false
-        #   selfHeal: false
-        # syncOptions:
-        # - CreateNamespace=true

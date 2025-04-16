@@ -7,18 +7,51 @@ metadata:
     alb.ingress.kubernetes.io/target-type: "ip"
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
     alb.ingress.kubernetes.io/certificate-arn: >-
-      arn:aws:acm:us-west-2:064662847354:certificate/8bc44099-61f9-41a9-a2b1-4d68b739dd5b
-    external-dns.alpha.kubernetes.io/hostname: dev.base-sepolia.intuition.sh
+      arn:aws:acm:us-west-2:064662847354:certificate/38a72658-5246-41a6-8e6f-643dbf40bcde,
+      arn:aws:acm:us-west-2:064662847354:certificate/abc30744-f258-4b61-8363-c0a15b893e78,
+      arn:aws:acm:us-west-2:064662847354:certificate/3271827a-0558-4279-abca-b076aa9fc673,
+      arn:aws:acm:us-west-2:064662847354:certificate/229c75b7-a2c3-4505-b26d-066e3ca01fc1
+    external-dns.alpha.kubernetes.io/hostname: prod.base-sepolia-v-1-5.intuition.sh, prod.base-mainnet-v-1-0.intuition.sh,prod.base-sepolia-v-1-0.intuition.sh,prod.linea-mainnet-v-1-0.intuition.sh
 spec:
   ingressClassName: alb
   rules:
-  - host: dev.base-sepolia.intuition.sh
+  - host: prod.base-sepolia-v-1-5.intuition.sh
     http:
       paths:
       - path: /v1/graphql
         pathType: Prefix
         backend:
           service:
-            name: dev-base-sepolia-v2-0-0-graphql-engine
+            name: prod-base-sepolia-v-1-5-graphql-engine
+            port:
+              number: 8080
+  - host: prod.base-mainnet-v-1-0.intuition.sh
+    http:
+      paths:
+      - path: /v1/graphql
+        pathType: Prefix
+        backend:
+          service:
+            name: prod-base-mainnet-v-1-0-graphql-engine
+            port:
+              number: 8080
+  - host: prod.base-sepolia-v-1-0.intuition.sh
+    http:
+      paths:
+      - path: /v1/graphql
+        pathType: Prefix
+        backend:
+          service:
+            name: prod-base-sepolia-v-1-0-graphql-engine
+            port:
+              number: 8080
+  - host: prod.linea-mainnet-v-1-0.intuition.sh
+    http:
+      paths:
+      - path: /v1/graphql
+        pathType: Prefix
+        backend:
+          service:
+            name: prod-linea-mainnet-v-1-0-graphql-engine
             port:
               number: 8080

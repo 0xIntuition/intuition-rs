@@ -12,41 +12,40 @@ spec:
         elements:
           - cluster: prod-eks
             server: 'https://kubernetes.default.svc'
-            revision: francois/add-iac
-            env: dev-base-sepolia
-            namespace: dev-base-sepolia-v2-0-0
-            rpcURLBase: 'http://dev-rpc-proxy.default.svc.cluster.local:3008/84532/proxy'
-            rpcURL: 'http://dev-rpc-proxy.default.svc.cluster.local:3008/1/proxy'
-            ensContractAddress: '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e'
-            imageGuardURL: 'http://prod-base-api:3000'
-          - cluster: prod-eks
-            server: 'https://kubernetes.default.svc'
-            revision: francois/test-new-env
-            env: dev-base-sepolia
-            namespace: dev-base-sepolia-2-0-23
-            rpcURLBase: 'http://dev-rpc-proxy.default.svc.cluster.local:3008/84532/proxy'
-            rpcURL: 'http://dev-rpc-proxy.default.svc.cluster.local:3008/1/proxy'
-            ensContractAddress: '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e'
-            imageGuardURL: 'http://prod-base-api:3000'
-          - cluster: prod-eks
-            server: 'https://kubernetes.default.svc'
             revision: prod-base-sepolia-deployment
-            env: prod-base-sepolia
-            namespace: prod-base-sepolia-2-0-23
+            env: prod-base-sepolia-v-1-5
+            namespace: prod-base-sepolia-v-1-5
+            rpcURL: 'http://prod-rpc-proxy.default.svc.cluster.local:3008/1/proxy'
             rpcURLBase: 'http://prod-rpc-proxy.default.svc.cluster.local:3008/84532/proxy'
-            rpcURL: 'http://prod-rpc-proxy.default.svc.cluster.local:3008/1/proxy'
             ensContractAddress: '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e'
             imageGuardURL: 'http://prod-base-api:3000'
           - cluster: prod-eks
             server: 'https://kubernetes.default.svc'
             revision: prod-base-sepolia-deployment
-            env: prod-base-mainnet
-            namespace: prod-base-mainnet-2-0-23
-            rpcURLBase: 'http://prod-rpc-proxy.default.svc.cluster.local:3008/8453/proxy'
+            env: prod-base-sepolia-v-1-0
+            namespace: prod-base-sepolia-v-1-0
             rpcURL: 'http://prod-rpc-proxy.default.svc.cluster.local:3008/1/proxy'
+            rpcURLBase: 'http://prod-rpc-proxy.default.svc.cluster.local:3008/84532/proxy'
             ensContractAddress: '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e'
-            imageGuardURL: 'http://prod-base-api:3000'
-            
+            imageGuardURL: 'http://prod-base-api.default.svc.cluster.local:3000'
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: prod-base-sepolia-deployment
+            env: prod-base-mainnet-v-1-0
+            namespace: prod-base-mainnet-v-1-0
+            rpcURL: 'http://prod-rpc-proxy.default.svc.cluster.local:3008/1/proxy'
+            rpcURLBase: 'http://prod-rpc-proxy.default.svc.cluster.local:3008/8453/proxy'
+            ensContractAddress: '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e'
+            imageGuardURL: 'http://prod-base-api.default.svc.cluster.local:3000'
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: prod-base-sepolia-deployment
+            env: prod-linea-mainnet-v-1-0
+            namespace: prod-linea-mainnet-v-1-0
+            rpcURL: 'http://prod-rpc-proxy.default.svc.cluster.local:3008/1/proxy'
+            rpcURLBase: 'http://prod-rpc-proxy.default.svc.cluster.local:3008/59144/proxy'
+            ensContractAddress: '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e'
+            imageGuardURL: 'http://prod-base-api.default.svc.cluster.local:3000'
   template:
     metadata:
       name: '{{.cluster}}-consumer-resolver-{{.namespace}}'

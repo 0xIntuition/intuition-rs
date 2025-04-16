@@ -22,6 +22,6 @@ spec:
             - name: PROXY_API_PORT
               value: "3008"
             - name: PROXY_SCHEMA
-              value: "base_proxy"
+              value: "rpc_proxy"
           envFrom: []
 

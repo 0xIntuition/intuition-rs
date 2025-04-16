@@ -12,32 +12,28 @@ spec:
         elements:
           - cluster: prod-eks
             server: 'https://kubernetes.default.svc'
-            revision: francois/add-iac
-            cursorID: '9'
+            revision: prod-base-sepolia-deployment
             chain: base-sepolia
-            env: dev-base-sepolia
-            namespace: dev-base-sepolia-v2-0-0
-          - cluster: prod-eks
-            server: 'https://kubernetes.default.svc'
-            revision: francois/test-new-env
-            cursorID: '10'
-            chain: base-sepolia
-            env: dev-base-sepolia
-            namespace: dev-base-sepolia-2-0-23
+            env: prod-base-sepolia-v-1-5
+            namespace: prod-base-sepolia-v-1-5
           - cluster: prod-eks
             server: 'https://kubernetes.default.svc'
             revision: prod-base-sepolia-deployment
-            cursorID: '3'
             chain: base-sepolia
-            env: prod-base-sepolia
-            namespace: prod-base-sepolia-2-0-23
+            env: prod-base-sepolia-v-1-0
+            namespace: prod-base-sepolia-v-1-0
           - cluster: prod-eks
             server: 'https://kubernetes.default.svc'
             revision: prod-base-sepolia-deployment
-            cursorID: '2'
             chain: base-mainnet
-            env: prod-base-mainnet
-            namespace: prod-base-mainnet-2-0-23
+            env: prod-base-mainnet-v-1-0
+            namespace: prod-base-mainnet-v-1-0
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: prod-base-sepolia-deployment
+            chain: linea-mainnet
+            env: prod-linea-mainnet-v-1-0
+            namespace: prod-linea-mainnet-v-1-0
   template:
     metadata:
       name: '{{.cluster}}-histoflux-{{.namespace}}'
@@ -82,23 +78,8 @@ spec:
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
-                    name: INDEXER_DATABASE_URL
-                    value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/histoflux?sslmode=require'
-                - op: add
-                  path: /spec/template/spec/containers/0/env/-
-                  value:
-                    name: INDEXER_SCHEMA
-                    value: '{{.chain | replace "-" "_"}}_indexer'
-                - op: add
-                  path: /spec/template/spec/containers/0/env/-
-                  value:
-                    name: RAW_LOGS_CHANNEL
-                    value: '{{.chain | replace "-" "_"}}_raw_logs_channel'
-                - op: add
-                  path: /spec/template/spec/containers/0/env/-
-                  value:
-                    name: HISTOFLUX_CURSOR_ID
-                    value: '{{.cursorID}}' # probably better to have all of that dynamically created
+                    name: RAW_CONSUMER_QUEUE_URL
+                    value: 'https://sqs.us-west-2.amazonaws.com/064662847354/{{.cluster}}-{{.namespace}}-raw-logs.fifo'
       destination:
         server: '{{.server}}'
         namespace: '{{.namespace}}'
