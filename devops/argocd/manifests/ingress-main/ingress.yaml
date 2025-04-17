@@ -22,7 +22,7 @@ spec:
         pathType: Prefix
         backend:
           service:
-            name: prod-base-sepolia-v-1-5-graphql-engine
+            name: prod-base-sepolia-v-1-5-graphql-engine.prod-base-sepolia-v-1-5.svc.cluster.local
             port:
               number: 8080
   - host: prod.base-mainnet-v-1-0.intuition.sh
@@ -32,7 +32,7 @@ spec:
         pathType: Prefix
         backend:
           service:
-            name: prod-base-mainnet-v-1-0-graphql-engine
+            name: prod-base-mainnet-v-1-0-graphql-engine.prod-base-mainnet-v-1-0.svc.cluster.local
             port:
               number: 8080
   - host: prod.base-sepolia-v-1-0.intuition.sh
@@ -42,7 +42,7 @@ spec:
         pathType: Prefix
         backend:
           service:
-            name: prod-base-sepolia-v-1-0-graphql-engine
+            name: prod-base-sepolia-v-1-0-graphql-engine.prod-base-sepolia-v-1-0.svc.cluster.local
             port:
               number: 8080
   - host: prod.linea-mainnet-v-1-0.intuition.sh
@@ -52,6 +52,6 @@ spec:
         pathType: Prefix
         backend:
           service:
-            name: prod-linea-mainnet-v-1-0-graphql-engine
+            name: prod-linea-mainnet-v-1-0-graphql-engine.prod-linea-mainnet-v-1-0.svc.cluster.local
             port:
               number: 8080

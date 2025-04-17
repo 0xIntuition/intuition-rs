@@ -206,7 +206,7 @@ spec:
 
       destination:
         server: '{{.server}}'
-        namespace: 'default' # graphql is always deployed in default but the namespace is in the name
+        namespace: '{{.namespace}}' # graphql is always deployed in default but the namespace is in the name
       syncPolicy:
         automated:
           prune: true
