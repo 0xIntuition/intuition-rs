@@ -33,7 +33,7 @@ spec:
 
   template:
     metadata:
-      name: 'graphql-service-{{.namespace}}'
+      name: '{{.cluster}}-graphql-service-{{.namespace}}'
       annotations:
         argocd.argoproj.io/manifest-generate-paths: '.;/devops/argocd'
     spec:
@@ -50,9 +50,6 @@ spec:
                 name: 'hasura-aws-secrets'
               patch: |-
                 - op: replace
-                  path: /metadata/name
-                  value: '{{.namespace}}-hasura-aws-secrets'
-                - op: replace
                   path: /spec/secretObjects/0/secretName
                   value: '{{.namespace}}-hasura-aws-secrets'
             - target:
@@ -68,7 +65,7 @@ spec:
               patch: |-
                 - op: replace
                   path: /spec/template/spec/serviceAccountName
-                  value: '{{.cluster}}-{{.namespace}}-secrets-access-sa'
+                  value: '{{.cluster}}-secrets-access-sa'
                 - op: replace
                   path: /spec/template/spec/volumes/0/csi/volumeAttributes/secretProviderClass
                   value: '{{.namespace}}-hasura-aws-secrets'
@@ -114,11 +111,8 @@ spec:
                 name: indexer-and-cache-migration
               patch: |-
                 - op: replace
-                  path: /metadata/name
-                  value: '{{.namespace}}-indexer-and-cache-migration'
-                - op: replace
                   path: /spec/template/spec/serviceAccountName
-                  value: '{{.cluster}}-{{.namespace}}-secrets-access-sa'
+                  value: '{{.cluster}}-secrets-access-sa'
                 - op: replace
                   path: /spec/template/spec/volumes/0/csi/volumeAttributes/secretProviderClass
                   value: '{{.namespace}}-hasura-aws-secrets'
@@ -166,11 +160,8 @@ spec:
                 name: hasura-migrations
               patch: |-
                 - op: replace
-                  path: /metadata/name
-                  value: '{{.namespace}}-hasura-migrations'
-                - op: replace
                   path: /spec/template/spec/serviceAccountName
-                  value: '{{.cluster}}-{{.namespace}}-secrets-access-sa'
+                  value: '{{.cluster}}-secrets-access-sa'
                 - op: replace
                   path: /spec/template/spec/volumes/0/csi/volumeAttributes/secretProviderClass
                   value: '{{.namespace}}-hasura-aws-secrets'
@@ -215,7 +206,7 @@ spec:
 
       destination:
         server: '{{.server}}'
-        namespace: '{{.namespace}}' # graphql is always deployed in default but the namespace is in the name
+        namespace: 'default' # graphql is always deployed in default but the namespace is in the name
       syncPolicy:
         automated:
           prune: true
