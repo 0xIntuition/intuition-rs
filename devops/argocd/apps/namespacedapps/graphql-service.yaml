@@ -33,7 +33,7 @@ spec:
 
   template:
     metadata:
-      name: '{{.cluster}}-graphql-service-{{.namespace}}'
+      name: 'graphql-service-{{.namespace}}'
       annotations:
         argocd.argoproj.io/manifest-generate-paths: '.;/devops/argocd'
     spec:
@@ -50,6 +50,9 @@ spec:
                 name: 'hasura-aws-secrets'
               patch: |-
                 - op: replace
+                  path: /metadata/name
+                  value: '{{.namespace}}-hasura-aws-secrets'
+                - op: replace
                   path: /spec/secretObjects/0/secretName
                   value: '{{.namespace}}-hasura-aws-secrets'
             - target:
@@ -65,7 +68,7 @@ spec:
               patch: |-
                 - op: replace
                   path: /spec/template/spec/serviceAccountName
-                  value: '{{.cluster}}-secrets-access-sa'
+                  value: '{{.cluster}}-{{.namespace}}-secrets-access-sa'
                 - op: replace
                   path: /spec/template/spec/volumes/0/csi/volumeAttributes/secretProviderClass
                   value: '{{.namespace}}-hasura-aws-secrets'
@@ -111,8 +114,11 @@ spec:
                 name: indexer-and-cache-migration
               patch: |-
                 - op: replace
+                  path: /metadata/name
+                  value: '{{.namespace}}-indexer-and-cache-migration'
+                - op: replace
                   path: /spec/template/spec/serviceAccountName
-                  value: '{{.cluster}}-secrets-access-sa'
+                  value: '{{.cluster}}-{{.namespace}}-secrets-access-sa'
                 - op: replace
                   path: /spec/template/spec/volumes/0/csi/volumeAttributes/secretProviderClass
                   value: '{{.namespace}}-hasura-aws-secrets'
@@ -160,8 +166,11 @@ spec:
                 name: hasura-migrations
               patch: |-
                 - op: replace
+                  path: /metadata/name
+                  value: '{{.namespace}}-hasura-migrations'
+                - op: replace
                   path: /spec/template/spec/serviceAccountName
-                  value: '{{.cluster}}-secrets-access-sa'
+                  value: '{{.cluster}}-{{.namespace}}-secrets-access-sa'
                 - op: replace
                   path: /spec/template/spec/volumes/0/csi/volumeAttributes/secretProviderClass
                   value: '{{.namespace}}-hasura-aws-secrets'
@@ -203,14 +212,6 @@ spec:
                   value:
                     name: HASURA_GRAPHQL_METADATA_DATABASE_URL
                     value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/{{.namespace | replace "-" "_"}}?sslmode=require'
-            - target:
-                kind: ServiceAccount
-                name: '{{.cluster}}-secrets-access-sa'
-              patch: |-
-                - op: add
-                  path: /metadata/annotations
-                  value:
-                    eks.amazonaws.com/role-arn: arn:aws:iam::064662847354:role/aws-secrets
 
       destination:
         server: '{{.server}}'
