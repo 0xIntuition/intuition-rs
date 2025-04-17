@@ -6,9 +6,6 @@ configuration:
   custom_column_names: {}
   custom_name: predicate_objects
   custom_root_fields: {}
-  query_configuration:
-    default_limit: 250
-    max_limit: 250
 object_relationships:
   - name: object
     using:

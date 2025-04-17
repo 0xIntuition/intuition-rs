@@ -7,9 +7,6 @@ configuration:
   custom_name: atoms
   custom_root_fields:
     select_by_pk: atom
-  query_configuration:
-    default_limit: 250
-    max_limit: 250
 object_relationships:
   - name: value
     using:
