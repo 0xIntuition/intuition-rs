@@ -203,6 +203,14 @@ spec:
                   value:
                     name: HASURA_GRAPHQL_METADATA_DATABASE_URL
                     value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/{{.namespace | replace "-" "_"}}?sslmode=require'
+            - target:
+                kind: ServiceAccount
+                name: '{{.cluster}}-secrets-access-sa'
+              patch: |-
+                - op: add
+                  path: /metadata/annotations
+                  value:
+                    eks.amazonaws.com/role-arn: arn:aws:iam::064662847354:role/aws-secrets
 
       destination:
         server: '{{.server}}'
