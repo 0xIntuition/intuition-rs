@@ -155,6 +155,7 @@ services:
       LINEA_MAINNET_RPC_URL: $LINEA_MAINNET_RPC_URL
       LINEA_SEPOLIA_RPC_URL: $LINEA_SEPOLIA_RPC_URL
       RUST_LOG: 'info'
+    restart: always
     ports:
       - 3008:3008
   
@@ -167,7 +168,7 @@ services:
       INDEXER_SCHEMA: "histo_base_sepolia_1_5"
     depends_on:
       prod-rpc-proxy:
-        condition: service_healthy
+        condition: service_started
       
 
   histoflux:
