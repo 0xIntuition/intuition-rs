@@ -79,18 +79,10 @@ pub async fn get_or_create_account(
 }
 
 pub async fn update_account_with_atom_id(
-    id: String,
+    account: &mut Account,
     atom_id: U256Wrapper,
     decoded_consumer_context: &DecodedConsumerContext,
-) -> Result<Account, ConsumerError> {
-    let mut account = Account::find_by_id(
-        id.clone(),
-        &decoded_consumer_context.pg_pool,
-        &decoded_consumer_context.backend_schema,
-    )
-    .await?
-    .ok_or(ConsumerError::AccountNotFound)?;
-
+) -> Result<(), ConsumerError> {
     account.atom_id = Some(atom_id);
     account
         .upsert(
@@ -108,7 +100,7 @@ pub async fn update_account_with_atom_id(
         .client
         .send_message(serde_json::to_string(&message)?, None)
         .await?;
-    Ok(account)
+    Ok(())
 }
 
 #[cfg(feature = "v1_5_contract")]

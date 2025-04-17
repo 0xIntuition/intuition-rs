@@ -1,7 +1,7 @@
 use crate::{
     error::ConsumerError,
     mode::{
-        decoded_v1_5::utils::{short_id, update_account_with_atom_id},
+        decoded_v1_5::utils::{get_or_create_account, short_id, update_account_with_atom_id},
         resolver::{
             atom_resolver::{try_to_parse_json_or_text, try_to_resolve_schema_org_url},
             types::{ResolveAtom, ResolverConsumerMessage},
@@ -273,12 +273,18 @@ impl AtomMetadata {
             return Ok(());
         }
 
-        let account = update_account_with_atom_id(
+        let mut account = get_or_create_account(
             resolved_atom
                 .atom
                 .data
                 .clone()
                 .ok_or(ConsumerError::AtomDataNotFound)?,
+            decoded_consumer_context,
+        )
+        .await?;
+
+        update_account_with_atom_id(
+            &mut account,
             resolved_atom.atom.term_id.clone(),
             decoded_consumer_context,
         )

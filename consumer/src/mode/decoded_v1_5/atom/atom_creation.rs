@@ -206,7 +206,7 @@ impl AtomCreated {
             Ok(atom)
         } else {
             info!("Atom does not exist, creating it");
-            let atom_wallet_account = self
+            let mut atom_wallet_account = self
                 .get_or_create_atom_wallet_account(decoded_consumer_context)
                 .await?;
             let creator_account =
@@ -232,7 +232,7 @@ impl AtomCreated {
                 .await?;
             //updating the account with the atom id
             update_account_with_atom_id(
-                atom_wallet_account.id,
+                &mut atom_wallet_account,
                 atom.term_id.clone(),
                 decoded_consumer_context,
             )
