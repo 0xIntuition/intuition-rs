@@ -24,7 +24,7 @@ if [ "$INDEXER_SCHEMA" == "histo_local_1_5" ]; then
         sleep 1
     done
 
-    echo "Contract address(local): $CONTRACT_ADDRESS"
+    echo "export VITE_INTUITION_CONTRACT_ADDRESS=$CONTRACT_ADDRESS"
 
     # Set env vars
     export INTUITION_CONTRACT_ADDRESS=$CONTRACT_ADDRESS
