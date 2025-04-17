@@ -31,6 +31,7 @@ RUN cargo build --release --bin cli
 RUN cargo build --release --bin rpc-proxy
 RUN cargo build --release --bin histoflux
 RUN cargo build --release --bin histocrawler
+RUN cargo build --release --bin image-guard
 
 # Stage 3 - Final runtime image
 FROM gcr.io/distroless/cc-debian12
