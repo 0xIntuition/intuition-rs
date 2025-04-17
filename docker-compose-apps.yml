@@ -165,7 +165,7 @@ services:
     command: ./histocrawler
     environment:
       HISTOCRAWLER_DATABASE_URL: 'postgres://testuser:test@database:5435/storage'
-      INDEXER_SCHEMA: "histo_base_sepolia_1_5"
+      INDEXER_SCHEMA: $INDEXER_SCHEMA
     depends_on:
       prod-rpc-proxy:
         condition: service_started
@@ -180,7 +180,7 @@ services:
       AWS_REGION: 'us-west-2'
       AWS_SECRET_ACCESS_KEY: 'example' 
       INDEXER_DATABASE_URL: "postgres://testuser:test@database:5435/storage"
-      INDEXER_SCHEMA: "histo_base_sepolia_1_5"
+      INDEXER_SCHEMA: $INDEXER_SCHEMA
       LOCALSTACK_URL: "http://sqs:4566/"
       ENVIRONMENT_NAME: "local_v_1_5"
       RAW_CONSUMER_QUEUE_URL: "http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/raw_logs.fifo"
