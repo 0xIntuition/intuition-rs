@@ -19,11 +19,10 @@ ENV PATH="/root/.foundry/bin:${PATH}"
 WORKDIR /app
 
 RUN git clone --recurse-submodules -j8 https://github.com/0xIntuition/intuition-beta-contracts.git . 
-RUN git checkout simon/deploy-local-geth 
 RUN npm install
 RUN forge build
 
-# Create a script to run the forge command
+# Create a script to run the forge  command
 RUN echo '#!/bin/sh\n\
 forge script script/DeployToLocalGeth.s.sol --rpc-url http://geth:8545 --keystore /data/keystore.json --password-file /data/password.txt --broadcast\n\
 MULTIVAULT_ADDRESS=$(jq -r '\''.transactions[] | select(.contractName=="TransparentUpgradeableProxy") | .contractAddress'\'' ./broadcast/DeployToLocalGeth.s.sol/1337/run-latest.json)\n\
