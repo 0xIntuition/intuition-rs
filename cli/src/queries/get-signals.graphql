@@ -7,20 +7,13 @@ query GetSignals {
       label
       type
     }
-    atom {
-      emoji
+    term {
       id
-      label
-    }
-    deposit {
-      shares_for_receiver
-    }
-    redemption {
-      receiver {
+      atom {
+        emoji
         label
       }
-    }
-    triple {
+      triple {
         subject {
           label
         }
@@ -30,7 +23,15 @@ query GetSignals {
         object {
           label
         }
+      }
+    }
+    deposit {
+      shares_for_receiver
+    }
+    redemption {
+      receiver {
+        label
+      }
     }
   }
 }
-

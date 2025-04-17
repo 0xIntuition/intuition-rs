@@ -20,17 +20,12 @@ pub fn draw(f: &mut Frame, app: &App, area: Rect) {
                 .unwrap_or(&"N/A".to_string())
                 .to_string();
 
-            let mut predicate_label = "N/A".to_string();
+            let predicate_label = predicate_object.predicate
+                .label
+                .as_ref()
+                .unwrap_or(&"N/A".to_string())
+                .to_string();
 
-            // FIXME: predicate is optional, but it should not be
-
-            if let Some(predicate) = &predicate_object.predicate {
-                predicate_label = predicate
-                    .label
-                    .as_ref()
-                    .unwrap_or(&"N/A".to_string())
-                    .to_string();
-            }
             Row::new(vec![
                 Cell::from(predicate_object.claim_count.to_string()),
                 Cell::from(predicate_object.triple_count.to_string()),

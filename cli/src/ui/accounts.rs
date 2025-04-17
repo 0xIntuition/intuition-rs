@@ -82,10 +82,8 @@ fn draw_account_details(f: &mut Frame, app: &App, area: Rect) {
             .map(|pos| {
                 // Extract the label, defaulting to "N/A" if none exists
                 let label = 
-                    if let Some(atom) = pos.vault.atom.as_ref() {
+                    if let Some(atom) = pos.term.atom.as_ref() {
                         atom.label.as_deref().unwrap_or("N/A")
-                    // } else if let Some(triple) = pos.vault.triple.as_ref() {
-                    //     triple.label.as_deref().unwrap_or("N/A")
                     } else {
                         "N/A"
                     };
@@ -97,24 +95,10 @@ fn draw_account_details(f: &mut Frame, app: &App, area: Rect) {
         let positions_list =
             List::new(positions).block(Block::default().title("Positions").borders(Borders::ALL));
 
-        f.render_widget(positions_list, chunks[1]);
+        f.render_widget(positions_list, chunks[0]);
 
-        // Claims
 
-        let claims: Vec<ListItem> = details
-            .claims
-            .iter()
-            .map(|claim| {
-                // let label = claim.triple.label.as_deref().unwrap_or("N/A").to_string();
-                let label = "FIXME";
-                ListItem::new(Line::from(format!("{}, {}", label, claim.shares)))
-            })
-            .collect();
 
-        let claims_list =
-            List::new(claims).block(Block::default().title("Claims").borders(Borders::ALL));
-
-        f.render_widget(claims_list, chunks[0]);
     } else {
         let text = vec![Line::from(Span::raw("No account details"))];
         let paragraph = Paragraph::new(text).block(block);

@@ -1,6 +1,6 @@
 query GetAtoms {
   atoms(limit: 250) {
-    id
+    term_id
     label
     type
   }
