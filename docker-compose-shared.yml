@@ -205,7 +205,6 @@ services:
       geth:
         condition: service_healthy 
     volumes:
-      - deployer_data:/app
       - ./geth/keystore.json:/data/keystore.json
       - ./geth/password.txt:/data/password.txt
 
@@ -215,12 +214,7 @@ networks:
     driver: bridge
     
 volumes:
-  sqs:
-  raw_consumer:
-  decoded_consumer:
   database-data:
   pgadmin-data:
   ipfs_data:
-  substreams-sink-data:
   data_geth:
-  deployer_data:

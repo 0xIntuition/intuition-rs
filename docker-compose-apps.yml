@@ -184,13 +184,7 @@ services:
       LOCALSTACK_URL: "http://sqs:4566/"
       ENVIRONMENT_NAME: "local_v_1_5"
       RAW_CONSUMER_QUEUE_URL: "http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/raw_logs.fifo"
-    # depends_on:
-    #   database:
-    #     condition: service_healthy
-    #   sqs:
-    #     condition: service_healthy
-    #   local-migrations:
-    #     condition: service_completed_successfully
+
 
 
 
@@ -219,12 +213,5 @@ networks:
     driver: bridge
     
 volumes:
-  sqs:
   raw_consumer:
   decoded_consumer:
-  database-data:
-  pgadmin-data:
-  ipfs_data:
-  substreams-sink-data:
-  data_geth:
-  deployer_data:
