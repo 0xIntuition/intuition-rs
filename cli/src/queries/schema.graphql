@@ -73,6 +73,7 @@ type accounts {
     """filter the rows returned"""
     where: atoms_bool_exp
   ): atoms_aggregate!
+  cached_image: cached_images_cached_image
 
   """An array relationship"""
   claims(
@@ -719,12 +720,23 @@ type atom_values {
   account_id: String
 
   """An object relationship"""
-  atom: atoms
+  atom: atoms!
 
   """An object relationship"""
   book: books
   book_id: numeric
+
+  """An object relationship"""
+  byte_object: byte_object
+  byte_object_id: numeric
+
+  """An object relationship"""
+  caip10: caip10
   id: numeric!
+
+  """An object relationship"""
+  json_object: json_objects
+  json_object_id: numeric
 
   """An object relationship"""
   organization: organizations
@@ -733,6 +745,10 @@ type atom_values {
   """An object relationship"""
   person: persons
   person_id: numeric
+
+  """An object relationship"""
+  text_object: text_objects
+  text_object_id: numeric
 
   """An object relationship"""
   thing: things
@@ -767,9 +783,12 @@ type atom_values_aggregate_fields {
 """aggregate avg on columns"""
 type atom_values_avg_fields {
   book_id: Float
+  byte_object_id: Float
   id: Float
+  json_object_id: Float
   organization_id: Float
   person_id: Float
+  text_object_id: Float
   thing_id: Float
 }
 
@@ -785,11 +804,18 @@ input atom_values_bool_exp {
   atom: atoms_bool_exp
   book: books_bool_exp
   book_id: numeric_comparison_exp
+  byte_object: byte_object_bool_exp
+  byte_object_id: numeric_comparison_exp
+  caip10: caip10_bool_exp
   id: numeric_comparison_exp
+  json_object: json_objects_bool_exp
+  json_object_id: numeric_comparison_exp
   organization: organizations_bool_exp
   organization_id: numeric_comparison_exp
   person: persons_bool_exp
   person_id: numeric_comparison_exp
+  text_object: text_objects_bool_exp
+  text_object_id: numeric_comparison_exp
   thing: things_bool_exp
   thing_id: numeric_comparison_exp
 }
@@ -798,9 +824,12 @@ input atom_values_bool_exp {
 type atom_values_max_fields {
   account_id: String
   book_id: numeric
+  byte_object_id: numeric
   id: numeric
+  json_object_id: numeric
   organization_id: numeric
   person_id: numeric
+  text_object_id: numeric
   thing_id: numeric
 }
 
@@ -808,9 +837,12 @@ type atom_values_max_fields {
 type atom_values_min_fields {
   account_id: String
   book_id: numeric
+  byte_object_id: numeric
   id: numeric
+  json_object_id: numeric
   organization_id: numeric
   person_id: numeric
+  text_object_id: numeric
   thing_id: numeric
 }
 
@@ -821,11 +853,18 @@ input atom_values_order_by {
   atom: atoms_order_by
   book: books_order_by
   book_id: order_by
+  byte_object: byte_object_order_by
+  byte_object_id: order_by
+  caip10: caip10_order_by
   id: order_by
+  json_object: json_objects_order_by
+  json_object_id: order_by
   organization: organizations_order_by
   organization_id: order_by
   person: persons_order_by
   person_id: order_by
+  text_object: text_objects_order_by
+  text_object_id: order_by
   thing: things_order_by
   thing_id: order_by
 }
@@ -841,7 +880,13 @@ enum atom_values_select_column {
   book_id
 
   """column name"""
+  byte_object_id
+
+  """column name"""
   id
+
+  """column name"""
+  json_object_id
 
   """column name"""
   organization_id
@@ -850,33 +895,45 @@ enum atom_values_select_column {
   person_id
 
   """column name"""
+  text_object_id
+
+  """column name"""
   thing_id
 }
 
 """aggregate stddev on columns"""
 type atom_values_stddev_fields {
   book_id: Float
+  byte_object_id: Float
   id: Float
+  json_object_id: Float
   organization_id: Float
   person_id: Float
+  text_object_id: Float
   thing_id: Float
 }
 
 """aggregate stddev_pop on columns"""
 type atom_values_stddev_pop_fields {
   book_id: Float
+  byte_object_id: Float
   id: Float
+  json_object_id: Float
   organization_id: Float
   person_id: Float
+  text_object_id: Float
   thing_id: Float
 }
 
 """aggregate stddev_samp on columns"""
 type atom_values_stddev_samp_fields {
   book_id: Float
+  byte_object_id: Float
   id: Float
+  json_object_id: Float
   organization_id: Float
   person_id: Float
+  text_object_id: Float
   thing_id: Float
 }
 
@@ -895,45 +952,60 @@ input atom_values_stream_cursor_input {
 input atom_values_stream_cursor_value_input {
   account_id: String
   book_id: numeric
+  byte_object_id: numeric
   id: numeric
+  json_object_id: numeric
   organization_id: numeric
   person_id: numeric
+  text_object_id: numeric
   thing_id: numeric
 }
 
 """aggregate sum on columns"""
 type atom_values_sum_fields {
   book_id: numeric
+  byte_object_id: numeric
   id: numeric
+  json_object_id: numeric
   organization_id: numeric
   person_id: numeric
+  text_object_id: numeric
   thing_id: numeric
 }
 
 """aggregate var_pop on columns"""
 type atom_values_var_pop_fields {
   book_id: Float
+  byte_object_id: Float
   id: Float
+  json_object_id: Float
   organization_id: Float
   person_id: Float
+  text_object_id: Float
   thing_id: Float
 }
 
 """aggregate var_samp on columns"""
 type atom_values_var_samp_fields {
   book_id: Float
+  byte_object_id: Float
   id: Float
+  json_object_id: Float
   organization_id: Float
   person_id: Float
+  text_object_id: Float
   thing_id: Float
 }
 
 """aggregate variance on columns"""
 type atom_values_variance_fields {
   book_id: Float
+  byte_object_id: Float
   id: Float
+  json_object_id: Float
   organization_id: Float
   person_id: Float
+  text_object_id: Float
   thing_id: Float
 }
 
@@ -978,9 +1050,9 @@ type atoms {
   ): accounts_aggregate!
 
   """An array relationship"""
-  as_object_claims(
+  as_object_predicate_objects(
     """distinct select on columns"""
-    distinct_on: [claims_select_column!]
+    distinct_on: [predicate_objects_select_column!]
 
     """limit the number of rows returned"""
     limit: Int
@@ -989,16 +1061,16 @@ type atoms {
     offset: Int
 
     """sort the rows by one or more columns"""
-    order_by: [claims_order_by!]
+    order_by: [predicate_objects_order_by!]
 
     """filter the rows returned"""
-    where: claims_bool_exp
-  ): [claims!]!
+    where: predicate_objects_bool_exp
+  ): [predicate_objects!]!
 
   """An aggregate relationship"""
-  as_object_claims_aggregate(
+  as_object_predicate_objects_aggregate(
     """distinct select on columns"""
-    distinct_on: [claims_select_column!]
+    distinct_on: [predicate_objects_select_column!]
 
     """limit the number of rows returned"""
     limit: Int
@@ -1007,11 +1079,11 @@ type atoms {
     offset: Int
 
     """sort the rows by one or more columns"""
-    order_by: [claims_order_by!]
+    order_by: [predicate_objects_order_by!]
 
     """filter the rows returned"""
-    where: claims_bool_exp
-  ): claims_aggregate!
+    where: predicate_objects_bool_exp
+  ): predicate_objects_aggregate!
 
   """An array relationship"""
   as_object_triples(
@@ -1050,9 +1122,9 @@ type atoms {
   ): triples_aggregate!
 
   """An array relationship"""
-  as_predicate_claims(
+  as_predicate_predicate_objects(
     """distinct select on columns"""
-    distinct_on: [claims_select_column!]
+    distinct_on: [predicate_objects_select_column!]
 
     """limit the number of rows returned"""
     limit: Int
@@ -1061,16 +1133,16 @@ type atoms {
     offset: Int
 
     """sort the rows by one or more columns"""
-    order_by: [claims_order_by!]
+    order_by: [predicate_objects_order_by!]
 
     """filter the rows returned"""
-    where: claims_bool_exp
-  ): [claims!]!
+    where: predicate_objects_bool_exp
+  ): [predicate_objects!]!
 
   """An aggregate relationship"""
-  as_predicate_claims_aggregate(
+  as_predicate_predicate_objects_aggregate(
     """distinct select on columns"""
-    distinct_on: [claims_select_column!]
+    distinct_on: [predicate_objects_select_column!]
 
     """limit the number of rows returned"""
     limit: Int
@@ -1079,11 +1151,11 @@ type atoms {
     offset: Int
 
     """sort the rows by one or more columns"""
-    order_by: [claims_order_by!]
+    order_by: [predicate_objects_order_by!]
 
     """filter the rows returned"""
-    where: claims_bool_exp
-  ): claims_aggregate!
+    where: predicate_objects_bool_exp
+  ): predicate_objects_aggregate!
 
   """An array relationship"""
   as_predicate_triples(
@@ -1122,42 +1194,6 @@ type atoms {
   ): triples_aggregate!
 
   """An array relationship"""
-  as_subject_claims(
-    """distinct select on columns"""
-    distinct_on: [claims_select_column!]
-
-    """limit the number of rows returned"""
-    limit: Int
-
-    """skip the first n rows. Use only with order_by"""
-    offset: Int
-
-    """sort the rows by one or more columns"""
-    order_by: [claims_order_by!]
-
-    """filter the rows returned"""
-    where: claims_bool_exp
-  ): [claims!]!
-
-  """An aggregate relationship"""
-  as_subject_claims_aggregate(
-    """distinct select on columns"""
-    distinct_on: [claims_select_column!]
-
-    """limit the number of rows returned"""
-    limit: Int
-
-    """skip the first n rows. Use only with order_by"""
-    offset: Int
-
-    """sort the rows by one or more columns"""
-    order_by: [claims_order_by!]
-
-    """filter the rows returned"""
-    where: claims_bool_exp
-  ): claims_aggregate!
-
-  """An array relationship"""
   as_subject_triples(
     """distinct select on columns"""
     distinct_on: [triples_select_column!]
@@ -1192,20 +1228,59 @@ type atoms {
     """filter the rows returned"""
     where: triples_bool_exp
   ): triples_aggregate!
+
+  """An object relationship"""
+  atom_value: atom_values
   block_number: numeric!
   block_timestamp: bigint!
+  cached_image: cached_images_cached_image
 
   """An object relationship"""
-  controler: accounts
+  controller: accounts
 
   """An object relationship"""
-  creator: accounts
+  creator: accounts!
   creator_id: String!
-  data: String!
+  data: String
   emoji: String
-  id: numeric!
   image: String
   label: String
+
+  """An array relationship"""
+  positions(
+    """distinct select on columns"""
+    distinct_on: [positions_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [positions_order_by!]
+
+    """filter the rows returned"""
+    where: positions_bool_exp
+  ): [positions!]!
+
+  """An aggregate relationship"""
+  positions_aggregate(
+    """distinct select on columns"""
+    distinct_on: [positions_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [positions_order_by!]
+
+    """filter the rows returned"""
+    where: positions_bool_exp
+  ): positions_aggregate!
 
   """An array relationship"""
   signals(
@@ -1242,13 +1317,13 @@ type atoms {
     """filter the rows returned"""
     where: signals_bool_exp
   ): signals_aggregate!
-  transaction_hash: bytea!
-  type: atom_type!
 
   """An object relationship"""
-  value: atom_values
+  term: terms!
+  term_id: numeric!
+  transaction_hash: String!
+  type: atom_type!
   value_id: numeric
-  vault_id: numeric!
   wallet_id: String!
 }
 
@@ -1309,9 +1384,8 @@ input atoms_aggregate_order_by {
 type atoms_avg_fields {
   block_number: Float
   block_timestamp: Float
-  id: Float
+  term_id: Float
   value_id: Float
-  vault_id: Float
 }
 
 """
@@ -1320,9 +1394,8 @@ order by avg() on columns of table "atom"
 input atoms_avg_order_by {
   block_number: order_by
   block_timestamp: order_by
-  id: order_by
+  term_id: order_by
   value_id: order_by
-  vault_id: order_by
 }
 
 """
@@ -1334,35 +1407,35 @@ input atoms_bool_exp {
   _or: [atoms_bool_exp!]
   accounts: accounts_bool_exp
   accounts_aggregate: accounts_aggregate_bool_exp
-  as_object_claims: claims_bool_exp
-  as_object_claims_aggregate: claims_aggregate_bool_exp
+  as_object_predicate_objects: predicate_objects_bool_exp
+  as_object_predicate_objects_aggregate: predicate_objects_aggregate_bool_exp
   as_object_triples: triples_bool_exp
   as_object_triples_aggregate: triples_aggregate_bool_exp
-  as_predicate_claims: claims_bool_exp
-  as_predicate_claims_aggregate: claims_aggregate_bool_exp
+  as_predicate_predicate_objects: predicate_objects_bool_exp
+  as_predicate_predicate_objects_aggregate: predicate_objects_aggregate_bool_exp
   as_predicate_triples: triples_bool_exp
   as_predicate_triples_aggregate: triples_aggregate_bool_exp
-  as_subject_claims: claims_bool_exp
-  as_subject_claims_aggregate: claims_aggregate_bool_exp
   as_subject_triples: triples_bool_exp
   as_subject_triples_aggregate: triples_aggregate_bool_exp
+  atom_value: atom_values_bool_exp
   block_number: numeric_comparison_exp
   block_timestamp: bigint_comparison_exp
-  controler: accounts_bool_exp
+  controller: accounts_bool_exp
   creator: accounts_bool_exp
   creator_id: String_comparison_exp
   data: String_comparison_exp
   emoji: String_comparison_exp
-  id: numeric_comparison_exp
   image: String_comparison_exp
   label: String_comparison_exp
+  positions: positions_bool_exp
+  positions_aggregate: positions_aggregate_bool_exp
   signals: signals_bool_exp
   signals_aggregate: signals_aggregate_bool_exp
-  transaction_hash: bytea_comparison_exp
+  term: terms_bool_exp
+  term_id: numeric_comparison_exp
+  transaction_hash: String_comparison_exp
   type: atom_type_comparison_exp
-  value: atom_values_bool_exp
   value_id: numeric_comparison_exp
-  vault_id: numeric_comparison_exp
   wallet_id: String_comparison_exp
 }
 
@@ -1373,12 +1446,12 @@ type atoms_max_fields {
   creator_id: String
   data: String
   emoji: String
-  id: numeric
   image: String
   label: String
+  term_id: numeric
+  transaction_hash: String
   type: atom_type
   value_id: numeric
-  vault_id: numeric
   wallet_id: String
 }
 
@@ -1391,12 +1464,12 @@ input atoms_max_order_by {
   creator_id: order_by
   data: order_by
   emoji: order_by
-  id: order_by
   image: order_by
   label: order_by
+  term_id: order_by
+  transaction_hash: order_by
   type: order_by
   value_id: order_by
-  vault_id: order_by
   wallet_id: order_by
 }
 
@@ -1407,12 +1480,12 @@ type atoms_min_fields {
   creator_id: String
   data: String
   emoji: String
-  id: numeric
   image: String
   label: String
+  term_id: numeric
+  transaction_hash: String
   type: atom_type
   value_id: numeric
-  vault_id: numeric
   wallet_id: String
 }
 
@@ -1425,40 +1498,40 @@ input atoms_min_order_by {
   creator_id: order_by
   data: order_by
   emoji: order_by
-  id: order_by
   image: order_by
   label: order_by
+  term_id: order_by
+  transaction_hash: order_by
   type: order_by
   value_id: order_by
-  vault_id: order_by
   wallet_id: order_by
 }
 
 """Ordering options when selecting data from "atom"."""
 input atoms_order_by {
   accounts_aggregate: accounts_aggregate_order_by
-  as_object_claims_aggregate: claims_aggregate_order_by
+  as_object_predicate_objects_aggregate: predicate_objects_aggregate_order_by
   as_object_triples_aggregate: triples_aggregate_order_by
-  as_predicate_claims_aggregate: claims_aggregate_order_by
+  as_predicate_predicate_objects_aggregate: predicate_objects_aggregate_order_by
   as_predicate_triples_aggregate: triples_aggregate_order_by
-  as_subject_claims_aggregate: claims_aggregate_order_by
   as_subject_triples_aggregate: triples_aggregate_order_by
+  atom_value: atom_values_order_by
   block_number: order_by
   block_timestamp: order_by
-  controler: accounts_order_by
+  controller: accounts_order_by
   creator: accounts_order_by
   creator_id: order_by
   data: order_by
   emoji: order_by
-  id: order_by
   image: order_by
   label: order_by
+  positions_aggregate: positions_aggregate_order_by
   signals_aggregate: signals_aggregate_order_by
+  term: terms_order_by
+  term_id: order_by
   transaction_hash: order_by
   type: order_by
-  value: atom_values_order_by
   value_id: order_by
-  vault_id: order_by
   wallet_id: order_by
 }
 
@@ -1482,13 +1555,13 @@ enum atoms_select_column {
   emoji
 
   """column name"""
-  id
-
-  """column name"""
   image
 
   """column name"""
   label
+
+  """column name"""
+  term_id
 
   """column name"""
   transaction_hash
@@ -1500,9 +1573,6 @@ enum atoms_select_column {
   value_id
 
   """column name"""
-  vault_id
-
-  """column name"""
   wallet_id
 }
 
@@ -1510,9 +1580,8 @@ enum atoms_select_column {
 type atoms_stddev_fields {
   block_number: Float
   block_timestamp: Float
-  id: Float
+  term_id: Float
   value_id: Float
-  vault_id: Float
 }
 
 """
@@ -1521,18 +1590,16 @@ order by stddev() on columns of table "atom"
 input atoms_stddev_order_by {
   block_number: order_by
   block_timestamp: order_by
-  id: order_by
+  term_id: order_by
   value_id: order_by
-  vault_id: order_by
 }
 
 """aggregate stddev_pop on columns"""
 type atoms_stddev_pop_fields {
   block_number: Float
   block_timestamp: Float
-  id: Float
+  term_id: Float
   value_id: Float
-  vault_id: Float
 }
 
 """
@@ -1541,18 +1608,16 @@ order by stddev_pop() on columns of table "atom"
 input atoms_stddev_pop_order_by {
   block_number: order_by
   block_timestamp: order_by
-  id: order_by
+  term_id: order_by
   value_id: order_by
-  vault_id: order_by
 }
 
 """aggregate stddev_samp on columns"""
 type atoms_stddev_samp_fields {
   block_number: Float
   block_timestamp: Float
-  id: Float
+  term_id: Float
   value_id: Float
-  vault_id: Float
 }
 
 """
@@ -1561,9 +1626,8 @@ order by stddev_samp() on columns of table "atom"
 input atoms_stddev_samp_order_by {
   block_number: order_by
   block_timestamp: order_by
-  id: order_by
+  term_id: order_by
   value_id: order_by
-  vault_id: order_by
 }
 
 """
@@ -1584,13 +1648,12 @@ input atoms_stream_cursor_value_input {
   creator_id: String
   data: String
   emoji: String
-  id: numeric
   image: String
   label: String
-  transaction_hash: bytea
+  term_id: numeric
+  transaction_hash: String
   type: atom_type
   value_id: numeric
-  vault_id: numeric
   wallet_id: String
 }
 
@@ -1598,9 +1661,8 @@ input atoms_stream_cursor_value_input {
 type atoms_sum_fields {
   block_number: numeric
   block_timestamp: bigint
-  id: numeric
+  term_id: numeric
   value_id: numeric
-  vault_id: numeric
 }
 
 """
@@ -1609,18 +1671,16 @@ order by sum() on columns of table "atom"
 input atoms_sum_order_by {
   block_number: order_by
   block_timestamp: order_by
-  id: order_by
+  term_id: order_by
   value_id: order_by
-  vault_id: order_by
 }
 
 """aggregate var_pop on columns"""
 type atoms_var_pop_fields {
   block_number: Float
   block_timestamp: Float
-  id: Float
+  term_id: Float
   value_id: Float
-  vault_id: Float
 }
 
 """
@@ -1629,18 +1689,16 @@ order by var_pop() on columns of table "atom"
 input atoms_var_pop_order_by {
   block_number: order_by
   block_timestamp: order_by
-  id: order_by
+  term_id: order_by
   value_id: order_by
-  vault_id: order_by
 }
 
 """aggregate var_samp on columns"""
 type atoms_var_samp_fields {
   block_number: Float
   block_timestamp: Float
-  id: Float
+  term_id: Float
   value_id: Float
-  vault_id: Float
 }
 
 """
@@ -1649,18 +1707,16 @@ order by var_samp() on columns of table "atom"
 input atoms_var_samp_order_by {
   block_number: order_by
   block_timestamp: order_by
-  id: order_by
+  term_id: order_by
   value_id: order_by
-  vault_id: order_by
 }
 
 """aggregate variance on columns"""
 type atoms_variance_fields {
   block_number: Float
   block_timestamp: Float
-  id: Float
+  term_id: Float
   value_id: Float
-  vault_id: Float
 }
 
 """
@@ -1669,9 +1725,8 @@ order by variance() on columns of table "atom"
 input atoms_variance_order_by {
   block_number: order_by
   block_timestamp: order_by
-  id: order_by
+  term_id: order_by
   value_id: order_by
-  vault_id: order_by
 }
 
 scalar bigint
@@ -1867,6 +1922,138 @@ input Boolean_comparison_exp {
   _nin: [Boolean!]
 }
 
+"""
+columns and relationships of "byte_object"
+"""
+type byte_object {
+  """An object relationship"""
+  atom: atoms
+  data: bytea!
+  id: numeric!
+}
+
+"""
+aggregated selection of "byte_object"
+"""
+type byte_object_aggregate {
+  aggregate: byte_object_aggregate_fields
+  nodes: [byte_object!]!
+}
+
+"""
+aggregate fields of "byte_object"
+"""
+type byte_object_aggregate_fields {
+  avg: byte_object_avg_fields
+  count(columns: [byte_object_select_column!], distinct: Boolean): Int!
+  max: byte_object_max_fields
+  min: byte_object_min_fields
+  stddev: byte_object_stddev_fields
+  stddev_pop: byte_object_stddev_pop_fields
+  stddev_samp: byte_object_stddev_samp_fields
+  sum: byte_object_sum_fields
+  var_pop: byte_object_var_pop_fields
+  var_samp: byte_object_var_samp_fields
+  variance: byte_object_variance_fields
+}
+
+"""aggregate avg on columns"""
+type byte_object_avg_fields {
+  id: Float
+}
+
+"""
+Boolean expression to filter rows from the table "byte_object". All fields are combined with a logical 'AND'.
+"""
+input byte_object_bool_exp {
+  _and: [byte_object_bool_exp!]
+  _not: byte_object_bool_exp
+  _or: [byte_object_bool_exp!]
+  atom: atoms_bool_exp
+  data: bytea_comparison_exp
+  id: numeric_comparison_exp
+}
+
+"""aggregate max on columns"""
+type byte_object_max_fields {
+  id: numeric
+}
+
+"""aggregate min on columns"""
+type byte_object_min_fields {
+  id: numeric
+}
+
+"""Ordering options when selecting data from "byte_object"."""
+input byte_object_order_by {
+  atom: atoms_order_by
+  data: order_by
+  id: order_by
+}
+
+"""
+select columns of table "byte_object"
+"""
+enum byte_object_select_column {
+  """column name"""
+  data
+
+  """column name"""
+  id
+}
+
+"""aggregate stddev on columns"""
+type byte_object_stddev_fields {
+  id: Float
+}
+
+"""aggregate stddev_pop on columns"""
+type byte_object_stddev_pop_fields {
+  id: Float
+}
+
+"""aggregate stddev_samp on columns"""
+type byte_object_stddev_samp_fields {
+  id: Float
+}
+
+"""
+Streaming cursor of the table "byte_object"
+"""
+input byte_object_stream_cursor_input {
+  """Stream column input with initial value"""
+  initial_value: byte_object_stream_cursor_value_input!
+
+  """cursor ordering"""
+  ordering: cursor_ordering
+}
+
+"""Initial value of the column from where the streaming should start"""
+input byte_object_stream_cursor_value_input {
+  data: bytea
+  id: numeric
+}
+
+"""aggregate sum on columns"""
+type byte_object_sum_fields {
+  id: numeric
+}
+
+"""aggregate var_pop on columns"""
+type byte_object_var_pop_fields {
+  id: Float
+}
+
+"""aggregate var_samp on columns"""
+type byte_object_var_samp_fields {
+  id: Float
+}
+
+"""aggregate variance on columns"""
+type byte_object_variance_fields {
+  id: Float
+}
+
 scalar bytea
 
 """
@@ -1882,6 +2069,339 @@ input bytea_comparison_exp {
   _lte: bytea
   _neq: bytea
   _nin: [bytea!]
+}
+
+"""
+columns and relationships of "cached_images.cached_image"
+"""
+type cached_images {
+  created_at: timestamptz!
+  model: String
+  original_url: String!
+  safe: Boolean!
+  score(
+    """JSON select path"""
+    path: String
+  ): jsonb
+  url: String!
+}
+
+"""
+Boolean expression to filter rows from the table "cached_images.cached_image". All fields are combined with a logical 'AND'.
+"""
+input cached_images_bool_exp {
+  _and: [cached_images_bool_exp!]
+  _not: cached_images_bool_exp
+  _or: [cached_images_bool_exp!]
+  created_at: timestamptz_comparison_exp
+  model: String_comparison_exp
+  original_url: String_comparison_exp
+  safe: Boolean_comparison_exp
+  score: jsonb_comparison_exp
+  url: String_comparison_exp
+}
+
+"""
+columns and relationships of "cached_images.cached_image"
+"""
+type cached_images_cached_image {
+  created_at: timestamptz!
+  model: String
+  original_url: String!
+  safe: Boolean!
+  score(
+    """JSON select path"""
+    path: String
+  ): jsonb
+  url: String!
+}
+
+"""
+Boolean expression to filter rows from the table "cached_images.cached_image". All fields are combined with a logical 'AND'.
+"""
+input cached_images_cached_image_bool_exp {
+  _and: [cached_images_cached_image_bool_exp!]
+  _not: cached_images_cached_image_bool_exp
+  _or: [cached_images_cached_image_bool_exp!]
+  created_at: timestamptz_comparison_exp
+  model: String_comparison_exp
+  original_url: String_comparison_exp
+  safe: Boolean_comparison_exp
+  score: jsonb_comparison_exp
+  url: String_comparison_exp
+}
+
+"""
+Ordering options when selecting data from "cached_images.cached_image".
+"""
+input cached_images_cached_image_order_by {
+  created_at: order_by
+  model: order_by
+  original_url: order_by
+  safe: order_by
+  score: order_by
+  url: order_by
+}
+
+"""
+select columns of table "cached_images.cached_image"
+"""
+enum cached_images_cached_image_select_column {
+  """column name"""
+  created_at
+
+  """column name"""
+  model
+
+  """column name"""
+  original_url
+
+  """column name"""
+  safe
+
+  """column name"""
+  score
+
+  """column name"""
+  url
+}
+
+"""
+Streaming cursor of the table "cached_images_cached_image"
+"""
+input cached_images_cached_image_stream_cursor_input {
+  """Stream column input with initial value"""
+  initial_value: cached_images_cached_image_stream_cursor_value_input!
+
+  """cursor ordering"""
+  ordering: cursor_ordering
+}
+
+"""Initial value of the column from where the streaming should start"""
+input cached_images_cached_image_stream_cursor_value_input {
+  created_at: timestamptz
+  model: String
+  original_url: String
+  safe: Boolean
+  score: jsonb
+  url: String
+}
+
+"""
+Ordering options when selecting data from "cached_images.cached_image".
+"""
+input cached_images_order_by {
+  created_at: order_by
+  model: order_by
+  original_url: order_by
+  safe: order_by
+  score: order_by
+  url: order_by
+}
+
+"""
+select columns of table "cached_images.cached_image"
+"""
+enum cached_images_select_column {
+  """column name"""
+  created_at
+
+  """column name"""
+  model
+
+  """column name"""
+  original_url
+
+  """column name"""
+  safe
+
+  """column name"""
+  score
+
+  """column name"""
+  url
+}
+
+"""
+Streaming cursor of the table "cached_images"
+"""
+input cached_images_stream_cursor_input {
+  """Stream column input with initial value"""
+  initial_value: cached_images_stream_cursor_value_input!
+
+  """cursor ordering"""
+  ordering: cursor_ordering
+}
+
+"""Initial value of the column from where the streaming should start"""
+input cached_images_stream_cursor_value_input {
+  created_at: timestamptz
+  model: String
+  original_url: String
+  safe: Boolean
+  score: jsonb
+  url: String
+}
+
+"""
+columns and relationships of "caip10"
+"""
+type caip10 {
+  account_address: String!
+
+  """An object relationship"""
+  atom: atoms
+  chain_id: Int!
+  id: numeric!
+  namespace: String!
+}
+
+"""
+aggregated selection of "caip10"
+"""
+type caip10_aggregate {
+  aggregate: caip10_aggregate_fields
+  nodes: [caip10!]!
+}
+
+"""
+aggregate fields of "caip10"
+"""
+type caip10_aggregate_fields {
+  avg: caip10_avg_fields
+  count(columns: [caip10_select_column!], distinct: Boolean): Int!
+  max: caip10_max_fields
+  min: caip10_min_fields
+  stddev: caip10_stddev_fields
+  stddev_pop: caip10_stddev_pop_fields
+  stddev_samp: caip10_stddev_samp_fields
+  sum: caip10_sum_fields
+  var_pop: caip10_var_pop_fields
+  var_samp: caip10_var_samp_fields
+  variance: caip10_variance_fields
+}
+
+"""aggregate avg on columns"""
+type caip10_avg_fields {
+  chain_id: Float
+  id: Float
+}
+
+"""
+Boolean expression to filter rows from the table "caip10". All fields are combined with a logical 'AND'.
+"""
+input caip10_bool_exp {
+  _and: [caip10_bool_exp!]
+  _not: caip10_bool_exp
+  _or: [caip10_bool_exp!]
+  account_address: String_comparison_exp
+  atom: atoms_bool_exp
+  chain_id: Int_comparison_exp
+  id: numeric_comparison_exp
+  namespace: String_comparison_exp
+}
+
+"""aggregate max on columns"""
+type caip10_max_fields {
+  account_address: String
+  chain_id: Int
+  id: numeric
+  namespace: String
+}
+
+"""aggregate min on columns"""
+type caip10_min_fields {
+  account_address: String
+  chain_id: Int
+  id: numeric
+  namespace: String
+}
+
+"""Ordering options when selecting data from "caip10"."""
+input caip10_order_by {
+  account_address: order_by
+  atom: atoms_order_by
+  chain_id: order_by
+  id: order_by
+  namespace: order_by
+}
+
+"""
+select columns of table "caip10"
+"""
+enum caip10_select_column {
+  """column name"""
+  account_address
+
+  """column name"""
+  chain_id
+
+  """column name"""
+  id
+
+  """column name"""
+  namespace
+}
+
+"""aggregate stddev on columns"""
+type caip10_stddev_fields {
+  chain_id: Float
+  id: Float
+}
+
+"""aggregate stddev_pop on columns"""
+type caip10_stddev_pop_fields {
+  chain_id: Float
+  id: Float
+}
+
+"""aggregate stddev_samp on columns"""
+type caip10_stddev_samp_fields {
+  chain_id: Float
+  id: Float
+}
+
+"""
+Streaming cursor of the table "caip10"
+"""
+input caip10_stream_cursor_input {
+  """Stream column input with initial value"""
+  initial_value: caip10_stream_cursor_value_input!
+
+  """cursor ordering"""
+  ordering: cursor_ordering
+}
+
+"""Initial value of the column from where the streaming should start"""
+input caip10_stream_cursor_value_input {
+  account_address: String
+  chain_id: Int
+  id: numeric
+  namespace: String
+}
+
+"""aggregate sum on columns"""
+type caip10_sum_fields {
+  chain_id: Int
+  id: numeric
+}
+
+"""aggregate var_pop on columns"""
+type caip10_var_pop_fields {
+  chain_id: Float
+  id: Float
+}
+
+"""aggregate var_samp on columns"""
+type caip10_var_samp_fields {
+  chain_id: Float
+  id: Float
+}
+
+"""aggregate variance on columns"""
+type caip10_variance_fields {
+  chain_id: Float
+  id: Float
 }
 
 """
@@ -1944,33 +2464,11 @@ type claims {
   """An object relationship"""
   account: accounts
   account_id: String!
-  counter_shares: numeric!
-
-  """An object relationship"""
-  counter_vault: vaults!
-  counter_vault_id: numeric!
   id: String!
 
   """An object relationship"""
-  object: atoms!
-  object_id: numeric!
-
-  """An object relationship"""
-  predicate: atoms!
-  predicate_id: numeric!
-  shares: numeric!
-
-  """An object relationship"""
-  subject: atoms!
-  subject_id: numeric!
-
-  """An object relationship"""
-  triple: triples!
-  triple_id: numeric!
-
-  """An object relationship"""
-  vault: vaults!
-  vault_id: numeric!
+  position: positions!
+  position_id: String!
 }
 
 """
@@ -1996,60 +2494,18 @@ input claims_aggregate_bool_exp_count {
 aggregate fields of "claim"
 """
 type claims_aggregate_fields {
-  avg: claims_avg_fields
   count(columns: [claims_select_column!], distinct: Boolean): Int!
   max: claims_max_fields
   min: claims_min_fields
-  stddev: claims_stddev_fields
-  stddev_pop: claims_stddev_pop_fields
-  stddev_samp: claims_stddev_samp_fields
-  sum: claims_sum_fields
-  var_pop: claims_var_pop_fields
-  var_samp: claims_var_samp_fields
-  variance: claims_variance_fields
 }
 
 """
 order by aggregate values of table "claim"
 """
 input claims_aggregate_order_by {
-  avg: claims_avg_order_by
   count: order_by
   max: claims_max_order_by
   min: claims_min_order_by
-  stddev: claims_stddev_order_by
-  stddev_pop: claims_stddev_pop_order_by
-  stddev_samp: claims_stddev_samp_order_by
-  sum: claims_sum_order_by
-  var_pop: claims_var_pop_order_by
-  var_samp: claims_var_samp_order_by
-  variance: claims_variance_order_by
-}
-
-"""aggregate avg on columns"""
-type claims_avg_fields {
-  counter_shares: Float
-  counter_vault_id: Float
-  object_id: Float
-  predicate_id: Float
-  shares: Float
-  subject_id: Float
-  triple_id: Float
-  vault_id: Float
-}
-
-"""
-order by avg() on columns of table "claim"
-"""
-input claims_avg_order_by {
-  counter_shares: order_by
-  counter_vault_id: order_by
-  object_id: order_by
-  predicate_id: order_by
-  shares: order_by
-  subject_id: order_by
-  triple_id: order_by
-  vault_id: order_by
 }
 
 """
@@ -2061,21 +2517,9 @@ input claims_bool_exp {
   _or: [claims_bool_exp!]
   account: accounts_bool_exp
   account_id: String_comparison_exp
-  counter_shares: numeric_comparison_exp
-  counter_vault: vaults_bool_exp
-  counter_vault_id: numeric_comparison_exp
   id: String_comparison_exp
-  object: atoms_bool_exp
-  object_id: numeric_comparison_exp
-  predicate: atoms_bool_exp
-  predicate_id: numeric_comparison_exp
-  shares: numeric_comparison_exp
-  subject: atoms_bool_exp
-  subject_id: numeric_comparison_exp
-  triple: triples_bool_exp
-  triple_id: numeric_comparison_exp
-  vault: vaults_bool_exp
-  vault_id: numeric_comparison_exp
+  position: positions_bool_exp
+  position_id: String_comparison_exp
 }
 
 input claims_from_following_args {
@@ -2085,15 +2529,8 @@ input claims_from_following_args {
 """aggregate max on columns"""
 type claims_max_fields {
   account_id: String
-  counter_shares: numeric
-  counter_vault_id: numeric
   id: String
-  object_id: numeric
-  predicate_id: numeric
-  shares: numeric
-  subject_id: numeric
-  triple_id: numeric
-  vault_id: numeric
+  position_id: String
 }
 
 """
@@ -2101,29 +2538,15 @@ order by max() on columns of table "claim"
 """
 input claims_max_order_by {
   account_id: order_by
-  counter_shares: order_by
-  counter_vault_id: order_by
   id: order_by
-  object_id: order_by
-  predicate_id: order_by
-  shares: order_by
-  subject_id: order_by
-  triple_id: order_by
-  vault_id: order_by
+  position_id: order_by
 }
 
 """aggregate min on columns"""
 type claims_min_fields {
   account_id: String
-  counter_shares: numeric
-  counter_vault_id: numeric
   id: String
-  object_id: numeric
-  predicate_id: numeric
-  shares: numeric
-  subject_id: numeric
-  triple_id: numeric
-  vault_id: numeric
+  position_id: String
 }
 
 """
@@ -2131,36 +2554,17 @@ order by min() on columns of table "claim"
 """
 input claims_min_order_by {
   account_id: order_by
-  counter_shares: order_by
-  counter_vault_id: order_by
   id: order_by
-  object_id: order_by
-  predicate_id: order_by
-  shares: order_by
-  subject_id: order_by
-  triple_id: order_by
-  vault_id: order_by
+  position_id: order_by
 }
 
 """Ordering options when selecting data from "claim"."""
 input claims_order_by {
   account: accounts_order_by
   account_id: order_by
-  counter_shares: order_by
-  counter_vault: vaults_order_by
-  counter_vault_id: order_by
   id: order_by
-  object: atoms_order_by
-  object_id: order_by
-  predicate: atoms_order_by
-  predicate_id: order_by
-  shares: order_by
-  subject: atoms_order_by
-  subject_id: order_by
-  triple: triples_order_by
-  triple_id: order_by
-  vault: vaults_order_by
-  vault_id: order_by
+  position: positions_order_by
+  position_id: order_by
 }
 
 """
@@ -2171,109 +2575,10 @@ enum claims_select_column {
   account_id
 
   """column name"""
-  counter_shares
-
-  """column name"""
-  counter_vault_id
-
-  """column name"""
   id
 
   """column name"""
-  object_id
-
-  """column name"""
-  predicate_id
-
-  """column name"""
-  shares
-
-  """column name"""
-  subject_id
-
-  """column name"""
-  triple_id
-
-  """column name"""
-  vault_id
-}
-
-"""aggregate stddev on columns"""
-type claims_stddev_fields {
-  counter_shares: Float
-  counter_vault_id: Float
-  object_id: Float
-  predicate_id: Float
-  shares: Float
-  subject_id: Float
-  triple_id: Float
-  vault_id: Float
-}
-
-"""
-order by stddev() on columns of table "claim"
-"""
-input claims_stddev_order_by {
-  counter_shares: order_by
-  counter_vault_id: order_by
-  object_id: order_by
-  predicate_id: order_by
-  shares: order_by
-  subject_id: order_by
-  triple_id: order_by
-  vault_id: order_by
-}
-
-"""aggregate stddev_pop on columns"""
-type claims_stddev_pop_fields {
-  counter_shares: Float
-  counter_vault_id: Float
-  object_id: Float
-  predicate_id: Float
-  shares: Float
-  subject_id: Float
-  triple_id: Float
-  vault_id: Float
-}
-
-"""
-order by stddev_pop() on columns of table "claim"
-"""
-input claims_stddev_pop_order_by {
-  counter_shares: order_by
-  counter_vault_id: order_by
-  object_id: order_by
-  predicate_id: order_by
-  shares: order_by
-  subject_id: order_by
-  triple_id: order_by
-  vault_id: order_by
-}
-
-"""aggregate stddev_samp on columns"""
-type claims_stddev_samp_fields {
-  counter_shares: Float
-  counter_vault_id: Float
-  object_id: Float
-  predicate_id: Float
-  shares: Float
-  subject_id: Float
-  triple_id: Float
-  vault_id: Float
-}
-
-"""
-order by stddev_samp() on columns of table "claim"
-"""
-input claims_stddev_samp_order_by {
-  counter_shares: order_by
-  counter_vault_id: order_by
-  object_id: order_by
-  predicate_id: order_by
-  shares: order_by
-  subject_id: order_by
-  triple_id: order_by
-  vault_id: order_by
+  position_id
 }
 
 """
@@ -2290,119 +2595,8 @@ input claims_stream_cursor_input {
 """Initial value of the column from where the streaming should start"""
 input claims_stream_cursor_value_input {
   account_id: String
-  counter_shares: numeric
-  counter_vault_id: numeric
   id: String
-  object_id: numeric
-  predicate_id: numeric
-  shares: numeric
-  subject_id: numeric
-  triple_id: numeric
-  vault_id: numeric
-}
-
-"""aggregate sum on columns"""
-type claims_sum_fields {
-  counter_shares: numeric
-  counter_vault_id: numeric
-  object_id: numeric
-  predicate_id: numeric
-  shares: numeric
-  subject_id: numeric
-  triple_id: numeric
-  vault_id: numeric
-}
-
-"""
-order by sum() on columns of table "claim"
-"""
-input claims_sum_order_by {
-  counter_shares: order_by
-  counter_vault_id: order_by
-  object_id: order_by
-  predicate_id: order_by
-  shares: order_by
-  subject_id: order_by
-  triple_id: order_by
-  vault_id: order_by
-}
-
-"""aggregate var_pop on columns"""
-type claims_var_pop_fields {
-  counter_shares: Float
-  counter_vault_id: Float
-  object_id: Float
-  predicate_id: Float
-  shares: Float
-  subject_id: Float
-  triple_id: Float
-  vault_id: Float
-}
-
-"""
-order by var_pop() on columns of table "claim"
-"""
-input claims_var_pop_order_by {
-  counter_shares: order_by
-  counter_vault_id: order_by
-  object_id: order_by
-  predicate_id: order_by
-  shares: order_by
-  subject_id: order_by
-  triple_id: order_by
-  vault_id: order_by
-}
-
-"""aggregate var_samp on columns"""
-type claims_var_samp_fields {
-  counter_shares: Float
-  counter_vault_id: Float
-  object_id: Float
-  predicate_id: Float
-  shares: Float
-  subject_id: Float
-  triple_id: Float
-  vault_id: Float
-}
-
-"""
-order by var_samp() on columns of table "claim"
-"""
-input claims_var_samp_order_by {
-  counter_shares: order_by
-  counter_vault_id: order_by
-  object_id: order_by
-  predicate_id: order_by
-  shares: order_by
-  subject_id: order_by
-  triple_id: order_by
-  vault_id: order_by
-}
-
-"""aggregate variance on columns"""
-type claims_variance_fields {
-  counter_shares: Float
-  counter_vault_id: Float
-  object_id: Float
-  predicate_id: Float
-  shares: Float
-  subject_id: Float
-  triple_id: Float
-  vault_id: Float
-}
-
-"""
-order by variance() on columns of table "claim"
-"""
-input claims_variance_order_by {
-  counter_shares: order_by
-  counter_vault_id: order_by
-  object_id: order_by
-  predicate_id: order_by
-  shares: order_by
-  subject_id: order_by
-  triple_id: order_by
-  vault_id: order_by
+  position_id: String
 }
 
 """ordering argument of a cursor"""
@@ -2420,43 +2614,8 @@ columns and relationships of "deposit"
 type deposits {
   block_number: numeric!
   block_timestamp: bigint!
+  curve_id: numeric!
   entry_fee: numeric!
-
-  """An array relationship"""
-  events(
-    """distinct select on columns"""
-    distinct_on: [events_select_column!]
-
-    """limit the number of rows returned"""
-    limit: Int
-
-    """skip the first n rows. Use only with order_by"""
-    offset: Int
-
-    """sort the rows by one or more columns"""
-    order_by: [events_order_by!]
-
-    """filter the rows returned"""
-    where: events_bool_exp
-  ): [events!]!
-
-  """An aggregate relationship"""
-  events_aggregate(
-    """distinct select on columns"""
-    distinct_on: [events_select_column!]
-
-    """limit the number of rows returned"""
-    limit: Int
-
-    """skip the first n rows. Use only with order_by"""
-    offset: Int
-
-    """sort the rows by one or more columns"""
-    order_by: [events_order_by!]
-
-    """filter the rows returned"""
-    where: events_bool_exp
-  ): events_aggregate!
   id: String!
   is_atom_wallet: Boolean!
   is_triple: Boolean!
@@ -2472,46 +2631,13 @@ type deposits {
   sender_id: String!
   shares_for_receiver: numeric!
 
-  """An array relationship"""
-  signals(
-    """distinct select on columns"""
-    distinct_on: [signals_select_column!]
-
-    """limit the number of rows returned"""
-    limit: Int
-
-    """skip the first n rows. Use only with order_by"""
-    offset: Int
-
-    """sort the rows by one or more columns"""
-    order_by: [signals_order_by!]
-
-    """filter the rows returned"""
-    where: signals_bool_exp
-  ): [signals!]!
-
-  """An aggregate relationship"""
-  signals_aggregate(
-    """distinct select on columns"""
-    distinct_on: [signals_select_column!]
-
-    """limit the number of rows returned"""
-    limit: Int
-
-    """skip the first n rows. Use only with order_by"""
-    offset: Int
-
-    """sort the rows by one or more columns"""
-    order_by: [signals_order_by!]
-
-    """filter the rows returned"""
-    where: signals_bool_exp
-  ): signals_aggregate!
-  transaction_hash: bytea!
+  """An object relationship"""
+  term: terms!
+  term_id: numeric!
+  transaction_hash: String!
 
   """An object relationship"""
-  vault: vaults!
-  vault_id: numeric!
+  vault: vaults
 }
 
 """
@@ -2587,11 +2713,12 @@ input deposits_aggregate_order_by {
 type deposits_avg_fields {
   block_number: Float
   block_timestamp: Float
+  curve_id: Float
   entry_fee: Float
   receiver_total_shares_in_vault: Float
   sender_assets_after_total_fees: Float
   shares_for_receiver: Float
-  vault_id: Float
+  term_id: Float
 }
 
 """
@@ -2600,11 +2727,12 @@ order by avg() on columns of table "deposit"
 input deposits_avg_order_by {
   block_number: order_by
   block_timestamp: order_by
+  curve_id: order_by
   entry_fee: order_by
   receiver_total_shares_in_vault: order_by
   sender_assets_after_total_fees: order_by
   shares_for_receiver: order_by
-  vault_id: order_by
+  term_id: order_by
 }
 
 """
@@ -2616,9 +2744,8 @@ input deposits_bool_exp {
   _or: [deposits_bool_exp!]
   block_number: numeric_comparison_exp
   block_timestamp: bigint_comparison_exp
+  curve_id: numeric_comparison_exp
   entry_fee: numeric_comparison_exp
-  events: events_bool_exp
-  events_aggregate: events_aggregate_bool_exp
   id: String_comparison_exp
   is_atom_wallet: Boolean_comparison_exp
   is_triple: Boolean_comparison_exp
@@ -2629,17 +2756,17 @@ input deposits_bool_exp {
   sender_assets_after_total_fees: numeric_comparison_exp
   sender_id: String_comparison_exp
   shares_for_receiver: numeric_comparison_exp
-  signals: signals_bool_exp
-  signals_aggregate: signals_aggregate_bool_exp
-  transaction_hash: bytea_comparison_exp
+  term: terms_bool_exp
+  term_id: numeric_comparison_exp
+  transaction_hash: String_comparison_exp
   vault: vaults_bool_exp
-  vault_id: numeric_comparison_exp
 }
 
 """aggregate max on columns"""
 type deposits_max_fields {
   block_number: numeric
   block_timestamp: bigint
+  curve_id: numeric
   entry_fee: numeric
   id: String
   receiver_id: String
@@ -2647,7 +2774,8 @@ type deposits_max_fields {
   sender_assets_after_total_fees: numeric
   sender_id: String
   shares_for_receiver: numeric
-  vault_id: numeric
+  term_id: numeric
+  transaction_hash: String
 }
 
 """
@@ -2656,6 +2784,7 @@ order by max() on columns of table "deposit"
 input deposits_max_order_by {
   block_number: order_by
   block_timestamp: order_by
+  curve_id: order_by
   entry_fee: order_by
   id: order_by
   receiver_id: order_by
@@ -2663,13 +2792,15 @@ input deposits_max_order_by {
   sender_assets_after_total_fees: order_by
   sender_id: order_by
   shares_for_receiver: order_by
-  vault_id: order_by
+  term_id: order_by
+  transaction_hash: order_by
 }
 
 """aggregate min on columns"""
 type deposits_min_fields {
   block_number: numeric
   block_timestamp: bigint
+  curve_id: numeric
   entry_fee: numeric
   id: String
   receiver_id: String
@@ -2677,7 +2808,8 @@ type deposits_min_fields {
   sender_assets_after_total_fees: numeric
   sender_id: String
   shares_for_receiver: numeric
-  vault_id: numeric
+  term_id: numeric
+  transaction_hash: String
 }
 
 """
@@ -2686,6 +2818,7 @@ order by min() on columns of table "deposit"
 input deposits_min_order_by {
   block_number: order_by
   block_timestamp: order_by
+  curve_id: order_by
   entry_fee: order_by
   id: order_by
   receiver_id: order_by
@@ -2693,15 +2826,16 @@ input deposits_min_order_by {
   sender_assets_after_total_fees: order_by
   sender_id: order_by
   shares_for_receiver: order_by
-  vault_id: order_by
+  term_id: order_by
+  transaction_hash: order_by
 }
 
 """Ordering options when selecting data from "deposit"."""
 input deposits_order_by {
   block_number: order_by
   block_timestamp: order_by
+  curve_id: order_by
   entry_fee: order_by
-  events_aggregate: events_aggregate_order_by
   id: order_by
   is_atom_wallet: order_by
   is_triple: order_by
@@ -2712,10 +2846,10 @@ input deposits_order_by {
   sender_assets_after_total_fees: order_by
   sender_id: order_by
   shares_for_receiver: order_by
-  signals_aggregate: signals_aggregate_order_by
+  term: terms_order_by
+  term_id: order_by
   transaction_hash: order_by
   vault: vaults_order_by
-  vault_id: order_by
 }
 
 """
@@ -2727,6 +2861,9 @@ enum deposits_select_column {
 
   """column name"""
   block_timestamp
+
+  """column name"""
+  curve_id
 
   """column name"""
   entry_fee
@@ -2756,10 +2893,10 @@ enum deposits_select_column {
   shares_for_receiver
 
   """column name"""
-  transaction_hash
+  term_id
 
   """column name"""
-  vault_id
+  transaction_hash
 }
 
 """
@@ -2788,11 +2925,12 @@ enum deposits_select_column_deposits_aggregate_bool_exp_bool_or_arguments_column
 type deposits_stddev_fields {
   block_number: Float
   block_timestamp: Float
+  curve_id: Float
   entry_fee: Float
   receiver_total_shares_in_vault: Float
   sender_assets_after_total_fees: Float
   shares_for_receiver: Float
-  vault_id: Float
+  term_id: Float
 }
 
 """
@@ -2801,22 +2939,24 @@ order by stddev() on columns of table "deposit"
 input deposits_stddev_order_by {
   block_number: order_by
   block_timestamp: order_by
+  curve_id: order_by
   entry_fee: order_by
   receiver_total_shares_in_vault: order_by
   sender_assets_after_total_fees: order_by
   shares_for_receiver: order_by
-  vault_id: order_by
+  term_id: order_by
 }
 
 """aggregate stddev_pop on columns"""
 type deposits_stddev_pop_fields {
   block_number: Float
   block_timestamp: Float
+  curve_id: Float
   entry_fee: Float
   receiver_total_shares_in_vault: Float
   sender_assets_after_total_fees: Float
   shares_for_receiver: Float
-  vault_id: Float
+  term_id: Float
 }
 
 """
@@ -2825,22 +2965,24 @@ order by stddev_pop() on columns of table "deposit"
 input deposits_stddev_pop_order_by {
   block_number: order_by
   block_timestamp: order_by
+  curve_id: order_by
   entry_fee: order_by
   receiver_total_shares_in_vault: order_by
   sender_assets_after_total_fees: order_by
   shares_for_receiver: order_by
-  vault_id: order_by
+  term_id: order_by
 }
 
 """aggregate stddev_samp on columns"""
 type deposits_stddev_samp_fields {
   block_number: Float
   block_timestamp: Float
+  curve_id: Float
   entry_fee: Float
   receiver_total_shares_in_vault: Float
   sender_assets_after_total_fees: Float
   shares_for_receiver: Float
-  vault_id: Float
+  term_id: Float
 }
 
 """
@@ -2849,11 +2991,12 @@ order by stddev_samp() on columns of table "deposit"
 input deposits_stddev_samp_order_by {
   block_number: order_by
   block_timestamp: order_by
+  curve_id: order_by
   entry_fee: order_by
   receiver_total_shares_in_vault: order_by
   sender_assets_after_total_fees: order_by
   shares_for_receiver: order_by
-  vault_id: order_by
+  term_id: order_by
 }
 
 """
@@ -2871,6 +3014,7 @@ input deposits_stream_cursor_input {
 input deposits_stream_cursor_value_input {
   block_number: numeric
   block_timestamp: bigint
+  curve_id: numeric
   entry_fee: numeric
   id: String
   is_atom_wallet: Boolean
@@ -2880,19 +3024,20 @@ input deposits_stream_cursor_value_input {
   sender_assets_after_total_fees: numeric
   sender_id: String
   shares_for_receiver: numeric
-  transaction_hash: bytea
-  vault_id: numeric
+  term_id: numeric
+  transaction_hash: String
 }
 
 """aggregate sum on columns"""
 type deposits_sum_fields {
   block_number: numeric
   block_timestamp: bigint
+  curve_id: numeric
   entry_fee: numeric
   receiver_total_shares_in_vault: numeric
   sender_assets_after_total_fees: numeric
   shares_for_receiver: numeric
-  vault_id: numeric
+  term_id: numeric
 }
 
 """
@@ -2901,22 +3046,24 @@ order by sum() on columns of table "deposit"
 input deposits_sum_order_by {
   block_number: order_by
   block_timestamp: order_by
+  curve_id: order_by
   entry_fee: order_by
   receiver_total_shares_in_vault: order_by
   sender_assets_after_total_fees: order_by
   shares_for_receiver: order_by
-  vault_id: order_by
+  term_id: order_by
 }
 
 """aggregate var_pop on columns"""
 type deposits_var_pop_fields {
   block_number: Float
   block_timestamp: Float
+  curve_id: Float
   entry_fee: Float
   receiver_total_shares_in_vault: Float
   sender_assets_after_total_fees: Float
   shares_for_receiver: Float
-  vault_id: Float
+  term_id: Float
 }
 
 """
@@ -2925,22 +3072,24 @@ order by var_pop() on columns of table "deposit"
 input deposits_var_pop_order_by {
   block_number: order_by
   block_timestamp: order_by
+  curve_id: order_by
   entry_fee: order_by
   receiver_total_shares_in_vault: order_by
   sender_assets_after_total_fees: order_by
   shares_for_receiver: order_by
-  vault_id: order_by
+  term_id: order_by
 }
 
 """aggregate var_samp on columns"""
 type deposits_var_samp_fields {
   block_number: Float
   block_timestamp: Float
+  curve_id: Float
   entry_fee: Float
   receiver_total_shares_in_vault: Float
   sender_assets_after_total_fees: Float
   shares_for_receiver: Float
-  vault_id: Float
+  term_id: Float
 }
 
 """
@@ -2949,22 +3098,24 @@ order by var_samp() on columns of table "deposit"
 input deposits_var_samp_order_by {
   block_number: order_by
   block_timestamp: order_by
+  curve_id: order_by
   entry_fee: order_by
   receiver_total_shares_in_vault: order_by
   sender_assets_after_total_fees: order_by
   shares_for_receiver: order_by
-  vault_id: order_by
+  term_id: order_by
 }
 
 """aggregate variance on columns"""
 type deposits_variance_fields {
   block_number: Float
   block_timestamp: Float
+  curve_id: Float
   entry_fee: Float
   receiver_total_shares_in_vault: Float
   sender_assets_after_total_fees: Float
   shares_for_receiver: Float
-  vault_id: Float
+  term_id: Float
 }
 
 """
@@ -2973,11 +3124,12 @@ order by variance() on columns of table "deposit"
 input deposits_variance_order_by {
   block_number: order_by
   block_timestamp: order_by
+  curve_id: order_by
   entry_fee: order_by
   receiver_total_shares_in_vault: order_by
   sender_assets_after_total_fees: order_by
   shares_for_receiver: order_by
-  vault_id: order_by
+  term_id: order_by
 }
 
 scalar event_type
@@ -3001,8 +3153,6 @@ input event_type_comparison_exp {
 columns and relationships of "event"
 """
 type events {
-  """An object relationship"""
-  atom: atoms
   atom_id: numeric
   block_number: numeric!
   block_timestamp: bigint!
@@ -3019,10 +3169,7 @@ type events {
   """An object relationship"""
   redemption: redemptions
   redemption_id: String
-  transaction_hash: bytea!
-
-  """An object relationship"""
-  triple: triples
+  transaction_hash: String!
   triple_id: numeric
   type: event_type!
 }
@@ -3033,17 +3180,6 @@ aggregated selection of "event"
 type events_aggregate {
   aggregate: events_aggregate_fields
   nodes: [events!]!
-}
-
-input events_aggregate_bool_exp {
-  count: events_aggregate_bool_exp_count
-}
-
-input events_aggregate_bool_exp_count {
-  arguments: [events_select_column!]
-  distinct: Boolean
-  filter: events_bool_exp
-  predicate: Int_comparison_exp!
 }
 
 """
@@ -3063,23 +3199,6 @@ type events_aggregate_fields {
   variance: events_variance_fields
 }
 
-"""
-order by aggregate values of table "event"
-"""
-input events_aggregate_order_by {
-  avg: events_avg_order_by
-  count: order_by
-  max: events_max_order_by
-  min: events_min_order_by
-  stddev: events_stddev_order_by
-  stddev_pop: events_stddev_pop_order_by
-  stddev_samp: events_stddev_samp_order_by
-  sum: events_sum_order_by
-  var_pop: events_var_pop_order_by
-  var_samp: events_var_samp_order_by
-  variance: events_variance_order_by
-}
-
 """aggregate avg on columns"""
 type events_avg_fields {
   atom_id: Float
@@ -3089,23 +3208,12 @@ type events_avg_fields {
 }
 
 """
-order by avg() on columns of table "event"
-"""
-input events_avg_order_by {
-  atom_id: order_by
-  block_number: order_by
-  block_timestamp: order_by
-  triple_id: order_by
-}
-
-"""
 Boolean expression to filter rows from the table "event". All fields are combined with a logical 'AND'.
 """
 input events_bool_exp {
   _and: [events_bool_exp!]
   _not: events_bool_exp
   _or: [events_bool_exp!]
-  atom: atoms_bool_exp
   atom_id: numeric_comparison_exp
   block_number: numeric_comparison_exp
   block_timestamp: bigint_comparison_exp
@@ -3116,8 +3224,7 @@ input events_bool_exp {
   id: String_comparison_exp
   redemption: redemptions_bool_exp
   redemption_id: String_comparison_exp
-  transaction_hash: bytea_comparison_exp
-  triple: triples_bool_exp
+  transaction_hash: String_comparison_exp
   triple_id: numeric_comparison_exp
   type: event_type_comparison_exp
 }
@@ -3131,23 +3238,9 @@ type events_max_fields {
   fee_transfer_id: String
   id: String
   redemption_id: String
+  transaction_hash: String
   triple_id: numeric
   type: event_type
-}
-
-"""
-order by max() on columns of table "event"
-"""
-input events_max_order_by {
-  atom_id: order_by
-  block_number: order_by
-  block_timestamp: order_by
-  deposit_id: order_by
-  fee_transfer_id: order_by
-  id: order_by
-  redemption_id: order_by
-  triple_id: order_by
-  type: order_by
 }
 
 """aggregate min on columns"""
@@ -3159,28 +3252,13 @@ type events_min_fields {
   fee_transfer_id: String
   id: String
   redemption_id: String
+  transaction_hash: String
   triple_id: numeric
   type: event_type
 }
 
-"""
-order by min() on columns of table "event"
-"""
-input events_min_order_by {
-  atom_id: order_by
-  block_number: order_by
-  block_timestamp: order_by
-  deposit_id: order_by
-  fee_transfer_id: order_by
-  id: order_by
-  redemption_id: order_by
-  triple_id: order_by
-  type: order_by
-}
-
 """Ordering options when selecting data from "event"."""
 input events_order_by {
-  atom: atoms_order_by
   atom_id: order_by
   block_number: order_by
   block_timestamp: order_by
@@ -3192,7 +3270,6 @@ input events_order_by {
   redemption: redemptions_order_by
   redemption_id: order_by
   transaction_hash: order_by
-  triple: triples_order_by
   triple_id: order_by
   type: order_by
 }
@@ -3240,16 +3317,6 @@ type events_stddev_fields {
   triple_id: Float
 }
 
-"""
-order by stddev() on columns of table "event"
-"""
-input events_stddev_order_by {
-  atom_id: order_by
-  block_number: order_by
-  block_timestamp: order_by
-  triple_id: order_by
-}
-
 """aggregate stddev_pop on columns"""
 type events_stddev_pop_fields {
   atom_id: Float
@@ -3258,32 +3325,12 @@ type events_stddev_pop_fields {
   triple_id: Float
 }
 
-"""
-order by stddev_pop() on columns of table "event"
-"""
-input events_stddev_pop_order_by {
-  atom_id: order_by
-  block_number: order_by
-  block_timestamp: order_by
-  triple_id: order_by
-}
-
 """aggregate stddev_samp on columns"""
 type events_stddev_samp_fields {
   atom_id: Float
   block_number: Float
   block_timestamp: Float
   triple_id: Float
-}
-
-"""
-order by stddev_samp() on columns of table "event"
-"""
-input events_stddev_samp_order_by {
-  atom_id: order_by
-  block_number: order_by
-  block_timestamp: order_by
-  triple_id: order_by
 }
 
 """
@@ -3306,7 +3353,7 @@ input events_stream_cursor_value_input {
   fee_transfer_id: String
   id: String
   redemption_id: String
-  transaction_hash: bytea
+  transaction_hash: String
   triple_id: numeric
   type: event_type
 }
@@ -3319,16 +3366,6 @@ type events_sum_fields {
   triple_id: numeric
 }
 
-"""
-order by sum() on columns of table "event"
-"""
-input events_sum_order_by {
-  atom_id: order_by
-  block_number: order_by
-  block_timestamp: order_by
-  triple_id: order_by
-}
-
 """aggregate var_pop on columns"""
 type events_var_pop_fields {
   atom_id: Float
@@ -3337,32 +3374,12 @@ type events_var_pop_fields {
   triple_id: Float
 }
 
-"""
-order by var_pop() on columns of table "event"
-"""
-input events_var_pop_order_by {
-  atom_id: order_by
-  block_number: order_by
-  block_timestamp: order_by
-  triple_id: order_by
-}
-
 """aggregate var_samp on columns"""
 type events_var_samp_fields {
   atom_id: Float
   block_number: Float
   block_timestamp: Float
   triple_id: Float
-}
-
-"""
-order by var_samp() on columns of table "event"
-"""
-input events_var_samp_order_by {
-  atom_id: order_by
-  block_number: order_by
-  block_timestamp: order_by
-  triple_id: order_by
 }
 
 """aggregate variance on columns"""
@@ -3374,58 +3391,12 @@ type events_variance_fields {
 }
 
 """
-order by variance() on columns of table "event"
-"""
-input events_variance_order_by {
-  atom_id: order_by
-  block_number: order_by
-  block_timestamp: order_by
-  triple_id: order_by
-}
-
-"""
 columns and relationships of "fee_transfer"
 """
 type fee_transfers {
   amount: numeric!
   block_number: numeric!
   block_timestamp: bigint!
-
-  """An array relationship"""
-  events(
-    """distinct select on columns"""
-    distinct_on: [events_select_column!]
-
-    """limit the number of rows returned"""
-    limit: Int
-
-    """skip the first n rows. Use only with order_by"""
-    offset: Int
-
-    """sort the rows by one or more columns"""
-    order_by: [events_order_by!]
-
-    """filter the rows returned"""
-    where: events_bool_exp
-  ): [events!]!
-
-  """An aggregate relationship"""
-  events_aggregate(
-    """distinct select on columns"""
-    distinct_on: [events_select_column!]
-
-    """limit the number of rows returned"""
-    limit: Int
-
-    """skip the first n rows. Use only with order_by"""
-    offset: Int
-
-    """sort the rows by one or more columns"""
-    order_by: [events_order_by!]
-
-    """filter the rows returned"""
-    where: events_bool_exp
-  ): events_aggregate!
   id: String!
 
   """An object relationship"""
@@ -3435,7 +3406,7 @@ type fee_transfers {
   """An object relationship"""
   sender: accounts
   sender_id: String!
-  transaction_hash: bytea!
+  transaction_hash: String!
 }
 
 """
@@ -3517,14 +3488,12 @@ input fee_transfers_bool_exp {
   amount: numeric_comparison_exp
   block_number: numeric_comparison_exp
   block_timestamp: bigint_comparison_exp
-  events: events_bool_exp
-  events_aggregate: events_aggregate_bool_exp
   id: String_comparison_exp
   receiver: accounts_bool_exp
   receiver_id: String_comparison_exp
   sender: accounts_bool_exp
   sender_id: String_comparison_exp
-  transaction_hash: bytea_comparison_exp
+  transaction_hash: String_comparison_exp
 }
 
 """aggregate max on columns"""
@@ -3535,6 +3504,7 @@ type fee_transfers_max_fields {
   id: String
   receiver_id: String
   sender_id: String
+  transaction_hash: String
 }
 
 """
@@ -3547,6 +3517,7 @@ input fee_transfers_max_order_by {
   id: order_by
   receiver_id: order_by
   sender_id: order_by
+  transaction_hash: order_by
 }
 
 """aggregate min on columns"""
@@ -3557,6 +3528,7 @@ type fee_transfers_min_fields {
   id: String
   receiver_id: String
   sender_id: String
+  transaction_hash: String
 }
 
 """
@@ -3569,6 +3541,7 @@ input fee_transfers_min_order_by {
   id: order_by
   receiver_id: order_by
   sender_id: order_by
+  transaction_hash: order_by
 }
 
 """Ordering options when selecting data from "fee_transfer"."""
@@ -3576,7 +3549,6 @@ input fee_transfers_order_by {
   amount: order_by
   block_number: order_by
   block_timestamp: order_by
-  events_aggregate: events_aggregate_order_by
   id: order_by
   receiver: accounts_order_by
   receiver_id: order_by
@@ -3678,7 +3650,7 @@ input fee_transfers_stream_cursor_value_input {
   id: String
   receiver_id: String
   sender_id: String
-  transaction_hash: bytea
+  transaction_hash: String
 }
 
 """aggregate sum on columns"""
@@ -3779,6 +3751,178 @@ input Int_comparison_exp {
   _lte: Int
   _neq: Int
   _nin: [Int!]
+}
+
+"""
+columns and relationships of "json_object"
+"""
+type json_objects {
+  """An object relationship"""
+  atom: atoms
+  data(
+    """JSON select path"""
+    path: String
+  ): jsonb!
+  id: numeric!
+}
+
+"""
+aggregated selection of "json_object"
+"""
+type json_objects_aggregate {
+  aggregate: json_objects_aggregate_fields
+  nodes: [json_objects!]!
+}
+
+"""
+aggregate fields of "json_object"
+"""
+type json_objects_aggregate_fields {
+  avg: json_objects_avg_fields
+  count(columns: [json_objects_select_column!], distinct: Boolean): Int!
+  max: json_objects_max_fields
+  min: json_objects_min_fields
+  stddev: json_objects_stddev_fields
+  stddev_pop: json_objects_stddev_pop_fields
+  stddev_samp: json_objects_stddev_samp_fields
+  sum: json_objects_sum_fields
+  var_pop: json_objects_var_pop_fields
+  var_samp: json_objects_var_samp_fields
+  variance: json_objects_variance_fields
+}
+
+"""aggregate avg on columns"""
+type json_objects_avg_fields {
+  id: Float
+}
+
+"""
+Boolean expression to filter rows from the table "json_object". All fields are combined with a logical 'AND'.
+"""
+input json_objects_bool_exp {
+  _and: [json_objects_bool_exp!]
+  _not: json_objects_bool_exp
+  _or: [json_objects_bool_exp!]
+  atom: atoms_bool_exp
+  data: jsonb_comparison_exp
+  id: numeric_comparison_exp
+}
+
+"""aggregate max on columns"""
+type json_objects_max_fields {
+  id: numeric
+}
+
+"""aggregate min on columns"""
+type json_objects_min_fields {
+  id: numeric
+}
+
+"""Ordering options when selecting data from "json_object"."""
+input json_objects_order_by {
+  atom: atoms_order_by
+  data: order_by
+  id: order_by
+}
+
+"""
+select columns of table "json_object"
+"""
+enum json_objects_select_column {
+  """column name"""
+  data
+
+  """column name"""
+  id
+}
+
+"""aggregate stddev on columns"""
+type json_objects_stddev_fields {
+  id: Float
+}
+
+"""aggregate stddev_pop on columns"""
+type json_objects_stddev_pop_fields {
+  id: Float
+}
+
+"""aggregate stddev_samp on columns"""
+type json_objects_stddev_samp_fields {
+  id: Float
+}
+
+"""
+Streaming cursor of the table "json_objects"
+"""
+input json_objects_stream_cursor_input {
+  """Stream column input with initial value"""
+  initial_value: json_objects_stream_cursor_value_input!
+
+  """cursor ordering"""
+  ordering: cursor_ordering
+}
+
+"""Initial value of the column from where the streaming should start"""
+input json_objects_stream_cursor_value_input {
+  data: jsonb
+  id: numeric
+}
+
+"""aggregate sum on columns"""
+type json_objects_sum_fields {
+  id: numeric
+}
+
+"""aggregate var_pop on columns"""
+type json_objects_var_pop_fields {
+  id: Float
+}
+
+"""aggregate var_samp on columns"""
+type json_objects_var_samp_fields {
+  id: Float
+}
+
+"""aggregate variance on columns"""
+type json_objects_variance_fields {
+  id: Float
+}
+
+scalar jsonb
+
+input jsonb_cast_exp {
+  String: String_comparison_exp
+}
+
+"""
+Boolean expression to compare columns of type "jsonb". All fields are combined with logical 'AND'.
+"""
+input jsonb_comparison_exp {
+  _cast: jsonb_cast_exp
+
+  """is the column contained in the given json value"""
+  _contained_in: jsonb
+
+  """does the column contain the given json value at the top level"""
+  _contains: jsonb
+  _eq: jsonb
+  _gt: jsonb
+  _gte: jsonb
+
+  """does the string exist as a top-level key in the column"""
+  _has_key: String
+
+  """do all of these strings exist as top-level keys in the column"""
+  _has_keys_all: [String!]
+
+  """do any of these strings exist as top-level keys in the column"""
+  _has_keys_any: [String!]
+  _in: [jsonb!]
+  _is_null: Boolean
+  _lt: jsonb
+  _lte: jsonb
+  _neq: jsonb
+  _nin: [jsonb!]
 }
 
 """mutation root"""
@@ -4007,6 +4151,7 @@ columns and relationships of "person"
 type persons {
   """An object relationship"""
   atom: atoms
+  cached_image: cached_images_cached_image
   description: String
   email: String
   id: numeric!
@@ -4215,12 +4360,16 @@ type positions {
   """An object relationship"""
   account: accounts
   account_id: String!
+  curve_id: numeric!
   id: String!
   shares: numeric!
 
   """An object relationship"""
-  vault: vaults!
-  vault_id: numeric!
+  term: terms!
+  term_id: numeric!
+
+  """An object relationship"""
+  vault: vaults
 }
 
 """
@@ -4278,16 +4427,18 @@ input positions_aggregate_order_by {
 
 """aggregate avg on columns"""
 type positions_avg_fields {
+  curve_id: Float
   shares: Float
-  vault_id: Float
+  term_id: Float
 }
 
 """
 order by avg() on columns of table "position"
 """
 input positions_avg_order_by {
+  curve_id: order_by
   shares: order_by
-  vault_id: order_by
+  term_id: order_by
 }
 
 """
@@ -4299,18 +4450,21 @@ input positions_bool_exp {
   _or: [positions_bool_exp!]
   account: accounts_bool_exp
   account_id: String_comparison_exp
+  curve_id: numeric_comparison_exp
   id: String_comparison_exp
   shares: numeric_comparison_exp
+  term: terms_bool_exp
+  term_id: numeric_comparison_exp
   vault: vaults_bool_exp
-  vault_id: numeric_comparison_exp
 }
 
 """aggregate max on columns"""
 type positions_max_fields {
   account_id: String
+  curve_id: numeric
   id: String
   shares: numeric
-  vault_id: numeric
+  term_id: numeric
 }
 
 """
@@ -4318,17 +4472,19 @@ order by max() on columns of table "position"
 """
 input positions_max_order_by {
   account_id: order_by
+  curve_id: order_by
   id: order_by
   shares: order_by
-  vault_id: order_by
+  term_id: order_by
 }
 
 """aggregate min on columns"""
 type positions_min_fields {
   account_id: String
+  curve_id: numeric
   id: String
   shares: numeric
-  vault_id: numeric
+  term_id: numeric
 }
 
 """
@@ -4336,19 +4492,22 @@ order by min() on columns of table "position"
 """
 input positions_min_order_by {
   account_id: order_by
+  curve_id: order_by
   id: order_by
   shares: order_by
-  vault_id: order_by
+  term_id: order_by
 }
 
 """Ordering options when selecting data from "position"."""
 input positions_order_by {
   account: accounts_order_by
   account_id: order_by
+  curve_id: order_by
   id: order_by
   shares: order_by
+  term: terms_order_by
+  term_id: order_by
   vault: vaults_order_by
-  vault_id: order_by
 }
 
 """
@@ -4359,55 +4518,64 @@ enum positions_select_column {
   account_id
 
   """column name"""
+  curve_id
+
+  """column name"""
   id
 
   """column name"""
   shares
 
   """column name"""
-  vault_id
+  term_id
 }
 
 """aggregate stddev on columns"""
 type positions_stddev_fields {
+  curve_id: Float
   shares: Float
-  vault_id: Float
+  term_id: Float
 }
 
 """
 order by stddev() on columns of table "position"
 """
 input positions_stddev_order_by {
+  curve_id: order_by
   shares: order_by
-  vault_id: order_by
+  term_id: order_by
 }
 
 """aggregate stddev_pop on columns"""
 type positions_stddev_pop_fields {
+  curve_id: Float
   shares: Float
-  vault_id: Float
+  term_id: Float
 }
 
 """
 order by stddev_pop() on columns of table "position"
 """
 input positions_stddev_pop_order_by {
+  curve_id: order_by
   shares: order_by
-  vault_id: order_by
+  term_id: order_by
 }
 
 """aggregate stddev_samp on columns"""
 type positions_stddev_samp_fields {
+  curve_id: Float
   shares: Float
-  vault_id: Float
+  term_id: Float
 }
 
 """
 order by stddev_samp() on columns of table "position"
 """
 input positions_stddev_samp_order_by {
+  curve_id: order_by
   shares: order_by
-  vault_id: order_by
+  term_id: order_by
 }
 
 """
@@ -4424,65 +4592,74 @@ input positions_stream_cursor_input {
 """Initial value of the column from where the streaming should start"""
 input positions_stream_cursor_value_input {
   account_id: String
+  curve_id: numeric
   id: String
   shares: numeric
-  vault_id: numeric
+  term_id: numeric
 }
 
 """aggregate sum on columns"""
 type positions_sum_fields {
+  curve_id: numeric
   shares: numeric
-  vault_id: numeric
+  term_id: numeric
 }
 
 """
 order by sum() on columns of table "position"
 """
 input positions_sum_order_by {
+  curve_id: order_by
   shares: order_by
-  vault_id: order_by
+  term_id: order_by
 }
 
 """aggregate var_pop on columns"""
 type positions_var_pop_fields {
+  curve_id: Float
   shares: Float
-  vault_id: Float
+  term_id: Float
 }
 
 """
 order by var_pop() on columns of table "position"
 """
 input positions_var_pop_order_by {
+  curve_id: order_by
   shares: order_by
-  vault_id: order_by
+  term_id: order_by
 }
 
 """aggregate var_samp on columns"""
 type positions_var_samp_fields {
+  curve_id: Float
   shares: Float
-  vault_id: Float
+  term_id: Float
 }
 
 """
 order by var_samp() on columns of table "position"
 """
 input positions_var_samp_order_by {
+  curve_id: order_by
   shares: order_by
-  vault_id: order_by
+  term_id: order_by
 }
 
 """aggregate variance on columns"""
 type positions_variance_fields {
+  curve_id: Float
   shares: Float
-  vault_id: Float
+  term_id: Float
 }
 
 """
 order by variance() on columns of table "position"
 """
 input positions_variance_order_by {
+  curve_id: order_by
   shares: order_by
-  vault_id: order_by
+  term_id: order_by
 }
 
 """
@@ -4497,7 +4674,7 @@ type predicate_objects {
   object_id: numeric!
 
   """An object relationship"""
-  predicate: atoms
+  predicate: atoms!
   predicate_id: numeric!
   triple_count: Int!
 }
@@ -4508,6 +4685,17 @@ aggregated selection of "predicate_object"
 type predicate_objects_aggregate {
   aggregate: predicate_objects_aggregate_fields
   nodes: [predicate_objects!]!
+}
+
+input predicate_objects_aggregate_bool_exp {
+  count: predicate_objects_aggregate_bool_exp_count
+}
+
+input predicate_objects_aggregate_bool_exp_count {
+  arguments: [predicate_objects_select_column!]
+  distinct: Boolean
+  filter: predicate_objects_bool_exp
+  predicate: Int_comparison_exp!
 }
 
 """
@@ -4527,12 +4715,39 @@ type predicate_objects_aggregate_fields {
   variance: predicate_objects_variance_fields
 }
 
+"""
+order by aggregate values of table "predicate_object"
+"""
+input predicate_objects_aggregate_order_by {
+  avg: predicate_objects_avg_order_by
+  count: order_by
+  max: predicate_objects_max_order_by
+  min: predicate_objects_min_order_by
+  stddev: predicate_objects_stddev_order_by
+  stddev_pop: predicate_objects_stddev_pop_order_by
+  stddev_samp: predicate_objects_stddev_samp_order_by
+  sum: predicate_objects_sum_order_by
+  var_pop: predicate_objects_var_pop_order_by
+  var_samp: predicate_objects_var_samp_order_by
+  variance: predicate_objects_variance_order_by
+}
+
 """aggregate avg on columns"""
 type predicate_objects_avg_fields {
   claim_count: Float
   object_id: Float
   predicate_id: Float
   triple_count: Float
+}
+
+"""
+order by avg() on columns of table "predicate_object"
+"""
+input predicate_objects_avg_order_by {
+  claim_count: order_by
+  object_id: order_by
+  predicate_id: order_by
+  triple_count: order_by
 }
 
 """
@@ -4560,6 +4775,17 @@ type predicate_objects_max_fields {
   triple_count: Int
 }
 
+"""
+order by max() on columns of table "predicate_object"
+"""
+input predicate_objects_max_order_by {
+  claim_count: order_by
+  id: order_by
+  object_id: order_by
+  predicate_id: order_by
+  triple_count: order_by
+}
+
 """aggregate min on columns"""
 type predicate_objects_min_fields {
   claim_count: Int
@@ -4567,6 +4793,17 @@ type predicate_objects_min_fields {
   object_id: numeric
   predicate_id: numeric
   triple_count: Int
+}
+
+"""
+order by min() on columns of table "predicate_object"
+"""
+input predicate_objects_min_order_by {
+  claim_count: order_by
+  id: order_by
+  object_id: order_by
+  predicate_id: order_by
+  triple_count: order_by
 }
 
 """Ordering options when selecting data from "predicate_object"."""
@@ -4608,6 +4845,16 @@ type predicate_objects_stddev_fields {
   triple_count: Float
 }
 
+"""
+order by stddev() on columns of table "predicate_object"
+"""
+input predicate_objects_stddev_order_by {
+  claim_count: order_by
+  object_id: order_by
+  predicate_id: order_by
+  triple_count: order_by
+}
+
 """aggregate stddev_pop on columns"""
 type predicate_objects_stddev_pop_fields {
   claim_count: Float
@@ -4616,12 +4863,32 @@ type predicate_objects_stddev_pop_fields {
   triple_count: Float
 }
 
+"""
+order by stddev_pop() on columns of table "predicate_object"
+"""
+input predicate_objects_stddev_pop_order_by {
+  claim_count: order_by
+  object_id: order_by
+  predicate_id: order_by
+  triple_count: order_by
+}
+
 """aggregate stddev_samp on columns"""
 type predicate_objects_stddev_samp_fields {
   claim_count: Float
   object_id: Float
   predicate_id: Float
   triple_count: Float
+}
+
+"""
+order by stddev_samp() on columns of table "predicate_object"
+"""
+input predicate_objects_stddev_samp_order_by {
+  claim_count: order_by
+  object_id: order_by
+  predicate_id: order_by
+  triple_count: order_by
 }
 
 """
@@ -4652,12 +4919,32 @@ type predicate_objects_sum_fields {
   triple_count: Int
 }
 
+"""
+order by sum() on columns of table "predicate_object"
+"""
+input predicate_objects_sum_order_by {
+  claim_count: order_by
+  object_id: order_by
+  predicate_id: order_by
+  triple_count: order_by
+}
+
 """aggregate var_pop on columns"""
 type predicate_objects_var_pop_fields {
   claim_count: Float
   object_id: Float
   predicate_id: Float
   triple_count: Float
+}
+
+"""
+order by var_pop() on columns of table "predicate_object"
+"""
+input predicate_objects_var_pop_order_by {
+  claim_count: order_by
+  object_id: order_by
+  predicate_id: order_by
+  triple_count: order_by
 }
 
 """aggregate var_samp on columns"""
@@ -4668,12 +4955,32 @@ type predicate_objects_var_samp_fields {
   triple_count: Float
 }
 
+"""
+order by var_samp() on columns of table "predicate_object"
+"""
+input predicate_objects_var_samp_order_by {
+  claim_count: order_by
+  object_id: order_by
+  predicate_id: order_by
+  triple_count: order_by
+}
+
 """aggregate variance on columns"""
 type predicate_objects_variance_fields {
   claim_count: Float
   object_id: Float
   predicate_id: Float
   triple_count: Float
+}
+
+"""
+order by variance() on columns of table "predicate_object"
+"""
+input predicate_objects_variance_order_by {
+  claim_count: order_by
+  object_id: order_by
+  predicate_id: order_by
+  triple_count: order_by
 }
 
 type query_root {
@@ -4767,7 +5074,7 @@ type query_root {
   ): accounts_aggregate!
 
   """fetch data from the table: "atom" using primary key columns"""
-  atom(id: numeric!): atoms
+  atom(term_id: numeric!): atoms
 
   """fetch data from the table: "atom_value" using primary key columns"""
   atom_value(id: numeric!): atom_values
@@ -4890,6 +5197,142 @@ type query_root {
     """filter the rows returned"""
     where: books_bool_exp
   ): books_aggregate!
+
+  """
+  fetch data from the table: "byte_object"
+  """
+  byte_object(
+    """distinct select on columns"""
+    distinct_on: [byte_object_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [byte_object_order_by!]
+
+    """filter the rows returned"""
+    where: byte_object_bool_exp
+  ): [byte_object!]!
+
+  """
+  fetch aggregated fields from the table: "byte_object"
+  """
+  byte_object_aggregate(
+    """distinct select on columns"""
+    distinct_on: [byte_object_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [byte_object_order_by!]
+
+    """filter the rows returned"""
+    where: byte_object_bool_exp
+  ): byte_object_aggregate!
+
+  """fetch data from the table: "byte_object" using primary key columns"""
+  byte_object_by_pk(id: numeric!): byte_object
+
+  """
+  fetch data from the table: "cached_images.cached_image" using primary key columns
+  """
+  cached_image(url: String!): cached_images
+
+  """
+  fetch data from the table: "cached_images.cached_image"
+  """
+  cached_images(
+    """distinct select on columns"""
+    distinct_on: [cached_images_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [cached_images_order_by!]
+
+    """filter the rows returned"""
+    where: cached_images_bool_exp
+  ): [cached_images!]!
+
+  """
+  fetch data from the table: "cached_images.cached_image"
+  """
+  cached_images_cached_image(
+    """distinct select on columns"""
+    distinct_on: [cached_images_cached_image_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [cached_images_cached_image_order_by!]
+
+    """filter the rows returned"""
+    where: cached_images_cached_image_bool_exp
+  ): [cached_images_cached_image!]!
+
+  """
+  fetch data from the table: "cached_images.cached_image" using primary key columns
+  """
+  cached_images_cached_image_by_pk(url: String!): cached_images_cached_image
+
+  """fetch data from the table: "caip10" using primary key columns"""
+  caip10(id: numeric!): caip10
+
+  """
+  fetch aggregated fields from the table: "caip10"
+  """
+  caip10_aggregate(
+    """distinct select on columns"""
+    distinct_on: [caip10_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [caip10_order_by!]
+
+    """filter the rows returned"""
+    where: caip10_bool_exp
+  ): caip10_aggregate!
+
+  """
+  fetch data from the table: "caip10"
+  """
+  caip10s(
+    """distinct select on columns"""
+    distinct_on: [caip10_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [caip10_order_by!]
+
+    """filter the rows returned"""
+    where: caip10_bool_exp
+  ): [caip10!]!
 
   """fetch data from the table: "chainlink_price" using primary key columns"""
   chainlink_price(id: numeric!): chainlink_prices
@@ -5045,7 +5488,9 @@ type query_root {
   """fetch data from the table: "event" using primary key columns"""
   event(id: String!): events
 
-  """An array relationship"""
+  """
+  fetch data from the table: "event"
+  """
   events(
     """distinct select on columns"""
     distinct_on: [events_select_column!]
@@ -5063,7 +5508,9 @@ type query_root {
     where: events_bool_exp
   ): [events!]!
 
-  """An aggregate relationship"""
+  """
+  fetch aggregated fields from the table: "event"
+  """
   events_aggregate(
     """distinct select on columns"""
     distinct_on: [events_select_column!]
@@ -5169,6 +5616,49 @@ type query_root {
     """filter the rows returned"""
     where: accounts_bool_exp
   ): accounts_aggregate!
+
+  """fetch data from the table: "json_object" using primary key columns"""
+  json_object(id: numeric!): json_objects
+
+  """
+  fetch data from the table: "json_object"
+  """
+  json_objects(
+    """distinct select on columns"""
+    distinct_on: [json_objects_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [json_objects_order_by!]
+
+    """filter the rows returned"""
+    where: json_objects_bool_exp
+  ): [json_objects!]!
+
+  """
+  fetch aggregated fields from the table: "json_object"
+  """
+  json_objects_aggregate(
+    """distinct select on columns"""
+    distinct_on: [json_objects_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [json_objects_order_by!]
+
+    """filter the rows returned"""
+    where: json_objects_bool_exp
+  ): json_objects_aggregate!
 
   """fetch data from the table: "organization" using primary key columns"""
   organization(id: numeric!): organizations
@@ -5379,6 +5869,47 @@ type query_root {
     where: redemptions_bool_exp
   ): redemptions_aggregate!
 
+  """
+  fetch data from the table: "share_price_change" using primary key columns
+  """
+  share_price_change(id: bigint!): share_price_changes
+
+  """An array relationship"""
+  share_price_changes(
+    """distinct select on columns"""
+    distinct_on: [share_price_changes_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [share_price_changes_order_by!]
+
+    """filter the rows returned"""
+    where: share_price_changes_bool_exp
+  ): [share_price_changes!]!
+
+  """An aggregate relationship"""
+  share_price_changes_aggregate(
+    """distinct select on columns"""
+    distinct_on: [share_price_changes_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [share_price_changes_order_by!]
+
+    """filter the rows returned"""
+    where: share_price_changes_bool_exp
+  ): share_price_changes_aggregate!
+
   """fetch data from the table: "signal" using primary key columns"""
   signal(id: String!): signals
 
@@ -5511,6 +6042,92 @@ type query_root {
     where: stats_bool_exp
   ): stats_aggregate!
 
+  """fetch data from the table: "term" using primary key columns"""
+  term(id: numeric!): terms
+
+  """
+  fetch data from the table: "term"
+  """
+  terms(
+    """distinct select on columns"""
+    distinct_on: [terms_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [terms_order_by!]
+
+    """filter the rows returned"""
+    where: terms_bool_exp
+  ): [terms!]!
+
+  """
+  fetch aggregated fields from the table: "term"
+  """
+  terms_aggregate(
+    """distinct select on columns"""
+    distinct_on: [terms_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [terms_order_by!]
+
+    """filter the rows returned"""
+    where: terms_bool_exp
+  ): terms_aggregate!
+
+  """fetch data from the table: "text_object" using primary key columns"""
+  text_object(id: numeric!): text_objects
+
+  """
+  fetch data from the table: "text_object"
+  """
+  text_objects(
+    """distinct select on columns"""
+    distinct_on: [text_objects_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [text_objects_order_by!]
+
+    """filter the rows returned"""
+    where: text_objects_bool_exp
+  ): [text_objects!]!
+
+  """
+  fetch aggregated fields from the table: "text_object"
+  """
+  text_objects_aggregate(
+    """distinct select on columns"""
+    distinct_on: [text_objects_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [text_objects_order_by!]
+
+    """filter the rows returned"""
+    where: text_objects_bool_exp
+  ): text_objects_aggregate!
+
   """fetch data from the table: "thing" using primary key columns"""
   thing(id: numeric!): things
 
@@ -5555,7 +6172,7 @@ type query_root {
   ): things_aggregate!
 
   """fetch data from the table: "triple" using primary key columns"""
-  triple(id: numeric!): triples
+  triple(term_id: numeric!): triples
 
   """An array relationship"""
   triples(
@@ -5594,11 +6211,9 @@ type query_root {
   ): triples_aggregate!
 
   """fetch data from the table: "vault" using primary key columns"""
-  vault(id: numeric!): vaults
+  vault(curve_id: numeric!, term_id: numeric!): vaults
 
-  """
-  fetch data from the table: "vault"
-  """
+  """An array relationship"""
   vaults(
     """distinct select on columns"""
     distinct_on: [vaults_select_column!]
@@ -5616,9 +6231,7 @@ type query_root {
     where: vaults_bool_exp
   ): [vaults!]!
 
-  """
-  fetch aggregated fields from the table: "vault"
-  """
+  """An aggregate relationship"""
   vaults_aggregate(
     """distinct select on columns"""
     distinct_on: [vaults_select_column!]
@@ -5644,42 +6257,7 @@ type redemptions {
   assets_for_receiver: numeric!
   block_number: numeric!
   block_timestamp: bigint!
-
-  """An array relationship"""
-  events(
-    """distinct select on columns"""
-    distinct_on: [events_select_column!]
-
-    """limit the number of rows returned"""
-    limit: Int
-
-    """skip the first n rows. Use only with order_by"""
-    offset: Int
-
-    """sort the rows by one or more columns"""
-    order_by: [events_order_by!]
-
-    """filter the rows returned"""
-    where: events_bool_exp
-  ): [events!]!
-
-  """An aggregate relationship"""
-  events_aggregate(
-    """distinct select on columns"""
-    distinct_on: [events_select_column!]
-
-    """limit the number of rows returned"""
-    limit: Int
-
-    """skip the first n rows. Use only with order_by"""
-    offset: Int
-
-    """sort the rows by one or more columns"""
-    order_by: [events_order_by!]
-
-    """filter the rows returned"""
-    where: events_bool_exp
-  ): events_aggregate!
+  curve_id: numeric!
   exit_fee: numeric!
   id: String!
 
@@ -5693,46 +6271,13 @@ type redemptions {
   sender_total_shares_in_vault: numeric!
   shares_redeemed_by_sender: numeric!
 
-  """An array relationship"""
-  signals(
-    """distinct select on columns"""
-    distinct_on: [signals_select_column!]
-
-    """limit the number of rows returned"""
-    limit: Int
-
-    """skip the first n rows. Use only with order_by"""
-    offset: Int
-
-    """sort the rows by one or more columns"""
-    order_by: [signals_order_by!]
-
-    """filter the rows returned"""
-    where: signals_bool_exp
-  ): [signals!]!
-
-  """An aggregate relationship"""
-  signals_aggregate(
-    """distinct select on columns"""
-    distinct_on: [signals_select_column!]
-
-    """limit the number of rows returned"""
-    limit: Int
-
-    """skip the first n rows. Use only with order_by"""
-    offset: Int
-
-    """sort the rows by one or more columns"""
-    order_by: [signals_order_by!]
-
-    """filter the rows returned"""
-    where: signals_bool_exp
-  ): signals_aggregate!
-  transaction_hash: bytea!
+  """An object relationship"""
+  term: terms!
+  term_id: numeric!
+  transaction_hash: String!
 
   """An object relationship"""
-  vault: vaults!
-  vault_id: numeric!
+  vault: vaults
 }
 
 """
@@ -5793,10 +6338,11 @@ type redemptions_avg_fields {
   assets_for_receiver: Float
   block_number: Float
   block_timestamp: Float
+  curve_id: Float
   exit_fee: Float
   sender_total_shares_in_vault: Float
   shares_redeemed_by_sender: Float
-  vault_id: Float
+  term_id: Float
 }
 
 """
@@ -5806,10 +6352,11 @@ input redemptions_avg_order_by {
   assets_for_receiver: order_by
   block_number: order_by
   block_timestamp: order_by
+  curve_id: order_by
   exit_fee: order_by
   sender_total_shares_in_vault: order_by
   shares_redeemed_by_sender: order_by
-  vault_id: order_by
+  term_id: order_by
 }
 
 """
@@ -5822,8 +6369,7 @@ input redemptions_bool_exp {
   assets_for_receiver: numeric_comparison_exp
   block_number: numeric_comparison_exp
   block_timestamp: bigint_comparison_exp
-  events: events_bool_exp
-  events_aggregate: events_aggregate_bool_exp
+  curve_id: numeric_comparison_exp
   exit_fee: numeric_comparison_exp
   id: String_comparison_exp
   receiver: accounts_bool_exp
@@ -5832,11 +6378,10 @@ input redemptions_bool_exp {
   sender_id: String_comparison_exp
   sender_total_shares_in_vault: numeric_comparison_exp
   shares_redeemed_by_sender: numeric_comparison_exp
-  signals: signals_bool_exp
-  signals_aggregate: signals_aggregate_bool_exp
-  transaction_hash: bytea_comparison_exp
+  term: terms_bool_exp
+  term_id: numeric_comparison_exp
+  transaction_hash: String_comparison_exp
   vault: vaults_bool_exp
-  vault_id: numeric_comparison_exp
 }
 
 """aggregate max on columns"""
@@ -5844,13 +6389,15 @@ type redemptions_max_fields {
   assets_for_receiver: numeric
   block_number: numeric
   block_timestamp: bigint
+  curve_id: numeric
   exit_fee: numeric
   id: String
   receiver_id: String
   sender_id: String
   sender_total_shares_in_vault: numeric
   shares_redeemed_by_sender: numeric
-  vault_id: numeric
+  term_id: numeric
+  transaction_hash: String
 }
 
 """
@@ -5860,13 +6407,15 @@ input redemptions_max_order_by {
   assets_for_receiver: order_by
   block_number: order_by
   block_timestamp: order_by
+  curve_id: order_by
   exit_fee: order_by
   id: order_by
   receiver_id: order_by
   sender_id: order_by
   sender_total_shares_in_vault: order_by
   shares_redeemed_by_sender: order_by
-  vault_id: order_by
+  term_id: order_by
+  transaction_hash: order_by
 }
 
 """aggregate min on columns"""
@@ -5874,13 +6423,15 @@ type redemptions_min_fields {
   assets_for_receiver: numeric
   block_number: numeric
   block_timestamp: bigint
+  curve_id: numeric
   exit_fee: numeric
   id: String
   receiver_id: String
   sender_id: String
   sender_total_shares_in_vault: numeric
   shares_redeemed_by_sender: numeric
-  vault_id: numeric
+  term_id: numeric
+  transaction_hash: String
 }
 
 """
@@ -5890,13 +6441,15 @@ input redemptions_min_order_by {
   assets_for_receiver: order_by
   block_number: order_by
   block_timestamp: order_by
+  curve_id: order_by
   exit_fee: order_by
   id: order_by
   receiver_id: order_by
   sender_id: order_by
   sender_total_shares_in_vault: order_by
   shares_redeemed_by_sender: order_by
-  vault_id: order_by
+  term_id: order_by
+  transaction_hash: order_by
 }
 
 """Ordering options when selecting data from "redemption"."""
@@ -5904,7 +6457,7 @@ input redemptions_order_by {
   assets_for_receiver: order_by
   block_number: order_by
   block_timestamp: order_by
-  events_aggregate: events_aggregate_order_by
+  curve_id: order_by
   exit_fee: order_by
   id: order_by
   receiver: accounts_order_by
@@ -5913,10 +6466,10 @@ input redemptions_order_by {
   sender_id: order_by
   sender_total_shares_in_vault: order_by
   shares_redeemed_by_sender: order_by
-  signals_aggregate: signals_aggregate_order_by
+  term: terms_order_by
+  term_id: order_by
   transaction_hash: order_by
   vault: vaults_order_by
-  vault_id: order_by
 }
 
 """
@@ -5931,6 +6484,9 @@ enum redemptions_select_column {
 
   """column name"""
   block_timestamp
+
+  """column name"""
+  curve_id
 
   """column name"""
   exit_fee
@@ -5951,10 +6507,10 @@ enum redemptions_select_column {
   shares_redeemed_by_sender
 
   """column name"""
-  transaction_hash
+  term_id
 
   """column name"""
-  vault_id
+  transaction_hash
 }
 
 """aggregate stddev on columns"""
@@ -5962,10 +6518,11 @@ type redemptions_stddev_fields {
   assets_for_receiver: Float
   block_number: Float
   block_timestamp: Float
+  curve_id: Float
   exit_fee: Float
   sender_total_shares_in_vault: Float
   shares_redeemed_by_sender: Float
-  vault_id: Float
+  term_id: Float
 }
 
 """
@@ -5975,10 +6532,11 @@ input redemptions_stddev_order_by {
   assets_for_receiver: order_by
   block_number: order_by
   block_timestamp: order_by
+  curve_id: order_by
   exit_fee: order_by
   sender_total_shares_in_vault: order_by
   shares_redeemed_by_sender: order_by
-  vault_id: order_by
+  term_id: order_by
 }
 
 """aggregate stddev_pop on columns"""
@@ -5986,10 +6544,11 @@ type redemptions_stddev_pop_fields {
   assets_for_receiver: Float
   block_number: Float
   block_timestamp: Float
+  curve_id: Float
   exit_fee: Float
   sender_total_shares_in_vault: Float
   shares_redeemed_by_sender: Float
-  vault_id: Float
+  term_id: Float
 }
 
 """
@@ -5999,10 +6558,11 @@ input redemptions_stddev_pop_order_by {
   assets_for_receiver: order_by
   block_number: order_by
   block_timestamp: order_by
+  curve_id: order_by
   exit_fee: order_by
   sender_total_shares_in_vault: order_by
   shares_redeemed_by_sender: order_by
-  vault_id: order_by
+  term_id: order_by
 }
 
 """aggregate stddev_samp on columns"""
@@ -6010,10 +6570,11 @@ type redemptions_stddev_samp_fields {
   assets_for_receiver: Float
   block_number: Float
   block_timestamp: Float
+  curve_id: Float
   exit_fee: Float
   sender_total_shares_in_vault: Float
   shares_redeemed_by_sender: Float
-  vault_id: Float
+  term_id: Float
 }
 
 """
@@ -6023,10 +6584,11 @@ input redemptions_stddev_samp_order_by {
   assets_for_receiver: order_by
   block_number: order_by
   block_timestamp: order_by
+  curve_id: order_by
   exit_fee: order_by
   sender_total_shares_in_vault: order_by
   shares_redeemed_by_sender: order_by
-  vault_id: order_by
+  term_id: order_by
 }
 
 """
@@ -6045,14 +6607,15 @@ input redemptions_stream_cursor_value_input {
   assets_for_receiver: numeric
   block_number: numeric
   block_timestamp: bigint
+  curve_id: numeric
   exit_fee: numeric
   id: String
   receiver_id: String
   sender_id: String
   sender_total_shares_in_vault: numeric
   shares_redeemed_by_sender: numeric
-  transaction_hash: bytea
-  vault_id: numeric
+  term_id: numeric
+  transaction_hash: String
 }
 
 """aggregate sum on columns"""
@@ -6060,10 +6623,11 @@ type redemptions_sum_fields {
   assets_for_receiver: numeric
   block_number: numeric
   block_timestamp: bigint
+  curve_id: numeric
   exit_fee: numeric
   sender_total_shares_in_vault: numeric
   shares_redeemed_by_sender: numeric
-  vault_id: numeric
+  term_id: numeric
 }
 
 """
@@ -6073,10 +6637,11 @@ input redemptions_sum_order_by {
   assets_for_receiver: order_by
   block_number: order_by
   block_timestamp: order_by
+  curve_id: order_by
   exit_fee: order_by
   sender_total_shares_in_vault: order_by
   shares_redeemed_by_sender: order_by
-  vault_id: order_by
+  term_id: order_by
 }
 
 """aggregate var_pop on columns"""
@@ -6084,10 +6649,11 @@ type redemptions_var_pop_fields {
   assets_for_receiver: Float
   block_number: Float
   block_timestamp: Float
+  curve_id: Float
   exit_fee: Float
   sender_total_shares_in_vault: Float
   shares_redeemed_by_sender: Float
-  vault_id: Float
+  term_id: Float
 }
 
 """
@@ -6097,10 +6663,11 @@ input redemptions_var_pop_order_by {
   assets_for_receiver: order_by
   block_number: order_by
   block_timestamp: order_by
+  curve_id: order_by
   exit_fee: order_by
   sender_total_shares_in_vault: order_by
   shares_redeemed_by_sender: order_by
-  vault_id: order_by
+  term_id: order_by
 }
 
 """aggregate var_samp on columns"""
@@ -6108,10 +6675,11 @@ type redemptions_var_samp_fields {
   assets_for_receiver: Float
   block_number: Float
   block_timestamp: Float
+  curve_id: Float
   exit_fee: Float
   sender_total_shares_in_vault: Float
   shares_redeemed_by_sender: Float
-  vault_id: Float
+  term_id: Float
 }
 
 """
@@ -6121,10 +6689,11 @@ input redemptions_var_samp_order_by {
   assets_for_receiver: order_by
   block_number: order_by
   block_timestamp: order_by
+  curve_id: order_by
   exit_fee: order_by
   sender_total_shares_in_vault: order_by
   shares_redeemed_by_sender: order_by
-  vault_id: order_by
+  term_id: order_by
 }
 
 """aggregate variance on columns"""
@@ -6132,10 +6701,11 @@ type redemptions_variance_fields {
   assets_for_receiver: Float
   block_number: Float
   block_timestamp: Float
+  curve_id: Float
   exit_fee: Float
   sender_total_shares_in_vault: Float
   shares_redeemed_by_sender: Float
-  vault_id: Float
+  term_id: Float
 }
 
 """
@@ -6145,10 +6715,451 @@ input redemptions_variance_order_by {
   assets_for_receiver: order_by
   block_number: order_by
   block_timestamp: order_by
+  curve_id: order_by
   exit_fee: order_by
   sender_total_shares_in_vault: order_by
   shares_redeemed_by_sender: order_by
-  vault_id: order_by
+  term_id: order_by
+}
+
+"""
+columns and relationships of "share_price_change"
+"""
+type share_price_changes {
+  block_number: numeric!
+  block_timestamp: bigint!
+  curve_id: numeric!
+  id: bigint!
+  share_price: numeric!
+
+  """An object relationship"""
+  term: terms!
+  term_id: numeric!
+  total_assets: numeric!
+  total_shares: numeric!
+  transaction_hash: String!
+  updated_at: timestamptz
+
+  """An object relationship"""
+  vault: vaults
+}
+
+"""
+aggregated selection of "share_price_change"
+"""
+type share_price_changes_aggregate {
+  aggregate: share_price_changes_aggregate_fields
+  nodes: [share_price_changes!]!
+}
+
+input share_price_changes_aggregate_bool_exp {
+  count: share_price_changes_aggregate_bool_exp_count
+}
+
+input share_price_changes_aggregate_bool_exp_count {
+  arguments: [share_price_changes_select_column!]
+  distinct: Boolean
+  filter: share_price_changes_bool_exp
+  predicate: Int_comparison_exp!
+}
+
+"""
+aggregate fields of "share_price_change"
+"""
+type share_price_changes_aggregate_fields {
+  avg: share_price_changes_avg_fields
+  count(columns: [share_price_changes_select_column!], distinct: Boolean): Int!
+  max: share_price_changes_max_fields
+  min: share_price_changes_min_fields
+  stddev: share_price_changes_stddev_fields
+  stddev_pop: share_price_changes_stddev_pop_fields
+  stddev_samp: share_price_changes_stddev_samp_fields
+  sum: share_price_changes_sum_fields
+  var_pop: share_price_changes_var_pop_fields
+  var_samp: share_price_changes_var_samp_fields
+  variance: share_price_changes_variance_fields
+}
+
+"""
+order by aggregate values of table "share_price_change"
+"""
+input share_price_changes_aggregate_order_by {
+  avg: share_price_changes_avg_order_by
+  count: order_by
+  max: share_price_changes_max_order_by
+  min: share_price_changes_min_order_by
+  stddev: share_price_changes_stddev_order_by
+  stddev_pop: share_price_changes_stddev_pop_order_by
+  stddev_samp: share_price_changes_stddev_samp_order_by
+  sum: share_price_changes_sum_order_by
+  var_pop: share_price_changes_var_pop_order_by
+  var_samp: share_price_changes_var_samp_order_by
+  variance: share_price_changes_variance_order_by
+}
+
+"""aggregate avg on columns"""
+type share_price_changes_avg_fields {
+  block_number: Float
+  block_timestamp: Float
+  curve_id: Float
+  id: Float
+  share_price: Float
+  term_id: Float
+  total_assets: Float
+  total_shares: Float
+}
+
+"""
+order by avg() on columns of table "share_price_change"
+"""
+input share_price_changes_avg_order_by {
+  block_number: order_by
+  block_timestamp: order_by
+  curve_id: order_by
+  id: order_by
+  share_price: order_by
+  term_id: order_by
+  total_assets: order_by
+  total_shares: order_by
+}
+
+"""
+Boolean expression to filter rows from the table "share_price_change". All fields are combined with a logical 'AND'.
+"""
+input share_price_changes_bool_exp {
+  _and: [share_price_changes_bool_exp!]
+  _not: share_price_changes_bool_exp
+  _or: [share_price_changes_bool_exp!]
+  block_number: numeric_comparison_exp
+  block_timestamp: bigint_comparison_exp
+  curve_id: numeric_comparison_exp
+  id: bigint_comparison_exp
+  share_price: numeric_comparison_exp
+  term: terms_bool_exp
+  term_id: numeric_comparison_exp
+  total_assets: numeric_comparison_exp
+  total_shares: numeric_comparison_exp
+  transaction_hash: String_comparison_exp
+  updated_at: timestamptz_comparison_exp
+  vault: vaults_bool_exp
+}
+
+"""aggregate max on columns"""
+type share_price_changes_max_fields {
+  block_number: numeric
+  block_timestamp: bigint
+  curve_id: numeric
+  id: bigint
+  share_price: numeric
+  term_id: numeric
+  total_assets: numeric
+  total_shares: numeric
+  transaction_hash: String
+  updated_at: timestamptz
+}
+
+"""
+order by max() on columns of table "share_price_change"
+"""
+input share_price_changes_max_order_by {
+  block_number: order_by
+  block_timestamp: order_by
+  curve_id: order_by
+  id: order_by
+  share_price: order_by
+  term_id: order_by
+  total_assets: order_by
+  total_shares: order_by
+  transaction_hash: order_by
+  updated_at: order_by
+}
+
+"""aggregate min on columns"""
+type share_price_changes_min_fields {
+  block_number: numeric
+  block_timestamp: bigint
+  curve_id: numeric
+  id: bigint
+  share_price: numeric
+  term_id: numeric
+  total_assets: numeric
+  total_shares: numeric
+  transaction_hash: String
+  updated_at: timestamptz
+}
+
+"""
+order by min() on columns of table "share_price_change"
+"""
+input share_price_changes_min_order_by {
+  block_number: order_by
+  block_timestamp: order_by
+  curve_id: order_by
+  id: order_by
+  share_price: order_by
+  term_id: order_by
+  total_assets: order_by
+  total_shares: order_by
+  transaction_hash: order_by
+  updated_at: order_by
+}
+
+"""Ordering options when selecting data from "share_price_change"."""
+input share_price_changes_order_by {
+  block_number: order_by
+  block_timestamp: order_by
+  curve_id: order_by
+  id: order_by
+  share_price: order_by
+  term: terms_order_by
+  term_id: order_by
+  total_assets: order_by
+  total_shares: order_by
+  transaction_hash: order_by
+  updated_at: order_by
+  vault: vaults_order_by
+}
+
+"""
+select columns of table "share_price_change"
+"""
+enum share_price_changes_select_column {
+  """column name"""
+  block_number
+
+  """column name"""
+  block_timestamp
+
+  """column name"""
+  curve_id
+
+  """column name"""
+  id
+
+  """column name"""
+  share_price
+
+  """column name"""
+  term_id
+
+  """column name"""
+  total_assets
+
+  """column name"""
+  total_shares
+
+  """column name"""
+  transaction_hash
+
+  """column name"""
+  updated_at
+}
+
+"""aggregate stddev on columns"""
+type share_price_changes_stddev_fields {
+  block_number: Float
+  block_timestamp: Float
+  curve_id: Float
+  id: Float
+  share_price: Float
+  term_id: Float
+  total_assets: Float
+  total_shares: Float
+}
+
+"""
+order by stddev() on columns of table "share_price_change"
+"""
+input share_price_changes_stddev_order_by {
+  block_number: order_by
+  block_timestamp: order_by
+  curve_id: order_by
+  id: order_by
+  share_price: order_by
+  term_id: order_by
+  total_assets: order_by
+  total_shares: order_by
+}
+
+"""aggregate stddev_pop on columns"""
+type share_price_changes_stddev_pop_fields {
+  block_number: Float
+  block_timestamp: Float
+  curve_id: Float
+  id: Float
+  share_price: Float
+  term_id: Float
+  total_assets: Float
+  total_shares: Float
+}
+
+"""
+order by stddev_pop() on columns of table "share_price_change"
+"""
+input share_price_changes_stddev_pop_order_by {
+  block_number: order_by
+  block_timestamp: order_by
+  curve_id: order_by
+  id: order_by
+  share_price: order_by
+  term_id: order_by
+  total_assets: order_by
+  total_shares: order_by
+}
+
+"""aggregate stddev_samp on columns"""
+type share_price_changes_stddev_samp_fields {
+  block_number: Float
+  block_timestamp: Float
+  curve_id: Float
+  id: Float
+  share_price: Float
+  term_id: Float
+  total_assets: Float
+  total_shares: Float
+}
+
+"""
+order by stddev_samp() on columns of table "share_price_change"
+"""
+input share_price_changes_stddev_samp_order_by {
+  block_number: order_by
+  block_timestamp: order_by
+  curve_id: order_by
+  id: order_by
+  share_price: order_by
+  term_id: order_by
+  total_assets: order_by
+  total_shares: order_by
+}
+
+"""
+Streaming cursor of the table "share_price_changes"
+"""
+input share_price_changes_stream_cursor_input {
+  """Stream column input with initial value"""
+  initial_value: share_price_changes_stream_cursor_value_input!
+
+  """cursor ordering"""
+  ordering: cursor_ordering
+}
+
+"""Initial value of the column from where the streaming should start"""
+input share_price_changes_stream_cursor_value_input {
+  block_number: numeric
+  block_timestamp: bigint
+  curve_id: numeric
+  id: bigint
+  share_price: numeric
+  term_id: numeric
+  total_assets: numeric
+  total_shares: numeric
+  transaction_hash: String
+  updated_at: timestamptz
+}
+
+"""aggregate sum on columns"""
+type share_price_changes_sum_fields {
+  block_number: numeric
+  block_timestamp: bigint
+  curve_id: numeric
+  id: bigint
+  share_price: numeric
+  term_id: numeric
+  total_assets: numeric
+  total_shares: numeric
+}
+
+"""
+order by sum() on columns of table "share_price_change"
+"""
+input share_price_changes_sum_order_by {
+  block_number: order_by
+  block_timestamp: order_by
+  curve_id: order_by
+  id: order_by
+  share_price: order_by
+  term_id: order_by
+  total_assets: order_by
+  total_shares: order_by
+}
+
+"""aggregate var_pop on columns"""
+type share_price_changes_var_pop_fields {
+  block_number: Float
+  block_timestamp: Float
+  curve_id: Float
+  id: Float
+  share_price: Float
+  term_id: Float
+  total_assets: Float
+  total_shares: Float
+}
+
+"""
+order by var_pop() on columns of table "share_price_change"
+"""
+input share_price_changes_var_pop_order_by {
+  block_number: order_by
+  block_timestamp: order_by
+  curve_id: order_by
+  id: order_by
+  share_price: order_by
+  term_id: order_by
+  total_assets: order_by
+  total_shares: order_by
+}
+
+"""aggregate var_samp on columns"""
+type share_price_changes_var_samp_fields {
+  block_number: Float
+  block_timestamp: Float
+  curve_id: Float
+  id: Float
+  share_price: Float
+  term_id: Float
+  total_assets: Float
+  total_shares: Float
+}
+
+"""
+order by var_samp() on columns of table "share_price_change"
+"""
+input share_price_changes_var_samp_order_by {
+  block_number: order_by
+  block_timestamp: order_by
+  curve_id: order_by
+  id: order_by
+  share_price: order_by
+  term_id: order_by
+  total_assets: order_by
+  total_shares: order_by
+}
+
+"""aggregate variance on columns"""
+type share_price_changes_variance_fields {
+  block_number: Float
+  block_timestamp: Float
+  curve_id: Float
+  id: Float
+  share_price: Float
+  term_id: Float
+  total_assets: Float
+  total_shares: Float
+}
+
+"""
+order by variance() on columns of table "share_price_change"
+"""
+input share_price_changes_variance_order_by {
+  block_number: order_by
+  block_timestamp: order_by
+  curve_id: order_by
+  id: order_by
+  share_price: order_by
+  term_id: order_by
+  total_assets: order_by
+  total_shares: order_by
 }
 
 """
@@ -6158,9 +7169,6 @@ type signals {
   """An object relationship"""
   account: accounts
   account_id: String!
-
-  """An object relationship"""
-  atom: atoms
   atom_id: numeric
   block_number: numeric!
   block_timestamp: bigint!
@@ -6174,11 +7182,14 @@ type signals {
   """An object relationship"""
   redemption: redemptions
   redemption_id: String
-  transaction_hash: bytea!
 
   """An object relationship"""
-  triple: triples
+  term: terms!
+  transaction_hash: String!
   triple_id: numeric
+
+  """An object relationship"""
+  vault: vaults
 }
 
 """
@@ -6263,7 +7274,6 @@ input signals_bool_exp {
   _or: [signals_bool_exp!]
   account: accounts_bool_exp
   account_id: String_comparison_exp
-  atom: atoms_bool_exp
   atom_id: numeric_comparison_exp
   block_number: numeric_comparison_exp
   block_timestamp: bigint_comparison_exp
@@ -6273,9 +7283,10 @@ input signals_bool_exp {
   id: String_comparison_exp
   redemption: redemptions_bool_exp
   redemption_id: String_comparison_exp
-  transaction_hash: bytea_comparison_exp
-  triple: triples_bool_exp
+  term: terms_bool_exp
+  transaction_hash: String_comparison_exp
   triple_id: numeric_comparison_exp
+  vault: vaults_bool_exp
 }
 
 input signals_from_following_args {
@@ -6292,6 +7303,7 @@ type signals_max_fields {
   deposit_id: String
   id: String
   redemption_id: String
+  transaction_hash: String
   triple_id: numeric
 }
 
@@ -6307,6 +7319,7 @@ input signals_max_order_by {
   deposit_id: order_by
   id: order_by
   redemption_id: order_by
+  transaction_hash: order_by
   triple_id: order_by
 }
 
@@ -6320,6 +7333,7 @@ type signals_min_fields {
   deposit_id: String
   id: String
   redemption_id: String
+  transaction_hash: String
   triple_id: numeric
 }
 
@@ -6335,6 +7349,7 @@ input signals_min_order_by {
   deposit_id: order_by
   id: order_by
   redemption_id: order_by
+  transaction_hash: order_by
   triple_id: order_by
 }
 
@@ -6342,7 +7357,6 @@ input signals_min_order_by {
 input signals_order_by {
   account: accounts_order_by
   account_id: order_by
-  atom: atoms_order_by
   atom_id: order_by
   block_number: order_by
   block_timestamp: order_by
@@ -6352,9 +7366,10 @@ input signals_order_by {
   id: order_by
   redemption: redemptions_order_by
   redemption_id: order_by
+  term: terms_order_by
   transaction_hash: order_by
-  triple: triples_order_by
   triple_id: order_by
+  vault: vaults_order_by
 }
 
 """
@@ -6473,7 +7488,7 @@ input signals_stream_cursor_value_input {
   deposit_id: String
   id: String
   redemption_id: String
-  transaction_hash: bytea
+  transaction_hash: String
   triple_id: numeric
 }
 
@@ -6955,7 +7970,7 @@ type subscription_root {
   ): accounts_aggregate!
 
   """fetch data from the table: "atom" using primary key columns"""
-  atom(id: numeric!): atoms
+  atom(term_id: numeric!): atoms
 
   """fetch data from the table: "atom_value" using primary key columns"""
   atom_value(id: numeric!): atom_values
@@ -7120,6 +8135,198 @@ type subscription_root {
     """filter the rows returned"""
     where: books_bool_exp
   ): [books!]!
+
+  """
+  fetch data from the table: "byte_object"
+  """
+  byte_object(
+    """distinct select on columns"""
+    distinct_on: [byte_object_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [byte_object_order_by!]
+
+    """filter the rows returned"""
+    where: byte_object_bool_exp
+  ): [byte_object!]!
+
+  """
+  fetch aggregated fields from the table: "byte_object"
+  """
+  byte_object_aggregate(
+    """distinct select on columns"""
+    distinct_on: [byte_object_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [byte_object_order_by!]
+
+    """filter the rows returned"""
+    where: byte_object_bool_exp
+  ): byte_object_aggregate!
+
+  """fetch data from the table: "byte_object" using primary key columns"""
+  byte_object_by_pk(id: numeric!): byte_object
+
+  """
+  fetch data from the table in a streaming manner: "byte_object"
+  """
+  byte_object_stream(
+    """maximum number of rows returned in a single batch"""
+    batch_size: Int!
+
+    """cursor to stream the results returned by the query"""
+    cursor: [byte_object_stream_cursor_input]!
+
+    """filter the rows returned"""
+    where: byte_object_bool_exp
+  ): [byte_object!]!
+
+  """
+  fetch data from the table: "cached_images.cached_image" using primary key columns
+  """
+  cached_image(url: String!): cached_images
+
+  """
+  fetch data from the table: "cached_images.cached_image"
+  """
+  cached_images(
+    """distinct select on columns"""
+    distinct_on: [cached_images_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [cached_images_order_by!]
+
+    """filter the rows returned"""
+    where: cached_images_bool_exp
+  ): [cached_images!]!
+
+  """
+  fetch data from the table: "cached_images.cached_image"
+  """
+  cached_images_cached_image(
+    """distinct select on columns"""
+    distinct_on: [cached_images_cached_image_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [cached_images_cached_image_order_by!]
+
+    """filter the rows returned"""
+    where: cached_images_cached_image_bool_exp
+  ): [cached_images_cached_image!]!
+
+  """
+  fetch data from the table: "cached_images.cached_image" using primary key columns
+  """
+  cached_images_cached_image_by_pk(url: String!): cached_images_cached_image
+
+  """
+  fetch data from the table in a streaming manner: "cached_images.cached_image"
+  """
+  cached_images_cached_image_stream(
+    """maximum number of rows returned in a single batch"""
+    batch_size: Int!
+
+    """cursor to stream the results returned by the query"""
+    cursor: [cached_images_cached_image_stream_cursor_input]!
+
+    """filter the rows returned"""
+    where: cached_images_cached_image_bool_exp
+  ): [cached_images_cached_image!]!
+
+  """
+  fetch data from the table in a streaming manner: "cached_images.cached_image"
+  """
+  cached_images_stream(
+    """maximum number of rows returned in a single batch"""
+    batch_size: Int!
+
+    """cursor to stream the results returned by the query"""
+    cursor: [cached_images_stream_cursor_input]!
+
+    """filter the rows returned"""
+    where: cached_images_bool_exp
+  ): [cached_images!]!
+
+  """fetch data from the table: "caip10" using primary key columns"""
+  caip10(id: numeric!): caip10
+
+  """
+  fetch aggregated fields from the table: "caip10"
+  """
+  caip10_aggregate(
+    """distinct select on columns"""
+    distinct_on: [caip10_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [caip10_order_by!]
+
+    """filter the rows returned"""
+    where: caip10_bool_exp
+  ): caip10_aggregate!
+
+  """
+  fetch data from the table in a streaming manner: "caip10"
+  """
+  caip10_stream(
+    """maximum number of rows returned in a single batch"""
+    batch_size: Int!
+
+    """cursor to stream the results returned by the query"""
+    cursor: [caip10_stream_cursor_input]!
+
+    """filter the rows returned"""
+    where: caip10_bool_exp
+  ): [caip10!]!
+
+  """
+  fetch data from the table: "caip10"
+  """
+  caip10s(
+    """distinct select on columns"""
+    distinct_on: [caip10_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [caip10_order_by!]
+
+    """filter the rows returned"""
+    where: caip10_bool_exp
+  ): [caip10!]!
 
   """fetch data from the table: "chainlink_price" using primary key columns"""
   chainlink_price(id: numeric!): chainlink_prices
@@ -7317,7 +8524,9 @@ type subscription_root {
   """fetch data from the table: "event" using primary key columns"""
   event(id: String!): events
 
-  """An array relationship"""
+  """
+  fetch data from the table: "event"
+  """
   events(
     """distinct select on columns"""
     distinct_on: [events_select_column!]
@@ -7335,7 +8544,9 @@ type subscription_root {
     where: events_bool_exp
   ): [events!]!
 
-  """An aggregate relationship"""
+  """
+  fetch aggregated fields from the table: "event"
+  """
   events_aggregate(
     """distinct select on columns"""
     distinct_on: [events_select_column!]
@@ -7469,6 +8680,63 @@ type subscription_root {
     """filter the rows returned"""
     where: accounts_bool_exp
   ): accounts_aggregate!
+
+  """fetch data from the table: "json_object" using primary key columns"""
+  json_object(id: numeric!): json_objects
+
+  """
+  fetch data from the table: "json_object"
+  """
+  json_objects(
+    """distinct select on columns"""
+    distinct_on: [json_objects_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [json_objects_order_by!]
+
+    """filter the rows returned"""
+    where: json_objects_bool_exp
+  ): [json_objects!]!
+
+  """
+  fetch aggregated fields from the table: "json_object"
+  """
+  json_objects_aggregate(
+    """distinct select on columns"""
+    distinct_on: [json_objects_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [json_objects_order_by!]
+
+    """filter the rows returned"""
+    where: json_objects_bool_exp
+  ): json_objects_aggregate!
+
+  """
+  fetch data from the table in a streaming manner: "json_object"
+  """
+  json_objects_stream(
+    """maximum number of rows returned in a single batch"""
+    batch_size: Int!
+
+    """cursor to stream the results returned by the query"""
+    cursor: [json_objects_stream_cursor_input]!
+
+    """filter the rows returned"""
+    where: json_objects_bool_exp
+  ): [json_objects!]!
 
   """fetch data from the table: "organization" using primary key columns"""
   organization(id: numeric!): organizations
@@ -7749,6 +9017,61 @@ type subscription_root {
     where: redemptions_bool_exp
   ): [redemptions!]!
 
+  """
+  fetch data from the table: "share_price_change" using primary key columns
+  """
+  share_price_change(id: bigint!): share_price_changes
+
+  """An array relationship"""
+  share_price_changes(
+    """distinct select on columns"""
+    distinct_on: [share_price_changes_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [share_price_changes_order_by!]
+
+    """filter the rows returned"""
+    where: share_price_changes_bool_exp
+  ): [share_price_changes!]!
+
+  """An aggregate relationship"""
+  share_price_changes_aggregate(
+    """distinct select on columns"""
+    distinct_on: [share_price_changes_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [share_price_changes_order_by!]
+
+    """filter the rows returned"""
+    where: share_price_changes_bool_exp
+  ): share_price_changes_aggregate!
+
+  """
+  fetch data from the table in a streaming manner: "share_price_change"
+  """
+  share_price_changes_stream(
+    """maximum number of rows returned in a single batch"""
+    batch_size: Int!
+
+    """cursor to stream the results returned by the query"""
+    cursor: [share_price_changes_stream_cursor_input]!
+
+    """filter the rows returned"""
+    where: share_price_changes_bool_exp
+  ): [share_price_changes!]!
+
   """fetch data from the table: "signal" using primary key columns"""
   signal(id: String!): signals
 
@@ -7909,6 +9232,120 @@ type subscription_root {
     where: stats_bool_exp
   ): [stats!]!
 
+  """fetch data from the table: "term" using primary key columns"""
+  term(id: numeric!): terms
+
+  """
+  fetch data from the table: "term"
+  """
+  terms(
+    """distinct select on columns"""
+    distinct_on: [terms_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [terms_order_by!]
+
+    """filter the rows returned"""
+    where: terms_bool_exp
+  ): [terms!]!
+
+  """
+  fetch aggregated fields from the table: "term"
+  """
+  terms_aggregate(
+    """distinct select on columns"""
+    distinct_on: [terms_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [terms_order_by!]
+
+    """filter the rows returned"""
+    where: terms_bool_exp
+  ): terms_aggregate!
+
+  """
+  fetch data from the table in a streaming manner: "term"
+  """
+  terms_stream(
+    """maximum number of rows returned in a single batch"""
+    batch_size: Int!
+
+    """cursor to stream the results returned by the query"""
+    cursor: [terms_stream_cursor_input]!
+
+    """filter the rows returned"""
+    where: terms_bool_exp
+  ): [terms!]!
+
+  """fetch data from the table: "text_object" using primary key columns"""
+  text_object(id: numeric!): text_objects
+
+  """
+  fetch data from the table: "text_object"
+  """
+  text_objects(
+    """distinct select on columns"""
+    distinct_on: [text_objects_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [text_objects_order_by!]
+
+    """filter the rows returned"""
+    where: text_objects_bool_exp
+  ): [text_objects!]!
+
+  """
+  fetch aggregated fields from the table: "text_object"
+  """
+  text_objects_aggregate(
+    """distinct select on columns"""
+    distinct_on: [text_objects_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [text_objects_order_by!]
+
+    """filter the rows returned"""
+    where: text_objects_bool_exp
+  ): text_objects_aggregate!
+
+  """
+  fetch data from the table in a streaming manner: "text_object"
+  """
+  text_objects_stream(
+    """maximum number of rows returned in a single batch"""
+    batch_size: Int!
+
+    """cursor to stream the results returned by the query"""
+    cursor: [text_objects_stream_cursor_input]!
+
+    """filter the rows returned"""
+    where: text_objects_bool_exp
+  ): [text_objects!]!
+
   """fetch data from the table: "thing" using primary key columns"""
   thing(id: numeric!): things
 
@@ -7967,7 +9404,7 @@ type subscription_root {
   ): [things!]!
 
   """fetch data from the table: "triple" using primary key columns"""
-  triple(id: numeric!): triples
+  triple(term_id: numeric!): triples
 
   """An array relationship"""
   triples(
@@ -8020,11 +9457,9 @@ type subscription_root {
   ): [triples!]!
 
   """fetch data from the table: "vault" using primary key columns"""
-  vault(id: numeric!): vaults
+  vault(curve_id: numeric!, term_id: numeric!): vaults
 
-  """
-  fetch data from the table: "vault"
-  """
+  """An array relationship"""
   vaults(
     """distinct select on columns"""
     distinct_on: [vaults_select_column!]
@@ -8042,9 +9477,7 @@ type subscription_root {
     where: vaults_bool_exp
   ): [vaults!]!
 
-  """
-  fetch aggregated fields from the table: "vault"
-  """
+  """An aggregate relationship"""
   vaults_aggregate(
     """distinct select on columns"""
     distinct_on: [vaults_select_column!]
@@ -8077,12 +9510,615 @@ type subscription_root {
   ): [vaults!]!
 }
 
+scalar term_type
+
+"""
+Boolean expression to compare columns of type "term_type". All fields are combined with logical 'AND'.
+"""
+input term_type_comparison_exp {
+  _eq: term_type
+  _gt: term_type
+  _gte: term_type
+  _in: [term_type!]
+  _is_null: Boolean
+  _lt: term_type
+  _lte: term_type
+  _neq: term_type
+  _nin: [term_type!]
+}
+
+"""
+columns and relationships of "term"
+"""
+type terms {
+  """An object relationship"""
+  atom: atoms
+
+  """An object relationship"""
+  atomById: atoms
+  atom_id: numeric
+
+  """An array relationship"""
+  deposits(
+    """distinct select on columns"""
+    distinct_on: [deposits_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [deposits_order_by!]
+
+    """filter the rows returned"""
+    where: deposits_bool_exp
+  ): [deposits!]!
+
+  """An aggregate relationship"""
+  deposits_aggregate(
+    """distinct select on columns"""
+    distinct_on: [deposits_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [deposits_order_by!]
+
+    """filter the rows returned"""
+    where: deposits_bool_exp
+  ): deposits_aggregate!
+  id: numeric!
+
+  """An array relationship"""
+  positions(
+    """distinct select on columns"""
+    distinct_on: [positions_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [positions_order_by!]
+
+    """filter the rows returned"""
+    where: positions_bool_exp
+  ): [positions!]!
+
+  """An aggregate relationship"""
+  positions_aggregate(
+    """distinct select on columns"""
+    distinct_on: [positions_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [positions_order_by!]
+
+    """filter the rows returned"""
+    where: positions_bool_exp
+  ): positions_aggregate!
+
+  """An array relationship"""
+  redemptions(
+    """distinct select on columns"""
+    distinct_on: [redemptions_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [redemptions_order_by!]
+
+    """filter the rows returned"""
+    where: redemptions_bool_exp
+  ): [redemptions!]!
+
+  """An aggregate relationship"""
+  redemptions_aggregate(
+    """distinct select on columns"""
+    distinct_on: [redemptions_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [redemptions_order_by!]
+
+    """filter the rows returned"""
+    where: redemptions_bool_exp
+  ): redemptions_aggregate!
+
+  """An array relationship"""
+  share_price_changes(
+    """distinct select on columns"""
+    distinct_on: [share_price_changes_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [share_price_changes_order_by!]
+
+    """filter the rows returned"""
+    where: share_price_changes_bool_exp
+  ): [share_price_changes!]!
+
+  """An aggregate relationship"""
+  share_price_changes_aggregate(
+    """distinct select on columns"""
+    distinct_on: [share_price_changes_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [share_price_changes_order_by!]
+
+    """filter the rows returned"""
+    where: share_price_changes_bool_exp
+  ): share_price_changes_aggregate!
+
+  """An array relationship"""
+  signals(
+    """distinct select on columns"""
+    distinct_on: [signals_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [signals_order_by!]
+
+    """filter the rows returned"""
+    where: signals_bool_exp
+  ): [signals!]!
+
+  """An aggregate relationship"""
+  signals_aggregate(
+    """distinct select on columns"""
+    distinct_on: [signals_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [signals_order_by!]
+
+    """filter the rows returned"""
+    where: signals_bool_exp
+  ): signals_aggregate!
+  total_assets: numeric
+  total_market_cap: numeric
+
+  """An object relationship"""
+  triple: triples
+
+  """An object relationship"""
+  tripleById: triples
+  triple_id: numeric
+  type: term_type!
+
+  """An array relationship"""
+  vaults(
+    """distinct select on columns"""
+    distinct_on: [vaults_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [vaults_order_by!]
+
+    """filter the rows returned"""
+    where: vaults_bool_exp
+  ): [vaults!]!
+
+  """An aggregate relationship"""
+  vaults_aggregate(
+    """distinct select on columns"""
+    distinct_on: [vaults_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [vaults_order_by!]
+
+    """filter the rows returned"""
+    where: vaults_bool_exp
+  ): vaults_aggregate!
+}
+
+"""
+aggregated selection of "term"
+"""
+type terms_aggregate {
+  aggregate: terms_aggregate_fields
+  nodes: [terms!]!
+}
+
+"""
+aggregate fields of "term"
+"""
+type terms_aggregate_fields {
+  avg: terms_avg_fields
+  count(columns: [terms_select_column!], distinct: Boolean): Int!
+  max: terms_max_fields
+  min: terms_min_fields
+  stddev: terms_stddev_fields
+  stddev_pop: terms_stddev_pop_fields
+  stddev_samp: terms_stddev_samp_fields
+  sum: terms_sum_fields
+  var_pop: terms_var_pop_fields
+  var_samp: terms_var_samp_fields
+  variance: terms_variance_fields
+}
+
+"""aggregate avg on columns"""
+type terms_avg_fields {
+  atom_id: Float
+  id: Float
+  total_assets: Float
+  total_market_cap: Float
+  triple_id: Float
+}
+
+"""
+Boolean expression to filter rows from the table "term". All fields are combined with a logical 'AND'.
+"""
+input terms_bool_exp {
+  _and: [terms_bool_exp!]
+  _not: terms_bool_exp
+  _or: [terms_bool_exp!]
+  atom: atoms_bool_exp
+  atomById: atoms_bool_exp
+  atom_id: numeric_comparison_exp
+  deposits: deposits_bool_exp
+  deposits_aggregate: deposits_aggregate_bool_exp
+  id: numeric_comparison_exp
+  positions: positions_bool_exp
+  positions_aggregate: positions_aggregate_bool_exp
+  redemptions: redemptions_bool_exp
+  redemptions_aggregate: redemptions_aggregate_bool_exp
+  share_price_changes: share_price_changes_bool_exp
+  share_price_changes_aggregate: share_price_changes_aggregate_bool_exp
+  signals: signals_bool_exp
+  signals_aggregate: signals_aggregate_bool_exp
+  total_assets: numeric_comparison_exp
+  total_market_cap: numeric_comparison_exp
+  triple: triples_bool_exp
+  tripleById: triples_bool_exp
+  triple_id: numeric_comparison_exp
+  type: term_type_comparison_exp
+  vaults: vaults_bool_exp
+  vaults_aggregate: vaults_aggregate_bool_exp
+}
+
+"""aggregate max on columns"""
+type terms_max_fields {
+  atom_id: numeric
+  id: numeric
+  total_assets: numeric
+  total_market_cap: numeric
+  triple_id: numeric
+  type: term_type
+}
+
+"""aggregate min on columns"""
+type terms_min_fields {
+  atom_id: numeric
+  id: numeric
+  total_assets: numeric
+  total_market_cap: numeric
+  triple_id: numeric
+  type: term_type
+}
+
+"""Ordering options when selecting data from "term"."""
+input terms_order_by {
+  atom: atoms_order_by
+  atomById: atoms_order_by
+  atom_id: order_by
+  deposits_aggregate: deposits_aggregate_order_by
+  id: order_by
+  positions_aggregate: positions_aggregate_order_by
+  redemptions_aggregate: redemptions_aggregate_order_by
+  share_price_changes_aggregate: share_price_changes_aggregate_order_by
+  signals_aggregate: signals_aggregate_order_by
+  total_assets: order_by
+  total_market_cap: order_by
+  triple: triples_order_by
+  tripleById: triples_order_by
+  triple_id: order_by
+  type: order_by
+  vaults_aggregate: vaults_aggregate_order_by
+}
+
+"""
+select columns of table "term"
+"""
+enum terms_select_column {
+  """column name"""
+  atom_id
+
+  """column name"""
+  id
+
+  """column name"""
+  total_assets
+
+  """column name"""
+  total_market_cap
+
+  """column name"""
+  triple_id
+
+  """column name"""
+  type
+}
+
+"""aggregate stddev on columns"""
+type terms_stddev_fields {
+  atom_id: Float
+  id: Float
+  total_assets: Float
+  total_market_cap: Float
+  triple_id: Float
+}
+
+"""aggregate stddev_pop on columns"""
+type terms_stddev_pop_fields {
+  atom_id: Float
+  id: Float
+  total_assets: Float
+  total_market_cap: Float
+  triple_id: Float
+}
+
+"""aggregate stddev_samp on columns"""
+type terms_stddev_samp_fields {
+  atom_id: Float
+  id: Float
+  total_assets: Float
+  total_market_cap: Float
+  triple_id: Float
+}
+
+"""
+Streaming cursor of the table "terms"
+"""
+input terms_stream_cursor_input {
+  """Stream column input with initial value"""
+  initial_value: terms_stream_cursor_value_input!
+
+  """cursor ordering"""
+  ordering: cursor_ordering
+}
+
+"""Initial value of the column from where the streaming should start"""
+input terms_stream_cursor_value_input {
+  atom_id: numeric
+  id: numeric
+  total_assets: numeric
+  total_market_cap: numeric
+  triple_id: numeric
+  type: term_type
+}
+
+"""aggregate sum on columns"""
+type terms_sum_fields {
+  atom_id: numeric
+  id: numeric
+  total_assets: numeric
+  total_market_cap: numeric
+  triple_id: numeric
+}
+
+"""aggregate var_pop on columns"""
+type terms_var_pop_fields {
+  atom_id: Float
+  id: Float
+  total_assets: Float
+  total_market_cap: Float
+  triple_id: Float
+}
+
+"""aggregate var_samp on columns"""
+type terms_var_samp_fields {
+  atom_id: Float
+  id: Float
+  total_assets: Float
+  total_market_cap: Float
+  triple_id: Float
+}
+
+"""aggregate variance on columns"""
+type terms_variance_fields {
+  atom_id: Float
+  id: Float
+  total_assets: Float
+  total_market_cap: Float
+  triple_id: Float
+}
+
+"""
+columns and relationships of "text_object"
+"""
+type text_objects {
+  """An object relationship"""
+  atom: atoms
+  data: String!
+  id: numeric!
+}
+
+"""
+aggregated selection of "text_object"
+"""
+type text_objects_aggregate {
+  aggregate: text_objects_aggregate_fields
+  nodes: [text_objects!]!
+}
+
+"""
+aggregate fields of "text_object"
+"""
+type text_objects_aggregate_fields {
+  avg: text_objects_avg_fields
+  count(columns: [text_objects_select_column!], distinct: Boolean): Int!
+  max: text_objects_max_fields
+  min: text_objects_min_fields
+  stddev: text_objects_stddev_fields
+  stddev_pop: text_objects_stddev_pop_fields
+  stddev_samp: text_objects_stddev_samp_fields
+  sum: text_objects_sum_fields
+  var_pop: text_objects_var_pop_fields
+  var_samp: text_objects_var_samp_fields
+  variance: text_objects_variance_fields
+}
+
+"""aggregate avg on columns"""
+type text_objects_avg_fields {
+  id: Float
+}
+
+"""
+Boolean expression to filter rows from the table "text_object". All fields are combined with a logical 'AND'.
+"""
+input text_objects_bool_exp {
+  _and: [text_objects_bool_exp!]
+  _not: text_objects_bool_exp
+  _or: [text_objects_bool_exp!]
+  atom: atoms_bool_exp
+  data: String_comparison_exp
+  id: numeric_comparison_exp
+}
+
+"""aggregate max on columns"""
+type text_objects_max_fields {
+  data: String
+  id: numeric
+}
+
+"""aggregate min on columns"""
+type text_objects_min_fields {
+  data: String
+  id: numeric
+}
+
+"""Ordering options when selecting data from "text_object"."""
+input text_objects_order_by {
+  atom: atoms_order_by
+  data: order_by
+  id: order_by
+}
+
+"""
+select columns of table "text_object"
+"""
+enum text_objects_select_column {
+  """column name"""
+  data
+
+  """column name"""
+  id
+}
+
+"""aggregate stddev on columns"""
+type text_objects_stddev_fields {
+  id: Float
+}
+
+"""aggregate stddev_pop on columns"""
+type text_objects_stddev_pop_fields {
+  id: Float
+}
+
+"""aggregate stddev_samp on columns"""
+type text_objects_stddev_samp_fields {
+  id: Float
+}
+
+"""
+Streaming cursor of the table "text_objects"
+"""
+input text_objects_stream_cursor_input {
+  """Stream column input with initial value"""
+  initial_value: text_objects_stream_cursor_value_input!
+
+  """cursor ordering"""
+  ordering: cursor_ordering
+}
+
+"""Initial value of the column from where the streaming should start"""
+input text_objects_stream_cursor_value_input {
+  data: String
+  id: numeric
+}
+
+"""aggregate sum on columns"""
+type text_objects_sum_fields {
+  id: numeric
+}
+
+"""aggregate var_pop on columns"""
+type text_objects_var_pop_fields {
+  id: Float
+}
+
+"""aggregate var_samp on columns"""
+type text_objects_var_samp_fields {
+  id: Float
+}
+
+"""aggregate variance on columns"""
+type text_objects_variance_fields {
+  id: Float
+}
+
 """
 columns and relationships of "thing"
 """
 type things {
   """An object relationship"""
-  atom: things
+  atom: atoms
+  cached_image: cached_images_cached_image
   description: String
   id: numeric!
   image: String
@@ -8127,7 +10163,7 @@ input things_bool_exp {
   _and: [things_bool_exp!]
   _not: things_bool_exp
   _or: [things_bool_exp!]
-  atom: things_bool_exp
+  atom: atoms_bool_exp
   description: String_comparison_exp
   id: numeric_comparison_exp
   image: String_comparison_exp
@@ -8155,7 +10191,7 @@ type things_min_fields {
 
 """Ordering options when selecting data from "thing"."""
 input things_order_by {
-  atom: things_order_by
+  atom: atoms_order_by
   description: order_by
   id: order_by
   image: order_by
@@ -8238,6 +10274,23 @@ type things_variance_fields {
   id: Float
 }
 
+scalar timestamptz
+
+"""
+Boolean expression to compare columns of type "timestamptz". All fields are combined with logical 'AND'.
+"""
+input timestamptz_comparison_exp {
+  _eq: timestamptz
+  _gt: timestamptz
+  _gte: timestamptz
+  _in: [timestamptz!]
+  _is_null: Boolean
+  _lt: timestamptz
+  _lte: timestamptz
+  _neq: timestamptz
+  _nin: [timestamptz!]
+}
+
 """
 columns and relationships of "triple"
 """
@@ -8246,9 +10299,9 @@ type triples {
   block_timestamp: bigint!
 
   """An array relationship"""
-  claims(
+  counter_positions(
     """distinct select on columns"""
-    distinct_on: [claims_select_column!]
+    distinct_on: [positions_select_column!]
 
     """limit the number of rows returned"""
     limit: Int
@@ -8257,16 +10310,16 @@ type triples {
     offset: Int
 
     """sort the rows by one or more columns"""
-    order_by: [claims_order_by!]
+    order_by: [positions_order_by!]
 
     """filter the rows returned"""
-    where: claims_bool_exp
-  ): [claims!]!
+    where: positions_bool_exp
+  ): [positions!]!
 
   """An aggregate relationship"""
-  claims_aggregate(
+  counter_positions_aggregate(
     """distinct select on columns"""
-    distinct_on: [claims_select_column!]
+    distinct_on: [positions_select_column!]
 
     """limit the number of rows returned"""
     limit: Int
@@ -8275,73 +10328,72 @@ type triples {
     offset: Int
 
     """sort the rows by one or more columns"""
-    order_by: [claims_order_by!]
+    order_by: [positions_order_by!]
 
     """filter the rows returned"""
-    where: claims_bool_exp
-  ): claims_aggregate!
+    where: positions_bool_exp
+  ): positions_aggregate!
 
   """An object relationship"""
-  counter_vault: vaults
-  counter_vault_id: numeric!
+  counter_term: terms
+  counter_term_id: numeric!
 
   """An object relationship"""
   creator: accounts
   creator_id: String!
-  id: numeric!
 
   """An object relationship"""
   object: atoms!
   object_id: numeric!
 
+  """An array relationship"""
+  positions(
+    """distinct select on columns"""
+    distinct_on: [positions_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [positions_order_by!]
+
+    """filter the rows returned"""
+    where: positions_bool_exp
+  ): [positions!]!
+
+  """An aggregate relationship"""
+  positions_aggregate(
+    """distinct select on columns"""
+    distinct_on: [positions_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [positions_order_by!]
+
+    """filter the rows returned"""
+    where: positions_bool_exp
+  ): positions_aggregate!
+
   """An object relationship"""
   predicate: atoms!
   predicate_id: numeric!
 
-  """An array relationship"""
-  signals(
-    """distinct select on columns"""
-    distinct_on: [signals_select_column!]
-
-    """limit the number of rows returned"""
-    limit: Int
-
-    """skip the first n rows. Use only with order_by"""
-    offset: Int
-
-    """sort the rows by one or more columns"""
-    order_by: [signals_order_by!]
-
-    """filter the rows returned"""
-    where: signals_bool_exp
-  ): [signals!]!
-
-  """An aggregate relationship"""
-  signals_aggregate(
-    """distinct select on columns"""
-    distinct_on: [signals_select_column!]
-
-    """limit the number of rows returned"""
-    limit: Int
-
-    """skip the first n rows. Use only with order_by"""
-    offset: Int
-
-    """sort the rows by one or more columns"""
-    order_by: [signals_order_by!]
-
-    """filter the rows returned"""
-    where: signals_bool_exp
-  ): signals_aggregate!
-
   """An object relationship"""
   subject: atoms!
   subject_id: numeric!
-  transaction_hash: bytea!
 
   """An object relationship"""
-  vault: vaults
-  vault_id: numeric!
+  term: terms
+  term_id: numeric!
+  transaction_hash: String!
 }
 
 """
@@ -8401,12 +10453,11 @@ input triples_aggregate_order_by {
 type triples_avg_fields {
   block_number: Float
   block_timestamp: Float
-  counter_vault_id: Float
-  id: Float
+  counter_term_id: Float
   object_id: Float
   predicate_id: Float
   subject_id: Float
-  vault_id: Float
+  term_id: Float
 }
 
 """
@@ -8415,12 +10466,11 @@ order by avg() on columns of table "triple"
 input triples_avg_order_by {
   block_number: order_by
   block_timestamp: order_by
-  counter_vault_id: order_by
-  id: order_by
+  counter_term_id: order_by
   object_id: order_by
   predicate_id: order_by
   subject_id: order_by
-  vault_id: order_by
+  term_id: order_by
 }
 
 """
@@ -8432,37 +10482,36 @@ input triples_bool_exp {
   _or: [triples_bool_exp!]
   block_number: numeric_comparison_exp
   block_timestamp: bigint_comparison_exp
-  claims: claims_bool_exp
-  claims_aggregate: claims_aggregate_bool_exp
-  counter_vault: vaults_bool_exp
-  counter_vault_id: numeric_comparison_exp
+  counter_positions: positions_bool_exp
+  counter_positions_aggregate: positions_aggregate_bool_exp
+  counter_term: terms_bool_exp
+  counter_term_id: numeric_comparison_exp
   creator: accounts_bool_exp
   creator_id: String_comparison_exp
-  id: numeric_comparison_exp
   object: atoms_bool_exp
   object_id: numeric_comparison_exp
+  positions: positions_bool_exp
+  positions_aggregate: positions_aggregate_bool_exp
   predicate: atoms_bool_exp
   predicate_id: numeric_comparison_exp
-  signals: signals_bool_exp
-  signals_aggregate: signals_aggregate_bool_exp
   subject: atoms_bool_exp
   subject_id: numeric_comparison_exp
-  transaction_hash: bytea_comparison_exp
-  vault: vaults_bool_exp
-  vault_id: numeric_comparison_exp
+  term: terms_bool_exp
+  term_id: numeric_comparison_exp
+  transaction_hash: String_comparison_exp
 }
 
 """aggregate max on columns"""
 type triples_max_fields {
   block_number: numeric
   block_timestamp: bigint
-  counter_vault_id: numeric
+  counter_term_id: numeric
   creator_id: String
-  id: numeric
   object_id: numeric
   predicate_id: numeric
   subject_id: numeric
-  vault_id: numeric
+  term_id: numeric
+  transaction_hash: String
 }
 
 """
@@ -8471,26 +10520,26 @@ order by max() on columns of table "triple"
 input triples_max_order_by {
   block_number: order_by
   block_timestamp: order_by
-  counter_vault_id: order_by
+  counter_term_id: order_by
   creator_id: order_by
-  id: order_by
   object_id: order_by
   predicate_id: order_by
   subject_id: order_by
-  vault_id: order_by
+  term_id: order_by
+  transaction_hash: order_by
 }
 
 """aggregate min on columns"""
 type triples_min_fields {
   block_number: numeric
   block_timestamp: bigint
-  counter_vault_id: numeric
+  counter_term_id: numeric
   creator_id: String
-  id: numeric
   object_id: numeric
   predicate_id: numeric
   subject_id: numeric
-  vault_id: numeric
+  term_id: numeric
+  transaction_hash: String
 }
 
 """
@@ -8499,35 +10548,34 @@ order by min() on columns of table "triple"
 input triples_min_order_by {
   block_number: order_by
   block_timestamp: order_by
-  counter_vault_id: order_by
+  counter_term_id: order_by
   creator_id: order_by
-  id: order_by
   object_id: order_by
   predicate_id: order_by
   subject_id: order_by
-  vault_id: order_by
+  term_id: order_by
+  transaction_hash: order_by
 }
 
 """Ordering options when selecting data from "triple"."""
 input triples_order_by {
   block_number: order_by
   block_timestamp: order_by
-  claims_aggregate: claims_aggregate_order_by
-  counter_vault: vaults_order_by
-  counter_vault_id: order_by
+  counter_positions_aggregate: positions_aggregate_order_by
+  counter_term: terms_order_by
+  counter_term_id: order_by
   creator: accounts_order_by
   creator_id: order_by
-  id: order_by
   object: atoms_order_by
   object_id: order_by
+  positions_aggregate: positions_aggregate_order_by
   predicate: atoms_order_by
   predicate_id: order_by
-  signals_aggregate: signals_aggregate_order_by
   subject: atoms_order_by
   subject_id: order_by
+  term: terms_order_by
+  term_id: order_by
   transaction_hash: order_by
-  vault: vaults_order_by
-  vault_id: order_by
 }
 
 """
@@ -8541,13 +10589,10 @@ enum triples_select_column {
   block_timestamp
 
   """column name"""
-  counter_vault_id
+  counter_term_id
 
   """column name"""
   creator_id
-
-  """column name"""
-  id
 
   """column name"""
   object_id
@@ -8559,22 +10604,21 @@ enum triples_select_column {
   subject_id
 
   """column name"""
-  transaction_hash
+  term_id
 
   """column name"""
-  vault_id
+  transaction_hash
 }
 
 """aggregate stddev on columns"""
 type triples_stddev_fields {
   block_number: Float
   block_timestamp: Float
-  counter_vault_id: Float
-  id: Float
+  counter_term_id: Float
   object_id: Float
   predicate_id: Float
   subject_id: Float
-  vault_id: Float
+  term_id: Float
 }
 
 """
@@ -8583,24 +10627,22 @@ order by stddev() on columns of table "triple"
 input triples_stddev_order_by {
   block_number: order_by
   block_timestamp: order_by
-  counter_vault_id: order_by
-  id: order_by
+  counter_term_id: order_by
   object_id: order_by
   predicate_id: order_by
   subject_id: order_by
-  vault_id: order_by
+  term_id: order_by
 }
 
 """aggregate stddev_pop on columns"""
 type triples_stddev_pop_fields {
   block_number: Float
   block_timestamp: Float
-  counter_vault_id: Float
-  id: Float
+  counter_term_id: Float
   object_id: Float
   predicate_id: Float
   subject_id: Float
-  vault_id: Float
+  term_id: Float
 }
 
 """
@@ -8609,24 +10651,22 @@ order by stddev_pop() on columns of table "triple"
 input triples_stddev_pop_order_by {
   block_number: order_by
   block_timestamp: order_by
-  counter_vault_id: order_by
-  id: order_by
+  counter_term_id: order_by
   object_id: order_by
   predicate_id: order_by
   subject_id: order_by
-  vault_id: order_by
+  term_id: order_by
 }
 
 """aggregate stddev_samp on columns"""
 type triples_stddev_samp_fields {
   block_number: Float
   block_timestamp: Float
-  counter_vault_id: Float
-  id: Float
+  counter_term_id: Float
   object_id: Float
   predicate_id: Float
   subject_id: Float
-  vault_id: Float
+  term_id: Float
 }
 
 """
@@ -8635,12 +10675,11 @@ order by stddev_samp() on columns of table "triple"
 input triples_stddev_samp_order_by {
   block_number: order_by
   block_timestamp: order_by
-  counter_vault_id: order_by
-  id: order_by
+  counter_term_id: order_by
   object_id: order_by
   predicate_id: order_by
   subject_id: order_by
-  vault_id: order_by
+  term_id: order_by
 }
 
 """
@@ -8658,26 +10697,24 @@ input triples_stream_cursor_input {
 input triples_stream_cursor_value_input {
   block_number: numeric
   block_timestamp: bigint
-  counter_vault_id: numeric
+  counter_term_id: numeric
   creator_id: String
-  id: numeric
   object_id: numeric
   predicate_id: numeric
   subject_id: numeric
-  transaction_hash: bytea
-  vault_id: numeric
+  term_id: numeric
+  transaction_hash: String
 }
 
 """aggregate sum on columns"""
 type triples_sum_fields {
   block_number: numeric
   block_timestamp: bigint
-  counter_vault_id: numeric
-  id: numeric
+  counter_term_id: numeric
   object_id: numeric
   predicate_id: numeric
   subject_id: numeric
-  vault_id: numeric
+  term_id: numeric
 }
 
 """
@@ -8686,24 +10723,22 @@ order by sum() on columns of table "triple"
 input triples_sum_order_by {
   block_number: order_by
   block_timestamp: order_by
-  counter_vault_id: order_by
-  id: order_by
+  counter_term_id: order_by
   object_id: order_by
   predicate_id: order_by
   subject_id: order_by
-  vault_id: order_by
+  term_id: order_by
 }
 
 """aggregate var_pop on columns"""
 type triples_var_pop_fields {
   block_number: Float
   block_timestamp: Float
-  counter_vault_id: Float
-  id: Float
+  counter_term_id: Float
   object_id: Float
   predicate_id: Float
   subject_id: Float
-  vault_id: Float
+  term_id: Float
 }
 
 """
@@ -8712,24 +10747,22 @@ order by var_pop() on columns of table "triple"
 input triples_var_pop_order_by {
   block_number: order_by
   block_timestamp: order_by
-  counter_vault_id: order_by
-  id: order_by
+  counter_term_id: order_by
   object_id: order_by
   predicate_id: order_by
   subject_id: order_by
-  vault_id: order_by
+  term_id: order_by
 }
 
 """aggregate var_samp on columns"""
 type triples_var_samp_fields {
   block_number: Float
   block_timestamp: Float
-  counter_vault_id: Float
-  id: Float
+  counter_term_id: Float
   object_id: Float
   predicate_id: Float
   subject_id: Float
-  vault_id: Float
+  term_id: Float
 }
 
 """
@@ -8738,24 +10771,22 @@ order by var_samp() on columns of table "triple"
 input triples_var_samp_order_by {
   block_number: order_by
   block_timestamp: order_by
-  counter_vault_id: order_by
-  id: order_by
+  counter_term_id: order_by
   object_id: order_by
   predicate_id: order_by
   subject_id: order_by
-  vault_id: order_by
+  term_id: order_by
 }
 
 """aggregate variance on columns"""
 type triples_variance_fields {
   block_number: Float
   block_timestamp: Float
-  counter_vault_id: Float
-  id: Float
+  counter_term_id: Float
   object_id: Float
   predicate_id: Float
   subject_id: Float
-  vault_id: Float
+  term_id: Float
 }
 
 """
@@ -8764,94 +10795,19 @@ order by variance() on columns of table "triple"
 input triples_variance_order_by {
   block_number: order_by
   block_timestamp: order_by
-  counter_vault_id: order_by
-  id: order_by
+  counter_term_id: order_by
   object_id: order_by
   predicate_id: order_by
   subject_id: order_by
-  vault_id: order_by
+  term_id: order_by
 }
 
 """
 columns and relationships of "vault"
 """
 type vaults {
-  """An object relationship"""
-  atom: atoms
-  atom_id: numeric
-
-  """An array relationship"""
-  claims(
-    """distinct select on columns"""
-    distinct_on: [claims_select_column!]
-
-    """limit the number of rows returned"""
-    limit: Int
-
-    """skip the first n rows. Use only with order_by"""
-    offset: Int
-
-    """sort the rows by one or more columns"""
-    order_by: [claims_order_by!]
-
-    """filter the rows returned"""
-    where: claims_bool_exp
-  ): [claims!]!
-
-  """An aggregate relationship"""
-  claims_aggregate(
-    """distinct select on columns"""
-    distinct_on: [claims_select_column!]
-
-    """limit the number of rows returned"""
-    limit: Int
-
-    """skip the first n rows. Use only with order_by"""
-    offset: Int
-
-    """sort the rows by one or more columns"""
-    order_by: [claims_order_by!]
-
-    """filter the rows returned"""
-    where: claims_bool_exp
-  ): claims_aggregate!
-
-  """An array relationship"""
-  counter_claims(
-    """distinct select on columns"""
-    distinct_on: [claims_select_column!]
-
-    """limit the number of rows returned"""
-    limit: Int
-
-    """skip the first n rows. Use only with order_by"""
-    offset: Int
-
-    """sort the rows by one or more columns"""
-    order_by: [claims_order_by!]
-
-    """filter the rows returned"""
-    where: claims_bool_exp
-  ): [claims!]!
-
-  """An aggregate relationship"""
-  counter_claims_aggregate(
-    """distinct select on columns"""
-    distinct_on: [claims_select_column!]
-
-    """limit the number of rows returned"""
-    limit: Int
-
-    """skip the first n rows. Use only with order_by"""
-    offset: Int
-
-    """sort the rows by one or more columns"""
-    order_by: [claims_order_by!]
-
-    """filter the rows returned"""
-    where: claims_bool_exp
-  ): claims_aggregate!
   current_share_price: numeric!
+  curve_id: numeric!
 
   """An array relationship"""
   deposits(
@@ -8888,7 +10844,7 @@ type vaults {
     """filter the rows returned"""
     where: deposits_bool_exp
   ): deposits_aggregate!
-  id: numeric!
+  market_cap: numeric
   position_count: Int!
 
   """An array relationship"""
@@ -8962,11 +10918,84 @@ type vaults {
     """filter the rows returned"""
     where: redemptions_bool_exp
   ): redemptions_aggregate!
-  total_shares: numeric!
+
+  """An array relationship"""
+  share_price_changes(
+    """distinct select on columns"""
+    distinct_on: [share_price_changes_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [share_price_changes_order_by!]
+
+    """filter the rows returned"""
+    where: share_price_changes_bool_exp
+  ): [share_price_changes!]!
+
+  """An aggregate relationship"""
+  share_price_changes_aggregate(
+    """distinct select on columns"""
+    distinct_on: [share_price_changes_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [share_price_changes_order_by!]
+
+    """filter the rows returned"""
+    where: share_price_changes_bool_exp
+  ): share_price_changes_aggregate!
+
+  """An array relationship"""
+  signals(
+    """distinct select on columns"""
+    distinct_on: [signals_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [signals_order_by!]
+
+    """filter the rows returned"""
+    where: signals_bool_exp
+  ): [signals!]!
+
+  """An aggregate relationship"""
+  signals_aggregate(
+    """distinct select on columns"""
+    distinct_on: [signals_select_column!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    order_by: [signals_order_by!]
+
+    """filter the rows returned"""
+    where: signals_bool_exp
+  ): signals_aggregate!
 
   """An object relationship"""
-  triple: triples
-  triple_id: numeric
+  term: terms!
+  term_id: numeric!
+  total_assets: numeric
+  total_shares: numeric!
 }
 
 """
@@ -8975,6 +11004,17 @@ aggregated selection of "vault"
 type vaults_aggregate {
   aggregate: vaults_aggregate_fields
   nodes: [vaults!]!
+}
+
+input vaults_aggregate_bool_exp {
+  count: vaults_aggregate_bool_exp_count
+}
+
+input vaults_aggregate_bool_exp_count {
+  arguments: [vaults_select_column!]
+  distinct: Boolean
+  filter: vaults_bool_exp
+  predicate: Int_comparison_exp!
 }
 
 """
@@ -8994,14 +11034,45 @@ type vaults_aggregate_fields {
   variance: vaults_variance_fields
 }
 
+"""
+order by aggregate values of table "vault"
+"""
+input vaults_aggregate_order_by {
+  avg: vaults_avg_order_by
+  count: order_by
+  max: vaults_max_order_by
+  min: vaults_min_order_by
+  stddev: vaults_stddev_order_by
+  stddev_pop: vaults_stddev_pop_order_by
+  stddev_samp: vaults_stddev_samp_order_by
+  sum: vaults_sum_order_by
+  var_pop: vaults_var_pop_order_by
+  var_samp: vaults_var_samp_order_by
+  variance: vaults_variance_order_by
+}
+
 """aggregate avg on columns"""
 type vaults_avg_fields {
-  atom_id: Float
   current_share_price: Float
-  id: Float
+  curve_id: Float
+  market_cap: Float
   position_count: Float
+  term_id: Float
+  total_assets: Float
   total_shares: Float
-  triple_id: Float
+}
+
+"""
+order by avg() on columns of table "vault"
+"""
+input vaults_avg_order_by {
+  current_share_price: order_by
+  curve_id: order_by
+  market_cap: order_by
+  position_count: order_by
+  term_id: order_by
+  total_assets: order_by
+  total_shares: order_by
 }
 
 """
@@ -9011,61 +11082,89 @@ input vaults_bool_exp {
   _and: [vaults_bool_exp!]
   _not: vaults_bool_exp
   _or: [vaults_bool_exp!]
-  atom: atoms_bool_exp
-  atom_id: numeric_comparison_exp
-  claims: claims_bool_exp
-  claims_aggregate: claims_aggregate_bool_exp
-  counter_claims: claims_bool_exp
-  counter_claims_aggregate: claims_aggregate_bool_exp
   current_share_price: numeric_comparison_exp
+  curve_id: numeric_comparison_exp
   deposits: deposits_bool_exp
   deposits_aggregate: deposits_aggregate_bool_exp
-  id: numeric_comparison_exp
+  market_cap: numeric_comparison_exp
   position_count: Int_comparison_exp
   positions: positions_bool_exp
   positions_aggregate: positions_aggregate_bool_exp
   redemptions: redemptions_bool_exp
   redemptions_aggregate: redemptions_aggregate_bool_exp
+  share_price_changes: share_price_changes_bool_exp
+  share_price_changes_aggregate: share_price_changes_aggregate_bool_exp
+  signals: signals_bool_exp
+  signals_aggregate: signals_aggregate_bool_exp
+  term: terms_bool_exp
+  term_id: numeric_comparison_exp
+  total_assets: numeric_comparison_exp
   total_shares: numeric_comparison_exp
-  triple: triples_bool_exp
-  triple_id: numeric_comparison_exp
 }
 
 """aggregate max on columns"""
 type vaults_max_fields {
-  atom_id: numeric
   current_share_price: numeric
-  id: numeric
+  curve_id: numeric
+  market_cap: numeric
   position_count: Int
+  term_id: numeric
+  total_assets: numeric
   total_shares: numeric
-  triple_id: numeric
+}
+
+"""
+order by max() on columns of table "vault"
+"""
+input vaults_max_order_by {
+  current_share_price: order_by
+  curve_id: order_by
+  market_cap: order_by
+  position_count: order_by
+  term_id: order_by
+  total_assets: order_by
+  total_shares: order_by
 }
 
 """aggregate min on columns"""
 type vaults_min_fields {
-  atom_id: numeric
   current_share_price: numeric
-  id: numeric
+  curve_id: numeric
+  market_cap: numeric
   position_count: Int
+  term_id: numeric
+  total_assets: numeric
   total_shares: numeric
-  triple_id: numeric
+}
+
+"""
+order by min() on columns of table "vault"
+"""
+input vaults_min_order_by {
+  current_share_price: order_by
+  curve_id: order_by
+  market_cap: order_by
+  position_count: order_by
+  term_id: order_by
+  total_assets: order_by
+  total_shares: order_by
 }
 
 """Ordering options when selecting data from "vault"."""
 input vaults_order_by {
-  atom: atoms_order_by
-  atom_id: order_by
-  claims_aggregate: claims_aggregate_order_by
-  counter_claims_aggregate: claims_aggregate_order_by
   current_share_price: order_by
+  curve_id: order_by
   deposits_aggregate: deposits_aggregate_order_by
-  id: order_by
+  market_cap: order_by
   position_count: order_by
   positions_aggregate: positions_aggregate_order_by
   redemptions_aggregate: redemptions_aggregate_order_by
+  share_price_changes_aggregate: share_price_changes_aggregate_order_by
+  signals_aggregate: signals_aggregate_order_by
+  term: terms_order_by
+  term_id: order_by
+  total_assets: order_by
   total_shares: order_by
-  triple: triples_order_by
-  triple_id: order_by
 }
 
 """
@@ -9073,52 +11172,97 @@ select columns of table "vault"
 """
 enum vaults_select_column {
   """column name"""
-  atom_id
-
-  """column name"""
   current_share_price
 
   """column name"""
-  id
+  curve_id
+
+  """column name"""
+  market_cap
 
   """column name"""
   position_count
 
   """column name"""
-  total_shares
+  term_id
 
   """column name"""
-  triple_id
+  total_assets
+
+  """column name"""
+  total_shares
 }
 
 """aggregate stddev on columns"""
 type vaults_stddev_fields {
-  atom_id: Float
   current_share_price: Float
-  id: Float
+  curve_id: Float
+  market_cap: Float
   position_count: Float
+  term_id: Float
+  total_assets: Float
   total_shares: Float
-  triple_id: Float
+}
+
+"""
+order by stddev() on columns of table "vault"
+"""
+input vaults_stddev_order_by {
+  current_share_price: order_by
+  curve_id: order_by
+  market_cap: order_by
+  position_count: order_by
+  term_id: order_by
+  total_assets: order_by
+  total_shares: order_by
 }
 
 """aggregate stddev_pop on columns"""
 type vaults_stddev_pop_fields {
-  atom_id: Float
   current_share_price: Float
-  id: Float
+  curve_id: Float
+  market_cap: Float
   position_count: Float
+  term_id: Float
+  total_assets: Float
   total_shares: Float
-  triple_id: Float
+}
+
+"""
+order by stddev_pop() on columns of table "vault"
+"""
+input vaults_stddev_pop_order_by {
+  current_share_price: order_by
+  curve_id: order_by
+  market_cap: order_by
+  position_count: order_by
+  term_id: order_by
+  total_assets: order_by
+  total_shares: order_by
 }
 
 """aggregate stddev_samp on columns"""
 type vaults_stddev_samp_fields {
-  atom_id: Float
   current_share_price: Float
-  id: Float
+  curve_id: Float
+  market_cap: Float
   position_count: Float
+  term_id: Float
+  total_assets: Float
   total_shares: Float
-  triple_id: Float
+}
+
+"""
+order by stddev_samp() on columns of table "vault"
+"""
+input vaults_stddev_samp_order_by {
+  current_share_price: order_by
+  curve_id: order_by
+  market_cap: order_by
+  position_count: order_by
+  term_id: order_by
+  total_assets: order_by
+  total_shares: order_by
 }
 
 """
@@ -9134,51 +11278,108 @@ input vaults_stream_cursor_input {
 
 """Initial value of the column from where the streaming should start"""
 input vaults_stream_cursor_value_input {
-  atom_id: numeric
   current_share_price: numeric
-  id: numeric
+  curve_id: numeric
+  market_cap: numeric
   position_count: Int
+  term_id: numeric
+  total_assets: numeric
   total_shares: numeric
-  triple_id: numeric
 }
 
 """aggregate sum on columns"""
 type vaults_sum_fields {
-  atom_id: numeric
   current_share_price: numeric
-  id: numeric
+  curve_id: numeric
+  market_cap: numeric
   position_count: Int
+  term_id: numeric
+  total_assets: numeric
   total_shares: numeric
-  triple_id: numeric
+}
+
+"""
+order by sum() on columns of table "vault"
+"""
+input vaults_sum_order_by {
+  current_share_price: order_by
+  curve_id: order_by
+  market_cap: order_by
+  position_count: order_by
+  term_id: order_by
+  total_assets: order_by
+  total_shares: order_by
 }
 
 """aggregate var_pop on columns"""
 type vaults_var_pop_fields {
-  atom_id: Float
   current_share_price: Float
-  id: Float
+  curve_id: Float
+  market_cap: Float
   position_count: Float
+  term_id: Float
+  total_assets: Float
   total_shares: Float
-  triple_id: Float
+}
+
+"""
+order by var_pop() on columns of table "vault"
+"""
+input vaults_var_pop_order_by {
+  current_share_price: order_by
+  curve_id: order_by
+  market_cap: order_by
+  position_count: order_by
+  term_id: order_by
+  total_assets: order_by
+  total_shares: order_by
 }
 
 """aggregate var_samp on columns"""
 type vaults_var_samp_fields {
-  atom_id: Float
   current_share_price: Float
-  id: Float
+  curve_id: Float
+  market_cap: Float
   position_count: Float
+  term_id: Float
+  total_assets: Float
   total_shares: Float
-  triple_id: Float
+}
+
+"""
+order by var_samp() on columns of table "vault"
+"""
+input vaults_var_samp_order_by {
+  current_share_price: order_by
+  curve_id: order_by
+  market_cap: order_by
+  position_count: order_by
+  term_id: order_by
+  total_assets: order_by
+  total_shares: order_by
 }
 
 """aggregate variance on columns"""
 type vaults_variance_fields {
-  atom_id: Float
   current_share_price: Float
-  id: Float
+  curve_id: Float
+  market_cap: Float
   position_count: Float
+  term_id: Float
+  total_assets: Float
   total_shares: Float
-  triple_id: Float
+}
+
+"""
+order by variance() on columns of table "vault"
+"""
+input vaults_variance_order_by {
+  current_share_price: order_by
+  curve_id: order_by
+  market_cap: order_by
+  position_count: order_by
+  term_id: order_by
+  total_assets: order_by
+  total_shares: order_by
 }
 

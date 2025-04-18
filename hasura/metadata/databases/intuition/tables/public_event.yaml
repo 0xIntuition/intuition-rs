@@ -7,10 +7,16 @@ configuration:
   custom_name: events
   custom_root_fields:
     select_by_pk: event
-  query_configuration:
-    default_limit: 250
-    max_limit: 250
 object_relationships:
+  - name: atom
+    using:
+      manual_configuration:
+        column_mapping:
+          atom_id: term_id
+        insertion_order: null
+        remote_table:
+          name: atom
+          schema: public
   - name: deposit
     using:
       foreign_key_constraint_on: deposit_id
@@ -20,12 +26,15 @@ object_relationships:
   - name: redemption
     using:
       foreign_key_constraint_on: redemption_id
-  - name: atom_term
+  - name: triple
     using:
-      foreign_key_constraint_on: atom_id
-  - name: triple_term
-    using:
-      foreign_key_constraint_on: triple_id
+      manual_configuration:
+        column_mapping:
+          triple_id: term_id
+        insertion_order: null
+        remote_table:
+          name: triple
+          schema: public
 select_permissions:
   - role: anonymous
     permission:

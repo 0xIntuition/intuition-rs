@@ -2,9 +2,6 @@ table:
   name: caip10
   schema: public
 configuration:
-  query_configuration:
-    default_limit: 250
-    max_limit: 250
   column_config: {}
   custom_column_names: {}
   custom_root_fields:

@@ -1,0 +1,217 @@
+services:
+
+  
+  resolver_consumer:
+    image: ghcr.io/0xintuition/apps:latest
+    command: ./consumer --mode resolver
+    environment:
+      AWS_ACCESS_KEY_ID: 'example'
+      AWS_REGION: 'us-west-2'
+      AWS_SECRET_ACCESS_KEY: 'example'
+      CONSUMER_TYPE: 'sqs'
+      DATABASE_URL: 'postgres://testuser:test@database:5435/storage'
+      ENS_CONTRACT_ADDRESS: '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e'
+      IMAGE_GUARD_URL: 'http://api:3000'
+      IPFS_GATEWAY_URL: 'http://ipfs:8080'
+      IPFS_UPLOAD_URL: 'http://ipfs:5001'
+      IPFS_UPLOAD_QUEUE_URL: 'http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/ipfs_upload'
+      LOCALSTACK_URL: 'http://sqs:4566/'
+      PINATA_API_JWT: $PINATA_API_JWT
+      PINATA_GATEWAY_TOKEN: $PINATA_GATEWAY_TOKEN
+      PG_MIN_CONNECTIONS: '5'
+      RESOLVER_QUEUE_URL: 'http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/resolver'
+      RPC_URL_BASE: "http://prod-rpc-proxy:3008/84532/proxy"
+      RPC_URL_MAINNET: "http://prod-rpc-proxy:3008/1/proxy"
+      RUST_LOG: 'info'
+      BACKEND_SCHEMA: 'public'
+    restart: always
+    volumes:
+      - ~/.aws/:/root/.aws:ro
+      - ./logs:/app/logs
+    deploy:
+      replicas: 1
+
+  consumer-api:
+    container_name: consumer-api
+    image: ghcr.io/0xintuition/apps:latest
+    command: ./consumer-api
+    ports:
+      - 3001:3001
+    environment:
+      CONSUMER_API_PORT: '3001'
+      RESOLVER_QUEUE_URL: 'http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/resolver'
+      LOCALSTACK_URL: 'http://sqs:4566/'
+    restart: always
+  
+  ipfs_upload_consumer:
+    image: ghcr.io/0xintuition/apps:latest
+    command: ./consumer --mode ipfs-upload
+    environment:
+      AWS_ACCESS_KEY_ID: 'example'
+      AWS_REGION: 'us-west-2'
+      AWS_SECRET_ACCESS_KEY: 'example'
+      CONSUMER_TYPE: 'sqs'
+      DATABASE_URL: 'postgres://testuser:test@database:5435/storage'
+      IMAGE_GUARD_URL: 'http://api:3000'
+      IPFS_GATEWAY_URL: 'http://ipfs:8080'
+      IPFS_UPLOAD_URL: 'http://ipfs:5001'
+      LOCALSTACK_URL: 'http://sqs:4566/'
+      PINATA_API_JWT: $PINATA_API_JWT
+      PINATA_GATEWAY_TOKEN: $PINATA_GATEWAY_TOKEN
+      PG_MIN_CONNECTIONS: '5'
+      IPFS_UPLOAD_QUEUE_URL: 'http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/ipfs_upload'
+      RUST_LOG: 'info'
+      BACKEND_SCHEMA: 'public'
+    restart: always
+    volumes:
+      - ~/.aws/:/root/.aws:ro
+      - ./logs:/app/logs
+    deploy:
+      replicas: 2
+    
+  decoded_consumer:
+    container_name: decoded_consumer
+    image: ghcr.io/0xintuition/apps:latest
+    command: ./consumer --mode decoded
+    environment:
+      AWS_ACCESS_KEY_ID: 'example'
+      AWS_REGION: 'us-west-2'
+      AWS_SECRET_ACCESS_KEY: 'example'
+      CONSUMER_METRICS_API_PORT: '3002'
+      CONSUMER_TYPE: 'sqs'
+      DATABASE_URL: 'postgres://testuser:test@database:5435/storage'
+      DECODED_LOGS_QUEUE_URL: 'http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/decoded_logs.fifo'
+      INTUITION_CONTRACT_ADDRESS: $INTUITION_CONTRACT_ADDRESS
+      LOCALSTACK_URL: 'http://sqs:4566/'
+      PG_MIN_CONNECTIONS: '5'
+      RESOLVER_QUEUE_URL: 'http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/resolver'
+      RPC_URL_BASE: "http://prod-rpc-proxy:3008/84532/proxy"
+      RUST_LOG: 'info'
+      BACKEND_SCHEMA: 'public'
+    restart: always
+    volumes:
+      - ~/.aws/:/root/.aws:ro
+      - ./logs:/app/logs
+    ports:
+      - 3002:3002
+    
+  raw_consumer:
+    container_name: raw_consumer
+    image: ghcr.io/0xintuition/apps:latest
+    command: ./consumer --mode raw
+    environment:
+      AWS_ACCESS_KEY_ID: 'example'
+      AWS_REGION: 'us-west-2'
+      AWS_SECRET_ACCESS_KEY: 'example'
+      CONSUMER_TYPE: 'sqs'
+      DATABASE_URL: 'postgres://testuser:test@database:5435/storage'
+      DECODED_LOGS_QUEUE_URL: 'http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/decoded_logs.fifo'
+      INDEXING_SOURCE: 'substreams'
+      LOCALSTACK_URL: 'http://sqs:4566/'
+      PG_MIN_CONNECTIONS: '5'
+      RAW_CONSUMER_QUEUE_URL: 'http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/raw_logs.fifo'
+      RPC_URL_BASE: "http://prod-rpc-proxy:3008/84532/proxy"
+      RPC_URL_MAINNET: "http://prod-rpc-proxy:3008/1/proxy"
+      RUST_LOG: 'info'
+      BACKEND_SCHEMA: 'public'
+    restart: always
+    volumes:
+      - ~/.aws/:/root/.aws:ro
+      - ./logs:/app/logs
+
+    
+  api:
+    container_name: api
+    image: ghcr.io/0xintuition/apps:latest
+    command: ./image-guard
+    environment:
+      CLASSIFICATION_API_PORT: '3000'
+      DATABASE_URL: 'postgres://testuser:test@database:5435/storage'
+      HF_TOKEN: ''
+      IPFS_GATEWAY_URL: 'http://ipfs:8080'
+      IPFS_UPLOAD_URL: 'http://ipfs:5001'
+      PINATA_API_JWT: $PINATA_API_JWT
+      RUST_LOG: 'info'
+      FLAG_LOCAL_WITH_CLASSIFICATION: 'true'
+      BE_SCHEMA: 'public'
+      IMAGE_API_SCHEMA: 'cached_images'
+      INDEXER_DATABASE_URL: 'postgres://testuser:test@database:5435/storage'
+      # FLAG_LOCAL_WITH_DB_ONLY: $FLAG_LOCAL_WITH_DB_ONLY
+      # FLAG_HF_CLASSIFICATION: $FLAG_HF_CLASSIFICATION 
+    ports:
+      - 3000:3000
+    
+  prod-rpc-proxy:
+    container_name: prod-rpc-proxy
+    image: ghcr.io/0xintuition/apps:latest
+    command: ./rpc-proxy
+    environment:
+      PROXY_DATABASE_URL: 'postgres://testuser:test@database:5435/storage'
+      PROXY_API_PORT: '3008'
+      PROXY_SCHEMA: "rpc_proxy"
+      BASE_MAINNET_RPC_URL: $BASE_MAINNET_RPC_URL
+      BASE_SEPOLIA_RPC_URL: $BASE_SEPOLIA_RPC_URL
+      ETHEREUM_MAINNET_RPC_URL: $ETHEREUM_MAINNET_RPC_URL
+      LINEA_MAINNET_RPC_URL: $LINEA_MAINNET_RPC_URL
+      LINEA_SEPOLIA_RPC_URL: $LINEA_SEPOLIA_RPC_URL
+      RUST_LOG: 'info'
+    restart: always
+    ports:
+      - 3008:3008
+  
+  histocrawler:
+    container_name: histocrawler
+    image: ghcr.io/0xintuition/apps:latest
+    command: ./histocrawler
+    environment:
+      HISTOCRAWLER_DATABASE_URL: 'postgres://testuser:test@database:5435/storage'
+      INDEXER_SCHEMA: $INDEXER_SCHEMA
+    depends_on:
+      prod-rpc-proxy:
+        condition: service_started
+      
+
+  histoflux:
+    container_name: histoflux
+    image: ghcr.io/0xintuition/apps:latest
+    command: ./histoflux
+    environment:
+      AWS_ACCESS_KEY_ID: 'example'
+      AWS_REGION: 'us-west-2'
+      AWS_SECRET_ACCESS_KEY: 'example' 
+      INDEXER_DATABASE_URL: "postgres://testuser:test@database:5435/storage"
+      INDEXER_SCHEMA: $INDEXER_SCHEMA
+      LOCALSTACK_URL: "http://sqs:4566/"
+      ENVIRONMENT_NAME: "local_v_1_5"
+      RAW_CONSUMER_QUEUE_URL: "http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/raw_logs.fifo"
+
+
+
+
+  integration-tests:
+    container_name: integration-tests
+    build:
+      context: ./integration-tests
+      dockerfile: Dockerfile
+    environment:
+      - ETHEREUM_RPC_URL=http://geth:8545
+      - GRAPHQL_API_URL=http://graphql-engine:8080/v1/graphql
+      - IPFS_API_URL=http://api:3000/upload_json_to_ipfs 
+      - VITE_INTUITION_CONTRACT_ADDRESS=$INTUITION_CONTRACT_ADDRESS
+    # depends_on:
+    #   geth:
+    #     condition: service_healthy
+    #   graphql-engine:
+    #     condition: service_healthy
+    #   consumer-api:
+    #     condition: service_started
+
+
+
+networks:
+  intuition-be:
+    driver: bridge
+    
+volumes:
+  raw_consumer:
+  decoded_consumer:

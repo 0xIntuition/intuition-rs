@@ -3,35 +3,17 @@ query GetAccountInfo($address: String!) {
     image
     label
     id
-    claims(order_by: {shares: desc}) {
-      triple {
-        id
-        subject {
-          label
-        }
-        predicate {
-          label
-        }
-        object {
-          label
-        }
-      }
-      shares
-      counter_shares
-    }
     positions(order_by: {shares: desc}) {
       id
       shares
-      vault {
+      term {
         id
-        total_shares
-        current_share_price
+        total_market_cap
+        total_assets
         atom {
-          id
           label
         }
         triple {
-          id
           subject {
             label
           }
@@ -44,8 +26,5 @@ query GetAccountInfo($address: String!) {
         }
       }
     }
-  }
-  chainlink_prices(limit: 1, order_by: {id: desc}) {
-    usd
   }
 }

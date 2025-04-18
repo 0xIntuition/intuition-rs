@@ -7,11 +7,12 @@ query GetPredicateObjects {
     object {
       label
       data
-      id
+      term_id
     }
     predicate {
       label
-      id
+      term_id
     }
   }
 }
+

@@ -37,3 +37,11 @@ args = ["build", "-t", "ghcr.io/0xintuition/local-migrations:latest", "-f", "loc
 [tasks.build-consumer-api]
 command = "docker"
 args = ["build", "-t", "ghcr.io/0xintuition/consumer-api:latest", "-f", "consumer-api/Dockerfile", "."]
+
+[tasks.build-contract-deployer]
+command = "docker"
+args = ["build", "-t", "ghcr.io/0xintuition/contract-deployer:latest", "-f", "integration-tests/contract-deployer/Dockerfile", "."]
+
+[tasks.build-apps]
+command = "docker"
+args = ["build", "-t", "ghcr.io/0xintuition/apps:latest", "-f", "Dockerfile", "."]

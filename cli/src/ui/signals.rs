@@ -13,19 +13,25 @@ pub fn draw(f: &mut Frame, app: &App, area: Rect) {
         .signals
         .iter()
         .map(|signal| {
-            let label = signal
-                .atom
-                .as_ref()
-                .and_then(|atom| atom.label.as_deref())
-                // FIXME: Concatinate atom labels
-                // .or_else(|| {
-                //     signal
-                //         .triple
-                //         .as_ref()
-                //         .and_then(|triple| triple.label.as_deref())
-                // })
-                .unwrap_or("N/A")
-                .to_string();
+            // use signal.term.atom.label or `signal.term.triple.subject.label signal.term.triple.predicate.label signal.term.triple.object.label`  
+            // both atom and triple are optional
+            let label = match &signal.term.atom {
+                Some(atom) => atom.label.clone().unwrap_or_else(|| "N/A".to_string()),
+                None => {
+                    // Handle the triple case
+                    if let Some(triple) = &signal.term.triple {
+                        // Both triple.subject, triple.predicate, and triple.object exist
+                        // But their label properties might be Option<String>
+                        let subject_str = triple.subject.label.clone().unwrap_or_else(|| "N/A".to_string());
+                        let predicate_str = triple.predicate.label.clone().unwrap_or_else(|| "N/A".to_string());
+                        let object_str = triple.object.label.clone().unwrap_or_else(|| "N/A".to_string());
+                        
+                        format!("{} {} {}", subject_str, predicate_str, object_str)
+                    } else {
+                        "N/A".to_string()
+                    }
+                }
+            };
 
             let account_label = signal
                 .account

@@ -45,18 +45,40 @@ There is a `.env.sample` file that you need to use as a template to create the `
 * `PINATA_API_JWT`: You can get the token from [Pinata](https://app.pinata.cloud/developers/api-keys)
 * `RPC_URL_MAINNET`: We are currently using Alchemy. You can create new ones using the [Alchemy dashboard](https://dashboard.alchemy.com/)
 * `RPC_URL_BASE`: We are currently using Alchemy. You can create new ones using the [Alchemy dashboard](https://dashboard.alchemy.com/apps)
-* `AWS_ACCESS_KEY_ID`: You can get the values from your [AWS account](https://us-east-1.console.aws.amazon.com/iam/home?region=us-east-1#/users)
-* `AWS_SECRET_ACCESS_KEY`: You can get the values from your [AWS account](https://us-east-1.console.aws.amazon.com/iam/home?region=us-east-1#/users)
-* `HF_TOKEN`: You can get the token from [Hugging Face](https://huggingface.co/settings/tokens)
-* `SUBSTREAMS_API_TOKEN`: You can get the token from [Substreams](https://thegraph.market/auth/substreams-devenv)  
-* `HYPERSYNC_TOKEN`: You can get the token from [Envio](https://envio.dev/app/api-tokens)
+* `RPC_URL_LINEA`: We are currently using Alchemy. You can create new ones using the [Alchemy dashboard](https://dashboard.alchemy.com/apps)
+* `ETHEREUM_MAINNET_RPC_URL`: We are currently using Alchemy. You can create new ones using the [Alchemy dashboard](https://dashboard.alchemy.com/apps)
+* `LINEA_MAINNET_RPC_URL`: We are currently using Alchemy. You can create new ones using the [Alchemy dashboard](https://dashboard.alchemy.com/apps)
 
 After filling all of the variables, you can run the following commands:
+
+### Building docker images from source code
+
+```
+cargo make build-docker-images
+```
 
 ### Using published docker images
 
 ```
-./start.sh
+./start.sh histo_base_sepolia_1_5
+```
+
+### Using local ethereum node
+```
+./start.sh histo_local_1_5
+```
+
+Then, you can run the integration tests:
+```
+cd integration-tests
+pnpm i
+export VITE_INTUITION_CONTRACT_ADDRESS=0x....
+pnpm test src/follow.test.ts
+```
+
+Or you can run using local ethereum node and integration tests:
+```
+./start.sh histo_local_1_5 test
 ```
 
 #### Runing cli tool to verify latest data
@@ -65,24 +87,10 @@ After filling all of the variables, you can run the following commands:
 ./cli.sh
 ```
 
-Later, you can use `./stop.sh` to stop all services or `./restart.sh` to restart all services and clear attached volumes
+Later, you can use `./stop.sh` to stop all services 
 
-### Building docker images from source code
 
-```
-cp .env.sample .env
-source .env
-cargo make start-docker-and-migrate
 
-```
-
-## If you need to re-run migrations
-
-```
-docker compose down -v
-docker compose up -d --force-recreate
-cargo make migrate-database
-```
 
 ## Run tests
 

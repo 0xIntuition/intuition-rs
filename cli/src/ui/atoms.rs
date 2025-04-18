@@ -15,7 +15,7 @@ pub fn draw(f: &mut Frame, app: &App, area: Rect) {
 
     let rows = app.atoms.iter().map(|atom| {
         let cells = vec![
-            Cell::from(atom.id.to_string()),
+            Cell::from(atom.term_id.to_string()),
             Cell::from(atom.label.as_deref().unwrap_or("None")),
         ];
         Row::new(cells)
