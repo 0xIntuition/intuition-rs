@@ -25,6 +25,10 @@ spec:
             server: 'https://kubernetes.default.svc'
             revision: next
             namespace: prod-linea-mainnet-v-1-0
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: next
+            namespace: dev-base-sepolia-v-1-0
   template:
     metadata:
       name: '{{ cluster }}-db-main-creds-{{namespace}}'
