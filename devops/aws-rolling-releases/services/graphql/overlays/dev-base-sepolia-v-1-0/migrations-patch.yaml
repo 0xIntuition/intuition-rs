@@ -1,26 +1,25 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: batch/v1
+kind: Job
 metadata:
-  name: substreams-sink
+  name: hasura-migrations
 spec:
   template:
     spec:
-      serviceAccountName: secrets-access-sa
       containers:
-        - name: substreams-sink
-          image: ghcr.io/0xintuition/substreams-sink:1.0.45
-          imagePullPolicy: Always 
+        - name: hasura-migrations
+          image: ghcr.io/0xintuition/hasura-migrations:2.0.12
+          imagePullPolicy: Always
           volumeMounts:
             - name: secrets-store-inline
               mountPath: "/mnt/secrets"
               readOnly: true
           envFrom:
             - secretRef:
-                name: prod-sepolia-substreams-aws-secrets
+                name: prod-sepolia-hasura-aws-secrets
       volumes:
         - name: secrets-store-inline
           csi:
             driver: secrets-store.csi.k8s.io
             readOnly: true
             volumeAttributes:
-              secretProviderClass: "prod-base-sepolia-prod-sepolia-substreams-aws-secrets"
+              secretProviderClass: "prod-base-sepolia-prod-sepolia-hasura-aws-secrets"

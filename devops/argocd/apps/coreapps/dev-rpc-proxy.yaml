@@ -38,7 +38,7 @@ spec:
               path: /spec/template/spec/containers/0/env/-
               value:
                 name: PROXY_SCHEMA
-                value: 'base_proxy'
+                value: 'rpc_proxy'
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: default
