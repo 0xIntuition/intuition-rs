@@ -8,13 +8,6 @@ configuration:
   custom_root_fields:
     select_by_pk: atom
 object_relationships:
-  - name: value
-    using:
-      foreign_key_constraint_on:
-        column: id
-        table:
-          name: atom_value
-          schema: public
   - name: controller
     using:
       manual_configuration:
@@ -30,6 +23,13 @@ object_relationships:
   - name: term
     using:
       foreign_key_constraint_on: term_id
+  - name: value
+    using:
+      foreign_key_constraint_on:
+        column: id
+        table:
+          name: atom_value
+          schema: public
 array_relationships:
   - name: accounts
     using:
