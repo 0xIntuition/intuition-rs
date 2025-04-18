@@ -34,6 +34,12 @@ spec:
             env: prod-linea-mainnet-v-1-0
             namespace: prod-linea-mainnet-v-1-0
             rpcURL: 'http://prod-rpc-proxy.default.svc.cluster.local:3008/59144/proxy'
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: next
+            env: dev-base-sepolia-v-1-0
+            namespace: dev-base-sepolia-v-1-0
+            rpcURL: 'http://dev-rpc-proxy.default.svc.cluster.local:3008/84532/proxy'
 
   template:
     metadata:
