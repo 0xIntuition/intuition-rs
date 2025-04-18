@@ -83,9 +83,15 @@ fn draw_account_details(f: &mut Frame, app: &App, area: Rect) {
                 // Extract the label, defaulting to "N/A" if none exists
                 let label = 
                     if let Some(atom) = pos.term.atom.as_ref() {
-                        atom.label.as_deref().unwrap_or("N/A")
+                        atom.label.as_deref().unwrap_or("N/A").to_string()
+                    } else if let Some(triple) = &pos.term.triple {
+                        let subject_str = triple.subject.label.clone().unwrap_or_else(|| "N/A".to_string());
+                        let predicate_str = triple.predicate.label.clone().unwrap_or_else(|| "N/A".to_string());
+                        let object_str = triple.object.label.clone().unwrap_or_else(|| "N/A".to_string());
+                        
+                        format!("{} {} {}", subject_str, predicate_str, object_str)
                     } else {
-                        "N/A"
+                        "N/A".to_string()
                     };
 
                 ListItem::new(Line::from(format!("{}, {}", label, pos.shares)))
