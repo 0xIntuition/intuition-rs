@@ -20,10 +20,10 @@ object_relationships:
   - name: redemption
     using:
       foreign_key_constraint_on: redemption_id
-  - name: atom
+  - name: atom_term
     using:
       foreign_key_constraint_on: atom_id
-  - name: triple
+  - name: triple_term
     using:
       foreign_key_constraint_on: triple_id
 select_permissions:
