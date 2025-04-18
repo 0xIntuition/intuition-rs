@@ -5,7 +5,7 @@ resources:
   - ../../base  # Adjusted to point to the base directory
   - secret-provider.yaml
 
-namePrefix: "prod-base-sepolia-"
+namePrefix: "dev-base-sepolia-"
 
 patches:
   - path: deployment-patch.yaml
@@ -25,5 +25,5 @@ patches:
 
 commonLabels:
   network: base-sepolia
-  io.kompose.service: prod-base-sepolia-graphql-engine
+  io.kompose.service: dev-base-sepolia-graphql-engine
 
