@@ -1,8 +1,9 @@
 services:
   database:
     container_name: database
-    image: postgres
+    image: timescale/timescaledb-ha:pg17
     environment:
+      OPENAI_API_KEY: $OPENAI_API_KEY
       POSTGRES_USER: testuser
       POSTGRES_PASSWORD: test
       POSTGRES_DB: storage
@@ -17,6 +18,13 @@ services:
       interval: 1s
       timeout: 5s
       retries: 10
+
+  vectorizer-worker:
+    container_name: vectorizer-worker
+    image: timescale/pgai-vectorizer-worker:latest
+    environment:
+      PGAI_VECTORIZER_WORKER_DB_URL: postgres://testuser:test@database:5435/storage
+    command: [ "--poll-interval", "5s", "--log-level", "DEBUG" ]
 
   sqs:
     container_name: sqs
