@@ -68,13 +68,20 @@ export async function getIntuition(accountIndex: number) {
     walletClient: wallet
   }, address)
 
+  /*
+  * Gets or creates an atom from a URI.
+  * If the atom already exists, it returns the existing atom.
+  * If the atom does not exist, it creates a new atom and returns the new atom.
+  * The atom is created with the minimum deposit.
+  */
   async function getOrCreateAtom(uri: string) {
     const vaultId = await multivault.getVaultIdFromUri(uri)
     if (vaultId) {
       return { vaultId, hash: null }
     } else {
       console.log(`Creating atom: ${uri} ...`)
-      const { vaultId, hash } = await multivault.createAtom({ uri })
+      const generalConfig = await multivault.getGeneralConfig()
+      const { vaultId, hash } = await multivault.createAtom({ uri, initialDeposit: generalConfig.minDeposit })
       console.log(`vaultId: ${vaultId}`)
       return { vaultId, hash }
     }
