@@ -19,13 +19,14 @@ SELECT ai.create_vectorizer(
 
 
 CREATE FUNCTION search_term (query text) RETURNS SETOF term LANGUAGE sql STABLE AS $$
-SELECT id, type, atom_id, triple_id, total_assets, total_market_cap FROM (
-SELECT t.*,
-embedding <=>  ai.openai_embed('text-embedding-3-small', query, dimensions=>768) as distance
-FROM term_embeddings
-left join term t on term_embeddings.id = t.id
-ORDER BY distance
-) 
+    SELECT id, type, atom_id, triple_id, total_assets, total_market_cap FROM (
+        SELECT 
+            t.*,
+            embedding <=> ai.openai_embed('text-embedding-3-small', query, dimensions=>768) as distance
+        FROM term_embeddings
+        LEFT JOIN term t ON term_embeddings.id = t.id
+        ORDER BY distance
+    ) s
 $$;
 
 
