@@ -1,3 +1,19 @@
+CREATE OR REPLACE FUNCTION accounts_that_claim_about_account(address text, subject numeric, predicate numeric) RETURNS SETOF account
+    LANGUAGE sql STABLE
+    AS $$
+SELECT account.*
+FROM position 
+JOIN term ON position.term_id = term.id
+JOIN triple ON triple.term_id = term.triple_id
+JOIN account ON account.atom_id = triple.object_id
+WHERE 
+ account.type = 'Default'
+ AND triple.subject_id = subject
+ AND triple.predicate_id = predicate
+ AND position.account_id = LOWER(address);
+$$;
+
+
 CREATE OR REPLACE FUNCTION following(address text) RETURNS SETOF account
     LANGUAGE sql STABLE
     AS $$
