@@ -2,7 +2,7 @@
 source .env
 
 # Start shared services
-docker compose -f docker-compose-shared.yml up database sqs ipfs safe-content graphql-engine local-migrations indexer-migrations hasura-migrations prometheus -d --wait --force-recreate
+docker compose -f docker-compose-shared.yml up database vectorizer-worker sqs ipfs safe-content graphql-engine local-migrations indexer-migrations hasura-migrations prometheus -d --wait --force-recreate
 
 
 # First arg is indexer schema

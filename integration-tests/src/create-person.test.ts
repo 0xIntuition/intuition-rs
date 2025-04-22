@@ -40,12 +40,12 @@ suite('create person triple', async () => {
   test('query person', async () => {
     await wait(triple.hash)
     const result = await execute(
-      graphql(`query Atom($atomId: numeric!) {
-        atom(id: $atomId) {
+      graphql(`query Term($termId: numeric!) {
+        atom(term_id: $termId) {
           label
         }
       }`),
-      { atomId: alicePerson.vaultId.toString() })
+      { termId: alicePerson.vaultId.toString() })
     expect(result).toBeDefined()
     expect(result.atom.label).toBe('Alice')
   })

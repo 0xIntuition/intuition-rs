@@ -41,8 +41,8 @@ suite('create person triple', async () => {
     await wait(triple.hash)
     const result = await execute(
       graphql(`query AtomWithClaims($atomId: numeric!, $address: String) {
-        atom(id: $atomId) {
-          id
+        atom(term_id: $atomId) {
+          term_id
           label
           value {
             thing {
@@ -53,53 +53,56 @@ suite('create person triple', async () => {
             }
           }
         }
-        claims(
-          where: { account_id: { _eq: $address }, subject_id: { _eq: $atomId } }
-          order_by: [{ shares: desc }]
-        ) {
-          predicate {
-            id
-            type
-            label
-          }
-          object {
-            value {
-              thing {
-                name
-                description
-                url
-                image
+        positions(where: {account_id: {_eq: $address}, term: {triple: {subject_id: {_eq: $atomId}}}}, order_by: {term: {total_market_cap: desc}}) {
+          term {
+            triple {
+              predicate {
+                term_id
+                type
+                label
+              }
+              object {
+                value {
+                  thing {
+                    name
+                    description
+                    url
+                    image
+                  }
+                }
               }
             }
           }
         }
-        claims_from_following(
-          args: { address: $address }
-          where: { subject_id: { _eq: $atomId } }
-        ) {
-          predicate {
-            id
-            type
-            label
-          }
-          object {
-            value {
-              thing {
-                name
-                description
-                url
-                image
+        positions_from_following(args: {address: $address}, where: {term: {triple: {subject_id: {_eq: $atomId}}}}) {
+          term {
+            triple {
+              predicate {
+                term_id
+                type
+                label
+              }
+              object {
+                value {
+                  thing {
+                    name
+                    description
+                    url
+                    image
+                  }
+                }
               }
             }
           }
         }
-      }`),
+      }
+      `),
       { atomId: originalThing.vaultId.toString(), address: alice.account.address.toLowerCase() })
     expect(result).toBeDefined()
     expect(result.atom.label).toBe('Foo')
-    expect(result.claims.length).toBe(1)
-    expect(result.claims[0].predicate.label).toBe('is thing')
-    expect(result.claims[0].object.value.thing.name).toBe('Example Domain')
+    expect(result.positions.length).toBe(1)
+    expect(result.positions[0].term.triple.predicate.label).toBe('is thing')
+    expect(result.positions[0].term.triple.object.value.thing.name).toBe('Example Domain')
   })
 
 })
