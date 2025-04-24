@@ -17,7 +17,7 @@ spec:
           image: timescale/timescaledb-ha:pg17
           imagePullPolicy: Always 
           ports:
-          - containerPort: 5435
+          - containerPort: 5432
             protocol: TCP
           volumeMounts:
           - name: vector-db-data
