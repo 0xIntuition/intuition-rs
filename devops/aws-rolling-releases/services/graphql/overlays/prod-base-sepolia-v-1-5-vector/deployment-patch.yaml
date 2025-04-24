@@ -15,11 +15,6 @@ spec:
           envFrom:
             - secretRef:
                 name: prod-base-sepolia-v-1-5-vector-hasura
-          env:
-            - name: DATABASE_URL
-              value: "postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@vector-db:5435/$(POSTGRES_DB)"
-            - name: HASURA_GRAPHQL_METADATA_DATABASE_URL
-              value: "postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@vector-db:5435/$(POSTGRES_DB)"
       volumes:
         - name: secrets-store-inline
           csi:
