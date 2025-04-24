@@ -74,11 +74,6 @@ spec:
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
-                    name: DATABASE_URL
-                    value: 'postgres://tsdbadmin@asoi4aqxl7.fmmp6y73yp.tsdb.cloud.timescale.com:36245/tsdb?sslmode=require'
-                - op: add
-                  path: /spec/template/spec/containers/0/env/-
-                  value:
                     name: HASURA_GRAPHQL_CACHE_DATABASE_URL
                     value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/histoflux?sslmode=require'
                 - op: add
@@ -86,11 +81,6 @@ spec:
                   value:
                     name: HASURA_GRAPHQL_ENDPOINT
                     value: 'http://{{.namespace}}-graphql-engine:8080'
-                - op: add
-                  path: /spec/template/spec/containers/0/env/-
-                  value:
-                    name: HASURA_GRAPHQL_METADATA_DATABASE_URL
-                    value: 'postgres://tsdbadmin@asoi4aqxl7.fmmp6y73yp.tsdb.cloud.timescale.com:36245/tsdb?sslmode=require'
             - target:
                 kind: Job
                 name: indexer-and-cache-migration
@@ -115,31 +105,16 @@ spec:
                   value:
                     name: INDEXER_DATABASE_URL
                     value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/histoflux?sslmode=require'
-
-                - op: add
-                  path: /spec/template/spec/containers/0/env/-
-                  value:
-                    name: DATABASE_URL
-                    value: 'postgres://tsdbadmin@asoi4aqxl7.fmmp6y73yp.tsdb.cloud.timescale.com:36245/tsdb?sslmode=require'
-
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
                     name: HASURA_GRAPHQL_CACHE_DATABASE_URL
                     value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/histoflux?sslmode=require'
-
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
                     name: HASURA_GRAPHQL_ENDPOINT
                     value: 'http://{{.namespace}}-graphql-engine:8080'
-
-                - op: add
-                  path: /spec/template/spec/containers/0/env/-
-                  value:
-                    name: HASURA_GRAPHQL_METADATA_DATABASE_URL
-                    value: 'postgres://tsdbadmin@asoi4aqxl7.fmmp6y73yp.tsdb.cloud.timescale.com:36245/tsdb?sslmode=require'
-
             - target:
                 kind: Job
                 name: hasura-migrations
@@ -164,31 +139,16 @@ spec:
                   value:
                     name: INDEXER_DATABASE_URL
                     value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/histoflux?sslmode=require'
-
-                - op: add
-                  path: /spec/template/spec/containers/0/env/-
-                  value:
-                    name: DATABASE_URL
-                    value: 'postgres://tsdbadmin@asoi4aqxl7.fmmp6y73yp.tsdb.cloud.timescale.com:36245/tsdb?sslmode=require'
-
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
                     name: HASURA_GRAPHQL_CACHE_DATABASE_URL
                     value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/histoflux?sslmode=require'
-
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
                     name: HASURA_GRAPHQL_ENDPOINT
                     value: 'http://{{.namespace}}-graphql-engine:8080'
-
-                - op: add
-                  path: /spec/template/spec/containers/0/env/-
-                  value:
-                    name: HASURA_GRAPHQL_METADATA_DATABASE_URL
-                    value: 'postgres://tsdbadmin@asoi4aqxl7.fmmp6y73yp.tsdb.cloud.timescale.com:36245/tsdb?sslmode=require'
-
       destination:
         server: '{{.server}}'
         namespace: 'default' # graphql is always deployed in default but the namespace is in the name
