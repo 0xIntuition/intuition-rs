@@ -14,7 +14,7 @@ spec:
       serviceAccountName: secrets-access-sa
       containers:
         - name: vector-db
-          image: timescale/timescaledb-ha:pg17
+          image: timescale/pgai:latest-pg17
           imagePullPolicy: Always 
           ports:
           - containerPort: 5432
