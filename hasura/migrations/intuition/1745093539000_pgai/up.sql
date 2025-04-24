@@ -8,6 +8,7 @@ CREATE TABLE term_text (
 );
 
 create extension if not exists ai cascade;
+CREATE EXTENSION IF NOT EXISTS pgai CASCADE;
 
 SELECT ai.create_vectorizer(
    'term_text'::regclass,
