@@ -6,6 +6,7 @@ resources:
   - deployment.yaml
   - pvc.yaml
   - storageclass.yaml
+  - secret-provider.yaml
 
 commonLabels:
   component: vector-db 
