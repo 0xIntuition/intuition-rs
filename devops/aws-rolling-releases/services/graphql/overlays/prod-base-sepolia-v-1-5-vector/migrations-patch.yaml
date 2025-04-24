@@ -5,6 +5,7 @@ metadata:
 spec:
   template:
     spec:
+      serviceAccountName: secrets-access-sa
       containers:
         - name: hasura-migrations
           image: ghcr.io/0xintuition/hasura-migrations:2.0.42-v15
@@ -15,11 +16,16 @@ spec:
               readOnly: true
           envFrom:
             - secretRef:
-                name: prod-sepolia-hasura-aws-secrets
+                name: prod-base-sepolia-v-1-5-vector-hasura
+          env:
+            - name: DATABASE_URL
+              value: "postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@vector-db:5435/$(POSTGRES_DB)"
+            - name: HASURA_GRAPHQL_METADATA_DATABASE_URL
+              value: "postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@vector-db:5435/$(POSTGRES_DB)"
       volumes:
         - name: secrets-store-inline
           csi:
             driver: secrets-store.csi.k8s.io
             readOnly: true
             volumeAttributes:
-              secretProviderClass: "prod-base-sepolia-prod-sepolia-hasura-aws-secrets"
+              secretProviderClass: "prod-base-sepolia-v-1-5-vector-hasura"
