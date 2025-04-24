@@ -29,6 +29,10 @@ spec:
             server: 'https://kubernetes.default.svc'
             revision: next
             namespace: dev-base-sepolia-v-1-0
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: luis/eng-6546-vector-db-support
+            namespace: prod-base-sepolia-v-1-5-vector
   template:
     metadata:
       name: '{{ cluster }}-db-main-creds-{{namespace}}'

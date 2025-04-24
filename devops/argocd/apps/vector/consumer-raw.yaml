@@ -73,11 +73,6 @@ spec:
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
-                    name: DATABASE_URL
-                    value: 'postgres://tsdbadmin@asoi4aqxl7.fmmp6y73yp.tsdb.cloud.timescale.com:36245/tsdb?sslmode=require'
-                - op: add
-                  path: /spec/template/spec/containers/0/env/-
-                  value:
                     name: RAW_CONSUMER_QUEUE_URL
                     value: 'https://sqs.us-west-2.amazonaws.com/064662847354/{{.cluster}}-{{.namespace}}-raw-logs.fifo'
                 - op: add
