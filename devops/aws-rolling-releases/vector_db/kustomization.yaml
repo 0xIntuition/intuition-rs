@@ -5,6 +5,7 @@ resources:
   - service.yaml
   - deployment.yaml
   - pvc.yaml
+  - storageclass.yaml
 
 commonLabels:
   component: vector-db 
