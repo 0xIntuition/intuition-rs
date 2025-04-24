@@ -37,6 +37,6 @@ spec:
           driver: secrets-store.csi.k8s.io
           readOnly: true
           volumeAttributes:
-            secretProviderClass: "prod-sepolia-vector-db-aws-secrets"
+            secretProviderClass: "prod-base-sepolia-v-1-5-vector-aws-secrets"
       
       
