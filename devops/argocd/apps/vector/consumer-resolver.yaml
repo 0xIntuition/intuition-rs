@@ -55,18 +55,16 @@ spec:
                     secretRef:
                       name: 'main-db-creds'
                     prefix: "MAINDB_"
-
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
                     name: IPFS_GATEWAY_URL
                     value: 'http://ipfs.default.svc.cluster.local:8080' # probably better to have all of that dynamically created
-
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
-                    name: DATABASE_URL
-                    value: 'postgres://tsdbadmin@asoi4aqxl7.fmmp6y73yp.tsdb.cloud.timescale.com:36245/tsdb?sslmode=require'
+                    name: IPFS_UPLOAD_URL
+                    value: 'http://ipfs.default.svc.cluster.local:5001' # probably better to have all of that dynamically created
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
@@ -77,25 +75,31 @@ spec:
                   value:
                     name: IPFS_UPLOAD_QUEUE_URL
                     value: 'https://sqs.us-west-2.amazonaws.com/064662847354/{{.cluster}}-{{.namespace}}-ipfs-upload'
-
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
                     name: RPC_URL_BASE
                     value: '{{.rpcURLBase}}' # probably better to have all of that dynamically created
-
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
                     name: RPC_URL_MAINNET
                     value: '{{.rpcURL}}' # probably better to have all of that dynamically created
-
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: BACKEND_SCHEMA
+                    value: 'public' # not sure if needs to be templated
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: CONSUMER_TYPE
+                    value: 'sqs'
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
                     name: ENS_CONTRACT_ADDRESS
                     value: '{{.ensContractAddress}}' # probably better to have all of that dynamically created
-
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
