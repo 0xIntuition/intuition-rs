@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vector-db
+spec:
+  selector:
+    matchLabels:
+      io.kompose.service: vector-db
+  template:
+    metadata:
+      labels:
+        io.kompose.service: vector-db
+    spec:
+      serviceAccountName: secrets-access-sa
+      containers:
+        - name: vector-db
+          image: timescale/timescaledb-ha:pg17
+          imagePullPolicy: Always 
+          ports:
+          - containerPort: 5435
+            protocol: TCP
+          volumeMounts:
+          - name: vector-db-data
+            mountPath: /var/lib/postgresql/data
+          - name: secrets-store-inline
+              mountPath: "/mnt/secrets"
+              readOnly: true
+          envFrom:
+            - secretRef:
+                name: prod-base-sepolia-v-1-5-vector-aws-secrets
+      volumes:
+      - name: vector-db-data
+        persistentVolumeClaim:
+          claimName: vector-db-pvc
+      
+      
