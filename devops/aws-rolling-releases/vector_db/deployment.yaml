@@ -23,8 +23,8 @@ spec:
           - name: vector-db-data
             mountPath: /var/lib/postgresql/data
           - name: secrets-store-inline
-              mountPath: "/mnt/secrets"
-              readOnly: true
+            mountPath: "/mnt/secrets"
+            readOnly: true
           envFrom:
             - secretRef:
                 name: prod-base-sepolia-v-1-5-vector-aws-secrets
@@ -32,5 +32,11 @@ spec:
       - name: vector-db-data
         persistentVolumeClaim:
           claimName: vector-db-pvc
+      - name: secrets-store-inline
+        csi:
+          driver: secrets-store.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: "aws-secrets"
       
       
