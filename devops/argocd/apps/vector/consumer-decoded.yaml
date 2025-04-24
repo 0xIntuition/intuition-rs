@@ -55,8 +55,18 @@ spec:
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
-                    name: DATABASE_URL
-                    value: 'postgres://tsdbadmin@asoi4aqxl7.fmmp6y73yp.tsdb.cloud.timescale.com:36245/tsdb?sslmode=require'
+                    name: BACKEND_SCHEMA
+                    value: 'public' # not sure if needs to be templated
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: CONSUMER_TYPE
+                    value: 'sqs'
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: CONSUMER_METRICS_API_PORT
+                    value: '3008'
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
