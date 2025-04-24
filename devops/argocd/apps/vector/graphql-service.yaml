@@ -15,7 +15,6 @@ spec:
             revision: luis/eng-6546-vector-db-support
             env: prod-base-sepolia-v-1-5-vector
             namespace: prod-base-sepolia-v-1-5-vector
-
   template:
     metadata:
       name: '{{.cluster}}-graphql-service-{{.namespace}}'
