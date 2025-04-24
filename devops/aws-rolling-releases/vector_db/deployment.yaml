@@ -19,6 +19,9 @@ spec:
           ports:
           - containerPort: 5432
             protocol: TCP
+          env:
+          - name: POSTGRES_SHARED_PRELOAD_LIBRARIES
+            value: "ai"
           volumeMounts:
           - name: vector-db-data
             mountPath: /var/lib/postgresql/data
