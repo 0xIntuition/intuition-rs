@@ -18,6 +18,9 @@ spec:
             - op: replace
               path: /spec/template/spec/serviceAccountName
               value: prod-eks-secrets-access-sa
+            - op: replace
+              path: /spec/template/spec/volumes/1/csi/volumeAttributes/secretProviderClass
+              value: prod-sepolia-vector-db-aws-secrets
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: default
