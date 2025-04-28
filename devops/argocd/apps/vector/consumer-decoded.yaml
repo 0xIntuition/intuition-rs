@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: histoflux
+  name: consumer-decoded
   namespace: argocd
 spec:
   goTemplate: true
@@ -12,66 +12,36 @@ spec:
         elements:
           - cluster: prod-eks
             server: 'https://kubernetes.default.svc'
-            revision: next
-            chain: base-sepolia
-            env: prod-base-sepolia-v-1-5
-            namespace: prod-base-sepolia-v-1-5
-          - cluster: prod-eks
-            server: 'https://kubernetes.default.svc'
-            revision: next
-            chain: base-sepolia
-            env: prod-base-sepolia-v-1-0
-            namespace: prod-base-sepolia-v-1-0
-          - cluster: prod-eks
-            server: 'https://kubernetes.default.svc'
-            revision: next
-            chain: base-mainnet
-            env: prod-base-mainnet-v-1-0
-            namespace: prod-base-mainnet-v-1-0
-          - cluster: prod-eks
-            server: 'https://kubernetes.default.svc'
-            revision: next
-            chain: linea-mainnet
-            env: prod-linea-mainnet-v-1-0
-            namespace: prod-linea-mainnet-v-1-0
-          - cluster: prod-eks
-            server: 'https://kubernetes.default.svc'
-            revision: next
-            chain: base-sepolia
-            env: dev-base-sepolia-v-1-0
-            namespace: dev-base-sepolia-v-1-0
-          - cluster: prod-eks
-            server: 'https://kubernetes.default.svc'
             revision: luis/eng-6546-vector-db-support
-            chain: base-sepolia
             env: prod-base-sepolia-v-1-5-vector
             namespace: prod-base-sepolia-v-1-5-vector
+            rpcURL: 'http://prod-rpc-proxy.default.svc.cluster.local:3008/84532/proxy'
   template:
     metadata:
-      name: '{{.cluster}}-histoflux-{{.namespace}}'
+      name: '{{.cluster}}-consumer-decoded-{{.namespace}}'
       annotations:
         argocd.argoproj.io/manifest-generate-paths: '.;/devops/argocd'
     spec:
       project: default
       source:
         repoURL: https://github.com/0xintuition/intuition-rs.git
-        path: 'devops/aws-rolling-releases/histoflux/overlays/{{.env}}'
+        path: 'devops/aws-rolling-releases/consumers/overlays/{{.env}}/decoded'
         targetRevision: '{{.revision}}'
         kustomize:
           patches:
             - target:
                 kind: Queue
-                name: raw-logs-queue
+                name: resolver-queue
               patch: |-
                 - op: replace
                   path: /metadata/name
-                  value: '{{.namespace}}-raw-logs'
+                  value: '{{.namespace}}-resolver'
                 - op: replace
                   path: /spec/forProvider/name
-                  value: '{{.cluster}}-{{.namespace}}-raw-logs.fifo'
+                  value: '{{.cluster}}-{{.namespace}}-resolver'
             - target:
                 kind: Deployment
-                name: histoflux
+                name: decoded-consumer
               patch: |-
                 - op: replace
                   path: /spec/template/spec/serviceAccountName
@@ -85,13 +55,39 @@ spec:
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
-                    name: INDEXER_DATABASE_URL
-                    value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/histoflux?sslmode=require'
+                    name: BACKEND_SCHEMA
+                    value: 'public' # not sure if needs to be templated
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
-                    name: RAW_CONSUMER_QUEUE_URL
-                    value: 'https://sqs.us-west-2.amazonaws.com/064662847354/{{.cluster}}-{{.namespace}}-raw-logs.fifo'
+                    name: CONSUMER_TYPE
+                    value: 'sqs'
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: INTUITION_CONTRACT_ADDRESS
+                    value: '0x63B90A9c109fF8f137916026876171ffeEdEe714'
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: CONSUMER_METRICS_API_PORT
+                    value: '3008'
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: RESOLVER_QUEUE_URL
+                    value: 'https://sqs.us-west-2.amazonaws.com/064662847354/{{.cluster}}-{{.namespace}}-resolver'
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: DECODED_LOGS_QUEUE_URL
+                    value: 'https://sqs.us-west-2.amazonaws.com/064662847354/{{.cluster}}-{{.namespace}}-decoded-logs.fifo'
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: RPC_URL_BASE
+                    value: '{{.rpcURL}}' # probably better to have all of that dynamically created
+
       destination:
         server: '{{.server}}'
         namespace: '{{.namespace}}'

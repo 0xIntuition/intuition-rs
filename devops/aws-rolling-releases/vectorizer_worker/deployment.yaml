@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vectorizer-worker
+spec:
+  selector:
+    matchLabels:
+      io.kompose.service: vectorizer-worker
+
+  template:
+    metadata:
+      labels:
+        io.kompose.service: vectorizer-worker
+    spec:
+      serviceAccountName: secrets-access-sa
+      containers:
+        - name: vectorizer-worker
+          image: timescale/pgai-vectorizer-worker:latest
+          imagePullPolicy: Always 
+          ports:
+          - containerPort: 5435
+            protocol: TCP
+          volumeMounts:
+          - name: secrets-store-inline
+            mountPath: "/mnt/secrets"
+            readOnly: true
+          envFrom:
+            - secretRef:
+                name: vector-db-worker-secrets
+      volumes:
+      - name: secrets-store-inline
+        csi:
+          driver: secrets-store.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: "vector-db-worker-secrets"
+      
