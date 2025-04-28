@@ -1,8 +1,9 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: vector-db
 spec:
+  serviceName: vector-db
   selector:
     matchLabels:
       io.kompose.service: vector-db
@@ -32,14 +33,19 @@ spec:
             - secretRef:
                 name: prod-base-sepolia-v-1-5-vector-aws-secrets
       volumes:
-      - name: vector-db-data
-        persistentVolumeClaim:
-          claimName: vector-db-pvc
       - name: secrets-store-inline
         csi:
           driver: secrets-store.csi.k8s.io
           readOnly: true
           volumeAttributes:
             secretProviderClass: "prod-base-sepolia-v-1-5-vector-aws-secrets"
+  volumeClaimTemplates:
+  - metadata:
+      name: vector-db-data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 100Gi
       
       
