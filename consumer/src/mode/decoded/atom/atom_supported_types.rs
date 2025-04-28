@@ -286,7 +286,7 @@ impl AtomMetadata {
 
         // Skip if atom value already exists
         if AtomValue::find_by_id(
-            U256Wrapper::from_str(&resolved_atom.atom.vault_id.clone())?,
+            resolved_atom.atom.term_id.clone(),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
@@ -298,7 +298,7 @@ impl AtomMetadata {
         }
 
         AtomValue::builder()
-            .id(U256Wrapper::from_str(&resolved_atom.atom.vault_id.clone())?)
+            .id(resolved_atom.atom.term_id.clone())
             .account_id(account.id)
             .build()
             .upsert(

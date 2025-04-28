@@ -17,6 +17,7 @@ pub fn short_id(address: &str) -> String {
 
 /// Returns the absolute triple ID for a given vault ID by determining if it's a counter vault
 /// and adjusting the ID accordingly
+#[allow(dead_code)]
 pub fn get_absolute_triple_id(vault_id: U256) -> U256 {
     // Calculate max value: (2^255 * 2 - 1) / 2
     let max = (U256::from(2).pow(U256::from(255)) * U256::from(2) - U256::from(1)) / U256::from(2);

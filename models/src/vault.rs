@@ -5,7 +5,6 @@ use crate::{
 };
 use async_trait::async_trait;
 use sqlx::{PgPool, Result};
-use std::str::FromStr;
 
 /// This struct defines the vault in the database. Note that both `atom_id` and
 /// `triple_id` are optional. This is because a vault can either be created by
@@ -97,6 +96,31 @@ impl SimpleCrud<U256Wrapper> for Vault {
 }
 
 impl Vault {
+    /// This function updates the current share price of a vault
+    pub async fn update_current_share_price(
+        id: U256Wrapper,
+        current_share_price: U256Wrapper,
+        pool: &PgPool,
+        schema: &str,
+    ) -> Result<Self, ModelError> {
+        let query = format!(
+            r#"
+            UPDATE {}.vault 
+            SET current_share_price = $1 
+            WHERE id = $2
+            RETURNING id, atom_id, triple_id, total_shares, current_share_price, position_count
+            "#,
+            schema,
+        );
+
+        sqlx::query_as::<_, Vault>(&query)
+            .bind(current_share_price.to_big_decimal()?)
+            .bind(id.to_big_decimal()?)
+            .fetch_one(pool)
+            .await
+            .map_err(|e| ModelError::UpdateError(e.to_string()))
+    }
+
     /// This function finds a vault by its term_id and curve_id
     pub async fn find_by_term_id_and_curve_id(
         term_id: U256Wrapper,

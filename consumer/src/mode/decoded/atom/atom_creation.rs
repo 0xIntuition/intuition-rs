@@ -143,12 +143,9 @@ impl AtomCreated {
             // Create the `Atom` and upsert it. Note that we are using the raw_data as the data
             // for now, this will be updated later with the resolver consumer.
             let atom = Atom::builder()
-                .id(U256Wrapper::from_str(
-                    &self.vaultID.to_string().to_lowercase(),
-                )?)
+                .term_id(self.vaultID)
                 .wallet_id(atom_wallet_account.id.clone())
                 .creator_id(creator_account.id)
-                .vault_id(self.vaultID.to_string())
                 .value_id(U256Wrapper::from_str(&self.vaultID.to_string())?)
                 .raw_data(self.atomData.to_string())
                 .atom_type(AtomType::Unknown)
@@ -224,8 +221,9 @@ impl AtomCreated {
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
     ) -> Result<Vault, ConsumerError> {
-        if let Some(vault) = Vault::find_by_id(
-            self.vaultID.to_string(),
+        if let Some(vault) = Vault::find_by_term_id_and_curve_id(
+            U256Wrapper::from(self.vaultID),
+            U256Wrapper::from_str("1")?,
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
@@ -236,7 +234,7 @@ impl AtomCreated {
         } else {
             // create the vault
             Vault::builder()
-                .id(self.vaultID.to_string())
+                .term_id(self.vaultID)
                 .curve_id(U256Wrapper::from_str("1")?)
                 .total_shares(
                     decoded_consumer_context
@@ -249,8 +247,9 @@ impl AtomCreated {
                         .await?,
                 )
                 .position_count(
-                    Position::count_by_vault(
+                    Position::count_by_vault_and_curve(
                         self.vaultID.to_string(),
+                        String::from("1"),
                         &decoded_consumer_context.pg_pool,
                         &decoded_consumer_context.backend_schema,
                     )
@@ -291,7 +290,7 @@ impl AtomCreated {
             .await?;
         // Update the respective vault with the correct share price
         let vault = Vault::update_current_share_price(
-            self.vaultID.to_string(),
+            U256Wrapper::from(self.vaultID),
             U256Wrapper::from_str(&current_share_price.to_string())?,
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,

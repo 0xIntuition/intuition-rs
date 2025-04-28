@@ -163,7 +163,6 @@ pub async fn update_vault_from_share_price_changed_events(
     Ok(())
 }
 
-#[cfg(feature = "v1_5_contract")]
 /// This function gets or creates a vault from a vault manager
 pub async fn get_or_create_vault(
     event: impl SharePriceEvent,
@@ -208,7 +207,6 @@ pub async fn get_or_create_vault(
     }
 }
 
-#[cfg(feature = "v1_5_contract")]
 /// This function gets or creates a term. We receive the term_id separately to handle counter vaults
 pub async fn get_or_create_term(
     event: &impl SharePriceEvent,
