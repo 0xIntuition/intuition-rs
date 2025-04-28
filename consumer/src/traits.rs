@@ -1,11 +1,9 @@
-use crate::{
-    error::ConsumerError,
-    mode::types::{ConsumerMode, DecodedConsumerContext},
-    schemas::goldsky::RawMessage,
-};
 #[cfg(feature = "v1_5_contract")]
+use crate::mode::types::DecodedConsumerContext;
+use crate::{error::ConsumerError, mode::types::ConsumerMode, schemas::goldsky::RawMessage};
 use async_trait::async_trait;
 use aws_sdk_sqs::{operation::receive_message::ReceiveMessageOutput, types::Message};
+#[cfg(feature = "v1_5_contract")]
 use models::{account::AccountType, types::U256Wrapper};
 
 /// This is a generic trait for Consumers. It contains all of the

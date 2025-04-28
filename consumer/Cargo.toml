@@ -45,4 +45,4 @@ warp = "0.3.7"
 [features]
 v1_5_contract = []
 v1_0_contract = []
-default = ["v1_5_contract"]
+default = ["v1_0_contract"]

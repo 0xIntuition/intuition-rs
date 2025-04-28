@@ -120,13 +120,12 @@ impl TripleCreated {
         .await?
         .unwrap_or_else(|| {
             Triple::builder()
-                .id(self.vaultID)
                 .creator_id(creator_account.id)
                 .subject_id(subject_atom.term_id.clone())
                 .predicate_id(predicate_atom.term_id.clone())
                 .object_id(object_atom.term_id.clone())
-                .vault_id(self.vaultID.to_string())
-                .counter_vault_id(counter_vault_id.to_string())
+                .term_id(self.vaultID)
+                .counter_term_id(counter_vault_id)
                 .block_number(U256Wrapper::try_from(event.block_number).unwrap_or_default())
                 .block_timestamp(event.block_timestamp)
                 .transaction_hash(event.transaction_hash.clone())
@@ -149,8 +148,9 @@ impl TripleCreated {
         current_share_price: U256,
         block_number: i64,
     ) -> Result<Vault, ConsumerError> {
-        let vault = Vault::find_by_id(
-            id.to_string(),
+        let vault = Vault::find_by_term_id_and_curve_id(
+            U256Wrapper::from(id),
+            U256Wrapper::from_str("1")?,
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
@@ -160,9 +160,8 @@ impl TripleCreated {
             Ok(vault)
         } else {
             Vault::builder()
-                .id(id.to_string())
+                .term_id(U256Wrapper::from(id))
                 .curve_id(U256Wrapper::from_str("1")?)
-                .triple_id(self.vaultID)
                 .total_shares(
                     decoded_consumer_context
                         .fetch_total_shares_in_vault(id, block_number)
@@ -170,8 +169,9 @@ impl TripleCreated {
                 )
                 .current_share_price(U256Wrapper::from(current_share_price))
                 .position_count(
-                    Position::count_by_vault(
+                    Position::count_by_vault_and_curve(
                         id.to_string(),
+                        String::from("1"),
                         &decoded_consumer_context.pg_pool,
                         &decoded_consumer_context.backend_schema,
                     )
@@ -278,8 +278,9 @@ impl TripleCreated {
         id: &U256Wrapper,
         block_number: i64,
     ) -> Result<Vault, ConsumerError> {
-        if let Some(vault) = Vault::find_by_id(
-            id.to_string(),
+        if let Some(vault) = Vault::find_by_term_id_and_curve_id(
+            id.clone(),
+            U256Wrapper::from_str("1")?,
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
@@ -288,9 +289,8 @@ impl TripleCreated {
             Ok(vault)
         } else {
             Vault::builder()
-                .id(id.to_string())
+                .term_id(id.clone())
                 .curve_id(U256Wrapper::from_str("1")?)
-                .atom_id(U256Wrapper::from_str(&id.to_string())?)
                 .total_shares(
                     decoded_consumer_context
                         .fetch_total_shares_in_vault(
@@ -301,8 +301,9 @@ impl TripleCreated {
                 )
                 .current_share_price(U256Wrapper::from_str("0")?)
                 .position_count(
-                    Position::count_by_vault(
+                    Position::count_by_vault_and_curve(
                         id.to_string(),
+                        String::from("1"),
                         &decoded_consumer_context.pg_pool,
                         &decoded_consumer_context.backend_schema,
                     )
@@ -328,11 +329,10 @@ impl TripleCreated {
         vault: Vault,
     ) -> Result<Atom, ConsumerError> {
         Atom::builder()
-            .id(id)
+            .term_id(id)
             .wallet_id(account.id.clone())
             .creator_id(account.id)
-            .vault_id(vault.id.clone())
-            .value_id(U256Wrapper::from_str(&vault.id)?)
+            .value_id(vault.term_id.clone())
             .data(Atom::decode_data(atom_data.to_string())?)
             .raw_data(atom_data.to_string())
             .atom_type(AtomType::Unknown)
@@ -390,7 +390,7 @@ impl TripleCreated {
         info!("Handling triple creation: {self:#?}");
 
         // Update the counter vault current share price and get the triple
-        let triple = self
+        let _triple = self
             .update_vaults_current_share_price_and_get_triple(decoded_consumer_context, event)
             .await?;
 
@@ -399,7 +399,7 @@ impl TripleCreated {
             .await?;
 
         // Update the positions
-        self.update_positions(decoded_consumer_context, &triple, event.block_number)
+        self.update_positions(decoded_consumer_context, event.block_number)
             .await?;
 
         // Create the event
@@ -482,11 +482,10 @@ impl TripleCreated {
     async fn update_positions(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
-        triple: &Triple,
         block_number: i64,
     ) -> Result<(), ConsumerError> {
         let positions = Position::find_by_vault_id(
-            self.vaultID.to_string(),
+            format!("{}-1-{}", self.vaultID, self.subjectId),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
@@ -495,14 +494,7 @@ impl TripleCreated {
             Claim::builder()
                 .id(format!("{}-{}", self.vaultID, position.account_id))
                 .account_id(position.account_id.clone())
-                .triple_id(self.vaultID)
-                .subject_id(self.subjectId)
-                .predicate_id(self.predicateId)
-                .object_id(self.objectId)
-                .vault_id(self.vaultID.to_string())
-                .counter_vault_id(triple.counter_vault_id.clone())
-                .shares(position.shares.clone())
-                .counter_shares(position.shares)
+                .position_id(position.id)
                 .build()
                 .upsert(
                     &decoded_consumer_context.pg_pool,

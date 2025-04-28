@@ -5,6 +5,7 @@ use crate::{
 };
 use async_trait::async_trait;
 use sqlx::{PgPool, Result};
+use std::str::FromStr;
 
 /// This struct defines the vault in the database. Note that both `atom_id` and
 /// `triple_id` are optional. This is because a vault can either be created by
