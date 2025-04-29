@@ -139,7 +139,7 @@ impl DecodedConsumerContext {
             match &current_share_price {
                 Ok(price) => {
                     info!("Current share price: {:?}", price);
-                    Ok(price.clone())
+                    Ok(*price)
                 }
                 Err(e) => {
                     warn!("Response: {:?}", current_share_price);
@@ -158,7 +158,7 @@ impl DecodedConsumerContext {
             match &is_triple_id {
                 Ok(is_triple_id) => {
                     info!("Is triple id: {:?}", is_triple_id);
-                    Ok(is_triple_id.clone())
+                    Ok(*is_triple_id)
                 }
                 Err(e) => {
                     warn!("Response: {:?}", is_triple_id);
@@ -231,7 +231,7 @@ impl DecodedConsumerContext {
             match &counter_id {
                 Ok(counter_id) => {
                     info!("Counter id: {:?}", counter_id);
-                    Ok(counter_id.clone())
+                    Ok(*counter_id)
                 }
                 Err(e) => {
                     warn!("Response: {:?}", counter_id);

@@ -6,10 +6,9 @@ use crate::{
 };
 use alloy::{
     primitives::{Address, FixedBytes, keccak256},
-    providers::{Provider, RootProvider},
-    transports::http::Http,
+    providers::DynProvider,
 };
-use reqwest::Client;
+use alloy_network::Ethereum;
 use tracing::info;
 
 /// This struct represents the ENS name and avatar for an address.
@@ -75,7 +74,7 @@ impl Ens {
     /// This function gets the ENS name for an address.
     pub async fn get_ens_name(
         address: Address,
-        mainnet_client: &ENSRegistryInstance<Http<Client>, RootProvider<Http<Client>>>,
+        mainnet_client: &ENSRegistryInstance<DynProvider, Ethereum>,
     ) -> Result<Option<String>, ConsumerError> {
         info!("Getting ENS name for {}", address);
         let address_hash = Self::namehash(&Self::prepare_name(address));
@@ -87,8 +86,7 @@ impl Ens {
             let name = alloy_contract
                 .name(FixedBytes::from_slice(address_hash.as_slice()))
                 .call()
-                .await?
-                ._0;
+                .await?;
             info!("ResolvedENS name: {:?}", name);
             Ok(Some(name))
         } else {
@@ -100,13 +98,12 @@ impl Ens {
     async fn get_resolver_address(
         address: Address,
         address_hash: &[u8],
-        mainnet_client: &ENSRegistryInstance<Http<Client>, impl Provider>,
+        mainnet_client: &ENSRegistryInstance<DynProvider, Ethereum>,
     ) -> Result<Address, ConsumerError> {
         let resolver_address = mainnet_client
             .resolver(FixedBytes::from_slice(address_hash))
             .call()
-            .await?
-            ._0;
+            .await?;
 
         if resolver_address == Address::ZERO {
             info!("No resolver found for {}", address);
