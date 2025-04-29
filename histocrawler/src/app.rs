@@ -2,9 +2,8 @@ use crate::{Env, error::HistoCrawlerError};
 use alloy::{
     eips::BlockNumberOrTag,
     primitives::Address,
-    providers::{Provider, ProviderBuilder, RootProvider},
-    rpc::types::{Block, BlockTransactionsKind, Filter, Log},
-    transports::http::{Client, Http},
+    providers::{Provider, ProviderBuilder},
+    rpc::types::{Block, Filter, Log},
 };
 use log::info;
 use models::{histocrawler::AppConfig, raw_logs::RawLog};
@@ -18,7 +17,7 @@ use url::Url;
 pub struct HistoCrawler {
     pub contract_address: Address,
     pub pg_pool: PgPool,
-    pub provider: RootProvider<Http<Client>>,
+    pub provider: Box<dyn Provider>,
     pub backoff_delay: Duration,
     pub app_config: AppConfig,
 }
@@ -31,11 +30,11 @@ impl HistoCrawler {
         let app_config = AppConfig::find_by_indexer_schema(&env.indexer_schema, &pg_pool).await?;
         if let Some(app_config) = app_config {
             let contract_address = Address::from_str(&app_config.contract_address.to_lowercase())?;
-            let provider = Self::get_provider(&app_config.rpc_url).await?;
+            let provider = Self::get_provider(app_config.rpc_url.clone()).await?;
             Ok(Self {
                 contract_address,
                 pg_pool,
-                provider,
+                provider: Box::new(provider),
                 backoff_delay,
                 app_config,
             })
@@ -87,13 +86,9 @@ impl HistoCrawler {
     ) -> Result<Option<Block>, HistoCrawlerError> {
         let block = self
             .provider
-            .get_block_by_number(
-                BlockNumberOrTag::Number(block_number as u64),
-                BlockTransactionsKind::Hashes,
-            )
+            .get_block_by_number(BlockNumberOrTag::Number(block_number as u64))
             .await?;
         Ok(block)
-        // Ok(block.header.timestamp)
     }
 
     /// Get the last block number from the provider
@@ -103,12 +98,9 @@ impl HistoCrawler {
     }
 
     /// Get the provider
-    pub async fn get_provider(
-        rpc_url: &str,
-    ) -> Result<RootProvider<Http<Client>>, HistoCrawlerError> {
-        let rpc_url = Url::parse(rpc_url)?;
-        let provider = ProviderBuilder::new().on_http(rpc_url);
-        Ok(provider)
+    pub async fn get_provider(rpc_url: String) -> Result<impl Provider, HistoCrawlerError> {
+        let rpc_url = Url::parse(&rpc_url)?;
+        Ok(ProviderBuilder::new().connect_http(rpc_url))
     }
 
     /// Initialize the environment variables

@@ -15,6 +15,7 @@ shared-utils = { path = "../shared-utils" }
 
 # Workspace dependencies
 alloy.workspace = true
+alloy-network.workspace = true
 async-trait.workspace = true
 aws-config.workspace = true
 aws-sdk-s3 = "1.20.0"

@@ -1,4 +1,4 @@
-use crate::{error::ConsumerError, mode::types::ConsumerMode, EthMultiVault::EthMultiVaultEvents};
+use crate::{EthMultiVault::EthMultiVaultEvents, error::ConsumerError, mode::types::ConsumerMode};
 use alloy::sol_types::SolEventInterface;
 use std::str::FromStr;
 
@@ -29,7 +29,6 @@ impl ConsumerMode {
         EthMultiVaultEvents::decode_raw_log(
             &Self::parse_raw_topics(topics).await?,
             &Self::parse_raw_data(data).await?,
-            true,
         )
         .map_err(|e| ConsumerError::LogDecodingError(e.to_string()))
     }

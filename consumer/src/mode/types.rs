@@ -11,9 +11,9 @@ use crate::{
 use alloy::{
     eips::BlockId,
     primitives::{Address, Bytes, U256, Uint},
-    providers::{Provider, ProviderBuilder, RootProvider},
-    transports::http::Http,
+    providers::{DynProvider, Provider, ProviderBuilder},
 };
+use alloy_network::Ethereum;
 use models::{stats::Stats, types::U256Wrapper};
 use once_cell::sync::OnceCell;
 use prometheus::{HistogramVec, register_histogram_vec};
@@ -60,7 +60,7 @@ pub enum ConsumerMode {
 #[derive(Clone)]
 pub struct DecodedConsumerContext {
     pub client: Arc<dyn BasicConsumer>,
-    pub base_client: Arc<EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>>>,
+    pub base_client: Arc<EthMultiVaultInstance<DynProvider, Ethereum>>,
     pub pg_pool: PgPool,
     pub backend_schema: String,
 }
@@ -139,7 +139,7 @@ impl DecodedConsumerContext {
             match &current_share_price {
                 Ok(price) => {
                     info!("Current share price: {:?}", price);
-                    Ok(price._0)
+                    Ok(price.clone())
                 }
                 Err(e) => {
                     warn!("Response: {:?}", current_share_price);
@@ -158,7 +158,7 @@ impl DecodedConsumerContext {
             match &is_triple_id {
                 Ok(is_triple_id) => {
                     info!("Is triple id: {:?}", is_triple_id);
-                    Ok(is_triple_id._0)
+                    Ok(is_triple_id.clone())
                 }
                 Err(e) => {
                     warn!("Response: {:?}", is_triple_id);
@@ -205,7 +205,7 @@ impl DecodedConsumerContext {
             match &atom_data {
                 Ok(data) => {
                     info!("Atom data: {:?}", data);
-                    Ok(data.atomData.clone())
+                    Ok(data.clone())
                 }
                 Err(e) => {
                     warn!("Response: {:?}", atom_data);
@@ -231,7 +231,7 @@ impl DecodedConsumerContext {
             match &counter_id {
                 Ok(counter_id) => {
                     info!("Counter id: {:?}", counter_id);
-                    Ok(counter_id._0)
+                    Ok(counter_id.clone())
                 }
                 Err(e) => {
                     warn!("Response: {:?}", counter_id);
@@ -311,7 +311,7 @@ pub struct ResolverConsumerContext {
     pub client: Arc<dyn BasicConsumer>,
     pub image_guard_url: String,
     pub ipfs_resolver: IPFSResolver,
-    pub mainnet_client: Arc<ENSRegistryInstance<Http<Client>, RootProvider<Http<Client>>>>,
+    pub mainnet_client: Arc<ENSRegistryInstance<DynProvider, Ethereum>>,
     pub pg_pool: PgPool,
     pub reqwest_client: reqwest::Client,
     pub server_initialize: ServerInitialize,
@@ -342,30 +342,34 @@ impl ConsumerMode {
     fn build_ens_client(
         rpc_url: &str,
         contract_address: &str,
-    ) -> Result<ENSRegistryInstance<Http<Client>, RootProvider<Http<Client>>>, ConsumerError> {
-        let provider = ProviderBuilder::new().on_http(rpc_url.parse()?);
+    ) -> Result<ENSRegistryInstance<DynProvider, Ethereum>, ConsumerError> {
+        // Initialize the provider using the provided RPC URL
+        let provider = ProviderBuilder::new().connect_http(rpc_url.parse()?);
+        // Wrap the provider in a DynProvider to erase its concrete type
+        let dyn_provider = DynProvider::new(provider);
 
-        let alloy_contract = ENSRegistry::new(
-            Address::from_str(contract_address)
-                .map_err(|e| ConsumerError::AddressParse(e.to_string()))?,
-            provider.clone(),
-        );
+        // Parse the contract address
+        let address = Address::from_str(contract_address)
+            .map_err(|e| ConsumerError::AddressParse(e.to_string()))?;
 
-        Ok(alloy_contract)
+        // Instantiate the ENSRegistry contract with the dynamic provider
+        let ens_contract = ENSRegistry::new(address, dyn_provider);
+
+        Ok(ens_contract)
     }
 
     /// Builds the alloy client for the Intuition contract
     fn build_intuition_client(
         rpc_url: &str,
         contract_address: &str,
-    ) -> Result<EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>>, ConsumerError>
-    {
-        let provider = ProviderBuilder::new().on_http(rpc_url.parse()?);
+    ) -> Result<EthMultiVaultInstance<DynProvider, Ethereum>, ConsumerError> {
+        let provider = ProviderBuilder::new().connect_http(rpc_url.parse()?);
+        let dyn_provider = DynProvider::new(provider);
 
         let alloy_contract = EthMultiVault::new(
             Address::from_str(contract_address)
                 .map_err(|e| ConsumerError::AddressParse(e.to_string()))?,
-            provider.clone(),
+            dyn_provider,
         );
 
         Ok(alloy_contract)
@@ -849,13 +853,11 @@ mod tests {
     async fn build_test_client(
         rpc_url: &str,
         contract_address: &str,
-    ) -> EthMultiVaultInstance<Http<Client>, RootProvider<Http<Client>>> {
-        let provider = ProviderBuilder::new().on_http(rpc_url.parse().unwrap());
+    ) -> EthMultiVaultInstance<DynProvider, Ethereum> {
+        let provider = ProviderBuilder::new().connect_http(rpc_url.parse().unwrap());
+        let dyn_provider = DynProvider::new(provider);
 
-        EthMultiVault::new(
-            Address::from_str(contract_address).unwrap(),
-            provider.clone(),
-        )
+        EthMultiVault::new(Address::from_str(contract_address).unwrap(), dyn_provider)
     }
 
     #[tokio::test]

@@ -21,7 +21,8 @@ use crate::{
     vault::Vault,
 };
 use rand::{
-    distributions::{Alphanumeric, DistString},
+    // distributions::{Alphanumeric, DistString},
+    distr::{Alphanumeric, SampleString},
     Rng,
 };
 use sqlx::{postgres::PgPoolOptions, PgPool};
@@ -42,12 +43,12 @@ pub async fn setup_test_db() -> PgPool {
 
 /// This function creates a random string.
 pub fn create_random_string() -> String {
-    Alphanumeric.sample_string(&mut rand::thread_rng(), 16)
+    Alphanumeric.sample_string(&mut rand::rng(), 16)
 }
 
 /// This function creates a random number.
 pub fn create_random_number() -> i32 {
-    rand::thread_rng().gen_range(0..i32::MAX)
+    rand::rng().random_range(0..i32::MAX)
 }
 
 /// This function creates a random U256Wrapper.

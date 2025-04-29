@@ -1,12 +1,12 @@
 use crate::{
-    error::ConsumerError,
-    mode::{ipfs_upload::types::IpfsUploadMessage, types::ResolverConsumerContext},
     ENSName::ENSNameInstance,
     ENSRegistry::ENSRegistryInstance,
+    error::ConsumerError,
+    mode::{ipfs_upload::types::IpfsUploadMessage, types::ResolverConsumerContext},
 };
 use alloy::{
-    primitives::{keccak256, Address, FixedBytes},
-    providers::RootProvider,
+    primitives::{Address, FixedBytes, keccak256},
+    providers::{Provider, RootProvider},
     transports::http::Http,
 };
 use reqwest::Client;
@@ -100,7 +100,7 @@ impl Ens {
     async fn get_resolver_address(
         address: Address,
         address_hash: &[u8],
-        mainnet_client: &ENSRegistryInstance<Http<Client>, RootProvider<Http<Client>>>,
+        mainnet_client: &ENSRegistryInstance<Http<Client>, impl Provider>,
     ) -> Result<Address, ConsumerError> {
         let resolver_address = mainnet_client
             .resolver(FixedBytes::from_slice(address_hash))
