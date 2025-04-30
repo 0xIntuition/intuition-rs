@@ -42,16 +42,6 @@ array_relationships:
         remote_table:
           name: redemption
           schema: public
-  - name: share_price_changes
-    using:
-      manual_configuration:
-        column_mapping:
-          curve_id: curve_id
-          term_id: term_id
-        insertion_order: null
-        remote_table:
-          name: share_price_change
-          schema: public
   - name: signals
     using:
       manual_configuration:

@@ -212,7 +212,7 @@ impl TripleCreated {
     }
 
     /// This function fetches an atom or creates it
-    async fn fetch_or_create_temporary_atom(
+    async fn fetch_or_create_atom(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         id: U256Wrapper,
@@ -333,6 +333,8 @@ impl TripleCreated {
                     )
                     .await? as i32,
                 )
+                .total_assets(U256Wrapper::from_str("0")?)
+                .market_cap(U256Wrapper::from_str("0")?)
                 .build()
                 .upsert(
                     &decoded_consumer_context.pg_pool,
@@ -382,21 +384,21 @@ impl TripleCreated {
         block_number: i64,
     ) -> Result<(Atom, Atom, Atom), ConsumerError> {
         let subject_atom = self
-            .fetch_or_create_temporary_atom(
+            .fetch_or_create_atom(
                 decoded_consumer_context,
                 U256Wrapper::from(self.subjectId),
                 block_number,
             )
             .await?;
         let predicate_atom = self
-            .fetch_or_create_temporary_atom(
+            .fetch_or_create_atom(
                 decoded_consumer_context,
                 U256Wrapper::from(self.predicateId),
                 block_number,
             )
             .await?;
         let object_atom = self
-            .fetch_or_create_temporary_atom(
+            .fetch_or_create_atom(
                 decoded_consumer_context,
                 U256Wrapper::from(self.objectId),
                 block_number,

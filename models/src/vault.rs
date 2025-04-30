@@ -107,8 +107,8 @@ impl Vault {
             r#"
             UPDATE {}.vault 
             SET current_share_price = $1 
-            WHERE id = $2
-            RETURNING id, atom_id, triple_id, total_shares, current_share_price, position_count
+            WHERE term_id = $2 AND curve_id = $3
+            RETURNING term_id, curve_id, total_shares, current_share_price, position_count, total_assets, market_cap
             "#,
             schema,
         );
@@ -116,6 +116,7 @@ impl Vault {
         sqlx::query_as::<_, Vault>(&query)
             .bind(current_share_price.to_big_decimal()?)
             .bind(id.to_big_decimal()?)
+            .bind(<&str as TryInto<U256Wrapper>>::try_into("1")?.to_big_decimal()?)
             .fetch_one(pool)
             .await
             .map_err(|e| ModelError::UpdateError(e.to_string()))

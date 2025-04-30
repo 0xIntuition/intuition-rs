@@ -709,6 +709,13 @@ impl ConsumerMode {
             .await?;
 
         match &decoded_message.body {
+            EthMultiVaultEvents::Initialized(initialized_data) => {
+                let timer = get_event_processing_histogram()
+                    .with_label_values(&["Initialized"])
+                    .start_timer();
+                info!("Received: {initialized_data:#?}");
+                timer.observe_duration();
+            }
             EthMultiVaultEvents::AtomCreated(atom_data) => {
                 let timer = get_event_processing_histogram()
                     .with_label_values(&["AtomCreated"])

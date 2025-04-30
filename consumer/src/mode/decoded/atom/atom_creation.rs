@@ -135,7 +135,7 @@ impl AtomCreated {
             Ok(atom)
         } else {
             info!("Atom does not exist, creating it");
-            let atom_wallet_account = self
+            let mut atom_wallet_account = self
                 .get_or_create_atom_wallet_account(decoded_consumer_context)
                 .await?;
             let creator_account =
@@ -161,7 +161,7 @@ impl AtomCreated {
                 .await?;
             //updating the account with the atom id
             update_account_with_atom_id(
-                atom_wallet_account.id,
+                &mut atom_wallet_account,
                 atom.term_id.clone(),
                 decoded_consumer_context,
             )
@@ -236,6 +236,7 @@ impl AtomCreated {
             Vault::builder()
                 .term_id(self.vaultID)
                 .curve_id(U256Wrapper::from_str("1")?)
+                .total_assets(U256Wrapper::from_str("0")?)
                 .total_shares(
                     decoded_consumer_context
                         .fetch_total_shares_in_vault(self.vaultID, event.block_number)

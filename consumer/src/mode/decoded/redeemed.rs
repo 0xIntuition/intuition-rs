@@ -1,4 +1,4 @@
-use super::utils::get_or_create_account;
+use super::utils::{get_or_create_account, update_vault};
 use crate::{
     EthMultiVault::Redeemed, error::ConsumerError, mode::types::DecodedConsumerContext,
     schemas::types::DecodedMessage,
@@ -207,6 +207,8 @@ impl Redeemed {
             self.handle_remaining_shares(&vault, &sender_account, decoded_consumer_context)
                 .await?;
         }
+        // Update vault
+        update_vault(self.vaultId, decoded_consumer_context, event.block_number).await?;
 
         // 4. Create event and signal records
         self.create_event(decoded_consumer_context, event, &vault)

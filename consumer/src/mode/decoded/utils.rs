@@ -2,11 +2,12 @@ use crate::{
     error::ConsumerError,
     mode::{resolver::types::ResolverConsumerMessage, types::DecodedConsumerContext},
 };
-use alloy::primitives::U256;
+use alloy::primitives::{U256, Uint};
 use models::{
     account::{Account, AccountType},
     traits::SimpleCrud,
     types::U256Wrapper,
+    vault::Vault,
 };
 use tracing::info;
 
@@ -74,39 +75,18 @@ pub async fn get_or_create_account(
 }
 
 pub async fn update_account_with_atom_id(
-    id: String,
+    account: &mut Account,
     atom_id: U256Wrapper,
     decoded_consumer_context: &DecodedConsumerContext,
-) -> Result<Account, ConsumerError> {
-    let account = if let Some(mut account) = Account::find_by_id(
-        id.clone(),
-        &decoded_consumer_context.pg_pool,
-        &decoded_consumer_context.backend_schema,
-    )
-    .await?
-    {
-        account.atom_id = Some(atom_id);
-        account
-            .upsert(
-                &decoded_consumer_context.pg_pool,
-                &decoded_consumer_context.backend_schema,
-            )
-            .await?
-    } else {
-        info!("Account not found for: {}, creating it", id);
-        Account::builder()
-            .id(id.clone())
-            .atom_id(atom_id)
-            .label(short_id(&id))
-            .account_type(AccountType::Default)
-            .build()
-            .upsert(
-                &decoded_consumer_context.pg_pool,
-                &decoded_consumer_context.backend_schema,
-            )
-            .await
-            .map_err(ConsumerError::ModelError)?
-    };
+) -> Result<(), ConsumerError> {
+    account.atom_id = Some(atom_id);
+    account
+        .upsert(
+            &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
+        )
+        .await?;
+    info!("Updated account: {:?}", account);
 
     // Now we need to enqueue the message to be processed by the resolver. In this
     // process we check if the account has ENS data associated, and if it does, we
@@ -116,5 +96,41 @@ pub async fn update_account_with_atom_id(
         .client
         .send_message(serde_json::to_string(&message)?, None)
         .await?;
-    Ok(account)
+    Ok(())
+}
+
+pub async fn update_vault(
+    vault_id: Uint<256, 4>,
+    decoded_consumer_context: &DecodedConsumerContext,
+    block_number: i64,
+) -> Result<(), ConsumerError> {
+    // Update vault
+    let mut vault = Vault::find_by_id(
+        vault_id.into(),
+        &decoded_consumer_context.pg_pool,
+        &decoded_consumer_context.backend_schema,
+    )
+    .await?
+    .ok_or(ConsumerError::VaultNotFound)?;
+
+    let current_share_price: U256Wrapper = decoded_consumer_context
+        .fetch_current_share_price(vault_id, block_number)
+        .await?
+        .into();
+    let total_shares = decoded_consumer_context
+        .fetch_total_shares_in_vault(vault_id, block_number)
+        .await?;
+
+    vault.current_share_price = current_share_price.clone();
+    vault.market_cap = Some(
+        U256Wrapper::from(total_shares) * current_share_price
+            / U256Wrapper::from(U256::from(10).pow(U256::from(18))),
+    );
+    vault
+        .upsert(
+            &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
+        )
+        .await?;
+    Ok(())
 }

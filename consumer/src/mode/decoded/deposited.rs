@@ -27,6 +27,8 @@ use models::{
 use std::str::FromStr;
 use tracing::info;
 
+use super::utils::update_vault;
+
 #[async_trait]
 /// This impl is used to convert the `Deposited` event into a `SharePriceEvent`
 impl SharePriceEvent for &Deposited {
@@ -329,7 +331,7 @@ impl Deposited {
         let deposit = self.create_deposit(event, decoded_consumer_context).await?;
 
         // Handle position and related entities
-        self.handle_position_and_claims(decoded_consumer_context)
+        self.handle_position_and_claims(decoded_consumer_context, event.block_number)
             .await?;
 
         // Create event
@@ -348,10 +350,13 @@ impl Deposited {
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         position_id: &str,
+        block_number: i64,
     ) -> Result<(), ConsumerError> {
         // Update or create position
         self.update_position(decoded_consumer_context, position_id)
             .await?;
+        // Update share_price_change
+        update_vault(self.vaultId, decoded_consumer_context, block_number).await?;
 
         Ok(())
     }
@@ -362,10 +367,15 @@ impl Deposited {
         decoded_consumer_context: &DecodedConsumerContext,
         position_id: &str,
         triple: Option<Triple>,
+        block_number: i64,
     ) -> Result<(), ConsumerError> {
         self.create_new_position(position_id.to_string(), decoded_consumer_context)
             .await?;
 
+        // Update share_price_change
+        update_vault(self.vaultId, decoded_consumer_context, block_number).await?;
+
+        // Create claim and predicate object
         if let Some(triple) = triple {
             self.create_claim_and_predicate_object(decoded_consumer_context, &triple, position_id)
                 .await?;
@@ -378,6 +388,7 @@ impl Deposited {
     async fn handle_position_and_claims(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
+        block_number: i64,
     ) -> Result<(), ConsumerError> {
         let position_id = self.format_position_id();
         let triple = Triple::find_by_id(
@@ -394,10 +405,10 @@ impl Deposited {
         .await?;
 
         if position.is_none() && self.receiverTotalSharesInVault > U256::from(0) {
-            self.handle_new_position(decoded_consumer_context, &position_id, triple)
+            self.handle_new_position(decoded_consumer_context, &position_id, triple, block_number)
                 .await?;
         } else if position.is_some() && self.receiverTotalSharesInVault > U256::from(0) {
-            self.handle_existing_position(decoded_consumer_context, &position_id)
+            self.handle_existing_position(decoded_consumer_context, &position_id, block_number)
                 .await?;
         } else {
             info!("No need to update position or claims.");
