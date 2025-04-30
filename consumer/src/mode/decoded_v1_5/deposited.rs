@@ -31,7 +31,7 @@ use super::utils::get_or_create_vault;
 /// This impl is used to convert the `Deposited` event into a `SharePriceEvent`
 impl SharePriceEvent for &Deposited {
     fn total_assets(&self) -> Result<U256Wrapper, ConsumerError> {
-        Ok(U256Wrapper::from_str("0")?)
+        Ok(self.senderAssetsAfterTotalFees)
     }
 
     fn new_share_price(&self) -> Result<U256Wrapper, ConsumerError> {

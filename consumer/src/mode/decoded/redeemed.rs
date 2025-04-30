@@ -1,4 +1,4 @@
-use super::utils::{get_or_create_account, update_vault};
+use super::utils::{VaultUpdate, get_or_create_account, update_vault};
 use crate::{
     EthMultiVault::Redeemed, error::ConsumerError, mode::types::DecodedConsumerContext,
     schemas::types::DecodedMessage,
@@ -207,8 +207,17 @@ impl Redeemed {
             self.handle_remaining_shares(&vault, &sender_account, decoded_consumer_context)
                 .await?;
         }
+
         // Update vault
-        update_vault(self.vaultId, decoded_consumer_context, event.block_number).await?;
+        update_vault(
+            VaultUpdate::Redeemed {
+                shares_for_receiver: U256Wrapper::from(self.sharesRedeemedBySender),
+            },
+            self.vaultId,
+            decoded_consumer_context,
+            event.block_number,
+        )
+        .await?;
 
         // 4. Create event and signal records
         self.create_event(decoded_consumer_context, event, &vault)

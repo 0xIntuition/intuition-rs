@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use crate::{
     error::ConsumerError,
     mode::{resolver::types::ResolverConsumerMessage, types::DecodedConsumerContext},
@@ -99,7 +101,23 @@ pub async fn update_account_with_atom_id(
     Ok(())
 }
 
+/// This enum represents the different types of updates that can be made to a vault
+pub enum VaultUpdate {
+    /// This variant represents a deposited event
+    Deposited {
+        /// The assets that were sent by the sender after total fees
+        sender_assets_after_total_fees: U256Wrapper,
+    },
+    /// This variant represents a redeemed event
+    Redeemed {
+        /// The shares that were sent to the receiver
+        shares_for_receiver: U256Wrapper,
+    },
+}
+
+/// This function updates the vault with the new total assets
 pub async fn update_vault(
+    vault_update: VaultUpdate,
     vault_id: Uint<256, 4>,
     decoded_consumer_context: &DecodedConsumerContext,
     block_number: i64,
@@ -113,14 +131,36 @@ pub async fn update_vault(
     .await?
     .ok_or(ConsumerError::VaultNotFound)?;
 
+    // Fetch the current share price and total shares
     let current_share_price: U256Wrapper = decoded_consumer_context
         .fetch_current_share_price(vault_id, block_number)
         .await?
         .into();
+
+    // Fetch the total shares in the vault
     let total_shares = decoded_consumer_context
         .fetch_total_shares_in_vault(vault_id, block_number)
         .await?;
 
+    // Update the vault conditionally based on the type of update
+    match vault_update {
+        VaultUpdate::Deposited {
+            sender_assets_after_total_fees,
+        } => {
+            vault.total_assets = Some(
+                vault.total_assets.unwrap_or(U256Wrapper::from_str("0")?)
+                    + sender_assets_after_total_fees,
+            );
+        }
+        VaultUpdate::Redeemed {
+            shares_for_receiver,
+        } => {
+            vault.total_assets = Some(
+                vault.total_assets.unwrap_or(U256Wrapper::from_str("0")?) - shares_for_receiver,
+            );
+        }
+    }
+    // Update regular fields
     vault.current_share_price = current_share_price.clone();
     vault.market_cap = Some(
         U256Wrapper::from(total_shares) * current_share_price

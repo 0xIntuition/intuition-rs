@@ -27,7 +27,7 @@ use models::{
 use std::str::FromStr;
 use tracing::info;
 
-use super::utils::update_vault;
+use super::utils::{VaultUpdate, update_vault};
 
 #[async_trait]
 /// This impl is used to convert the `Deposited` event into a `SharePriceEvent`
@@ -350,13 +350,10 @@ impl Deposited {
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         position_id: &str,
-        block_number: i64,
     ) -> Result<(), ConsumerError> {
         // Update or create position
         self.update_position(decoded_consumer_context, position_id)
             .await?;
-        // Update share_price_change
-        update_vault(self.vaultId, decoded_consumer_context, block_number).await?;
 
         Ok(())
     }
@@ -367,14 +364,9 @@ impl Deposited {
         decoded_consumer_context: &DecodedConsumerContext,
         position_id: &str,
         triple: Option<Triple>,
-        block_number: i64,
     ) -> Result<(), ConsumerError> {
         self.create_new_position(position_id.to_string(), decoded_consumer_context)
             .await?;
-
-        // Update share_price_change
-        update_vault(self.vaultId, decoded_consumer_context, block_number).await?;
-
         // Create claim and predicate object
         if let Some(triple) = triple {
             self.create_claim_and_predicate_object(decoded_consumer_context, &triple, position_id)
@@ -405,14 +397,26 @@ impl Deposited {
         .await?;
 
         if position.is_none() && self.receiverTotalSharesInVault > U256::from(0) {
-            self.handle_new_position(decoded_consumer_context, &position_id, triple, block_number)
+            self.handle_new_position(decoded_consumer_context, &position_id, triple)
                 .await?;
         } else if position.is_some() && self.receiverTotalSharesInVault > U256::from(0) {
-            self.handle_existing_position(decoded_consumer_context, &position_id, block_number)
+            self.handle_existing_position(decoded_consumer_context, &position_id)
                 .await?;
         } else {
             info!("No need to update position or claims.");
         }
+
+        // Update vault values
+        update_vault(
+            VaultUpdate::Deposited {
+                sender_assets_after_total_fees: U256Wrapper::from(self.senderAssetsAfterTotalFees),
+            },
+            self.vaultId,
+            decoded_consumer_context,
+            block_number,
+        )
+        .await?;
+
         Ok(())
     }
 

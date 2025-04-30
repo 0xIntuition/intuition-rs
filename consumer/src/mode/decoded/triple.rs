@@ -694,18 +694,24 @@ impl TripleCreated {
             )
             .await?;
 
+            let current_share_price: U256Wrapper = decoded_consumer_context
+                .fetch_current_share_price(self.vaultID, block_number)
+                .await?
+                .into();
+            let total_shares = decoded_consumer_context
+                .fetch_total_shares_in_vault(self.vaultID, block_number)
+                .await?;
+            let market_cap = U256Wrapper::from(total_shares) * current_share_price.clone()
+                / U256Wrapper::from(U256::from(10).pow(U256::from(18)));
+
             let new_vault = Vault::builder()
                 .term_id(U256Wrapper::from(self.vaultID))
                 .curve_id(U256Wrapper::from_str("1")?)
-                .current_share_price(
-                    self.current_share_price(decoded_consumer_context, Some(block_number))
-                        .await?,
-                )
-                .total_shares(
-                    self.total_shares(decoded_consumer_context, Some(block_number))
-                        .await?,
-                )
+                .current_share_price(current_share_price)
+                .total_shares(total_shares)
+                .market_cap(market_cap)
                 .position_count(0)
+                .total_assets(U256Wrapper::from_str("0")?)
                 .build()
                 .upsert(
                     &decoded_consumer_context.pg_pool,
