@@ -129,6 +129,10 @@ impl DecodedConsumerContext {
         id: Uint<256, 4>,
         block_number: i64,
     ) -> Result<U256, ConsumerError> {
+        info!(
+            "Fetching current share price for vault {:?} and block number {:?}",
+            id, block_number
+        );
         self.retry_with_backoff(|| async {
             let current_share_price = self
                 .base_client
@@ -390,7 +394,8 @@ impl ConsumerMode {
                 .clone()
                 .env
                 .intuition_contract_address
-                .unwrap_or_else(|| panic!("Intuition contract address is not set")),
+                .unwrap_or_else(|| panic!("Intuition contract address is not set"))
+                .to_lowercase(),
         )?);
         let client = Self::build_client(
             data.clone(),

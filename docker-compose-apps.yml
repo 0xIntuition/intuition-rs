@@ -85,7 +85,7 @@ services:
       LOCALSTACK_URL: 'http://sqs:4566/'
       PG_MIN_CONNECTIONS: '5'
       RESOLVER_QUEUE_URL: 'http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/resolver'
-      RPC_URL_BASE: "http://prod-rpc-proxy:3008/84532/proxy"
+      RPC_URL_BASE: "http://prod-rpc-proxy:3008/8453/proxy"
       RUST_LOG: 'info'
       BACKEND_SCHEMA: 'public'
     restart: always

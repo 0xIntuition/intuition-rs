@@ -318,6 +318,10 @@ impl Deposited {
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
+        info!(
+            "Handling deposit creation for vault {:?} and block number {:?}",
+            self.vaultId, event.block_number
+        );
         // Initialize core data
         let current_share_price = decoded_consumer_context
             .fetch_current_share_price(self.vaultId, event.block_number)
