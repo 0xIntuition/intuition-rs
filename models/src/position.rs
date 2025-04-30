@@ -107,8 +107,8 @@ impl Deletable for Position {
 impl Position {
     /// Returns the number of positions in the given vault.
     pub async fn count_by_vault_and_curve(
-        term_id: String,
-        curve_id: String,
+        term_id: U256Wrapper,
+        curve_id: U256Wrapper,
         pg_pool: &sqlx::PgPool,
         schema: &str,
     ) -> Result<i64, ModelError> {
@@ -117,8 +117,8 @@ impl Position {
             schema
         );
         let count: i64 = sqlx::query_scalar(&query)
-            .bind(term_id.clone())
-            .bind(curve_id.clone())
+            .bind(term_id.to_big_decimal()?)
+            .bind(curve_id.to_big_decimal()?)
             .fetch_one(pg_pool)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))?;

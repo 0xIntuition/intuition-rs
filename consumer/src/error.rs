@@ -69,6 +69,8 @@ pub enum ConsumerError {
             aws_smithy_runtime_api::http::Response,
         >,
     ),
+    #[error("Block number not found")]
+    BlockNumberNotFound,
     #[error("ByteObject error")]
     ByteObjectError(String),
     #[error("Deposited error")]

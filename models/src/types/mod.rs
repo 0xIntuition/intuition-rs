@@ -95,6 +95,26 @@ impl TryFrom<BigDecimal> for U256Wrapper {
     }
 }
 
+impl TryFrom<String> for U256Wrapper {
+    type Error = ModelError;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        U256::from_str(&value)
+            .map(U256Wrapper)
+            .map_err(|e| ModelError::ConversionError(e.to_string()))
+    }
+}
+
+impl TryFrom<&str> for U256Wrapper {
+    type Error = ModelError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        U256::from_str(value)
+            .map(U256Wrapper)
+            .map_err(|e| ModelError::ConversionError(e.to_string()))
+    }
+}
+
 /// This is a method to convert the `U256` type to a `U256Wrapper` type.
 impl From<U256> for U256Wrapper {
     fn from(value: U256) -> Self {

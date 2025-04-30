@@ -1,10 +1,15 @@
 use crate::{
     ConsumerError,
     EthMultiVault::Deposited,
-    mode::{decoded::utils::get_or_create_account, types::DecodedConsumerContext},
+    mode::{
+        decoded::utils::get_or_create_account, types::DecodedConsumerContext,
+        utils::get_or_create_vault,
+    },
     schemas::types::DecodedMessage,
+    traits::{SharePriceEvent, VaultManager},
 };
 use alloy::primitives::U256;
+use async_trait::async_trait;
 use futures::executor::block_on;
 use models::{
     claim::Claim,
@@ -13,6 +18,7 @@ use models::{
     position::Position,
     predicate_object::PredicateObject,
     signal::Signal,
+    term::TermType,
     traits::SimpleCrud,
     triple::Triple,
     types::U256Wrapper,
@@ -20,6 +26,71 @@ use models::{
 };
 use std::str::FromStr;
 use tracing::info;
+
+#[async_trait]
+/// This impl is used to convert the `Deposited` event into a `SharePriceEvent`
+impl SharePriceEvent for &Deposited {
+    fn total_assets(&self) -> Result<U256Wrapper, ConsumerError> {
+        Ok(U256Wrapper::from_str("0")?)
+    }
+
+    fn new_share_price(&self) -> Result<U256Wrapper, ConsumerError> {
+        Ok(U256Wrapper::from_str("0")?)
+    }
+}
+
+/// This impl is used to convert the `Deposited` event into a `VaultManager`
+#[async_trait]
+impl VaultManager for &Deposited {
+    fn term_id(&self) -> Result<U256Wrapper, ConsumerError> {
+        Ok(U256Wrapper::from(self.vaultId))
+    }
+
+    fn curve_id(&self) -> Result<U256Wrapper, ConsumerError> {
+        Ok(U256Wrapper::from_str("1")?)
+    }
+
+    async fn total_shares(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+        block_number: Option<i64>,
+    ) -> Result<U256Wrapper, ConsumerError> {
+        Ok(decoded_consumer_context
+            .fetch_total_shares_in_vault(
+                self.vaultId,
+                block_number.ok_or(ConsumerError::BlockNumberNotFound)?,
+            )
+            .await?
+            .into())
+    }
+
+    async fn current_share_price(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+        block_number: Option<i64>,
+    ) -> Result<U256Wrapper, ConsumerError> {
+        Ok(decoded_consumer_context
+            .fetch_current_share_price(
+                self.vaultId,
+                block_number.ok_or(ConsumerError::BlockNumberNotFound)?,
+            )
+            .await?
+            .into())
+    }
+
+    async fn position_count(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+    ) -> Result<i32, ConsumerError> {
+        Ok(Position::count_by_vault_and_curve(
+            self.vaultId.into(),
+            "1".try_into()?,
+            &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
+        )
+        .await? as i32)
+    }
+}
 
 impl Deposited {
     /// This function creates a claim and predicate object
@@ -239,79 +310,6 @@ impl Deposited {
         )
     }
 
-    /// This function gets or creates a vault
-    async fn get_or_create_vault(
-        &self,
-        event: &DecodedMessage,
-        decoded_consumer_context: &DecodedConsumerContext,
-        id: U256,
-        current_share_price: U256,
-    ) -> Result<Vault, ConsumerError> {
-        match Vault::find_by_term_id_and_curve_id(
-            U256Wrapper::from(id),
-            U256Wrapper::from_str("1")?,
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
-        )
-        .await?
-        {
-            Some(mut vault) => {
-                vault.current_share_price = U256Wrapper::from(current_share_price);
-                vault.total_shares = U256Wrapper::from(
-                    decoded_consumer_context
-                        .fetch_total_shares_in_vault(id, event.block_number)
-                        .await?,
-                );
-                vault
-                    .upsert(
-                        &decoded_consumer_context.pg_pool,
-                        &decoded_consumer_context.backend_schema,
-                    )
-                    .await
-                    .map_err(ConsumerError::ModelError)
-            }
-            None => {
-                if self.isTriple {
-                    Vault::builder()
-                        .term_id(id)
-                        .current_share_price(U256Wrapper::from(current_share_price))
-                        .curve_id(U256Wrapper::from_str("1")?)
-                        .position_count(0)
-                        .total_shares(U256Wrapper::from(
-                            decoded_consumer_context
-                                .fetch_total_shares_in_vault(id, event.block_number)
-                                .await?,
-                        ))
-                        .build()
-                        .upsert(
-                            &decoded_consumer_context.pg_pool,
-                            &decoded_consumer_context.backend_schema,
-                        )
-                        .await
-                        .map_err(ConsumerError::ModelError)
-                } else {
-                    Vault::builder()
-                        .term_id(id)
-                        .curve_id(U256Wrapper::from_str("1")?)
-                        .current_share_price(U256Wrapper::from(current_share_price))
-                        .position_count(0)
-                        .total_shares(U256Wrapper::from(
-                            decoded_consumer_context
-                                .fetch_total_shares_in_vault(id, event.block_number)
-                                .await?,
-                        ))
-                        .build()
-                        .upsert(
-                            &decoded_consumer_context.pg_pool,
-                            &decoded_consumer_context.backend_schema,
-                        )
-                        .await
-                        .map_err(ConsumerError::ModelError)
-                }
-            }
-        }
-    }
-
     /// This function handles the creation of a `Deposit`
     pub async fn handle_deposit_creation(
         &self,
@@ -322,18 +320,10 @@ impl Deposited {
             "Handling deposit creation for vault {:?} and block number {:?}",
             self.vaultId, event.block_number
         );
-        // Initialize core data
-        let current_share_price = decoded_consumer_context
-            .fetch_current_share_price(self.vaultId, event.block_number)
-            .await?;
 
         // Initialize accounts and vault. We need to block on this because it's async and
         // we need to ensure that the accounts and vault are initialized before we proceed
-        let vault = block_on(self.initialize_accounts_and_vault(
-            decoded_consumer_context,
-            current_share_price,
-            event,
-        ))?;
+        let vault = block_on(self.initialize_accounts_and_vault(decoded_consumer_context, event))?;
 
         // Create deposit record
         let deposit = self.create_deposit(event, decoded_consumer_context).await?;
@@ -419,7 +409,6 @@ impl Deposited {
     async fn initialize_accounts_and_vault(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
-        current_share_price: U256,
         event: &DecodedMessage,
     ) -> Result<Vault, ConsumerError> {
         // Create accounts concurrently
@@ -430,11 +419,15 @@ impl Deposited {
         sender?;
         receiver?;
 
-        self.get_or_create_vault(
-            event,
+        get_or_create_vault(
+            self,
+            Some(event.block_number),
             decoded_consumer_context,
-            self.vaultId,
-            current_share_price,
+            if self.isTriple {
+                TermType::Triple
+            } else {
+                TermType::Atom
+            },
         )
         .await
     }

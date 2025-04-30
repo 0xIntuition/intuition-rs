@@ -1,11 +1,13 @@
-#[cfg(feature = "v1_5_contract")]
-use crate::mode::types::DecodedConsumerContext;
-use crate::{error::ConsumerError, mode::types::ConsumerMode, schemas::goldsky::RawMessage};
+use std::str::FromStr;
+
+use crate::{
+    error::ConsumerError,
+    mode::types::{ConsumerMode, DecodedConsumerContext},
+    schemas::goldsky::RawMessage,
+};
 use async_trait::async_trait;
 use aws_sdk_sqs::{operation::receive_message::ReceiveMessageOutput, types::Message};
-#[cfg(feature = "v1_5_contract")]
 use models::{account::AccountType, types::U256Wrapper};
-
 /// This is a generic trait for Consumers. It contains all of the
 /// basic methods to provide basic functionality.
 #[async_trait]
@@ -30,14 +32,18 @@ pub trait IntoRawMessage {
     fn into_raw_message(self) -> Result<RawMessage, ConsumerError>;
 }
 
-#[cfg(feature = "v1_5_contract")]
 /// This trait is implemented by all share price events.
 pub trait SharePriceEvent: VaultManager {
-    fn new_share_price(&self) -> Result<U256Wrapper, ConsumerError>;
-    fn total_assets(&self) -> Result<U256Wrapper, ConsumerError>;
+    #[allow(dead_code)]
+    fn new_share_price(&self) -> Result<U256Wrapper, ConsumerError> {
+        Ok(U256Wrapper::from_str("0")?)
+    }
+    #[allow(dead_code)]
+    fn total_assets(&self) -> Result<U256Wrapper, ConsumerError> {
+        Ok(U256Wrapper::from_str("0")?)
+    }
 }
 
-#[cfg(feature = "v1_5_contract")]
 #[async_trait]
 /// This trait is implemented by all vault managers.
 pub trait VaultManager {
@@ -46,10 +52,12 @@ pub trait VaultManager {
     async fn total_shares(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
+        block_number: Option<i64>,
     ) -> Result<U256Wrapper, ConsumerError>;
     async fn current_share_price(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
+        block_number: Option<i64>,
     ) -> Result<U256Wrapper, ConsumerError>;
     async fn position_count(
         &self,
@@ -57,7 +65,6 @@ pub trait VaultManager {
     ) -> Result<i32, ConsumerError>;
 }
 
-#[cfg(feature = "v1_5_contract")]
 #[async_trait]
 pub trait AccountManager {
     fn account_id(&self) -> String;

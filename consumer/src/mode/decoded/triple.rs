@@ -1,10 +1,16 @@
 use crate::{
     EthMultiVault::TripleCreated,
     error::ConsumerError,
-    mode::{resolver::types::ResolverConsumerMessage, types::DecodedConsumerContext},
+    mode::{
+        resolver::types::ResolverConsumerMessage,
+        types::DecodedConsumerContext,
+        utils::{get_or_create_term, get_or_create_vault},
+    },
     schemas::types::DecodedMessage,
+    traits::{SharePriceEvent, VaultManager},
 };
 use alloy::primitives::{U256, Uint};
+use async_trait::async_trait;
 use models::{
     account::{Account, AccountType},
     atom::{Atom, AtomResolvingStatus, AtomType},
@@ -12,6 +18,7 @@ use models::{
     event::{Event, EventType},
     position::Position,
     predicate_object::PredicateObject,
+    term::TermType,
     traits::SimpleCrud,
     triple::Triple,
     types::U256Wrapper,
@@ -21,6 +28,71 @@ use std::str::FromStr;
 use tracing::info;
 
 use super::utils::short_id;
+
+#[async_trait]
+/// This impl is used to convert the `TripleCreated` event into a `SharePriceEvent`
+impl SharePriceEvent for &TripleCreated {
+    fn total_assets(&self) -> Result<U256Wrapper, ConsumerError> {
+        Ok(U256Wrapper::from_str("0")?)
+    }
+
+    fn new_share_price(&self) -> Result<U256Wrapper, ConsumerError> {
+        Ok(U256Wrapper::from_str("0")?)
+    }
+}
+
+/// This impl is used to convert the `TripleCreated` event into a `VaultManager`
+#[async_trait]
+impl VaultManager for &TripleCreated {
+    fn term_id(&self) -> Result<U256Wrapper, ConsumerError> {
+        Ok(U256Wrapper::from(self.vaultID))
+    }
+
+    fn curve_id(&self) -> Result<U256Wrapper, ConsumerError> {
+        Ok(U256Wrapper::from_str("1")?)
+    }
+
+    async fn total_shares(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+        block_number: Option<i64>,
+    ) -> Result<U256Wrapper, ConsumerError> {
+        Ok(decoded_consumer_context
+            .fetch_total_shares_in_vault(
+                self.vaultID,
+                block_number.ok_or(ConsumerError::BlockNumberNotFound)?,
+            )
+            .await?
+            .into())
+    }
+
+    async fn current_share_price(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+        block_number: Option<i64>,
+    ) -> Result<U256Wrapper, ConsumerError> {
+        Ok(decoded_consumer_context
+            .fetch_current_share_price(
+                self.vaultID,
+                block_number.ok_or(ConsumerError::BlockNumberNotFound)?,
+            )
+            .await?
+            .into())
+    }
+
+    async fn position_count(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+    ) -> Result<i32, ConsumerError> {
+        Ok(Position::count_by_vault_and_curve(
+            self.vaultID.into(),
+            1.try_into()?,
+            &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
+        )
+        .await? as i32)
+    }
+}
 
 impl TripleCreated {
     /// This function checks if the subject atom is an account and if the predicate and object atoms are a person or organization.
@@ -139,54 +211,6 @@ impl TripleCreated {
         .map_err(ConsumerError::ModelError)
     }
 
-    /// This function verifies if the vault exists in our DB. If it does, it returns it.
-    /// If it does not, it creates it.
-    async fn get_or_create_vault(
-        &self,
-        decoded_consumer_context: &DecodedConsumerContext,
-        id: U256,
-        current_share_price: U256,
-        block_number: i64,
-    ) -> Result<Vault, ConsumerError> {
-        let vault = Vault::find_by_term_id_and_curve_id(
-            U256Wrapper::from(id),
-            U256Wrapper::from_str("1")?,
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
-        )
-        .await?;
-
-        if let Some(vault) = vault {
-            Ok(vault)
-        } else {
-            Vault::builder()
-                .term_id(U256Wrapper::from(id))
-                .curve_id(U256Wrapper::from_str("1")?)
-                .total_shares(
-                    decoded_consumer_context
-                        .fetch_total_shares_in_vault(id, block_number)
-                        .await?,
-                )
-                .current_share_price(U256Wrapper::from(current_share_price))
-                .position_count(
-                    Position::count_by_vault_and_curve(
-                        id.to_string(),
-                        String::from("1"),
-                        &decoded_consumer_context.pg_pool,
-                        &decoded_consumer_context.backend_schema,
-                    )
-                    .await? as i32,
-                )
-                .build()
-                .upsert(
-                    &decoded_consumer_context.pg_pool,
-                    &decoded_consumer_context.backend_schema,
-                )
-                .await
-                .map_err(ConsumerError::ModelError)
-        }
-    }
-
     /// This function fetches an atom or creates it
     async fn fetch_or_create_temporary_atom(
         &self,
@@ -302,8 +326,8 @@ impl TripleCreated {
                 .current_share_price(U256Wrapper::from_str("0")?)
                 .position_count(
                     Position::count_by_vault_and_curve(
-                        id.to_string(),
-                        String::from("1"),
+                        id.clone(),
+                        1.try_into()?,
                         &decoded_consumer_context.pg_pool,
                         &decoded_consumer_context.backend_schema,
                     )
@@ -598,33 +622,10 @@ impl TripleCreated {
         let counter_vault_id = decoded_consumer_context
             .get_counter_id_from_triple(self.vaultID)
             .await?;
-        // Get the share price of the atom
-        // Get the current share price of the counter vault
-        let counter_vault_current_share_price = decoded_consumer_context
-            .fetch_current_share_price(counter_vault_id, event.block_number)
-            .await?;
 
-        // Get the current share price of the vault
-        let vault_current_share_price = decoded_consumer_context
-            .fetch_current_share_price(self.vaultID, event.block_number)
+        // Ensure that the vault and counter vault exist
+        self.get_or_create_vaults(decoded_consumer_context, event.block_number)
             .await?;
-
-        // Get or update the vault
-        self.get_or_create_vault(
-            decoded_consumer_context,
-            self.vaultID,
-            vault_current_share_price,
-            event.block_number,
-        )
-        .await?;
-        // Get or update the counter vault
-        self.get_or_create_vault(
-            decoded_consumer_context,
-            counter_vault_id,
-            counter_vault_current_share_price,
-            event.block_number,
-        )
-        .await?;
 
         // Get or create the triple
         let triple = self
@@ -632,5 +633,86 @@ impl TripleCreated {
             .await?;
 
         Ok(triple)
+    }
+
+    /// This function updates the vault and counter vault current share prices
+    async fn get_or_create_vaults(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+        block_number: i64,
+    ) -> Result<(), ConsumerError> {
+        // Get the counter vault ID
+        let counter_vault_id = decoded_consumer_context
+            .get_counter_id_from_triple(self.vaultID)
+            .await?;
+
+        // Get or update the vault
+        get_or_create_vault(
+            self,
+            Some(block_number),
+            decoded_consumer_context,
+            TermType::Triple,
+        )
+        .await?;
+        // Get or update the counter vault
+        self.get_or_create_counter_vault(
+            U256Wrapper::from(counter_vault_id),
+            decoded_consumer_context,
+            block_number,
+        )
+        .await?;
+
+        Ok(())
+    }
+
+    /// This function gets or creates a counter vault
+    pub async fn get_or_create_counter_vault(
+        &self,
+        counter_vault_id: U256Wrapper,
+        decoded_consumer_context: &DecodedConsumerContext,
+        block_number: i64,
+    ) -> Result<Vault, ConsumerError> {
+        let vault = Vault::find_by_term_id_and_curve_id(
+            counter_vault_id.clone(),
+            U256Wrapper::from_str("1")?,
+            &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
+        )
+        .await?;
+
+        if let Some(vault) = vault {
+            Ok(vault)
+        } else {
+            // Ensure that the term exists for the vault
+            get_or_create_term(
+                &self,
+                Some(counter_vault_id),
+                decoded_consumer_context,
+                TermType::Triple,
+            )
+            .await?;
+
+            let new_vault = Vault::builder()
+                .term_id(U256Wrapper::from(self.vaultID))
+                .curve_id(U256Wrapper::from_str("1")?)
+                .current_share_price(
+                    self.current_share_price(decoded_consumer_context, Some(block_number))
+                        .await?,
+                )
+                .total_shares(
+                    self.total_shares(decoded_consumer_context, Some(block_number))
+                        .await?,
+                )
+                .position_count(0)
+                .build()
+                .upsert(
+                    &decoded_consumer_context.pg_pool,
+                    &decoded_consumer_context.backend_schema,
+                )
+                .await
+                .map_err(ConsumerError::ModelError)?;
+
+            Ok(new_vault)
+        }
     }
 }

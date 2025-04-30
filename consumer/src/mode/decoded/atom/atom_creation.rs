@@ -248,8 +248,8 @@ impl AtomCreated {
                 )
                 .position_count(
                     Position::count_by_vault_and_curve(
-                        self.vaultID.to_string(),
-                        String::from("1"),
+                        self.vaultID.into(),
+                        1.try_into()?,
                         &decoded_consumer_context.pg_pool,
                         &decoded_consumer_context.backend_schema,
                     )
