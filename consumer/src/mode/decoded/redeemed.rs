@@ -177,7 +177,7 @@ impl Redeemed {
         // 2. Ensure the vault exists
         let vault = Vault::find_by_term_id_and_curve_id(
             U256Wrapper::from(self.vaultId),
-            U256Wrapper::from_str("1")?,
+            1.try_into()?,
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )

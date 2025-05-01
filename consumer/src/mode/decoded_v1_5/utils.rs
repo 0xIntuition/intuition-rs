@@ -2,13 +2,16 @@ use std::fmt::Debug;
 
 use crate::{
     error::ConsumerError,
-    mode::{resolver::types::ResolverConsumerMessage, types::DecodedConsumerContext},
-    traits::{AccountManager, SharePriceEvent},
+    mode::{
+        resolver::types::ResolverConsumerMessage, types::DecodedConsumerContext,
+        utils::get_or_create_vault,
+    },
+    traits::SharePriceEvent,
 };
 use alloy::primitives::U256;
 use models::{
     account::{Account, AccountType},
-    term::{Term, TermType},
+    term::TermType,
     traits::SimpleCrud,
     types::U256Wrapper,
     vault::Vault,
@@ -103,7 +106,6 @@ pub async fn update_account_with_atom_id(
     Ok(())
 }
 
-#[cfg(feature = "v1_5_contract")]
 /// This function gets or creates a vault from a share price changed event
 pub async fn update_vault_from_share_price_changed_events(
     share_price_changed: impl SharePriceEvent + Debug,
@@ -128,15 +130,15 @@ pub async fn update_vault_from_share_price_changed_events(
         // Update the share price of the vault
         vault.current_share_price = share_price_changed.new_share_price()?;
         vault.total_shares = share_price_changed
-            .total_shares(decoded_consumer_context)
+            .total_shares(decoded_consumer_context, None)
             .await?;
         vault.total_assets = Some(share_price_changed.total_assets()?);
         vault.market_cap = Some(
             (share_price_changed
-                .total_shares(decoded_consumer_context)
+                .total_shares(decoded_consumer_context, None)
                 .await?
                 * share_price_changed
-                    .current_share_price(decoded_consumer_context)
+                    .current_share_price(decoded_consumer_context, None)
                     .await?)
                 / U256Wrapper::from(U256::from(10).pow(U256::from(18))),
         );
@@ -150,13 +152,18 @@ pub async fn update_vault_from_share_price_changed_events(
         // The term is going to be updated by the trigger on the vault table
     } else {
         info!("Vault not found, creating it");
-        get_or_create_vault(share_price_changed, decoded_consumer_context, term_type)
-            .await?
-            .upsert(
-                &decoded_consumer_context.pg_pool,
-                &decoded_consumer_context.backend_schema,
-            )
-            .await?;
+        get_or_create_vault(
+            share_price_changed,
+            None,
+            decoded_consumer_context,
+            term_type,
+        )
+        .await?
+        .upsert(
+            &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
+        )
+        .await?;
     }
     info!("Finished updating vault, updating share price aggregate");
 

@@ -31,15 +31,7 @@ use super::utils::short_id;
 
 #[async_trait]
 /// This impl is used to convert the `TripleCreated` event into a `SharePriceEvent`
-impl SharePriceEvent for &TripleCreated {
-    fn total_assets(&self) -> Result<U256Wrapper, ConsumerError> {
-        Ok(U256Wrapper::from_str("0")?)
-    }
-
-    fn new_share_price(&self) -> Result<U256Wrapper, ConsumerError> {
-        Ok(U256Wrapper::from_str("0")?)
-    }
-}
+impl SharePriceEvent for &TripleCreated {}
 
 /// This impl is used to convert the `TripleCreated` event into a `VaultManager`
 #[async_trait]
@@ -49,7 +41,7 @@ impl VaultManager for &TripleCreated {
     }
 
     fn curve_id(&self) -> Result<U256Wrapper, ConsumerError> {
-        Ok(U256Wrapper::from_str("1")?)
+        Ok(1.try_into()?)
     }
 
     async fn total_shares(
@@ -304,7 +296,7 @@ impl TripleCreated {
     ) -> Result<Vault, ConsumerError> {
         if let Some(vault) = Vault::find_by_term_id_and_curve_id(
             id.clone(),
-            U256Wrapper::from_str("1")?,
+            1.try_into()?,
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
@@ -676,7 +668,7 @@ impl TripleCreated {
     ) -> Result<Vault, ConsumerError> {
         let vault = Vault::find_by_term_id_and_curve_id(
             counter_vault_id.clone(),
-            U256Wrapper::from_str("1")?,
+            1.try_into()?,
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )

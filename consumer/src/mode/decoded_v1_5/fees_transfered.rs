@@ -1,6 +1,6 @@
 use crate::{
-    error::ConsumerError, mode::types::DecodedConsumerContext, schemas::types::DecodedMessage,
-    EthMultiVault::FeesTransferred,
+    EthMultiVaultV1_5::FeesTransferred, error::ConsumerError, mode::types::DecodedConsumerContext,
+    schemas::types::DecodedMessage,
 };
 use models::{
     account::{Account, AccountType},

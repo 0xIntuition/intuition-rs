@@ -1,4 +1,7 @@
-use crate::{EthMultiVault::EthMultiVaultEvents, error::ConsumerError, mode::types::ConsumerMode};
+use crate::{
+    EthMultiVault::EthMultiVaultEvents, EthMultiVaultV1_5::EthMultiVaultV1_5Events,
+    error::ConsumerError, mode::types::ConsumerMode, schemas::types::ContractEvent,
+};
 use alloy::sol_types::SolEventInterface;
 use std::str::FromStr;
 
@@ -25,11 +28,25 @@ impl ConsumerMode {
     pub async fn decode_raw_log(
         topics: Vec<String>,
         data: String,
-    ) -> Result<EthMultiVaultEvents, ConsumerError> {
-        EthMultiVaultEvents::decode_raw_log(
-            &Self::parse_raw_topics(topics).await?,
-            &Self::parse_raw_data(data).await?,
-        )
-        .map_err(|e| ConsumerError::LogDecodingError(e.to_string()))
+        contract_version: i32,
+    ) -> Result<ContractEvent, ConsumerError> {
+        let topics = Self::parse_raw_topics(topics).await?;
+        let data = Self::parse_raw_data(data).await?;
+
+        Ok(match contract_version {
+            1 => ContractEvent::EthMultiVault(
+                EthMultiVaultEvents::decode_raw_log(&topics, &data)
+                    .map_err(|e| ConsumerError::LogDecodingError(e.to_string()))?,
+            ),
+            2 => ContractEvent::EthMultiVaultV1_5(
+                EthMultiVaultV1_5Events::decode_raw_log(&topics, &data)
+                    .map_err(|e| ConsumerError::LogDecodingError(e.to_string()))?,
+            ),
+            _ => {
+                return Err(ConsumerError::LogDecodingError(
+                    "Invalid contract version".to_string(),
+                ));
+            }
+        })
     }
 }

@@ -1,6 +1,6 @@
 use crate::{
     ConsumerError,
-    EthMultiVault::SharePriceChangedCurve,
+    EthMultiVaultV1_5::SharePriceChangedCurve,
     mode::{
         decoded_v1_5::utils::update_vault_from_share_price_changed_events,
         types::DecodedConsumerContext,
@@ -29,6 +29,7 @@ impl VaultManager for &SharePriceChangedCurve {
     async fn total_shares(
         &self,
         _decoded_consumer_context: &DecodedConsumerContext,
+        _block_number: Option<i64>,
     ) -> Result<U256Wrapper, ConsumerError> {
         Ok(U256Wrapper::from(self.totalShares))
     }
@@ -36,6 +37,7 @@ impl VaultManager for &SharePriceChangedCurve {
     async fn current_share_price(
         &self,
         _decoded_consumer_context: &DecodedConsumerContext,
+        _block_number: Option<i64>,
     ) -> Result<U256Wrapper, ConsumerError> {
         Ok(U256Wrapper::from(self.newSharePrice))
     }

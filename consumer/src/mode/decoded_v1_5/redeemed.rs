@@ -1,6 +1,6 @@
 use super::utils::get_or_create_account;
 use crate::{
-    EthMultiVault::Redeemed, error::ConsumerError, mode::types::DecodedConsumerContext,
+    EthMultiVaultV1_5::Redeemed, error::ConsumerError, mode::types::DecodedConsumerContext,
     schemas::types::DecodedMessage,
 };
 use alloy::primitives::{U256, Uint};

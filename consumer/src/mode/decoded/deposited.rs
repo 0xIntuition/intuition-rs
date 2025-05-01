@@ -31,25 +31,17 @@ use super::utils::{VaultUpdate, update_vault};
 
 #[async_trait]
 /// This impl is used to convert the `Deposited` event into a `SharePriceEvent`
-impl SharePriceEvent for &Deposited {
-    fn total_assets(&self) -> Result<U256Wrapper, ConsumerError> {
-        Ok(U256Wrapper::from_str("0")?)
-    }
-
-    fn new_share_price(&self) -> Result<U256Wrapper, ConsumerError> {
-        Ok(U256Wrapper::from_str("0")?)
-    }
-}
+impl SharePriceEvent for &Deposited {}
 
 /// This impl is used to convert the `Deposited` event into a `VaultManager`
 #[async_trait]
 impl VaultManager for &Deposited {
     fn term_id(&self) -> Result<U256Wrapper, ConsumerError> {
-        Ok(U256Wrapper::from(self.vaultId))
+        Ok(self.vaultId.into())
     }
 
     fn curve_id(&self) -> Result<U256Wrapper, ConsumerError> {
-        Ok(U256Wrapper::from_str("1")?)
+        Ok(1.try_into()?)
     }
 
     async fn total_shares(

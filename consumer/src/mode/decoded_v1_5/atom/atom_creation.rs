@@ -1,16 +1,12 @@
 use crate::{
-    EthMultiVault::AtomCreated,
+    EthMultiVaultV1_5::AtomCreated,
     error::ConsumerError,
+    metadata::get_supported_atom_metadata,
     mode::{
-        decoded_v1_5::{
-            atom::atom_supported_types::get_supported_atom_metadata,
-            utils::{
-                get_or_create_account, get_or_create_account_from_event, get_or_create_vault,
-                short_id, update_account_with_atom_id,
-            },
-        },
+        decoded_v1_5::utils::{get_or_create_account, short_id, update_account_with_atom_id},
         resolver::types::ResolveAtom,
         types::DecodedConsumerContext,
+        utils::{get_or_create_account_from_event, get_or_create_vault},
     },
     schemas::types::DecodedMessage,
     traits::{AccountManager, SharePriceEvent, VaultManager},
@@ -73,6 +69,7 @@ impl VaultManager for &AtomCreated {
     async fn total_shares(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
+        _block_number: Option<i64>,
     ) -> Result<U256Wrapper, ConsumerError> {
         Ok(SharePriceChange::fetch_current_share_price(
             U256Wrapper::from(self.vaultId),
@@ -87,6 +84,7 @@ impl VaultManager for &AtomCreated {
     async fn current_share_price(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
+        _block_number: Option<i64>,
     ) -> Result<U256Wrapper, ConsumerError> {
         Ok(SharePriceChange::fetch_current_share_price(
             U256Wrapper::from(self.vaultId),
@@ -103,8 +101,8 @@ impl VaultManager for &AtomCreated {
         decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<i32, ConsumerError> {
         Ok(Position::count_by_vault_and_curve(
-            self.vaultId.to_string(),
-            "1".to_string(),
+            self.vaultId.into(),
+            1.try_into()?,
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
@@ -292,7 +290,13 @@ impl AtomCreated {
         event: &DecodedMessage,
     ) -> Result<(Vault, Atom), ConsumerError> {
         // Get or create the vault
-        let vault = get_or_create_vault(self, decoded_consumer_context, TermType::Atom).await?;
+        let vault = get_or_create_vault(
+            self,
+            Some(event.block_number),
+            decoded_consumer_context,
+            TermType::Atom,
+        )
+        .await?;
 
         // In order to upsert a [`Vault`] we need to have an [`Atom`] first.
         // Verify that the atom exists, if not, create it. Note that in order

@@ -1,4 +1,5 @@
 use alloy::hex::FromHexError;
+use std::sync::PoisonError;
 use thiserror::Error;
 
 /// This enum represents the error types of our application.
@@ -127,6 +128,8 @@ pub enum ConsumerError {
     PositionNotFound,
     #[error("Failed to get connection pool: {0}")]
     PostgresConnectError(String),
+    #[error("Poison error mutex: {0}")]
+    PoisonErrorMutex(String),
     #[error("Predicate atom not found")]
     PredicateAtomNotFound,
     #[error(transparent)]
@@ -167,3 +170,9 @@ pub enum ConsumerError {
 
 // Implement the Reject trait for ConsumerError
 impl warp::reject::Reject for ConsumerError {}
+
+impl<T> From<PoisonError<T>> for ConsumerError {
+    fn from(e: PoisonError<T>) -> Self {
+        ConsumerError::PoisonErrorMutex(e.to_string())
+    }
+}

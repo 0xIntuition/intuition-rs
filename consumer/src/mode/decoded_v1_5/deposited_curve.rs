@@ -2,10 +2,10 @@ use std::str::FromStr;
 
 use crate::{
     ConsumerError,
-    EthMultiVault::DepositedCurve,
+    EthMultiVaultV1_5::DepositedCurve,
     mode::{
-        decoded_v1_5::utils::{get_or_create_account, get_or_create_vault},
-        types::DecodedConsumerContext,
+        decoded_v1_5::utils::get_or_create_account, types::DecodedConsumerContext,
+        utils::get_or_create_vault,
     },
     schemas::types::DecodedMessage,
     traits::{SharePriceEvent, VaultManager},
@@ -51,6 +51,7 @@ impl VaultManager for &DepositedCurve {
     async fn total_shares(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
+        _block_number: Option<i64>,
     ) -> Result<U256Wrapper, ConsumerError> {
         Ok(SharePriceChange::fetch_current_share_price(
             U256Wrapper::from(self.vaultId),
@@ -65,6 +66,7 @@ impl VaultManager for &DepositedCurve {
     async fn current_share_price(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
+        _block_number: Option<i64>,
     ) -> Result<U256Wrapper, ConsumerError> {
         Ok(SharePriceChange::fetch_current_share_price(
             U256Wrapper::from(self.vaultId),
@@ -295,6 +297,7 @@ impl DepositedCurve {
         // Get or create the curve vault
         let curve_vault = get_or_create_vault(
             self,
+            Some(event.block_number),
             decoded_consumer_context,
             if self.isTriple {
                 TermType::Triple

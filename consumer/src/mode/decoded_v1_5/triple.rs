@@ -1,7 +1,11 @@
 use crate::{
-    EthMultiVault::TripleCreated,
+    EthMultiVaultV1_5::TripleCreated,
     error::ConsumerError,
-    mode::{resolver::types::ResolverConsumerMessage, types::DecodedConsumerContext},
+    mode::{
+        resolver::types::ResolverConsumerMessage,
+        types::DecodedConsumerContext,
+        utils::{get_or_create_term, get_or_create_vault},
+    },
     schemas::types::DecodedMessage,
     traits::{SharePriceEvent, VaultManager},
 };
@@ -23,21 +27,13 @@ use models::{
 use std::str::FromStr;
 use tracing::info;
 
-use super::utils::{get_or_create_term, get_or_create_vault, short_id};
+use super::utils::short_id;
 
 /// This impl is used to convert the `TripleCreated` event into a `SharePriceEvent`
 /// and we can use the general share price change logic for this. We need this because
 /// we may need to create new vaults while handling the `TripleCreated` event.
 #[async_trait]
-impl SharePriceEvent for &TripleCreated {
-    fn total_assets(&self) -> Result<U256Wrapper, ConsumerError> {
-        Ok(U256Wrapper::from_str("0")?)
-    }
-
-    fn new_share_price(&self) -> Result<U256Wrapper, ConsumerError> {
-        Ok(U256Wrapper::from_str("0")?)
-    }
-}
+impl SharePriceEvent for &TripleCreated {}
 
 /// This impl is used to convert the `AtomCreated` event into a `VaultManager`
 /// and we can use the general vault creation logic for this.
@@ -54,6 +50,7 @@ impl VaultManager for &TripleCreated {
     async fn total_shares(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
+        _block_number: Option<i64>,
     ) -> Result<U256Wrapper, ConsumerError> {
         Ok(SharePriceChange::fetch_current_share_price(
             U256Wrapper::from(self.vaultId),
@@ -68,6 +65,7 @@ impl VaultManager for &TripleCreated {
     async fn current_share_price(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
+        _block_number: Option<i64>,
     ) -> Result<U256Wrapper, ConsumerError> {
         Ok(SharePriceChange::fetch_current_share_price(
             U256Wrapper::from(self.vaultId),
@@ -84,8 +82,8 @@ impl VaultManager for &TripleCreated {
         decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<i32, ConsumerError> {
         Ok(Position::count_by_vault_and_curve(
-            self.vaultId.to_string(),
-            "1".to_string(),
+            self.vaultId.into(),
+            1.try_into()?,
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
@@ -99,9 +97,10 @@ impl TripleCreated {
     async fn check_and_update_account_predicate_object_claim_count(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
+        event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
         let (subject_atom, predicate_atom, object_atom) = self
-            .get_subject_predicate_object_atoms(decoded_consumer_context)
+            .get_subject_predicate_object_atoms(decoded_consumer_context, event)
             .await?;
 
         if self.is_account_with_person_or_org(&subject_atom, &predicate_atom, &object_atom) {
@@ -183,7 +182,7 @@ impl TripleCreated {
             .await?;
 
         let (subject_atom, predicate_atom, object_atom) = self
-            .get_subject_predicate_object_atoms(decoded_consumer_context)
+            .get_subject_predicate_object_atoms(decoded_consumer_context, event)
             .await?;
 
         Triple::find_by_id(
@@ -218,6 +217,7 @@ impl TripleCreated {
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         id: U256Wrapper,
+        event: &DecodedMessage,
     ) -> Result<Atom, ConsumerError> {
         if let Some(atom) = self.find_atom(decoded_consumer_context, &id).await? {
             return Ok(atom);
@@ -230,7 +230,13 @@ impl TripleCreated {
         let account = self
             .get_or_create_temporary_account(decoded_consumer_context)
             .await?;
-        let vault = get_or_create_vault(self, decoded_consumer_context, TermType::Triple).await?;
+        let vault = get_or_create_vault(
+            self,
+            Some(event.block_number),
+            decoded_consumer_context,
+            TermType::Triple,
+        )
+        .await?;
 
         let atom = self
             .create_atom(
@@ -328,23 +334,27 @@ impl TripleCreated {
     async fn get_subject_predicate_object_atoms(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
+        event: &DecodedMessage,
     ) -> Result<(Atom, Atom, Atom), ConsumerError> {
         let subject_atom = self
             .fetch_or_create_temporary_atom(
                 decoded_consumer_context,
                 U256Wrapper::from(self.subjectId),
+                event,
             )
             .await?;
         let predicate_atom = self
             .fetch_or_create_temporary_atom(
                 decoded_consumer_context,
                 U256Wrapper::from(self.predicateId),
+                event,
             )
             .await?;
         let object_atom = self
             .fetch_or_create_temporary_atom(
                 decoded_consumer_context,
                 U256Wrapper::from(self.objectId),
+                event,
             )
             .await?;
         Ok((subject_atom, predicate_atom, object_atom))
@@ -354,6 +364,7 @@ impl TripleCreated {
     async fn get_or_create_vaults(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
+        event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
         // Get the counter vault ID
         let counter_vault_id = decoded_consumer_context
@@ -361,7 +372,13 @@ impl TripleCreated {
             .await?;
 
         // Get or update the vault
-        get_or_create_vault(self, decoded_consumer_context, TermType::Triple).await?;
+        get_or_create_vault(
+            self,
+            Some(event.block_number),
+            decoded_consumer_context,
+            TermType::Triple,
+        )
+        .await?;
         // Get or update the counter vault
         self.get_or_create_counter_vault(
             U256Wrapper::from(counter_vault_id),
@@ -401,8 +418,11 @@ impl TripleCreated {
             let new_vault = Vault::builder()
                 .term_id(U256Wrapper::from(self.vaultId))
                 .curve_id(U256Wrapper::from_str("1")?)
-                .current_share_price(self.current_share_price(decoded_consumer_context).await?)
-                .total_shares(self.total_shares(decoded_consumer_context).await?)
+                .current_share_price(
+                    self.current_share_price(decoded_consumer_context, None)
+                        .await?,
+                )
+                .total_shares(self.total_shares(decoded_consumer_context, None).await?)
                 .position_count(0)
                 .build()
                 .upsert(
@@ -425,7 +445,8 @@ impl TripleCreated {
         info!("Handling triple creation: {self:#?}");
 
         // Ensure that the vault and counter vault exist
-        self.get_or_create_vaults(decoded_consumer_context).await?;
+        self.get_or_create_vaults(decoded_consumer_context, event)
+            .await?;
 
         // Get or create the triple
         let triple = self
@@ -439,7 +460,8 @@ impl TripleCreated {
         info!("Predicate object triple count updated");
 
         // Update the positions
-        self.update_positions(decoded_consumer_context).await?;
+        self.update_positions(decoded_consumer_context, event)
+            .await?;
         info!("Positions updated");
         // Create the event
         self.create_event(event, decoded_consumer_context).await?;
@@ -521,6 +543,7 @@ impl TripleCreated {
     async fn update_positions(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
+        event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
         let positions = Position::find_by_vault_id(
             format!("{}-1-{}", self.vaultId, self.subjectId),
@@ -545,7 +568,7 @@ impl TripleCreated {
                 .await?;
         }
 
-        self.check_and_update_account_predicate_object_claim_count(decoded_consumer_context)
+        self.check_and_update_account_predicate_object_claim_count(decoded_consumer_context, event)
             .await?;
 
         Ok(())

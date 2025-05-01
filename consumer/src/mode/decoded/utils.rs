@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use crate::{
     error::ConsumerError,
     mode::{resolver::types::ResolverConsumerMessage, types::DecodedConsumerContext},
@@ -147,17 +145,14 @@ pub async fn update_vault(
         VaultUpdate::Deposited {
             sender_assets_after_total_fees,
         } => {
-            vault.total_assets = Some(
-                vault.total_assets.unwrap_or(U256Wrapper::from_str("0")?)
-                    + sender_assets_after_total_fees,
-            );
+            vault.total_assets =
+                Some(vault.total_assets.unwrap_or(0.try_into()?) + sender_assets_after_total_fees);
         }
         VaultUpdate::Redeemed {
             shares_for_receiver,
         } => {
-            vault.total_assets = Some(
-                vault.total_assets.unwrap_or(U256Wrapper::from_str("0")?) - shares_for_receiver,
-            );
+            vault.total_assets =
+                Some(vault.total_assets.unwrap_or(0.try_into()?) - shares_for_receiver);
         }
     }
     // Update regular fields

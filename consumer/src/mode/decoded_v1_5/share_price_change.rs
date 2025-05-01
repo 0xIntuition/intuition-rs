@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use crate::{
     ConsumerError,
-    EthMultiVault::SharePriceChanged,
+    EthMultiVaultV1_5::SharePriceChanged,
     mode::{
         decoded_v1_5::utils::update_vault_from_share_price_changed_events,
         types::DecodedConsumerContext,
@@ -31,6 +31,7 @@ impl VaultManager for &SharePriceChanged {
     async fn total_shares(
         &self,
         _decoded_consumer_context: &DecodedConsumerContext,
+        _block_number: Option<i64>,
     ) -> Result<U256Wrapper, ConsumerError> {
         Ok(U256Wrapper::from(self.totalShares))
     }
@@ -38,6 +39,7 @@ impl VaultManager for &SharePriceChanged {
     async fn current_share_price(
         &self,
         _decoded_consumer_context: &DecodedConsumerContext,
+        _block_number: Option<i64>,
     ) -> Result<U256Wrapper, ConsumerError> {
         Ok(U256Wrapper::from(self.newSharePrice))
     }

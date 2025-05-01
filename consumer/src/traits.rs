@@ -1,9 +1,7 @@
-use std::str::FromStr;
-
 use crate::{
     error::ConsumerError,
     mode::types::{ConsumerMode, DecodedConsumerContext},
-    schemas::goldsky::RawMessage,
+    schemas::{goldsky::RawMessage, types::DecodedMessage},
 };
 use async_trait::async_trait;
 use aws_sdk_sqs::{operation::receive_message::ReceiveMessageOutput, types::Message};
@@ -36,11 +34,11 @@ pub trait IntoRawMessage {
 pub trait SharePriceEvent: VaultManager {
     #[allow(dead_code)]
     fn new_share_price(&self) -> Result<U256Wrapper, ConsumerError> {
-        Ok(U256Wrapper::from_str("0")?)
+        Ok(0.try_into()?)
     }
     #[allow(dead_code)]
     fn total_assets(&self) -> Result<U256Wrapper, ConsumerError> {
-        Ok(U256Wrapper::from_str("0")?)
+        Ok(0.try_into()?)
     }
 }
 
@@ -70,4 +68,13 @@ pub trait AccountManager {
     fn account_id(&self) -> String;
     fn label(&self) -> String;
     fn account_type(&self) -> AccountType;
+}
+
+// #[async_trait]
+pub trait EventProcessor {
+    async fn process(
+        &self,
+        context: &DecodedConsumerContext,
+        message: &DecodedMessage,
+    ) -> Result<(), ConsumerError>;
 }

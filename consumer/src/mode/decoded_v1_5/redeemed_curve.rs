@@ -1,6 +1,6 @@
 use crate::{
     ConsumerError,
-    EthMultiVault::RedeemedCurve,
+    EthMultiVaultV1_5::RedeemedCurve,
     mode::{decoded_v1_5::utils::get_or_create_account, types::DecodedConsumerContext},
     schemas::types::DecodedMessage,
 };

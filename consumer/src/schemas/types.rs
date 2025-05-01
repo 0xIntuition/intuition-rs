@@ -4,6 +4,34 @@ use models::raw_logs::RawLog;
 use serde::{Deserialize, Serialize};
 
 use crate::EthMultiVault::EthMultiVaultEvents;
+use crate::EthMultiVaultV1_5::EthMultiVaultV1_5Events;
+use crate::error::ConsumerError;
+use crate::mode::types::DecodedConsumerContext;
+use crate::traits::EventProcessor;
+
+/// This enum defines the different types of events that can be processed
+#[derive(Debug, Deserialize, Serialize)]
+pub enum ContractEvent {
+    EthMultiVault(EthMultiVaultEvents),
+    EthMultiVaultV1_5(EthMultiVaultV1_5Events),
+}
+
+impl ContractEvent {
+    pub async fn process(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+        message: &DecodedMessage,
+    ) -> Result<(), ConsumerError> {
+        match self {
+            ContractEvent::EthMultiVault(event) => {
+                event.process(decoded_consumer_context, message).await
+            }
+            ContractEvent::EthMultiVaultV1_5(event) => {
+                event.process(decoded_consumer_context, message).await
+            }
+        }
+    }
+}
 
 /// This struct defines the format of the message that we are
 /// sending to the decoded logs queue. As this is not being stored
@@ -11,7 +39,7 @@ use crate::EthMultiVault::EthMultiVaultEvents;
 /// living in the models crate.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct DecodedMessage {
-    pub body: EthMultiVaultEvents,
+    pub body: ContractEvent,
     pub block_hash: String,
     pub block_number: i64,
     pub block_timestamp: i64,
@@ -21,7 +49,7 @@ pub struct DecodedMessage {
 
 /// This function creates a new [`DecodedMessage`] struct
 impl DecodedMessage {
-    pub fn new(event: EthMultiVaultEvents, raw_log: RawLog) -> Self {
+    pub fn new(event: ContractEvent, raw_log: RawLog) -> Self {
         Self {
             body: event,
             block_hash: raw_log.block_hash,
@@ -35,6 +63,11 @@ impl DecodedMessage {
     /// This function formats the event id
     pub fn event_id(event: &DecodedMessage) -> String {
         format!("{}-{}", event.transaction_hash.clone(), event.log_index)
+    }
+
+    /// This function processes the event
+    pub async fn process(&self, context: &DecodedConsumerContext) -> Result<(), ConsumerError> {
+        self.body.process(context, self).await
     }
 }
 

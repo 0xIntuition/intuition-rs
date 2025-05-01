@@ -1,11 +1,9 @@
 use crate::{
     EthMultiVault::AtomCreated,
     error::ConsumerError,
+    metadata::get_supported_atom_metadata,
     mode::{
-        decoded::{
-            atom::atom_supported_types::get_supported_atom_metadata,
-            utils::{get_or_create_account, short_id, update_account_with_atom_id},
-        },
+        decoded::utils::{get_or_create_account, short_id, update_account_with_atom_id},
         resolver::types::ResolveAtom,
         types::DecodedConsumerContext,
     },
@@ -124,7 +122,7 @@ impl AtomCreated {
         event: &DecodedMessage,
     ) -> Result<Atom, ConsumerError> {
         if let Some(atom) = Atom::find_by_id(
-            U256Wrapper::from_str(&self.vaultID.to_string())?,
+            self.vaultID.into(),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
@@ -223,7 +221,7 @@ impl AtomCreated {
     ) -> Result<Vault, ConsumerError> {
         if let Some(vault) = Vault::find_by_term_id_and_curve_id(
             U256Wrapper::from(self.vaultID),
-            U256Wrapper::from_str("1")?,
+            1.try_into()?,
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
@@ -291,8 +289,8 @@ impl AtomCreated {
             .await?;
         // Update the respective vault with the correct share price
         let vault = Vault::update_current_share_price(
-            U256Wrapper::from(self.vaultID),
-            U256Wrapper::from_str(&current_share_price.to_string())?,
+            self.vaultID.into(),
+            current_share_price.into(),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )

@@ -1,9 +1,6 @@
-#[cfg(feature = "v1_0_contract")]
-use crate::mode::decoded::atom::atom_supported_types::AtomMetadata;
-#[cfg(feature = "v1_5_contract")]
-use crate::mode::decoded_v1_5::atom::atom_supported_types::AtomMetadata;
 use crate::{
     error::ConsumerError,
+    metadata::AtomMetadata,
     mode::{
         ipfs_upload::types::IpfsUploadMessage,
         resolver::{
@@ -242,7 +239,7 @@ impl ResolverMessageType {
         metadata: AtomMetadata,
     ) -> Result<Atom, ConsumerError> {
         let atom = Atom::find_by_id(
-            U256Wrapper::from_str(atom_id)?,
+            atom_id.try_into()?,
             &resolver_consumer_context.pg_pool,
             &resolver_consumer_context
                 .server_initialize

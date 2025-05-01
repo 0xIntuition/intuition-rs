@@ -9,29 +9,15 @@ mod app_context;
 mod config;
 mod consumer_type;
 mod error;
+mod metadata;
 mod mode;
 mod schemas;
 mod traits;
+mod v1_5_contract;
+mod v1_contract;
 
-#[cfg(feature = "v1_0_contract")]
-// Codegen from ABI file to interact with the Intuition contract.
-sol!(
-    #[derive(Debug, Deserialize, Serialize)]
-    #[allow(missing_docs)]
-    #[sol(rpc)]
-    EthMultiVault,
-    "contracts/EthMultiVault_v_1_0.json"
-);
-
-#[cfg(feature = "v1_5_contract")]
-// Codegen from ABI file to interact with the Intuition contract.
-sol!(
-    #[derive(Debug, Deserialize, Serialize)]
-    #[allow(missing_docs)]
-    #[sol(rpc)]
-    EthMultiVault,
-    "contracts/EthMultiVault_v_1_5.json"
-);
+pub use v1_5_contract::EthMultiVaultV1_5;
+pub use v1_contract::EthMultiVault;
 
 // Codegen to interact with the ENS contract.
 sol!(

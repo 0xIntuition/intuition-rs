@@ -1,6 +1,6 @@
 use crate::{
     ENSRegistry::{self, ENSRegistryInstance},
-    EthMultiVault::{self, EthMultiVaultEvents, EthMultiVaultInstance},
+    EthMultiVault::{self, EthMultiVaultInstance},
     app_context::ServerInitialize,
     config::{ConsumerType, IndexerSource},
     consumer_type::sqs::Sqs,
@@ -20,7 +20,10 @@ use prometheus::{HistogramVec, register_histogram_vec};
 use reqwest::Client;
 use shared_utils::{ipfs::IPFSResolver, postgres::connect_to_db};
 use sqlx::PgPool;
-use std::{str::FromStr, sync::Arc};
+use std::{
+    str::FromStr,
+    sync::{Arc, RwLock},
+};
 use tokio::time::{Duration, sleep};
 use tracing::{debug, info, warn};
 
@@ -34,7 +37,7 @@ pub trait AtomUpdater {
 // Create a OnceCell to hold the histogram
 static EVENT_PROCESSING_HISTOGRAM: OnceCell<HistogramVec> = OnceCell::new();
 
-fn get_event_processing_histogram() -> &'static HistogramVec {
+pub fn get_event_processing_histogram() -> &'static HistogramVec {
     EVENT_PROCESSING_HISTOGRAM.get_or_init(|| {
         register_histogram_vec!(
             "event_processing_duration_seconds",
@@ -307,6 +310,7 @@ pub struct RawConsumerContext {
     pub pg_pool: PgPool,
     pub indexing_source: Arc<IndexerSource>,
     pub backend_schema: String,
+    pub contract_version: Arc<RwLock<i32>>,
 }
 
 /// Represents the resolver consumer context
@@ -319,6 +323,7 @@ pub struct ResolverConsumerContext {
     pub pg_pool: PgPool,
     pub reqwest_client: reqwest::Client,
     pub server_initialize: ServerInitialize,
+    pub contract_version: Arc<RwLock<i32>>,
 }
 
 impl AtomUpdater for ResolverConsumerContext {
@@ -330,6 +335,7 @@ impl AtomUpdater for ResolverConsumerContext {
         &self.server_initialize.env.backend_schema
     }
 }
+
 impl ConsumerMode {
     /// This function builds the client based on the consumer type
     async fn build_client(
@@ -520,11 +526,15 @@ impl ConsumerMode {
         )
         .await?;
 
+        // Hardcoded to 1 for now
+        let contract_version = Arc::new(RwLock::new(1));
+
         Ok(ConsumerMode::Raw(RawConsumerContext {
             client,
             pg_pool,
             indexing_source,
             backend_schema: data.env.backend_schema.clone(),
+            contract_version,
         }))
     }
 
@@ -563,6 +573,9 @@ impl ConsumerMode {
 
         let image_guard_url = Self::create_image_guard(data.clone()).await?;
 
+        // Hardcoded to 1 for now
+        let contract_version = Arc::new(RwLock::new(1));
+
         let reqwest_client = reqwest::Client::new();
         Ok(ConsumerMode::Resolver(ResolverConsumerContext {
             client,
@@ -572,6 +585,7 @@ impl ConsumerMode {
             pg_pool,
             reqwest_client,
             server_initialize: data,
+            contract_version,
         }))
     }
 
@@ -708,112 +722,8 @@ impl ConsumerMode {
         self.update_stats(&decoded_message, decoded_consumer_context)
             .await?;
 
-        match &decoded_message.body {
-            EthMultiVaultEvents::Initialized(initialized_data) => {
-                let timer = get_event_processing_histogram()
-                    .with_label_values(&["Initialized"])
-                    .start_timer();
-                info!("Received: {initialized_data:#?}");
-                timer.observe_duration();
-            }
-            EthMultiVaultEvents::AtomCreated(atom_data) => {
-                let timer = get_event_processing_histogram()
-                    .with_label_values(&["AtomCreated"])
-                    .start_timer();
-                info!("Received: {atom_data:#?}");
-                atom_data
-                    .handle_atom_creation(decoded_consumer_context, &decoded_message)
-                    .await?;
-                timer.observe_duration();
-            }
-            EthMultiVaultEvents::FeesTransferred(fees_data) => {
-                let timer = get_event_processing_histogram()
-                    .with_label_values(&["FeesTransferred"])
-                    .start_timer();
-                info!("Received: {fees_data:#?}");
-                fees_data
-                    .handle_fees_transferred_creation(decoded_consumer_context, &decoded_message)
-                    .await?;
-                timer.observe_duration();
-            }
-            EthMultiVaultEvents::TripleCreated(triple_data) => {
-                let timer = get_event_processing_histogram()
-                    .with_label_values(&["TripleCreated"])
-                    .start_timer();
-                info!("Received: {triple_data:#?}");
-                triple_data
-                    .handle_triple_creation(decoded_consumer_context, &decoded_message)
-                    .await?;
-                timer.observe_duration();
-            }
-            EthMultiVaultEvents::Deposited(deposited_data) => {
-                let timer = get_event_processing_histogram()
-                    .with_label_values(&["Deposited"])
-                    .start_timer();
-                info!("Received: {deposited_data:#?}");
-                deposited_data
-                    .handle_deposit_creation(decoded_consumer_context, &decoded_message)
-                    .await?;
-                timer.observe_duration();
-            }
-            EthMultiVaultEvents::Redeemed(redeemed_data) => {
-                let timer = get_event_processing_histogram()
-                    .with_label_values(&["Redeemed"])
-                    .start_timer();
-                info!("Received: {redeemed_data:#?}");
-                redeemed_data
-                    .handle_redeemed_creation(decoded_consumer_context, &decoded_message)
-                    .await?;
-                timer.observe_duration();
-            }
-            #[cfg(feature = "v1_5_contract")]
-            EthMultiVaultEvents::DepositedCurve(deposited_curve_data) => {
-                let timer = get_event_processing_histogram()
-                    .with_label_values(&["DepositedCurve"])
-                    .start_timer();
-                info!("Received: {deposited_curve_data:#?}");
-                deposited_curve_data
-                    .handle_curve_deposit_creation(decoded_consumer_context, &decoded_message)
-                    .await?;
-                timer.observe_duration();
-            }
-            #[cfg(feature = "v1_5_contract")]
-            EthMultiVaultEvents::RedeemedCurve(redeemed_curve_data) => {
-                let timer = get_event_processing_histogram()
-                    .with_label_values(&["RedeemedCurve"])
-                    .start_timer();
-                info!("Received: {redeemed_curve_data:#?}");
-                redeemed_curve_data
-                    .handle_curve_redeemed_creation(decoded_consumer_context, &decoded_message)
-                    .await?;
-                timer.observe_duration();
-            }
-            #[cfg(feature = "v1_5_contract")]
-            EthMultiVaultEvents::SharePriceChangedCurve(share_price_changed_curve_data) => {
-                let timer = get_event_processing_histogram()
-                    .with_label_values(&["SharePriceChangedCurve"])
-                    .start_timer();
-                info!("Received: {share_price_changed_curve_data:#?}");
-                share_price_changed_curve_data
-                    .handle_share_price_changed_curve(decoded_consumer_context, &decoded_message)
-                    .await?;
-                timer.observe_duration();
-            }
-            #[cfg(feature = "v1_5_contract")]
-            EthMultiVaultEvents::SharePriceChanged(share_price_changed_data) => {
-                let timer = get_event_processing_histogram()
-                    .with_label_values(&["SharePriceChanged"])
-                    .start_timer();
-                info!("Received: {share_price_changed_data:#?}");
-                share_price_changed_data
-                    .handle_share_price_changed(decoded_consumer_context, &decoded_message)
-                    .await?;
-                timer.observe_duration();
-            }
-            _ => {
-                warn!("Received event: {decoded_message:#?}");
-            }
-        }
+        // Process the decoded message
+        decoded_message.process(decoded_consumer_context).await?;
 
         Ok(())
     }
