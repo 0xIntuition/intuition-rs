@@ -295,7 +295,7 @@ pub struct RawConsumerContext {
     pub pg_pool: PgPool,
     pub indexing_source: Arc<IndexerSource>,
     pub backend_schema: String,
-    pub contract_version: Arc<RwLock<i32>>,
+    pub contract_version: Arc<RwLock<ContractVersion>>,
 }
 
 /// Represents the resolver consumer context
@@ -308,7 +308,7 @@ pub struct ResolverConsumerContext {
     pub pg_pool: PgPool,
     pub reqwest_client: reqwest::Client,
     pub server_initialize: ServerInitialize,
-    pub contract_version: Arc<RwLock<i32>>,
+    pub contract_version: Arc<RwLock<ContractVersion>>,
 }
 
 impl AtomUpdater for ResolverConsumerContext {
@@ -483,7 +483,7 @@ impl ConsumerMode {
         .await?;
 
         // Hardcoded to 1 for now
-        let contract_version = Arc::new(RwLock::new(1));
+        let contract_version = Arc::new(RwLock::new(ContractVersion::V1));
 
         Ok(ConsumerMode::Raw(RawConsumerContext {
             client,
@@ -530,7 +530,7 @@ impl ConsumerMode {
         let image_guard_url = Self::create_image_guard(data.clone()).await?;
 
         // Hardcoded to 1 for now
-        let contract_version = Arc::new(RwLock::new(1));
+        let contract_version = Arc::new(RwLock::new(ContractVersion::V1));
 
         let reqwest_client = reqwest::Client::new();
         Ok(ConsumerMode::Resolver(ResolverConsumerContext {

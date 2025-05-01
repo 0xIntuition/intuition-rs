@@ -72,7 +72,7 @@ impl FromStr for ConsumerType {
 }
 
 // This enum describes the contract versions
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub enum ContractVersion {
     V1,
     V1_5,

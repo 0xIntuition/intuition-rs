@@ -34,7 +34,7 @@ impl ConsumerMode {
         match raw_message.op {
             Operation::C => {
                 // Decode the log using Alloy's built-in decoder
-                let contract_version = *raw_consumer_context.contract_version.read()?;
+                let contract_version = raw_consumer_context.contract_version.read()?.clone();
                 let event = Self::decode_raw_log(
                     raw_message.body.topics.clone(),
                     raw_message.body.data.clone(),
