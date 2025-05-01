@@ -1,4 +1,7 @@
-use alloy::hex::FromHexError;
+use alloy::{
+    hex::FromHexError,
+    transports::{RpcError, TransportErrorKind},
+};
 use std::sync::PoisonError;
 use thiserror::Error;
 
@@ -20,6 +23,8 @@ pub enum ConsumerError {
     Alloy(#[from] alloy::contract::Error),
     #[error(transparent)]
     AlloyHex(#[from] FromHexError),
+    #[error(transparent)]
+    AlloyRpc(#[from] RpcError<TransportErrorKind>),
     #[error(transparent)]
     AWSCreateBucket(
         #[from]

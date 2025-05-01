@@ -1,8 +1,7 @@
 use crate::{
     ENSRegistry::{self, ENSRegistryInstance},
-    EthMultiVault::{self, EthMultiVaultInstance},
     app_context::ServerInitialize,
-    config::{ConsumerType, IndexerSource},
+    config::{ConsumerType, ContractInstance, ContractVersion, IndexerSource},
     consumer_type::sqs::Sqs,
     error::ConsumerError,
     schemas::types::DecodedMessage,
@@ -11,7 +10,7 @@ use crate::{
 use alloy::{
     eips::BlockId,
     primitives::{Address, Bytes, U256, Uint},
-    providers::{DynProvider, Provider, ProviderBuilder},
+    providers::{DynProvider, ProviderBuilder},
 };
 use alloy_network::Ethereum;
 use models::{stats::Stats, types::U256Wrapper};
@@ -63,7 +62,7 @@ pub enum ConsumerMode {
 #[derive(Clone)]
 pub struct DecodedConsumerContext {
     pub client: Arc<dyn BasicConsumer>,
-    pub base_client: Arc<EthMultiVaultInstance<DynProvider, Ethereum>>,
+    pub base_client: Arc<ContractInstance>,
     pub pg_pool: PgPool,
     pub backend_schema: String,
 }
@@ -103,15 +102,11 @@ impl DecodedConsumerContext {
         // Build the block identifier from the event's block number.
         // let block = BlockId::from_str(&event.block_number.to_string())?;
         // Assume self.base_client stores the contract address.
-        let contract_address = self.base_client.address();
+        let contract_address = self.base_client.address()?;
 
         self.retry_with_backoff(|| async {
             // Directly query the provider for the balance of the contract address.
-            let balance_result = self
-                .base_client
-                .provider()
-                .get_balance(*contract_address)
-                .await;
+            let balance_result = self.base_client.get_balance(contract_address).await;
             match balance_result {
                 Ok(balance) => {
                     info!("Contract balance: {:?}", balance);
@@ -139,9 +134,7 @@ impl DecodedConsumerContext {
         self.retry_with_backoff(|| async {
             let current_share_price = self
                 .base_client
-                .currentSharePrice(id)
-                .block(BlockId::from_str(&block_number.to_string())?)
-                .call()
+                .current_share_price(id, BlockId::from_str(&block_number.to_string())?)
                 .await;
             match &current_share_price {
                 Ok(price) => {
@@ -161,7 +154,7 @@ impl DecodedConsumerContext {
     /// This function fetches the current share price from the vault
     pub async fn is_triple_id(&self, id: Uint<256, 4>) -> Result<bool, ConsumerError> {
         self.retry_with_backoff(|| async {
-            let is_triple_id = self.base_client.isTripleId(id).call().await;
+            let is_triple_id = self.base_client.is_triple_id(id).await;
             match &is_triple_id {
                 Ok(is_triple_id) => {
                     info!("Is triple id: {:?}", is_triple_id);
@@ -186,14 +179,12 @@ impl DecodedConsumerContext {
         self.retry_with_backoff(|| async {
             let total_shares = self
                 .base_client
-                .vaults(id)
-                .block(BlockId::from_str(&block_number.to_string())?)
-                .call()
+                .get_total_shares(id, BlockId::from_str(&block_number.to_string())?)
                 .await;
             match &total_shares {
                 Ok(shares) => {
                     info!("Total shares in vault: {:?}", shares);
-                    Ok(shares.totalShares)
+                    Ok(*shares)
                 }
                 Err(e) => {
                     warn!("Response: {:?}", total_shares);
@@ -208,7 +199,7 @@ impl DecodedConsumerContext {
     /// This function fetches the atom data from the contract
     pub async fn fetch_atom_data(&self, id: Uint<256, 4>) -> Result<Bytes, ConsumerError> {
         self.retry_with_backoff(|| async {
-            let atom_data = self.base_client.atoms(id).call().await;
+            let atom_data = self.base_client.get_atoms(id).await;
             match &atom_data {
                 Ok(data) => {
                     info!("Atom data: {:?}", data);
@@ -230,11 +221,7 @@ impl DecodedConsumerContext {
         vault_id: Uint<256, 4>,
     ) -> Result<Uint<256, 4>, ConsumerError> {
         self.retry_with_backoff(|| async {
-            let counter_id = self
-                .base_client
-                .getCounterIdFromTriple(vault_id)
-                .call()
-                .await;
+            let counter_id = self.base_client.get_counter_id_from_triple(vault_id).await;
             match &counter_id {
                 Ok(counter_id) => {
                     info!("Counter id: {:?}", counter_id);
@@ -255,15 +242,13 @@ impl DecodedConsumerContext {
         &self,
         block_id_str: &str,
     ) -> Result<U256, ConsumerError> {
-        let contract_address = self.base_client.address();
+        let contract_address = self.base_client.address()?;
         let block = BlockId::from_str(block_id_str)?;
 
         self.retry_with_backoff(|| async {
             let balance_result = self
                 .base_client
-                .provider()
-                .get_balance(*contract_address)
-                .block_id(block)
+                .get_balance_at_block(contract_address, block)
                 .await;
             match balance_result {
                 Ok(balance) => {
@@ -368,41 +353,12 @@ impl ConsumerMode {
         Ok(ens_contract)
     }
 
-    /// Builds the alloy client for the Intuition contract
-    fn build_intuition_client(
-        rpc_url: &str,
-        contract_address: &str,
-    ) -> Result<EthMultiVaultInstance<DynProvider, Ethereum>, ConsumerError> {
-        let provider = ProviderBuilder::new().connect_http(rpc_url.parse()?);
-        let dyn_provider = DynProvider::new(provider);
-
-        let alloy_contract = EthMultiVault::new(
-            Address::from_str(contract_address)
-                .map_err(|e| ConsumerError::AddressParse(e.to_string()))?,
-            dyn_provider,
-        );
-
-        Ok(alloy_contract)
-    }
-
     /// This function creates a decoded consumer
     async fn create_decoded_consumer(
         data: ServerInitialize,
         pg_pool: PgPool,
     ) -> Result<ConsumerMode, ConsumerError> {
-        let base_client = Arc::new(Self::build_intuition_client(
-            &data
-                .clone()
-                .env
-                .rpc_url_base
-                .unwrap_or_else(|| panic!("RPC URL base mainnet is not set")),
-            &data
-                .clone()
-                .env
-                .intuition_contract_address
-                .unwrap_or_else(|| panic!("Intuition contract address is not set"))
-                .to_lowercase(),
-        )?);
+        let base_client = Arc::new(ContractInstance::build_client(ContractVersion::V1, &data)?);
         let client = Self::build_client(
             data.clone(),
             data.env
@@ -764,6 +720,8 @@ impl ConsumerMode {
 
 #[cfg(test)]
 mod tests {
+    use crate::EthMultiVault::{self, EthMultiVaultInstance};
+
     use super::*;
     use alloy::{
         eips::BlockId,
@@ -888,7 +846,7 @@ mod tests {
                 assert_eq!(decoded_context.backend_schema, "public");
 
                 // Verify the base client was built with the expected contract address.
-                let contract_address = decoded_context.base_client.address();
+                let contract_address = decoded_context.base_client.address().unwrap();
                 // Normalize to lowercase (the builder may parse the address in lowercase).
                 assert_eq!(
                     contract_address.to_string().to_lowercase(),

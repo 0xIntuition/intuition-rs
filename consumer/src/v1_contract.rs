@@ -1,11 +1,19 @@
-use alloy::sol;
+use std::str::FromStr;
+
+use alloy::{
+    primitives::Address,
+    providers::{DynProvider, ProviderBuilder},
+    sol,
+};
+use alloy_network::Ethereum;
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    config::ContractInstance,
     error::ConsumerError,
     mode::types::{DecodedConsumerContext, get_event_processing_histogram},
     schemas::types::DecodedMessage,
-    traits::EventProcessor,
+    traits::{ContractClient, EventProcessor},
 };
 use tracing::{info, warn};
 // Codegen from ABI file to interact with the Intuition contract.
@@ -18,6 +26,24 @@ sol!(
 );
 
 type EthMultiVaultV1Events = EthMultiVault::EthMultiVaultEvents;
+type EthMultiVaultInstanceV1 = EthMultiVault::EthMultiVaultInstance<DynProvider, Ethereum>;
+
+impl ContractClient for EthMultiVaultInstanceV1 {
+    fn build_client(
+        rpc_url: &str,
+        contract_address: &str,
+    ) -> Result<ContractInstance, ConsumerError> {
+        let provider = ProviderBuilder::new().connect_http(rpc_url.parse()?);
+        let dyn_provider = DynProvider::new(provider);
+
+        let alloy_contract = EthMultiVault::new(
+            Address::from_str(contract_address)
+                .map_err(|e| ConsumerError::AddressParse(e.to_string()))?,
+            dyn_provider,
+        );
+        Ok(ContractInstance::V1(alloy_contract))
+    }
+}
 
 impl EventProcessor for &EthMultiVaultV1Events {
     async fn process(

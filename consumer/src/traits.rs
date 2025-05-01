@@ -1,4 +1,5 @@
 use crate::{
+    config::ContractInstance,
     error::ConsumerError,
     mode::types::{ConsumerMode, DecodedConsumerContext},
     schemas::{goldsky::RawMessage, types::DecodedMessage},
@@ -70,11 +71,17 @@ pub trait AccountManager {
     fn account_type(&self) -> AccountType;
 }
 
-// #[async_trait]
 pub trait EventProcessor {
     async fn process(
         &self,
         context: &DecodedConsumerContext,
         message: &DecodedMessage,
     ) -> Result<(), ConsumerError>;
+}
+
+pub trait ContractClient: Send + Sync {
+    fn build_client(
+        rpc_url: &str,
+        contract_address: &str,
+    ) -> Result<ContractInstance, ConsumerError>;
 }
