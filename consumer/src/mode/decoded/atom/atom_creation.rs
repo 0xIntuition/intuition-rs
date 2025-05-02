@@ -1,9 +1,9 @@
 use crate::{
     EthMultiVault::AtomCreated,
     error::ConsumerError,
-    metadata::get_supported_atom_metadata,
     mode::{
         decoded::utils::{get_or_create_account, short_id, update_account_with_atom_id},
+        metadata::get_supported_atom_metadata,
         resolver::types::ResolveAtom,
         types::DecodedConsumerContext,
     },

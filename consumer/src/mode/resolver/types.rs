@@ -1,8 +1,8 @@
 use crate::{
     error::ConsumerError,
-    metadata::AtomMetadata,
     mode::{
         ipfs_upload::types::IpfsUploadMessage,
+        metadata::AtomMetadata,
         resolver::{
             atom_resolver::{
                 handle_binary_data, try_to_parse_json_or_text, try_to_resolve_ipfs_uri,

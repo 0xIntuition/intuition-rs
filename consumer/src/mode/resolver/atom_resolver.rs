@@ -1,7 +1,7 @@
 use crate::{
     error::ConsumerError,
-    metadata::AtomMetadata,
-    mode::types::{AtomUpdater, ResolverConsumerContext},
+    mode::{metadata::AtomMetadata, types::ResolverConsumerContext},
+    traits::AtomUpdater,
 };
 use bytes::Bytes;
 use models::{

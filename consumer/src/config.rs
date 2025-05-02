@@ -33,6 +33,9 @@ pub struct Env {
     pub rpc_url_base: Option<String>,
     pub rpc_url_mainnet: Option<String>,
     pub backend_schema: String,
+    pub indexer_database_url: Option<String>,
+    pub indexer_schema: Option<String>,
+    pub environment_name: Option<String>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -60,14 +63,21 @@ impl FromStr for IndexerSource {
 #[derive(Deserialize, Debug)]
 pub enum ConsumerType {
     Sqs,
+    SqsHibrid,
 }
 /// As we only have one consumer type for now, we can implement the
 /// `FromStr` trait to return the `Sqs` enum.
 impl FromStr for ConsumerType {
     type Err = ConsumerError;
 
-    fn from_str(_s: &str) -> Result<Self, Self::Err> {
-        Ok(Self::Sqs)
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s == "sqs" {
+            Ok(Self::Sqs)
+        } else if s == "sqs_hibrid" {
+            Ok(Self::SqsHibrid)
+        } else {
+            Err(ConsumerError::ConsumerTypeParse(s.to_string()))
+        }
     }
 }
 

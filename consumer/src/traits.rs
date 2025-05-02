@@ -7,6 +7,13 @@ use crate::{
 use async_trait::async_trait;
 use aws_sdk_sqs::{operation::receive_message::ReceiveMessageOutput, types::Message};
 use models::{account::AccountType, types::U256Wrapper};
+use sqlx::PgPool;
+
+pub trait AtomUpdater {
+    fn pool(&self) -> &PgPool;
+    fn backend_schema(&self) -> &str;
+}
+
 /// This is a generic trait for Consumers. It contains all of the
 /// basic methods to provide basic functionality.
 #[async_trait]
@@ -64,6 +71,9 @@ pub trait VaultManager {
     ) -> Result<i32, ConsumerError>;
 }
 
+/// This trait is implemented by all account managers. It allows us to create
+/// accounts in a generic way.
+
 #[async_trait]
 pub trait AccountManager {
     fn account_id(&self) -> String;
@@ -71,6 +81,8 @@ pub trait AccountManager {
     fn account_type(&self) -> AccountType;
 }
 
+/// This trait is implemented by all event processors. It allows us to process
+/// events in a generic way for the different contract versions.
 pub trait EventProcessor {
     async fn process(
         &self,
@@ -79,6 +91,8 @@ pub trait EventProcessor {
     ) -> Result<(), ConsumerError>;
 }
 
+/// This trait is implemented by all contract clients. It allows us to build
+/// a client for the different contract versions.
 pub trait ContractClient: Send + Sync {
     fn build_client(
         rpc_url: &str,

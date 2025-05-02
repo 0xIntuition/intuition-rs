@@ -9,15 +9,13 @@ mod app_context;
 mod config;
 mod consumer_type;
 mod error;
-mod metadata;
 mod mode;
 mod schemas;
+mod supported_contracts;
 mod traits;
-mod v1_5_contract;
-mod v1_contract;
 
-pub use v1_5_contract::EthMultiVaultV1_5;
-pub use v1_contract::EthMultiVault;
+pub use supported_contracts::v1_5_contract::EthMultiVaultV1_5;
+pub use supported_contracts::v1_contract::EthMultiVault;
 
 // Codegen to interact with the ENS contract.
 sol!(

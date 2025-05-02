@@ -25,6 +25,8 @@ pub enum ConsumerError {
     AlloyHex(#[from] FromHexError),
     #[error(transparent)]
     AlloyRpc(#[from] RpcError<TransportErrorKind>),
+    #[error("App config not found")]
+    AppConfigNotFound,
     #[error(transparent)]
     AWSCreateBucket(
         #[from]
@@ -77,6 +79,8 @@ pub enum ConsumerError {
     ),
     #[error("Block number not found")]
     BlockNumberNotFound,
+    #[error("Failed to parse consumer type: {0}")]
+    ConsumerTypeParse(String),
     #[error("ByteObject error")]
     ByteObjectError(String),
     #[error("Deposited error")]
@@ -89,6 +93,8 @@ pub enum ConsumerError {
     Empty(String),
     #[error(transparent)]
     Envy(#[from] envy::Error),
+    #[error("Environment name not found")]
+    EnvironmentNameNotFound,
     #[error("Failed to resolve ENS data: {0}")]
     Ens(String),
     #[error("Failed to get bytes from IPFS response")]
@@ -97,8 +103,12 @@ pub enum ConsumerError {
     Hex(#[from] hex::FromHexError),
     #[error(transparent)]
     HexConversion(#[from] rustc_hex::FromHexError),
+    #[error("Indexer database URL not found")]
+    IndexerDatabaseUrlNotFound,
     #[error("Failed to resolve IPFS data: {0}")]
     Ipfs(String),
+    #[error("Indexer schema not found")]
+    IndexerSchemaNotFound,
     #[error("Invalid CAIP10")]
     InvalidCaip10,
     #[error("Invalid JSON")]
@@ -117,10 +127,14 @@ pub enum ConsumerError {
     ModelError(#[from] models::error::ModelError),
     #[error("No resolver consumer context")]
     NoResolverConsumerContext,
+    #[error("No notification handler")]
+    NotificationHandlerNotFound,
     #[error("Vault not found")]
     VaultNotFound,
     #[error("Network error: {0}")]
     NetworkError(String),
+    #[error("Not found")]
+    NotFound,
     #[error("Object atom not found")]
     ObjectAtomNotFound,
     #[error(transparent)]

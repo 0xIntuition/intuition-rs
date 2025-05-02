@@ -36,6 +36,8 @@ strum.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
 tracing = "0.1"
+macon.workspace = true
+chrono.workspace = true
 tracing-appender = "0.2"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 warp = "0.3.7"

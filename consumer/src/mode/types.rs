@@ -1,11 +1,12 @@
+use super::{ipfs_upload::types::IpfsUploadMessage, resolver::types::ResolverConsumerMessage};
 use crate::{
     ENSRegistry::{self, ENSRegistryInstance},
     app_context::ServerInitialize,
     config::{ConsumerType, ContractInstance, ContractVersion, IndexerSource},
-    consumer_type::sqs::Sqs,
+    consumer_type::{sqs::Sqs, sqs_hibrid::SqsHibrid},
     error::ConsumerError,
     schemas::types::DecodedMessage,
-    traits::BasicConsumer,
+    traits::{AtomUpdater, BasicConsumer},
 };
 use alloy::{
     eips::BlockId,
@@ -25,13 +26,6 @@ use std::{
 };
 use tokio::time::{Duration, sleep};
 use tracing::{debug, info, warn};
-
-use super::{ipfs_upload::types::IpfsUploadMessage, resolver::types::ResolverConsumerMessage};
-
-pub trait AtomUpdater {
-    fn pool(&self) -> &PgPool;
-    fn backend_schema(&self) -> &str;
-}
 
 // Create a OnceCell to hold the histogram
 static EVENT_PROCESSING_HISTOGRAM: OnceCell<HistogramVec> = OnceCell::new();
@@ -309,7 +303,6 @@ pub struct ResolverConsumerContext {
     pub pg_pool: PgPool,
     pub reqwest_client: reqwest::Client,
     pub server_initialize: ServerInitialize,
-    pub contract_version: Arc<RwLock<ContractVersion>>,
 }
 
 impl AtomUpdater for ResolverConsumerContext {
@@ -331,6 +324,7 @@ impl ConsumerMode {
     ) -> Result<Arc<dyn BasicConsumer>, ConsumerError> {
         match ConsumerType::from_str(&data.env.consumer_type)? {
             ConsumerType::Sqs => Ok(Arc::new(Sqs::new(input_queue, output_queue, data).await)),
+            ConsumerType::SqsHibrid => Ok(Arc::new(SqsHibrid::new(output_queue, data).await?)),
         }
     }
 
@@ -551,12 +545,7 @@ impl ConsumerMode {
         .await?;
 
         let ipfs_resolver = Self::create_ipfs_resolver(data.clone()).await?;
-
         let image_guard_url = Self::create_image_guard(data.clone()).await?;
-
-        let contract_version = Arc::new(RwLock::new(
-            Self::get_contract_version(&pg_pool, &data.env.backend_schema).await?,
-        ));
 
         let reqwest_client = reqwest::Client::new();
         Ok(ConsumerMode::Resolver(ResolverConsumerContext {
@@ -567,7 +556,6 @@ impl ConsumerMode {
             pg_pool,
             reqwest_client,
             server_initialize: data,
-            contract_version,
         }))
     }
 
