@@ -60,6 +60,9 @@ impl EventProcessor for &EthMultiVaultV1_5Events {
                     .with_label_values(&["Initialized"])
                     .start_timer();
                 info!("Received: {initialized_data:#?}");
+                initialized_data
+                    .handle_initialized_creation(context, message)
+                    .await?;
                 timer.observe_duration();
             }
             EthMultiVaultV1_5Events::AtomCreated(atom_data) => {

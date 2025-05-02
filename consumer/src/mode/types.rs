@@ -13,7 +13,7 @@ use alloy::{
     providers::{DynProvider, ProviderBuilder},
 };
 use alloy_network::Ethereum;
-use models::{stats::Stats, types::U256Wrapper};
+use models::{initialize::Initialize, stats::Stats, types::U256Wrapper};
 use once_cell::sync::OnceCell;
 use prometheus::{HistogramVec, register_histogram_vec};
 use reqwest::Client;
@@ -65,6 +65,7 @@ pub struct DecodedConsumerContext {
     pub base_client: Arc<ContractInstance>,
     pub pg_pool: PgPool,
     pub backend_schema: String,
+    pub contract_version: Arc<RwLock<ContractVersion>>,
 }
 
 impl DecodedConsumerContext {
@@ -353,6 +354,24 @@ impl ConsumerMode {
         Ok(ens_contract)
     }
 
+    /// This function gets the contract version from the database, if no version is found
+    /// it defaults to V1.
+    async fn get_contract_version(
+        pg_pool: &PgPool,
+        backend_schema: &str,
+    ) -> Result<ContractVersion, ConsumerError> {
+        let initialize = Initialize::find_latest_version(pg_pool, backend_schema).await?;
+        if let Some(initialize) = initialize {
+            if initialize.version == 1 {
+                Ok(ContractVersion::V1)
+            } else {
+                Ok(ContractVersion::V1_5)
+            }
+        } else {
+            Ok(ContractVersion::V1)
+        }
+    }
+
     /// This function creates a decoded consumer
     async fn create_decoded_consumer(
         data: ServerInitialize,
@@ -372,11 +391,16 @@ impl ConsumerMode {
         )
         .await?;
 
+        let contract_version = Arc::new(RwLock::new(
+            Self::get_contract_version(&pg_pool, &data.env.backend_schema).await?,
+        ));
+
         Ok(ConsumerMode::Decoded(DecodedConsumerContext {
             base_client,
             client,
             pg_pool,
             backend_schema: data.env.backend_schema.clone(),
+            contract_version,
         }))
     }
 
@@ -482,8 +506,9 @@ impl ConsumerMode {
         )
         .await?;
 
-        // Hardcoded to 1 for now
-        let contract_version = Arc::new(RwLock::new(ContractVersion::V1));
+        let contract_version = Arc::new(RwLock::new(
+            Self::get_contract_version(&pg_pool, &data.env.backend_schema).await?,
+        ));
 
         Ok(ConsumerMode::Raw(RawConsumerContext {
             client,
@@ -529,8 +554,9 @@ impl ConsumerMode {
 
         let image_guard_url = Self::create_image_guard(data.clone()).await?;
 
-        // Hardcoded to 1 for now
-        let contract_version = Arc::new(RwLock::new(ContractVersion::V1));
+        let contract_version = Arc::new(RwLock::new(
+            Self::get_contract_version(&pg_pool, &data.env.backend_schema).await?,
+        ));
 
         let reqwest_client = reqwest::Client::new();
         Ok(ConsumerMode::Resolver(ResolverConsumerContext {

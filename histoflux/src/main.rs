@@ -2,6 +2,7 @@ use app_context::HistoFlux;
 
 mod app_context;
 mod error;
+mod events_processing;
 mod models;
 mod types;
 

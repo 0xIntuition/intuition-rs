@@ -3,19 +3,17 @@ use crate::{
     config::ContractVersion, error::ConsumerError, mode::types::ConsumerMode,
     schemas::types::ContractEvent,
 };
-use alloy::sol_types::SolEventInterface;
+use alloy::{primitives::B256, sol_types::SolEventInterface};
 use std::str::FromStr;
 
 /// This module contains the logic to parse and decode raw logs from contract
 /// events.
 impl ConsumerMode {
     /// This function parses a vector of topics into a vector of `B256` values.
-    pub async fn parse_raw_topics(
-        topics: Vec<String>,
-    ) -> Result<Vec<alloy::primitives::B256>, ConsumerError> {
+    pub async fn parse_raw_topics(topics: Vec<String>) -> Result<Vec<B256>, ConsumerError> {
         Ok(topics
             .iter()
-            .map(|t| alloy::primitives::B256::from_str(t).unwrap_or_default())
+            .map(|t| B256::from_str(t).unwrap_or_default())
             .collect())
     }
 

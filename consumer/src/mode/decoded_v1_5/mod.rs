@@ -2,6 +2,7 @@ pub mod atom;
 pub mod deposited;
 pub mod deposited_curve;
 pub mod fees_transfered;
+pub mod initialize;
 pub mod redeemed;
 pub mod redeemed_curve;
 pub mod share_price_change;

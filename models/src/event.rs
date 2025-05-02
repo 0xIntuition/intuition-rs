@@ -11,6 +11,7 @@ use strum_macros::{Display, EnumString};
 #[derive(sqlx::Type, Clone, Debug, Display, EnumString, PartialEq)]
 #[sqlx(type_name = "event_type")]
 pub enum EventType {
+    Initialized,
     AtomCreated,
     TripleCreated,
     Deposited,
