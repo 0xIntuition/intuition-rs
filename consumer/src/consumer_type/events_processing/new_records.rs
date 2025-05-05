@@ -1,10 +1,14 @@
 use crate::{
-    consumer_type::sqs_hibrid::SqsHibrid, error::ConsumerError, mode::types::ConsumerMode,
+    consumer_type::sqs_hibrid::SqsHibrid,
+    error::ConsumerError,
+    mode::types::ConsumerMode,
+    schemas::{histocrawler::HistoCrawlerRawLog, types::DecodedMessage},
+    traits::IntoRawMessage,
 };
 use models::raw_logs::RawLog;
 use serde::Deserialize;
 use sqlx::postgres::{PgListener, PgNotification};
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
 #[derive(Debug, Deserialize)]
 pub struct DbRawLog {
@@ -85,7 +89,30 @@ impl SqsHibrid {
             .block_timestamp(payload.raw_log.block_timestamp)
             .build();
         let message = serde_json::to_string(&raw_log)?;
-        mode.process_message(message).await?;
+
+        // Here we need to preprocess the message adding the raw consumer behavior
+        let raw_log: HistoCrawlerRawLog = serde_json::from_str(&message)?;
+        let raw_message = raw_log.into_raw_message()?;
+
+        let contract_version =
+            ConsumerMode::get_contract_version(&self.hasura_pg_pool, mode.backend_schema()).await?;
+        let event = ConsumerMode::decode_raw_log(
+            raw_message.body.topics.clone(),
+            raw_message.body.data.clone(),
+            contract_version,
+        )
+        .await;
+
+        match event {
+            Ok(event) => {
+                let message = DecodedMessage::new(event, raw_message.body);
+                mode.process_message(serde_json::to_string(&message)?)
+                    .await?;
+            }
+            Err(e) => {
+                warn!("Failed to decode raw log: {e}");
+            }
+        }
 
         // update the last processed id
         self.update_last_processed_id(payload.raw_log.id as i64)

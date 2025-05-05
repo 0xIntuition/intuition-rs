@@ -40,13 +40,14 @@ impl SqsHibrid {
         // it will return the default value.
         info!("Getting last processed id from the DB");
         let mut last_processed_id =
-            HistoFluxCursor::find(&self.pg_pool, &self.histoflux_cursor.environment)
+            HistoFluxCursor::find(&self.histoflux_pg_pool, &self.histoflux_cursor.environment)
                 .await?
                 .ok_or(ConsumerError::NotFound)?
                 .last_processed_id;
         info!("Last processed id: {}", last_processed_id);
         let amount_of_logs =
-            RawLog::get_total_count(&self.pg_pool, &self.app_config.indexer_schema).await?;
+            RawLog::get_total_count(&self.histoflux_pg_pool, &self.app_config.indexer_schema)
+                .await?;
         // If there are no logs, we dont need to process anything
         if amount_of_logs == 0 {
             return Ok(());
@@ -62,7 +63,7 @@ impl SqsHibrid {
 
         'outer_loop: for _page in 0..pages {
             let logs = RawLog::get_paginated_after_id(
-                &self.pg_pool,
+                &self.histoflux_pg_pool,
                 last_processed_id as i32,
                 page_size,
                 &self.app_config.indexer_schema,
@@ -96,7 +97,7 @@ impl SqsHibrid {
         last_processed_id: i64,
     ) -> Result<(), ConsumerError> {
         HistoFluxCursor::update_last_processed_id(
-            &self.pg_pool,
+            &self.histoflux_pg_pool,
             &self.histoflux_cursor.environment,
             last_processed_id,
         )

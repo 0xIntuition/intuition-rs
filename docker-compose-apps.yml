@@ -77,8 +77,11 @@ services:
       AWS_ACCESS_KEY_ID: 'example'
       AWS_REGION: 'us-west-2'
       AWS_SECRET_ACCESS_KEY: 'example'
+      CONSUMER_TYPE: 'sqs_hibrid'
+      INDEXER_DATABASE_URL: "postgres://testuser:test@database:5435/storage"
+      INDEXER_SCHEMA: $INDEXER_SCHEMA
+      ENVIRONMENT_NAME: "local_v_1_5"
       CONSUMER_METRICS_API_PORT: '3002'
-      CONSUMER_TYPE: 'sqs'
       DATABASE_URL: 'postgres://testuser:test@database:5435/storage'
       DECODED_LOGS_QUEUE_URL: 'http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/decoded_logs.fifo'
       INTUITION_CONTRACT_ADDRESS: $INTUITION_CONTRACT_ADDRESS

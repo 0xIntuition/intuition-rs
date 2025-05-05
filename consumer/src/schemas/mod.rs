@@ -1,3 +1,3 @@
 pub mod goldsky;
-pub mod substreams;
+pub mod histocrawler;
 pub mod types;

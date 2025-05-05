@@ -52,6 +52,17 @@ pub enum ConsumerMode {
     IpfsUpload(IpfsUploadConsumerContext),
 }
 
+impl ConsumerMode {
+    pub fn backend_schema(&self) -> &str {
+        match self {
+            ConsumerMode::Decoded(context) => &context.backend_schema,
+            ConsumerMode::Raw(context) => &context.backend_schema,
+            ConsumerMode::Resolver(context) => &context.backend_schema,
+            ConsumerMode::IpfsUpload(context) => &context.backend_schema,
+        }
+    }
+}
+
 /// Represents the decoded consumer context
 #[derive(Clone)]
 pub struct DecodedConsumerContext {
@@ -303,6 +314,7 @@ pub struct ResolverConsumerContext {
     pub pg_pool: PgPool,
     pub reqwest_client: reqwest::Client,
     pub server_initialize: ServerInitialize,
+    pub backend_schema: String,
 }
 
 impl AtomUpdater for ResolverConsumerContext {
@@ -350,7 +362,7 @@ impl ConsumerMode {
 
     /// This function gets the contract version from the database, if no version is found
     /// it defaults to V1.
-    async fn get_contract_version(
+    pub async fn get_contract_version(
         pg_pool: &PgPool,
         backend_schema: &str,
     ) -> Result<ContractVersion, ConsumerError> {
@@ -485,6 +497,7 @@ impl ConsumerMode {
         )? {
             IndexerSource::GoldSky => Arc::new(IndexerSource::GoldSky),
             IndexerSource::Substreams => Arc::new(IndexerSource::Substreams),
+            IndexerSource::HistoCrawler => Arc::new(IndexerSource::HistoCrawler),
         };
 
         let client = Self::build_client(
@@ -546,6 +559,7 @@ impl ConsumerMode {
 
         let ipfs_resolver = Self::create_ipfs_resolver(data.clone()).await?;
         let image_guard_url = Self::create_image_guard(data.clone()).await?;
+        let backend_schema = data.env.backend_schema.clone();
 
         let reqwest_client = reqwest::Client::new();
         Ok(ConsumerMode::Resolver(ResolverConsumerContext {
@@ -556,6 +570,7 @@ impl ConsumerMode {
             pg_pool,
             reqwest_client,
             server_initialize: data,
+            backend_schema,
         }))
     }
 

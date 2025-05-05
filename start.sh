@@ -40,4 +40,4 @@ if [ "$2" == "test" ]; then
 fi
 
 # Start apps
-docker compose -f docker-compose-apps.yml up raw_consumer resolver_consumer consumer-api ipfs_upload_consumer decoded_consumer api prod-rpc-proxy histocrawler -d --force-recreate
+docker compose -f docker-compose-apps.yml up resolver_consumer consumer-api ipfs_upload_consumer decoded_consumer api prod-rpc-proxy histocrawler -d --force-recreate

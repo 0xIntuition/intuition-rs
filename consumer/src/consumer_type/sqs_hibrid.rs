@@ -19,7 +19,8 @@ use tracing::info;
 pub struct SqsHibrid {
     pub client: AWSClient,
     pub histoflux_cursor: HistoFluxCursor,
-    pub pg_pool: PgPool,
+    pub histoflux_pg_pool: PgPool,
+    pub hasura_pg_pool: PgPool,
     pub app_config: AppConfig,
     pub indexer_database_url: String,
 }
@@ -35,11 +36,12 @@ impl SqsHibrid {
             .indexer_database_url
             .clone()
             .ok_or(ConsumerError::IndexerDatabaseUrlNotFound)?;
-        let pg_pool = connect_to_db(&indexer_database_url).await?;
+        let histoflux_pg_pool = connect_to_db(&indexer_database_url).await?;
+        let hasura_pg_pool = connect_to_db(&data.env.database_url).await?;
         let client = Self::get_aws_client(data.clone()).await;
         // Get or create the cursor
         let histoflux_cursor = Self::get_or_create_cursor(
-            &pg_pool,
+            &histoflux_pg_pool,
             &data
                 .env
                 .environment_name
@@ -52,14 +54,15 @@ impl SqsHibrid {
                 .env
                 .indexer_schema
                 .ok_or(ConsumerError::IndexerSchemaNotFound)?,
-            &pg_pool,
+            &histoflux_pg_pool,
         )
         .await?
         .ok_or(ConsumerError::AppConfigNotFound)?;
         Ok(Self {
             client,
             histoflux_cursor,
-            pg_pool,
+            histoflux_pg_pool,
+            hasura_pg_pool,
             app_config,
             indexer_database_url,
         })
@@ -68,11 +71,12 @@ impl SqsHibrid {
     /// This function returns a [`HistoFluxCursor`] from the database. If the
     /// cursor does not exist, it creates a new one and returns it.
     async fn get_or_create_cursor(
-        pg_pool: &PgPool,
+        histoflux_pg_pool: &PgPool,
         environment_name: &str,
         raw_consumer_queue_url: &str,
     ) -> Result<HistoFluxCursor, ConsumerError> {
-        let cursor = HistoFluxCursor::find_by_environment(pg_pool, environment_name).await?;
+        let cursor =
+            HistoFluxCursor::find_by_environment(histoflux_pg_pool, environment_name).await?;
         if let Some(cursor) = cursor {
             Ok(cursor)
         } else {
@@ -82,7 +86,7 @@ impl SqsHibrid {
                 .paused(false)
                 .queue_url(raw_consumer_queue_url)
                 .build()
-                .insert(pg_pool)
+                .insert(histoflux_pg_pool)
                 .await
         }
     }

@@ -38,10 +38,11 @@ pub struct Env {
     pub environment_name: Option<String>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub enum IndexerSource {
     GoldSky,
     Substreams,
+    HistoCrawler,
 }
 
 /// As we only have one data source for now, we can implement the
@@ -54,6 +55,8 @@ impl FromStr for IndexerSource {
             Ok(Self::GoldSky)
         } else if s == "substreams" {
             Ok(Self::Substreams)
+        } else if s == "histocrawler" {
+            Ok(Self::HistoCrawler)
         } else {
             Err(ConsumerError::IndexerSourceParse(s.to_string()))
         }

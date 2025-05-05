@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use super::goldsky::{Operation, RawMessage};
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct SubstreamRawLog {
+pub struct HistoCrawlerRawLog {
     pub block_number: i64,
     pub transaction_hash: String,
     pub transaction_index: i64,
@@ -20,7 +20,7 @@ pub struct SubstreamRawLog {
 /// raw message into a `RawMessage` struct. It's not doing much here because the
 /// `RawMessage` struct is already a valid `RawMessage` struct, since GoldSky was
 /// the first data source that we added to the project.
-impl IntoRawMessage for SubstreamRawLog {
+impl IntoRawMessage for HistoCrawlerRawLog {
     fn into_raw_message(self) -> Result<RawMessage, ConsumerError> {
         Ok(RawMessage {
             op: Operation::C,
