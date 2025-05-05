@@ -10,7 +10,6 @@ use crate::{
 };
 use alloy::primitives::U256;
 use async_trait::async_trait;
-use futures::executor::block_on;
 use models::{
     claim::Claim,
     deposit::Deposit,
@@ -315,7 +314,9 @@ impl Deposited {
     ) -> Result<(), ConsumerError> {
         // Initialize accounts and vault. We need to block on this because it's async and
         // we need to ensure that the accounts and vault are initialized before we proceed
-        let vault = block_on(self.initialize_accounts_and_vault(decoded_consumer_context, event))?;
+        let vault = self
+            .initialize_accounts_and_vault(decoded_consumer_context, event)
+            .await?;
 
         // Create deposit record
         let deposit = self.create_deposit(event, decoded_consumer_context).await?;

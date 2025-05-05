@@ -168,6 +168,8 @@ pub enum ConsumerError {
     #[error("IPFS request timed out")]
     TimeoutError(String),
     #[error(transparent)]
+    RecvError(#[from] tokio::sync::watch::error::RecvError),
+    #[error(transparent)]
     Tracing(#[from] tracing::subscriber::SetGlobalDefaultError),
     #[error("Unsuported mode")]
     UnsuportedMode,

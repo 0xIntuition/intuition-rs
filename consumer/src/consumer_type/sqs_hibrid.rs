@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::{
     app_context::ServerInitialize,
     error::ConsumerError,
@@ -14,8 +16,11 @@ use aws_sdk_sqs::{
 use models::histocrawler::AppConfig;
 use shared_utils::postgres::connect_to_db;
 use sqlx::PgPool;
+use tokio::sync::{Semaphore, watch};
 use tracing::info;
+
 /// Represents the SQS consumer
+#[derive(Debug, Clone)]
 pub struct SqsHibrid {
     pub client: AWSClient,
     pub histoflux_cursor: HistoFluxCursor,
@@ -132,7 +137,25 @@ impl BasicConsumer for SqsHibrid {
     /// messages, but when idle, we want to have a delay between message polling to
     /// avoid busy-waiting.
     async fn process_messages(&self, mode: ConsumerMode) -> Result<(), ConsumerError> {
-        self.start_pooling_events(mode).await?;
+        let semaphore = Arc::new(Semaphore::new(32)); // limit to 32 concurrent tasks
+        // let (shutdown_tx, shutdown_rx) = watch::channel(false);
+        // Pass `Arc<Self>`, mode, semaphore, and shutdown_rx to your function
+        let hybrid = Arc::new(self.clone());
+
+        let (shutdown_tx, mut shutdown_rx) = watch::channel(false);
+        let shutdown_rx_for_worker = shutdown_rx.clone();
+
+        tokio::spawn(hybrid.start_pooling_events(mode, semaphore.clone(), shutdown_rx_for_worker));
+
+        // Later, trigger shutdown — e.g., on signal:
+        tokio::spawn(async move {
+            tokio::signal::ctrl_c().await.unwrap();
+            let _ = shutdown_tx.send(true);
+        });
+
+        // Wait for shutdown signal
+        shutdown_rx.changed().await?;
+        semaphore.acquire_many(32).await.ok(); // Wait until all permits are returned
         Ok(())
     }
 

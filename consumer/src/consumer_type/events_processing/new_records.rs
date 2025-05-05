@@ -1,13 +1,16 @@
+use std::sync::Arc;
+
 use crate::{
     consumer_type::sqs_hibrid::SqsHibrid,
     error::ConsumerError,
     mode::types::ConsumerMode,
-    schemas::{histocrawler::HistoCrawlerRawLog, types::DecodedMessage},
+    schemas::{goldsky::RawMessage, histocrawler::HistoCrawlerRawLog, types::DecodedMessage},
     traits::IntoRawMessage,
 };
 use models::raw_logs::RawLog;
 use serde::Deserialize;
 use sqlx::postgres::{PgListener, PgNotification};
+use tokio::sync::{Semaphore, watch};
 use tracing::{error, info, warn};
 
 #[derive(Debug, Deserialize)]
@@ -34,7 +37,12 @@ pub struct NotificationPayload {
 impl SqsHibrid {
     /// This function starts polling the database for raw logs and sends them to
     /// the SQS queue.
-    pub async fn start_pooling_events(&self, mode: ConsumerMode) -> Result<(), ConsumerError> {
+    pub async fn start_pooling_events(
+        self: Arc<Self>,
+        mode: ConsumerMode,
+        semaphore: Arc<Semaphore>,
+        mut shutdown_rx: watch::Receiver<bool>,
+    ) -> Result<(), ConsumerError> {
         info!("Starting polling events");
 
         // Start listening BEFORE processing historical records
@@ -48,19 +56,80 @@ impl SqsHibrid {
 
         // Process notifications continuously
         loop {
-            info!("Waiting for notifications");
-            match listener.recv().await {
-                Ok(notification) => {
-                    self.process_notification(notification, mode.clone())
-                        .await?;
+            tokio::select! {
+                biased;
+
+                _ = shutdown_rx.changed() => {
+                    if *shutdown_rx.borrow() {
+                        info!("Shutdown signal received. Exiting polling loop.");
+                        return Ok(());
+                    }
                 }
-                Err(e) => {
-                    // Log the error but continue the loop
-                    error!("Error receiving notification: {:?}", e);
-                    // Optional: Add delay to prevent tight loop on persistent errors
-                    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+
+                notification = listener.recv() => {
+                    match notification {
+                        Ok(notification) => {
+                            let permit = match semaphore.clone().acquire_owned().await {
+                                Ok(p) => p,
+                                Err(_) => {
+                                    warn!("Semaphore closed — exiting spawn");
+                                    return Ok(());
+                                }
+                            };
+
+                            let this = self.clone();
+                            let mode = mode.clone();
+
+                            tokio::spawn(async move {
+                                let _permit = permit; // keep the permit until task ends
+
+                                if let Err(e) = this.process_notification(notification, mode).await {
+                                    warn!("Failed to process notification: {e}");
+                                }
+                            });
+                        }
+                        Err(e) => {
+                            error!("Error receiving notification: {:?}", e);
+                            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                        }
+                    }
                 }
             }
+        }
+    }
+
+    /// This function converts a raw log to a raw message. There are some
+    /// transformations that need to be done to the raw log before it can be
+    /// sent to the decoded consumer.
+    async fn convert_message(raw_log: RawLog) -> Result<RawMessage, ConsumerError> {
+        let message = serde_json::to_string(&raw_log)?;
+        // Here we need to preprocess the message adding the raw consumer behavior
+        let raw_log: HistoCrawlerRawLog = serde_json::from_str(&message)?;
+        let raw_message = raw_log.into_raw_message()?;
+        Ok(raw_message)
+    }
+
+    /// This function decodes a raw message and returns a decoded message.
+    async fn decode_raw_message(
+        &self,
+        raw_log: RawLog,
+        backend_schema: &str,
+    ) -> Result<DecodedMessage, ConsumerError> {
+        let contract_version =
+            ConsumerMode::get_contract_version(&self.hasura_pg_pool, backend_schema).await?;
+
+        let raw_message = Self::convert_message(raw_log).await?;
+
+        let event = ConsumerMode::decode_raw_log(
+            raw_message.body.topics.clone(),
+            raw_message.body.data.clone(),
+            contract_version,
+        )
+        .await;
+
+        match event {
+            Ok(event) => Ok(DecodedMessage::new(event, raw_message.body)),
+            Err(e) => Err(ConsumerError::LogDecodingError(e.to_string())),
         }
     }
 
@@ -72,53 +141,35 @@ impl SqsHibrid {
         mode: ConsumerMode,
     ) -> Result<(), ConsumerError> {
         info!("Processing notification: {:?}", notification);
-        let payload: NotificationPayload = serde_json::from_str(notification.payload())?;
-        info!("Payload: {:?}", payload);
+        // We receive the raw log indexed by HistoCrawler from the DB
+        let notification: NotificationPayload = serde_json::from_str(notification.payload())?;
 
         // Convert numeric fields to strings if RawLog expects them as strings
         let raw_log = RawLog::builder()
-            .gs_id(payload.raw_log.gs_id.to_string())
-            .block_number(payload.raw_log.block_number)
-            .block_hash(payload.raw_log.block_hash)
-            .transaction_hash(payload.raw_log.transaction_hash)
-            .transaction_index(payload.raw_log.transaction_index)
-            .log_index(payload.raw_log.log_index)
-            .address(payload.raw_log.address)
-            .data(payload.raw_log.data)
-            .topics(payload.raw_log.topics)
-            .block_timestamp(payload.raw_log.block_timestamp)
+            .gs_id(notification.raw_log.gs_id.to_string())
+            .block_number(notification.raw_log.block_number)
+            .block_hash(notification.raw_log.block_hash)
+            .transaction_hash(notification.raw_log.transaction_hash)
+            .transaction_index(notification.raw_log.transaction_index)
+            .log_index(notification.raw_log.log_index)
+            .address(notification.raw_log.address)
+            .data(notification.raw_log.data)
+            .topics(notification.raw_log.topics)
+            .block_timestamp(notification.raw_log.block_timestamp)
             .build();
-        let message = serde_json::to_string(&raw_log)?;
 
-        // Here we need to preprocess the message adding the raw consumer behavior
-        let raw_log: HistoCrawlerRawLog = serde_json::from_str(&message)?;
-        let raw_message = raw_log.into_raw_message()?;
-
-        let contract_version =
-            ConsumerMode::get_contract_version(&self.hasura_pg_pool, mode.backend_schema()).await?;
-        let event = ConsumerMode::decode_raw_log(
-            raw_message.body.topics.clone(),
-            raw_message.body.data.clone(),
-            contract_version,
-        )
-        .await;
-
-        match event {
-            Ok(event) => {
-                let message = DecodedMessage::new(event, raw_message.body);
-                mode.process_message(serde_json::to_string(&message)?)
-                    .await?;
-            }
-            Err(e) => {
-                warn!("Failed to decode raw log: {e}");
-            }
-        }
-
-        // update the last processed id
-        self.update_last_processed_id(payload.raw_log.id as i64)
+        // Decode the raw message, so that the decoded consumer can process it.
+        let decoded_message = self
+            .decode_raw_message(raw_log, mode.backend_schema())
             .await?;
 
-        info!("Sent message to SQS");
+        // Process the decoded message
+        mode.process_message(serde_json::to_string(&decoded_message)?)
+            .await?;
+
+        // update the last processed id
+        self.update_last_processed_id(notification.raw_log.id as i64)
+            .await?;
 
         Ok(())
     }
