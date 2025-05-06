@@ -12,7 +12,7 @@ spec:
         elements:
           - cluster: prod-eks
             server: 'https://kubernetes.default.svc'
-            revision: luis/eng-6546-vector-db-support
+            revision: next
             env: prod-base-sepolia-v-1-5-vector
             namespace: prod-base-sepolia-v-1-5-vector
             rpcURL: 'http://prod-rpc-proxy.default.svc.cluster.local:3008/1/proxy'

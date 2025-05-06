@@ -7,7 +7,7 @@ spec:
   project: prod
   source:
     repoURL: 'https://github.com/0xintuition/intuition-rs.git'
-    targetRevision: luis/eng-6546-vector-db-support
+    targetRevision: next
     path: devops/aws-rolling-releases/vector_db/
     kustomize:
       patches:

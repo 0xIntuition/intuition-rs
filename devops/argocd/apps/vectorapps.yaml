@@ -11,7 +11,7 @@ spec:
         elements:
           - cluster: prod-eks
             server: 'https://kubernetes.default.svc'
-            revision: luis/eng-6546-vector-db-support
+            revision: next
             namespace: default
   template:
     metadata:

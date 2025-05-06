@@ -42,7 +42,7 @@ spec:
             namespace: dev-base-sepolia-v-1-0
           - cluster: prod-eks
             server: 'https://kubernetes.default.svc'
-            revision: luis/eng-6546-vector-db-support
+            revision: next
             chain: base-sepolia
             env: prod-base-sepolia-v-1-5-vector
             namespace: prod-base-sepolia-v-1-5-vector
