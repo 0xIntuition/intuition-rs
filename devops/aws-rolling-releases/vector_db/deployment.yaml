@@ -40,13 +40,13 @@ spec:
           volumeAttributes:
             secretProviderClass: "prod-base-sepolia-v-1-5-vector-aws-secrets"
   volumeClaimTemplates:
-- metadata:
-    name: vector-db-data
-  spec:
-    accessModes: [ "ReadWriteOnce" ]
-    storageClassName: gp3
-    resources:
-      requests:
-        storage: 100Gi
+  - metadata:
+      name: vector-db-data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: gp3
+      resources:
+        requests:
+          storage: 100Gi
       
       
