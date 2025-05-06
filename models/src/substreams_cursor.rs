@@ -5,7 +5,7 @@ use crate::{
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
+use sqlx::{Executor, PgPool, Postgres};
 /// This is the `SubstreamsSink` struct that represents a substreams sink in the database.
 #[derive(sqlx::FromRow, Debug, Builder, Serialize, Deserialize, Clone)]
 #[builder(fields(Default, Option=!))]
@@ -28,7 +28,10 @@ impl Model for SubstreamsCursor {}
 #[async_trait]
 impl SimpleCrud<i32> for SubstreamsCursor {
     /// This is a method to upsert an account into the database.
-    async fn upsert(&self, pool: &PgPool, schema: &str) -> Result<Self, ModelError> {
+    async fn upsert<'e, E>(&self, schema: &str, executor: E) -> Result<Self, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"
             INSERT INTO {}.substreams_cursor (id, cursor, endpoint, start_block, end_block, created_at)
@@ -57,13 +60,20 @@ impl SimpleCrud<i32> for SubstreamsCursor {
             .bind(self.start_block)
             .bind(self.end_block)
             .bind(self.created_at)
-            .fetch_one(pool)
+            .fetch_one(executor)
             .await
             .map_err(|e| ModelError::InsertError(e.to_string()))
     }
 
     /// This is a method to find an account by its id.
-    async fn find_by_id(id: i32, pool: &PgPool, schema: &str) -> Result<Option<Self>, ModelError> {
+    async fn find_by_id<'e, E>(
+        id: i32,
+        schema: &str,
+        executor: E,
+    ) -> Result<Option<Self>, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"
             SELECT 
@@ -81,7 +91,7 @@ impl SimpleCrud<i32> for SubstreamsCursor {
 
         sqlx::query_as::<_, SubstreamsCursor>(&query)
             .bind(id)
-            .fetch_optional(pool)
+            .fetch_optional(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
     }

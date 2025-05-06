@@ -4,7 +4,7 @@ use crate::{
     types::U256Wrapper,
 };
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
+use sqlx::{Executor, Postgres};
 use strum_macros::{Display, EnumString};
 
 use async_trait::async_trait;
@@ -68,7 +68,10 @@ impl SimpleCrud<U256Wrapper> for Atom {
     ///
     /// Inserts a new record or updates an existing one based on the Atom's ID.
     /// Utilizes proper serialization for complex types to ensure type safety and consistency.
-    async fn upsert(&self, pool: &PgPool, schema: &str) -> Result<Self, ModelError> {
+    async fn upsert<'e, E>(&self, schema: &str, executor: E) -> Result<Self, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"
             INSERT INTO {}.atom 
@@ -123,7 +126,7 @@ impl SimpleCrud<U256Wrapper> for Atom {
             .bind(self.block_timestamp)
             .bind(self.transaction_hash.clone())
             .bind(self.resolving_status.to_string())
-            .fetch_one(pool)
+            .fetch_one(executor)
             .await
             .map_err(ModelError::from)
     }
@@ -141,11 +144,14 @@ impl SimpleCrud<U256Wrapper> for Atom {
     /// # Returns
     ///
     /// Returns a Result containing an Option<Atom>. The Result is Err if there's a database error.
-    async fn find_by_id(
+    async fn find_by_id<'e, E>(
         term_id: U256Wrapper,
-        pool: &PgPool,
         schema: &str,
-    ) -> Result<Option<Self>, ModelError> {
+        executor: E,
+    ) -> Result<Option<Self>, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"
             SELECT wallet_id, 
@@ -170,7 +176,7 @@ impl SimpleCrud<U256Wrapper> for Atom {
 
         sqlx::query_as::<_, Atom>(&query)
             .bind(term_id.to_big_decimal()?)
-            .fetch_optional(pool)
+            .fetch_optional(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
     }
@@ -178,7 +184,10 @@ impl SimpleCrud<U256Wrapper> for Atom {
 
 impl Atom {
     /// Marks the atom as resolved
-    pub async fn mark_as_resolved(&self, pool: &PgPool, schema: &str) -> Result<(), ModelError> {
+    pub async fn mark_as_resolved<'e, E>(&self, schema: &str, executor: E) -> Result<(), ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"UPDATE {}.atom SET resolving_status = 'Resolved' WHERE term_id = $1"#,
             schema
@@ -186,14 +195,17 @@ impl Atom {
 
         sqlx::query(&query)
             .bind(self.term_id.to_big_decimal()?)
-            .execute(pool)
+            .execute(executor)
             .await
             .map_err(ModelError::from)
             .map(|_| ())
     }
 
     /// Marks the atom as failed
-    pub async fn mark_as_failed(&self, pool: &PgPool, schema: &str) -> Result<(), ModelError> {
+    pub async fn mark_as_failed<'e, E>(&self, schema: &str, executor: E) -> Result<(), ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"UPDATE {}.atom SET resolving_status = 'Failed' WHERE term_id = $1"#,
             schema
@@ -201,7 +213,7 @@ impl Atom {
 
         sqlx::query(&query)
             .bind(self.term_id.to_big_decimal()?)
-            .execute(pool)
+            .execute(executor)
             .await
             .map_err(ModelError::from)
             .map(|_| ())

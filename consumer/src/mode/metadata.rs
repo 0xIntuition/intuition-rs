@@ -18,7 +18,7 @@ use models::{
     types::U256Wrapper,
 };
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
+use sqlx::{Postgres, Transaction};
 use std::str::FromStr;
 use tracing::info;
 /// Represents the metadata for an atom
@@ -93,8 +93,8 @@ impl AtomMetadata {
             .account_address(account_address)
             .build()
             .upsert(
-                &decoded_consumer_context.pg_pool,
                 &decoded_consumer_context.backend_schema,
+                &decoded_consumer_context.pg_pool,
             )
             .await
             .map_err(ConsumerError::ModelError)
@@ -115,6 +115,7 @@ impl AtomMetadata {
         &self,
         resolved_atom: &ResolveAtom,
         decoded_consumer_context: &DecodedConsumerContext,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
         match AtomType::from_str(self.atom_type.as_str())? {
             AtomType::Account => {
@@ -122,7 +123,7 @@ impl AtomMetadata {
                     "Updating account for: {}",
                     resolved_atom.atom.data.clone().unwrap()
                 );
-                self.update_account_and_atom_value(resolved_atom, decoded_consumer_context)
+                self.update_account_and_atom_value(resolved_atom, decoded_consumer_context, tx)
                     .await
             }
             AtomType::Caip10 => {
@@ -267,6 +268,7 @@ impl AtomMetadata {
         &self,
         resolved_atom: &ResolveAtom,
         decoded_consumer_context: &DecodedConsumerContext,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
         if self.atom_type != "Account" {
             info!("Skipping account creation for: {}", self.atom_type);
@@ -280,6 +282,7 @@ impl AtomMetadata {
                 .clone()
                 .ok_or(ConsumerError::AtomDataNotFound)?,
             decoded_consumer_context,
+            tx,
         )
         .await?;
 
@@ -287,14 +290,15 @@ impl AtomMetadata {
             &mut account,
             resolved_atom.atom.term_id.clone(),
             decoded_consumer_context,
+            tx,
         )
         .await?;
 
         // Skip if atom value already exists
         if AtomValue::find_by_id(
             resolved_atom.atom.term_id.clone(),
-            &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
+            tx.as_mut(),
         )
         .await?
         .is_some()
@@ -307,10 +311,7 @@ impl AtomMetadata {
             .id(resolved_atom.atom.term_id.clone())
             .account_id(account.id)
             .build()
-            .upsert(
-                &decoded_consumer_context.pg_pool,
-                &decoded_consumer_context.backend_schema,
-            )
+            .upsert(&decoded_consumer_context.backend_schema, tx.as_mut())
             .await?;
 
         Ok(())
@@ -320,14 +321,14 @@ impl AtomMetadata {
     pub async fn update_atom_metadata(
         &self,
         atom: &mut Atom,
-        pg_pool: &PgPool,
         backend_schema: &str,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<AtomMetadata, ConsumerError> {
         atom.emoji = Some(self.emoji.clone());
         atom.atom_type = AtomType::from_str(&self.atom_type)?;
         atom.label = Some(self.label.clone());
         atom.image = self.image.clone();
-        atom.upsert(pg_pool, backend_schema).await?;
+        atom.upsert(backend_schema, tx.as_mut()).await?;
         Ok(AtomMetadata {
             label: self.label.clone(),
             emoji: self.emoji.clone(),

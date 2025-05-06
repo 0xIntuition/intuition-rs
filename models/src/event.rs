@@ -4,7 +4,7 @@ use crate::{
     types::U256Wrapper,
 };
 use async_trait::async_trait;
-use sqlx::PgPool;
+use sqlx::{Executor, Postgres};
 use strum_macros::{Display, EnumString};
 
 /// This enum represents the different types of events that can occur in the database.
@@ -47,7 +47,10 @@ impl SimpleCrud<String> for Event {
     ///
     /// Inserts a new record or updates an existing one based on the Event's ID.
     /// Utilizes proper serialization for complex types to ensure type safety and consistency.
-    async fn upsert(&self, pool: &PgPool, schema: &str) -> Result<Self, ModelError> {
+    async fn upsert<'e, E>(&self, schema: &str, executor: E) -> Result<Self, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"
             INSERT INTO {}.event (id, type, atom_id, triple_id, fee_transfer_id, deposit_id, redemption_id, block_number, block_timestamp, transaction_hash)
@@ -82,17 +85,20 @@ impl SimpleCrud<String> for Event {
             .bind(self.block_number.to_big_decimal()?)
             .bind(self.block_timestamp)
             .bind(&self.transaction_hash)
-            .fetch_one(pool)
+            .fetch_one(executor)
             .await
             .map_err(|e| ModelError::InsertError(e.to_string()))
     }
 
     /// Finds an event by its id.
-    async fn find_by_id(
+    async fn find_by_id<'e, E>(
         id: String,
-        pool: &PgPool,
         schema: &str,
-    ) -> Result<Option<Self>, ModelError> {
+        executor: E,
+    ) -> Result<Option<Self>, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"
             SELECT id, type as event_type,
@@ -112,7 +118,7 @@ impl SimpleCrud<String> for Event {
 
         sqlx::query_as::<_, Event>(&query)
             .bind(id)
-            .fetch_optional(pool)
+            .fetch_optional(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
     }

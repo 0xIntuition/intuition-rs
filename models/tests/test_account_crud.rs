@@ -13,12 +13,12 @@ mod tests {
         // Create a test `Account`
         let test_account = create_test_account_db(&pool)
             .await
-            .upsert(&pool, TEST_SCHEMA)
+            .upsert(TEST_SCHEMA, &pool)
             .await
             .unwrap();
 
         // Test find_by_id
-        let found_account = Account::find_by_id(test_account.id.clone(), &pool, TEST_SCHEMA)
+        let found_account = Account::find_by_id(test_account.id.clone(), TEST_SCHEMA, &pool)
             .await
             .expect("Failed to find account")
             .expect("Account not found");
@@ -37,7 +37,7 @@ mod tests {
             image: None,
             account_type: AccountType::AtomWallet,
         }
-        .upsert(&pool, TEST_SCHEMA)
+        .upsert(TEST_SCHEMA, &pool)
         .await
         .expect("Failed to update account");
 
@@ -51,7 +51,7 @@ mod tests {
         ));
 
         // Verify update with find_by_id
-        let found_updated = Account::find_by_id(updated_account.id.clone(), &pool, TEST_SCHEMA)
+        let found_updated = Account::find_by_id(updated_account.id.clone(), TEST_SCHEMA, &pool)
             .await
             .expect("Failed to find updated account")
             .expect("Updated account not found");

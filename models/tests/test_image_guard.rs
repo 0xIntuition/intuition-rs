@@ -21,16 +21,16 @@ mod tests {
         };
 
         // Insert with Unknown classification
-        let inserted = guard.upsert(&pool, TEST_SCHEMA).await.unwrap();
+        let inserted = guard.upsert(TEST_SCHEMA, &pool).await.unwrap();
         assert!(!inserted.safe);
 
         // Update to Safe
         guard.safe = true;
-        let updated = guard.upsert(&pool, TEST_SCHEMA).await.unwrap();
+        let updated = guard.upsert(TEST_SCHEMA, &pool).await.unwrap();
         assert!(updated.safe);
 
         // Find and verify
-        let found = CachedImage::find_by_id(id, &pool, TEST_SCHEMA)
+        let found = CachedImage::find_by_id(id, TEST_SCHEMA, &pool)
             .await
             .unwrap()
             .unwrap();

@@ -21,7 +21,7 @@ mod tests {
             .build();
 
         // Test initial upsert
-        let inserted = atom_value.upsert(&pool, TEST_SCHEMA).await?;
+        let inserted = atom_value.upsert(TEST_SCHEMA, &pool).await?;
         assert_eq!(inserted.id, atom_value.id);
         assert_eq!(inserted.thing_id, atom_value.thing_id);
 
@@ -32,7 +32,7 @@ mod tests {
         updated.account_id = Some(test_account2.id.clone());
 
         // Test find_by_id
-        let found = AtomValue::find_by_id(atom_value.id.clone(), &pool, TEST_SCHEMA)
+        let found = AtomValue::find_by_id(atom_value.id.clone(), TEST_SCHEMA, &pool)
             .await?
             .expect("AtomValue should exist");
 

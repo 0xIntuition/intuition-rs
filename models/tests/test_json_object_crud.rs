@@ -18,10 +18,10 @@ mod tests {
         };
 
         // Upsert the object
-        json_object.upsert(&pool, TEST_SCHEMA).await.unwrap();
+        json_object.upsert(TEST_SCHEMA, &pool).await.unwrap();
 
         // Fetch and verify initial state
-        let fetched = JsonObject::find_by_id(id.clone(), &pool, TEST_SCHEMA)
+        let fetched = JsonObject::find_by_id(id.clone(), TEST_SCHEMA, &pool)
             .await
             .unwrap()
             .unwrap();
@@ -33,10 +33,10 @@ mod tests {
             id: id.clone(),
             data: modified_data.clone(),
         };
-        modified_object.upsert(&pool, TEST_SCHEMA).await.unwrap();
+        modified_object.upsert(TEST_SCHEMA, &pool).await.unwrap();
 
         // Fetch and verify modified state
-        let fetched_modified = JsonObject::find_by_id(id.clone(), &pool, TEST_SCHEMA)
+        let fetched_modified = JsonObject::find_by_id(id.clone(), TEST_SCHEMA, &pool)
             .await
             .unwrap()
             .unwrap();

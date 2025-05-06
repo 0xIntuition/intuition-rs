@@ -5,7 +5,7 @@ use crate::{
 };
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use sqlx::{PgPool, Result};
+use sqlx::{Executor, PgPool, Postgres, Result};
 
 #[derive(Debug, sqlx::FromRow, Builder)]
 pub struct SharePriceChange {
@@ -38,7 +38,10 @@ impl Model for SharePriceChange {}
 
 #[async_trait]
 impl SimpleCrud<U256Wrapper> for SharePriceChange {
-    async fn upsert(&self, pool: &PgPool, schema: &str) -> Result<Self, ModelError> {
+    async fn upsert<'e, E>(&self, schema: &str, executor: E) -> Result<Self, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"
             INSERT INTO {}.share_price_change (id, term_id, curve_id, share_price, total_assets, total_shares, block_number, block_timestamp, transaction_hash, updated_at)
@@ -69,16 +72,19 @@ impl SimpleCrud<U256Wrapper> for SharePriceChange {
             .bind(self.block_number.to_big_decimal()?)
             .bind(self.block_timestamp)
             .bind(self.transaction_hash.clone())
-            .fetch_one(pool)
+            .fetch_one(executor)
             .await
             .map_err(|e| ModelError::InsertError(e.to_string()))
     }
 
-    async fn find_by_id(
+    async fn find_by_id<'e, E>(
         id: U256Wrapper,
-        pool: &PgPool,
         schema: &str,
-    ) -> Result<Option<Self>, ModelError> {
+        executor: E,
+    ) -> Result<Option<Self>, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"
             SELECT * FROM {}.share_price_change WHERE id = $1
@@ -88,18 +94,21 @@ impl SimpleCrud<U256Wrapper> for SharePriceChange {
 
         sqlx::query_as::<_, Self>(&query)
             .bind(id.to_big_decimal()?)
-            .fetch_optional(pool)
+            .fetch_optional(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
     }
 }
 
 impl SharePriceChange {
-    pub async fn insert(
-        pool: &PgPool,
-        schema: &str,
+    pub async fn insert<'e, E>(
         share_price_change: SharePriceChangeInternal,
-    ) -> Result<Self, ModelError> {
+        schema: &str,
+        executor: E,
+    ) -> Result<Self, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"
             INSERT INTO {}.share_price_change (term_id, curve_id, share_price, total_assets, total_shares, block_number, block_timestamp, transaction_hash)
@@ -118,7 +127,7 @@ impl SharePriceChange {
             .bind(share_price_change.block_number.to_big_decimal()?)
             .bind(share_price_change.block_timestamp)
             .bind(share_price_change.transaction_hash.clone())
-            .fetch_one(pool)
+            .fetch_one(executor)
             .await
             .map_err(|e| ModelError::InsertError(e.to_string()))
     }

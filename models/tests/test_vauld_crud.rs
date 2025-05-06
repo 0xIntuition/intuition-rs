@@ -23,11 +23,11 @@ mod tests {
 
         // Create and store a test Vault
         let test_vault = create_test_vault_with_atom(test_atom.term_id.clone());
-        let stored_vault = test_vault.upsert(&pool, TEST_SCHEMA).await?;
+        let stored_vault = test_vault.upsert(TEST_SCHEMA, &pool).await?;
 
         // Test find_by_id
         let found_vault =
-            Vault::find_by_id(stored_vault.term_id.clone(), &pool, TEST_SCHEMA).await?;
+            Vault::find_by_id(stored_vault.term_id.clone(), TEST_SCHEMA, &pool).await?;
         assert!(found_vault.is_some());
         let found_vault = found_vault.unwrap();
         assert_eq!(found_vault.term_id, stored_vault.term_id);
@@ -53,7 +53,7 @@ mod tests {
         let mut vault = create_test_vault_with_atom(test_atom.term_id.clone());
 
         // Insert the vault
-        let inserted_vault = vault.upsert(&pool, TEST_SCHEMA).await?;
+        let inserted_vault = vault.upsert(TEST_SCHEMA, &pool).await?;
 
         // Check if the inserted vault matches the original
         assert_eq!(inserted_vault.term_id, vault.term_id);
@@ -70,7 +70,7 @@ mod tests {
         vault.position_count = 10;
 
         // Upsert the updated vault
-        let updated_vault = vault.upsert(&pool, TEST_SCHEMA).await?;
+        let updated_vault = vault.upsert(TEST_SCHEMA, &pool).await?;
 
         // Check if the updated vault matches the changes
         assert_eq!(updated_vault.term_id, vault.term_id);
@@ -91,13 +91,13 @@ mod tests {
             predicate.term_id.clone(),
             object.term_id.clone(),
         );
-        let stored_triple = test_triple.upsert(&pool, TEST_SCHEMA).await?;
+        let stored_triple = test_triple.upsert(TEST_SCHEMA, &pool).await?;
 
         // Create a new Vault with a triple_id and no atom_id
         let mut new_vault = create_test_vault_with_triple(stored_triple.term_id.clone());
 
         // Insert the vault
-        let newly_inserted_vault = new_vault.upsert(&pool, TEST_SCHEMA).await?;
+        let newly_inserted_vault = new_vault.upsert(TEST_SCHEMA, &pool).await?;
 
         // Check if the inserted vault matches the original
         assert_eq!(newly_inserted_vault.term_id, new_vault.term_id);
@@ -117,7 +117,7 @@ mod tests {
         new_vault.position_count = 10;
 
         // Upsert the updated vault
-        let updated_vault = new_vault.upsert(&pool, TEST_SCHEMA).await?;
+        let updated_vault = new_vault.upsert(TEST_SCHEMA, &pool).await?;
 
         // Check if the updated vault matches the changes
         assert_eq!(updated_vault.term_id, new_vault.term_id);

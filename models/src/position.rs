@@ -4,7 +4,7 @@ use crate::{
     types::U256Wrapper,
 };
 use async_trait::async_trait;
-use sqlx::PgPool;
+use sqlx::{Executor, Postgres};
 
 /// This struct is used to represent a position in a vault
 #[derive(Debug, Clone, sqlx::FromRow, Builder)]
@@ -29,7 +29,10 @@ impl Model for Position {}
 #[async_trait]
 impl SimpleCrud<String> for Position {
     /// Creates a new position or updates an existing one in the database
-    async fn upsert(&self, pool: &sqlx::PgPool, schema: &str) -> Result<Self, ModelError> {
+    async fn upsert<'e, E>(&self, schema: &str, executor: E) -> Result<Self, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"
             INSERT INTO {}.position (id, account_id, term_id, shares, curve_id)
@@ -56,17 +59,20 @@ impl SimpleCrud<String> for Position {
             .bind(self.term_id.to_big_decimal()?)
             .bind(self.shares.to_big_decimal()?)
             .bind(self.curve_id.to_big_decimal()?)
-            .fetch_one(pool)
+            .fetch_one(executor)
             .await
             .map_err(|e| ModelError::InsertError(e.to_string()))
     }
 
     /// Finds a position by its ID
-    async fn find_by_id(
+    async fn find_by_id<'e, E>(
         id: String,
-        pool: &PgPool,
         schema: &str,
-    ) -> Result<Option<Self>, ModelError> {
+        executor: E,
+    ) -> Result<Option<Self>, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"
             SELECT 
@@ -83,7 +89,7 @@ impl SimpleCrud<String> for Position {
 
         sqlx::query_as::<_, Position>(&query)
             .bind(id.to_lowercase())
-            .fetch_optional(pool)
+            .fetch_optional(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
     }
@@ -92,12 +98,15 @@ impl SimpleCrud<String> for Position {
 /// This trait works as a contract for all models that need to be deleted from the database.
 #[async_trait]
 impl Deletable for Position {
-    async fn delete(id: String, pool: &PgPool, schema: &str) -> Result<(), ModelError> {
+    async fn delete<'e, E>(id: String, schema: &str, executor: E) -> Result<(), ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(r#"DELETE FROM {}.position WHERE id = $1"#, schema);
 
         sqlx::query(&query)
             .bind(id.to_lowercase())
-            .execute(pool)
+            .execute(executor)
             .await
             .map(|_| ())
             .map_err(|e| ModelError::DeleteError(e.to_string()))
@@ -106,12 +115,15 @@ impl Deletable for Position {
 
 impl Position {
     /// Returns the number of positions in the given vault.
-    pub async fn count_by_vault_and_curve(
+    pub async fn count_by_vault_and_curve<'e, E>(
         term_id: U256Wrapper,
         curve_id: U256Wrapper,
-        pg_pool: &sqlx::PgPool,
+        executor: E,
         schema: &str,
-    ) -> Result<i64, ModelError> {
+    ) -> Result<i64, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             "SELECT COUNT(*) FROM {}.position WHERE term_id = $1 AND curve_id = $2",
             schema
@@ -119,17 +131,20 @@ impl Position {
         let count: i64 = sqlx::query_scalar(&query)
             .bind(term_id.to_big_decimal()?)
             .bind(curve_id.to_big_decimal()?)
-            .fetch_one(pg_pool)
+            .fetch_one(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))?;
         Ok(count)
     }
     /// Finds positions by vault ID
-    pub async fn find_by_vault_id(
+    pub async fn find_by_vault_id<'e, E>(
         id: String,
-        pool: &PgPool,
+        executor: E,
         schema: &str,
-    ) -> Result<Vec<Self>, ModelError> {
+    ) -> Result<Vec<Self>, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"
             SELECT 
@@ -146,7 +161,7 @@ impl Position {
 
         sqlx::query_as::<_, Position>(&query)
             .bind(id.clone())
-            .fetch_all(pool)
+            .fetch_all(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
     }

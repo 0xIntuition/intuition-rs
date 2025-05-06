@@ -18,10 +18,10 @@ mod tests {
         };
 
         // Upsert the object
-        text_object.upsert(&pool, TEST_SCHEMA).await.unwrap();
+        text_object.upsert(TEST_SCHEMA, &pool).await.unwrap();
 
         // Fetch and verify initial state
-        let fetched = TextObject::find_by_id(id.clone(), &pool, TEST_SCHEMA)
+        let fetched = TextObject::find_by_id(id.clone(), TEST_SCHEMA, &pool)
             .await
             .unwrap()
             .unwrap();
@@ -33,10 +33,10 @@ mod tests {
             id: id.clone(),
             data: modified_data.clone(),
         };
-        modified_object.upsert(&pool, TEST_SCHEMA).await.unwrap();
+        modified_object.upsert(TEST_SCHEMA, &pool).await.unwrap();
 
         // Fetch and verify modified state
-        let fetched_modified = TextObject::find_by_id(id.clone(), &pool, TEST_SCHEMA)
+        let fetched_modified = TextObject::find_by_id(id.clone(), TEST_SCHEMA, &pool)
             .await
             .unwrap()
             .unwrap();

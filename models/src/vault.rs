@@ -4,7 +4,7 @@ use crate::{
     types::U256Wrapper,
 };
 use async_trait::async_trait;
-use sqlx::{PgPool, Result};
+use sqlx::{Executor, PgPool, Postgres, Result};
 
 /// This struct defines the vault in the database. Note that both `atom_id` and
 /// `triple_id` are optional. This is because a vault can either be created by
@@ -28,7 +28,10 @@ impl Model for Vault {}
 #[async_trait]
 impl SimpleCrud<U256Wrapper> for Vault {
     /// This method upserts a vault into the database.
-    async fn upsert(&self, pool: &PgPool, schema: &str) -> Result<Self, ModelError> {
+    async fn upsert<'e, E>(&self, schema: &str, executor: E) -> Result<Self, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"
             INSERT INTO {}.vault (term_id, curve_id, total_shares, current_share_price, position_count, total_assets, market_cap)
@@ -60,17 +63,20 @@ impl SimpleCrud<U256Wrapper> for Vault {
                     .as_ref()
                     .and_then(|w| w.to_big_decimal().ok()),
             )
-            .fetch_one(pool)
+            .fetch_one(executor)
             .await
             .map_err(|e| ModelError::InsertError(e.to_string()))
     }
 
     /// Finds a vault by its id.
-    async fn find_by_id(
+    async fn find_by_id<'e, E>(
         term_id: U256Wrapper,
-        pool: &PgPool,
         schema: &str,
-    ) -> Result<Option<Self>, ModelError> {
+        executor: E,
+    ) -> Result<Option<Self>, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"
             SELECT 
@@ -89,7 +95,7 @@ impl SimpleCrud<U256Wrapper> for Vault {
 
         sqlx::query_as::<_, Vault>(&query)
             .bind(term_id.to_big_decimal()?)
-            .fetch_optional(pool)
+            .fetch_optional(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
     }
@@ -97,12 +103,15 @@ impl SimpleCrud<U256Wrapper> for Vault {
 
 impl Vault {
     /// This function updates the current share price of a vault
-    pub async fn update_current_share_price(
+    pub async fn update_current_share_price<'e, E>(
         id: U256Wrapper,
         current_share_price: U256Wrapper,
-        pool: &PgPool,
+        executor: E,
         schema: &str,
-    ) -> Result<Self, ModelError> {
+    ) -> Result<Self, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"
             UPDATE {}.vault 
@@ -117,18 +126,21 @@ impl Vault {
             .bind(current_share_price.to_big_decimal()?)
             .bind(id.to_big_decimal()?)
             .bind(<&str as TryInto<U256Wrapper>>::try_into("1")?.to_big_decimal()?)
-            .fetch_one(pool)
+            .fetch_one(executor)
             .await
             .map_err(|e| ModelError::UpdateError(e.to_string()))
     }
 
     /// This function finds a vault by its term_id and curve_id
-    pub async fn find_by_term_id_and_curve_id(
+    pub async fn find_by_term_id_and_curve_id<'e, E>(
         term_id: U256Wrapper,
         curve_id: U256Wrapper,
-        pool: &PgPool,
+        executor: E,
         schema: &str,
-    ) -> Result<Option<Self>, ModelError> {
+    ) -> Result<Option<Self>, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"
             SELECT * FROM {}.vault WHERE term_id = $1 AND curve_id = $2
@@ -139,7 +151,7 @@ impl Vault {
         sqlx::query_as::<_, Vault>(&query)
             .bind(term_id.to_big_decimal()?)
             .bind(curve_id.to_big_decimal()?)
-            .fetch_optional(pool)
+            .fetch_optional(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
     }

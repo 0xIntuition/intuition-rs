@@ -4,7 +4,7 @@ use crate::{
     types::U256Wrapper,
 };
 use async_trait::async_trait;
-use sqlx::{PgPool, Result};
+use sqlx::{Executor, Postgres, Result};
 /// Triple is a struct that represents a triple in the database. All
 /// of the fields are mandatory except for the label.
 #[derive(Debug, sqlx::FromRow, PartialEq, Clone, Builder)]
@@ -28,7 +28,10 @@ impl Model for Triple {}
 #[async_trait]
 impl SimpleCrud<U256Wrapper> for Triple {
     /// Upserts a triple into the database.
-    async fn upsert(&self, pool: &PgPool, schema: &str) -> Result<Self, ModelError> {
+    async fn upsert<'e, E>(&self, schema: &str, executor: E) -> Result<Self, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"
             INSERT INTO {}.triple (creator_id, subject_id, predicate_id, object_id, term_id, counter_term_id, block_number, block_timestamp, transaction_hash)
@@ -59,17 +62,20 @@ impl SimpleCrud<U256Wrapper> for Triple {
             .bind(self.block_number.to_big_decimal()?)
             .bind(self.block_timestamp)
             .bind(&self.transaction_hash)
-            .fetch_one(pool)
+            .fetch_one(executor)
             .await
             .map_err(ModelError::from)
     }
 
     /// Finds a triple by its id.
-    async fn find_by_id(
+    async fn find_by_id<'e, E>(
         term_id: U256Wrapper,
-        pool: &PgPool,
         schema: &str,
-    ) -> Result<Option<Self>, ModelError> {
+        executor: E,
+    ) -> Result<Option<Self>, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"
             SELECT 
@@ -90,7 +96,7 @@ impl SimpleCrud<U256Wrapper> for Triple {
 
         sqlx::query_as::<_, Triple>(&query)
             .bind(term_id.to_big_decimal()?)
-            .fetch_optional(pool)
+            .fetch_optional(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
     }

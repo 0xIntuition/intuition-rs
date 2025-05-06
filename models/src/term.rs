@@ -4,7 +4,7 @@ use crate::{
     types::U256Wrapper,
 };
 use async_trait::async_trait;
-use sqlx::{PgPool, Result};
+use sqlx::{Executor, Postgres, Result};
 
 #[derive(Debug, sqlx::Type, Clone)]
 #[sqlx(type_name = "term_type")]
@@ -35,7 +35,10 @@ impl Model for Term {}
 #[async_trait]
 impl SimpleCrud<U256Wrapper> for Term {
     /// This method upserts a vault into the database.
-    async fn upsert(&self, pool: &PgPool, schema: &str) -> Result<Self, ModelError> {
+    async fn upsert<'e, E>(&self, schema: &str, executor: E) -> Result<Self, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"
             INSERT INTO {}.term (id, type, atom_id, triple_id, total_assets, total_market_cap)
@@ -62,17 +65,20 @@ impl SimpleCrud<U256Wrapper> for Term {
             )
             .bind(self.total_assets.to_big_decimal()?)
             .bind(self.total_market_cap.to_big_decimal()?)
-            .fetch_one(pool)
+            .fetch_one(executor)
             .await
             .map_err(|e| ModelError::InsertError(e.to_string()))
     }
 
     /// Finds a term by its id.
-    async fn find_by_id(
+    async fn find_by_id<'e, E>(
         term_id: U256Wrapper,
-        pool: &PgPool,
         schema: &str,
-    ) -> Result<Option<Self>, ModelError> {
+        executor: E,
+    ) -> Result<Option<Self>, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"
             SELECT 
@@ -90,7 +96,7 @@ impl SimpleCrud<U256Wrapper> for Term {
 
         sqlx::query_as::<_, Term>(&query)
             .bind(term_id.to_big_decimal()?)
-            .fetch_optional(pool)
+            .fetch_optional(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
     }

@@ -15,18 +15,18 @@ mod tests {
 
         let predicate = create_test_atom_db(&pool)
             .await
-            .upsert(&pool, TEST_SCHEMA)
+            .upsert(TEST_SCHEMA, &pool)
             .await?;
         let object = create_test_atom_db(&pool)
             .await
-            .upsert(&pool, TEST_SCHEMA)
+            .upsert(TEST_SCHEMA, &pool)
             .await?;
         // Create initial predicate_object
         let predicate_object =
             create_test_predicate_object(predicate.term_id.clone(), object.term_id.clone());
 
         // Test initial upsert
-        let inserted = predicate_object.upsert(&pool, TEST_SCHEMA).await?;
+        let inserted = predicate_object.upsert(TEST_SCHEMA, &pool).await?;
         assert_eq!(inserted.id, predicate_object.id);
         assert_eq!(inserted.predicate_id, predicate_object.predicate_id);
         assert_eq!(inserted.object_id, predicate_object.object_id);
@@ -39,12 +39,12 @@ mod tests {
         updated.claim_count = 2;
 
         // Test update via upsert
-        let updated = updated.upsert(&pool, TEST_SCHEMA).await?;
+        let updated = updated.upsert(TEST_SCHEMA, &pool).await?;
         assert_eq!(updated.triple_count, 2);
         assert_eq!(updated.claim_count, 2);
 
         // Test find_by_id
-        let found = PredicateObject::find_by_id(predicate_object.id.clone(), &pool, TEST_SCHEMA)
+        let found = PredicateObject::find_by_id(predicate_object.id.clone(), TEST_SCHEMA, &pool)
             .await?
             .expect("PredicateObject should exist");
 

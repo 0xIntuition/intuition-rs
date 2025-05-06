@@ -24,6 +24,7 @@ use models::{
     types::U256Wrapper,
     vault::Vault,
 };
+use sqlx::{Postgres, Transaction};
 use std::str::FromStr;
 use tracing::info;
 
@@ -98,15 +99,21 @@ impl TripleCreated {
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
         let (subject_atom, predicate_atom, object_atom) = self
-            .get_subject_predicate_object_atoms(decoded_consumer_context, event)
+            .get_subject_predicate_object_atoms(decoded_consumer_context, event, tx)
             .await?;
 
         if self.is_account_with_person_or_org(&subject_atom, &predicate_atom, &object_atom) {
-            self.update_account(&subject_atom, &object_atom, decoded_consumer_context)
-                .await?;
-            self.update_atom(&object_atom, decoded_consumer_context)
+            self.update_account(
+                &subject_atom,
+                &object_atom,
+                &decoded_consumer_context.backend_schema,
+                tx,
+            )
+            .await?;
+            self.update_atom(&object_atom, &decoded_consumer_context.backend_schema, tx)
                 .await?;
         }
         Ok(())
@@ -116,7 +123,8 @@ impl TripleCreated {
     async fn create_event(
         &self,
         event: &DecodedMessage,
-        decoded_consumer_context: &DecodedConsumerContext,
+        backend_schema: &str,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Event, ConsumerError> {
         // Create the event
         Event::builder()
@@ -127,10 +135,7 @@ impl TripleCreated {
             .block_timestamp(event.block_timestamp)
             .transaction_hash(event.transaction_hash.clone())
             .build()
-            .upsert(
-                &decoded_consumer_context.pg_pool,
-                &decoded_consumer_context.backend_schema,
-            )
+            .upsert(backend_schema, tx.as_mut())
             .await
             .map_err(ConsumerError::ModelError)
     }
@@ -139,15 +144,12 @@ impl TripleCreated {
     /// If it does not, it creates it.
     async fn get_or_create_creator_account(
         &self,
-        decoded_consumer_context: &DecodedConsumerContext,
+        backend_schema: &str,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Account, ConsumerError> {
         // First try to find existing account
-        if let Some(account) = Account::find_by_id(
-            self.creator.to_string(),
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
-        )
-        .await?
+        if let Some(account) =
+            Account::find_by_id(self.creator.to_string(), backend_schema, tx.as_mut()).await?
         {
             return Ok(account);
         }
@@ -158,10 +160,7 @@ impl TripleCreated {
             .label(short_id(&self.creator.to_string()))
             .account_type(AccountType::Default)
             .build()
-            .upsert(
-                &decoded_consumer_context.pg_pool,
-                &decoded_consumer_context.backend_schema,
-            )
+            .upsert(backend_schema, tx.as_mut())
             .await
             .map_err(ConsumerError::ModelError)
     }
@@ -171,6 +170,7 @@ impl TripleCreated {
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Triple, ConsumerError> {
         // Get the counter vault ID
         let counter_vault_id = decoded_consumer_context
@@ -178,17 +178,17 @@ impl TripleCreated {
             .await?;
 
         let creator_account = self
-            .get_or_create_creator_account(decoded_consumer_context)
+            .get_or_create_creator_account(&decoded_consumer_context.backend_schema, tx)
             .await?;
 
         let (subject_atom, predicate_atom, object_atom) = self
-            .get_subject_predicate_object_atoms(decoded_consumer_context, event)
+            .get_subject_predicate_object_atoms(decoded_consumer_context, event, tx)
             .await?;
 
         Triple::find_by_id(
             U256Wrapper::from(self.vaultId),
-            &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
+            tx.as_mut(),
         )
         .await?
         .unwrap_or_else(|| {
@@ -204,10 +204,7 @@ impl TripleCreated {
                 .transaction_hash(event.transaction_hash.clone())
                 .build()
         })
-        .upsert(
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
-        )
+        .upsert(&decoded_consumer_context.backend_schema, tx.as_mut())
         .await
         .map_err(ConsumerError::ModelError)
     }
@@ -218,8 +215,12 @@ impl TripleCreated {
         decoded_consumer_context: &DecodedConsumerContext,
         id: U256Wrapper,
         event: &DecodedMessage,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Atom, ConsumerError> {
-        if let Some(atom) = self.find_atom(decoded_consumer_context, &id).await? {
+        if let Some(atom) = self
+            .find_atom(&decoded_consumer_context.backend_schema, &id, tx)
+            .await?
+        {
             return Ok(atom);
         }
 
@@ -228,19 +229,21 @@ impl TripleCreated {
             .await?;
 
         let account = self
-            .get_or_create_temporary_account(decoded_consumer_context)
+            .get_or_create_temporary_account(&decoded_consumer_context.backend_schema, tx)
             .await?;
         let vault = get_or_create_vault(
             self,
             Some(event.block_number),
             decoded_consumer_context,
             TermType::Triple,
+            tx,
         )
         .await?;
 
         let atom = self
             .create_atom(
-                decoded_consumer_context,
+                &decoded_consumer_context.backend_schema,
+                tx,
                 atom_data.to_string(),
                 account,
                 vault,
@@ -259,27 +262,25 @@ impl TripleCreated {
     /// This function finds an atom
     async fn find_atom(
         &self,
-        decoded_consumer_context: &DecodedConsumerContext,
+        backend_schema: &str,
         id: &U256Wrapper,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Option<Atom>, ConsumerError> {
-        Atom::find_by_id(
-            id.clone(),
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
-        )
-        .await
-        .map_err(ConsumerError::ModelError)
+        Atom::find_by_id(id.clone(), backend_schema, tx.as_mut())
+            .await
+            .map_err(ConsumerError::ModelError)
     }
 
     /// This function gets or creates an account
     async fn get_or_create_temporary_account(
         &self,
-        decoded_consumer_context: &DecodedConsumerContext,
+        backend_schema: &str,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Account, ConsumerError> {
         if let Some(account) = Account::find_by_id(
             "0x0000000000000000000000000000000000000000".to_string(),
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
+            backend_schema,
+            tx.as_mut(),
         )
         .await?
         {
@@ -290,10 +291,7 @@ impl TripleCreated {
                 .label("Unknown".to_string())
                 .account_type(AccountType::Default)
                 .build()
-                .upsert(
-                    &decoded_consumer_context.pg_pool,
-                    &decoded_consumer_context.backend_schema,
-                )
+                .upsert(backend_schema, tx.as_mut())
                 .await
                 .map_err(ConsumerError::ModelError)
         }
@@ -302,7 +300,8 @@ impl TripleCreated {
     /// This function creates an atom
     async fn create_atom(
         &self,
-        decoded_consumer_context: &DecodedConsumerContext,
+        backend_schema: &str,
+        tx: &mut Transaction<'_, Postgres>,
         atom_data: String,
         account: Account,
         vault: Vault,
@@ -320,10 +319,7 @@ impl TripleCreated {
             .transaction_hash("0x0000000000000000000000000000000000000000".to_string())
             .resolving_status(AtomResolvingStatus::Pending)
             .build()
-            .upsert(
-                &decoded_consumer_context.pg_pool,
-                &decoded_consumer_context.backend_schema,
-            )
+            .upsert(backend_schema, tx.as_mut())
             .await
             .map_err(ConsumerError::ModelError)
     }
@@ -335,12 +331,14 @@ impl TripleCreated {
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(Atom, Atom, Atom), ConsumerError> {
         let subject_atom = self
             .fetch_or_create_temporary_atom(
                 decoded_consumer_context,
                 U256Wrapper::from(self.subjectId),
                 event,
+                tx,
             )
             .await?;
         let predicate_atom = self
@@ -348,6 +346,7 @@ impl TripleCreated {
                 decoded_consumer_context,
                 U256Wrapper::from(self.predicateId),
                 event,
+                tx,
             )
             .await?;
         let object_atom = self
@@ -355,6 +354,7 @@ impl TripleCreated {
                 decoded_consumer_context,
                 U256Wrapper::from(self.objectId),
                 event,
+                tx,
             )
             .await?;
         Ok((subject_atom, predicate_atom, object_atom))
@@ -365,6 +365,7 @@ impl TripleCreated {
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
         // Get the counter vault ID
         let counter_vault_id = decoded_consumer_context
@@ -377,12 +378,14 @@ impl TripleCreated {
             Some(event.block_number),
             decoded_consumer_context,
             TermType::Triple,
+            tx,
         )
         .await?;
         // Get or update the counter vault
         self.get_or_create_counter_vault(
             U256Wrapper::from(counter_vault_id),
             decoded_consumer_context,
+            tx,
         )
         .await?;
 
@@ -394,6 +397,7 @@ impl TripleCreated {
         &self,
         counter_vault_id: U256Wrapper,
         decoded_consumer_context: &DecodedConsumerContext,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Vault, ConsumerError> {
         let vault = Vault::find_by_term_id_and_curve_id(
             counter_vault_id.clone(),
@@ -410,8 +414,9 @@ impl TripleCreated {
             get_or_create_term(
                 &self,
                 Some(counter_vault_id),
-                decoded_consumer_context,
+                &decoded_consumer_context.backend_schema,
                 TermType::Triple,
+                tx,
             )
             .await?;
 
@@ -425,10 +430,7 @@ impl TripleCreated {
                 .total_shares(self.total_shares(decoded_consumer_context, None).await?)
                 .position_count(0)
                 .build()
-                .upsert(
-                    &decoded_consumer_context.pg_pool,
-                    &decoded_consumer_context.backend_schema,
-                )
+                .upsert(&decoded_consumer_context.backend_schema, tx.as_mut())
                 .await
                 .map_err(ConsumerError::ModelError)?;
 
@@ -444,27 +446,32 @@ impl TripleCreated {
     ) -> Result<(), ConsumerError> {
         info!("Handling triple creation: {self:#?}");
 
+        let mut tx = decoded_consumer_context.pg_pool.begin().await?;
         // Ensure that the vault and counter vault exist
-        self.get_or_create_vaults(decoded_consumer_context, event)
+        self.get_or_create_vaults(decoded_consumer_context, event, &mut tx)
             .await?;
 
         // Get or create the triple
         let triple = self
-            .get_or_create_triple(decoded_consumer_context, event)
+            .get_or_create_triple(decoded_consumer_context, event, &mut tx)
             .await?;
 
         info!("Triple created: {triple:#?}");
         // Update the predicate object
-        self.update_predicate_object_triple_count(decoded_consumer_context)
-            .await?;
+        self.update_predicate_object_triple_count(
+            &decoded_consumer_context.backend_schema,
+            &mut tx,
+        )
+        .await?;
         info!("Predicate object triple count updated");
 
         // Update the positions
-        self.update_positions(decoded_consumer_context, event)
+        self.update_positions(decoded_consumer_context, event, &mut tx)
             .await?;
         info!("Positions updated");
         // Create the event
-        self.create_event(event, decoded_consumer_context).await?;
+        self.create_event(event, &decoded_consumer_context.backend_schema, &mut tx)
+            .await?;
         Ok(())
     }
 
@@ -487,26 +494,22 @@ impl TripleCreated {
         &self,
         subject_atom: &Atom,
         object_atom: &Atom,
-        decoded_consumer_context: &DecodedConsumerContext,
+        backend_schema: &str,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
         if let Some(mut account) = Account::find_by_id(
             subject_atom
                 .data
                 .clone()
                 .ok_or(ConsumerError::AtomDataNotFound)?,
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
+            backend_schema,
+            tx.as_mut(),
         )
         .await?
         {
             account.label = object_atom.label.clone().unwrap_or_default();
             account.image = object_atom.image.clone();
-            account
-                .upsert(
-                    &decoded_consumer_context.pg_pool,
-                    &decoded_consumer_context.backend_schema,
-                )
-                .await?;
+            account.upsert(backend_schema, tx.as_mut()).await?;
             Ok(())
         } else {
             Err(ConsumerError::AccountNotFound)
@@ -517,22 +520,19 @@ impl TripleCreated {
     async fn update_atom(
         &self,
         object_atom: &Atom,
-        decoded_consumer_context: &DecodedConsumerContext,
+        backend_schema: &str,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
         if let Some(mut atom) = Atom::find_by_id(
             U256Wrapper::from(self.subjectId),
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
+            backend_schema,
+            tx.as_mut(),
         )
         .await?
         {
             atom.label = object_atom.label.clone();
             atom.image = object_atom.image.clone();
-            atom.upsert(
-                &decoded_consumer_context.pg_pool,
-                &decoded_consumer_context.backend_schema,
-            )
-            .await?;
+            atom.upsert(backend_schema, tx.as_mut()).await?;
             Ok(())
         } else {
             Err(ConsumerError::AtomNotFound)
@@ -544,10 +544,11 @@ impl TripleCreated {
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
         let positions = Position::find_by_vault_id(
             format!("{}-1-{}", self.vaultId, self.subjectId),
-            &decoded_consumer_context.pg_pool,
+            tx.as_mut(),
             &decoded_consumer_context.backend_schema,
         )
         .await?;
@@ -557,19 +558,20 @@ impl TripleCreated {
                 .account_id(position.account_id.clone())
                 .position_id(position.id.clone())
                 .build()
-                .upsert(
-                    &decoded_consumer_context.pg_pool,
-                    &decoded_consumer_context.backend_schema,
-                )
+                .upsert(&decoded_consumer_context.backend_schema, tx.as_mut())
                 .await?;
 
             // Update the predicate object claim count
-            self.update_predicate_object_claim_count(decoded_consumer_context)
+            self.update_predicate_object_claim_count(&decoded_consumer_context.backend_schema, tx)
                 .await?;
         }
 
-        self.check_and_update_account_predicate_object_claim_count(decoded_consumer_context, event)
-            .await?;
+        self.check_and_update_account_predicate_object_claim_count(
+            decoded_consumer_context,
+            event,
+            tx,
+        )
+        .await?;
 
         Ok(())
     }
@@ -577,22 +579,18 @@ impl TripleCreated {
     /// This function updates the predicate object claim count
     async fn update_predicate_object_claim_count(
         &self,
-        decoded_consumer_context: &DecodedConsumerContext,
+        backend_schema: &str,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
         if let Some(mut predicate_object) = PredicateObject::find_by_id(
             format!("{}-{}", self.predicateId, self.objectId),
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
+            backend_schema,
+            tx.as_mut(),
         )
         .await?
         {
             predicate_object.claim_count += 1;
-            predicate_object
-                .upsert(
-                    &decoded_consumer_context.pg_pool,
-                    &decoded_consumer_context.backend_schema,
-                )
-                .await?;
+            predicate_object.upsert(backend_schema, tx.as_mut()).await?;
         } else {
             PredicateObject::builder()
                 .id(format!("{}-{}", self.predicateId, self.objectId))
@@ -601,10 +599,7 @@ impl TripleCreated {
                 .claim_count(1)
                 .triple_count(1)
                 .build()
-                .upsert(
-                    &decoded_consumer_context.pg_pool,
-                    &decoded_consumer_context.backend_schema,
-                )
+                .upsert(backend_schema, tx.as_mut())
                 .await?;
         }
         Ok(())
@@ -613,22 +608,18 @@ impl TripleCreated {
     /// This function updates the predicate object triple count
     async fn update_predicate_object_triple_count(
         &self,
-        decoded_consumer_context: &DecodedConsumerContext,
+        backend_schema: &str,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
         if let Some(mut predicate_object) = PredicateObject::find_by_id(
             format!("{}-{}", self.predicateId, self.objectId),
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
+            backend_schema,
+            tx.as_mut(),
         )
         .await?
         {
             predicate_object.triple_count += 1;
-            predicate_object
-                .upsert(
-                    &decoded_consumer_context.pg_pool,
-                    &decoded_consumer_context.backend_schema,
-                )
-                .await?;
+            predicate_object.upsert(backend_schema, tx.as_mut()).await?;
         } else {
             PredicateObject::builder()
                 .id(format!("{}-{}", self.predicateId, self.objectId))
@@ -637,10 +628,7 @@ impl TripleCreated {
                 .claim_count(0)
                 .triple_count(1)
                 .build()
-                .upsert(
-                    &decoded_consumer_context.pg_pool,
-                    &decoded_consumer_context.backend_schema,
-                )
+                .upsert(backend_schema, tx.as_mut())
                 .await?;
         }
         Ok(())

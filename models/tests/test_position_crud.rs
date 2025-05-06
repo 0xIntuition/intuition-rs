@@ -20,18 +20,18 @@ mod tests {
         let creator = create_test_account_db(&pool).await;
 
         let atom = create_test_atom(wallet.id.clone(), creator.id.clone());
-        let stored_atom = atom.upsert(&pool, TEST_SCHEMA).await.unwrap();
+        let stored_atom = atom.upsert(TEST_SCHEMA, &pool).await.unwrap();
 
         // Create and store a test Vault
         let test_vault = create_test_vault_with_atom(stored_atom.term_id.clone());
 
-        let stored_vault = test_vault.upsert(&pool, TEST_SCHEMA).await.unwrap();
+        let stored_vault = test_vault.upsert(TEST_SCHEMA, &pool).await.unwrap();
 
         // Create initial position
         let position = create_test_position(wallet.id, stored_vault.term_id.clone());
 
         // Insert the position
-        position.upsert(&pool, TEST_SCHEMA).await?;
+        position.upsert(TEST_SCHEMA, &pool).await?;
 
         // Update position with new values
         let updated_position = Position {
@@ -43,10 +43,10 @@ mod tests {
         };
 
         // Update using upsert
-        updated_position.upsert(&pool, TEST_SCHEMA).await?;
+        updated_position.upsert(TEST_SCHEMA, &pool).await?;
 
         // Retrieve the position and verify updated values
-        let retrieved_position = Position::find_by_id(position.id.clone(), &pool, TEST_SCHEMA)
+        let retrieved_position = Position::find_by_id(position.id.clone(), TEST_SCHEMA, &pool)
             .await?
             .expect("Position should exist");
 

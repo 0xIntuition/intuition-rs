@@ -21,7 +21,7 @@ mod tests {
             .build();
 
         // Test inserting
-        let inserted_book = test_book.upsert(&pool, TEST_SCHEMA).await?;
+        let inserted_book = test_book.upsert(TEST_SCHEMA, &pool).await?;
         assert_eq!(inserted_book.name, test_book.name);
         assert_eq!(inserted_book.description, test_book.description);
 
@@ -30,7 +30,7 @@ mod tests {
         updated_book.name = Some("Updated Test Book".to_string());
         updated_book.description = Some("An updated book for testing".to_string());
 
-        let updated_result = updated_book.upsert(&pool, TEST_SCHEMA).await?;
+        let updated_result = updated_book.upsert(TEST_SCHEMA, &pool).await?;
         assert_eq!(updated_result.name, Some("Updated Test Book".to_string()));
         assert_eq!(
             updated_result.description,
@@ -38,7 +38,7 @@ mod tests {
         );
 
         // Test finding by id
-        let found_book = Book::find_by_id(test_book.id.clone(), &pool, TEST_SCHEMA)
+        let found_book = Book::find_by_id(test_book.id.clone(), TEST_SCHEMA, &pool)
             .await?
             .unwrap();
         assert_eq!(found_book.id, test_book.id);

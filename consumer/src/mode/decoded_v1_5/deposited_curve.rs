@@ -24,6 +24,7 @@ use models::{
     types::U256Wrapper,
     vault::Vault,
 };
+use sqlx::{Postgres, Transaction};
 use tracing::info;
 
 #[async_trait]
@@ -108,29 +109,21 @@ impl DepositedCurve {
     /// This function creates a new position or updates an existing one
     async fn handle_position(
         &self,
-        decoded_consumer_context: &DecodedConsumerContext,
+        backend_schema: &str,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
         // Build the position ID using the atom/triple ID and curve number for uniqueness
         // but reference the base vault ID for the foreign key constraint
         let position_id = self.format_position_id();
 
         // Check if the position already exists
-        let position = Position::find_by_id(
-            position_id.clone(),
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
-        )
-        .await?;
+        let position =
+            Position::find_by_id(position_id.clone(), backend_schema, tx.as_mut()).await?;
 
         if let Some(mut position) = position {
             // Update the position
             position.shares = U256Wrapper::from(self.receiverTotalSharesInVault);
-            position
-                .upsert(
-                    &decoded_consumer_context.pg_pool,
-                    &decoded_consumer_context.backend_schema,
-                )
-                .await?;
+            position.upsert(backend_schema, tx.as_mut()).await?;
         } else {
             // Create or update the position
             Position::builder()
@@ -141,10 +134,7 @@ impl DepositedCurve {
                 .shares(self.receiverTotalSharesInVault)
                 .curve_id(U256Wrapper::from(self.curveId))
                 .build()
-                .upsert(
-                    &decoded_consumer_context.pg_pool,
-                    &decoded_consumer_context.backend_schema,
-                )
+                .upsert(backend_schema, tx.as_mut())
                 .await?;
 
             // Create a claim
@@ -153,10 +143,7 @@ impl DepositedCurve {
                 .account_id(self.receiver.to_string())
                 .position_id(position_id)
                 .build()
-                .upsert(
-                    &decoded_consumer_context.pg_pool,
-                    &decoded_consumer_context.backend_schema,
-                )
+                .upsert(backend_schema, tx.as_mut())
                 .await?;
         }
 
@@ -166,9 +153,10 @@ impl DepositedCurve {
     /// This function creates a `Signal` for the `DepositedCurve` event
     async fn create_signal(
         &self,
-        decoded_consumer_context: &DecodedConsumerContext,
+        backend_schema: &str,
         event: &DecodedMessage,
         curve_vault: &Vault,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
         if self.senderAssetsAfterTotalFees > U256::from(0) {
             // send the RPC to check if its triple
@@ -185,10 +173,7 @@ impl DepositedCurve {
                     .term_id(curve_vault.term_id.clone())
                     .curve_id(U256Wrapper::from(self.curveId))
                     .build()
-                    .upsert(
-                        &decoded_consumer_context.pg_pool,
-                        &decoded_consumer_context.backend_schema,
-                    )
+                    .upsert(backend_schema, tx.as_mut())
                     .await?;
             } else {
                 Signal::builder()
@@ -203,10 +188,7 @@ impl DepositedCurve {
                     .term_id(curve_vault.term_id.clone())
                     .curve_id(U256Wrapper::from(self.curveId))
                     .build()
-                    .upsert(
-                        &decoded_consumer_context.pg_pool,
-                        &decoded_consumer_context.backend_schema,
-                    )
+                    .upsert(backend_schema, tx.as_mut())
                     .await?;
             }
         }
@@ -217,7 +199,8 @@ impl DepositedCurve {
     async fn create_event(
         &self,
         event: &DecodedMessage,
-        decoded_consumer_context: &DecodedConsumerContext,
+        backend_schema: &str,
+        tx: &mut Transaction<'_, Postgres>,
         deposit_id: &str,
     ) -> Result<Event, ConsumerError> {
         // Create the event
@@ -231,10 +214,7 @@ impl DepositedCurve {
             .build();
 
         event
-            .upsert(
-                &decoded_consumer_context.pg_pool,
-                &decoded_consumer_context.backend_schema,
-            )
+            .upsert(backend_schema, tx.as_mut())
             .await
             .map_err(ConsumerError::ModelError)
     }
@@ -243,12 +223,13 @@ impl DepositedCurve {
     async fn initialize_accounts(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
         // Create or get the sender account
-        get_or_create_account(self.sender.to_string(), decoded_consumer_context).await?;
+        get_or_create_account(self.sender.to_string(), decoded_consumer_context, tx).await?;
 
         // Create or get the receiver account
-        get_or_create_account(self.receiver.to_string(), decoded_consumer_context).await?;
+        get_or_create_account(self.receiver.to_string(), decoded_consumer_context, tx).await?;
 
         Ok(())
     }
@@ -257,7 +238,8 @@ impl DepositedCurve {
     async fn create_deposit(
         &self,
         event: &DecodedMessage,
-        decoded_consumer_context: &DecodedConsumerContext,
+        backend_schema: &str,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Deposit, ConsumerError> {
         Deposit::builder()
             .id(DecodedMessage::event_id(event))
@@ -275,10 +257,7 @@ impl DepositedCurve {
             .transaction_hash(event.transaction_hash.clone())
             .curve_id(U256Wrapper::from(self.curveId))
             .build()
-            .upsert(
-                &decoded_consumer_context.pg_pool,
-                &decoded_consumer_context.backend_schema,
-            )
+            .upsert(backend_schema, tx.as_mut())
             .await
             .map_err(ConsumerError::ModelError)
     }
@@ -291,8 +270,10 @@ impl DepositedCurve {
     ) -> Result<(), ConsumerError> {
         info!("Processing DepositedCurve event: {:?}", self);
 
+        let mut tx = decoded_consumer_context.pg_pool.begin().await?;
         // Initialize accounts
-        self.initialize_accounts(decoded_consumer_context).await?;
+        self.initialize_accounts(decoded_consumer_context, &mut tx)
+            .await?;
 
         // Get or create the curve vault
         let curve_vault = get_or_create_vault(
@@ -304,22 +285,36 @@ impl DepositedCurve {
             } else {
                 TermType::Atom
             },
+            &mut tx,
         )
         .await?;
 
         // Create deposit record first
-        let deposit = self.create_deposit(event, decoded_consumer_context).await?;
+        let deposit = self
+            .create_deposit(event, &decoded_consumer_context.backend_schema, &mut tx)
+            .await?;
 
         // Create event with deposit_id
-        self.create_event(event, decoded_consumer_context, &deposit.id)
-            .await?;
+        self.create_event(
+            event,
+            &decoded_consumer_context.backend_schema,
+            &mut tx,
+            &deposit.id,
+        )
+        .await?;
 
         // Handle position
-        self.handle_position(decoded_consumer_context).await?;
+        self.handle_position(&decoded_consumer_context.backend_schema, &mut tx)
+            .await?;
 
         // Create signal
-        self.create_signal(decoded_consumer_context, event, &curve_vault)
-            .await?;
+        self.create_signal(
+            &decoded_consumer_context.backend_schema,
+            event,
+            &curve_vault,
+            &mut tx,
+        )
+        .await?;
 
         Ok(())
     }

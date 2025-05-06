@@ -4,6 +4,7 @@ use crate::{
     types::U256Wrapper,
 };
 use async_trait::async_trait;
+use sqlx::{Executor, Postgres};
 
 /// This is the `Redemption` struct that represents a redemption in the database.
 #[derive(sqlx::FromRow, Debug, Clone, PartialEq, Builder)]
@@ -31,7 +32,10 @@ impl Model for Redemption {}
 impl SimpleCrud<String> for Redemption {
     /// Upserts a redemption record in the database.
     /// If a record with the same ID exists, it will be updated, otherwise a new record will be created.
-    async fn upsert(&self, pool: &sqlx::PgPool, schema: &str) -> Result<Self, ModelError> {
+    async fn upsert<'e, E>(&self, schema: &str, executor: E) -> Result<Self, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"
             INSERT INTO {}.redemption (
@@ -79,18 +83,21 @@ impl SimpleCrud<String> for Redemption {
             .bind(self.block_timestamp)
             .bind(self.transaction_hash.clone())
             .bind(self.curve_id.to_big_decimal()?)
-            .fetch_one(pool)
+            .fetch_one(executor)
             .await
             .map_err(|e| crate::error::ModelError::InsertError(e.to_string()))
     }
 
     /// Finds a redemption record by its ID.
     /// Returns None if no record is found.
-    async fn find_by_id(
+    async fn find_by_id<'e, E>(
         id: String,
-        pool: &sqlx::PgPool,
         schema: &str,
-    ) -> Result<Option<Self>, ModelError> {
+        executor: E,
+    ) -> Result<Option<Self>, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"
             SELECT 
@@ -112,7 +119,7 @@ impl SimpleCrud<String> for Redemption {
 
         sqlx::query_as::<_, Redemption>(&query)
             .bind(id.clone())
-            .fetch_optional(pool)
+            .fetch_optional(executor)
             .await
             .map_err(|e| crate::error::ModelError::QueryError(e.to_string()))
     }

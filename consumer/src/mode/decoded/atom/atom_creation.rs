@@ -18,6 +18,7 @@ use models::{
     types::U256Wrapper,
     vault::Vault,
 };
+use sqlx::{Postgres, Transaction};
 use std::str::FromStr;
 use tracing::{info, warn};
 impl AtomCreated {
@@ -25,7 +26,8 @@ impl AtomCreated {
     async fn create_event(
         &self,
         event: &DecodedMessage,
-        decoded_consumer_context: &DecodedConsumerContext,
+        backend_schema: &str,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Event, ConsumerError> {
         // Create the event
         Event::builder()
@@ -36,10 +38,7 @@ impl AtomCreated {
             .block_timestamp(event.block_timestamp)
             .transaction_hash(event.transaction_hash.clone())
             .build()
-            .upsert(
-                &decoded_consumer_context.pg_pool,
-                &decoded_consumer_context.backend_schema,
-            )
+            .upsert(backend_schema, tx.as_mut())
             .await
             .map_err(ConsumerError::ModelError)
     }
@@ -48,7 +47,8 @@ impl AtomCreated {
     async fn decode_atom_data_and_update_atom(
         &self,
         atom: &mut Atom,
-        decoded_consumer_context: &DecodedConsumerContext,
+        backend_schema: &str,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<String, ConsumerError> {
         // decode the hex data from the atomData.
         let decoded_atom_data = if let Ok(decoded_atom_data) =
@@ -65,11 +65,7 @@ impl AtomCreated {
 
         // Update the atom with the decoded data
         atom.data = Some(decoded_atom_data.clone());
-        atom.upsert(
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
-        )
-        .await?;
+        atom.upsert(backend_schema, tx.as_mut()).await?;
         Ok(decoded_atom_data)
     }
 
@@ -77,25 +73,17 @@ impl AtomCreated {
     /// If it does not, it creates it.
     async fn get_or_create_atom_wallet_account(
         &self,
-        decoded_consumer_context: &DecodedConsumerContext,
+        backend_schema: &str,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Account, ConsumerError> {
         // First try to find existing account
-        if let Some(mut account) = Account::find_by_id(
-            self.atomWallet.to_string(),
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
-        )
-        .await?
+        if let Some(mut account) =
+            Account::find_by_id(self.atomWallet.to_string(), backend_schema, tx.as_mut()).await?
         {
             // We update the account type to `AtomWallet` if it is not already set
             if account.account_type != AccountType::AtomWallet {
                 account.account_type = AccountType::AtomWallet;
-                account
-                    .upsert(
-                        &decoded_consumer_context.pg_pool,
-                        &decoded_consumer_context.backend_schema,
-                    )
-                    .await?;
+                account.upsert(backend_schema, tx.as_mut()).await?;
             }
             return Ok(account);
         }
@@ -106,10 +94,7 @@ impl AtomCreated {
             .label(short_id(&self.atomWallet.to_string()))
             .account_type(AccountType::AtomWallet)
             .build()
-            .upsert(
-                &decoded_consumer_context.pg_pool,
-                &decoded_consumer_context.backend_schema,
-            )
+            .upsert(backend_schema, tx.as_mut())
             .await
             .map_err(ConsumerError::ModelError)
     }
@@ -120,11 +105,12 @@ impl AtomCreated {
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Atom, ConsumerError> {
         if let Some(atom) = Atom::find_by_id(
             self.vaultID.into(),
-            &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
+            tx.as_mut(),
         )
         .await?
         {
@@ -134,10 +120,11 @@ impl AtomCreated {
         } else {
             info!("Atom does not exist, creating it");
             let mut atom_wallet_account = self
-                .get_or_create_atom_wallet_account(decoded_consumer_context)
+                .get_or_create_atom_wallet_account(&decoded_consumer_context.backend_schema, tx)
                 .await?;
             let creator_account =
-                get_or_create_account(self.creator.to_string(), decoded_consumer_context).await?;
+                get_or_create_account(self.creator.to_string(), decoded_consumer_context, tx)
+                    .await?;
             // Create the `Atom` and upsert it. Note that we are using the raw_data as the data
             // for now, this will be updated later with the resolver consumer.
             let atom = Atom::builder()
@@ -152,16 +139,14 @@ impl AtomCreated {
                 .transaction_hash(event.transaction_hash.clone())
                 .resolving_status(AtomResolvingStatus::Pending)
                 .build()
-                .upsert(
-                    &decoded_consumer_context.pg_pool,
-                    &decoded_consumer_context.backend_schema,
-                )
+                .upsert(&decoded_consumer_context.backend_schema, tx.as_mut())
                 .await?;
             //updating the account with the atom id
             update_account_with_atom_id(
                 &mut atom_wallet_account,
                 atom.term_id.clone(),
                 decoded_consumer_context,
+                tx,
             )
             .await?;
 
@@ -177,38 +162,43 @@ impl AtomCreated {
         decoded_message: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
         info!("Handling atom creation: {self:#?}");
-
+        let mut tx = decoded_consumer_context.pg_pool.begin().await?;
         // Update the vault current share price
         let (_vault, mut atom) = self
-            .update_vault_current_share_price(decoded_consumer_context, decoded_message)
+            .update_vault_current_share_price(decoded_consumer_context, decoded_message, &mut tx)
             .await?;
 
         // decode the hex data from the atomData.
         let decoded_atom_data = self
-            .decode_atom_data_and_update_atom(&mut atom, decoded_consumer_context)
+            .decode_atom_data_and_update_atom(
+                &mut atom,
+                &decoded_consumer_context.backend_schema,
+                &mut tx,
+            )
             .await?;
 
         // get the supported atom metadata and update the atom metadata
         let supported_atom_metadata =
             get_supported_atom_metadata(&mut atom, &decoded_atom_data, decoded_consumer_context)
                 .await?
-                .update_atom_metadata(
-                    &mut atom,
-                    &decoded_consumer_context.pg_pool,
-                    &decoded_consumer_context.backend_schema,
-                )
+                .update_atom_metadata(&mut atom, &decoded_consumer_context.backend_schema, &mut tx)
                 .await?;
 
         // Handle the account or caip10 type
         let resolved_atom = ResolveAtom { atom: atom.clone() };
         supported_atom_metadata
-            .handle_account_or_caip10_type(&resolved_atom, decoded_consumer_context)
+            .handle_account_or_caip10_type(&resolved_atom, decoded_consumer_context, &mut tx)
             .await?;
 
         // Create the event
-        self.create_event(decoded_message, decoded_consumer_context)
-            .await?;
+        self.create_event(
+            decoded_message,
+            &decoded_consumer_context.backend_schema,
+            &mut tx,
+        )
+        .await?;
 
+        tx.commit().await?;
         Ok(())
     }
 
@@ -218,11 +208,12 @@ impl AtomCreated {
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Vault, ConsumerError> {
         if let Some(vault) = Vault::find_by_term_id_and_curve_id(
             U256Wrapper::from(self.vaultID),
             1.try_into()?,
-            &decoded_consumer_context.pg_pool,
+            tx.as_mut(),
             &decoded_consumer_context.backend_schema,
         )
         .await?
@@ -255,10 +246,7 @@ impl AtomCreated {
                     .await? as i32,
                 )
                 .build()
-                .upsert(
-                    &decoded_consumer_context.pg_pool,
-                    &decoded_consumer_context.backend_schema,
-                )
+                .upsert(&decoded_consumer_context.backend_schema, tx.as_mut())
                 .await
                 .map_err(ConsumerError::ModelError)
         }
@@ -269,6 +257,7 @@ impl AtomCreated {
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(Vault, Atom), ConsumerError> {
         // Get the share price of the atom
         let current_share_price = decoded_consumer_context
@@ -276,7 +265,7 @@ impl AtomCreated {
             .await?;
 
         // Get or create the vault
-        self.get_or_create_vault(decoded_consumer_context, event)
+        self.get_or_create_vault(decoded_consumer_context, event, tx)
             .await?;
 
         // In order to upsert a [`Vault`] we need to have an [`Atom`] first.
@@ -285,13 +274,13 @@ impl AtomCreated {
         // created first, so if they don't exist, we create them as part of this
         // process.
         let atom = self
-            .get_or_create_vault_atom(decoded_consumer_context, event)
+            .get_or_create_vault_atom(decoded_consumer_context, event, tx)
             .await?;
         // Update the respective vault with the correct share price
         let vault = Vault::update_current_share_price(
             self.vaultID.into(),
             current_share_price.into(),
-            &decoded_consumer_context.pg_pool,
+            tx.as_mut(),
             &decoded_consumer_context.backend_schema,
         )
         .await?;

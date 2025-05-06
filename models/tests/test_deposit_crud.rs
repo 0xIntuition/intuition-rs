@@ -23,12 +23,12 @@ mod tests {
         let creator = create_test_account_db(&pool).await;
 
         let atom = create_test_atom(wallet.id, creator.id)
-            .upsert(&pool, TEST_SCHEMA)
+            .upsert(TEST_SCHEMA, &pool)
             .await
             .unwrap();
 
         let vault = create_test_vault_with_atom(atom.term_id.clone())
-            .upsert(&pool, TEST_SCHEMA)
+            .upsert(TEST_SCHEMA, &pool)
             .await
             .unwrap();
 
@@ -36,7 +36,7 @@ mod tests {
         let deposit = create_test_deposit(sender.id, receiver.id, vault.term_id.clone());
 
         // Test initial upsert
-        let upserted_deposit = deposit.upsert(&pool, TEST_SCHEMA).await?;
+        let upserted_deposit = deposit.upsert(TEST_SCHEMA, &pool).await?;
         assert_eq!(upserted_deposit.id, deposit.id.to_lowercase());
         assert_eq!(
             upserted_deposit.shares_for_receiver,
@@ -50,7 +50,7 @@ mod tests {
         updated_deposit.entry_fee = U256Wrapper::from_str("20").unwrap();
 
         // Test update via upsert
-        let upserted_updated = updated_deposit.upsert(&pool, TEST_SCHEMA).await?;
+        let upserted_updated = updated_deposit.upsert(TEST_SCHEMA, &pool).await?;
         assert_eq!(
             upserted_updated.shares_for_receiver,
             updated_deposit.shares_for_receiver
@@ -58,7 +58,7 @@ mod tests {
         assert_eq!(upserted_updated.entry_fee, updated_deposit.entry_fee);
 
         // Test find_by_id
-        let found_deposit = Deposit::find_by_id(deposit.id.clone(), &pool, TEST_SCHEMA)
+        let found_deposit = Deposit::find_by_id(deposit.id.clone(), TEST_SCHEMA, &pool)
             .await?
             .expect("Deposit should exist");
 

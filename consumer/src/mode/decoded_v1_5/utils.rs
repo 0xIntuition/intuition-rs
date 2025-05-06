@@ -16,6 +16,7 @@ use models::{
     types::U256Wrapper,
     vault::Vault,
 };
+use sqlx::{Postgres, Transaction};
 use tracing::info;
 
 /// Shortens an address string by taking first 6 and last 4 chars
@@ -45,11 +46,12 @@ pub fn get_absolute_triple_id(vault_id: U256) -> U256 {
 pub async fn get_or_create_account(
     id: String,
     decoded_consumer_context: &DecodedConsumerContext,
+    tx: &mut Transaction<'_, Postgres>,
 ) -> Result<Account, ConsumerError> {
     if let Some(account) = Account::find_by_id(
         id.clone(),
-        &decoded_consumer_context.pg_pool,
         &decoded_consumer_context.backend_schema,
+        tx.as_mut(),
     )
     .await?
     {
@@ -62,10 +64,7 @@ pub async fn get_or_create_account(
             .label(short_id(&id))
             .account_type(AccountType::Default)
             .build()
-            .upsert(
-                &decoded_consumer_context.pg_pool,
-                &decoded_consumer_context.backend_schema,
-            )
+            .upsert(&decoded_consumer_context.backend_schema, tx.as_mut())
             .await
             .map_err(ConsumerError::ModelError)?;
 
@@ -85,13 +84,11 @@ pub async fn update_account_with_atom_id(
     account: &mut Account,
     atom_id: U256Wrapper,
     decoded_consumer_context: &DecodedConsumerContext,
+    tx: &mut Transaction<'_, Postgres>,
 ) -> Result<(), ConsumerError> {
     account.atom_id = Some(atom_id);
     account
-        .upsert(
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
-        )
+        .upsert(&decoded_consumer_context.backend_schema, tx.as_mut())
         .await?;
     info!("Updated account: {:?}", account);
 
@@ -111,6 +108,7 @@ pub async fn update_vault_from_share_price_changed_events(
     share_price_changed: impl SharePriceEvent + Debug,
     decoded_consumer_context: &DecodedConsumerContext,
     term_type: TermType,
+    tx: &mut Transaction<'_, Postgres>,
 ) -> Result<(), ConsumerError> {
     info!(
         "Processing SharePriceChanged event: {:?}",
@@ -120,7 +118,7 @@ pub async fn update_vault_from_share_price_changed_events(
     let vault = Vault::find_by_term_id_and_curve_id(
         share_price_changed.term_id()?,
         share_price_changed.curve_id()?,
-        &decoded_consumer_context.pg_pool,
+        tx.as_mut(),
         &decoded_consumer_context.backend_schema,
     )
     .await?;
@@ -143,10 +141,7 @@ pub async fn update_vault_from_share_price_changed_events(
                 / U256Wrapper::from(U256::from(10).pow(U256::from(18))),
         );
         vault
-            .upsert(
-                &decoded_consumer_context.pg_pool,
-                &decoded_consumer_context.backend_schema,
-            )
+            .upsert(&decoded_consumer_context.backend_schema, tx.as_mut())
             .await?;
         info!("Updated vault share price and total shares");
         // The term is going to be updated by the trigger on the vault table
@@ -157,12 +152,10 @@ pub async fn update_vault_from_share_price_changed_events(
             None,
             decoded_consumer_context,
             term_type,
+            tx,
         )
         .await?
-        .upsert(
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
-        )
+        .upsert(&decoded_consumer_context.backend_schema, tx.as_mut())
         .await?;
     }
     info!("Finished updating vault, updating share price aggregate");

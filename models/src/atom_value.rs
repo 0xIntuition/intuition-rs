@@ -4,7 +4,7 @@ use crate::{
     types::U256Wrapper,
 };
 use async_trait::async_trait;
-use sqlx::PgPool;
+use sqlx::{Executor, Postgres};
 
 /// This is the `AtomValue` struct that represents an atom value in the database.
 #[derive(sqlx::FromRow, Debug, Builder)]
@@ -26,7 +26,10 @@ impl Model for AtomValue {}
 #[async_trait]
 impl SimpleCrud<U256Wrapper> for AtomValue {
     /// This is a method to upsert an atom value into the database.
-    async fn upsert(&self, pool: &PgPool, schema: &str) -> Result<Self, ModelError> {
+    async fn upsert<'e, E>(&self, schema: &str, executor: E) -> Result<Self, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"
             INSERT INTO {}.atom_value (id, account_id, thing_id, person_id, organization_id, book_id, json_object_id, text_object_id, byte_object_id)
@@ -84,17 +87,20 @@ impl SimpleCrud<U256Wrapper> for AtomValue {
                     .as_ref()
                     .and_then(|w| w.to_big_decimal().ok()),
             )
-            .fetch_one(pool)
+            .fetch_one(executor)
             .await
             .map_err(|e| ModelError::InsertError(e.to_string()))
     }
 
     /// This is a method to find an atom value by its id.
-    async fn find_by_id(
+    async fn find_by_id<'e, E>(
         id: U256Wrapper,
-        pool: &PgPool,
         schema: &str,
-    ) -> Result<Option<Self>, ModelError> {
+        executor: E,
+    ) -> Result<Option<Self>, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"
             SELECT 
@@ -116,7 +122,7 @@ impl SimpleCrud<U256Wrapper> for AtomValue {
 
         sqlx::query_as::<_, AtomValue>(&query)
             .bind(id.to_big_decimal()?)
-            .fetch_optional(pool)
+            .fetch_optional(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
     }

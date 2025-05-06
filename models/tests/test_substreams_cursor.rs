@@ -22,15 +22,15 @@ mod tests {
         };
 
         // Insert the SubstreamsCursor
-        let inserted_cursor = cursor.upsert(&pool, TEST_SCHEMA).await.unwrap();
+        let inserted_cursor = cursor.upsert(TEST_SCHEMA, &pool).await.unwrap();
         assert_eq!(inserted_cursor.id, cursor.id);
 
         // Upsert the SubstreamsCursor again
-        let upserted_cursor = cursor.upsert(&pool, TEST_SCHEMA).await.unwrap();
+        let upserted_cursor = cursor.upsert(TEST_SCHEMA, &pool).await.unwrap();
         assert_eq!(upserted_cursor.id, cursor.id);
 
         // Retrieve the SubstreamsCursor by id
-        let found_cursor = SubstreamsCursor::find_by_id(cursor.id, &pool, TEST_SCHEMA)
+        let found_cursor = SubstreamsCursor::find_by_id(cursor.id, TEST_SCHEMA, &pool)
             .await
             .unwrap();
         assert!(found_cursor.is_some());

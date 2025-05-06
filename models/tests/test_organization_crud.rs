@@ -15,7 +15,7 @@ mod tests {
 
         // Test initial upsert
         let stored_org = org
-            .upsert(&pool, TEST_SCHEMA)
+            .upsert(TEST_SCHEMA, &pool)
             .await
             .expect("Failed to store organization");
         assert_eq!(stored_org.name, org.name);
@@ -28,7 +28,7 @@ mod tests {
 
         // Test update
         let stored_updated_org = updated_org
-            .upsert(&pool, TEST_SCHEMA)
+            .upsert(TEST_SCHEMA, &pool)
             .await
             .expect("Failed to update organization");
         assert_eq!(
@@ -41,7 +41,7 @@ mod tests {
         );
 
         // Test find_by_id
-        let found_org = Organization::find_by_id(org.id.clone(), &pool, TEST_SCHEMA)
+        let found_org = Organization::find_by_id(org.id.clone(), TEST_SCHEMA, &pool)
             .await
             .expect("Failed to find organization")
             .expect("Organization not found");

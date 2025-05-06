@@ -137,7 +137,7 @@ impl BasicConsumer for SqsHibrid {
     /// messages, but when idle, we want to have a delay between message polling to
     /// avoid busy-waiting.
     async fn process_messages(&self, mode: ConsumerMode) -> Result<(), ConsumerError> {
-        let semaphore = Arc::new(Semaphore::new(32)); // limit to 32 concurrent tasks
+        let semaphore = Arc::new(Semaphore::new(5)); // limit to 32 concurrent tasks
         // let (shutdown_tx, shutdown_rx) = watch::channel(false);
         // Pass `Arc<Self>`, mode, semaphore, and shutdown_rx to your function
         let hybrid = Arc::new(self.clone());

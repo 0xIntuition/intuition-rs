@@ -23,6 +23,7 @@ use models::{
     types::U256Wrapper,
     vault::Vault,
 };
+use sqlx::{Postgres, Transaction};
 use std::str::FromStr;
 use tracing::info;
 
@@ -89,9 +90,10 @@ impl Deposited {
     /// This function creates a claim and predicate object
     async fn create_claim_and_predicate_object(
         &self,
-        decoded_consumer_context: &DecodedConsumerContext,
+        backend_schema: &str,
         triple: &Triple,
         position_id: &str,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
         // Create claim
         info!("Creating claim");
@@ -100,30 +102,17 @@ impl Deposited {
             .account_id(self.receiver.to_string())
             .position_id(position_id.to_string())
             .build()
-            .upsert(
-                &decoded_consumer_context.pg_pool,
-                &decoded_consumer_context.backend_schema,
-            )
+            .upsert(backend_schema, tx.as_mut())
             .await?;
 
         info!("Claim created");
         // Update or create predicate object
         info!("Creating predicate object");
         let predicate_object_id = format!("{}-{}", triple.predicate_id, triple.object_id);
-        match PredicateObject::find_by_id(
-            predicate_object_id,
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
-        )
-        .await?
-        {
+        match PredicateObject::find_by_id(predicate_object_id, backend_schema, tx.as_mut()).await? {
             Some(mut po) => {
                 po.claim_count += 1;
-                po.upsert(
-                    &decoded_consumer_context.pg_pool,
-                    &decoded_consumer_context.backend_schema,
-                )
-                .await?;
+                po.upsert(backend_schema, tx.as_mut()).await?;
             }
             None => {
                 PredicateObject::builder()
@@ -133,10 +122,7 @@ impl Deposited {
                     .claim_count(1)
                     .triple_count(1)
                     .build()
-                    .upsert(
-                        &decoded_consumer_context.pg_pool,
-                        &decoded_consumer_context.backend_schema,
-                    )
+                    .upsert(backend_schema, tx.as_mut())
                     .await?;
             }
         };
@@ -148,7 +134,8 @@ impl Deposited {
     async fn create_deposit(
         &self,
         event: &DecodedMessage,
-        decoded_consumer_context: &DecodedConsumerContext,
+        backend_schema: &str,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Deposit, ConsumerError> {
         Deposit::builder()
             .id(DecodedMessage::event_id(event))
@@ -166,10 +153,7 @@ impl Deposited {
             .block_timestamp(event.block_timestamp)
             .transaction_hash(event.transaction_hash.clone())
             .build()
-            .upsert(
-                &decoded_consumer_context.pg_pool,
-                &decoded_consumer_context.backend_schema,
-            )
+            .upsert(backend_schema, tx.as_mut())
             .await
             .map_err(ConsumerError::ModelError)
     }
@@ -178,7 +162,8 @@ impl Deposited {
     async fn create_event(
         &self,
         event: &DecodedMessage,
-        decoded_consumer_context: &DecodedConsumerContext,
+        backend_schema: &str,
+        tx: &mut Transaction<'_, Postgres>,
         deposit_id: String,
     ) -> Result<Event, ConsumerError> {
         // Create the event
@@ -205,10 +190,7 @@ impl Deposited {
         };
 
         event
-            .upsert(
-                &decoded_consumer_context.pg_pool,
-                &decoded_consumer_context.backend_schema,
-            )
+            .upsert(backend_schema, tx.as_mut())
             .await
             .map_err(ConsumerError::ModelError)
     }
@@ -217,7 +199,8 @@ impl Deposited {
     async fn create_new_position(
         &self,
         position_id: String,
-        decoded_consumer_context: &DecodedConsumerContext,
+        backend_schema: &str,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Position, ConsumerError> {
         Position::builder()
             .id(position_id.clone())
@@ -226,10 +209,7 @@ impl Deposited {
             .curve_id(U256Wrapper::from_str("1")?)
             .shares(self.receiverTotalSharesInVault)
             .build()
-            .upsert(
-                &decoded_consumer_context.pg_pool,
-                &decoded_consumer_context.backend_schema,
-            )
+            .upsert(backend_schema, tx.as_mut())
             .await
             .map_err(ConsumerError::ModelError)
     }
@@ -237,9 +217,10 @@ impl Deposited {
     /// This function creates a `Signal` for the `Deposited` event
     async fn create_signal(
         &self,
-        decoded_consumer_context: &DecodedConsumerContext,
+        backend_schema: &str,
         event: &DecodedMessage,
         vault: &Vault,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
         if self.senderAssetsAfterTotalFees > U256::from(0) {
             if !self.isTriple {
@@ -255,10 +236,7 @@ impl Deposited {
                     .term_id(vault.term_id.clone())
                     .curve_id(U256Wrapper::from_str("1")?)
                     .build()
-                    .upsert(
-                        &decoded_consumer_context.pg_pool,
-                        &decoded_consumer_context.backend_schema,
-                    )
+                    .upsert(backend_schema, tx.as_mut())
                     .await?;
             } else {
                 Signal::builder()
@@ -273,10 +251,7 @@ impl Deposited {
                     .term_id(vault.term_id.clone())
                     .curve_id(U256Wrapper::from_str("1")?)
                     .build()
-                    .upsert(
-                        &decoded_consumer_context.pg_pool,
-                        &decoded_consumer_context.backend_schema,
-                    )
+                    .upsert(backend_schema, tx.as_mut())
                     .await?;
             }
         } else {
@@ -314,38 +289,54 @@ impl Deposited {
             self.vaultId, event.block_number
         );
 
+        let mut tx = decoded_consumer_context.pg_pool.begin().await?;
+
         // Initialize accounts and vault. We need to block on this because it's async and
         // we need to ensure that the accounts and vault are initialized before we proceed
         let vault = self
-            .initialize_accounts_and_vault(decoded_consumer_context, event)
+            .initialize_accounts_and_vault(decoded_consumer_context, event, &mut tx)
             .await?;
 
         // Create deposit record
-        let deposit = self.create_deposit(event, decoded_consumer_context).await?;
+        let deposit = self
+            .create_deposit(event, &decoded_consumer_context.backend_schema, &mut tx)
+            .await?;
 
         // Handle position and related entities
-        self.handle_position_and_claims(decoded_consumer_context, event.block_number)
+        self.handle_position_and_claims(decoded_consumer_context, event.block_number, &mut tx)
             .await?;
 
         // Create event
-        self.create_event(event, decoded_consumer_context, deposit.id)
-            .await?;
+        self.create_event(
+            event,
+            &decoded_consumer_context.backend_schema,
+            &mut tx,
+            deposit.id,
+        )
+        .await?;
 
         // Create signal
-        self.create_signal(decoded_consumer_context, event, &vault)
-            .await?;
+        self.create_signal(
+            &decoded_consumer_context.backend_schema,
+            event,
+            &vault,
+            &mut tx,
+        )
+        .await?;
 
+        tx.commit().await?;
         Ok(())
     }
 
     /// This function handles an existing position
     async fn handle_existing_position(
         &self,
-        decoded_consumer_context: &DecodedConsumerContext,
+        backend_schema: &str,
         position_id: &str,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
         // Update or create position
-        self.update_position(decoded_consumer_context, position_id)
+        self.update_position(backend_schema, position_id, tx)
             .await?;
 
         Ok(())
@@ -354,15 +345,16 @@ impl Deposited {
     /// This function handles the creation of a new position
     async fn handle_new_position(
         &self,
-        decoded_consumer_context: &DecodedConsumerContext,
+        backend_schema: &str,
         position_id: &str,
         triple: Option<Triple>,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
-        self.create_new_position(position_id.to_string(), decoded_consumer_context)
+        self.create_new_position(position_id.to_string(), backend_schema, tx)
             .await?;
         // Create claim and predicate object
         if let Some(triple) = triple {
-            self.create_claim_and_predicate_object(decoded_consumer_context, &triple, position_id)
+            self.create_claim_and_predicate_object(backend_schema, &triple, position_id, tx)
                 .await?;
         }
 
@@ -374,27 +366,37 @@ impl Deposited {
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         block_number: i64,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
         let position_id = self.format_position_id();
         let triple = Triple::find_by_id(
             U256Wrapper::from(self.vaultId),
-            &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
+            tx.as_mut(),
         )
         .await?;
         let position = Position::find_by_id(
             position_id.clone(),
-            &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
+            tx.as_mut(),
         )
         .await?;
 
         if position.is_none() && self.receiverTotalSharesInVault > U256::from(0) {
-            self.handle_new_position(decoded_consumer_context, &position_id, triple)
-                .await?;
+            self.handle_new_position(
+                &decoded_consumer_context.backend_schema,
+                &position_id,
+                triple,
+                tx,
+            )
+            .await?;
         } else if position.is_some() && self.receiverTotalSharesInVault > U256::from(0) {
-            self.handle_existing_position(decoded_consumer_context, &position_id)
-                .await?;
+            self.handle_existing_position(
+                &decoded_consumer_context.backend_schema,
+                &position_id,
+                tx,
+            )
+            .await?;
         } else {
             info!("No need to update position or claims.");
         }
@@ -406,6 +408,7 @@ impl Deposited {
             },
             self.vaultId,
             decoded_consumer_context,
+            tx,
             block_number,
         )
         .await?;
@@ -418,14 +421,13 @@ impl Deposited {
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Vault, ConsumerError> {
-        // Create accounts concurrently
-        let (sender, receiver) = futures::join!(
-            get_or_create_account(self.sender.to_string(), decoded_consumer_context),
-            get_or_create_account(self.receiver.to_string(), decoded_consumer_context)
-        );
-        sender?;
-        receiver?;
+        // Create accounts
+        let _sender =
+            get_or_create_account(self.sender.to_string(), decoded_consumer_context, tx).await?;
+        let _receiver =
+            get_or_create_account(self.receiver.to_string(), decoded_consumer_context, tx).await?;
 
         get_or_create_vault(
             self,
@@ -436,6 +438,7 @@ impl Deposited {
             } else {
                 TermType::Atom
             },
+            tx,
         )
         .await
     }
@@ -443,28 +446,22 @@ impl Deposited {
     /// This function updates the position
     async fn update_position(
         &self,
-        decoded_consumer_context: &DecodedConsumerContext,
+        backend_schema: &str,
         position_id: &str,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Position, ConsumerError> {
-        let position = match Position::find_by_id(
-            position_id.to_string(),
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
-        )
-        .await?
-        {
-            Some(mut position) => {
-                position.shares = U256Wrapper::from(self.receiverTotalSharesInVault);
-                position
-            }
-            None => return Err(ConsumerError::PositionNotFound),
-        };
+        let position =
+            match Position::find_by_id(position_id.to_string(), backend_schema, tx.as_mut()).await?
+            {
+                Some(mut position) => {
+                    position.shares = U256Wrapper::from(self.receiverTotalSharesInVault);
+                    position
+                }
+                None => return Err(ConsumerError::PositionNotFound),
+            };
 
         position
-            .upsert(
-                &decoded_consumer_context.pg_pool,
-                &decoded_consumer_context.backend_schema,
-            )
+            .upsert(backend_schema, tx.as_mut())
             .await
             .map_err(ConsumerError::ModelError)
     }

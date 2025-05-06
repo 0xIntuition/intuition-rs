@@ -4,7 +4,7 @@ use crate::{
     types::U256Wrapper,
 };
 use async_trait::async_trait;
-use sqlx::PgPool;
+use sqlx::{Executor, Postgres};
 
 /// This struct represents a fee transfer in the database.
 /// Note that `sender_id` and `receiver_id` are foreign keys to the
@@ -29,7 +29,10 @@ impl Model for FeeTransfer {}
 impl SimpleCrud<String> for FeeTransfer {
     /// Upserts a fee transfer record in the database.
     /// If a record with the same ID exists, it will be updated, otherwise a new record will be created.
-    async fn upsert(&self, pool: &PgPool, schema: &str) -> Result<Self, ModelError> {
+    async fn upsert<'e, E>(&self, schema: &str, executor: E) -> Result<Self, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"
             INSERT INTO {}.fee_transfer (
@@ -60,18 +63,21 @@ impl SimpleCrud<String> for FeeTransfer {
             .bind(self.block_number.to_big_decimal()?)
             .bind(self.block_timestamp)
             .bind(self.transaction_hash.clone())
-            .fetch_one(pool)
+            .fetch_one(executor)
             .await
             .map_err(|e| ModelError::InsertError(e.to_string()))
     }
 
     /// Finds a fee transfer record by its ID.
     /// Returns None if no record is found.
-    async fn find_by_id(
+    async fn find_by_id<'e, E>(
         id: String,
-        pool: &PgPool,
         schema: &str,
-    ) -> Result<Option<Self>, ModelError> {
+        executor: E,
+    ) -> Result<Option<Self>, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"
             SELECT 
@@ -88,7 +94,7 @@ impl SimpleCrud<String> for FeeTransfer {
 
         sqlx::query_as::<_, FeeTransfer>(&query)
             .bind(id)
-            .fetch_optional(pool)
+            .fetch_optional(executor)
             .await
             .map_err(|e| crate::error::ModelError::QueryError(e.to_string()))
     }

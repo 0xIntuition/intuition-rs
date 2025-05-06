@@ -187,13 +187,13 @@ mod tests {
         );
 
         // Test insertion
-        let inserted_triple: Triple = triple.upsert(&pool, TEST_SCHEMA).await?;
+        let inserted_triple: Triple = triple.upsert(TEST_SCHEMA, &pool).await?;
 
         assert_eq!(inserted_triple, triple);
         assert_eq!(inserted_triple.term_id, triple.term_id);
 
         // Test retrieval
-        let retrieved_triple = Triple::find_by_id(triple.term_id.clone(), &pool, TEST_SCHEMA)
+        let retrieved_triple = Triple::find_by_id(triple.term_id.clone(), TEST_SCHEMA, &pool)
             .await?
             .expect("Triple not found");
         assert_eq!(retrieved_triple.term_id, triple.term_id);
@@ -211,12 +211,12 @@ mod tests {
         let mut updated_triple = triple.clone();
         updated_triple.block_number = U256Wrapper::from_str("2").unwrap();
 
-        let upserted_triple = updated_triple.upsert(&pool, TEST_SCHEMA).await?;
+        let upserted_triple = updated_triple.upsert(TEST_SCHEMA, &pool).await?;
         assert_eq!(upserted_triple.term_id, updated_triple.term_id);
         assert_eq!(upserted_triple.block_number, updated_triple.block_number);
 
         // Verify update
-        let final_triple = Triple::find_by_id(triple.term_id.clone(), &pool, TEST_SCHEMA)
+        let final_triple = Triple::find_by_id(triple.term_id.clone(), TEST_SCHEMA, &pool)
             .await?
             .expect("Triple not found");
         assert_eq!(

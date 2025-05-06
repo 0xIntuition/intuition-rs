@@ -3,7 +3,7 @@ use crate::{
     types::U256Wrapper,
 };
 use async_trait::async_trait;
-use sqlx::PgPool;
+use sqlx::{Executor, PgPool, Postgres};
 
 /// This struct represents a deposit in the database. Note that `sender_id`,
 /// `receiver_id` and `term_id` are foreign keys to the `account` and `vault`
@@ -35,11 +35,14 @@ impl Model for Deposit {}
 impl SimpleCrud<String> for Deposit {
     /// Upserts a deposit record in the database.
     /// If a record with the same ID exists, it will be updated, otherwise a new record will be created.
-    async fn upsert(
+    async fn upsert<'e, E>(
         &self,
-        pool: &sqlx::PgPool,
         schema: &str,
-    ) -> Result<Self, crate::error::ModelError> {
+        executor: E,
+    ) -> Result<Self, crate::error::ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"
             INSERT INTO {}.deposit (
@@ -93,17 +96,20 @@ impl SimpleCrud<String> for Deposit {
             .bind(self.block_timestamp)
             .bind(self.transaction_hash.clone())
             .bind(self.curve_id.to_big_decimal()?)
-            .fetch_one(pool)
+            .fetch_one(executor)
             .await
             .map_err(|e| crate::error::ModelError::InsertError(e.to_string()))
     }
     /// Finds a deposit record by its ID.
     /// Returns None if no record is found.
-    async fn find_by_id(
+    async fn find_by_id<'e, E>(
         id: String,
-        pool: &PgPool,
         schema: &str,
-    ) -> Result<Option<Self>, crate::error::ModelError> {
+        executor: E,
+    ) -> Result<Option<Self>, crate::error::ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"
             SELECT 
@@ -127,7 +133,7 @@ impl SimpleCrud<String> for Deposit {
 
         sqlx::query_as::<_, Deposit>(&query)
             .bind(id.to_lowercase())
-            .fetch_optional(pool)
+            .fetch_optional(executor)
             .await
             .map_err(|e| crate::error::ModelError::QueryError(e.to_string()))
     }

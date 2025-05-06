@@ -8,14 +8,16 @@ use models::{
     traits::SimpleCrud,
     types::U256Wrapper,
 };
+use sqlx::{Postgres, Transaction};
 use tracing::info;
 
 impl Initialized {
     /// This function creates an `Event` for the `Initialized` event
     pub async fn create_event(
         &self,
-        decoded_consumer_context: &DecodedConsumerContext,
+        backend_schema: &str,
         event: &DecodedMessage,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Event, ConsumerError> {
         // Create the event
         Event::builder()
@@ -25,10 +27,7 @@ impl Initialized {
             .block_timestamp(event.block_timestamp)
             .transaction_hash(event.transaction_hash.clone())
             .build()
-            .upsert(
-                &decoded_consumer_context.pg_pool,
-                &decoded_consumer_context.backend_schema,
-            )
+            .upsert(backend_schema, tx.as_mut())
             .await
             .map_err(ConsumerError::ModelError)
     }
@@ -58,6 +57,8 @@ impl Initialized {
     ) -> Result<(), ConsumerError> {
         info!("Handling initialized: {self:#?}");
 
+        let mut tx = decoded_consumer_context.pg_pool.begin().await?;
+
         Initialize::builder()
             .version(self.version as i64)
             .block_number(U256Wrapper::try_from(event.block_number)?)
@@ -65,10 +66,7 @@ impl Initialized {
             .transaction_hash(event.transaction_hash.clone())
             .log_index(event.log_index as i32)
             .build()
-            .upsert(
-                &decoded_consumer_context.pg_pool,
-                &decoded_consumer_context.backend_schema,
-            )
+            .upsert(&decoded_consumer_context.backend_schema, tx.as_mut())
             .await
             .map_err(ConsumerError::ModelError)?;
 
@@ -76,7 +74,11 @@ impl Initialized {
         self.update_contract_version(decoded_consumer_context, self.version as i64)?;
 
         // Create the event
-        self.create_event(decoded_consumer_context, event).await?;
+        self.create_event(&decoded_consumer_context.backend_schema, event, &mut tx)
+            .await?;
+
+        tx.commit().await?;
+
         Ok(())
     }
 }

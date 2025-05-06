@@ -84,7 +84,7 @@ async fn try_to_resolve_schema_org_properties(
             match atom_type {
                 AtomType::Thing => {
                     let thing = create_thing_from_obj(atom, obj)
-                        .upsert(consumer_context.pool(), consumer_context.backend_schema())
+                        .upsert(consumer_context.backend_schema(), consumer_context.pool())
                         .await?;
                     create_thing_atom_value(atom, &thing, consumer_context).await?;
                     Ok(AtomMetadata::thing(
@@ -94,7 +94,7 @@ async fn try_to_resolve_schema_org_properties(
                 }
                 AtomType::Person => {
                     let person = create_person_from_obj(atom, obj)
-                        .upsert(consumer_context.pool(), consumer_context.backend_schema())
+                        .upsert(consumer_context.backend_schema(), consumer_context.pool())
                         .await?;
                     create_person_atom_value(atom, &person, consumer_context).await?;
                     Ok(AtomMetadata::person(
@@ -104,7 +104,7 @@ async fn try_to_resolve_schema_org_properties(
                 }
                 AtomType::Organization => {
                     let organization = create_organization_from_obj(atom, obj)
-                        .upsert(consumer_context.pool(), consumer_context.backend_schema())
+                        .upsert(consumer_context.backend_schema(), consumer_context.pool())
                         .await?;
                     create_organization_atom_value(atom, &organization, consumer_context).await?;
                     Ok(AtomMetadata::organization(
@@ -114,7 +114,7 @@ async fn try_to_resolve_schema_org_properties(
                 }
                 AtomType::Book => {
                     let book = create_book_from_obj(atom, obj)
-                        .upsert(consumer_context.pool(), consumer_context.backend_schema())
+                        .upsert(consumer_context.backend_schema(), consumer_context.pool())
                         .await?;
                     create_book_atom_value(atom, &book, consumer_context).await?;
                     Ok(AtomMetadata::book(book.name.unwrap_or_default()))
@@ -321,7 +321,7 @@ async fn handle_regular_json(
         json
     );
     let json_object = create_json_object_from_obj(atom, json)
-        .upsert(consumer_context.pool(), consumer_context.backend_schema())
+        .upsert(consumer_context.backend_schema(), consumer_context.pool())
         .await?;
     create_json_object_atom_value(atom, &json_object, consumer_context).await?;
     Ok(AtomMetadata::json_object(None))
@@ -338,7 +338,7 @@ pub async fn handle_binary_data(
     match byte_object {
         Ok(byte_object) => {
             byte_object
-                .upsert(consumer_context.pool(), consumer_context.backend_schema())
+                .upsert(consumer_context.backend_schema(), consumer_context.pool())
                 .await?;
             create_byte_object_atom_value(atom, &byte_object, consumer_context).await?;
             Ok(AtomMetadata::byte_object(None))
@@ -364,7 +364,7 @@ async fn handle_text_data(
 
     info!("Data is likely text, returning it as TextObject");
     let text_object = create_text_object_from_obj(atom, atom_data)
-        .upsert(consumer_context.pool(), consumer_context.backend_schema())
+        .upsert(consumer_context.backend_schema(), consumer_context.pool())
         .await?;
     create_text_object_atom_value(atom, &text_object, consumer_context).await?;
     Ok(AtomMetadata::text_object(Some(text_object.data)))
@@ -398,7 +398,7 @@ pub async fn create_byte_object_atom_value(
         .id(atom.term_id.clone())
         .byte_object_id(byte_object.id.clone())
         .build()
-        .upsert(consumer_context.pool(), consumer_context.backend_schema())
+        .upsert(consumer_context.backend_schema(), consumer_context.pool())
         .await?;
     Ok(())
 }
@@ -413,7 +413,7 @@ pub async fn create_text_object_atom_value(
         .id(atom.term_id.clone())
         .text_object_id(text_object.id.clone())
         .build()
-        .upsert(consumer_context.pool(), consumer_context.backend_schema())
+        .upsert(consumer_context.backend_schema(), consumer_context.pool())
         .await?;
     Ok(())
 }
@@ -428,7 +428,7 @@ pub async fn create_json_object_atom_value(
         .id(atom.term_id.clone())
         .json_object_id(json_object.id.clone())
         .build()
-        .upsert(consumer_context.pool(), consumer_context.backend_schema())
+        .upsert(consumer_context.backend_schema(), consumer_context.pool())
         .await?;
     Ok(())
 }
@@ -443,7 +443,7 @@ pub async fn create_thing_atom_value(
         .id(atom.term_id.clone())
         .thing_id(thing.id.clone())
         .build()
-        .upsert(consumer_context.pool(), consumer_context.backend_schema())
+        .upsert(consumer_context.backend_schema(), consumer_context.pool())
         .await?;
     Ok(())
 }
@@ -458,7 +458,7 @@ pub async fn create_person_atom_value(
         .id(atom.term_id.clone())
         .person_id(person.id.clone())
         .build()
-        .upsert(consumer_context.pool(), consumer_context.backend_schema())
+        .upsert(consumer_context.backend_schema(), consumer_context.pool())
         .await?;
     Ok(())
 }
@@ -473,7 +473,7 @@ pub async fn create_organization_atom_value(
         .id(atom.term_id.clone())
         .organization_id(organization.id.clone())
         .build()
-        .upsert(consumer_context.pool(), consumer_context.backend_schema())
+        .upsert(consumer_context.backend_schema(), consumer_context.pool())
         .await?;
     Ok(())
 }
@@ -488,7 +488,7 @@ pub async fn create_book_atom_value(
         .id(atom.term_id.clone())
         .book_id(book.id.clone())
         .build()
-        .upsert(consumer_context.pool(), consumer_context.backend_schema())
+        .upsert(consumer_context.backend_schema(), consumer_context.pool())
         .await?;
     Ok(())
 }

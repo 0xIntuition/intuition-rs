@@ -4,7 +4,7 @@ use crate::{
     types::U256Wrapper,
 };
 use async_trait::async_trait;
-use sqlx::PgPool;
+use sqlx::{Executor, Postgres};
 
 /// This is a struct that represents the predicate_object table.
 #[derive(Debug, sqlx::FromRow, Builder)]
@@ -23,7 +23,10 @@ impl Model for PredicateObject {}
 #[async_trait]
 impl SimpleCrud<String> for PredicateObject {
     /// This is a method to upsert a predicate object into the database.
-    async fn upsert(&self, pool: &PgPool, schema: &str) -> Result<Self, ModelError> {
+    async fn upsert<'e, E>(&self, schema: &str, executor: E) -> Result<Self, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"
             INSERT INTO {}.predicate_object (id, predicate_id, object_id, triple_count, claim_count)
@@ -49,17 +52,20 @@ impl SimpleCrud<String> for PredicateObject {
             .bind(self.object_id.to_big_decimal()?)
             .bind(self.triple_count)
             .bind(self.claim_count)
-            .fetch_one(pool)
+            .fetch_one(executor)
             .await
             .map_err(|e| ModelError::InsertError(e.to_string()))
     }
 
     /// This is a method to find a predicate object by its id.
-    async fn find_by_id(
+    async fn find_by_id<'e, E>(
         id: String,
-        pool: &PgPool,
         schema: &str,
-    ) -> Result<Option<Self>, ModelError> {
+        executor: E,
+    ) -> Result<Option<Self>, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"
             SELECT 
@@ -76,7 +82,7 @@ impl SimpleCrud<String> for PredicateObject {
 
         sqlx::query_as::<_, PredicateObject>(&query)
             .bind(id.clone())
-            .fetch_optional(pool)
+            .fetch_optional(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
     }

@@ -20,14 +20,14 @@ mod tests {
         let receiver = create_test_account_db(&pool).await;
         let atom = create_test_atom_db(&pool).await;
         let vault = create_test_vault_with_atom(atom.term_id.clone())
-            .upsert(&pool, TEST_SCHEMA)
+            .upsert(TEST_SCHEMA, &pool)
             .await?;
 
         // Create initial redemption
         let redemption = create_test_redemption(sender.id, receiver.id, vault.term_id.clone());
 
         // Test initial upsert
-        let upserted_redemption = redemption.upsert(&pool, TEST_SCHEMA).await?;
+        let upserted_redemption = redemption.upsert(TEST_SCHEMA, &pool).await?;
         assert_eq!(upserted_redemption, redemption);
 
         // Update redemption values
@@ -37,11 +37,11 @@ mod tests {
             U256Wrapper::from(U256::from_str("150").unwrap());
 
         // Test update via upsert
-        let upserted_updated = updated_redemption.upsert(&pool, TEST_SCHEMA).await?;
+        let upserted_updated = updated_redemption.upsert(TEST_SCHEMA, &pool).await?;
         assert_eq!(upserted_updated, updated_redemption);
 
         // Test find_by_id
-        let found_redemption = Redemption::find_by_id(redemption.id, &pool, TEST_SCHEMA)
+        let found_redemption = Redemption::find_by_id(redemption.id, TEST_SCHEMA, &pool)
             .await?
             .expect("Redemption should exist");
         assert_eq!(found_redemption, updated_redemption);

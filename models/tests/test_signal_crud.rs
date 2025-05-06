@@ -26,18 +26,18 @@ mod tests {
         let receiver = create_test_account_db(&pool).await;
         let atom = create_test_atom_db(&pool).await;
         let vault = create_test_vault_with_atom(atom.term_id.clone())
-            .upsert(&pool, TEST_SCHEMA)
+            .upsert(TEST_SCHEMA, &pool)
             .await?;
 
         let deposit = create_test_deposit(sender.id, receiver.id, vault.term_id.clone())
-            .upsert(&pool, TEST_SCHEMA)
+            .upsert(TEST_SCHEMA, &pool)
             .await?;
         // Create initial signal
         let signal =
             create_test_signal_with_atom_and_deposit(account.id, atom.term_id.clone(), deposit.id);
 
         // Test initial upsert
-        let inserted = signal.upsert(&pool, TEST_SCHEMA).await?;
+        let inserted = signal.upsert(TEST_SCHEMA, &pool).await?;
         assert_eq!(inserted.id, signal.id);
         assert_eq!(inserted.delta, signal.delta);
         assert_eq!(inserted.atom_id, signal.atom_id);
@@ -47,11 +47,11 @@ mod tests {
         updated.delta = U256Wrapper::from_str("200").unwrap();
 
         // Test update via upsert
-        let updated = updated.upsert(&pool, TEST_SCHEMA).await?;
+        let updated = updated.upsert(TEST_SCHEMA, &pool).await?;
         assert_eq!(updated.delta, U256Wrapper::from_str("200").unwrap());
 
         // Test find_by_id
-        let found = Signal::find_by_id(signal.id.clone(), &pool, TEST_SCHEMA)
+        let found = Signal::find_by_id(signal.id.clone(), TEST_SCHEMA, &pool)
             .await?
             .expect("Signal should exist");
 

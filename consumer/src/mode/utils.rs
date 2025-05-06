@@ -11,6 +11,7 @@ use models::{
     types::U256Wrapper,
     vault::Vault,
 };
+use sqlx::{Postgres, Transaction};
 use std::fmt::Debug;
 
 /// This function gets or creates a vault from a vault manager
@@ -19,11 +20,12 @@ pub async fn get_or_create_vault(
     block_number: Option<i64>,
     decoded_consumer_context: &DecodedConsumerContext,
     term_type: TermType,
+    tx: &mut Transaction<'_, Postgres>,
 ) -> Result<Vault, ConsumerError> {
     let vault = Vault::find_by_term_id_and_curve_id(
         event.term_id()?,
         event.curve_id()?,
-        &decoded_consumer_context.pg_pool,
+        tx.as_mut(),
         &decoded_consumer_context.backend_schema,
     )
     .await?;
@@ -32,7 +34,14 @@ pub async fn get_or_create_vault(
         Ok(vault)
     } else {
         // Ensure that the term exists for the vault
-        get_or_create_term(&event, None, decoded_consumer_context, term_type).await?;
+        get_or_create_term(
+            &event,
+            None,
+            &decoded_consumer_context.backend_schema,
+            term_type,
+            tx,
+        )
+        .await?;
 
         let new_vault = Vault::builder()
             .term_id(event.term_id()?)
@@ -59,10 +68,7 @@ pub async fn get_or_create_vault(
                     / U256Wrapper::from(U256::from(10).pow(U256::from(18))),
             )
             .build()
-            .upsert(
-                &decoded_consumer_context.pg_pool,
-                &decoded_consumer_context.backend_schema,
-            )
+            .upsert(&decoded_consumer_context.backend_schema, tx.as_mut())
             .await
             .map_err(ConsumerError::ModelError)?;
 
@@ -74,8 +80,9 @@ pub async fn get_or_create_vault(
 pub async fn get_or_create_term(
     event: &impl SharePriceEvent,
     term_id: Option<U256Wrapper>,
-    decoded_consumer_context: &DecodedConsumerContext,
+    backend_schema: &str,
     term_type: TermType,
+    tx: &mut Transaction<'_, Postgres>,
 ) -> Result<Term, ConsumerError> {
     use std::str::FromStr;
 
@@ -84,12 +91,7 @@ pub async fn get_or_create_term(
         None => event.term_id()?,
     };
 
-    let term = Term::find_by_id(
-        term_id.clone(),
-        &decoded_consumer_context.pg_pool,
-        &decoded_consumer_context.backend_schema,
-    )
-    .await?;
+    let term = Term::find_by_id(term_id.clone(), backend_schema, tx.as_mut()).await?;
 
     if let Some(term) = term {
         Ok(term)
@@ -104,19 +106,13 @@ pub async fn get_or_create_term(
         if let TermType::Atom = term_type {
             term.atom_id(term_id.clone())
                 .build()
-                .upsert(
-                    &decoded_consumer_context.pg_pool,
-                    &decoded_consumer_context.backend_schema,
-                )
+                .upsert(backend_schema, tx.as_mut())
                 .await
                 .map_err(ConsumerError::ModelError)
         } else {
             term.triple_id(term_id)
                 .build()
-                .upsert(
-                    &decoded_consumer_context.pg_pool,
-                    &decoded_consumer_context.backend_schema,
-                )
+                .upsert(backend_schema, tx.as_mut())
                 .await
                 .map_err(ConsumerError::ModelError)
         }
@@ -127,14 +123,10 @@ pub async fn get_or_create_term(
 /// This function gets or creates an account
 pub async fn get_or_create_account_from_event(
     event: impl AccountManager + Debug,
-    decoded_consumer_context: &DecodedConsumerContext,
+    backend_schema: &str,
+    tx: &mut Transaction<'_, Postgres>,
 ) -> Result<Account, ConsumerError> {
-    let account = Account::find_by_id(
-        event.account_id(),
-        &decoded_consumer_context.pg_pool,
-        &decoded_consumer_context.backend_schema,
-    )
-    .await?;
+    let account = Account::find_by_id(event.account_id(), backend_schema, tx.as_mut()).await?;
 
     if let Some(account) = account {
         Ok(account)
@@ -144,10 +136,7 @@ pub async fn get_or_create_account_from_event(
             .label(event.label())
             .account_type(event.account_type())
             .build()
-            .upsert(
-                &decoded_consumer_context.pg_pool,
-                &decoded_consumer_context.backend_schema,
-            )
+            .upsert(backend_schema, tx.as_mut())
             .await?;
 
         Ok(account)

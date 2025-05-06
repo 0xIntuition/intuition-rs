@@ -18,11 +18,11 @@ async fn test_caip10_crud() -> Result<(), ModelError> {
         .chain_id(8453)
         .account_address("0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70")
         .build()
-        .upsert(&pool, TEST_SCHEMA)
+        .upsert(TEST_SCHEMA, &pool)
         .await?;
 
     // Insert and verify
-    let inserted = caip10.upsert(&pool, TEST_SCHEMA).await?;
+    let inserted = caip10.upsert(TEST_SCHEMA, &pool).await?;
     assert_eq!(inserted.namespace, "eip155");
     assert_eq!(inserted.chain_id, 8453);
     assert_eq!(
@@ -37,11 +37,11 @@ async fn test_caip10_crud() -> Result<(), ModelError> {
         .chain_id(1)
         .account_address("0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb71")
         .build()
-        .upsert(&pool, TEST_SCHEMA)
+        .upsert(TEST_SCHEMA, &pool)
         .await?;
 
     // Upsert and verify updates
-    let updated = updated_caip10.upsert(&pool, TEST_SCHEMA).await?;
+    let updated = updated_caip10.upsert(TEST_SCHEMA, &pool).await?;
     assert_eq!(updated.chain_id, 1);
     assert_eq!(
         updated.account_address,
@@ -49,7 +49,7 @@ async fn test_caip10_crud() -> Result<(), ModelError> {
     );
 
     // Find by id and verify
-    let found = Caip10::find_by_id(id, &pool, TEST_SCHEMA)
+    let found = Caip10::find_by_id(id, TEST_SCHEMA, &pool)
         .await?
         .expect("Should find CAIP10");
     assert_eq!(found.chain_id, 1);

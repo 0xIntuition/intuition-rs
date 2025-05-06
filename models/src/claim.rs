@@ -3,7 +3,7 @@ use crate::{
     traits::{Deletable, Model, SimpleCrud},
 };
 use async_trait::async_trait;
-use sqlx::PgPool;
+use sqlx::{Executor, Postgres};
 
 /// This is a struct that represents a claim in the database.
 #[derive(Debug, sqlx::FromRow, Builder)]
@@ -20,7 +20,10 @@ impl Model for Claim {}
 #[async_trait]
 impl SimpleCrud<String> for Claim {
     /// Creates a new claim or updates an existing one in the database
-    async fn upsert(&self, pool: &PgPool, schema: &str) -> Result<Self, ModelError> {
+    async fn upsert<'e, E>(&self, schema: &str, executor: E) -> Result<Self, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"
             INSERT INTO {}.claim (
@@ -43,17 +46,20 @@ impl SimpleCrud<String> for Claim {
             .bind(self.id.to_lowercase())
             .bind(self.account_id.to_lowercase())
             .bind(self.position_id.to_lowercase())
-            .fetch_one(pool)
+            .fetch_one(executor)
             .await
             .map_err(|e| ModelError::InsertError(e.to_string()))
     }
 
     /// Finds a claim by its ID
-    async fn find_by_id(
+    async fn find_by_id<'e, E>(
         id: String,
-        pool: &PgPool,
         schema: &str,
-    ) -> Result<Option<Self>, ModelError> {
+        executor: E,
+    ) -> Result<Option<Self>, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"
             SELECT 
@@ -71,7 +77,7 @@ impl SimpleCrud<String> for Claim {
 
         sqlx::query_as::<_, Claim>(&query)
             .bind(id.to_lowercase())
-            .fetch_optional(pool)
+            .fetch_optional(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
     }
@@ -80,12 +86,15 @@ impl SimpleCrud<String> for Claim {
 /// This trait works as a contract for all models that need to be deleted from the database.
 #[async_trait]
 impl Deletable for Claim {
-    async fn delete(id: String, pool: &PgPool, schema: &str) -> Result<(), ModelError> {
+    async fn delete<'e, E>(id: String, schema: &str, executor: E) -> Result<(), ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(r#"DELETE FROM {}.claim WHERE position_id = $1"#, schema);
 
         sqlx::query(&query)
             .bind(id.to_lowercase())
-            .execute(pool)
+            .execute(executor)
             .await
             .map(|_| ())
             .map_err(|e| ModelError::DeleteError(e.to_string()))

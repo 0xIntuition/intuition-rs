@@ -4,7 +4,7 @@ use crate::{
     types::U256Wrapper,
 };
 use async_trait::async_trait;
-use sqlx::PgPool;
+use sqlx::{Executor, Postgres};
 
 /// Thing is a struct that represents a thing in the database.
 #[derive(Debug, sqlx::FromRow, Builder)]
@@ -23,7 +23,10 @@ impl Model for Thing {}
 #[async_trait]
 impl SimpleCrud<U256Wrapper> for Thing {
     /// Upserts a thing into the database.
-    async fn upsert(&self, pool: &PgPool, schema: &str) -> Result<Self, ModelError> {
+    async fn upsert<'e, E>(&self, schema: &str, executor: E) -> Result<Self, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"
             INSERT INTO {}.thing (id, name, description, image, url) 
@@ -48,17 +51,20 @@ impl SimpleCrud<U256Wrapper> for Thing {
             .bind(self.description.clone())
             .bind(self.image.clone())
             .bind(self.url.clone())
-            .fetch_one(pool)
+            .fetch_one(executor)
             .await
             .map_err(|e| ModelError::InsertError(e.to_string()))
     }
 
     /// Finds a thing by its id.
-    async fn find_by_id(
+    async fn find_by_id<'e, E>(
         id: U256Wrapper,
-        pool: &PgPool,
         schema: &str,
-    ) -> Result<Option<Self>, ModelError> {
+        executor: E,
+    ) -> Result<Option<Self>, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"
             SELECT id, 
@@ -74,7 +80,7 @@ impl SimpleCrud<U256Wrapper> for Thing {
 
         sqlx::query_as::<_, Thing>(&query)
             .bind(id.to_big_decimal()?)
-            .fetch_optional(pool)
+            .fetch_optional(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
     }

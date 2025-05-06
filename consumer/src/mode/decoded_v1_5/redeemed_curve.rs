@@ -17,23 +17,21 @@ use models::{
     types::U256Wrapper,
     vault::Vault,
 };
+use sqlx::{Postgres, Transaction};
 use tracing::info;
 
 impl RedeemedCurve {
     /// This function creates an `Event` for the `RedeemedCurve` event
     async fn create_event(
         &self,
-        decoded_consumer_context: &DecodedConsumerContext,
+        backend_schema: &str,
         event: &DecodedMessage,
         curve_vault: &Vault,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
-        let term_type = Term::find_by_id(
-            curve_vault.term_id.clone(),
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
-        )
-        .await?
-        .ok_or(ConsumerError::TermNotFound)?;
+        let term_type = Term::find_by_id(curve_vault.term_id.clone(), backend_schema, tx.as_mut())
+            .await?
+            .ok_or(ConsumerError::TermNotFound)?;
 
         // Create the event
         let event_obj = if let TermType::Triple = term_type.term_type {
@@ -58,30 +56,23 @@ impl RedeemedCurve {
                 .build()
         };
 
-        event_obj
-            .upsert(
-                &decoded_consumer_context.pg_pool,
-                &decoded_consumer_context.backend_schema,
-            )
-            .await?;
+        event_obj.upsert(backend_schema, tx.as_mut()).await?;
         Ok(())
     }
 
     /// This function creates a `Signal` for the `RedeemedCurve` event
     async fn create_signal(
         &self,
-        decoded_consumer_context: &DecodedConsumerContext,
+        backend_schema: &str,
         event: &DecodedMessage,
         curve_vault: &Vault,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
         if self.assetsForReceiver > U256::from(0) {
-            let term_type = Term::find_by_id(
-                curve_vault.term_id.clone(),
-                &decoded_consumer_context.pg_pool,
-                &decoded_consumer_context.backend_schema,
-            )
-            .await?
-            .ok_or(ConsumerError::TermNotFound)?;
+            let term_type =
+                Term::find_by_id(curve_vault.term_id.clone(), backend_schema, tx.as_mut())
+                    .await?
+                    .ok_or(ConsumerError::TermNotFound)?;
             if let TermType::Triple = term_type.term_type {
                 Signal::builder()
                     .id(DecodedMessage::event_id(event))
@@ -98,10 +89,7 @@ impl RedeemedCurve {
                     .term_id(curve_vault.term_id.clone())
                     .curve_id(U256Wrapper::from(self.curveId))
                     .build()
-                    .upsert(
-                        &decoded_consumer_context.pg_pool,
-                        &decoded_consumer_context.backend_schema,
-                    )
+                    .upsert(backend_schema, tx.as_mut())
                     .await?;
             } else {
                 Signal::builder()
@@ -119,10 +107,7 @@ impl RedeemedCurve {
                     .term_id(curve_vault.term_id.clone())
                     .curve_id(U256Wrapper::from(self.curveId))
                     .build()
-                    .upsert(
-                        &decoded_consumer_context.pg_pool,
-                        &decoded_consumer_context.backend_schema,
-                    )
+                    .upsert(backend_schema, tx.as_mut())
                     .await?;
             }
         }
@@ -132,8 +117,9 @@ impl RedeemedCurve {
     /// This function handles the position redemption
     async fn handle_position_redemption(
         &self,
-        decoded_consumer_context: &DecodedConsumerContext,
+        backend_schema: &str,
         curve_vault: &mut Vault,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
         // Build the position ID using the atom/triple ID and curve number for uniqueness
         let position_id = format!(
@@ -144,31 +130,18 @@ impl RedeemedCurve {
         );
 
         // Check if the position exists before deleting
-        let position_exists = Position::find_by_id(
-            position_id.clone(),
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
-        )
-        .await?
-        .is_some();
+        let position_exists =
+            Position::find_by_id(position_id.clone(), backend_schema, tx.as_mut())
+                .await?
+                .is_some();
 
         // Delete the position if it exists
         if position_exists {
             // delete the claims
-            Claim::delete(
-                position_id.clone(),
-                &decoded_consumer_context.pg_pool,
-                &decoded_consumer_context.backend_schema,
-            )
-            .await?;
+            Claim::delete(position_id.clone(), backend_schema, tx.as_mut()).await?;
 
             // delete the position
-            Position::delete(
-                position_id.to_string(),
-                &decoded_consumer_context.pg_pool,
-                &decoded_consumer_context.backend_schema,
-            )
-            .await?;
+            Position::delete(position_id.clone(), backend_schema, tx.as_mut()).await?;
 
             // Decrement the position count in the curve vault
             if curve_vault.position_count > 0 {
@@ -176,10 +149,7 @@ impl RedeemedCurve {
                 curve_vault.position_count -= 1;
                 // Update the curve vault
                 curve_vault
-                    .upsert(
-                        &decoded_consumer_context.pg_pool,
-                        &decoded_consumer_context.backend_schema,
-                    )
+                    .upsert(backend_schema, tx.as_mut())
                     .await
                     .map_err(ConsumerError::ModelError)?;
             }
@@ -192,14 +162,15 @@ impl RedeemedCurve {
     async fn initialize_accounts(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(Account, Account), ConsumerError> {
         // Create or get the sender account
         let sender_account =
-            get_or_create_account(self.sender.to_string(), decoded_consumer_context).await?;
+            get_or_create_account(self.sender.to_string(), decoded_consumer_context, tx).await?;
 
         // Create or get the receiver account
         let receiver_account =
-            get_or_create_account(self.receiver.to_string(), decoded_consumer_context).await?;
+            get_or_create_account(self.receiver.to_string(), decoded_consumer_context, tx).await?;
 
         Ok((sender_account, receiver_account))
     }
@@ -212,15 +183,18 @@ impl RedeemedCurve {
     ) -> Result<(), ConsumerError> {
         info!("Processing RedeemedCurve event: {:?}", self);
 
+        let mut tx = decoded_consumer_context.pg_pool.begin().await?;
+
         // Initialize accounts
-        let (sender_account, receiver_account) =
-            self.initialize_accounts(decoded_consumer_context).await?;
+        let (sender_account, receiver_account) = self
+            .initialize_accounts(decoded_consumer_context, &mut tx)
+            .await?;
 
         // Get the curve vault
         let mut curve_vault = Vault::find_by_term_id_and_curve_id(
             U256Wrapper::from(self.vaultId),
             U256Wrapper::from(self.curveId),
-            &decoded_consumer_context.pg_pool,
+            tx.as_mut(),
             &decoded_consumer_context.backend_schema,
         )
         .await?
@@ -228,38 +202,55 @@ impl RedeemedCurve {
 
         // Create redemption record
         self.create_redemption_record(
-            decoded_consumer_context,
+            &decoded_consumer_context.backend_schema,
             &sender_account,
             &receiver_account,
             event,
+            &mut tx,
         )
         .await?;
 
         // Handle position redemption if shares are fully redeemed
         if self.senderTotalSharesInVault == Uint::from(0) {
             // Call the handler to remove the position
-            self.handle_position_redemption(decoded_consumer_context, &mut curve_vault)
-                .await?;
+            self.handle_position_redemption(
+                &decoded_consumer_context.backend_schema,
+                &mut curve_vault,
+                &mut tx,
+            )
+            .await?;
         }
 
         // Create event
-        self.create_event(decoded_consumer_context, event, &curve_vault)
-            .await?;
+        self.create_event(
+            &decoded_consumer_context.backend_schema,
+            event,
+            &curve_vault,
+            &mut tx,
+        )
+        .await?;
 
         // Create signal
-        self.create_signal(decoded_consumer_context, event, &curve_vault)
-            .await?;
+        self.create_signal(
+            &decoded_consumer_context.backend_schema,
+            event,
+            &curve_vault,
+            &mut tx,
+        )
+        .await?;
 
+        tx.commit().await?;
         Ok(())
     }
 
     // Helper methods to break down the complexity:
     async fn create_redemption_record(
         &self,
-        decoded_consumer_context: &DecodedConsumerContext,
+        backend_schema: &str,
         sender_account: &Account,
         receiver_account: &Account,
         event: &DecodedMessage,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Redemption, ConsumerError> {
         Redemption::builder()
             .id(DecodedMessage::event_id(event))
@@ -275,10 +266,7 @@ impl RedeemedCurve {
             .transaction_hash(event.transaction_hash.clone())
             .curve_id(U256Wrapper::from(self.curveId))
             .build()
-            .upsert(
-                &decoded_consumer_context.pg_pool,
-                &decoded_consumer_context.backend_schema,
-            )
+            .upsert(backend_schema, tx.as_mut())
             .await
             .map_err(ConsumerError::ModelError)
     }

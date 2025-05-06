@@ -86,7 +86,7 @@ services:
       DECODED_LOGS_QUEUE_URL: 'http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/decoded_logs.fifo'
       INTUITION_CONTRACT_ADDRESS: $INTUITION_CONTRACT_ADDRESS
       LOCALSTACK_URL: 'http://sqs:4566/'
-      PG_MIN_CONNECTIONS: '5'
+      PG_MIN_CONNECTIONS: '10'
       RESOLVER_QUEUE_URL: 'http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/resolver'
       RPC_URL_BASE: "http://prod-rpc-proxy:3008/8453/proxy"
       RUST_LOG: 'info'

@@ -21,7 +21,7 @@ mod tests {
         };
 
         // Upsert the object
-        byte_object.upsert(&pool, TEST_SCHEMA).await.unwrap();
+        byte_object.upsert(TEST_SCHEMA, &pool).await.unwrap();
 
         // Debug: Direct DB query
         let raw_data: (Vec<u8>,) = sqlx::query_as(&format!(
@@ -37,7 +37,7 @@ mod tests {
         assert_eq!(raw_data.0, data);
 
         // Rest of the test...
-        let fetched = ByteObject::find_by_id(id.clone(), &pool, TEST_SCHEMA)
+        let fetched = ByteObject::find_by_id(id.clone(), TEST_SCHEMA, &pool)
             .await
             .unwrap()
             .unwrap();
@@ -49,10 +49,10 @@ mod tests {
             id: id.clone(),
             data: modified_data.to_vec(),
         };
-        modified_object.upsert(&pool, TEST_SCHEMA).await.unwrap();
+        modified_object.upsert(TEST_SCHEMA, &pool).await.unwrap();
 
         // Fetch and verify modified state
-        let fetched_modified = ByteObject::find_by_id(id.clone(), &pool, TEST_SCHEMA)
+        let fetched_modified = ByteObject::find_by_id(id.clone(), TEST_SCHEMA, &pool)
             .await
             .unwrap()
             .unwrap();

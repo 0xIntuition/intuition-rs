@@ -27,7 +27,7 @@ mod tests {
             .label("0x00...01".to_string())
             .account_type(AccountType::Default)
             .build()
-            .upsert(&pool, TEST_SCHEMA)
+            .upsert(TEST_SCHEMA, &pool)
             .await
             .expect("Failed to store account");
 
@@ -36,7 +36,7 @@ mod tests {
             .label("0x91".to_string())
             .account_type(AccountType::AtomWallet)
             .build()
-            .upsert(&pool, TEST_SCHEMA)
+            .upsert(TEST_SCHEMA, &pool)
             .await
             .expect("Failed to store account");
 
@@ -56,13 +56,13 @@ mod tests {
             .transaction_hash(create_random_string())
             .resolving_status(AtomResolvingStatus::Pending)
             .build()
-            .upsert(&pool, TEST_SCHEMA)
+            .upsert(TEST_SCHEMA, &pool)
             .await
             .expect("Failed to store atom");
 
         alice_account.atom_id = Some(alice_atom.term_id.clone());
         alice_account
-            .upsert(&pool, TEST_SCHEMA)
+            .upsert(TEST_SCHEMA, &pool)
             .await
             .expect("Failed to update account");
 
@@ -73,7 +73,7 @@ mod tests {
             .current_share_price(create_random_u256wrapper())
             .position_count(0)
             .build()
-            .upsert(&pool, TEST_SCHEMA)
+            .upsert(TEST_SCHEMA, &pool)
             .await
             .expect("Failed to store vault");
 
@@ -84,7 +84,7 @@ mod tests {
             .label("0x92".to_string())
             .account_type(AccountType::AtomWallet)
             .build()
-            .upsert(&pool, TEST_SCHEMA)
+            .upsert(TEST_SCHEMA, &pool)
             .await
             .expect("Failed to store account");
 
@@ -102,7 +102,7 @@ mod tests {
             .transaction_hash(create_random_string())
             .resolving_status(AtomResolvingStatus::Pending)
             .build()
-            .upsert(&pool, TEST_SCHEMA)
+            .upsert(TEST_SCHEMA, &pool)
             .await
             .expect("Failed to store atom");
 
@@ -113,7 +113,7 @@ mod tests {
             .current_share_price(create_random_u256wrapper())
             .position_count(0)
             .build()
-            .upsert(&pool, TEST_SCHEMA)
+            .upsert(TEST_SCHEMA, &pool)
             .await
             .expect("Failed to store vault");
 
@@ -122,7 +122,7 @@ mod tests {
             .name("Alice".to_string())
             .image("https://example.com/image.jpg".to_string())
             .build()
-            .upsert(&pool, TEST_SCHEMA)
+            .upsert(TEST_SCHEMA, &pool)
             .await
             .expect("Failed to store account");
 
@@ -130,13 +130,13 @@ mod tests {
             .id(alice_person_atom.term_id.clone())
             .person_id(alice_person.id.clone())
             .build()
-            .upsert(&pool, TEST_SCHEMA)
+            .upsert(TEST_SCHEMA, &pool)
             .await
             .expect("Failed to store atom value");
 
         alice_person_atom.value_id = Some(alice_person_atom_value.id.clone());
         alice_person_atom
-            .upsert(&pool, TEST_SCHEMA)
+            .upsert(TEST_SCHEMA, &pool)
             .await
             .expect("Failed to update atom");
     }

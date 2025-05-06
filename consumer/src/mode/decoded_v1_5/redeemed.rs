@@ -18,6 +18,7 @@ use models::{
     types::U256Wrapper,
     vault::Vault,
 };
+use sqlx::{Postgres, Transaction};
 use std::str::FromStr;
 use tracing::info;
 
@@ -25,17 +26,14 @@ impl Redeemed {
     /// This function creates an `Event` for the `Redeemed` event
     async fn create_event(
         &self,
-        decoded_consumer_context: &DecodedConsumerContext,
+        backend_schema: &str,
         event: &DecodedMessage,
         vault: &Vault,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
-        let term_type = Term::find_by_id(
-            vault.term_id.clone(),
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
-        )
-        .await?
-        .ok_or(ConsumerError::TermNotFound)?;
+        let term_type = Term::find_by_id(vault.term_id.clone(), backend_schema, tx.as_mut())
+            .await?
+            .ok_or(ConsumerError::TermNotFound)?;
 
         if let TermType::Triple = term_type.term_type {
             Event::builder()
@@ -47,10 +45,7 @@ impl Redeemed {
                 .redemption_id(DecodedMessage::event_id(event))
                 .triple_id(vault.term_id.clone())
                 .build()
-                .upsert(
-                    &decoded_consumer_context.pg_pool,
-                    &decoded_consumer_context.backend_schema,
-                )
+                .upsert(backend_schema, tx.as_mut())
                 .await?;
         } else {
             Event::builder()
@@ -62,10 +57,7 @@ impl Redeemed {
                 .redemption_id(DecodedMessage::event_id(event))
                 .atom_id(vault.term_id.clone())
                 .build()
-                .upsert(
-                    &decoded_consumer_context.pg_pool,
-                    &decoded_consumer_context.backend_schema,
-                )
+                .upsert(backend_schema, tx.as_mut())
                 .await?;
         }
         Ok(())
@@ -74,10 +66,11 @@ impl Redeemed {
     // Helper methods to break down the complexity:
     async fn create_redemption_record(
         &self,
-        decoded_consumer_context: &DecodedConsumerContext,
+        backend_schema: &str,
         sender_account: &Account,
         receiver_account: &Account,
         event: &DecodedMessage,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Redemption, ConsumerError> {
         Redemption::builder()
             .id(DecodedMessage::event_id(event))
@@ -93,10 +86,7 @@ impl Redeemed {
             .transaction_hash(event.transaction_hash.clone())
             .curve_id(U256Wrapper::from_str("1")?)
             .build()
-            .upsert(
-                &decoded_consumer_context.pg_pool,
-                &decoded_consumer_context.backend_schema,
-            )
+            .upsert(backend_schema, tx.as_mut())
             .await
             .map_err(ConsumerError::ModelError)
     }
@@ -104,17 +94,14 @@ impl Redeemed {
     /// This function creates a `Signal` for the `Redeemed` event
     async fn create_signal(
         &self,
-        decoded_consumer_context: &DecodedConsumerContext,
+        backend_schema: &str,
         event: &DecodedMessage,
         vault: &Vault,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
-        let term_type = Term::find_by_id(
-            vault.term_id.clone(),
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
-        )
-        .await?
-        .ok_or(ConsumerError::TermNotFound)?;
+        let term_type = Term::find_by_id(vault.term_id.clone(), backend_schema, tx.as_mut())
+            .await?
+            .ok_or(ConsumerError::TermNotFound)?;
 
         if let TermType::Triple = term_type.term_type {
             Signal::builder()
@@ -132,10 +119,7 @@ impl Redeemed {
                 .term_id(vault.term_id.clone())
                 .curve_id(U256Wrapper::from_str("1")?)
                 .build()
-                .upsert(
-                    &decoded_consumer_context.pg_pool,
-                    &decoded_consumer_context.backend_schema,
-                )
+                .upsert(backend_schema, tx.as_mut())
                 .await?;
         } else {
             Signal::builder()
@@ -153,10 +137,7 @@ impl Redeemed {
                 .term_id(vault.term_id.clone())
                 .curve_id(U256Wrapper::from_str("1")?)
                 .build()
-                .upsert(
-                    &decoded_consumer_context.pg_pool,
-                    &decoded_consumer_context.backend_schema,
-                )
+                .upsert(backend_schema, tx.as_mut())
                 .await?;
         }
         Ok(())
@@ -168,17 +149,19 @@ impl Redeemed {
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
+        let mut tx = decoded_consumer_context.pg_pool.begin().await?;
         // 1. Set up accounts
         let sender_account =
-            get_or_create_account(self.sender.to_string(), decoded_consumer_context).await?;
+            get_or_create_account(self.sender.to_string(), decoded_consumer_context, &mut tx)
+                .await?;
         let receiver_account =
-            get_or_create_account(self.receiver.to_string(), decoded_consumer_context).await?;
-
+            get_or_create_account(self.receiver.to_string(), decoded_consumer_context, &mut tx)
+                .await?;
         // 2. Ensure the vault exists
         let vault = Vault::find_by_term_id_and_curve_id(
             U256Wrapper::from(self.vaultId),
             U256Wrapper::from_str("1")?,
-            &decoded_consumer_context.pg_pool,
+            tx.as_mut(),
             &decoded_consumer_context.backend_schema,
         )
         .await?
@@ -186,10 +169,11 @@ impl Redeemed {
 
         // 3. Create redemption record
         self.create_redemption_record(
-            decoded_consumer_context,
+            &decoded_consumer_context.backend_schema,
             &sender_account,
             &receiver_account,
             event,
+            &mut tx,
         )
         .await?;
 
@@ -198,21 +182,45 @@ impl Redeemed {
             // Build the position ID
             let position_id = format!("{}-1-{}", vault.term_id, sender_account.id.to_lowercase());
             // Call the handler to remove the position
-            self.handle_position_redemption(decoded_consumer_context, &position_id)
-                .await?;
+            self.handle_position_redemption(
+                &decoded_consumer_context.backend_schema,
+                &position_id,
+                &mut tx,
+            )
+            .await?;
             // Cleanup the triple related records
-            self.handle_triple_cleanup(&vault, &sender_account, decoded_consumer_context)
-                .await?;
+            self.handle_triple_cleanup(
+                &vault,
+                &sender_account,
+                &decoded_consumer_context.backend_schema,
+                &mut tx,
+            )
+            .await?;
         } else {
-            self.handle_remaining_shares(&vault, &sender_account, decoded_consumer_context)
-                .await?;
+            self.handle_remaining_shares(
+                &vault,
+                &sender_account,
+                &decoded_consumer_context.backend_schema,
+                &mut tx,
+            )
+            .await?;
         }
 
         // 4. Create event and signal records
-        self.create_event(decoded_consumer_context, event, &vault)
-            .await?;
-        self.create_signal(decoded_consumer_context, event, &vault)
-            .await?;
+        self.create_event(
+            &decoded_consumer_context.backend_schema,
+            event,
+            &vault,
+            &mut tx,
+        )
+        .await?;
+        self.create_signal(
+            &decoded_consumer_context.backend_schema,
+            event,
+            &vault,
+            &mut tx,
+        )
+        .await?;
 
         Ok(())
     }
@@ -222,23 +230,19 @@ impl Redeemed {
         &self,
         vault: &Vault,
         sender_account: &Account,
-        decoded_consumer_context: &DecodedConsumerContext,
+        backend_schema: &str,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
         // Update position
         if let Some(mut position) = Position::find_by_id(
             format!("{}-1-{}", vault.term_id, sender_account.id.to_lowercase()),
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
+            backend_schema,
+            tx.as_mut(),
         )
         .await?
         {
             position.shares = U256Wrapper::from(self.senderTotalSharesInVault);
-            position
-                .upsert(
-                    &decoded_consumer_context.pg_pool,
-                    &decoded_consumer_context.backend_schema,
-                )
-                .await?;
+            position.upsert(backend_schema, tx.as_mut()).await?;
         }
 
         Ok(())
@@ -249,41 +253,29 @@ impl Redeemed {
         &self,
         vault: &Vault,
         sender_account: &Account,
-        decoded_consumer_context: &DecodedConsumerContext,
+        backend_schema: &str,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
         // Handle triple-related cleanup if exists
-        if let Some(triple) = Triple::find_by_id(
-            vault.term_id.clone(),
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
-        )
-        .await?
+        if let Some(triple) =
+            Triple::find_by_id(vault.term_id.clone(), backend_schema, tx.as_mut()).await?
         {
             // Delete claim
             let claim_id = format!("{}-{}", triple.term_id, sender_account.id.to_lowercase());
-            Claim::delete(
-                claim_id,
-                &decoded_consumer_context.pg_pool,
-                &decoded_consumer_context.backend_schema,
-            )
-            .await
-            .map_err(|e| ConsumerError::DeleteClaim(e.to_string()))?;
+            Claim::delete(claim_id, backend_schema, tx.as_mut())
+                .await
+                .map_err(|e| ConsumerError::DeleteClaim(e.to_string()))?;
 
             // Update predicate object
             if let Some(mut predicate_object) = PredicateObject::find_by_id(
                 format!("{}-{}", triple.predicate_id, triple.object_id),
-                &decoded_consumer_context.pg_pool,
-                &decoded_consumer_context.backend_schema,
+                backend_schema,
+                tx.as_mut(),
             )
             .await?
             {
                 predicate_object.claim_count -= 1;
-                predicate_object
-                    .upsert(
-                        &decoded_consumer_context.pg_pool,
-                        &decoded_consumer_context.backend_schema,
-                    )
-                    .await?;
+                predicate_object.upsert(backend_schema, tx.as_mut()).await?;
             }
         } else {
             info!(
@@ -297,35 +289,22 @@ impl Redeemed {
     /// This function handles the deletion of a position
     async fn handle_position_redemption(
         &self,
-        decoded_consumer_context: &DecodedConsumerContext,
+        backend_schema: &str,
         position_id: &str,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
         // Fetch the position
-        let position = Position::find_by_id(
-            position_id.to_string(),
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
-        )
-        .await?;
+        let position =
+            Position::find_by_id(position_id.to_string(), backend_schema, tx.as_mut()).await?;
 
         // Only if the position is being closed should we update vault position_count.
         // For instance, if the redemption fully depletes the position:
         if let Some(_pos) = position {
             info!("Position shares are zero, removing position record.");
             // delete the claims
-            Claim::delete(
-                position_id.to_string(),
-                &decoded_consumer_context.pg_pool,
-                &decoded_consumer_context.backend_schema,
-            )
-            .await?;
+            Claim::delete(position_id.to_string(), backend_schema, tx.as_mut()).await?;
             // Remove the position record..
-            Position::delete(
-                position_id.to_string(),
-                &decoded_consumer_context.pg_pool,
-                &decoded_consumer_context.backend_schema,
-            )
-            .await?;
+            Position::delete(position_id.to_string(), backend_schema, tx.as_mut()).await?;
         }
 
         Ok(())

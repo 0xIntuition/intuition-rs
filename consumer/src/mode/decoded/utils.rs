@@ -9,6 +9,7 @@ use models::{
     types::U256Wrapper,
     vault::Vault,
 };
+use sqlx::{Postgres, Transaction};
 use tracing::info;
 
 /// Shortens an address string by taking first 6 and last 4 chars
@@ -38,11 +39,12 @@ pub fn get_absolute_triple_id(vault_id: U256) -> U256 {
 pub async fn get_or_create_account(
     id: String,
     decoded_consumer_context: &DecodedConsumerContext,
+    tx: &mut Transaction<'_, Postgres>,
 ) -> Result<Account, ConsumerError> {
     if let Some(account) = Account::find_by_id(
         id.clone(),
-        &decoded_consumer_context.pg_pool,
         &decoded_consumer_context.backend_schema,
+        tx.as_mut(),
     )
     .await?
     {
@@ -55,10 +57,7 @@ pub async fn get_or_create_account(
             .label(short_id(&id))
             .account_type(AccountType::Default)
             .build()
-            .upsert(
-                &decoded_consumer_context.pg_pool,
-                &decoded_consumer_context.backend_schema,
-            )
+            .upsert(&decoded_consumer_context.backend_schema, tx.as_mut())
             .await
             .map_err(ConsumerError::ModelError)?;
 
@@ -78,13 +77,11 @@ pub async fn update_account_with_atom_id(
     account: &mut Account,
     atom_id: U256Wrapper,
     decoded_consumer_context: &DecodedConsumerContext,
+    tx: &mut Transaction<'_, Postgres>,
 ) -> Result<(), ConsumerError> {
     account.atom_id = Some(atom_id);
     account
-        .upsert(
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
-        )
+        .upsert(&decoded_consumer_context.backend_schema, tx.as_mut())
         .await?;
     info!("Updated account: {:?}", account);
 
@@ -118,13 +115,14 @@ pub async fn update_vault(
     vault_update: VaultUpdate,
     vault_id: Uint<256, 4>,
     decoded_consumer_context: &DecodedConsumerContext,
+    tx: &mut Transaction<'_, Postgres>,
     block_number: i64,
 ) -> Result<(), ConsumerError> {
     // Update vault
     let mut vault = Vault::find_by_id(
         vault_id.into(),
-        &decoded_consumer_context.pg_pool,
         &decoded_consumer_context.backend_schema,
+        tx.as_mut(),
     )
     .await?
     .ok_or(ConsumerError::VaultNotFound)?;
@@ -162,10 +160,7 @@ pub async fn update_vault(
             / U256Wrapper::from(U256::from(10).pow(U256::from(18))),
     );
     vault
-        .upsert(
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
-        )
+        .upsert(&decoded_consumer_context.backend_schema, tx.as_mut())
         .await?;
     Ok(())
 }

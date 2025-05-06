@@ -16,6 +16,7 @@ use models::{
     term::TermType,
     types::U256Wrapper,
 };
+use sqlx::{Postgres, Transaction};
 use tracing::info;
 
 #[async_trait]
@@ -70,6 +71,7 @@ impl SharePriceChanged {
     ) -> Result<(), ConsumerError> {
         info!("Processing SharePriceChanged event: {:?}", self);
 
+        let mut tx = decoded_consumer_context.pg_pool.begin().await?;
         let term_type = if decoded_consumer_context.is_triple_id(self.termId).await? {
             TermType::Triple
         } else {
@@ -77,12 +79,23 @@ impl SharePriceChanged {
         };
 
         // Update the vault from the share price changed event
-        update_vault_from_share_price_changed_events(self, decoded_consumer_context, term_type)
-            .await?;
+        update_vault_from_share_price_changed_events(
+            self,
+            decoded_consumer_context,
+            term_type,
+            &mut tx,
+        )
+        .await?;
         info!("Finished updating vault, updating share price aggregate");
         // Update the share price aggregate of the vault
-        self.update_share_price_changed_curve(decoded_consumer_context, event)
-            .await?;
+        self.update_share_price_changed_curve(
+            &decoded_consumer_context.backend_schema,
+            event,
+            &mut tx,
+        )
+        .await?;
+
+        tx.commit().await?;
 
         Ok(())
     }
@@ -90,8 +103,9 @@ impl SharePriceChanged {
     /// This function updates the share price aggregate of a curve vault
     async fn update_share_price_changed_curve(
         &self,
-        decoded_consumer_context: &DecodedConsumerContext,
+        backend_schema: &str,
         event: &DecodedMessage,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
         let new_share_price = SharePriceChangeInternal::builder()
             .term_id(U256Wrapper::from(self.termId))
@@ -103,12 +117,7 @@ impl SharePriceChanged {
             .block_timestamp(event.block_timestamp)
             .transaction_hash(event.transaction_hash.clone())
             .build();
-        SharePriceChangeModel::insert(
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
-            new_share_price,
-        )
-        .await?;
+        SharePriceChangeModel::insert(new_share_price, backend_schema, tx.as_mut()).await?;
 
         Ok(())
     }

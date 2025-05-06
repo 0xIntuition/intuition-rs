@@ -30,13 +30,13 @@ mod tests {
             predicate.term_id.clone(),
             object.term_id.clone(),
         )
-        .upsert(&pool, TEST_SCHEMA)
+        .upsert(TEST_SCHEMA, &pool)
         .await
         .unwrap();
 
         // Create and store a test Vault
         let vault = create_test_vault_with_atom(object.term_id.clone())
-            .upsert(&pool, TEST_SCHEMA)
+            .upsert(TEST_SCHEMA, &pool)
             .await
             .unwrap();
 
@@ -53,12 +53,12 @@ mod tests {
             .account_id(creator.id.clone())
             .position_id(position.id.clone())
             .build()
-            .upsert(&pool, TEST_SCHEMA)
+            .upsert(TEST_SCHEMA, &pool)
             .await
             .unwrap();
 
         // make sure it's in the database
-        let found_claim = Claim::find_by_id(claim.id.clone(), &pool, TEST_SCHEMA)
+        let found_claim = Claim::find_by_id(claim.id.clone(), TEST_SCHEMA, &pool)
             .await
             .unwrap()
             .unwrap();
