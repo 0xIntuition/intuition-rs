@@ -12,7 +12,7 @@ spec:
       labels:
         io.kompose.service: vector-db
     spec:
-      serviceAccountName: secrets-access-sa
+      serviceAccountName: prod-eks-secrets-access-sa
       containers:
         - name: vector-db
           image: timescale/timescaledb-ha:pg17.4-ts2.19.2
