@@ -264,4 +264,52 @@ suite('organization, projects, people', async () => {
   expect(mayaSkyChain).toBeDefined()
   expect(leoGridSec).toBeDefined()
 
+  test('Org profile', async () => {
+    await wait(leoDeveloper.hash)
+    const result = await execute(
+      graphql(`query AtomOrgProfile($term_id: numeric!) {
+        atom(term_id: $term_id) {
+          term_id
+          label
+          orgs: as_subject_triples(where: {
+            predicate: {data: {_eq: "https://www.w3.org/ns/org#memberOf"}}
+          }) {
+            object {
+              term_id
+              label
+            }
+          }
+          projects: as_subject_triples(where: {
+            predicate: {data: {_eq: "https://www.w3.org/ns/prov#wasAssociatedWith"}}
+          }) {
+            object {
+              term_id
+              label
+            }
+          }
+          skills: as_subject_triples(where: {
+            predicate: {data: {_eq: "https://schema.org/skills"}}
+          }) {
+            object {
+              term_id
+              label
+            }
+          }
+        }
+      }`),
+      { term_id: mayaPerson.vaultId.toString() }
+    )
+    expect(result).toBeDefined()
+    expect(result.atom.orgs.length).toBe(2)
+    expect(result.atom.projects.length).toBe(2)
+    expect(result.atom.skills.length).toBe(2)
+    expect(result.atom.label).toBe('Maya')
+    expect(result.atom.orgs.some((org) => org.object.term_id === novaBiotechOrg.vaultId.toString())).toBe(true)
+    expect(result.atom.orgs.some((org) => org.object.term_id === skyChainOrg.vaultId.toString())).toBe(true)
+    expect(result.atom.projects.some((project) => project.object.term_id === helixProject.vaultId.toString())).toBe(true)
+    expect(result.atom.projects.some((project) => project.object.term_id === sentinelProject.vaultId.toString())).toBe(true)
+    expect(result.atom.skills.some((skill) => skill.object.term_id === developerSkill.vaultId.toString())).toBe(true)
+    expect(result.atom.skills.some((skill) => skill.object.term_id === productManagerSkill.vaultId.toString())).toBe(true)
+  })
+
 })

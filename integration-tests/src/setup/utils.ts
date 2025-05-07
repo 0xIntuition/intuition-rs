@@ -42,14 +42,14 @@ export async function getIntuition(accountIndex: number) {
   const balance = await publicClient.getBalance({ address: account.address })
   console.log(`Balance: ${parseFloat(formatEther(balance)).toFixed(6)} ETH, account: ${account.address}`)
 
-  if (balance.valueOf() < parseEther('0.01').valueOf()) {
-    console.log(`Fauceting 0.01 ETH to ${account.address}...`)
+  if (balance.valueOf() < parseEther('0.1').valueOf()) {
+    console.log(`Fauceting 0.1 ETH to ${account.address}...`)
 
     // Faucet
     //@ts-ignore
     const hash = await adminClient.sendTransaction({
       account: ADMIN,
-      value: parseEther('0.01'),
+      value: parseEther('0.1'),
       to: account.address,
     })
 
@@ -77,6 +77,7 @@ export async function getIntuition(accountIndex: number) {
   async function getOrCreateAtom(uri: string) {
     const vaultId = await multivault.getVaultIdFromUri(uri)
     if (vaultId) {
+      console.log(`Atom already exists: ${uri} ${vaultId}`)
       return { vaultId, hash: null }
     } else {
       console.log(`Creating atom: ${uri} ...`)
@@ -94,6 +95,7 @@ export async function getIntuition(accountIndex: number) {
     const vaultId = await multivault.getTripleIdFromAtoms(subjectId, predicateId, objectId)
     if (vaultId) {
       if (initialDeposit) {
+        console.log(`Depositing triple: ${subjectId} ${predicateId} ${objectId} ${initialDeposit} ...`)
         await multivault.depositTriple(vaultId, initialDeposit)
       }
       return { vaultId, hash: null }

@@ -9874,6 +9874,13 @@ export type FollowingQueryVariables = Exact<{
 
 export type FollowingQuery = { __typename?: 'query_root', following: Array<{ __typename?: 'accounts', id: string, atom_id?: any | null }> };
 
+export type AtomOrgProfileQueryVariables = Exact<{
+  term_id: Scalars['numeric']['input'];
+}>;
+
+
+export type AtomOrgProfileQuery = { __typename?: 'query_root', atom?: { __typename?: 'atoms', term_id: any, label?: string | null, orgs: Array<{ __typename?: 'triples', object: { __typename?: 'atoms', term_id: any, label?: string | null } }>, projects: Array<{ __typename?: 'triples', object: { __typename?: 'atoms', term_id: any, label?: string | null } }>, skills: Array<{ __typename?: 'triples', object: { __typename?: 'atoms', term_id: any, label?: string | null } }> } | null };
+
 export type SearchTermQueryVariables = Exact<{
   query: Scalars['String']['input'];
 }>;
@@ -9994,6 +10001,38 @@ export const FollowingDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<FollowingQuery, FollowingQueryVariables>;
+export const AtomOrgProfileDocument = new TypedDocumentString(`
+    query AtomOrgProfile($term_id: numeric!) {
+  atom(term_id: $term_id) {
+    term_id
+    label
+    orgs: as_subject_triples(
+      where: {predicate: {data: {_eq: "https://www.w3.org/ns/org#memberOf"}}}
+    ) {
+      object {
+        term_id
+        label
+      }
+    }
+    projects: as_subject_triples(
+      where: {predicate: {data: {_eq: "https://www.w3.org/ns/prov#wasAssociatedWith"}}}
+    ) {
+      object {
+        term_id
+        label
+      }
+    }
+    skills: as_subject_triples(
+      where: {predicate: {data: {_eq: "https://schema.org/skills"}}}
+    ) {
+      object {
+        term_id
+        label
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<AtomOrgProfileQuery, AtomOrgProfileQueryVariables>;
 export const SearchTermDocument = new TypedDocumentString(`
     query SearchTerm($query: String!) {
   search_term(args: {query: $query}, limit: 2) {
