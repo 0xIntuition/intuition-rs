@@ -1,4 +1,4 @@
-FROM node:20-slim
+FROM ubuntu:latest
 
 # Install build essentials and git
 RUN apt-get update && apt-get install -y \
@@ -7,6 +7,11 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     git \
     curl \
+    software-properties-common \
+    libc6 \
+    libstdc++6 \
+    nodejs \
+    npm \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Foundry
@@ -18,7 +23,7 @@ ENV PATH="/root/.foundry/bin:${PATH}"
 
 WORKDIR /app
 
-RUN git clone --recurse-submodules -j8 https://github.com/0xIntuition/intuition-beta-contracts.git . 
+RUN git clone --depth 1 --recurse-submodules -j8 https://github.com/0xIntuition/intuition-beta-contracts.git . 
 RUN npm install
 RUN forge build
 

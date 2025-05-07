@@ -111,7 +111,7 @@ suite('follow account and semantic search', async () => {
         }
       }
       `),
-      { query: 'mans best friend' }
+      { query: 'собака' }
     )
     expect(result).toBeDefined()
     expect(result.search_term.length).toBe(2)
