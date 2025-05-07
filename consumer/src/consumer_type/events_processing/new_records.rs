@@ -1,16 +1,20 @@
 use std::sync::Arc;
 
 use crate::{
+    config::ContractVersion,
     consumer_type::sqs_hibrid::SqsHibrid,
     error::ConsumerError,
     mode::types::ConsumerMode,
     schemas::{goldsky::RawMessage, histocrawler::HistoCrawlerRawLog, types::DecodedMessage},
     traits::IntoRawMessage,
 };
-use models::raw_logs::RawLog;
+use models::{failed_log::FailedLog, raw_logs::RawLog};
 use serde::Deserialize;
 use sqlx::postgres::{PgListener, PgNotification};
-use tokio::sync::{Semaphore, watch};
+use tokio::{
+    sync::{Semaphore, watch},
+    time::{Duration, sleep},
+};
 use tracing::{error, info, warn};
 
 #[derive(Debug, Deserialize)]
@@ -34,6 +38,7 @@ pub struct NotificationPayload {
     pub raw_log: DbRawLog,
 }
 
+pub const MAX_RETRIES: u32 = 5;
 impl SqsHibrid {
     /// This function starts polling the database for raw logs and sends them to
     /// the SQS queue.
@@ -79,12 +84,34 @@ impl SqsHibrid {
 
                             let this = self.clone();
                             let mode = mode.clone();
-
+                            // We fetch the contract version before spawning the thread!
+                            // Reason: If an `initialize` event is processed, the contract version is updated
+                            // internally in the RwLock, and if we are fetching the contract version inside the thread,
+                            // it may lead to an error (contract version mismatch, trying to process a v1 event with a v1_5 client).
+                            // This is why we fetch the contract version before spawning the thread making sure that all
+                            // the new events will be processed with the new contract version while the in-flight events
+                            // will be processed with the old contract version.
+                            let contract_version = mode.contract_version().ok_or(ConsumerError::ContractVersionNotFound)?;
                             tokio::spawn(async move {
-                                let _permit = permit; // keep the permit until task ends
+                                let _permit = permit;
 
-                                if let Err(e) = this.process_notification(notification, mode).await {
-                                    warn!("Failed to process notification: {e}");
+                                let mut attempts = 0;
+                                loop {
+                                    match this.process_notification(&notification, &mode, &contract_version).await {
+                                        Ok(_) => break,
+                                        Err(e) if attempts < MAX_RETRIES => {
+                                            warn!("Attempt {} failed: {e}. Retrying...", attempts + 1);
+                                            attempts += 1;
+                                            sleep(Duration::from_secs(2_u64.pow(attempts))).await;
+                                        }
+                                        Err(e) => {
+                                            error!("Notification failed after retries: {e}");
+                                            if let Err(store_err) = this.store_failed_notification(&notification).await {
+                                                error!("Failed to store failed notification: {store_err}");
+                                            }
+                                            break;
+                                        }
+                                    }
                                 }
                             });
                         }
@@ -96,6 +123,30 @@ impl SqsHibrid {
                 }
             }
         }
+    }
+
+    async fn store_failed_notification(
+        &self,
+        notification: &PgNotification,
+    ) -> Result<(), ConsumerError> {
+        let notification: NotificationPayload = serde_json::from_str(notification.payload())?;
+        let raw_log = notification.raw_log;
+        let failed_log = FailedLog::builder()
+            .gs_id(raw_log.gs_id)
+            .block_number(raw_log.block_number)
+            .block_hash(raw_log.block_hash)
+            .transaction_hash(raw_log.transaction_hash)
+            .transaction_index(raw_log.transaction_index)
+            .log_index(raw_log.log_index)
+            .address(raw_log.address)
+            .data(raw_log.data)
+            .topics(raw_log.topics)
+            .block_timestamp(raw_log.block_timestamp)
+            .build()
+            .insert(&self.hasura_pg_pool, &self.backend_schema)
+            .await?;
+        warn!("Failed log stored: {:?}", failed_log);
+        Ok(())
     }
 
     /// This function converts a raw log to a raw message. There are some
@@ -113,11 +164,8 @@ impl SqsHibrid {
     async fn decode_raw_message(
         &self,
         raw_log: RawLog,
-        backend_schema: &str,
+        contract_version: &ContractVersion,
     ) -> Result<DecodedMessage, ConsumerError> {
-        let contract_version =
-            ConsumerMode::get_contract_version(&self.hasura_pg_pool, backend_schema).await?;
-
         let raw_message = Self::convert_message(raw_log).await?;
 
         let event = ConsumerMode::decode_raw_log(
@@ -137,8 +185,9 @@ impl SqsHibrid {
     /// it is newer than the start time.
     async fn process_notification(
         &self,
-        notification: PgNotification,
-        mode: ConsumerMode,
+        notification: &PgNotification,
+        mode: &ConsumerMode,
+        contract_version: &ContractVersion,
     ) -> Result<(), ConsumerError> {
         info!("Processing notification: {:?}", notification);
         // We receive the raw log indexed by HistoCrawler from the DB
@@ -159,9 +208,9 @@ impl SqsHibrid {
             .build();
 
         // Decode the raw message, so that the decoded consumer can process it.
-        let decoded_message = self
-            .decode_raw_message(raw_log, mode.backend_schema())
-            .await?;
+
+        // This needs to know the contract version
+        let decoded_message = self.decode_raw_message(raw_log, contract_version).await?;
 
         // Process the decoded message
         mode.process_message(serde_json::to_string(&decoded_message)?)

@@ -77,10 +77,14 @@ pub enum ConsumerError {
             aws_smithy_runtime_api::http::Response,
         >,
     ),
+    #[error("Backend schema not found")]
+    BackendSchemaNotFound,
     #[error("Block number not found")]
     BlockNumberNotFound,
     #[error("Failed to parse consumer type: {0}")]
     ConsumerTypeParse(String),
+    #[error("Contract version not found")]
+    ContractVersionNotFound,
     #[error("ByteObject error")]
     ByteObjectError(String),
     #[error("Deposited error")]

@@ -51,7 +51,7 @@ impl ConsumerMode {
                 let event = Self::decode_raw_log(
                     raw_message.body.topics.clone(),
                     raw_message.body.data.clone(),
-                    contract_version,
+                    &contract_version,
                 )
                 .await;
 

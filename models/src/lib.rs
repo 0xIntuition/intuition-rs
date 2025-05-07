@@ -9,6 +9,7 @@ pub mod claim;
 pub mod deposit;
 pub mod error;
 pub mod event;
+pub mod failed_log;
 pub mod fee_transfer;
 pub mod histocrawler;
 pub mod initialize;

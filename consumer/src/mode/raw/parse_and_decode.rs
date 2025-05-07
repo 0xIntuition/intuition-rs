@@ -27,7 +27,7 @@ impl ConsumerMode {
     pub async fn decode_raw_log(
         topics: Vec<String>,
         data: String,
-        contract_version: ContractVersion,
+        contract_version: &ContractVersion,
     ) -> Result<ContractEvent, ConsumerError> {
         let topics = Self::parse_raw_topics(topics).await?;
         let data = Self::parse_raw_data(data).await?;

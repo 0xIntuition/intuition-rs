@@ -61,6 +61,15 @@ impl ConsumerMode {
             ConsumerMode::IpfsUpload(context) => &context.backend_schema,
         }
     }
+
+    pub fn contract_version(&self) -> Option<ContractVersion> {
+        match self {
+            ConsumerMode::Decoded(context) => {
+                Some(context.contract_version.read().unwrap().clone())
+            }
+            _ => None,
+        }
+    }
 }
 
 /// Represents the decoded consumer context

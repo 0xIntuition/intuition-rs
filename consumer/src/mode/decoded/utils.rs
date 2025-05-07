@@ -48,29 +48,55 @@ pub async fn get_or_create_account(
     )
     .await?
     {
-        info!("Returning existing account for: {}", id);
-        Ok(account)
+        if account.id == "0x0000000000000000000000000000000000000000" {
+            info!("Account is unknown, updating it");
+            let account = update_unknown_account_or_create_account_and_enqueue_resolver_message(
+                decoded_consumer_context,
+                id,
+                tx,
+            )
+            .await?;
+            Ok(account)
+        } else {
+            info!("Returning existing account for: {}", id);
+            Ok(account)
+        }
     } else {
         info!("Creating account for: {}", id);
-        let account = Account::builder()
-            .id(id.clone())
-            .label(short_id(&id))
-            .account_type(AccountType::Default)
-            .build()
-            .upsert(&decoded_consumer_context.backend_schema, tx.as_mut())
-            .await
-            .map_err(ConsumerError::ModelError)?;
-
-        // Now we need to enqueue the message to be processed by the resolver. In this
-        // process we check if the account has ENS data associated, and if it does, we
-        // update the account with the ENS data (name [label] and image)
-        let message = ResolverConsumerMessage::new_account(account.clone());
-        decoded_consumer_context
-            .client
-            .send_message(serde_json::to_string(&message)?, None)
-            .await?;
+        let account = update_unknown_account_or_create_account_and_enqueue_resolver_message(
+            decoded_consumer_context,
+            id,
+            tx,
+        )
+        .await?;
         Ok(account)
     }
+}
+
+/// This function updates an unknown account or creates an account and enqueues a resolver message
+async fn update_unknown_account_or_create_account_and_enqueue_resolver_message(
+    decoded_consumer_context: &DecodedConsumerContext,
+    id: String,
+    tx: &mut Transaction<'_, Postgres>,
+) -> Result<Account, ConsumerError> {
+    let account = Account::builder()
+        .id(id.clone())
+        .label(short_id(&id))
+        .account_type(AccountType::Default)
+        .build()
+        .upsert(&decoded_consumer_context.backend_schema, tx.as_mut())
+        .await
+        .map_err(ConsumerError::ModelError)?;
+
+    // Now we need to enqueue the message to be processed by the resolver. In this
+    // process we check if the account has ENS data associated, and if it does, we
+    // update the account with the ENS data (name [label] and image)
+    let message = ResolverConsumerMessage::new_account(account.clone());
+    decoded_consumer_context
+        .client
+        .send_message(serde_json::to_string(&message)?, None)
+        .await?;
+    Ok(account)
 }
 
 pub async fn update_account_with_atom_id(

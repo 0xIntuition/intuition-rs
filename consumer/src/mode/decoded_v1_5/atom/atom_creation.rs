@@ -182,57 +182,78 @@ impl AtomCreated {
     async fn get_or_create_vault_atom(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
-        tx: &mut Transaction<'_, Postgres>,
         event: &DecodedMessage,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Atom, ConsumerError> {
         if let Some(atom) = Atom::find_by_id(
-            U256Wrapper::from_str(&self.vaultId.to_string())?,
+            self.vaultId.into(),
             &decoded_consumer_context.backend_schema,
             tx.as_mut(),
         )
         .await?
         {
+            if atom.transaction_hash == "0x0000000000000000000000000000000000000000" {
+                info!("Atom exists with zero transaction hash, updating it");
+                let atom = self
+                    .update_atom_with_zero_transaction_hash_or_create_atom(
+                        decoded_consumer_context,
+                        tx,
+                        event,
+                    )
+                    .await?;
+                return Ok(atom);
+            }
             // If the atom exists, return it
             info!("Atom already exists, returning it");
             Ok(atom)
         } else {
             info!("Atom does not exist, creating it");
-            let mut atom_wallet_account = self
-                .get_or_create_atom_wallet_account(&decoded_consumer_context.backend_schema, tx)
-                .await?;
-            let creator_account =
-                get_or_create_account(self.creator.to_string(), decoded_consumer_context, tx)
-                    .await?;
-            // Create the `Atom` and upsert it. Note that we are using the raw_data as the data
-            // for now, this will be updated later with the resolver consumer.
-            let atom = Atom::builder()
-                .term_id(U256Wrapper::from(self.vaultId))
-                .wallet_id(atom_wallet_account.id.clone())
-                .creator_id(creator_account.id)
-                .value_id(U256Wrapper::from(self.vaultId))
-                .raw_data(self.atomData.to_string())
-                .atom_type(AtomType::Unknown)
-                .block_number(U256Wrapper::from_str(&event.block_number.to_string())?)
-                .block_timestamp(event.block_timestamp)
-                .transaction_hash(event.transaction_hash.clone())
-                .resolving_status(AtomResolvingStatus::Pending)
-                .build()
-                .upsert(
-                    &decoded_consumer_context.backend_schema,
-                    &decoded_consumer_context.pg_pool,
+            let atom = self
+                .update_atom_with_zero_transaction_hash_or_create_atom(
+                    decoded_consumer_context,
+                    tx,
+                    event,
                 )
                 .await?;
-            //updating the account with the atom id
-            update_account_with_atom_id(
-                &mut atom_wallet_account,
-                atom.term_id.clone(),
-                decoded_consumer_context,
-                tx,
-            )
-            .await?;
 
             Ok(atom)
         }
+    }
+
+    /// This function updates an atom with a zero transaction hash
+    async fn update_atom_with_zero_transaction_hash_or_create_atom(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+        tx: &mut Transaction<'_, Postgres>,
+        event: &DecodedMessage,
+    ) -> Result<Atom, ConsumerError> {
+        let mut atom_wallet_account = self
+            .get_or_create_atom_wallet_account(&decoded_consumer_context.backend_schema, tx)
+            .await?;
+        let creator_account =
+            get_or_create_account(self.creator.to_string(), decoded_consumer_context, tx).await?;
+        let atom = Atom::builder()
+            .term_id(self.vaultId)
+            .wallet_id(atom_wallet_account.id.clone())
+            .creator_id(creator_account.id)
+            .value_id(U256Wrapper::from_str(&self.vaultId.to_string())?)
+            .raw_data(self.atomData.to_string())
+            .atom_type(AtomType::Unknown)
+            .block_number(U256Wrapper::from_str(&event.block_number.to_string())?)
+            .block_timestamp(event.block_timestamp)
+            .transaction_hash(event.transaction_hash.clone())
+            .resolving_status(AtomResolvingStatus::Pending)
+            .build()
+            .upsert(&decoded_consumer_context.backend_schema, tx.as_mut())
+            .await?;
+        update_account_with_atom_id(
+            &mut atom_wallet_account,
+            atom.term_id.clone(),
+            decoded_consumer_context,
+            tx,
+        )
+        .await?;
+        Ok(atom)
     }
 
     /// This function handles an `AtomCreated` event. This is the most important function
@@ -308,7 +329,7 @@ impl AtomCreated {
         // created first, so if they don't exist, we create them as part of this
         // process.
         let atom = self
-            .get_or_create_vault_atom(decoded_consumer_context, tx, event)
+            .get_or_create_vault_atom(decoded_consumer_context, event, tx)
             .await?;
 
         Ok((vault, atom))

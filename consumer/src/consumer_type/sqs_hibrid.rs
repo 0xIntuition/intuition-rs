@@ -28,6 +28,7 @@ pub struct SqsHibrid {
     pub hasura_pg_pool: PgPool,
     pub app_config: AppConfig,
     pub indexer_database_url: String,
+    pub backend_schema: String,
 }
 
 impl SqsHibrid {
@@ -63,6 +64,7 @@ impl SqsHibrid {
         )
         .await?
         .ok_or(ConsumerError::AppConfigNotFound)?;
+        let backend_schema = data.env.backend_schema;
         Ok(Self {
             client,
             histoflux_cursor,
@@ -70,6 +72,7 @@ impl SqsHibrid {
             hasura_pg_pool,
             app_config,
             indexer_database_url,
+            backend_schema,
         })
     }
 
@@ -137,14 +140,11 @@ impl BasicConsumer for SqsHibrid {
     /// messages, but when idle, we want to have a delay between message polling to
     /// avoid busy-waiting.
     async fn process_messages(&self, mode: ConsumerMode) -> Result<(), ConsumerError> {
-        let semaphore = Arc::new(Semaphore::new(5));
-        // Pass `Arc<Self>`, mode, semaphore, and shutdown_rx to your function
+        let semaphore = Arc::new(Semaphore::new(10));
         let hybrid = Arc::new(self.clone());
-
         let (shutdown_tx, mut shutdown_rx) = watch::channel(false);
+        // Pass `Arc<Self>`, mode, semaphore, and shutdown_rx to your function
         let shutdown_rx_for_worker = shutdown_rx.clone();
-
-        tokio::spawn(hybrid.start_pooling_events(mode, semaphore.clone(), shutdown_rx_for_worker));
 
         // Later, trigger shutdown — e.g., on signal:
         tokio::spawn(async move {
@@ -152,9 +152,13 @@ impl BasicConsumer for SqsHibrid {
             let _ = shutdown_tx.send(true);
         });
 
+        hybrid
+            .start_pooling_events(mode, semaphore.clone(), shutdown_rx_for_worker)
+            .await?;
+
         // Wait for shutdown signal
         shutdown_rx.changed().await?;
-        semaphore.acquire_many(5).await.ok(); // Wait until all permits are returned
+        semaphore.acquire_many(10).await.ok(); // Wait until all permits are returned
         Ok(())
     }
 
