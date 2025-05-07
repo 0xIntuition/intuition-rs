@@ -1,0 +1,91 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: consumer-ipfs-upload
+  namespace: argocd
+spec:
+  goTemplate: true
+  syncPolicy:
+    preserveResourcesOnDeletion: true
+  generators:
+    - list:
+        elements:
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: luis/eng-6560-create-a-new-consumer-to-ingest-v1-data-in-v15-fomat-from
+            env: prod-base-sepolia-v-1-5-vector-upgradable
+            namespace: prod-base-sepolia-v-1-5-vector-upgradable
+            imageGuardURL: 'http://prod-base-api.default.svc.cluster.local:3000'
+
+  template:
+    metadata:
+      name: '{{.cluster}}-consumer-ipfs-upload-{{.namespace}}'
+      annotations:
+        argocd.argoproj.io/manifest-generate-paths: '.;/devops/argocd'
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/0xintuition/intuition-rs.git
+        path: 'devops/aws-rolling-releases/consumers/overlays/{{.env}}/ipfs-upload'
+        targetRevision: '{{.revision}}'
+        kustomize:
+          patches:
+            - target:
+                kind: Deployment
+                name: ipfs-upload-consumer
+              patch: |-
+                - op: replace
+                  path: /spec/template/spec/serviceAccountName
+                  value: '{{.cluster}}-{{.namespace}}-secrets-access-sa'
+                - op: add
+                  path: /spec/template/spec/containers/0/envFrom/-
+                  value:
+                    secretRef:
+                      name: 'main-db-creds'
+                    prefix: "MAINDB_"
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: IPFS_UPLOAD_QUEUE_URL
+                    value: 'https://sqs.us-west-2.amazonaws.com/064662847354/{{.cluster}}-{{.namespace}}-ipfs-upload'
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: IMAGE_GUARD_URL
+                    value: '{{.imageGuardURL}}' # probably better to have all of that dynamically created
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: IPFS_GATEWAY_URL
+                    value: 'http://ipfs.default.svc.cluster.local:8080' # probably better to have all of that dynamically created
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: BACKEND_SCHEMA
+                    value: 'public' # not sure if needs to be templated
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: CONSUMER_TYPE
+                    value: 'sqs'
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: IMAGE_GUARD_URL
+                    value: '{{.imageGuardURL}}' # probably better to have all of that dynamically created
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: IPFS_UPLOAD_URL
+                    value: 'http://ipfs.default.svc.cluster.local:5001' # probably better to have all of that dynamically created
+
+
+      destination:
+        server: '{{.server}}'
+        namespace: '{{.namespace}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+        - CreateNamespace=true

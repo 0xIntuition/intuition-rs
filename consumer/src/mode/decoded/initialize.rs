@@ -70,7 +70,9 @@ impl Initialized {
             .map_err(ConsumerError::ModelError)?;
 
         // Update the contract version
-        self.update_contract_version_context(decoded_consumer_context, self.version as i64)?;
+        if decoded_consumer_context.initial_contract_version.is_none() {
+            self.update_contract_version_context(decoded_consumer_context, self.version as i64)?;
+        }
 
         // Create the event
         self.create_event(&decoded_consumer_context.backend_schema, event, &mut tx)

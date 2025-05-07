@@ -49,6 +49,23 @@ impl Initialized {
         }
     }
 
+    /// This function updates the contract version RwLock
+    pub fn update_contract_version_context(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+        version: i64,
+    ) -> Result<(), ConsumerError> {
+        if version == 1 {
+            let mut contract_version = decoded_consumer_context.contract_version.write()?;
+            *contract_version = ContractVersion::V1;
+            Ok(())
+        } else {
+            let mut contract_version = decoded_consumer_context.contract_version.write()?;
+            *contract_version = ContractVersion::V1_5;
+            Ok(())
+        }
+    }
+
     /// This function handles an `Initialized` event.
     pub async fn handle_initialized_creation(
         &self,
@@ -71,7 +88,9 @@ impl Initialized {
             .map_err(ConsumerError::ModelError)?;
 
         // Update the contract version
-        self.update_contract_version(decoded_consumer_context, self.version as i64)?;
+        if decoded_consumer_context.initial_contract_version.is_none() {
+            self.update_contract_version_context(decoded_consumer_context, self.version as i64)?;
+        }
 
         // Create the event
         self.create_event(&decoded_consumer_context.backend_schema, event, &mut tx)

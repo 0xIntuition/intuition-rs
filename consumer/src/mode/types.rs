@@ -80,6 +80,7 @@ pub struct DecodedConsumerContext {
     pub pg_pool: PgPool,
     pub backend_schema: String,
     pub contract_version: Arc<RwLock<ContractVersion>>,
+    pub initial_contract_version: Option<ContractVersion>,
 }
 
 impl DecodedConsumerContext {
@@ -406,9 +407,18 @@ impl ConsumerMode {
         )
         .await?;
 
-        let contract_version = Arc::new(RwLock::new(
-            Self::get_contract_version(&pg_pool, &data.env.backend_schema).await?,
-        ));
+        let mut initial_contract_version = None;
+        // If the initial contract version is set, use it, otherwise use the
+        // contract version from the database.
+        let contract_version = if let Some(contract_version) = data.env.initial_contract_version {
+            let contract_version = ContractVersion::from_str(&contract_version)?;
+            initial_contract_version = Some(contract_version.clone());
+            Arc::new(RwLock::new(contract_version))
+        } else {
+            Arc::new(RwLock::new(
+                Self::get_contract_version(&pg_pool, &data.env.backend_schema).await?,
+            ))
+        };
 
         Ok(ConsumerMode::Decoded(DecodedConsumerContext {
             base_client,
@@ -416,6 +426,7 @@ impl ConsumerMode {
             pg_pool,
             backend_schema: data.env.backend_schema.clone(),
             contract_version,
+            initial_contract_version,
         }))
     }
 

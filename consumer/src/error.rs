@@ -87,6 +87,8 @@ pub enum ConsumerError {
     ContractVersionNotFound,
     #[error("ByteObject error")]
     ByteObjectError(String),
+    #[error("Contract version parse: {0}")]
+    ContractVersionParse(String),
     #[error("Deposited error")]
     Deposited(String),
     #[error("Failed to delete claim: {0}")]

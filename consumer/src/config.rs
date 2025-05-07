@@ -36,6 +36,7 @@ pub struct Env {
     pub indexer_database_url: Option<String>,
     pub indexer_schema: Option<String>,
     pub environment_name: Option<String>,
+    pub initial_contract_version: Option<String>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -91,6 +92,19 @@ pub enum ContractVersion {
     V1_5,
 }
 
+impl FromStr for ContractVersion {
+    type Err = ConsumerError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s == "v1" {
+            Ok(Self::V1)
+        } else if s == "v1_5" {
+            Ok(Self::V1_5)
+        } else {
+            Err(ConsumerError::ContractVersionParse(s.to_string()))
+        }
+    }
+}
 /// Enum based client switching for the contract instances
 pub enum ContractInstance {
     V1(EthMultiVaultInstance<DynProvider, Ethereum>),

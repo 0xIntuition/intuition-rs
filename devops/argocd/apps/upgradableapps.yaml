@@ -1,0 +1,30 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: upgradableapps
+  namespace: argocd
+spec:
+  syncPolicy:
+    preserveResourcesOnDeletion: true
+  generators:
+    - list:
+        elements:
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: luis/eng-6560-create-a-new-consumer-to-ingest-v1-data-in-v15-fomat-from
+            namespace: default
+  template:
+    metadata:
+      name: '{{ cluster }}-upgradableapps-{{namespace}}'
+      annotations:
+        argocd.argoproj.io/manifest-generate-paths: '.;/devops/argocd'
+    spec:
+      project: prod
+      source:
+        repoURL: ssh://git@github.com/0xintuition/intuition-rs.git
+        path: devops/argocd/upgradableapps
+        targetRevision: '{{ revision }}'
+        kustomize: {}
+      destination:
+        server: '{{ server }}'
+        namespace: '{{ namespace }}'
