@@ -55,6 +55,157 @@ impl EventProcessor for &EthMultiVaultV1_5Events {
         message: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
         match self {
+            EthMultiVaultV1_5Events::AdminSet(admin_set_data) => {
+                let timer = get_event_processing_histogram()
+                    .with_label_values(&["AdminSet"])
+                    .start_timer();
+                info!("Received: {admin_set_data:#?}");
+                timer.observe_duration();
+            }
+            EthMultiVaultV1_5Events::ApprovalTypeUpdated(approval_type_updated_data) => {
+                let timer = get_event_processing_histogram()
+                    .with_label_values(&["ApprovalTypeUpdated"])
+                    .start_timer();
+                info!("Received: {approval_type_updated_data:#?}");
+                timer.observe_duration();
+            }
+            EthMultiVaultV1_5Events::AtomCreationProtocolFeeSet(
+                atom_creation_protocol_fee_set_data,
+            ) => {
+                let timer = get_event_processing_histogram()
+                    .with_label_values(&["AtomCreationProtocolFeeSet"])
+                    .start_timer();
+                info!("Received: {atom_creation_protocol_fee_set_data:#?}");
+                timer.observe_duration();
+            }
+            EthMultiVaultV1_5Events::AtomUriMaxLengthSet(atom_uri_max_length_set_data) => {
+                let timer = get_event_processing_histogram()
+                    .with_label_values(&["AtomUriMaxLengthSet"])
+                    .start_timer();
+                info!("Received: {atom_uri_max_length_set_data:#?}");
+                timer.observe_duration();
+            }
+            EthMultiVaultV1_5Events::AtomWalletDeployed(atom_wallet_deployed_data) => {
+                let timer = get_event_processing_histogram()
+                    .with_label_values(&["AtomWalletDeployed"])
+                    .start_timer();
+                info!("Received: {atom_wallet_deployed_data:#?}");
+                timer.observe_duration();
+            }
+            EthMultiVaultV1_5Events::AtomWalletInitialDepositAmountSet(
+                atom_wallet_initial_deposit_amount_set_data,
+            ) => {
+                let timer = get_event_processing_histogram()
+                    .with_label_values(&["AtomWalletInitialDepositAmountSet"])
+                    .start_timer();
+                info!("Received: {atom_wallet_initial_deposit_amount_set_data:#?}");
+                timer.observe_duration();
+            }
+            EthMultiVaultV1_5Events::AtomWardenSet(atom_warden_set_data) => {
+                let timer = get_event_processing_histogram()
+                    .with_label_values(&["AtomWardenSet"])
+                    .start_timer();
+                info!("Received: {atom_warden_set_data:#?}");
+                timer.observe_duration();
+            }
+            EthMultiVaultV1_5Events::EntryFeeSet(entry_fee_set_data) => {
+                let timer = get_event_processing_histogram()
+                    .with_label_values(&["EntryFeeSet"])
+                    .start_timer();
+                info!("Received: {entry_fee_set_data:#?}");
+                timer.observe_duration();
+            }
+            EthMultiVaultV1_5Events::ExitFeeSet(exit_fee_set_data) => {
+                let timer = get_event_processing_histogram()
+                    .with_label_values(&["ExitFeeSet"])
+                    .start_timer();
+                info!("Received: {exit_fee_set_data:#?}");
+                timer.observe_duration();
+            }
+            EthMultiVaultV1_5Events::MinDepositSet(min_deposit_set_data) => {
+                let timer = get_event_processing_histogram()
+                    .with_label_values(&["MinDepositSet"])
+                    .start_timer();
+                info!("Received: {min_deposit_set_data:#?}");
+                timer.observe_duration();
+            }
+            EthMultiVaultV1_5Events::MinShareSet(min_share_set_data) => {
+                let timer = get_event_processing_histogram()
+                    .with_label_values(&["MinShareSet"])
+                    .start_timer();
+                info!("Received: {min_share_set_data:#?}");
+                timer.observe_duration();
+            }
+            EthMultiVaultV1_5Events::OperationCancelled(operation_cancelled_data) => {
+                let timer = get_event_processing_histogram()
+                    .with_label_values(&["OperationCancelled"])
+                    .start_timer();
+                info!("Received: {operation_cancelled_data:#?}");
+                timer.observe_duration();
+            }
+            EthMultiVaultV1_5Events::OperationExecuted(operation_executed_data) => {
+                let timer = get_event_processing_histogram()
+                    .with_label_values(&["OperationExecuted"])
+                    .start_timer();
+                info!("Received: {operation_executed_data:#?}");
+                timer.observe_duration();
+            }
+            EthMultiVaultV1_5Events::OperationScheduled(operation_scheduled_data) => {
+                let timer = get_event_processing_histogram()
+                    .with_label_values(&["OperationScheduled"])
+                    .start_timer();
+                info!("Received: {operation_scheduled_data:#?}");
+                timer.observe_duration();
+            }
+            EthMultiVaultV1_5Events::ProtocolFeeSet(protocol_fee_set_data) => {
+                let timer = get_event_processing_histogram()
+                    .with_label_values(&["ProtocolFeeSet"])
+                    .start_timer();
+                info!("Received: {protocol_fee_set_data:#?}");
+                timer.observe_duration();
+            }
+            EthMultiVaultV1_5Events::TotalAtomDepositsForTripleSet(
+                total_atom_deposits_for_triple_set_data,
+            ) => {
+                let timer = get_event_processing_histogram()
+                    .with_label_values(&["TotalAtomDepositsForTripleSet"])
+                    .start_timer();
+                info!("Received: {total_atom_deposits_for_triple_set_data:#?}");
+                timer.observe_duration();
+            }
+            EthMultiVaultV1_5Events::TotalAtomDepositsOnTripleCreationSet(
+                total_atom_deposits_on_triple_creation_set_data,
+            ) => {
+                let timer = get_event_processing_histogram()
+                    .with_label_values(&["TotalAtomDepositsOnTripleCreationSet"])
+                    .start_timer();
+                info!("Received: {total_atom_deposits_on_triple_creation_set_data:#?}");
+                timer.observe_duration();
+            }
+            EthMultiVaultV1_5Events::TripleCreationProtocolFeeSet(
+                triple_creation_protocol_fee_set_data,
+            ) => {
+                let timer = get_event_processing_histogram()
+                    .with_label_values(&["TripleCreationProtocolFeeSet"])
+                    .start_timer();
+                info!("Received: {triple_creation_protocol_fee_set_data:#?}");
+                timer.observe_duration();
+            }
+
+            EthMultiVaultV1_5Events::Paused(paused_data) => {
+                let timer = get_event_processing_histogram()
+                    .with_label_values(&["Paused"])
+                    .start_timer();
+                info!("Received: {paused_data:#?}");
+                timer.observe_duration();
+            }
+            EthMultiVaultV1_5Events::Unpaused(unpaused_data) => {
+                let timer = get_event_processing_histogram()
+                    .with_label_values(&["Unpaused"])
+                    .start_timer();
+                info!("Received: {unpaused_data:#?}");
+                timer.observe_duration();
+            }
             EthMultiVaultV1_5Events::Initialized(initialized_data) => {
                 let timer = get_event_processing_histogram()
                     .with_label_values(&["Initialized"])
@@ -152,7 +303,7 @@ impl EventProcessor for &EthMultiVaultV1_5Events {
                 timer.observe_duration();
             }
             _ => {
-                warn!("Received event: {message:#?}");
+                warn!("Received unknown event: {:?}", self);
             }
         };
         Ok(())

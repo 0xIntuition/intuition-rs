@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use macon::Builder;
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
+use sqlx::{Executor, PgPool, Postgres};
 
 use crate::error::ConsumerError;
 
@@ -96,8 +96,8 @@ impl HistoFluxCursor {
     }
 
     /// Update the cursor's last_processed_id in the DB.
-    pub async fn update_last_processed_id(
-        db: &PgPool,
+    pub async fn update_last_processed_id<'e, E: Executor<'e, Database = Postgres>>(
+        executor: E,
         environment: &str,
         last_processed_id: i64,
     ) -> Result<Self, ConsumerError> {
@@ -111,7 +111,7 @@ impl HistoFluxCursor {
         sqlx::query_as::<_, HistoFluxCursor>(query)
             .bind(last_processed_id)
             .bind(environment)
-            .fetch_one(db)
+            .fetch_one(executor)
             .await
             .map_err(ConsumerError::SqlError)
     }

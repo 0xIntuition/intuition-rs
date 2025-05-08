@@ -8,7 +8,6 @@ use crate::error::ModelError;
 #[derive(Debug, Deserialize, Serialize, sqlx::FromRow, Builder, Clone)]
 #[sqlx(type_name = "failed_log")]
 pub struct FailedLog {
-    #[serde(rename(deserialize = "id"))]
     pub gs_id: String,
     pub block_number: i64,
     pub block_hash: String,

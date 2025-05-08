@@ -43,6 +43,11 @@ impl SimpleCrud<String> for Position {
                 term_id = EXCLUDED.term_id,
                 shares = EXCLUDED.shares,
                 curve_id = EXCLUDED.curve_id
+            WHERE
+                position.account_id IS DISTINCT FROM EXCLUDED.account_id OR
+                position.term_id IS DISTINCT FROM EXCLUDED.term_id OR
+                position.shares IS DISTINCT FROM EXCLUDED.shares OR
+                position.curve_id IS DISTINCT FROM EXCLUDED.curve_id
             RETURNING 
                 id, 
                 account_id, 

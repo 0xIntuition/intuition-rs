@@ -43,6 +43,15 @@ impl FeesTransferred {
         event: &DecodedMessage,
         tx: &mut Transaction<'_, Postgres>,
     ) -> Result<FeeTransfer, ConsumerError> {
+        // Check if a fee transfer already exists
+        if let Some(fee_transfer) =
+            FeeTransfer::find_by_id(DecodedMessage::event_id(event), backend_schema, tx.as_mut())
+                .await?
+        {
+            info!("Fee transfer already exists, skipping.");
+            return Ok(fee_transfer);
+        }
+
         FeeTransfer::builder()
             .id(DecodedMessage::event_id(event))
             .sender_id(sender_account.id.clone())
@@ -94,6 +103,18 @@ impl FeesTransferred {
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
         info!("Handling fees transfer: {self:#?}");
+
+        // Check if a fee transfer already exists
+        if let Some(_fee_transfer) = FeeTransfer::find_by_id(
+            DecodedMessage::event_id(event),
+            &decoded_consumer_context.backend_schema,
+            &decoded_consumer_context.pg_pool,
+        )
+        .await?
+        {
+            info!("Fee transfer already exists, skipping.");
+            return Ok(());
+        }
 
         // Get or create the sender account
         let sender_account = self

@@ -201,6 +201,14 @@ impl Deposited {
         backend_schema: &str,
         tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Position, ConsumerError> {
+        // Check if a position already exists
+        if let Some(position) =
+            Position::find_by_id(position_id.clone(), backend_schema, tx.as_mut()).await?
+        {
+            info!("Position already exists, skipping.");
+            return Ok(position);
+        }
+
         Position::builder()
             .id(position_id.clone())
             .account_id(self.receiver.to_string())
@@ -331,12 +339,11 @@ impl Deposited {
     async fn handle_existing_position(
         &self,
         backend_schema: &str,
-        position_id: &str,
+        position: &mut Position,
         tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
         // Update or create position
-        self.update_position(backend_schema, position_id, tx)
-            .await?;
+        self.update_position(backend_schema, position, tx).await?;
 
         Ok(())
     }
@@ -381,18 +388,20 @@ impl Deposited {
         )
         .await?;
 
-        if position.is_none() && self.receiverTotalSharesInVault > U256::from(0) {
+        if let Some(mut position) = position {
+            if self.receiverTotalSharesInVault > U256::from(0) {
+                self.handle_existing_position(
+                    &decoded_consumer_context.backend_schema,
+                    &mut position,
+                    tx,
+                )
+                .await?;
+            }
+        } else if self.receiverTotalSharesInVault > U256::from(0) {
             self.handle_new_position(
                 &decoded_consumer_context.backend_schema,
                 &position_id,
                 triple,
-                tx,
-            )
-            .await?;
-        } else if position.is_some() && self.receiverTotalSharesInVault > U256::from(0) {
-            self.handle_existing_position(
-                &decoded_consumer_context.backend_schema,
-                &position_id,
                 tx,
             )
             .await?;
@@ -444,22 +453,16 @@ impl Deposited {
     async fn update_position(
         &self,
         backend_schema: &str,
-        position_id: &str,
+        position: &mut Position,
         tx: &mut Transaction<'_, Postgres>,
-    ) -> Result<Position, ConsumerError> {
-        let position =
-            match Position::find_by_id(position_id.to_string(), backend_schema, tx.as_mut()).await?
-            {
-                Some(mut position) => {
-                    position.shares = U256Wrapper::from(self.receiverTotalSharesInVault);
-                    position
-                }
-                None => return Err(ConsumerError::PositionNotFound),
-            };
-
-        position
-            .upsert(backend_schema, tx.as_mut())
-            .await
-            .map_err(ConsumerError::ModelError)
+    ) -> Result<(), ConsumerError> {
+        if position.shares != U256Wrapper::from(self.receiverTotalSharesInVault) {
+            position.shares = U256Wrapper::from(self.receiverTotalSharesInVault);
+            position
+                .upsert(backend_schema, tx.as_mut())
+                .await
+                .map_err(ConsumerError::ModelError)?;
+        }
+        Ok(())
     }
 }

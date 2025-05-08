@@ -15,7 +15,7 @@ use crate::{
     schemas::types::DecodedMessage,
     traits::{ContractClient, EventProcessor},
 };
-use tracing::{info, warn};
+use tracing::info;
 // Codegen from ABI file to interact with the Intuition contract.
 sol!(
     #[derive(Debug, Deserialize, Serialize)]
@@ -52,6 +52,22 @@ impl EventProcessor for &EthMultiVaultV1Events {
         message: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
         match self {
+            EthMultiVaultV1Events::Paused(paused_data) => {
+                let timer = get_event_processing_histogram()
+                    .with_label_values(&["Paused"])
+                    .start_timer();
+                info!("Received: {paused_data:#?}");
+                // paused_data.handle_paused_creation(context, message).await?;
+                timer.observe_duration();
+            }
+            EthMultiVaultV1Events::Unpaused(unpaused_data) => {
+                let timer = get_event_processing_histogram()
+                    .with_label_values(&["Unpaused"])
+                    .start_timer();
+                info!("Received: {unpaused_data:#?}");
+                // unpaused_data.handle_unpaused_creation(context, message).await?;
+                timer.observe_duration();
+            }
             EthMultiVaultV1Events::Initialized(initialized_data) => {
                 let timer = get_event_processing_histogram()
                     .with_label_values(&["Initialized"])
@@ -107,9 +123,6 @@ impl EventProcessor for &EthMultiVaultV1Events {
                     .handle_redeemed_creation(context, message)
                     .await?;
                 timer.observe_duration();
-            }
-            _ => {
-                warn!("Received event: {message:#?}");
             }
         };
         Ok(())

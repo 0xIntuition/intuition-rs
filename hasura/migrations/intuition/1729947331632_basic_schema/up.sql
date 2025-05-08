@@ -106,6 +106,10 @@ CREATE TABLE fee_transfer (
   transaction_hash TEXT NOT NULL
 );
 
+CREATE INDEX fee_transfer_block_number_idx ON fee_transfer(block_number);
+CREATE INDEX fee_transfer_transaction_hash_idx ON fee_transfer(transaction_hash);
+CREATE INDEX fee_transfer_sender_idx ON fee_transfer(sender_id);
+CREATE INDEX fee_transfer_receiver_idx ON fee_transfer(receiver_id);
 
 CREATE TABLE deposit (
   id TEXT PRIMARY KEY NOT NULL,
@@ -157,6 +161,9 @@ CREATE TABLE position (
   vault_id NUMERIC(78, 0) REFERENCES vault(id) NOT NULL,
   shares NUMERIC(78, 0) NOT NULL
 );
+
+CREATE INDEX position_account_vault_idx ON position(account_id, vault_id);
+CREATE INDEX position_shares_idx ON position(shares);
 
 -- id is a concatenation of account_id and vault_id with a dash in between
 CREATE TABLE claim (

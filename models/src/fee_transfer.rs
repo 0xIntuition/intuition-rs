@@ -45,6 +45,13 @@ impl SimpleCrud<String> for FeeTransfer {
                 block_number = EXCLUDED.block_number,
                 block_timestamp = EXCLUDED.block_timestamp,
                 transaction_hash = EXCLUDED.transaction_hash
+            WHERE
+                fee_transfer.sender_id IS DISTINCT FROM EXCLUDED.sender_id OR
+                fee_transfer.receiver_id IS DISTINCT FROM EXCLUDED.receiver_id OR
+                fee_transfer.amount IS DISTINCT FROM EXCLUDED.amount OR
+                fee_transfer.block_number IS DISTINCT FROM EXCLUDED.block_number OR
+                fee_transfer.block_timestamp IS DISTINCT FROM EXCLUDED.block_timestamp OR
+                fee_transfer.transaction_hash IS DISTINCT FROM EXCLUDED.transaction_hash
             RETURNING 
                 id, sender_id, receiver_id, 
                 amount,

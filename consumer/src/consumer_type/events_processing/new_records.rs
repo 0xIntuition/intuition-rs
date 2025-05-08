@@ -39,6 +39,7 @@ pub struct NotificationPayload {
 }
 
 pub const MAX_RETRIES: u32 = 5;
+
 impl SqsHibrid {
     /// This function starts polling the database for raw logs and sends them to
     /// the SQS queue.
@@ -84,17 +85,10 @@ impl SqsHibrid {
 
                             let this = self.clone();
                             let mode = mode.clone();
-                            // We fetch the contract version before spawning the thread!
-                            // Reason: If an `initialize` event is processed, the contract version is updated
-                            // internally in the RwLock, and if we are fetching the contract version inside the thread,
-                            // it may lead to an error (contract version mismatch, trying to process a v1 event with a v1_5 client).
-                            // This is why we fetch the contract version before spawning the thread making sure that all
-                            // the new events will be processed with the new contract version while the in-flight events
-                            // will be processed with the old contract version.
                             let contract_version = mode.contract_version().ok_or(ConsumerError::ContractVersionNotFound)?;
+
                             tokio::spawn(async move {
                                 let _permit = permit;
-
                                 let mut attempts = 0;
                                 loop {
                                     match this.process_notification(&notification, &mode, &contract_version).await {

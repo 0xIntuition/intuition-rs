@@ -1,6 +1,5 @@
 CREATE TABLE failed_logs (
-    id BIGINT NOT NULL PRIMARY KEY,
-    gs_id TEXT NOT NULL,
+    gs_id TEXT NOT NULL PRIMARY KEY,
     block_number BIGINT NOT NULL,
     block_hash TEXT NOT NULL,
     transaction_hash TEXT NOT NULL,

@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::{
     app_context::ServerInitialize,
     error::ConsumerError,
@@ -16,6 +14,7 @@ use aws_sdk_sqs::{
 use models::histocrawler::AppConfig;
 use shared_utils::postgres::connect_to_db;
 use sqlx::PgPool;
+use std::sync::Arc;
 use tokio::sync::{Semaphore, watch};
 use tracing::info;
 
@@ -65,6 +64,7 @@ impl SqsHibrid {
         .await?
         .ok_or(ConsumerError::AppConfigNotFound)?;
         let backend_schema = data.env.backend_schema;
+        // let processed_notifications = Arc::new(RwLock::new(HashSet::new()));
         Ok(Self {
             client,
             histoflux_cursor,
@@ -73,6 +73,7 @@ impl SqsHibrid {
             app_config,
             indexer_database_url,
             backend_schema,
+            // processed_notifications,
         })
     }
 
