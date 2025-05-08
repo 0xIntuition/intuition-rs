@@ -4,7 +4,7 @@ use crate::{
     mode::{
         resolver::types::ResolverConsumerMessage,
         types::DecodedConsumerContext,
-        utils::{get_or_create_term, get_or_create_vault},
+        utils::{get_or_create_term, get_or_create_vault, short_id},
     },
     schemas::types::DecodedMessage,
     traits::{SharePriceEvent, VaultManager},
@@ -27,8 +27,6 @@ use models::{
 use sqlx::{Postgres, Transaction};
 use std::str::FromStr;
 use tracing::info;
-
-use super::utils::short_id;
 
 #[async_trait]
 /// This impl is used to convert the `TripleCreated` event into a `SharePriceEvent`
@@ -634,7 +632,6 @@ impl TripleCreated {
             Some(block_number),
             decoded_consumer_context,
             TermType::Triple,
-            tx,
         )
         .await?;
         // Get or update the counter vault
@@ -672,9 +669,8 @@ impl TripleCreated {
             get_or_create_term(
                 &self,
                 Some(counter_vault_id),
-                &decoded_consumer_context.backend_schema,
+                decoded_consumer_context,
                 TermType::Triple,
-                tx,
             )
             .await?;
 

@@ -71,12 +71,13 @@ impl SharePriceChanged {
     ) -> Result<(), ConsumerError> {
         info!("Processing SharePriceChanged event: {:?}", self);
 
-        let mut tx = decoded_consumer_context.pg_pool.begin().await?;
         let term_type = if decoded_consumer_context.is_triple_id(self.termId).await? {
             TermType::Triple
         } else {
             TermType::Atom
         };
+
+        let mut tx = decoded_consumer_context.pg_pool.begin().await?;
 
         // Update the vault from the share price changed event
         update_vault_from_share_price_changed_events(

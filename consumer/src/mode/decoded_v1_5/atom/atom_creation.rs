@@ -2,11 +2,13 @@ use crate::{
     EthMultiVaultV1_5::AtomCreated,
     error::ConsumerError,
     mode::{
-        decoded_v1_5::utils::{get_or_create_account, short_id, update_account_with_atom_id},
         metadata::get_supported_atom_metadata,
         resolver::types::ResolveAtom,
         types::DecodedConsumerContext,
-        utils::{get_or_create_account_from_event, get_or_create_vault},
+        utils::{
+            get_or_create_account, get_or_create_account_from_event, get_or_create_vault, short_id,
+            update_account_with_atom_id,
+        },
     },
     schemas::types::DecodedMessage,
     traits::{AccountManager, SharePriceEvent, VaultManager},
@@ -231,7 +233,7 @@ impl AtomCreated {
             .get_or_create_atom_wallet_account(&decoded_consumer_context.backend_schema, tx)
             .await?;
         let creator_account =
-            get_or_create_account(self.creator.to_string(), decoded_consumer_context, tx).await?;
+            get_or_create_account(self.creator.to_string(), decoded_consumer_context).await?;
         let atom = Atom::builder()
             .term_id(self.vaultId)
             .wallet_id(atom_wallet_account.id.clone())
@@ -319,7 +321,6 @@ impl AtomCreated {
             Some(event.block_number),
             decoded_consumer_context,
             TermType::Atom,
-            tx,
         )
         .await?;
 

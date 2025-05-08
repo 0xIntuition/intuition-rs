@@ -1,6 +1,7 @@
-use super::utils::get_or_create_account;
 use crate::{
-    EthMultiVaultV1_5::Redeemed, error::ConsumerError, mode::types::DecodedConsumerContext,
+    EthMultiVaultV1_5::Redeemed,
+    error::ConsumerError,
+    mode::{types::DecodedConsumerContext, utils::get_or_create_account},
     schemas::types::DecodedMessage,
 };
 use alloy::primitives::{U256, Uint};
@@ -149,23 +150,22 @@ impl Redeemed {
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
-        let mut tx = decoded_consumer_context.pg_pool.begin().await?;
         // 1. Set up accounts
         let sender_account =
-            get_or_create_account(self.sender.to_string(), decoded_consumer_context, &mut tx)
-                .await?;
+            get_or_create_account(self.sender.to_string(), decoded_consumer_context).await?;
         let receiver_account =
-            get_or_create_account(self.receiver.to_string(), decoded_consumer_context, &mut tx)
-                .await?;
+            get_or_create_account(self.receiver.to_string(), decoded_consumer_context).await?;
         // 2. Ensure the vault exists
         let vault = Vault::find_by_term_id_and_curve_id(
             U256Wrapper::from(self.vaultId),
             U256Wrapper::from_str("1")?,
-            tx.as_mut(),
+            &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
         .await?
         .ok_or(ConsumerError::VaultNotFound)?;
+
+        let mut tx = decoded_consumer_context.pg_pool.begin().await?;
 
         // 3. Create redemption record
         self.create_redemption_record(
@@ -214,6 +214,7 @@ impl Redeemed {
             &mut tx,
         )
         .await?;
+
         self.create_signal(
             &decoded_consumer_context.backend_schema,
             event,
@@ -221,6 +222,8 @@ impl Redeemed {
             &mut tx,
         )
         .await?;
+
+        tx.commit().await?;
 
         Ok(())
     }

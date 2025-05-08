@@ -4,8 +4,7 @@ use crate::{
     ConsumerError,
     EthMultiVaultV1_5::DepositedCurve,
     mode::{
-        decoded_v1_5::utils::get_or_create_account, types::DecodedConsumerContext,
-        utils::get_or_create_vault,
+        types::DecodedConsumerContext, utils::get_or_create_account, utils::get_or_create_vault,
     },
     schemas::types::DecodedMessage,
     traits::{SharePriceEvent, VaultManager},
@@ -223,13 +222,12 @@ impl DepositedCurve {
     async fn initialize_accounts(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
-        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
         // Create or get the sender account
-        get_or_create_account(self.sender.to_string(), decoded_consumer_context, tx).await?;
+        get_or_create_account(self.sender.to_string(), decoded_consumer_context).await?;
 
         // Create or get the receiver account
-        get_or_create_account(self.receiver.to_string(), decoded_consumer_context, tx).await?;
+        get_or_create_account(self.receiver.to_string(), decoded_consumer_context).await?;
 
         Ok(())
     }
@@ -270,11 +268,6 @@ impl DepositedCurve {
     ) -> Result<(), ConsumerError> {
         info!("Processing DepositedCurve event: {:?}", self);
 
-        let mut tx = decoded_consumer_context.pg_pool.begin().await?;
-        // Initialize accounts
-        self.initialize_accounts(decoded_consumer_context, &mut tx)
-            .await?;
-
         // Get or create the curve vault
         let curve_vault = get_or_create_vault(
             self,
@@ -285,9 +278,13 @@ impl DepositedCurve {
             } else {
                 TermType::Atom
             },
-            &mut tx,
         )
         .await?;
+
+        // Initialize accounts
+        self.initialize_accounts(decoded_consumer_context).await?;
+
+        let mut tx = decoded_consumer_context.pg_pool.begin().await?;
 
         // Create deposit record first
         let deposit = self
@@ -315,6 +312,8 @@ impl DepositedCurve {
             &mut tx,
         )
         .await?;
+
+        tx.commit().await?;
 
         Ok(())
     }

@@ -1,7 +1,7 @@
 use crate::{
     ConsumerError,
     EthMultiVaultV1_5::RedeemedCurve,
-    mode::{decoded_v1_5::utils::get_or_create_account, types::DecodedConsumerContext},
+    mode::{types::DecodedConsumerContext, utils::get_or_create_account},
     schemas::types::DecodedMessage,
 };
 use alloy::primitives::{U256, Uint};
@@ -162,15 +162,14 @@ impl RedeemedCurve {
     async fn initialize_accounts(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
-        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(Account, Account), ConsumerError> {
         // Create or get the sender account
         let sender_account =
-            get_or_create_account(self.sender.to_string(), decoded_consumer_context, tx).await?;
+            get_or_create_account(self.sender.to_string(), decoded_consumer_context).await?;
 
         // Create or get the receiver account
         let receiver_account =
-            get_or_create_account(self.receiver.to_string(), decoded_consumer_context, tx).await?;
+            get_or_create_account(self.receiver.to_string(), decoded_consumer_context).await?;
 
         Ok((sender_account, receiver_account))
     }
@@ -183,22 +182,21 @@ impl RedeemedCurve {
     ) -> Result<(), ConsumerError> {
         info!("Processing RedeemedCurve event: {:?}", self);
 
-        let mut tx = decoded_consumer_context.pg_pool.begin().await?;
-
-        // Initialize accounts
-        let (sender_account, receiver_account) = self
-            .initialize_accounts(decoded_consumer_context, &mut tx)
-            .await?;
-
         // Get the curve vault
         let mut curve_vault = Vault::find_by_term_id_and_curve_id(
             U256Wrapper::from(self.vaultId),
             U256Wrapper::from(self.curveId),
-            tx.as_mut(),
+            &decoded_consumer_context.pg_pool.clone(),
             &decoded_consumer_context.backend_schema,
         )
         .await?
         .ok_or(ConsumerError::VaultNotFound)?;
+
+        // Initialize accounts
+        let (sender_account, receiver_account) =
+            self.initialize_accounts(decoded_consumer_context).await?;
+
+        let mut tx = decoded_consumer_context.pg_pool.begin().await?;
 
         // Create redemption record
         self.create_redemption_record(

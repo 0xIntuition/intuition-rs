@@ -1,12 +1,12 @@
 use crate::{
     error::ConsumerError,
     mode::{
-        decoded_v1_5::utils::{get_or_create_account, short_id, update_account_with_atom_id},
         resolver::{
             atom_resolver::{try_to_parse_json_or_text, try_to_resolve_schema_org_url},
             types::{ResolveAtom, ResolverConsumerMessage},
         },
         types::DecodedConsumerContext,
+        utils::{get_or_create_account, short_id, update_account_with_atom_id},
     },
 };
 use alloy::primitives::Address;
@@ -282,7 +282,6 @@ impl AtomMetadata {
                 .clone()
                 .ok_or(ConsumerError::AtomDataNotFound)?,
             decoded_consumer_context,
-            tx,
         )
         .await?;
 

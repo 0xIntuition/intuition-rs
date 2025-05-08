@@ -4,7 +4,7 @@ use crate::{
     mode::{
         resolver::types::ResolverConsumerMessage,
         types::DecodedConsumerContext,
-        utils::{get_or_create_term, get_or_create_vault},
+        utils::{get_or_create_term, get_or_create_vault, short_id},
     },
     schemas::types::DecodedMessage,
     traits::{SharePriceEvent, VaultManager},
@@ -27,8 +27,6 @@ use models::{
 use sqlx::{Postgres, Transaction};
 use std::str::FromStr;
 use tracing::info;
-
-use super::utils::short_id;
 
 /// This impl is used to convert the `TripleCreated` event into a `SharePriceEvent`
 /// and we can use the general share price change logic for this. We need this because
@@ -236,7 +234,6 @@ impl TripleCreated {
             Some(event.block_number),
             decoded_consumer_context,
             TermType::Triple,
-            tx,
         )
         .await?;
 
@@ -365,7 +362,6 @@ impl TripleCreated {
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
-        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
         // Get the counter vault ID
         let counter_vault_id = decoded_consumer_context
@@ -378,14 +374,12 @@ impl TripleCreated {
             Some(event.block_number),
             decoded_consumer_context,
             TermType::Triple,
-            tx,
         )
         .await?;
         // Get or update the counter vault
         self.get_or_create_counter_vault(
             U256Wrapper::from(counter_vault_id),
             decoded_consumer_context,
-            tx,
         )
         .await?;
 
@@ -397,7 +391,6 @@ impl TripleCreated {
         &self,
         counter_vault_id: U256Wrapper,
         decoded_consumer_context: &DecodedConsumerContext,
-        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Vault, ConsumerError> {
         let vault = Vault::find_by_term_id_and_curve_id(
             counter_vault_id.clone(),
@@ -414,9 +407,8 @@ impl TripleCreated {
             get_or_create_term(
                 &self,
                 Some(counter_vault_id),
-                &decoded_consumer_context.backend_schema,
+                decoded_consumer_context,
                 TermType::Triple,
-                tx,
             )
             .await?;
 
@@ -430,7 +422,10 @@ impl TripleCreated {
                 .total_shares(self.total_shares(decoded_consumer_context, None).await?)
                 .position_count(0)
                 .build()
-                .upsert(&decoded_consumer_context.backend_schema, tx.as_mut())
+                .upsert(
+                    &decoded_consumer_context.backend_schema,
+                    &decoded_consumer_context.pg_pool,
+                )
                 .await
                 .map_err(ConsumerError::ModelError)?;
 
@@ -446,10 +441,11 @@ impl TripleCreated {
     ) -> Result<(), ConsumerError> {
         info!("Handling triple creation: {self:#?}");
 
-        let mut tx = decoded_consumer_context.pg_pool.begin().await?;
         // Ensure that the vault and counter vault exist
-        self.get_or_create_vaults(decoded_consumer_context, event, &mut tx)
+        self.get_or_create_vaults(decoded_consumer_context, event)
             .await?;
+
+        let mut tx = decoded_consumer_context.pg_pool.begin().await?;
 
         // Get or create the triple
         let triple = self
@@ -472,6 +468,7 @@ impl TripleCreated {
         // Create the event
         self.create_event(event, &decoded_consumer_context.backend_schema, &mut tx)
             .await?;
+        tx.commit().await?;
         Ok(())
     }
 

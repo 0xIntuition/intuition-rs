@@ -1,7 +1,7 @@
-use super::utils::{VaultUpdate, get_or_create_account, update_vault};
+use super::utils::{VaultUpdate, update_vault};
 use crate::{
     EthMultiVault::Redeemed, error::ConsumerError, mode::types::DecodedConsumerContext,
-    schemas::types::DecodedMessage,
+    mode::utils::get_or_create_account, schemas::types::DecodedMessage,
 };
 use alloy::primitives::{U256, Uint};
 use models::{
@@ -149,24 +149,25 @@ impl Redeemed {
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
-        let mut tx = decoded_consumer_context.pg_pool.begin().await?;
-        // 1. Set up accounts
-        let sender_account =
-            get_or_create_account(self.sender.to_string(), decoded_consumer_context, &mut tx)
-                .await?;
-        let receiver_account =
-            get_or_create_account(self.receiver.to_string(), decoded_consumer_context, &mut tx)
-                .await?;
+        info!("Handling redeemed: {self:#?}");
 
-        // 2. Ensure the vault exists
+        // 1. Ensure the vault exists
         let vault = Vault::find_by_term_id_and_curve_id(
             U256Wrapper::from(self.vaultId),
             1.try_into()?,
-            tx.as_mut(),
+            &decoded_consumer_context.pg_pool.clone(),
             &decoded_consumer_context.backend_schema,
         )
         .await?
         .ok_or(ConsumerError::VaultNotFound)?;
+
+        // 2. Set up accounts
+        let sender_account =
+            get_or_create_account(self.sender.to_string(), decoded_consumer_context).await?;
+        let receiver_account =
+            get_or_create_account(self.receiver.to_string(), decoded_consumer_context).await?;
+
+        let mut tx = decoded_consumer_context.pg_pool.begin().await?;
 
         // 3. Create redemption record
         self.create_redemption_record(
@@ -227,6 +228,7 @@ impl Redeemed {
             &mut tx,
         )
         .await?;
+
         self.create_signal(
             &decoded_consumer_context.backend_schema,
             event,
@@ -234,6 +236,8 @@ impl Redeemed {
             &mut tx,
         )
         .await?;
+
+        tx.commit().await?;
 
         Ok(())
     }

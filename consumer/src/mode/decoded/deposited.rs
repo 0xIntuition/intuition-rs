@@ -2,8 +2,7 @@ use crate::{
     ConsumerError,
     EthMultiVault::Deposited,
     mode::{
-        decoded::utils::get_or_create_account, types::DecodedConsumerContext,
-        utils::get_or_create_vault,
+        types::DecodedConsumerContext, utils::get_or_create_account, utils::get_or_create_vault,
     },
     schemas::types::DecodedMessage,
     traits::{SharePriceEvent, VaultManager},
@@ -289,13 +288,13 @@ impl Deposited {
             self.vaultId, event.block_number
         );
 
-        let mut tx = decoded_consumer_context.pg_pool.begin().await?;
-
-        // Initialize accounts and vault. We need to block on this because it's async and
-        // we need to ensure that the accounts and vault are initialized before we proceed
+        // We need to process the deposit one way or another, so the accounts, vault and term
+        // must be initialized. This dont need to be part of the transaction.
         let vault = self
-            .initialize_accounts_and_vault(decoded_consumer_context, event, &mut tx)
+            .initialize_accounts_and_vault(decoded_consumer_context, event)
             .await?;
+
+        let mut tx = decoded_consumer_context.pg_pool.begin().await?;
 
         // Create deposit record
         let deposit = self
@@ -421,13 +420,12 @@ impl Deposited {
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
-        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Vault, ConsumerError> {
         // Create accounts
         let _sender =
-            get_or_create_account(self.sender.to_string(), decoded_consumer_context, tx).await?;
+            get_or_create_account(self.sender.to_string(), decoded_consumer_context).await?;
         let _receiver =
-            get_or_create_account(self.receiver.to_string(), decoded_consumer_context, tx).await?;
+            get_or_create_account(self.receiver.to_string(), decoded_consumer_context).await?;
 
         get_or_create_vault(
             self,
@@ -438,7 +436,6 @@ impl Deposited {
             } else {
                 TermType::Atom
             },
-            tx,
         )
         .await
     }

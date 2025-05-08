@@ -1,5 +1,7 @@
 use crate::{
-    EthMultiVaultV1_5::FeesTransferred, error::ConsumerError, mode::types::DecodedConsumerContext,
+    EthMultiVaultV1_5::FeesTransferred,
+    error::ConsumerError,
+    mode::{types::DecodedConsumerContext, utils::short_id},
     schemas::types::DecodedMessage,
 };
 use models::{
@@ -11,8 +13,6 @@ use models::{
 };
 use sqlx::{Postgres, Transaction};
 use tracing::info;
-
-use super::utils::short_id;
 
 impl FeesTransferred {
     /// This function creates an `Event` for the `FeesTransferred` event
@@ -62,12 +62,15 @@ impl FeesTransferred {
     /// This function gets or creates a sender account
     pub async fn get_or_create_sender_account(
         &self,
-        backend_schema: &str,
-        tx: &mut Transaction<'_, Postgres>,
+        decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<Account, ConsumerError> {
         // First try to find existing account
-        if let Some(account) =
-            Account::find_by_id(self.sender.to_string(), backend_schema, tx.as_mut()).await?
+        if let Some(account) = Account::find_by_id(
+            self.sender.to_string(),
+            &decoded_consumer_context.backend_schema,
+            &decoded_consumer_context.pg_pool,
+        )
+        .await?
         {
             return Ok(account);
         }
@@ -78,7 +81,10 @@ impl FeesTransferred {
             .label(short_id(&self.sender.to_string()))
             .account_type(AccountType::Default)
             .build()
-            .upsert(backend_schema, tx.as_mut())
+            .upsert(
+                &decoded_consumer_context.backend_schema,
+                &decoded_consumer_context.pg_pool,
+            )
             .await
             .map_err(ConsumerError::ModelError)
     }
@@ -91,17 +97,17 @@ impl FeesTransferred {
     ) -> Result<(), ConsumerError> {
         info!("Handling fees transfer: {self:#?}");
 
-        let mut tx = decoded_consumer_context.pg_pool.begin().await?;
-
         // Get or create the sender account
         let sender_account = self
-            .get_or_create_sender_account(&decoded_consumer_context.backend_schema, &mut tx)
+            .get_or_create_sender_account(decoded_consumer_context)
             .await?;
 
         // Upsert the protocol multisig account
         let protocol_multisig_account = self
-            .upsert_protocol_multisig_account(&decoded_consumer_context.backend_schema, &mut tx)
+            .upsert_protocol_multisig_account(decoded_consumer_context)
             .await?;
+
+        let mut tx = decoded_consumer_context.pg_pool.begin().await?;
 
         // Create the fee transfer record
         self.create_fee_transfer(
@@ -124,13 +130,12 @@ impl FeesTransferred {
     /// This function upserts the protocol multisig account
     pub async fn upsert_protocol_multisig_account(
         &self,
-        backend_schema: &str,
-        tx: &mut Transaction<'_, Postgres>,
+        decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<Account, ConsumerError> {
         Account::find_by_id(
             self.protocolMultisig.to_string(),
-            backend_schema,
-            tx.as_mut(),
+            &decoded_consumer_context.backend_schema,
+            &decoded_consumer_context.pg_pool,
         )
         .await?
         .unwrap_or_else(|| {
@@ -140,7 +145,10 @@ impl FeesTransferred {
                 .account_type(AccountType::ProtocolVault)
                 .build()
         })
-        .upsert(backend_schema, tx.as_mut())
+        .upsert(
+            &decoded_consumer_context.backend_schema,
+            &decoded_consumer_context.pg_pool,
+        )
         .await
         .map_err(ConsumerError::ModelError)
     }
