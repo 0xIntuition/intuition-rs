@@ -24,14 +24,17 @@ impl RedeemedCurve {
     /// This function creates an `Event` for the `RedeemedCurve` event
     async fn create_event(
         &self,
-        backend_schema: &str,
+        decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
         curve_vault: &Vault,
-        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
-        let term_type = Term::find_by_id(curve_vault.term_id.clone(), backend_schema, tx.as_mut())
-            .await?
-            .ok_or(ConsumerError::TermNotFound)?;
+        let term_type = Term::find_by_id(
+            curve_vault.term_id.clone(),
+            &decoded_consumer_context.backend_schema,
+            &decoded_consumer_context.pg_pool,
+        )
+        .await?
+        .ok_or(ConsumerError::TermNotFound)?;
 
         // Create the event
         let event_obj = if let TermType::Triple = term_type.term_type {
@@ -56,24 +59,31 @@ impl RedeemedCurve {
                 .build()
         };
 
-        event_obj.upsert(backend_schema, tx.as_mut()).await?;
+        event_obj
+            .upsert(
+                &decoded_consumer_context.backend_schema,
+                &decoded_consumer_context.pg_pool,
+            )
+            .await?;
         Ok(())
     }
 
     /// This function creates a `Signal` for the `RedeemedCurve` event
     async fn create_signal(
         &self,
-        backend_schema: &str,
+        decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
         curve_vault: &Vault,
-        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
         if self.assetsForReceiver > U256::from(0) {
-            let term_type =
-                Term::find_by_id(curve_vault.term_id.clone(), backend_schema, tx.as_mut())
-                    .await?
-                    .ok_or(ConsumerError::TermNotFound)?;
-            if let TermType::Triple = term_type.term_type {
+            let term_type = Term::find_by_id(
+                curve_vault.term_id.clone(),
+                &decoded_consumer_context.backend_schema,
+                &decoded_consumer_context.pg_pool,
+            )
+            .await?
+            .ok_or(ConsumerError::TermNotFound)?;
+            let signal = if let TermType::Triple = term_type.term_type {
                 Signal::builder()
                     .id(DecodedMessage::event_id(event))
                     .account_id(self.sender.to_string().to_lowercase())
@@ -89,8 +99,6 @@ impl RedeemedCurve {
                     .term_id(curve_vault.term_id.clone())
                     .curve_id(U256Wrapper::from(self.curveId))
                     .build()
-                    .upsert(backend_schema, tx.as_mut())
-                    .await?;
             } else {
                 Signal::builder()
                     .id(DecodedMessage::event_id(event))
@@ -107,9 +115,13 @@ impl RedeemedCurve {
                     .term_id(curve_vault.term_id.clone())
                     .curve_id(U256Wrapper::from(self.curveId))
                     .build()
-                    .upsert(backend_schema, tx.as_mut())
-                    .await?;
-            }
+            };
+            signal
+                .upsert(
+                    &decoded_consumer_context.backend_schema,
+                    &decoded_consumer_context.pg_pool,
+                )
+                .await?;
         }
         Ok(())
     }
@@ -219,25 +231,16 @@ impl RedeemedCurve {
             .await?;
         }
 
+        tx.commit().await?;
+
         // Create event
-        self.create_event(
-            &decoded_consumer_context.backend_schema,
-            event,
-            &curve_vault,
-            &mut tx,
-        )
-        .await?;
+        self.create_event(decoded_consumer_context, event, &curve_vault)
+            .await?;
 
         // Create signal
-        self.create_signal(
-            &decoded_consumer_context.backend_schema,
-            event,
-            &curve_vault,
-            &mut tx,
-        )
-        .await?;
+        self.create_signal(decoded_consumer_context, event, &curve_vault)
+            .await?;
 
-        tx.commit().await?;
         Ok(())
     }
 

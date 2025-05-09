@@ -149,17 +149,54 @@ impl DepositedCurve {
         Ok(())
     }
 
+    async fn create_event(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+        event: &DecodedMessage,
+        deposit_id: String,
+    ) -> Result<Event, ConsumerError> {
+        // Create the event
+        let event = if self.isTriple {
+            Event::builder()
+                .id(DecodedMessage::event_id(event))
+                .event_type(EventType::Deposited)
+                .deposit_id(deposit_id)
+                .block_number(U256Wrapper::try_from(event.block_number)?)
+                .block_timestamp(event.block_timestamp)
+                .transaction_hash(event.transaction_hash.clone())
+                .triple_id(U256Wrapper::from(self.vaultId))
+                .build()
+        } else {
+            Event::builder()
+                .id(DecodedMessage::event_id(event))
+                .event_type(EventType::Deposited)
+                .deposit_id(deposit_id)
+                .block_number(U256Wrapper::try_from(event.block_number)?)
+                .block_timestamp(event.block_timestamp)
+                .transaction_hash(event.transaction_hash.clone())
+                .atom_id(U256Wrapper::from(self.vaultId))
+                .build()
+        };
+
+        event
+            .upsert(
+                &decoded_consumer_context.backend_schema,
+                &decoded_consumer_context.pg_pool,
+            )
+            .await
+            .map_err(ConsumerError::ModelError)
+    }
+
     /// This function creates a `Signal` for the `DepositedCurve` event
     async fn create_signal(
         &self,
-        backend_schema: &str,
+        decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
         curve_vault: &Vault,
-        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
         if self.senderAssetsAfterTotalFees > U256::from(0) {
             // send the RPC to check if its triple
-            if !self.isTriple {
+            let signal = if !self.isTriple {
                 Signal::builder()
                     .id(DecodedMessage::event_id(event))
                     .account_id(self.sender.to_string().to_lowercase())
@@ -172,8 +209,6 @@ impl DepositedCurve {
                     .term_id(curve_vault.term_id.clone())
                     .curve_id(U256Wrapper::from(self.curveId))
                     .build()
-                    .upsert(backend_schema, tx.as_mut())
-                    .await?;
             } else {
                 Signal::builder()
                     .id(DecodedMessage::event_id(event))
@@ -187,35 +222,15 @@ impl DepositedCurve {
                     .term_id(curve_vault.term_id.clone())
                     .curve_id(U256Wrapper::from(self.curveId))
                     .build()
-                    .upsert(backend_schema, tx.as_mut())
-                    .await?;
-            }
+            };
+            signal
+                .upsert(
+                    &decoded_consumer_context.backend_schema,
+                    &decoded_consumer_context.pg_pool,
+                )
+                .await?;
         }
         Ok(())
-    }
-
-    /// This function creates an `Event` for the `DepositedCurve` event
-    async fn create_event(
-        &self,
-        event: &DecodedMessage,
-        backend_schema: &str,
-        tx: &mut Transaction<'_, Postgres>,
-        deposit_id: &str,
-    ) -> Result<Event, ConsumerError> {
-        // Create the event
-        let event = Event::builder()
-            .id(DecodedMessage::event_id(event))
-            .event_type(EventType::Deposited) // Reuse the same event type
-            .deposit_id(deposit_id.to_string()) // Set deposit_id
-            .block_number(U256Wrapper::try_from(event.block_number)?)
-            .block_timestamp(event.block_timestamp)
-            .transaction_hash(event.transaction_hash.clone())
-            .build();
-
-        event
-            .upsert(backend_schema, tx.as_mut())
-            .await
-            .map_err(ConsumerError::ModelError)
     }
 
     /// This function initializes accounts for sender and receiver
@@ -291,29 +306,19 @@ impl DepositedCurve {
             .create_deposit(event, &decoded_consumer_context.backend_schema, &mut tx)
             .await?;
 
-        // Create event with deposit_id
-        self.create_event(
-            event,
-            &decoded_consumer_context.backend_schema,
-            &mut tx,
-            &deposit.id,
-        )
-        .await?;
-
         // Handle position
         self.handle_position(&decoded_consumer_context.backend_schema, &mut tx)
             .await?;
 
-        // Create signal
-        self.create_signal(
-            &decoded_consumer_context.backend_schema,
-            event,
-            &curve_vault,
-            &mut tx,
-        )
-        .await?;
-
         tx.commit().await?;
+
+        // Create event
+        self.create_event(decoded_consumer_context, event, deposit.id)
+            .await?;
+
+        // Create signal
+        self.create_signal(decoded_consumer_context, event, &curve_vault)
+            .await?;
 
         Ok(())
     }

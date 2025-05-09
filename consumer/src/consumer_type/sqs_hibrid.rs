@@ -28,6 +28,7 @@ pub struct SqsHibrid {
     pub app_config: AppConfig,
     pub indexer_database_url: String,
     pub backend_schema: String,
+    pub threads: usize,
 }
 
 impl SqsHibrid {
@@ -64,7 +65,8 @@ impl SqsHibrid {
         .await?
         .ok_or(ConsumerError::AppConfigNotFound)?;
         let backend_schema = data.env.backend_schema;
-        // let processed_notifications = Arc::new(RwLock::new(HashSet::new()));
+        let threads = data.env.threads.unwrap_or(3);
+
         Ok(Self {
             client,
             histoflux_cursor,
@@ -73,7 +75,7 @@ impl SqsHibrid {
             app_config,
             indexer_database_url,
             backend_schema,
-            // processed_notifications,
+            threads,
         })
     }
 
@@ -141,7 +143,7 @@ impl BasicConsumer for SqsHibrid {
     /// messages, but when idle, we want to have a delay between message polling to
     /// avoid busy-waiting.
     async fn process_messages(&self, mode: ConsumerMode) -> Result<(), ConsumerError> {
-        let semaphore = Arc::new(Semaphore::new(3));
+        let semaphore = Arc::new(Semaphore::new(self.threads));
         let hybrid = Arc::new(self.clone());
         let (shutdown_tx, mut shutdown_rx) = watch::channel(false);
         // Pass `Arc<Self>`, mode, semaphore, and shutdown_rx to your function
@@ -159,7 +161,7 @@ impl BasicConsumer for SqsHibrid {
 
         // Wait for shutdown signal
         shutdown_rx.changed().await?;
-        semaphore.acquire_many(3).await.ok(); // Wait until all permits are returned
+        semaphore.acquire_many(self.threads as u32).await.ok(); // Wait until all permits are returned
         Ok(())
     }
 

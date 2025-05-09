@@ -27,16 +27,19 @@ impl Redeemed {
     /// This function creates an `Event` for the `Redeemed` event
     async fn create_event(
         &self,
-        backend_schema: &str,
+        decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
         vault: &Vault,
-        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
-        let term_type = Term::find_by_id(vault.term_id.clone(), backend_schema, tx.as_mut())
-            .await?
-            .ok_or(ConsumerError::TermNotFound)?;
+        let term_type = Term::find_by_id(
+            vault.term_id.clone(),
+            &decoded_consumer_context.backend_schema,
+            &decoded_consumer_context.pg_pool,
+        )
+        .await?
+        .ok_or(ConsumerError::TermNotFound)?;
 
-        if let TermType::Triple = term_type.term_type {
+        let event_obj = if let TermType::Triple = term_type.term_type {
             Event::builder()
                 .id(DecodedMessage::event_id(event))
                 .event_type(EventType::Redeemed)
@@ -46,8 +49,6 @@ impl Redeemed {
                 .redemption_id(DecodedMessage::event_id(event))
                 .triple_id(vault.term_id.clone())
                 .build()
-                .upsert(backend_schema, tx.as_mut())
-                .await?;
         } else {
             Event::builder()
                 .id(DecodedMessage::event_id(event))
@@ -58,9 +59,13 @@ impl Redeemed {
                 .redemption_id(DecodedMessage::event_id(event))
                 .atom_id(vault.term_id.clone())
                 .build()
-                .upsert(backend_schema, tx.as_mut())
-                .await?;
-        }
+        };
+        event_obj
+            .upsert(
+                &decoded_consumer_context.backend_schema,
+                &decoded_consumer_context.pg_pool,
+            )
+            .await?;
         Ok(())
     }
 
@@ -95,16 +100,19 @@ impl Redeemed {
     /// This function creates a `Signal` for the `Redeemed` event
     async fn create_signal(
         &self,
-        backend_schema: &str,
+        decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
         vault: &Vault,
-        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
-        let term_type = Term::find_by_id(vault.term_id.clone(), backend_schema, tx.as_mut())
-            .await?
-            .ok_or(ConsumerError::TermNotFound)?;
+        let term_type = Term::find_by_id(
+            vault.term_id.clone(),
+            &decoded_consumer_context.backend_schema,
+            &decoded_consumer_context.pg_pool,
+        )
+        .await?
+        .ok_or(ConsumerError::TermNotFound)?;
 
-        if let TermType::Triple = term_type.term_type {
+        let signal = if let TermType::Triple = term_type.term_type {
             Signal::builder()
                 .id(DecodedMessage::event_id(event))
                 .account_id(self.sender.to_string().to_lowercase())
@@ -120,8 +128,6 @@ impl Redeemed {
                 .term_id(vault.term_id.clone())
                 .curve_id(U256Wrapper::from_str("1")?)
                 .build()
-                .upsert(backend_schema, tx.as_mut())
-                .await?;
         } else {
             Signal::builder()
                 .id(DecodedMessage::event_id(event))
@@ -138,9 +144,13 @@ impl Redeemed {
                 .term_id(vault.term_id.clone())
                 .curve_id(U256Wrapper::from_str("1")?)
                 .build()
-                .upsert(backend_schema, tx.as_mut())
-                .await?;
-        }
+        };
+        signal
+            .upsert(
+                &decoded_consumer_context.backend_schema,
+                &decoded_consumer_context.pg_pool,
+            )
+            .await?;
         Ok(())
     }
 
@@ -206,24 +216,14 @@ impl Redeemed {
             .await?;
         }
 
-        // 4. Create event and signal records
-        self.create_event(
-            &decoded_consumer_context.backend_schema,
-            event,
-            &vault,
-            &mut tx,
-        )
-        .await?;
-
-        self.create_signal(
-            &decoded_consumer_context.backend_schema,
-            event,
-            &vault,
-            &mut tx,
-        )
-        .await?;
-
         tx.commit().await?;
+
+        // 4. Create event and signal records
+        self.create_event(decoded_consumer_context, event, &vault)
+            .await?;
+
+        self.create_signal(decoded_consumer_context, event, &vault)
+            .await?;
 
         Ok(())
     }

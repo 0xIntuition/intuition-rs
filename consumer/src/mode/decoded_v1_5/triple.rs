@@ -120,9 +120,8 @@ impl TripleCreated {
     /// This function creates an `Event` for the `FeesTransferred` event
     async fn create_event(
         &self,
+        decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
-        backend_schema: &str,
-        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Event, ConsumerError> {
         // Create the event
         Event::builder()
@@ -133,7 +132,10 @@ impl TripleCreated {
             .block_timestamp(event.block_timestamp)
             .transaction_hash(event.transaction_hash.clone())
             .build()
-            .upsert(backend_schema, tx.as_mut())
+            .upsert(
+                &decoded_consumer_context.backend_schema,
+                &decoded_consumer_context.pg_pool,
+            )
             .await
             .map_err(ConsumerError::ModelError)
     }
@@ -460,15 +462,17 @@ impl TripleCreated {
         )
         .await?;
         info!("Predicate object triple count updated");
+        tx.commit().await?;
+
+        let mut tx_2 = decoded_consumer_context.pg_pool.begin().await?;
 
         // Update the positions
-        self.update_positions(decoded_consumer_context, event, &mut tx)
+        self.update_positions(decoded_consumer_context, event, &mut tx_2)
             .await?;
         info!("Positions updated");
+        tx_2.commit().await?;
         // Create the event
-        self.create_event(event, &decoded_consumer_context.backend_schema, &mut tx)
-            .await?;
-        tx.commit().await?;
+        self.create_event(decoded_consumer_context, event).await?;
         Ok(())
     }
 

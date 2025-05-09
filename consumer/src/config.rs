@@ -37,6 +37,7 @@ pub struct Env {
     pub indexer_schema: Option<String>,
     pub environment_name: Option<String>,
     pub initial_contract_version: Option<String>,
+    pub threads: Option<usize>,
 }
 
 #[derive(Deserialize, Debug, Clone)]

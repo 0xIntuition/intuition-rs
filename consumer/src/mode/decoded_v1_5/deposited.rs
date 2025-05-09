@@ -163,10 +163,9 @@ impl Deposited {
     /// This function creates an `Event` for the `Deposited` event
     async fn create_event(
         &self,
-        backend_schema: &str,
+        decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
         deposit_id: String,
-        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Event, ConsumerError> {
         // Create the event
         let event = if self.isTriple {
@@ -192,7 +191,10 @@ impl Deposited {
         };
 
         event
-            .upsert(backend_schema, tx.as_mut())
+            .upsert(
+                &decoded_consumer_context.backend_schema,
+                &decoded_consumer_context.pg_pool,
+            )
             .await
             .map_err(ConsumerError::ModelError)
     }
@@ -219,13 +221,12 @@ impl Deposited {
     /// This function creates a `Signal` for the `Deposited` event
     async fn create_signal(
         &self,
-        backend_schema: &str,
+        decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
         vault: &Vault,
-        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
         if self.senderAssetsAfterTotalFees > U256::from(0) {
-            if !self.isTriple {
+            let signal = if !self.isTriple {
                 Signal::builder()
                     .id(DecodedMessage::event_id(event))
                     .account_id(self.sender.to_string().to_lowercase())
@@ -238,8 +239,6 @@ impl Deposited {
                     .term_id(vault.term_id.clone())
                     .curve_id(U256Wrapper::from_str("1")?)
                     .build()
-                    .upsert(backend_schema, tx.as_mut())
-                    .await?;
             } else {
                 Signal::builder()
                     .id(DecodedMessage::event_id(event))
@@ -253,9 +252,13 @@ impl Deposited {
                     .term_id(vault.term_id.clone())
                     .curve_id(U256Wrapper::from_str("1")?)
                     .build()
-                    .upsert(backend_schema, tx.as_mut())
-                    .await?;
-            }
+            };
+            signal
+                .upsert(
+                    &decoded_consumer_context.backend_schema,
+                    &decoded_consumer_context.pg_pool,
+                )
+                .await?;
         } else {
             info!("Sender assets after total fees is 0, nothing to do.");
         }
@@ -303,25 +306,16 @@ impl Deposited {
         self.handle_position_and_claims(&decoded_consumer_context.backend_schema, &mut tx)
             .await?;
 
+        tx.commit().await?;
+
         // Create event
-        self.create_event(
-            &decoded_consumer_context.backend_schema,
-            event,
-            deposit.id,
-            &mut tx,
-        )
-        .await?;
+        self.create_event(decoded_consumer_context, event, deposit.id)
+            .await?;
 
         // Create signal
-        self.create_signal(
-            &decoded_consumer_context.backend_schema,
-            event,
-            &vault,
-            &mut tx,
-        )
-        .await?;
+        self.create_signal(decoded_consumer_context, event, &vault)
+            .await?;
 
-        tx.commit().await?;
         Ok(())
     }
 

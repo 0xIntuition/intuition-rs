@@ -25,9 +25,8 @@ impl AtomCreated {
     /// This function creates an `Event` for the `AtomCreated` event
     async fn create_event(
         &self,
+        decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
-        backend_schema: &str,
-        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Event, ConsumerError> {
         // Create the event
         Event::builder()
@@ -38,7 +37,10 @@ impl AtomCreated {
             .block_timestamp(event.block_timestamp)
             .transaction_hash(event.transaction_hash.clone())
             .build()
-            .upsert(backend_schema, tx.as_mut())
+            .upsert(
+                &decoded_consumer_context.backend_schema,
+                &decoded_consumer_context.pg_pool,
+            )
             .await
             .map_err(ConsumerError::ModelError)
     }
@@ -191,13 +193,18 @@ impl AtomCreated {
         let (_vault, mut atom) = self
             .update_vault_current_share_price(decoded_consumer_context, decoded_message, &mut tx)
             .await?;
+        // We commit the first mini batch of transactions to release the locks
+        tx.commit().await?;
+
+        // We start a new transaction to decode the atom data and update the atom metadata
+        let mut tx_2 = decoded_consumer_context.pg_pool.begin().await?;
 
         // decode the hex data from the atomData.
         let decoded_atom_data = self
             .decode_atom_data_and_update_atom(
                 &mut atom,
                 &decoded_consumer_context.backend_schema,
-                &mut tx,
+                &mut tx_2,
             )
             .await?;
 
@@ -205,24 +212,24 @@ impl AtomCreated {
         let supported_atom_metadata =
             get_supported_atom_metadata(&mut atom, &decoded_atom_data, decoded_consumer_context)
                 .await?
-                .update_atom_metadata(&mut atom, &decoded_consumer_context.backend_schema, &mut tx)
+                .update_atom_metadata(
+                    &mut atom,
+                    &decoded_consumer_context.backend_schema,
+                    &mut tx_2,
+                )
                 .await?;
 
         // Handle the account or caip10 type
         let resolved_atom = ResolveAtom { atom: atom.clone() };
         supported_atom_metadata
-            .handle_account_or_caip10_type(&resolved_atom, decoded_consumer_context, &mut tx)
+            .handle_account_or_caip10_type(&resolved_atom, decoded_consumer_context, &mut tx_2)
             .await?;
+        tx_2.commit().await?;
 
         // Create the event
-        self.create_event(
-            decoded_message,
-            &decoded_consumer_context.backend_schema,
-            &mut tx,
-        )
-        .await?;
+        self.create_event(decoded_consumer_context, decoded_message)
+            .await?;
 
-        tx.commit().await?;
         Ok(())
     }
 

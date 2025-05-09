@@ -160,9 +160,8 @@ impl Deposited {
     /// This function creates an `Event` for the `Deposited` event
     async fn create_event(
         &self,
+        decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
-        backend_schema: &str,
-        tx: &mut Transaction<'_, Postgres>,
         deposit_id: String,
     ) -> Result<Event, ConsumerError> {
         // Create the event
@@ -189,7 +188,10 @@ impl Deposited {
         };
 
         event
-            .upsert(backend_schema, tx.as_mut())
+            .upsert(
+                &decoded_consumer_context.backend_schema,
+                &decoded_consumer_context.pg_pool,
+            )
             .await
             .map_err(ConsumerError::ModelError)
     }
@@ -224,10 +226,9 @@ impl Deposited {
     /// This function creates a `Signal` for the `Deposited` event
     async fn create_signal(
         &self,
-        backend_schema: &str,
+        decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
         vault: &Vault,
-        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
         if self.senderAssetsAfterTotalFees > U256::from(0) {
             if !self.isTriple {
@@ -243,7 +244,10 @@ impl Deposited {
                     .term_id(vault.term_id.clone())
                     .curve_id(U256Wrapper::from_str("1")?)
                     .build()
-                    .upsert(backend_schema, tx.as_mut())
+                    .upsert(
+                        &decoded_consumer_context.backend_schema,
+                        &decoded_consumer_context.pg_pool,
+                    )
                     .await?;
             } else {
                 Signal::builder()
@@ -258,7 +262,10 @@ impl Deposited {
                     .term_id(vault.term_id.clone())
                     .curve_id(U256Wrapper::from_str("1")?)
                     .build()
-                    .upsert(backend_schema, tx.as_mut())
+                    .upsert(
+                        &decoded_consumer_context.backend_schema,
+                        &decoded_consumer_context.pg_pool,
+                    )
                     .await?;
             }
         } else {
@@ -313,25 +320,16 @@ impl Deposited {
         self.handle_position_and_claims(decoded_consumer_context, event.block_number, &mut tx)
             .await?;
 
+        tx.commit().await?;
+
         // Create event
-        self.create_event(
-            event,
-            &decoded_consumer_context.backend_schema,
-            &mut tx,
-            deposit.id,
-        )
-        .await?;
+        self.create_event(decoded_consumer_context, event, deposit.id)
+            .await?;
 
         // Create signal
-        self.create_signal(
-            &decoded_consumer_context.backend_schema,
-            event,
-            &vault,
-            &mut tx,
-        )
-        .await?;
+        self.create_signal(decoded_consumer_context, event, &vault)
+            .await?;
 
-        tx.commit().await?;
         Ok(())
     }
 

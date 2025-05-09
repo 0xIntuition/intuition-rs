@@ -9,16 +9,14 @@ use models::{
     traits::SimpleCrud,
     types::U256Wrapper,
 };
-use sqlx::{Postgres, Transaction};
 use tracing::info;
 
 impl FeesTransferred {
     /// This function creates an `Event` for the `FeesTransferred` event
     pub async fn create_event(
         &self,
-        backend_schema: &str,
+        decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
-        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Event, ConsumerError> {
         // Create the event
         Event::builder()
@@ -29,7 +27,10 @@ impl FeesTransferred {
             .block_timestamp(event.block_timestamp)
             .transaction_hash(event.transaction_hash.clone())
             .build()
-            .upsert(backend_schema, tx.as_mut())
+            .upsert(
+                &decoded_consumer_context.backend_schema,
+                &decoded_consumer_context.pg_pool,
+            )
             .await
             .map_err(ConsumerError::ModelError)
     }
@@ -37,21 +38,11 @@ impl FeesTransferred {
     /// This function creates a fee transfer record
     pub async fn create_fee_transfer(
         &self,
-        backend_schema: &str,
+        decoded_consumer_context: &DecodedConsumerContext,
         sender_account: &Account,
         protocol_multisig_account: &Account,
         event: &DecodedMessage,
-        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<FeeTransfer, ConsumerError> {
-        // Check if a fee transfer already exists
-        if let Some(fee_transfer) =
-            FeeTransfer::find_by_id(DecodedMessage::event_id(event), backend_schema, tx.as_mut())
-                .await?
-        {
-            info!("Fee transfer already exists, skipping.");
-            return Ok(fee_transfer);
-        }
-
         FeeTransfer::builder()
             .id(DecodedMessage::event_id(event))
             .sender_id(sender_account.id.clone())
@@ -61,7 +52,10 @@ impl FeesTransferred {
             .block_timestamp(event.block_timestamp)
             .transaction_hash(event.transaction_hash.clone())
             .build()
-            .upsert(backend_schema, tx.as_mut())
+            .upsert(
+                &decoded_consumer_context.backend_schema,
+                &decoded_consumer_context.pg_pool,
+            )
             .await
             .map_err(ConsumerError::ModelError)
     }
@@ -126,23 +120,17 @@ impl FeesTransferred {
             .upsert_protocol_multisig_account(decoded_consumer_context)
             .await?;
 
-        let mut tx = decoded_consumer_context.pg_pool.begin().await?;
-
         // Create the fee transfer record
         self.create_fee_transfer(
-            &decoded_consumer_context.backend_schema,
+            decoded_consumer_context,
             &sender_account,
             &protocol_multisig_account,
             event,
-            &mut tx,
         )
         .await?;
 
         // Create the event
-        self.create_event(&decoded_consumer_context.backend_schema, event, &mut tx)
-            .await?;
-
-        tx.commit().await?;
+        self.create_event(decoded_consumer_context, event).await?;
 
         Ok(())
     }
