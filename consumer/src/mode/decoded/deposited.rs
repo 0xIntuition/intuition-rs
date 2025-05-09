@@ -7,7 +7,7 @@ use crate::{
     schemas::types::DecodedMessage,
     traits::{SharePriceEvent, VaultManager},
 };
-use alloy::primitives::U256;
+use alloy::primitives::{U256, Uint};
 use async_trait::async_trait;
 use models::{
     claim::Claim,
@@ -244,11 +244,6 @@ impl Deposited {
                     .term_id(vault.term_id.clone())
                     .curve_id(U256Wrapper::from_str("1")?)
                     .build()
-                    .upsert(
-                        &decoded_consumer_context.backend_schema,
-                        &decoded_consumer_context.pg_pool,
-                    )
-                    .await?;
             } else {
                 Signal::builder()
                     .id(DecodedMessage::event_id(event))
@@ -262,12 +257,12 @@ impl Deposited {
                     .term_id(vault.term_id.clone())
                     .curve_id(U256Wrapper::from_str("1")?)
                     .build()
-                    .upsert(
-                        &decoded_consumer_context.backend_schema,
-                        &decoded_consumer_context.pg_pool,
-                    )
-                    .await?;
             }
+            .upsert(
+                &decoded_consumer_context.backend_schema,
+                &decoded_consumer_context.pg_pool,
+            )
+            .await?;
         } else {
             info!("Sender assets after total fees is 0, nothing to do.");
         }
@@ -309,6 +304,16 @@ impl Deposited {
             .initialize_accounts_and_vault(decoded_consumer_context, event)
             .await?;
 
+        // Fetch the current share price and total shares
+        let current_share_price: U256Wrapper = decoded_consumer_context
+            .fetch_current_share_price(self.vaultId, event.block_number)
+            .await?
+            .into();
+
+        // Fetch the total shares in the vault
+        let total_shares = decoded_consumer_context
+            .fetch_total_shares_in_vault(self.vaultId, event.block_number)
+            .await?;
         let mut tx = decoded_consumer_context.pg_pool.begin().await?;
 
         // Create deposit record
@@ -317,8 +322,13 @@ impl Deposited {
             .await?;
 
         // Handle position and related entities
-        self.handle_position_and_claims(decoded_consumer_context, event.block_number, &mut tx)
-            .await?;
+        self.handle_position_and_claims(
+            decoded_consumer_context,
+            &mut tx,
+            current_share_price,
+            total_shares,
+        )
+        .await?;
 
         tx.commit().await?;
 
@@ -369,24 +379,19 @@ impl Deposited {
     async fn handle_position_and_claims(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
-        block_number: i64,
         tx: &mut Transaction<'_, Postgres>,
+        current_share_price: U256Wrapper,
+        total_shares: Uint<256, 4>,
     ) -> Result<(), ConsumerError> {
         let position_id = self.format_position_id();
-        let triple = Triple::find_by_id(
-            U256Wrapper::from(self.vaultId),
-            &decoded_consumer_context.backend_schema,
-            tx.as_mut(),
-        )
-        .await?;
-        let position = Position::find_by_id(
+
+        if let Some(mut position) = Position::find_by_id(
             position_id.clone(),
             &decoded_consumer_context.backend_schema,
             tx.as_mut(),
         )
-        .await?;
-
-        if let Some(mut position) = position {
+        .await?
+        {
             if self.receiverTotalSharesInVault > U256::from(0) {
                 self.handle_existing_position(
                     &decoded_consumer_context.backend_schema,
@@ -396,6 +401,13 @@ impl Deposited {
                 .await?;
             }
         } else if self.receiverTotalSharesInVault > U256::from(0) {
+            let triple = Triple::find_by_id(
+                U256Wrapper::from(self.vaultId),
+                &decoded_consumer_context.backend_schema,
+                tx.as_mut(),
+            )
+            .await?;
+
             self.handle_new_position(
                 &decoded_consumer_context.backend_schema,
                 &position_id,
@@ -415,7 +427,8 @@ impl Deposited {
             self.vaultId,
             decoded_consumer_context,
             tx,
-            block_number,
+            current_share_price,
+            total_shares,
         )
         .await?;
 

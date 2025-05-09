@@ -23,7 +23,8 @@ pub async fn update_vault(
     vault_id: Uint<256, 4>,
     decoded_consumer_context: &DecodedConsumerContext,
     tx: &mut Transaction<'_, Postgres>,
-    block_number: i64,
+    current_share_price: U256Wrapper,
+    total_shares: Uint<256, 4>,
 ) -> Result<(), ConsumerError> {
     // Update vault
     let mut vault = Vault::find_by_id(
@@ -33,17 +34,6 @@ pub async fn update_vault(
     )
     .await?
     .ok_or(ConsumerError::VaultNotFound)?;
-
-    // Fetch the current share price and total shares
-    let current_share_price: U256Wrapper = decoded_consumer_context
-        .fetch_current_share_price(vault_id, block_number)
-        .await?
-        .into();
-
-    // Fetch the total shares in the vault
-    let total_shares = decoded_consumer_context
-        .fetch_total_shares_in_vault(vault_id, block_number)
-        .await?;
 
     // Update the vault conditionally based on the type of update
     match vault_update {

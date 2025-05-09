@@ -81,7 +81,7 @@ services:
       INDEXER_DATABASE_URL: "postgres://testuser:test@database:5435/storage"
       INDEXER_SCHEMA: $INDEXER_SCHEMA
       ENVIRONMENT_NAME: "local_v_1_5"
-      THREADS: '3'
+      THREADS: '4'
       # INITIAL_CONTRACT_VERSION: $INITIAL_CONTRACT_VERSION
       CONSUMER_METRICS_API_PORT: '3002'
       DATABASE_URL: 'postgres://testuser:test@database:5435/storage'

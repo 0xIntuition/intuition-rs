@@ -178,6 +178,17 @@ impl Redeemed {
         let receiver_account =
             get_or_create_account(self.receiver.to_string(), decoded_consumer_context).await?;
 
+        // Fetch the current share price and total shares
+        let current_share_price: U256Wrapper = decoded_consumer_context
+            .fetch_current_share_price(self.vaultId, event.block_number)
+            .await?
+            .into();
+
+        // Fetch the total shares in the vault
+        let total_shares = decoded_consumer_context
+            .fetch_total_shares_in_vault(self.vaultId, event.block_number)
+            .await?;
+
         let mut tx = decoded_consumer_context.pg_pool.begin().await?;
 
         // 3. Create redemption record
@@ -227,7 +238,8 @@ impl Redeemed {
             self.vaultId,
             decoded_consumer_context,
             &mut tx,
-            event.block_number,
+            current_share_price,
+            total_shares,
         )
         .await?;
 
