@@ -190,7 +190,7 @@ export async function wait(hash: string | null) {
       }
       await new Promise(resolve => setTimeout(resolve, 1000));
       count++
-      if (count > 10) {
+      if (count > 3600) {
         return reject(new Error('Transaction not found'))
       }
     }

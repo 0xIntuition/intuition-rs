@@ -33,7 +33,7 @@ pub const TEST_INDEXER_SCHEMA: &str = "base_indexer";
 
 /// This function sets up a test database connection pool.
 pub async fn setup_test_db() -> PgPool {
-    let database_url = "postgres://testuser:test@localhost:5435/storage";
+    let database_url = "postgres://postgres:postgres@localhost:5435/storage";
     PgPoolOptions::new()
         .max_connections(5)
         .connect(database_url)

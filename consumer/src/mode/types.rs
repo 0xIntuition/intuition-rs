@@ -845,7 +845,7 @@ mod tests {
                 env: crate::config::Env {
                     consumer_metrics_api_port: None,
                     consumer_type: "decoded".to_string(),
-                    database_url: "postgres://testuser:test@database:5435/storage".to_string(),
+                    database_url: "postgres://postgres:postgres@database:5435/storage".to_string(),
                     decoded_logs_queue_url: test.env.decoded_logs_queue_url,
                     ens_contract_address: test.env.ens_contract_address,
                     image_guard_url: None,
@@ -883,7 +883,7 @@ mod tests {
         let server_initialize: ServerInitialize = test_server.into();
 
         // Create a lazy PgPool using the DATABASE_URL value from .env.dump.
-        let pg_pool = PgPool::connect_lazy("postgres://testuser:test@database:5435/storage")
+        let pg_pool = PgPool::connect_lazy("postgres://postgres:postgres@database:5435/storage")
             .expect("Failed to create pg pool");
 
         // Create the decoded consumer.

@@ -7,7 +7,7 @@ docker compose -f docker-compose-shared.yml up database vectorizer-worker sqs ip
 
 # First arg is indexer schema
 INDEXER_SCHEMA="$1"
-CONTRACT_ADDRESS=$(docker compose -f docker-compose-shared.yml exec database psql -U testuser -d storage -c "SELECT contract_address FROM histocrawler.app_config WHERE indexer_schema = '$INDEXER_SCHEMA'" -tA)
+CONTRACT_ADDRESS=$(docker compose -f docker-compose-shared.yml exec database psql -U postgres -d storage -c "SELECT contract_address FROM histocrawler.app_config WHERE indexer_schema = '$INDEXER_SCHEMA'" -tA)
 if [ -n "$CONTRACT_ADDRESS" ]; then
     echo "Contract address: $CONTRACT_ADDRESS"
     export INTUITION_CONTRACT_ADDRESS=$CONTRACT_ADDRESS
@@ -20,7 +20,7 @@ if [ "$INDEXER_SCHEMA" == "histo_local_1_5" ]; then
 
     # Select contract_address from histocrawler.app_config wait until it changes from 0x63B90A9c109fF8f137916026876171ffeEdEe714 or empty
     while [ "$CONTRACT_ADDRESS" == "0x63B90A9c109fF8f137916026876171ffeEdEe714" ] || [ -z "$CONTRACT_ADDRESS" ]; do
-        CONTRACT_ADDRESS=$(docker compose -f docker-compose-shared.yml exec database psql -U testuser -d storage -c "SELECT contract_address FROM histocrawler.app_config WHERE indexer_schema = 'histo_base_sepolia_1_5'" -tA)
+        CONTRACT_ADDRESS=$(docker compose -f docker-compose-shared.yml exec database psql -U postgres -d storage -c "SELECT contract_address FROM histocrawler.app_config WHERE indexer_schema = 'histo_base_sepolia_1_5'" -tA)
         sleep 1
     done
 

@@ -9,7 +9,7 @@ services:
       AWS_REGION: 'us-west-2'
       AWS_SECRET_ACCESS_KEY: 'example'
       CONSUMER_TYPE: 'sqs'
-      DATABASE_URL: 'postgres://testuser:test@database:5435/storage'
+      DATABASE_URL: 'postgres://postgres:postgres@database:5435/storage'
       ENS_CONTRACT_ADDRESS: '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e'
       IMAGE_GUARD_URL: 'http://api:3000'
       IPFS_GATEWAY_URL: 'http://ipfs:8080'
@@ -51,7 +51,7 @@ services:
       AWS_REGION: 'us-west-2'
       AWS_SECRET_ACCESS_KEY: 'example'
       CONSUMER_TYPE: 'sqs'
-      DATABASE_URL: 'postgres://testuser:test@database:5435/storage'
+      DATABASE_URL: 'postgres://postgres:postgres@database:5435/storage'
       IMAGE_GUARD_URL: 'http://api:3000'
       IPFS_GATEWAY_URL: 'http://ipfs:8080'
       IPFS_UPLOAD_URL: 'http://ipfs:5001'
@@ -78,20 +78,20 @@ services:
       AWS_REGION: 'us-west-2'
       AWS_SECRET_ACCESS_KEY: 'example'
       CONSUMER_TYPE: 'sqs_hibrid'
-      INDEXER_DATABASE_URL: "postgres://testuser:test@database:5435/storage"
+      INDEXER_DATABASE_URL: "postgres://postgres:postgres@database:5435/storage"
       INDEXER_SCHEMA: $INDEXER_SCHEMA
       ENVIRONMENT_NAME: "local_v_1_5"
-      THREADS: '4'
-      # INITIAL_CONTRACT_VERSION: $INITIAL_CONTRACT_VERSION
+      THREADS: '1'
+      INITIAL_CONTRACT_VERSION: $INITIAL_CONTRACT_VERSION
       CONSUMER_METRICS_API_PORT: '3002'
-      DATABASE_URL: 'postgres://testuser:test@database:5435/storage'
+      DATABASE_URL: 'postgres://postgres:postgres@database:5435/storage'
       DECODED_LOGS_QUEUE_URL: 'http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/decoded_logs.fifo'
       INTUITION_CONTRACT_ADDRESS: $INTUITION_CONTRACT_ADDRESS
       LOCALSTACK_URL: 'http://sqs:4566/'
       PG_MIN_CONNECTIONS: '20'
       RESOLVER_QUEUE_URL: 'http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/resolver'
       RPC_URL_BASE: "http://prod-rpc-proxy:3008/8453/proxy"
-      RUST_LOG: 'info'
+      RUST_LOG: 'warn'
       BACKEND_SCHEMA: 'public'
     restart: always
     volumes:
@@ -109,10 +109,10 @@ services:
       AWS_REGION: 'us-west-2'
       AWS_SECRET_ACCESS_KEY: 'example'
       CONSUMER_TYPE: 'sqs_hibrid'
-      INDEXER_DATABASE_URL: "postgres://testuser:test@database:5435/storage"
+      INDEXER_DATABASE_URL: "postgres://postgres:postgres@database:5435/storage"
       INDEXER_SCHEMA: $INDEXER_SCHEMA
       ENVIRONMENT_NAME: "local_v_1_5"
-      DATABASE_URL: 'postgres://testuser:test@database:5435/storage'
+      DATABASE_URL: 'postgres://postgres:postgres@database:5435/storage'
       DECODED_LOGS_QUEUE_URL: 'http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/decoded_logs.fifo'
       INDEXING_SOURCE: 'substreams'
       LOCALSTACK_URL: 'http://sqs:4566/'
@@ -134,7 +134,7 @@ services:
     command: ./image-guard
     environment:
       CLASSIFICATION_API_PORT: '3000'
-      DATABASE_URL: 'postgres://testuser:test@database:5435/storage'
+      DATABASE_URL: 'postgres://postgres:postgres@database:5435/storage'
       HF_TOKEN: ''
       IPFS_GATEWAY_URL: 'http://ipfs:8080'
       IPFS_UPLOAD_URL: 'http://ipfs:5001'
@@ -143,7 +143,7 @@ services:
       FLAG_LOCAL_WITH_CLASSIFICATION: 'true'
       BE_SCHEMA: 'public'
       IMAGE_API_SCHEMA: 'cached_images'
-      INDEXER_DATABASE_URL: 'postgres://testuser:test@database:5435/storage'
+      INDEXER_DATABASE_URL: 'postgres://postgres:postgres@database:5435/storage'
       # FLAG_LOCAL_WITH_DB_ONLY: $FLAG_LOCAL_WITH_DB_ONLY
       # FLAG_HF_CLASSIFICATION: $FLAG_HF_CLASSIFICATION 
     ports:
@@ -154,7 +154,7 @@ services:
     image: ghcr.io/0xintuition/apps:latest
     command: ./rpc-proxy
     environment:
-      PROXY_DATABASE_URL: 'postgres://testuser:test@database:5435/storage'
+      PROXY_DATABASE_URL: 'postgres://postgres:postgres@database:5435/storage'
       PROXY_API_PORT: '3008'
       PROXY_SCHEMA: "rpc_proxy"
       BASE_MAINNET_RPC_URL: $BASE_MAINNET_RPC_URL
@@ -172,7 +172,7 @@ services:
     image: ghcr.io/0xintuition/apps:latest
     command: ./histocrawler
     environment:
-      HISTOCRAWLER_DATABASE_URL: 'postgres://testuser:test@database:5435/storage'
+      HISTOCRAWLER_DATABASE_URL: 'postgres://postgres:postgres@database:5435/storage'
       INDEXER_SCHEMA: $INDEXER_SCHEMA
     depends_on:
       prod-rpc-proxy:
@@ -187,7 +187,7 @@ services:
       AWS_ACCESS_KEY_ID: 'example'
       AWS_REGION: 'us-west-2'
       AWS_SECRET_ACCESS_KEY: 'example' 
-      INDEXER_DATABASE_URL: "postgres://testuser:test@database:5435/storage"
+      INDEXER_DATABASE_URL: "postgres://postgres:postgres@database:5435/storage"
       INDEXER_SCHEMA: $INDEXER_SCHEMA
       LOCALSTACK_URL: "http://sqs:4566/"
       ENVIRONMENT_NAME: "local_v_1_5"
