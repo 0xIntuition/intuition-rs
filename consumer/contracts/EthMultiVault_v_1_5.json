@@ -1,5 +1,56 @@
 {
   "abi": [
+    {
+      "type": "event",
+      "name": "Upgraded",
+      "inputs": [
+          {
+              "name": "implementation",
+              "type": "address",
+              "indexed": true,
+              "internalType": "address"
+          }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "AdminChanged",
+      "inputs": [
+          {
+              "name": "previousAdmin",
+              "type": "address",
+              "indexed": false,
+              "internalType": "address"
+          },
+          {
+              "name": "newAdmin",
+              "type": "address",
+              "indexed": false,
+              "internalType": "address"
+          }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "OwnershipTransferred",
+      "inputs": [
+          {
+              "name": "previousOwner",
+              "type": "address",
+              "indexed": true,
+              "internalType": "address"
+          },
+          {
+              "name": "newOwner",
+              "type": "address",
+              "indexed": true,
+              "internalType": "address"
+          }
+      ],
+      "anonymous": false
+    },
     { "type": "constructor", "inputs": [], "stateMutability": "nonpayable" },
     { "type": "fallback", "stateMutability": "payable" },
     { "type": "receive", "stateMutability": "payable" },
