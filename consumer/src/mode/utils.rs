@@ -11,7 +11,7 @@ use models::{
     types::U256Wrapper,
     vault::Vault,
 };
-use sqlx::{Postgres, Transaction};
+use sqlx::PgPool;
 use std::fmt::Debug;
 use tracing::info;
 
@@ -71,11 +71,13 @@ pub async fn update_account_with_atom_id(
     account: &mut Account,
     atom_id: U256Wrapper,
     decoded_consumer_context: &DecodedConsumerContext,
-    tx: &mut Transaction<'_, Postgres>,
 ) -> Result<(), ConsumerError> {
     account.atom_id = Some(atom_id);
     account
-        .upsert(&decoded_consumer_context.backend_schema, tx.as_mut())
+        .upsert(
+            &decoded_consumer_context.backend_schema,
+            &decoded_consumer_context.pg_pool,
+        )
         .await?;
     info!("Updated account: {:?}", account);
 
@@ -240,9 +242,9 @@ pub async fn get_or_create_term(
 pub async fn get_or_create_account_from_event(
     event: impl AccountManager + Debug,
     backend_schema: &str,
-    tx: &mut Transaction<'_, Postgres>,
+    pg_pool: &PgPool,
 ) -> Result<Account, ConsumerError> {
-    let account = Account::find_by_id(event.account_id(), backend_schema, tx.as_mut()).await?;
+    let account = Account::find_by_id(event.account_id(), backend_schema, pg_pool).await?;
 
     if let Some(account) = account {
         Ok(account)
@@ -252,7 +254,7 @@ pub async fn get_or_create_account_from_event(
             .label(event.label())
             .account_type(event.account_type())
             .build()
-            .upsert(backend_schema, tx.as_mut())
+            .upsert(backend_schema, pg_pool)
             .await?;
 
         Ok(account)

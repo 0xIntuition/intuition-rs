@@ -84,6 +84,7 @@ export async function getIntuition(accountIndex: number) {
       const generalConfig = await multivault.getGeneralConfig()
       const { vaultId, hash } = await multivault.createAtom({ uri, initialDeposit: generalConfig.minDeposit })
       console.log(`vaultId: ${vaultId}`)
+      await wait(hash)
       return { vaultId, hash }
     }
   }
@@ -96,13 +97,15 @@ export async function getIntuition(accountIndex: number) {
     if (vaultId) {
       if (initialDeposit) {
         console.log(`Depositing triple: ${subjectId} ${predicateId} ${objectId} ${initialDeposit} ...`)
-        await multivault.depositTriple(vaultId, initialDeposit)
+        const { hash } = await multivault.depositTriple(vaultId, initialDeposit)
+        await wait(hash)
       }
       return { vaultId, hash: null }
     } else {
       console.log(`Creating triple: ${subjectId} ${predicateId} ${objectId} ...`)
       const { vaultId, hash } = await multivault.createTriple({ subjectId, predicateId, objectId, initialDeposit })
       console.log(`vaultId: ${vaultId}`)
+      await wait(hash)
       return { vaultId, hash }
     }
   }

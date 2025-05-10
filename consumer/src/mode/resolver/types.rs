@@ -149,9 +149,11 @@ impl ResolverMessageType {
         let metadata = self
             .resolve_and_parse_atom_data(resolver_consumer_context, atom_id, &mut tx)
             .await?;
+        info!("Metadata: {:?}", metadata);
 
         // If the atom type is not unknown, we handle the new atom type that was resolved
         if AtomType::from_str(&metadata.atom_type)? != AtomType::Unknown {
+            info!("Handling known atom type: {:?}", metadata);
             self.handle_known_atom_type(resolver_consumer_context, atom_id, metadata, &mut tx)
                 .await?;
         } else {
@@ -290,7 +292,7 @@ impl ResolverMessageType {
                     .server_initialize
                     .env
                     .backend_schema,
-                tx,
+                &resolver_consumer_context.pg_pool,
             )
             .await?;
 

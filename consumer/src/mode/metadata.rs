@@ -18,7 +18,7 @@ use models::{
     types::U256Wrapper,
 };
 use serde::{Deserialize, Serialize};
-use sqlx::{Postgres, Transaction};
+use sqlx::PgPool;
 use std::str::FromStr;
 use tracing::info;
 /// Represents the metadata for an atom
@@ -115,7 +115,6 @@ impl AtomMetadata {
         &self,
         resolved_atom: &ResolveAtom,
         decoded_consumer_context: &DecodedConsumerContext,
-        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
         match AtomType::from_str(self.atom_type.as_str())? {
             AtomType::Account => {
@@ -123,7 +122,7 @@ impl AtomMetadata {
                     "Updating account for: {}",
                     resolved_atom.atom.data.clone().unwrap()
                 );
-                self.update_account_and_atom_value(resolved_atom, decoded_consumer_context, tx)
+                self.update_account_and_atom_value(resolved_atom, decoded_consumer_context)
                     .await
             }
             AtomType::Caip10 => {
@@ -268,7 +267,6 @@ impl AtomMetadata {
         &self,
         resolved_atom: &ResolveAtom,
         decoded_consumer_context: &DecodedConsumerContext,
-        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
         if self.atom_type != "Account" {
             info!("Skipping account creation for: {}", self.atom_type);
@@ -289,7 +287,6 @@ impl AtomMetadata {
             &mut account,
             resolved_atom.atom.term_id.clone(),
             decoded_consumer_context,
-            tx,
         )
         .await?;
 
@@ -297,7 +294,7 @@ impl AtomMetadata {
         if AtomValue::find_by_id(
             resolved_atom.atom.term_id.clone(),
             &decoded_consumer_context.backend_schema,
-            tx.as_mut(),
+            &decoded_consumer_context.pg_pool,
         )
         .await?
         .is_some()
@@ -310,7 +307,10 @@ impl AtomMetadata {
             .id(resolved_atom.atom.term_id.clone())
             .account_id(account.id)
             .build()
-            .upsert(&decoded_consumer_context.backend_schema, tx.as_mut())
+            .upsert(
+                &decoded_consumer_context.backend_schema,
+                &decoded_consumer_context.pg_pool,
+            )
             .await?;
 
         Ok(())
@@ -321,13 +321,13 @@ impl AtomMetadata {
         &self,
         atom: &mut Atom,
         backend_schema: &str,
-        tx: &mut Transaction<'_, Postgres>,
+        pg_pool: &PgPool,
     ) -> Result<AtomMetadata, ConsumerError> {
         atom.emoji = Some(self.emoji.clone());
         atom.atom_type = AtomType::from_str(&self.atom_type)?;
         atom.label = Some(self.label.clone());
         atom.image = self.image.clone();
-        atom.upsert(backend_schema, tx.as_mut()).await?;
+        atom.upsert(backend_schema, pg_pool).await?;
         Ok(AtomMetadata {
             label: self.label.clone(),
             emoji: self.emoji.clone(),
@@ -438,7 +438,8 @@ pub async fn get_supported_atom_metadata(
             .await?;
 
         // 5. Now we try to parse the JSON and return the metadata. At this point
-        // the resolver will handle the rest of the cases.
+        // the resolver will handle the rest of the cases, like text object,
+        // byte object, etc.
         let metadata =
             try_to_parse_json_or_text(decoded_atom_data, atom, decoded_consumer_context).await?;
 

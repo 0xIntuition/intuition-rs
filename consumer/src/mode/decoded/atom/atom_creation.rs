@@ -18,7 +18,7 @@ use models::{
     types::U256Wrapper,
     vault::Vault,
 };
-use sqlx::{Postgres, Transaction};
+use sqlx::{PgPool, Postgres, Transaction};
 use std::str::FromStr;
 use tracing::{info, warn};
 impl AtomCreated {
@@ -50,7 +50,7 @@ impl AtomCreated {
         &self,
         atom: &mut Atom,
         backend_schema: &str,
-        tx: &mut Transaction<'_, Postgres>,
+        pg_pool: &PgPool,
     ) -> Result<String, ConsumerError> {
         // decode the hex data from the atomData.
         let decoded_atom_data = if let Ok(decoded_atom_data) =
@@ -65,9 +65,10 @@ impl AtomCreated {
             String::new()
         };
 
+        info!("Decoded atom data: {:?}", decoded_atom_data);
         // Update the atom with the decoded data
         atom.data = Some(decoded_atom_data.clone());
-        atom.upsert(backend_schema, tx.as_mut()).await?;
+        atom.upsert(backend_schema, pg_pool).await?;
         Ok(decoded_atom_data)
     }
 
@@ -174,7 +175,6 @@ impl AtomCreated {
             &mut atom_wallet_account,
             atom.term_id.clone(),
             decoded_consumer_context,
-            tx,
         )
         .await?;
         Ok(atom)
@@ -196,15 +196,12 @@ impl AtomCreated {
         // We commit the first mini batch of transactions to release the locks
         tx.commit().await?;
 
-        // We start a new transaction to decode the atom data and update the atom metadata
-        let mut tx_2 = decoded_consumer_context.pg_pool.begin().await?;
-
         // decode the hex data from the atomData.
         let decoded_atom_data = self
             .decode_atom_data_and_update_atom(
                 &mut atom,
                 &decoded_consumer_context.backend_schema,
-                &mut tx_2,
+                &decoded_consumer_context.pg_pool,
             )
             .await?;
 
@@ -215,16 +212,15 @@ impl AtomCreated {
                 .update_atom_metadata(
                     &mut atom,
                     &decoded_consumer_context.backend_schema,
-                    &mut tx_2,
+                    &decoded_consumer_context.pg_pool,
                 )
                 .await?;
 
         // Handle the account or caip10 type
         let resolved_atom = ResolveAtom { atom: atom.clone() };
         supported_atom_metadata
-            .handle_account_or_caip10_type(&resolved_atom, decoded_consumer_context, &mut tx_2)
+            .handle_account_or_caip10_type(&resolved_atom, decoded_consumer_context)
             .await?;
-        tx_2.commit().await?;
 
         // Create the event
         self.create_event(decoded_consumer_context, decoded_message)

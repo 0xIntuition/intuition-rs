@@ -25,7 +25,7 @@ use models::{
     types::U256Wrapper,
     vault::Vault,
 };
-use sqlx::{Postgres, Transaction};
+use sqlx::PgPool;
 use std::str::FromStr;
 use tracing::{info, warn};
 
@@ -141,8 +141,8 @@ impl AtomCreated {
     async fn decode_atom_data_and_update_atom(
         &self,
         atom: &mut Atom,
-        backend_schema: &str,
-        tx: &mut Transaction<'_, Postgres>,
+        decoded_consumer_context: &DecodedConsumerContext,
+        // tx: &mut Transaction<'_, Postgres>,
     ) -> Result<String, ConsumerError> {
         // decode the hex data from the atomData.
         let decoded_atom_data = if let Ok(decoded_atom_data) =
@@ -159,7 +159,11 @@ impl AtomCreated {
 
         // Update the atom with the decoded data
         atom.data = Some(decoded_atom_data.clone());
-        atom.upsert(backend_schema, tx.as_mut()).await?;
+        atom.upsert(
+            &decoded_consumer_context.backend_schema,
+            &decoded_consumer_context.pg_pool,
+        )
+        .await?;
         Ok(decoded_atom_data)
     }
 
@@ -168,15 +172,15 @@ impl AtomCreated {
     async fn get_or_create_atom_wallet_account(
         &self,
         backend_schema: &str,
-        tx: &mut Transaction<'_, Postgres>,
+        pg_pool: &PgPool,
     ) -> Result<Account, ConsumerError> {
         // First try to find existing account
-        let mut account = get_or_create_account_from_event(self, backend_schema, tx).await?;
+        let mut account = get_or_create_account_from_event(self, backend_schema, pg_pool).await?;
 
         // We update the account type to `AtomWallet` if it is not already set
         if account.account_type != AccountType::AtomWallet {
             account.account_type = AccountType::AtomWallet;
-            account.upsert(backend_schema, tx.as_mut()).await?;
+            account.upsert(backend_schema, pg_pool).await?;
         }
         Ok(account)
     }
@@ -187,12 +191,11 @@ impl AtomCreated {
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
-        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Atom, ConsumerError> {
         if let Some(atom) = Atom::find_by_id(
             self.vaultId.into(),
             &decoded_consumer_context.backend_schema,
-            tx.as_mut(),
+            &decoded_consumer_context.pg_pool,
         )
         .await?
         {
@@ -201,7 +204,6 @@ impl AtomCreated {
                 let atom = self
                     .update_atom_with_zero_transaction_hash_or_create_atom(
                         decoded_consumer_context,
-                        tx,
                         event,
                     )
                     .await?;
@@ -215,7 +217,6 @@ impl AtomCreated {
             let atom = self
                 .update_atom_with_zero_transaction_hash_or_create_atom(
                     decoded_consumer_context,
-                    tx,
                     event,
                 )
                 .await?;
@@ -228,11 +229,13 @@ impl AtomCreated {
     async fn update_atom_with_zero_transaction_hash_or_create_atom(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
-        tx: &mut Transaction<'_, Postgres>,
         event: &DecodedMessage,
     ) -> Result<Atom, ConsumerError> {
         let mut atom_wallet_account = self
-            .get_or_create_atom_wallet_account(&decoded_consumer_context.backend_schema, tx)
+            .get_or_create_atom_wallet_account(
+                &decoded_consumer_context.backend_schema,
+                &decoded_consumer_context.pg_pool,
+            )
             .await?;
         let creator_account =
             get_or_create_account(self.creator.to_string(), decoded_consumer_context).await?;
@@ -248,13 +251,15 @@ impl AtomCreated {
             .transaction_hash(event.transaction_hash.clone())
             .resolving_status(AtomResolvingStatus::Pending)
             .build()
-            .upsert(&decoded_consumer_context.backend_schema, tx.as_mut())
+            .upsert(
+                &decoded_consumer_context.backend_schema,
+                &decoded_consumer_context.pg_pool,
+            )
             .await?;
         update_account_with_atom_id(
             &mut atom_wallet_account,
             atom.term_id.clone(),
             decoded_consumer_context,
-            tx,
         )
         .await?;
         Ok(atom)
@@ -269,25 +274,19 @@ impl AtomCreated {
     ) -> Result<(), ConsumerError> {
         info!("Handling atom creation: {self:#?}");
 
-        let mut tx = decoded_consumer_context.pg_pool.begin().await?;
-
         // Update the vault current share price
         let (_vault, mut atom) = self
-            .update_vault_current_share_price(decoded_consumer_context, decoded_message, &mut tx)
+            .update_vault_current_share_price(decoded_consumer_context, decoded_message)
             .await?;
 
-        tx.commit().await?;
-
-        let mut tx_2 = decoded_consumer_context.pg_pool.begin().await?;
+        info!("Atom after updating share price: {:?}", atom);
+        // let mut tx_2 = decoded_consumer_context.pg_pool.begin().await?;
 
         // decode the hex data from the atomData.
         let decoded_atom_data = self
-            .decode_atom_data_and_update_atom(
-                &mut atom,
-                &decoded_consumer_context.backend_schema,
-                &mut tx_2,
-            )
+            .decode_atom_data_and_update_atom(&mut atom, decoded_consumer_context)
             .await?;
+        info!("Decoded atom data: {:?}", decoded_atom_data);
 
         // get the supported atom metadata and update the atom metadata
         let supported_atom_metadata =
@@ -296,16 +295,17 @@ impl AtomCreated {
                 .update_atom_metadata(
                     &mut atom,
                     &decoded_consumer_context.backend_schema,
-                    &mut tx_2,
+                    &decoded_consumer_context.pg_pool,
                 )
                 .await?;
+
+        info!("Atom after updating metadata: {:?}", atom);
 
         // Handle the account or caip10 type
         let resolved_atom = ResolveAtom { atom: atom.clone() };
         supported_atom_metadata
-            .handle_account_or_caip10_type(&resolved_atom, decoded_consumer_context, &mut tx_2)
+            .handle_account_or_caip10_type(&resolved_atom, decoded_consumer_context)
             .await?;
-        tx_2.commit().await?;
 
         // Create the event
         self.create_event(decoded_consumer_context, decoded_message)
@@ -319,7 +319,6 @@ impl AtomCreated {
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
-        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(Vault, Atom), ConsumerError> {
         // Get or create the vault
         let vault = get_or_create_vault(
@@ -336,7 +335,7 @@ impl AtomCreated {
         // created first, so if they don't exist, we create them as part of this
         // process.
         let atom = self
-            .get_or_create_vault_atom(decoded_consumer_context, event, tx)
+            .get_or_create_vault_atom(decoded_consumer_context, event)
             .await?;
 
         Ok((vault, atom))
