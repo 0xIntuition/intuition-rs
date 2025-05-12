@@ -93,7 +93,7 @@ impl VaultManager for &TripleCreated {
 impl TripleCreated {
     /// This function checks if the subject atom is an account and if the predicate and object atoms are a person or organization.
     /// If they are, it updates the account and atom with the label and image of the object atom.
-    async fn check_and_update_account_predicate_object_claim_count(
+    async fn check_and_update_account_predicate_object_position_count(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
@@ -562,12 +562,15 @@ impl TripleCreated {
                 .upsert(&decoded_consumer_context.backend_schema, tx.as_mut())
                 .await?;
 
-            // Update the predicate object claim count
-            self.update_predicate_object_claim_count(&decoded_consumer_context.backend_schema, tx)
-                .await?;
+            // Update the predicate object position count
+            self.update_predicate_object_position_count(
+                &decoded_consumer_context.backend_schema,
+                tx,
+            )
+            .await?;
         }
 
-        self.check_and_update_account_predicate_object_claim_count(
+        self.check_and_update_account_predicate_object_position_count(
             decoded_consumer_context,
             event,
             tx,
@@ -577,8 +580,8 @@ impl TripleCreated {
         Ok(())
     }
 
-    /// This function updates the predicate object claim count
-    async fn update_predicate_object_claim_count(
+    /// This function updates the predicate object position count
+    async fn update_predicate_object_position_count(
         &self,
         backend_schema: &str,
         tx: &mut Transaction<'_, Postgres>,
@@ -590,14 +593,14 @@ impl TripleCreated {
         )
         .await?
         {
-            predicate_object.claim_count += 1;
+            predicate_object.position_count += 1;
             predicate_object.upsert(backend_schema, tx.as_mut()).await?;
         } else {
             PredicateObject::builder()
                 .id(format!("{}-{}", self.predicateId, self.objectId))
                 .predicate_id(self.predicateId)
                 .object_id(self.objectId)
-                .claim_count(1)
+                .position_count(1)
                 .triple_count(1)
                 .build()
                 .upsert(backend_schema, tx.as_mut())
@@ -626,7 +629,7 @@ impl TripleCreated {
                 .id(format!("{}-{}", self.predicateId, self.objectId))
                 .predicate_id(self.predicateId)
                 .object_id(self.objectId)
-                .claim_count(0)
+                .position_count(0)
                 .triple_count(1)
                 .build()
                 .upsert(backend_schema, tx.as_mut())

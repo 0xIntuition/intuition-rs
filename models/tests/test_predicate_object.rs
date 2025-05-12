@@ -31,17 +31,17 @@ mod tests {
         assert_eq!(inserted.predicate_id, predicate_object.predicate_id);
         assert_eq!(inserted.object_id, predicate_object.object_id);
         assert_eq!(inserted.triple_count, predicate_object.triple_count);
-        assert_eq!(inserted.claim_count, predicate_object.claim_count);
+        assert_eq!(inserted.position_count, predicate_object.position_count);
 
         // Update values
         let mut updated = inserted;
         updated.triple_count = 2;
-        updated.claim_count = 2;
+        updated.position_count = 2;
 
         // Test update via upsert
         let updated = updated.upsert(TEST_SCHEMA, &pool).await?;
         assert_eq!(updated.triple_count, 2);
-        assert_eq!(updated.claim_count, 2);
+        assert_eq!(updated.position_count, 2);
 
         // Test find_by_id
         let found = PredicateObject::find_by_id(predicate_object.id.clone(), TEST_SCHEMA, &pool)
@@ -52,7 +52,7 @@ mod tests {
         assert_eq!(found.predicate_id, predicate_object.predicate_id);
         assert_eq!(found.object_id, predicate_object.object_id);
         assert_eq!(found.triple_count, 2);
-        assert_eq!(found.claim_count, 2);
+        assert_eq!(found.position_count, 2);
 
         Ok(())
     }

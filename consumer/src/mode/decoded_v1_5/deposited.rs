@@ -10,16 +10,13 @@ use crate::{
 use alloy::primitives::U256;
 use async_trait::async_trait;
 use models::{
-    claim::Claim,
     deposit::Deposit,
     event::{Event, EventType},
     position::Position,
-    predicate_object::PredicateObject,
     share_price_change::SharePriceChange,
     signal::Signal,
     term::TermType,
     traits::SimpleCrud,
-    triple::Triple,
     types::U256Wrapper,
     vault::Vault,
 };
@@ -89,49 +86,6 @@ impl VaultManager for &Deposited {
 }
 
 impl Deposited {
-    /// This function creates a claim and predicate object
-    async fn create_claim_and_predicate_object(
-        &self,
-        backend_schema: &str,
-        tx: &mut Transaction<'_, Postgres>,
-        triple: &Triple,
-        position_id: &str,
-    ) -> Result<(), ConsumerError> {
-        // Create claim
-        info!("Creating claim");
-        Claim::builder()
-            .id(self.format_claim_id())
-            .account_id(self.receiver.to_string())
-            .position_id(position_id.to_string())
-            .build()
-            .upsert(backend_schema, tx.as_mut())
-            .await?;
-
-        info!("Claim created");
-        // Update or create predicate object
-        info!("Creating predicate object");
-        let predicate_object_id = format!("{}-{}", triple.predicate_id, triple.object_id);
-        match PredicateObject::find_by_id(predicate_object_id, backend_schema, tx.as_mut()).await? {
-            Some(mut po) => {
-                po.claim_count += 1;
-                po.upsert(backend_schema, tx.as_mut()).await?;
-            }
-            None => {
-                PredicateObject::builder()
-                    .id(format!("{}-{}", triple.predicate_id, triple.object_id))
-                    .predicate_id(triple.predicate_id.clone())
-                    .object_id(triple.object_id.clone())
-                    .claim_count(1)
-                    .triple_count(1)
-                    .build()
-                    .upsert(backend_schema, tx.as_mut())
-                    .await?;
-            }
-        };
-
-        Ok(())
-    }
-
     /// This function creates a deposit
     async fn create_deposit(
         &self,
@@ -265,15 +219,6 @@ impl Deposited {
         Ok(())
     }
 
-    /// This function formats the claim ID
-    fn format_claim_id(&self) -> String {
-        format!(
-            "{}-1-{}",
-            self.vaultId,
-            self.receiver.to_string().to_lowercase()
-        )
-    }
-
     /// This function formats the position ID
     pub fn format_position_id(&self) -> String {
         format!(
@@ -303,7 +248,7 @@ impl Deposited {
             .await?;
 
         // Handle position and related entities
-        self.handle_position_and_claims(&decoded_consumer_context.backend_schema, &mut tx)
+        self.handle_positions(&decoded_consumer_context.backend_schema, &mut tx)
             .await?;
 
         tx.commit().await?;
@@ -319,69 +264,26 @@ impl Deposited {
         Ok(())
     }
 
-    /// This function handles an existing position
-    async fn handle_existing_position(
-        &self,
-        backend_schema: &str,
-        tx: &mut Transaction<'_, Postgres>,
-        position_id: &str,
-    ) -> Result<(), ConsumerError> {
-        // Update or create position
-        self.update_position(backend_schema, tx, position_id)
-            .await?;
-
-        Ok(())
-    }
-
-    /// This function handles the creation of a new position
-    async fn handle_new_position(
-        &self,
-        backend_schema: &str,
-        tx: &mut Transaction<'_, Postgres>,
-        position_id: &str,
-        triple: Option<Triple>,
-    ) -> Result<(), ConsumerError> {
-        self.create_new_position(position_id.to_string(), backend_schema, tx)
-            .await?;
-
-        info!("New position created");
-        if let Some(triple) = triple {
-            info!("Creating claim and predicate object");
-            self.create_claim_and_predicate_object(backend_schema, tx, &triple, position_id)
-                .await?;
-        }
-
-        Ok(())
-    }
-
     /// This function handles the position and claims
-    async fn handle_position_and_claims(
+    async fn handle_positions(
         &self,
         backend_schema: &str,
         tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
         let position_id = self.format_position_id();
-        info!("Finding triple");
-        let triple =
-            Triple::find_by_id(U256Wrapper::from(self.vaultId), backend_schema, tx.as_mut())
-                .await?;
-        info!(
-            "Triple found: {triple:#?} for id {:?}",
-            U256Wrapper::from(self.vaultId)
-        );
         let position =
             Position::find_by_id(position_id.clone(), backend_schema, tx.as_mut()).await?;
 
         if position.is_none() && self.receiverTotalSharesInVault > U256::from(0) {
             info!("Creating new position");
-            self.handle_new_position(backend_schema, tx, &position_id, triple)
+            self.create_new_position(position_id.to_string(), backend_schema, tx)
                 .await?;
         } else if position.is_some() && self.receiverTotalSharesInVault > U256::from(0) {
             info!("Position found, updating existing position");
-            self.handle_existing_position(backend_schema, tx, &position_id)
+            self.update_position(backend_schema, tx, &position_id)
                 .await?;
         } else {
-            info!("No need to update position or claims.");
+            info!("No need to update positions.");
         }
         Ok(())
     }

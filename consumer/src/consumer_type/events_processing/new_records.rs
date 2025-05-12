@@ -126,7 +126,6 @@ impl SqsHibrid {
         let notification: NotificationPayload = serde_json::from_str(notification.payload())?;
         let raw_log = notification.raw_log;
         let failed_log = FailedLog::builder()
-            .gs_id(raw_log.gs_id)
             .block_number(raw_log.block_number)
             .block_hash(raw_log.block_hash)
             .transaction_hash(raw_log.transaction_hash)

@@ -277,7 +277,7 @@ impl Redeemed {
             )
             .await?
             {
-                predicate_object.claim_count -= 1;
+                predicate_object.position_count -= 1;
                 predicate_object.upsert(backend_schema, tx.as_mut()).await?;
             }
         } else {

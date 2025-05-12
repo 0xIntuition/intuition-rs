@@ -12,7 +12,6 @@ use crate::{
 use alloy::primitives::U256;
 use async_trait::async_trait;
 use models::{
-    claim::Claim,
     deposit::Deposit,
     event::{Event, EventType},
     position::Position,
@@ -87,15 +86,6 @@ impl VaultManager for &DepositedCurve {
 }
 
 impl DepositedCurve {
-    fn format_claim_id(&self) -> String {
-        format!(
-            "{}-{}-{}",
-            self.vaultId,
-            self.curveId,
-            self.receiver.to_string().to_lowercase()
-        )
-    }
-
     /// This function formats the position ID
     fn format_position_id(&self) -> String {
         format!(
@@ -132,15 +122,6 @@ impl DepositedCurve {
                 .term_id(U256Wrapper::from_str(&self.vaultId.to_string())?)
                 .shares(self.receiverTotalSharesInVault)
                 .curve_id(U256Wrapper::from(self.curveId))
-                .build()
-                .upsert(backend_schema, tx.as_mut())
-                .await?;
-
-            // Create a claim
-            Claim::builder()
-                .id(self.format_claim_id())
-                .account_id(self.receiver.to_string())
-                .position_id(position_id)
                 .build()
                 .upsert(backend_schema, tx.as_mut())
                 .await?;

@@ -1,8 +1,8 @@
 query GetPredicateObjects {
   predicate_objects(
-    order_by: [{claim_count: desc}, {triple_count: desc}]
+    order_by: [{position_count: desc}, {triple_count: desc}]
   ) {
-    claim_count
+    position_count
     triple_count
     object {
       label

@@ -124,6 +124,9 @@ impl EventProcessor for &EthMultiVaultV1Events {
                     .await?;
                 timer.observe_duration();
             }
+            _ => {
+                info!("Received unsupported event: {:#?}", self);
+            }
         };
         Ok(())
     }

@@ -4666,7 +4666,7 @@ input positions_variance_order_by {
 columns and relationships of "predicate_object"
 """
 type predicate_objects {
-  claim_count: Int!
+  position_count: Int!
   id: String!
 
   """An object relationship"""
@@ -4734,7 +4734,7 @@ input predicate_objects_aggregate_order_by {
 
 """aggregate avg on columns"""
 type predicate_objects_avg_fields {
-  claim_count: Float
+  position_count: Float
   object_id: Float
   predicate_id: Float
   triple_count: Float
@@ -4744,7 +4744,7 @@ type predicate_objects_avg_fields {
 order by avg() on columns of table "predicate_object"
 """
 input predicate_objects_avg_order_by {
-  claim_count: order_by
+  position_count: order_by
   object_id: order_by
   predicate_id: order_by
   triple_count: order_by
@@ -4757,7 +4757,7 @@ input predicate_objects_bool_exp {
   _and: [predicate_objects_bool_exp!]
   _not: predicate_objects_bool_exp
   _or: [predicate_objects_bool_exp!]
-  claim_count: Int_comparison_exp
+  position_count: Int_comparison_exp
   id: String_comparison_exp
   object: atoms_bool_exp
   object_id: numeric_comparison_exp
@@ -4768,7 +4768,7 @@ input predicate_objects_bool_exp {
 
 """aggregate max on columns"""
 type predicate_objects_max_fields {
-  claim_count: Int
+  position_count: Int
   id: String
   object_id: numeric
   predicate_id: numeric
@@ -4779,7 +4779,7 @@ type predicate_objects_max_fields {
 order by max() on columns of table "predicate_object"
 """
 input predicate_objects_max_order_by {
-  claim_count: order_by
+  position_count: order_by
   id: order_by
   object_id: order_by
   predicate_id: order_by
@@ -4788,7 +4788,7 @@ input predicate_objects_max_order_by {
 
 """aggregate min on columns"""
 type predicate_objects_min_fields {
-  claim_count: Int
+  position_count: Int
   id: String
   object_id: numeric
   predicate_id: numeric
@@ -4799,7 +4799,7 @@ type predicate_objects_min_fields {
 order by min() on columns of table "predicate_object"
 """
 input predicate_objects_min_order_by {
-  claim_count: order_by
+  position_count: order_by
   id: order_by
   object_id: order_by
   predicate_id: order_by
@@ -4808,7 +4808,7 @@ input predicate_objects_min_order_by {
 
 """Ordering options when selecting data from "predicate_object"."""
 input predicate_objects_order_by {
-  claim_count: order_by
+  position_count: order_by
   id: order_by
   object: atoms_order_by
   object_id: order_by
@@ -4822,7 +4822,7 @@ select columns of table "predicate_object"
 """
 enum predicate_objects_select_column {
   """column name"""
-  claim_count
+  position_count
 
   """column name"""
   id
@@ -4839,7 +4839,7 @@ enum predicate_objects_select_column {
 
 """aggregate stddev on columns"""
 type predicate_objects_stddev_fields {
-  claim_count: Float
+  position_count: Float
   object_id: Float
   predicate_id: Float
   triple_count: Float
@@ -4849,7 +4849,7 @@ type predicate_objects_stddev_fields {
 order by stddev() on columns of table "predicate_object"
 """
 input predicate_objects_stddev_order_by {
-  claim_count: order_by
+  position_count: order_by
   object_id: order_by
   predicate_id: order_by
   triple_count: order_by
@@ -4857,7 +4857,7 @@ input predicate_objects_stddev_order_by {
 
 """aggregate stddev_pop on columns"""
 type predicate_objects_stddev_pop_fields {
-  claim_count: Float
+  position_count: Float
   object_id: Float
   predicate_id: Float
   triple_count: Float
@@ -4867,7 +4867,7 @@ type predicate_objects_stddev_pop_fields {
 order by stddev_pop() on columns of table "predicate_object"
 """
 input predicate_objects_stddev_pop_order_by {
-  claim_count: order_by
+  position_count: order_by
   object_id: order_by
   predicate_id: order_by
   triple_count: order_by
@@ -4875,7 +4875,7 @@ input predicate_objects_stddev_pop_order_by {
 
 """aggregate stddev_samp on columns"""
 type predicate_objects_stddev_samp_fields {
-  claim_count: Float
+  position_count: Float
   object_id: Float
   predicate_id: Float
   triple_count: Float
@@ -4885,7 +4885,7 @@ type predicate_objects_stddev_samp_fields {
 order by stddev_samp() on columns of table "predicate_object"
 """
 input predicate_objects_stddev_samp_order_by {
-  claim_count: order_by
+  position_count: order_by
   object_id: order_by
   predicate_id: order_by
   triple_count: order_by
@@ -4904,7 +4904,7 @@ input predicate_objects_stream_cursor_input {
 
 """Initial value of the column from where the streaming should start"""
 input predicate_objects_stream_cursor_value_input {
-  claim_count: Int
+  position_count: Int
   id: String
   object_id: numeric
   predicate_id: numeric
@@ -4913,7 +4913,7 @@ input predicate_objects_stream_cursor_value_input {
 
 """aggregate sum on columns"""
 type predicate_objects_sum_fields {
-  claim_count: Int
+  position_count: Int
   object_id: numeric
   predicate_id: numeric
   triple_count: Int
@@ -4923,7 +4923,7 @@ type predicate_objects_sum_fields {
 order by sum() on columns of table "predicate_object"
 """
 input predicate_objects_sum_order_by {
-  claim_count: order_by
+  position_count: order_by
   object_id: order_by
   predicate_id: order_by
   triple_count: order_by
@@ -4931,7 +4931,7 @@ input predicate_objects_sum_order_by {
 
 """aggregate var_pop on columns"""
 type predicate_objects_var_pop_fields {
-  claim_count: Float
+  position_count: Float
   object_id: Float
   predicate_id: Float
   triple_count: Float
@@ -4941,7 +4941,7 @@ type predicate_objects_var_pop_fields {
 order by var_pop() on columns of table "predicate_object"
 """
 input predicate_objects_var_pop_order_by {
-  claim_count: order_by
+  position_count: order_by
   object_id: order_by
   predicate_id: order_by
   triple_count: order_by
@@ -4949,7 +4949,7 @@ input predicate_objects_var_pop_order_by {
 
 """aggregate var_samp on columns"""
 type predicate_objects_var_samp_fields {
-  claim_count: Float
+  position_count: Float
   object_id: Float
   predicate_id: Float
   triple_count: Float
@@ -4959,7 +4959,7 @@ type predicate_objects_var_samp_fields {
 order by var_samp() on columns of table "predicate_object"
 """
 input predicate_objects_var_samp_order_by {
-  claim_count: order_by
+  position_count: order_by
   object_id: order_by
   predicate_id: order_by
   triple_count: order_by
@@ -4967,7 +4967,7 @@ input predicate_objects_var_samp_order_by {
 
 """aggregate variance on columns"""
 type predicate_objects_variance_fields {
-  claim_count: Float
+  position_count: Float
   object_id: Float
   predicate_id: Float
   triple_count: Float
@@ -4977,7 +4977,7 @@ type predicate_objects_variance_fields {
 order by variance() on columns of table "predicate_object"
 """
 input predicate_objects_variance_order_by {
-  claim_count: order_by
+  position_count: order_by
   object_id: order_by
   predicate_id: order_by
   triple_count: order_by

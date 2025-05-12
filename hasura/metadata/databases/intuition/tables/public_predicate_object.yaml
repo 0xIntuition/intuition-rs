@@ -17,7 +17,7 @@ select_permissions:
   - role: anonymous
     permission:
       columns:
-        - claim_count
+        - position_count
         - triple_count
         - object_id
         - predicate_id

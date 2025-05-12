@@ -6,7 +6,6 @@ use crate::{
 use alloy::primitives::{U256, Uint};
 use models::{
     account::Account,
-    claim::Claim,
     event::{Event, EventType},
     position::Position,
     predicate_object::PredicateObject,
@@ -213,13 +212,8 @@ impl Redeemed {
             )
             .await?;
             // Cleanup the triple related records
-            self.handle_triple_cleanup(
-                &vault,
-                &sender_account,
-                &decoded_consumer_context.backend_schema,
-                &mut tx,
-            )
-            .await?;
+            self.handle_triple_cleanup(&vault, &decoded_consumer_context.backend_schema, &mut tx)
+                .await?;
         } else {
             self.handle_remaining_shares(
                 &vault,
@@ -282,7 +276,6 @@ impl Redeemed {
     async fn handle_triple_cleanup(
         &self,
         vault: &Vault,
-        sender_account: &Account,
         backend_schema: &str,
         tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
@@ -290,12 +283,6 @@ impl Redeemed {
         if let Some(triple) =
             Triple::find_by_id(vault.term_id.clone(), backend_schema, tx.as_mut()).await?
         {
-            // Delete claim
-            let claim_id = format!("{}-{}", triple.term_id, sender_account.id.to_lowercase());
-            Claim::delete(claim_id, backend_schema, tx.as_mut())
-                .await
-                .map_err(|e| ConsumerError::DeleteClaim(e.to_string()))?;
-
             // Update predicate object
             if let Some(mut predicate_object) = PredicateObject::find_by_id(
                 format!("{}-{}", triple.predicate_id, triple.object_id),
@@ -304,7 +291,7 @@ impl Redeemed {
             )
             .await?
             {
-                predicate_object.claim_count -= 1;
+                predicate_object.position_count -= 1;
                 predicate_object.upsert(backend_schema, tx.as_mut()).await?;
             }
         } else {
@@ -331,8 +318,6 @@ impl Redeemed {
         // For instance, if the redemption fully depletes the position:
         if let Some(_pos) = position {
             info!("Position shares are zero, removing position record.");
-            // delete the claims
-            Claim::delete(position_id.to_string(), backend_schema, tx.as_mut()).await?;
             // Remove the position record..
             Position::delete(position_id.to_string(), backend_schema, tx.as_mut()).await?;
         }

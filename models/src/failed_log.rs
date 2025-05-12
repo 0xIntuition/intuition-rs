@@ -8,7 +8,6 @@ use crate::error::ModelError;
 #[derive(Debug, Deserialize, Serialize, sqlx::FromRow, Builder, Clone)]
 #[sqlx(type_name = "failed_log")]
 pub struct FailedLog {
-    pub gs_id: String,
     pub block_number: i64,
     pub block_hash: String,
     pub transaction_hash: String,
@@ -36,7 +35,7 @@ impl FailedLog {
     pub async fn insert(&self, pg_pool: &PgPool, schema: &str) -> Result<FailedLog, ModelError> {
         let query = format!(
             r#"
-           INSERT INTO {}.failed_logs (gs_id,block_number,block_hash,transaction_hash,transaction_index,
+           INSERT INTO {}.failed_logs (block_number,block_hash,transaction_hash,transaction_index,
            log_index,address,data,topics,block_timestamp)
            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
            RETURNING *
@@ -45,7 +44,6 @@ impl FailedLog {
         );
 
         sqlx::query_as::<_, FailedLog>(&query)
-            .bind(self.gs_id.clone())
             .bind(self.block_number)
             .bind(self.block_hash.clone())
             .bind(self.transaction_hash.clone())

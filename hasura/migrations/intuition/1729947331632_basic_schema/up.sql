@@ -185,7 +185,7 @@ CREATE TABLE predicate_object (
   predicate_id NUMERIC(78, 0) REFERENCES atom(id) NOT NULL,
   object_id NUMERIC(78, 0) REFERENCES atom(id) NOT NULL,
   triple_count INTEGER NOT NULL,
-  claim_count INTEGER NOT NULL
+  position_count INTEGER NOT NULL
 );
 
 CREATE TABLE signal (

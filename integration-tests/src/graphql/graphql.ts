@@ -4314,7 +4314,7 @@ export type Positions_Variance_Order_By = {
 /** columns and relationships of "predicate_object" */
 export type Predicate_Objects = {
   __typename?: 'predicate_objects';
-  claim_count: Scalars['Int']['output'];
+  position_count: Scalars['Int']['output'];
   id: Scalars['String']['output'];
   /** An object relationship */
   object: Atoms;
@@ -4384,7 +4384,7 @@ export type Predicate_Objects_Aggregate_Order_By = {
 /** aggregate avg on columns */
 export type Predicate_Objects_Avg_Fields = {
   __typename?: 'predicate_objects_avg_fields';
-  claim_count?: Maybe<Scalars['Float']['output']>;
+  position_count?: Maybe<Scalars['Float']['output']>;
   object_id?: Maybe<Scalars['Float']['output']>;
   predicate_id?: Maybe<Scalars['Float']['output']>;
   triple_count?: Maybe<Scalars['Float']['output']>;
@@ -4392,7 +4392,7 @@ export type Predicate_Objects_Avg_Fields = {
 
 /** order by avg() on columns of table "predicate_object" */
 export type Predicate_Objects_Avg_Order_By = {
-  claim_count?: InputMaybe<Order_By>;
+  position_count?: InputMaybe<Order_By>;
   object_id?: InputMaybe<Order_By>;
   predicate_id?: InputMaybe<Order_By>;
   triple_count?: InputMaybe<Order_By>;
@@ -4403,7 +4403,7 @@ export type Predicate_Objects_Bool_Exp = {
   _and?: InputMaybe<Array<Predicate_Objects_Bool_Exp>>;
   _not?: InputMaybe<Predicate_Objects_Bool_Exp>;
   _or?: InputMaybe<Array<Predicate_Objects_Bool_Exp>>;
-  claim_count?: InputMaybe<Int_Comparison_Exp>;
+  position_count?: InputMaybe<Int_Comparison_Exp>;
   id?: InputMaybe<String_Comparison_Exp>;
   object?: InputMaybe<Atoms_Bool_Exp>;
   object_id?: InputMaybe<Numeric_Comparison_Exp>;
@@ -4415,7 +4415,7 @@ export type Predicate_Objects_Bool_Exp = {
 /** aggregate max on columns */
 export type Predicate_Objects_Max_Fields = {
   __typename?: 'predicate_objects_max_fields';
-  claim_count?: Maybe<Scalars['Int']['output']>;
+  position_count?: Maybe<Scalars['Int']['output']>;
   id?: Maybe<Scalars['String']['output']>;
   object_id?: Maybe<Scalars['numeric']['output']>;
   predicate_id?: Maybe<Scalars['numeric']['output']>;
@@ -4424,7 +4424,7 @@ export type Predicate_Objects_Max_Fields = {
 
 /** order by max() on columns of table "predicate_object" */
 export type Predicate_Objects_Max_Order_By = {
-  claim_count?: InputMaybe<Order_By>;
+  position_count?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   object_id?: InputMaybe<Order_By>;
   predicate_id?: InputMaybe<Order_By>;
@@ -4434,7 +4434,7 @@ export type Predicate_Objects_Max_Order_By = {
 /** aggregate min on columns */
 export type Predicate_Objects_Min_Fields = {
   __typename?: 'predicate_objects_min_fields';
-  claim_count?: Maybe<Scalars['Int']['output']>;
+  position_count?: Maybe<Scalars['Int']['output']>;
   id?: Maybe<Scalars['String']['output']>;
   object_id?: Maybe<Scalars['numeric']['output']>;
   predicate_id?: Maybe<Scalars['numeric']['output']>;
@@ -4443,7 +4443,7 @@ export type Predicate_Objects_Min_Fields = {
 
 /** order by min() on columns of table "predicate_object" */
 export type Predicate_Objects_Min_Order_By = {
-  claim_count?: InputMaybe<Order_By>;
+  position_count?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   object_id?: InputMaybe<Order_By>;
   predicate_id?: InputMaybe<Order_By>;
@@ -4452,7 +4452,7 @@ export type Predicate_Objects_Min_Order_By = {
 
 /** Ordering options when selecting data from "predicate_object". */
 export type Predicate_Objects_Order_By = {
-  claim_count?: InputMaybe<Order_By>;
+  position_count?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   object?: InputMaybe<Atoms_Order_By>;
   object_id?: InputMaybe<Order_By>;
@@ -4464,7 +4464,7 @@ export type Predicate_Objects_Order_By = {
 /** select columns of table "predicate_object" */
 export enum Predicate_Objects_Select_Column {
   /** column name */
-  ClaimCount = 'claim_count',
+  ClaimCount = 'position_count',
   /** column name */
   Id = 'id',
   /** column name */
@@ -4478,7 +4478,7 @@ export enum Predicate_Objects_Select_Column {
 /** aggregate stddev on columns */
 export type Predicate_Objects_Stddev_Fields = {
   __typename?: 'predicate_objects_stddev_fields';
-  claim_count?: Maybe<Scalars['Float']['output']>;
+  position_count?: Maybe<Scalars['Float']['output']>;
   object_id?: Maybe<Scalars['Float']['output']>;
   predicate_id?: Maybe<Scalars['Float']['output']>;
   triple_count?: Maybe<Scalars['Float']['output']>;
@@ -4486,7 +4486,7 @@ export type Predicate_Objects_Stddev_Fields = {
 
 /** order by stddev() on columns of table "predicate_object" */
 export type Predicate_Objects_Stddev_Order_By = {
-  claim_count?: InputMaybe<Order_By>;
+  position_count?: InputMaybe<Order_By>;
   object_id?: InputMaybe<Order_By>;
   predicate_id?: InputMaybe<Order_By>;
   triple_count?: InputMaybe<Order_By>;
@@ -4495,7 +4495,7 @@ export type Predicate_Objects_Stddev_Order_By = {
 /** aggregate stddev_pop on columns */
 export type Predicate_Objects_Stddev_Pop_Fields = {
   __typename?: 'predicate_objects_stddev_pop_fields';
-  claim_count?: Maybe<Scalars['Float']['output']>;
+  position_count?: Maybe<Scalars['Float']['output']>;
   object_id?: Maybe<Scalars['Float']['output']>;
   predicate_id?: Maybe<Scalars['Float']['output']>;
   triple_count?: Maybe<Scalars['Float']['output']>;
@@ -4503,7 +4503,7 @@ export type Predicate_Objects_Stddev_Pop_Fields = {
 
 /** order by stddev_pop() on columns of table "predicate_object" */
 export type Predicate_Objects_Stddev_Pop_Order_By = {
-  claim_count?: InputMaybe<Order_By>;
+  position_count?: InputMaybe<Order_By>;
   object_id?: InputMaybe<Order_By>;
   predicate_id?: InputMaybe<Order_By>;
   triple_count?: InputMaybe<Order_By>;
@@ -4512,7 +4512,7 @@ export type Predicate_Objects_Stddev_Pop_Order_By = {
 /** aggregate stddev_samp on columns */
 export type Predicate_Objects_Stddev_Samp_Fields = {
   __typename?: 'predicate_objects_stddev_samp_fields';
-  claim_count?: Maybe<Scalars['Float']['output']>;
+  position_count?: Maybe<Scalars['Float']['output']>;
   object_id?: Maybe<Scalars['Float']['output']>;
   predicate_id?: Maybe<Scalars['Float']['output']>;
   triple_count?: Maybe<Scalars['Float']['output']>;
@@ -4520,7 +4520,7 @@ export type Predicate_Objects_Stddev_Samp_Fields = {
 
 /** order by stddev_samp() on columns of table "predicate_object" */
 export type Predicate_Objects_Stddev_Samp_Order_By = {
-  claim_count?: InputMaybe<Order_By>;
+  position_count?: InputMaybe<Order_By>;
   object_id?: InputMaybe<Order_By>;
   predicate_id?: InputMaybe<Order_By>;
   triple_count?: InputMaybe<Order_By>;
@@ -4536,7 +4536,7 @@ export type Predicate_Objects_Stream_Cursor_Input = {
 
 /** Initial value of the column from where the streaming should start */
 export type Predicate_Objects_Stream_Cursor_Value_Input = {
-  claim_count?: InputMaybe<Scalars['Int']['input']>;
+  position_count?: InputMaybe<Scalars['Int']['input']>;
   id?: InputMaybe<Scalars['String']['input']>;
   object_id?: InputMaybe<Scalars['numeric']['input']>;
   predicate_id?: InputMaybe<Scalars['numeric']['input']>;
@@ -4546,7 +4546,7 @@ export type Predicate_Objects_Stream_Cursor_Value_Input = {
 /** aggregate sum on columns */
 export type Predicate_Objects_Sum_Fields = {
   __typename?: 'predicate_objects_sum_fields';
-  claim_count?: Maybe<Scalars['Int']['output']>;
+  position_count?: Maybe<Scalars['Int']['output']>;
   object_id?: Maybe<Scalars['numeric']['output']>;
   predicate_id?: Maybe<Scalars['numeric']['output']>;
   triple_count?: Maybe<Scalars['Int']['output']>;
@@ -4554,7 +4554,7 @@ export type Predicate_Objects_Sum_Fields = {
 
 /** order by sum() on columns of table "predicate_object" */
 export type Predicate_Objects_Sum_Order_By = {
-  claim_count?: InputMaybe<Order_By>;
+  position_count?: InputMaybe<Order_By>;
   object_id?: InputMaybe<Order_By>;
   predicate_id?: InputMaybe<Order_By>;
   triple_count?: InputMaybe<Order_By>;
@@ -4563,7 +4563,7 @@ export type Predicate_Objects_Sum_Order_By = {
 /** aggregate var_pop on columns */
 export type Predicate_Objects_Var_Pop_Fields = {
   __typename?: 'predicate_objects_var_pop_fields';
-  claim_count?: Maybe<Scalars['Float']['output']>;
+  position_count?: Maybe<Scalars['Float']['output']>;
   object_id?: Maybe<Scalars['Float']['output']>;
   predicate_id?: Maybe<Scalars['Float']['output']>;
   triple_count?: Maybe<Scalars['Float']['output']>;
@@ -4571,7 +4571,7 @@ export type Predicate_Objects_Var_Pop_Fields = {
 
 /** order by var_pop() on columns of table "predicate_object" */
 export type Predicate_Objects_Var_Pop_Order_By = {
-  claim_count?: InputMaybe<Order_By>;
+  position_count?: InputMaybe<Order_By>;
   object_id?: InputMaybe<Order_By>;
   predicate_id?: InputMaybe<Order_By>;
   triple_count?: InputMaybe<Order_By>;
@@ -4580,7 +4580,7 @@ export type Predicate_Objects_Var_Pop_Order_By = {
 /** aggregate var_samp on columns */
 export type Predicate_Objects_Var_Samp_Fields = {
   __typename?: 'predicate_objects_var_samp_fields';
-  claim_count?: Maybe<Scalars['Float']['output']>;
+  position_count?: Maybe<Scalars['Float']['output']>;
   object_id?: Maybe<Scalars['Float']['output']>;
   predicate_id?: Maybe<Scalars['Float']['output']>;
   triple_count?: Maybe<Scalars['Float']['output']>;
@@ -4588,7 +4588,7 @@ export type Predicate_Objects_Var_Samp_Fields = {
 
 /** order by var_samp() on columns of table "predicate_object" */
 export type Predicate_Objects_Var_Samp_Order_By = {
-  claim_count?: InputMaybe<Order_By>;
+  position_count?: InputMaybe<Order_By>;
   object_id?: InputMaybe<Order_By>;
   predicate_id?: InputMaybe<Order_By>;
   triple_count?: InputMaybe<Order_By>;
@@ -4597,7 +4597,7 @@ export type Predicate_Objects_Var_Samp_Order_By = {
 /** aggregate variance on columns */
 export type Predicate_Objects_Variance_Fields = {
   __typename?: 'predicate_objects_variance_fields';
-  claim_count?: Maybe<Scalars['Float']['output']>;
+  position_count?: Maybe<Scalars['Float']['output']>;
   object_id?: Maybe<Scalars['Float']['output']>;
   predicate_id?: Maybe<Scalars['Float']['output']>;
   triple_count?: Maybe<Scalars['Float']['output']>;
@@ -4605,7 +4605,7 @@ export type Predicate_Objects_Variance_Fields = {
 
 /** order by variance() on columns of table "predicate_object" */
 export type Predicate_Objects_Variance_Order_By = {
-  claim_count?: InputMaybe<Order_By>;
+  position_count?: InputMaybe<Order_By>;
   object_id?: InputMaybe<Order_By>;
   predicate_id?: InputMaybe<Order_By>;
   triple_count?: InputMaybe<Order_By>;

@@ -14,7 +14,7 @@ pub struct PredicateObject {
     pub predicate_id: U256Wrapper,
     pub object_id: U256Wrapper,
     pub triple_count: i32,
-    pub claim_count: i32,
+    pub position_count: i32,
 }
 
 /// This is a trait that all models must implement.
@@ -29,19 +29,19 @@ impl SimpleCrud<String> for PredicateObject {
     {
         let query = format!(
             r#"
-            INSERT INTO {}.predicate_object (id, predicate_id, object_id, triple_count, claim_count)
+            INSERT INTO {}.predicate_object (id, predicate_id, object_id, triple_count, position_count)
             VALUES ($1, $2, $3, $4, $5)
             ON CONFLICT (id) DO UPDATE SET
                 predicate_id = EXCLUDED.predicate_id,
                 object_id = EXCLUDED.object_id,
                 triple_count = EXCLUDED.triple_count,
-                claim_count = EXCLUDED.claim_count
+                position_count = EXCLUDED.position_count
             RETURNING 
                 id, 
                 predicate_id, 
                 object_id, 
                 triple_count, 
-                claim_count
+                position_count
             "#,
             schema,
         );
@@ -51,7 +51,7 @@ impl SimpleCrud<String> for PredicateObject {
             .bind(self.predicate_id.to_big_decimal()?)
             .bind(self.object_id.to_big_decimal()?)
             .bind(self.triple_count)
-            .bind(self.claim_count)
+            .bind(self.position_count)
             .fetch_one(executor)
             .await
             .map_err(|e| ModelError::InsertError(e.to_string()))
@@ -73,7 +73,7 @@ impl SimpleCrud<String> for PredicateObject {
                 predicate_id, 
                 object_id, 
                 triple_count, 
-                claim_count
+                position_count
             FROM {}.predicate_object
             WHERE id = $1
             "#,
