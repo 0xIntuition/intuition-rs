@@ -1,5 +1,4 @@
 pub mod atom;
-pub mod deposited;
 pub mod deposited_curve;
 pub mod redeemed;
 pub mod redeemed_curve;

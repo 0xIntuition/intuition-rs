@@ -13,6 +13,7 @@ use crate::{
     error::ConsumerError,
     mode::{
         decoded::{
+            deposited::event_handler::DepositedEventHandler,
             fee_transferred::event_handler::FeeTransferredEventHandler,
             initialize::event_handler::InitializeEventHandler, utils::EventHandler,
         },
@@ -115,8 +116,8 @@ impl EventProcessor for &EthMultiVaultV1Events {
                     .with_label_values(&["Deposited"])
                     .start_timer();
                 info!("Received: {deposited_data:#?}");
-                deposited_data
-                    .handle_deposit_creation(context, message)
+                DepositedEventHandler(deposited_data)
+                    .process_event(context, message)
                     .await?;
                 timer.observe_duration();
             }

@@ -10,7 +10,6 @@ use crate::{
     traits::{SharePriceEvent, VaultManager},
 };
 use alloy::primitives::U256;
-use async_trait::async_trait;
 use models::{
     deposit::Deposit,
     event::{Event, EventType},
@@ -26,7 +25,6 @@ use models::{
 use sqlx::{Postgres, Transaction};
 use tracing::info;
 
-#[async_trait]
 /// This impl is used to convert the `DepositedCurve` event into a `SharePriceEvent`
 impl SharePriceEvent for &DepositedCurve {
     fn total_assets(&self) -> Result<U256Wrapper, ConsumerError> {
@@ -38,7 +36,6 @@ impl SharePriceEvent for &DepositedCurve {
     }
 }
 
-#[async_trait]
 impl VaultManager for &DepositedCurve {
     fn term_id(&self) -> Result<U256Wrapper, ConsumerError> {
         Ok(U256Wrapper::from(self.vaultId))

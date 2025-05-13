@@ -50,7 +50,6 @@ pub trait SharePriceEvent: VaultManager {
     }
 }
 
-#[async_trait]
 /// This trait is implemented by all vault managers.
 pub trait VaultManager {
     fn term_id(&self) -> Result<U256Wrapper, ConsumerError>;

@@ -8,7 +8,6 @@ use crate::{
     schemas::types::DecodedMessage,
     traits::{SharePriceEvent, VaultManager},
 };
-use async_trait::async_trait;
 use models::{
     share_price_change::{SharePriceChange as SharePriceChangeModel, SharePriceChangeInternal},
     term::TermType,
@@ -17,7 +16,6 @@ use models::{
 use sqlx::{Postgres, Transaction};
 use tracing::info;
 
-#[async_trait]
 impl VaultManager for &SharePriceChangedCurve {
     fn term_id(&self) -> Result<U256Wrapper, ConsumerError> {
         Ok(U256Wrapper::from(self.termId))

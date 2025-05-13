@@ -9,7 +9,6 @@ use crate::{
     schemas::types::DecodedMessage,
     traits::{SharePriceEvent, VaultManager},
 };
-use async_trait::async_trait;
 use models::{
     account::{Account, AccountType},
     atom::{Atom, AtomResolvingStatus, AtomType},
@@ -30,12 +29,10 @@ use tracing::info;
 /// This impl is used to convert the `TripleCreated` event into a `SharePriceEvent`
 /// and we can use the general share price change logic for this. We need this because
 /// we may need to create new vaults while handling the `TripleCreated` event.
-#[async_trait]
 impl SharePriceEvent for &TripleCreated {}
 
 /// This impl is used to convert the `AtomCreated` event into a `VaultManager`
 /// and we can use the general vault creation logic for this.
-#[async_trait]
 impl VaultManager for &TripleCreated {
     fn term_id(&self) -> Result<U256Wrapper, ConsumerError> {
         Ok(U256Wrapper::from(self.vaultId))

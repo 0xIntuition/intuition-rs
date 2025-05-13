@@ -10,7 +10,6 @@ use crate::{
     traits::{SharePriceEvent, VaultManager},
 };
 use alloy::primitives::{U256, Uint};
-use async_trait::async_trait;
 use models::{
     account::{Account, AccountType},
     atom::{Atom, AtomResolvingStatus, AtomType},
@@ -27,12 +26,10 @@ use sqlx::{Postgres, Transaction};
 use std::str::FromStr;
 use tracing::info;
 
-#[async_trait]
 /// This impl is used to convert the `TripleCreated` event into a `SharePriceEvent`
 impl SharePriceEvent for &TripleCreated {}
 
 /// This impl is used to convert the `TripleCreated` event into a `VaultManager`
-#[async_trait]
 impl VaultManager for &TripleCreated {
     fn term_id(&self) -> Result<U256Wrapper, ConsumerError> {
         Ok(U256Wrapper::from(self.vaultID))

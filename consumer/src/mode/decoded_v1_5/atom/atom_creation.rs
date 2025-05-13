@@ -13,7 +13,6 @@ use crate::{
     schemas::types::DecodedMessage,
     traits::{AccountManager, SharePriceEvent, VaultManager},
 };
-use async_trait::async_trait;
 use models::{
     account::{Account, AccountType},
     atom::{Atom, AtomResolvingStatus, AtomType},
@@ -29,7 +28,6 @@ use sqlx::PgPool;
 use std::str::FromStr;
 use tracing::{info, warn};
 
-#[async_trait]
 /// This impl is used to convert the `AtomCreated` event into a `SharePriceEvent`
 impl SharePriceEvent for &AtomCreated {
     fn total_assets(&self) -> Result<U256Wrapper, ConsumerError> {
@@ -57,7 +55,6 @@ impl AccountManager for &AtomCreated {
     }
 }
 
-#[async_trait]
 /// This impl is used to convert the `AtomCreated` event into a `VaultManager`
 /// and we can use the general vault creation logic for this.
 impl VaultManager for &AtomCreated {
