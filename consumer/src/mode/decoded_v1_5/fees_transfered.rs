@@ -45,6 +45,15 @@ impl FeesTransferred {
         protocol_multisig_account: &Account,
         event: &DecodedMessage,
     ) -> Result<FeeTransfer, ConsumerError> {
+        if let Some(fee_transfer) = FeeTransfer::find_by_id(
+            DecodedMessage::event_id(event),
+            &decoded_consumer_context.backend_schema,
+            &decoded_consumer_context.pg_pool,
+        )
+        .await?
+        {
+            return Ok(fee_transfer);
+        }
         FeeTransfer::builder()
             .id(DecodedMessage::event_id(event))
             .sender_id(sender_account.id.clone())

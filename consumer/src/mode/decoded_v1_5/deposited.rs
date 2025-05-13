@@ -13,7 +13,6 @@ use models::{
     deposit::Deposit,
     event::{Event, EventType},
     position::Position,
-    predicate_object::PredicateObject,
     share_price_change::SharePriceChange,
     signal::Signal,
     term::TermType,
@@ -276,28 +275,31 @@ impl Deposited {
         tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
         let position_id = self.format_position_id();
+        info!("Handling position with ID: {}", position_id);
         let position =
             Position::find_by_id(position_id.clone(), backend_schema, tx.as_mut()).await?;
 
         if position.is_none() && self.receiverTotalSharesInVault > U256::from(0) {
-            info!("Creating new position");
+            info!("Creating new position with ID: {}", position_id);
             self.create_new_position(position_id.to_string(), backend_schema, tx)
                 .await?;
-            // Update the predicate object
-            let predicate_object =
-                PredicateObject::find_by_id(self.vaultId.to_string(), backend_schema, tx.as_mut())
-                    .await?;
-
-            if let Some(mut predicate_object) = predicate_object {
-                predicate_object.position_count += 1;
-                predicate_object.upsert(backend_schema, tx.as_mut()).await?;
+        } else if let Some(mut position) = position {
+            if self.receiverTotalSharesInVault > U256::from(0) {
+                info!(
+                    "Position found, updating existing position with ID: {} and current shares: {}",
+                    position_id, position.shares
+                );
+                if position.shares != U256Wrapper::from(self.receiverTotalSharesInVault) {
+                    self.update_position(backend_schema, tx, &mut position)
+                        .await?;
+                }
+            } else {
+                info!("No need to update positions, receiver total shares in vault is 0.");
             }
-        } else if position.is_some() && self.receiverTotalSharesInVault > U256::from(0) {
-            info!("Position found, updating existing position");
-            self.update_position(backend_schema, tx, &position_id)
-                .await?;
         } else {
-            info!("No need to update positions.");
+            info!(
+                "No need to update positions. Position not found and receiver total shares in vault is 0."
+            );
         }
         Ok(())
     }
@@ -333,18 +335,9 @@ impl Deposited {
         &self,
         backend_schema: &str,
         tx: &mut Transaction<'_, Postgres>,
-        position_id: &str,
+        position: &mut Position,
     ) -> Result<Position, ConsumerError> {
-        let position =
-            match Position::find_by_id(position_id.to_string(), backend_schema, tx.as_mut()).await?
-            {
-                Some(mut position) => {
-                    position.shares = U256Wrapper::from(self.receiverTotalSharesInVault);
-                    position
-                }
-                None => return Err(ConsumerError::PositionNotFound),
-            };
-
+        position.shares = U256Wrapper::from(self.receiverTotalSharesInVault);
         position
             .upsert(backend_schema, tx.as_mut())
             .await
