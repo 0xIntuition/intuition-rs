@@ -12,7 +12,10 @@ use tracing::{info, warn};
 use crate::{
     config::ContractInstance,
     error::ConsumerError,
-    mode::types::{DecodedConsumerContext, get_event_processing_histogram},
+    mode::{
+        decoded::utils::EventHandler,
+        types::{DecodedConsumerContext, get_event_processing_histogram},
+    },
     schemas::types::DecodedMessage,
     traits::{ContractClient, EventProcessor},
 };
@@ -229,9 +232,7 @@ impl EventProcessor for &EthMultiVaultV1_5Events {
                     .with_label_values(&["FeesTransferred"])
                     .start_timer();
                 info!("Received: {fees_data:#?}");
-                fees_data
-                    .handle_fees_transferred_creation(context, message)
-                    .await?;
+                fees_data.process_event(context, message).await?;
                 timer.observe_duration();
             }
             EthMultiVaultV1_5Events::TripleCreated(triple_data) => {

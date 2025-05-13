@@ -9,7 +9,9 @@ use models::{
 
 use crate::{
     error::ConsumerError,
-    mode::{decoded::utils::EventHandler, types::DecodedConsumerContext},
+    mode::{
+        decoded::utils::EventHandler, types::DecodedConsumerContext, utils::get_or_create_account,
+    },
     schemas::types::DecodedMessage,
 };
 
@@ -24,9 +26,8 @@ impl<T: FeeTransferredEvent + Debug> EventHandler for T {
         info!("Handling fees transfer: {self:#?}");
 
         // Get or create the sender account
-        let sender_account = self
-            .get_or_create_sender_account(decoded_consumer_context)
-            .await?;
+        let sender_account =
+            get_or_create_account(self.sender()?, decoded_consumer_context).await?;
 
         // Upsert the protocol multisig account
         let protocol_multisig_account = self

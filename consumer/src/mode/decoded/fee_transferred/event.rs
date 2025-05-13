@@ -5,13 +5,11 @@ use models::{
     traits::SimpleCrud,
     types::U256Wrapper,
 };
+use tracing::info;
 
 use crate::{
-    EthMultiVault::FeesTransferred,
-    EthMultiVaultV1_5::FeesTransferred as FeesTransferredV1_5,
-    error::ConsumerError,
-    mode::{types::DecodedConsumerContext, utils::short_id},
-    schemas::types::DecodedMessage,
+    EthMultiVault::FeesTransferred, EthMultiVaultV1_5::FeesTransferred as FeesTransferredV1_5,
+    error::ConsumerError, mode::types::DecodedConsumerContext, schemas::types::DecodedMessage,
 };
 
 /// This trait represents a fee transferred event
@@ -36,6 +34,7 @@ pub trait FeeTransferredEvent {
         )
         .await?
         {
+            info!("Fee transfer already exists: {fee_transfer:#?}");
             return Ok(fee_transfer);
         }
         FeeTransfer::builder()
@@ -55,43 +54,12 @@ pub trait FeeTransferredEvent {
             .map_err(ConsumerError::ModelError)
     }
 
-    /// This function gets or creates a sender account
-    async fn get_or_create_sender_account(
-        &self,
-        decoded_consumer_context: &DecodedConsumerContext,
-    ) -> Result<Account, ConsumerError> {
-        // First try to find existing account
-        if let Some(account) = Account::find_by_id(
-            self.sender()?,
-            &decoded_consumer_context.backend_schema,
-            &decoded_consumer_context.pg_pool,
-        )
-        .await?
-        {
-            return Ok(account);
-        }
-
-        // Only create new account if none exists
-        Account::builder()
-            .id(self.sender()?)
-            .label(short_id(&self.sender()?))
-            .account_type(AccountType::Default)
-            .build()
-            .upsert(
-                &decoded_consumer_context.backend_schema,
-                &decoded_consumer_context.pg_pool,
-            )
-            .await
-            .map_err(ConsumerError::ModelError)
-    }
-
     /// This function upserts the protocol multisig account
     async fn upsert_protocol_multisig_account(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<Account, ConsumerError> {
         let protocol_vault = self.protocol_vault()?;
-
         Account::find_by_id(
             protocol_vault.clone(),
             &decoded_consumer_context.backend_schema,
