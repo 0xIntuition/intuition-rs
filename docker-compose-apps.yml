@@ -82,7 +82,7 @@ services:
       INDEXER_SCHEMA: $INDEXER_SCHEMA
       ENVIRONMENT_NAME: "local_v_1_5"
       THREADS: '2'
-      # INITIAL_CONTRACT_VERSION: $INITIAL_CONTRACT_VERSION
+      INITIAL_CONTRACT_VERSION: "v1_5"
       CONSUMER_METRICS_API_PORT: '3002'
       DATABASE_URL: 'postgres://postgres:postgres@database:5435/storage'
       DECODED_LOGS_QUEUE_URL: 'http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/decoded_logs.fifo'

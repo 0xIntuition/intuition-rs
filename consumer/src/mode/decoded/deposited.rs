@@ -13,6 +13,7 @@ use models::{
     deposit::Deposit,
     event::{Event, EventType},
     position::Position,
+    predicate_object::PredicateObject,
     signal::Signal,
     term::TermType,
     traits::SimpleCrud,
@@ -267,7 +268,11 @@ impl Deposited {
         )
         .await?;
 
+        info!("Committing transaction");
+
         tx.commit().await?;
+
+        info!("Transaction committed");
 
         // Create event
         self.create_event(decoded_consumer_context, event, deposit.id)
@@ -308,6 +313,21 @@ impl Deposited {
                 tx,
             )
             .await?;
+
+            // Update the predicate object
+            let predicate_object = PredicateObject::find_by_id(
+                self.vaultId.to_string(),
+                &decoded_consumer_context.backend_schema,
+                tx.as_mut(),
+            )
+            .await?;
+
+            if let Some(mut predicate_object) = predicate_object {
+                predicate_object.position_count += 1;
+                predicate_object
+                    .upsert(&decoded_consumer_context.backend_schema, tx.as_mut())
+                    .await?;
+            }
         } else {
             info!("No need to update positions.");
         }

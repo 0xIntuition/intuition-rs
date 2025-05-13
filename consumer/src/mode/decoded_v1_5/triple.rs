@@ -13,7 +13,6 @@ use async_trait::async_trait;
 use models::{
     account::{Account, AccountType},
     atom::{Atom, AtomResolvingStatus, AtomType},
-    claim::Claim,
     event::{Event, EventType},
     position::Position,
     predicate_object::PredicateObject,
@@ -553,15 +552,7 @@ impl TripleCreated {
             &decoded_consumer_context.backend_schema,
         )
         .await?;
-        for position in positions {
-            Claim::builder()
-                .id(format!("{}-{}", self.vaultId, position.account_id))
-                .account_id(position.account_id.clone())
-                .position_id(position.id.clone())
-                .build()
-                .upsert(&decoded_consumer_context.backend_schema, tx.as_mut())
-                .await?;
-
+        for _position in positions {
             // Update the predicate object position count
             self.update_predicate_object_position_count(
                 &decoded_consumer_context.backend_schema,

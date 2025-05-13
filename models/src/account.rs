@@ -66,7 +66,7 @@ impl SimpleCrud<String> for Account {
             .bind(self.account_type.to_string())
             .fetch_one(executor)
             .await
-            .map_err(|e| ModelError::InsertError(e.to_string()))
+            .map_err(|e| ModelError::AccountInsertError(e.to_string()))
     }
 
     /// This is a method to find an account by its id.

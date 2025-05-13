@@ -13,6 +13,7 @@ use models::{
     deposit::Deposit,
     event::{Event, EventType},
     position::Position,
+    predicate_object::PredicateObject,
     share_price_change::SharePriceChange,
     signal::Signal,
     term::TermType,
@@ -251,7 +252,11 @@ impl Deposited {
         self.handle_positions(&decoded_consumer_context.backend_schema, &mut tx)
             .await?;
 
+        info!("Committing transaction");
+
         tx.commit().await?;
+
+        info!("Transaction committed");
 
         // Create event
         self.create_event(decoded_consumer_context, event, deposit.id)
@@ -278,6 +283,15 @@ impl Deposited {
             info!("Creating new position");
             self.create_new_position(position_id.to_string(), backend_schema, tx)
                 .await?;
+            // Update the predicate object
+            let predicate_object =
+                PredicateObject::find_by_id(self.vaultId.to_string(), backend_schema, tx.as_mut())
+                    .await?;
+
+            if let Some(mut predicate_object) = predicate_object {
+                predicate_object.position_count += 1;
+                predicate_object.upsert(backend_schema, tx.as_mut()).await?;
+            }
         } else if position.is_some() && self.receiverTotalSharesInVault > U256::from(0) {
             info!("Position found, updating existing position");
             self.update_position(backend_schema, tx, &position_id)

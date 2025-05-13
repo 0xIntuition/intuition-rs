@@ -66,7 +66,7 @@ impl SimpleCrud<String> for Position {
             .bind(self.curve_id.to_big_decimal()?)
             .fetch_one(executor)
             .await
-            .map_err(|e| ModelError::InsertError(e.to_string()))
+            .map_err(|e| ModelError::PositionInsertError(e.to_string()))
     }
 
     /// Finds a position by its ID

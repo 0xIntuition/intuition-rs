@@ -98,7 +98,7 @@ impl SimpleCrud<String> for Deposit {
             .bind(self.curve_id.to_big_decimal()?)
             .fetch_one(executor)
             .await
-            .map_err(|e| crate::error::ModelError::InsertError(e.to_string()))
+            .map_err(|e| crate::error::ModelError::DepositInsertError(e.to_string()))
     }
     /// Finds a deposit record by its ID.
     /// Returns None if no record is found.

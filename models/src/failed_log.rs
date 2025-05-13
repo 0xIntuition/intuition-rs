@@ -37,7 +37,7 @@ impl FailedLog {
             r#"
            INSERT INTO {}.failed_logs (block_number,block_hash,transaction_hash,transaction_index,
            log_index,address,data,topics,block_timestamp)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
            RETURNING *
            "#,
             schema,

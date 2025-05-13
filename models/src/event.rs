@@ -87,7 +87,7 @@ impl SimpleCrud<String> for Event {
             .bind(&self.transaction_hash)
             .fetch_one(executor)
             .await
-            .map_err(|e| ModelError::InsertError(e.to_string()))
+            .map_err(|e| ModelError::EventInsertError(e.to_string()))
     }
 
     /// Finds an event by its id.

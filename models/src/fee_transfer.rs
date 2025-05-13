@@ -72,7 +72,7 @@ impl SimpleCrud<String> for FeeTransfer {
             .bind(self.transaction_hash.clone())
             .fetch_one(executor)
             .await
-            .map_err(|e| ModelError::InsertError(e.to_string()))
+            .map_err(|e| ModelError::FeeTransferInsertError(e.to_string()))
     }
 
     /// Finds a fee transfer record by its ID.

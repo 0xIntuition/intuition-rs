@@ -15,6 +15,7 @@ use models::{
     deposit::Deposit,
     event::{Event, EventType},
     position::Position,
+    predicate_object::PredicateObject,
     share_price_change::SharePriceChange,
     signal::Signal,
     term::TermType,
@@ -125,6 +126,15 @@ impl DepositedCurve {
                 .build()
                 .upsert(backend_schema, tx.as_mut())
                 .await?;
+            // Update the predicate object
+            let predicate_object =
+                PredicateObject::find_by_id(self.vaultId.to_string(), backend_schema, tx.as_mut())
+                    .await?;
+
+            if let Some(mut predicate_object) = predicate_object {
+                predicate_object.position_count += 1;
+                predicate_object.upsert(backend_schema, tx.as_mut()).await?;
+            }
         }
 
         Ok(())

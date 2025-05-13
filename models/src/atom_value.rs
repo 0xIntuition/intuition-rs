@@ -89,7 +89,7 @@ impl SimpleCrud<U256Wrapper> for AtomValue {
             )
             .fetch_one(executor)
             .await
-            .map_err(|e| ModelError::InsertError(e.to_string()))
+            .map_err(|e| ModelError::AtomValueInsertError(e.to_string()))
     }
 
     /// This is a method to find an atom value by its id.

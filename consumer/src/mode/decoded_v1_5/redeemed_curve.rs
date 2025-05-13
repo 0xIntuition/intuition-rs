@@ -7,9 +7,9 @@ use crate::{
 use alloy::primitives::{U256, Uint};
 use models::{
     account::Account,
-    claim::Claim,
     event::{Event, EventType},
     position::Position,
+    predicate_object::PredicateObject,
     redemption::Redemption,
     signal::Signal,
     term::{Term, TermType},
@@ -149,13 +149,19 @@ impl RedeemedCurve {
 
         // Delete the position if it exists
         if position_exists {
-            // delete the claims
-            Claim::delete(position_id.clone(), backend_schema, tx.as_mut()).await?;
-
             // delete the position
             Position::delete(position_id.clone(), backend_schema, tx.as_mut()).await?;
-
-            // Decrement the position count in the curve vault
+            // clean up the predicate object
+            let predicate_object = PredicateObject::find_by_id(
+                curve_vault.term_id.to_string(),
+                backend_schema,
+                tx.as_mut(),
+            )
+            .await?;
+            if let Some(mut predicate_object) = predicate_object {
+                predicate_object.position_count -= 1;
+                predicate_object.upsert(backend_schema, tx.as_mut()).await?;
+            }
             if curve_vault.position_count > 0 {
                 // Create a new curve vault with decremented position count
                 curve_vault.position_count -= 1;
