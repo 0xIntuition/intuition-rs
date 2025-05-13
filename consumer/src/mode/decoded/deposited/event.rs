@@ -1,16 +1,4 @@
-use std::str::FromStr;
-
-use alloy::primitives::{U256, Uint};
-use models::{
-    deposit::Deposit, position::Position, share_price_change::SharePriceChange, signal::Signal,
-    term::TermType, traits::SimpleCrud, types::U256Wrapper, vault::Vault,
-};
-use sqlx::{Postgres, Transaction};
-use tracing::info;
-
 use crate::{
-    EthMultiVault::Deposited,
-    EthMultiVaultV1_5::Deposited as DepositedV1_5,
     error::ConsumerError,
     mode::{
         decoded::utils::{VaultUpdate, update_vault},
@@ -20,122 +8,37 @@ use crate::{
     schemas::types::DecodedMessage,
     traits::{SharePriceEvent, VaultManager},
 };
+use alloy::primitives::{U256, Uint};
+use models::{
+    deposit::Deposit, position::Position, signal::Signal, term::TermType, traits::SimpleCrud,
+    types::U256Wrapper, vault::Vault,
+};
+use sqlx::{Postgres, Transaction};
+use tracing::info;
 
-impl VaultManager for &Deposited {
-    fn term_id(&self) -> Result<U256Wrapper, ConsumerError> {
-        Ok(U256Wrapper::from(self.vaultId))
-    }
-
-    fn curve_id(&self) -> Result<U256Wrapper, ConsumerError> {
-        Ok(U256Wrapper::from_str("1")?)
-    }
-
-    async fn total_shares(
-        &self,
-        decoded_consumer_context: &DecodedConsumerContext,
-        block_number: Option<i64>,
-    ) -> Result<U256Wrapper, ConsumerError> {
-        Ok(decoded_consumer_context
-            .fetch_total_shares_in_vault(
-                self.vaultId,
-                block_number.ok_or(ConsumerError::BlockNumberNotFound)?,
-            )
-            .await?
-            .into())
-    }
-
-    async fn current_share_price(
-        &self,
-        decoded_consumer_context: &DecodedConsumerContext,
-        block_number: Option<i64>,
-    ) -> Result<U256Wrapper, ConsumerError> {
-        Ok(decoded_consumer_context
-            .fetch_current_share_price(
-                self.vaultId,
-                block_number.ok_or(ConsumerError::BlockNumberNotFound)?,
-            )
-            .await?
-            .into())
-    }
-
-    async fn position_count(
-        &self,
-        decoded_consumer_context: &DecodedConsumerContext,
-    ) -> Result<i32, ConsumerError> {
-        Ok(Position::count_by_vault_and_curve(
-            self.vaultId.into(),
-            "1".try_into()?,
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
-        )
-        .await? as i32)
-    }
-}
-
-/// This impl is used to convert the `Deposited` event into a `SharePriceEvent`
-impl SharePriceEvent for &Deposited {}
-
-impl VaultManager for &DepositedV1_5 {
-    fn term_id(&self) -> Result<U256Wrapper, ConsumerError> {
-        Ok(U256Wrapper::from(self.vaultId))
-    }
-
-    fn curve_id(&self) -> Result<U256Wrapper, ConsumerError> {
-        Ok(U256Wrapper::from_str("1")?)
-    }
-
-    async fn total_shares(
-        &self,
-        decoded_consumer_context: &DecodedConsumerContext,
-        _block_number: Option<i64>,
-    ) -> Result<U256Wrapper, ConsumerError> {
-        Ok(SharePriceChange::fetch_current_share_price(
-            self.vaultId.into(),
-            1.try_into()?,
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
-        )
-        .await?
-        .total_shares)
-    }
-
-    async fn current_share_price(
-        &self,
-        decoded_consumer_context: &DecodedConsumerContext,
-        _block_number: Option<i64>,
-    ) -> Result<U256Wrapper, ConsumerError> {
-        Ok(SharePriceChange::fetch_current_share_price(
-            self.vaultId.into(),
-            1.try_into()?,
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
-        )
-        .await?
-        .share_price)
-    }
-
-    async fn position_count(
-        &self,
-        _decoded_consumer_context: &DecodedConsumerContext,
-    ) -> Result<i32, ConsumerError> {
-        Ok(0)
-    }
-}
-
-/// This impl is used to convert the `DepositedV1_5` event into a `SharePriceEvent`
-impl SharePriceEvent for &DepositedV1_5 {}
-
+/// This trait represents a deposited event
 pub trait DepositedEvent: SharePriceEvent + VaultManager + Clone {
+    /// This function returns the sender of the deposit
     fn sender(&self) -> Result<String, ConsumerError>;
+    /// This function returns the receiver of the deposit
     fn receiver(&self) -> Result<String, ConsumerError>;
+    /// This function returns the total shares in the vault
     fn receiver_total_shares_in_vault(&self) -> Result<Uint<256, 4>, ConsumerError>;
+    /// This function returns the vault ID
     fn vault_id(&self) -> Result<Uint<256, 4>, ConsumerError>;
+    /// This function returns whether the deposit is a triple
     fn is_triple(&self) -> Result<bool, ConsumerError>;
+    /// This function returns whether the deposit is an atom wallet
     fn is_atom_wallet(&self) -> Result<bool, ConsumerError>;
+    /// This function returns the entry fee
     fn entry_fee(&self) -> Result<Uint<256, 4>, ConsumerError>;
+    /// This function returns the sender assets after total fees
     fn sender_assets_after_total_fees(&self) -> Result<Uint<256, 4>, ConsumerError>;
+    /// This function returns the shares for the receiver
     fn shares_for_receiver(&self) -> Result<Uint<256, 4>, ConsumerError>;
+    /// This function returns the curve ID
     fn curve_id(&self) -> Result<Uint<256, 4>, ConsumerError>;
+    /// This function creates a deposit
     async fn create_deposit(
         &self,
         event: &DecodedMessage,
@@ -166,6 +69,7 @@ pub trait DepositedEvent: SharePriceEvent + VaultManager + Clone {
             .await
             .map_err(ConsumerError::ModelError)
     }
+    /// This function creates a signal
     async fn create_signal(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
@@ -234,10 +138,11 @@ pub trait DepositedEvent: SharePriceEvent + VaultManager + Clone {
         .await
     }
     /// This function formats the position ID
-    fn format_position_id(&self) -> Result<String, ConsumerError> {
+    fn format_position_id(&self, curve_id: &str) -> Result<String, ConsumerError> {
         Ok(format!(
-            "{}-1-{}",
+            "{}-{}-{}",
             self.vault_id()?,
+            curve_id,
             self.receiver()?.to_lowercase()
         ))
     }
@@ -280,7 +185,8 @@ pub trait DepositedEvent: SharePriceEvent + VaultManager + Clone {
         current_share_price: Option<U256Wrapper>,
         total_shares: Option<Uint<256, 4>>,
     ) -> Result<(), ConsumerError> {
-        let position_id = self.format_position_id()?;
+        let position_id =
+            self.format_position_id(DepositedEvent::curve_id(self)?.to_string().as_str())?;
         info!("Handling position with ID: {}", position_id);
         let position = Position::find_by_id(
             position_id.clone(),
@@ -320,6 +226,26 @@ pub trait DepositedEvent: SharePriceEvent + VaultManager + Clone {
             );
         }
 
+        // Update vault values when dealing with v1 deposit events
+        self.update_vault_values(
+            decoded_consumer_context,
+            tx,
+            current_share_price,
+            total_shares,
+        )
+        .await?;
+
+        Ok(())
+    }
+
+    /// This function updates the vault values
+    async fn update_vault_values(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+        tx: &mut Transaction<'_, Postgres>,
+        current_share_price: Option<U256Wrapper>,
+        total_shares: Option<Uint<256, 4>>,
+    ) -> Result<(), ConsumerError> {
         if let Some(current_share_price) = current_share_price {
             if let Some(total_shares) = total_shares {
                 // Update vault values
@@ -338,73 +264,6 @@ pub trait DepositedEvent: SharePriceEvent + VaultManager + Clone {
                 .await?;
             }
         }
-
         Ok(())
-    }
-}
-
-impl DepositedEvent for &Deposited {
-    fn sender(&self) -> Result<String, ConsumerError> {
-        Ok(self.sender.to_string())
-    }
-    fn receiver(&self) -> Result<String, ConsumerError> {
-        Ok(self.receiver.to_string())
-    }
-    fn receiver_total_shares_in_vault(&self) -> Result<Uint<256, 4>, ConsumerError> {
-        Ok(self.receiverTotalSharesInVault)
-    }
-    fn vault_id(&self) -> Result<Uint<256, 4>, ConsumerError> {
-        Ok(self.vaultId)
-    }
-    fn is_triple(&self) -> Result<bool, ConsumerError> {
-        Ok(self.isTriple)
-    }
-    fn is_atom_wallet(&self) -> Result<bool, ConsumerError> {
-        Ok(self.isAtomWallet)
-    }
-    fn entry_fee(&self) -> Result<Uint<256, 4>, ConsumerError> {
-        Ok(self.entryFee)
-    }
-    fn sender_assets_after_total_fees(&self) -> Result<Uint<256, 4>, ConsumerError> {
-        Ok(self.senderAssetsAfterTotalFees)
-    }
-    fn shares_for_receiver(&self) -> Result<Uint<256, 4>, ConsumerError> {
-        Ok(self.sharesForReceiver)
-    }
-    fn curve_id(&self) -> Result<Uint<256, 4>, ConsumerError> {
-        Ok(Uint::from(1))
-    }
-}
-
-impl DepositedEvent for &DepositedV1_5 {
-    fn sender(&self) -> Result<String, ConsumerError> {
-        Ok(self.sender.to_string())
-    }
-    fn receiver(&self) -> Result<String, ConsumerError> {
-        Ok(self.receiver.to_string())
-    }
-    fn receiver_total_shares_in_vault(&self) -> Result<Uint<256, 4>, ConsumerError> {
-        Ok(self.receiverTotalSharesInVault)
-    }
-    fn vault_id(&self) -> Result<Uint<256, 4>, ConsumerError> {
-        Ok(self.vaultId)
-    }
-    fn is_triple(&self) -> Result<bool, ConsumerError> {
-        Ok(self.isTriple)
-    }
-    fn is_atom_wallet(&self) -> Result<bool, ConsumerError> {
-        Ok(self.isAtomWallet)
-    }
-    fn entry_fee(&self) -> Result<Uint<256, 4>, ConsumerError> {
-        Ok(self.entryFee)
-    }
-    fn sender_assets_after_total_fees(&self) -> Result<Uint<256, 4>, ConsumerError> {
-        Ok(self.senderAssetsAfterTotalFees)
-    }
-    fn shares_for_receiver(&self) -> Result<Uint<256, 4>, ConsumerError> {
-        Ok(self.sharesForReceiver)
-    }
-    fn curve_id(&self) -> Result<Uint<256, 4>, ConsumerError> {
-        Ok(Uint::from(1))
     }
 }

@@ -20,6 +20,7 @@ pub trait FeeTransferredEvent {
     fn protocol_vault(&self) -> Result<String, ConsumerError>;
     /// This function returns the amount of the fee transfer
     fn amount(&self) -> Result<Uint<256, 4>, ConsumerError>;
+    /// This function creates a fee transfer
     async fn create_fee_transfer(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
@@ -53,7 +54,6 @@ pub trait FeeTransferredEvent {
             .await
             .map_err(ConsumerError::ModelError)
     }
-
     /// This function upserts the protocol multisig account
     async fn upsert_protocol_multisig_account(
         &self,

@@ -1,20 +1,17 @@
-use std::fmt::Debug;
-
-use models::{
-    event::{Event, EventType},
-    traits::SimpleCrud,
-    types::U256Wrapper,
-};
-use tracing::info;
-
+use super::event::DepositedEvent;
 use crate::{
     config::ContractVersion,
     error::ConsumerError,
     mode::{decoded::utils::EventHandler, types::DecodedConsumerContext},
     schemas::types::DecodedMessage,
 };
-
-use super::event::DepositedEvent;
+use models::{
+    event::{Event, EventType},
+    traits::SimpleCrud,
+    types::U256Wrapper,
+};
+use std::fmt::Debug;
+use tracing::info;
 
 #[derive(Debug)]
 pub struct DepositedEventHandler<T>(pub T);
@@ -28,11 +25,7 @@ where
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
-        info!(
-            "Handling deposit creation for vault {:?} and block number {:?}",
-            self.0.vault_id()?,
-            event.block_number
-        );
+        info!("Handling Deposited / DepositedCurve event: {:?}", self.0);
 
         // We need to process the deposit one way or another, so the accounts, vault and term
         // must be initialized. This dont need to be part of the transaction.
@@ -41,9 +34,11 @@ where
             .initialize_accounts_and_vault(decoded_consumer_context, event)
             .await?;
 
+        // This is only for V1, we need to fetch the data from the RPC before
+        // starting the transaction
         let contract_version = decoded_consumer_context.contract_version.read()?.clone();
+
         let (current_share_price, total_shares) = if let ContractVersion::V1 = contract_version {
-            // This is only for V1
             // Fetch the current share price and total shares
             let current_share_price: U256Wrapper = decoded_consumer_context
                 .fetch_current_share_price(self.0.vault_id()?, event.block_number)

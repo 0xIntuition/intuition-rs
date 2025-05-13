@@ -16,7 +16,8 @@ use crate::{
         decoded::{
             deposited::event_handler::DepositedEventHandler,
             fee_transferred::event_handler::FeeTransferredEventHandler,
-            initialize::event_handler::InitializeEventHandler, utils::EventHandler,
+            initialize::event_handler::InitializeEventHandler,
+            share_price_changed::event_handler::SharePriceChangedEventHandler, utils::EventHandler,
         },
         types::{DecodedConsumerContext, get_event_processing_histogram},
     },
@@ -274,8 +275,8 @@ impl EventProcessor for &EthMultiVaultV1_5Events {
                     .with_label_values(&["DepositedCurve"])
                     .start_timer();
                 info!("Received: {deposited_curve_data:#?}");
-                deposited_curve_data
-                    .handle_curve_deposit_creation(context, message)
+                DepositedEventHandler(deposited_curve_data)
+                    .process_event(context, message)
                     .await?;
                 timer.observe_duration();
             }
@@ -294,8 +295,8 @@ impl EventProcessor for &EthMultiVaultV1_5Events {
                     .with_label_values(&["SharePriceChangedCurve"])
                     .start_timer();
                 info!("Received: {share_price_changed_curve_data:#?}");
-                share_price_changed_curve_data
-                    .handle_share_price_changed_curve(context, message)
+                SharePriceChangedEventHandler(share_price_changed_curve_data)
+                    .process_event(context, message)
                     .await?;
                 timer.observe_duration();
             }
@@ -304,8 +305,8 @@ impl EventProcessor for &EthMultiVaultV1_5Events {
                     .with_label_values(&["SharePriceChanged"])
                     .start_timer();
                 info!("Received: {share_price_changed_data:#?}");
-                share_price_changed_data
-                    .handle_share_price_changed(context, message)
+                SharePriceChangedEventHandler(share_price_changed_data)
+                    .process_event(context, message)
                     .await?;
                 timer.observe_duration();
             }
