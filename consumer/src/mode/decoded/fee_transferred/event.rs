@@ -1,44 +1,28 @@
-use crate::{
-    EthMultiVaultV1_5::FeesTransferred,
-    error::ConsumerError,
-    mode::{types::DecodedConsumerContext, utils::short_id},
-    schemas::types::DecodedMessage,
-};
+use alloy::primitives::Uint;
 use models::{
     account::{Account, AccountType},
-    event::{Event, EventType},
     fee_transfer::FeeTransfer,
     traits::SimpleCrud,
     types::U256Wrapper,
 };
-use tracing::info;
 
-impl FeesTransferred {
-    /// This function creates an `Event` for the `FeesTransferred` event
-    pub async fn create_event(
-        &self,
-        decoded_consumer_context: &DecodedConsumerContext,
-        event: &DecodedMessage,
-    ) -> Result<Event, ConsumerError> {
-        // Create the event
-        Event::builder()
-            .id(DecodedMessage::event_id(event))
-            .event_type(EventType::FeesTransfered)
-            .fee_transfer_id(DecodedMessage::event_id(event))
-            .block_number(U256Wrapper::try_from(event.block_number)?)
-            .block_timestamp(event.block_timestamp)
-            .transaction_hash(event.transaction_hash.clone())
-            .build()
-            .upsert(
-                &decoded_consumer_context.backend_schema,
-                &decoded_consumer_context.pg_pool,
-            )
-            .await
-            .map_err(ConsumerError::ModelError)
-    }
+use crate::{
+    EthMultiVault::FeesTransferred,
+    EthMultiVaultV1_5::FeesTransferred as FeesTransferredV1_5,
+    error::ConsumerError,
+    mode::{types::DecodedConsumerContext, utils::short_id},
+    schemas::types::DecodedMessage,
+};
 
-    /// This function creates a fee transfer record
-    pub async fn create_fee_transfer(
+/// This trait represents a fee transferred event
+pub trait FeeTransferredEvent {
+    /// This function returns the sender of the fee transfer
+    fn sender(&self) -> Result<String, ConsumerError>;
+    /// This function returns the protocol vault
+    fn protocol_vault(&self) -> Result<String, ConsumerError>;
+    /// This function returns the amount of the fee transfer
+    fn amount(&self) -> Result<Uint<256, 4>, ConsumerError>;
+    async fn create_fee_transfer(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         sender_account: &Account,
@@ -52,14 +36,13 @@ impl FeesTransferred {
         )
         .await?
         {
-            info!("Fee transfer already exists: {fee_transfer:#?}");
             return Ok(fee_transfer);
         }
         FeeTransfer::builder()
             .id(DecodedMessage::event_id(event))
             .sender_id(sender_account.id.clone())
             .receiver_id(protocol_multisig_account.id.clone())
-            .amount(self.amount)
+            .amount(self.amount()?)
             .block_number(U256Wrapper::try_from(event.block_number)?)
             .block_timestamp(event.block_timestamp)
             .transaction_hash(event.transaction_hash.clone())
@@ -73,13 +56,13 @@ impl FeesTransferred {
     }
 
     /// This function gets or creates a sender account
-    pub async fn get_or_create_sender_account(
+    async fn get_or_create_sender_account(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<Account, ConsumerError> {
         // First try to find existing account
         if let Some(account) = Account::find_by_id(
-            self.sender.to_string(),
+            self.sender()?,
             &decoded_consumer_context.backend_schema,
             &decoded_consumer_context.pg_pool,
         )
@@ -90,8 +73,8 @@ impl FeesTransferred {
 
         // Only create new account if none exists
         Account::builder()
-            .id(self.sender.to_string())
-            .label(short_id(&self.sender.to_string()))
+            .id(self.sender()?)
+            .label(short_id(&self.sender()?))
             .account_type(AccountType::Default)
             .build()
             .upsert(
@@ -102,53 +85,22 @@ impl FeesTransferred {
             .map_err(ConsumerError::ModelError)
     }
 
-    /// This function handles an `FeesTransferred` event.
-    pub async fn handle_fees_transferred_creation(
-        &self,
-        decoded_consumer_context: &DecodedConsumerContext,
-        event: &DecodedMessage,
-    ) -> Result<(), ConsumerError> {
-        info!("Handling fees transfer: {self:#?}");
-
-        // Get or create the sender account
-        let sender_account = self
-            .get_or_create_sender_account(decoded_consumer_context)
-            .await?;
-
-        // Upsert the protocol multisig account
-        let protocol_multisig_account = self
-            .upsert_protocol_multisig_account(decoded_consumer_context)
-            .await?;
-
-        // Create the fee transfer record
-        self.create_fee_transfer(
-            decoded_consumer_context,
-            &sender_account,
-            &protocol_multisig_account,
-            event,
-        )
-        .await?;
-
-        // Create the event
-        self.create_event(decoded_consumer_context, event).await?;
-
-        Ok(())
-    }
-
     /// This function upserts the protocol multisig account
-    pub async fn upsert_protocol_multisig_account(
+    async fn upsert_protocol_multisig_account(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<Account, ConsumerError> {
+        let protocol_vault = self.protocol_vault()?;
+
         Account::find_by_id(
-            self.protocolMultisig.to_string(),
+            protocol_vault.clone(),
             &decoded_consumer_context.backend_schema,
             &decoded_consumer_context.pg_pool,
         )
         .await?
         .unwrap_or_else(|| {
             Account::builder()
-                .id(self.protocolMultisig.to_string())
+                .id(protocol_vault)
                 .label("Protocol Multisig")
                 .account_type(AccountType::ProtocolVault)
                 .build()
@@ -159,5 +111,37 @@ impl FeesTransferred {
         )
         .await
         .map_err(ConsumerError::ModelError)
+    }
+}
+
+/// We implement the `FeeTransferredEvent` trait for the `FeesTransferred` event,
+/// that is a v1 contract event
+impl FeeTransferredEvent for FeesTransferred {
+    fn sender(&self) -> Result<String, ConsumerError> {
+        Ok(self.sender.to_string())
+    }
+
+    fn protocol_vault(&self) -> Result<String, ConsumerError> {
+        Ok(self.protocolVault.to_string())
+    }
+
+    fn amount(&self) -> Result<Uint<256, 4>, ConsumerError> {
+        Ok(self.amount)
+    }
+}
+
+/// We implement the `FeeTransferredEvent` trait for the `FeesTransferredV1_5` event,
+/// that is a v1.5 contract event
+impl FeeTransferredEvent for FeesTransferredV1_5 {
+    fn sender(&self) -> Result<String, ConsumerError> {
+        Ok(self.sender.to_string())
+    }
+
+    fn protocol_vault(&self) -> Result<String, ConsumerError> {
+        Ok(self.protocolMultisig.to_string())
+    }
+
+    fn amount(&self) -> Result<Uint<256, 4>, ConsumerError> {
+        Ok(self.amount)
     }
 }

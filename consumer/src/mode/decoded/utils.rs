@@ -1,8 +1,26 @@
-use crate::{error::ConsumerError, mode::types::DecodedConsumerContext};
+use crate::{
+    error::ConsumerError, mode::types::DecodedConsumerContext, schemas::types::DecodedMessage,
+};
 use alloy::primitives::{U256, Uint};
 use models::{traits::SimpleCrud, types::U256Wrapper, vault::Vault};
 use sqlx::{Postgres, Transaction};
 
+/// This trait represents an event processor. We need to implement this trait for each event type
+/// for all the contracts we support
+pub trait EventHandler {
+    /// This function creates an event
+    async fn create_event(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+        event: &DecodedMessage,
+    ) -> Result<(), ConsumerError>;
+    /// This function processes an event
+    async fn process_event(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+        event: &DecodedMessage,
+    ) -> Result<(), ConsumerError>;
+}
 /// This enum represents the different types of updates that can be made to a vault
 pub enum VaultUpdate {
     /// This variant represents a deposited event
