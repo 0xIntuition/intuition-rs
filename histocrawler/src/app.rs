@@ -159,7 +159,17 @@ impl HistoCrawler {
                 self.backoff_delay
             );
             sleep(self.backoff_delay).await;
-            *start_block = last_block;
+            
+            // Don't reprocess if we're at the latest block
+            let new_last_block = self.get_last_block().await?;
+            if new_last_block <= last_block {
+                // No new blocks, continue waiting
+                return Ok(());
+            }
+            
+            // New blocks available
+            *start_block = last_block + 1;
+            *end_block = self.get_block_number_ceiling(*start_block, new_last_block).await?;
         }
 
         Ok(())
