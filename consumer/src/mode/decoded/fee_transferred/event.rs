@@ -84,7 +84,7 @@ pub trait FeeTransferredEvent {
 
 /// We implement the `FeeTransferredEvent` trait for the `FeesTransferred` event,
 /// that is a v1 contract event
-impl FeeTransferredEvent for FeesTransferred {
+impl FeeTransferredEvent for &FeesTransferred {
     fn sender(&self) -> Result<String, ConsumerError> {
         Ok(self.sender.to_string())
     }
@@ -100,7 +100,7 @@ impl FeeTransferredEvent for FeesTransferred {
 
 /// We implement the `FeeTransferredEvent` trait for the `FeesTransferredV1_5` event,
 /// that is a v1.5 contract event
-impl FeeTransferredEvent for FeesTransferredV1_5 {
+impl FeeTransferredEvent for &FeesTransferredV1_5 {
     fn sender(&self) -> Result<String, ConsumerError> {
         Ok(self.sender.to_string())
     }

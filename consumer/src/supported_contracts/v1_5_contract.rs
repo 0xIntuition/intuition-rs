@@ -13,7 +13,10 @@ use crate::{
     config::ContractInstance,
     error::ConsumerError,
     mode::{
-        decoded::utils::EventHandler,
+        decoded::{
+            fee_transferred::event_handler::FeeTransferredEventHandler,
+            initialize::event_handler::InitializeEventHandler, utils::EventHandler,
+        },
         types::{DecodedConsumerContext, get_event_processing_histogram},
     },
     schemas::types::DecodedMessage,
@@ -214,8 +217,8 @@ impl EventProcessor for &EthMultiVaultV1_5Events {
                     .with_label_values(&["Initialized"])
                     .start_timer();
                 info!("Received: {initialized_data:#?}");
-                initialized_data
-                    .handle_initialized_creation(context, message)
+                InitializeEventHandler(initialized_data)
+                    .process_event(context, message)
                     .await?;
                 timer.observe_duration();
             }
@@ -232,7 +235,9 @@ impl EventProcessor for &EthMultiVaultV1_5Events {
                     .with_label_values(&["FeesTransferred"])
                     .start_timer();
                 info!("Received: {fees_data:#?}");
-                fees_data.process_event(context, message).await?;
+                FeeTransferredEventHandler(fees_data)
+                    .process_event(context, message)
+                    .await?;
                 timer.observe_duration();
             }
             EthMultiVaultV1_5Events::TripleCreated(triple_data) => {

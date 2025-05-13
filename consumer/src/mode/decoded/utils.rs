@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use crate::{
     error::ConsumerError, mode::types::DecodedConsumerContext, schemas::types::DecodedMessage,
 };
@@ -7,7 +9,7 @@ use sqlx::{Postgres, Transaction};
 
 /// This trait represents an event processor. We need to implement this trait for each event type
 /// for all the contracts we support
-pub trait EventHandler {
+pub trait EventHandler: Debug + Sync + Send {
     /// This function creates an event
     async fn create_event(
         &self,

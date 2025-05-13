@@ -1,58 +1,58 @@
 use std::fmt::Debug;
-use tracing::info;
 
 use models::{
     event::{Event, EventType},
+    initialize::Initialize,
     traits::SimpleCrud,
     types::U256Wrapper,
 };
+use tracing::info;
 
 use crate::{
     error::ConsumerError,
-    mode::{
-        decoded::utils::EventHandler, types::DecodedConsumerContext, utils::get_or_create_account,
-    },
+    mode::{decoded::utils::EventHandler, types::DecodedConsumerContext},
     schemas::types::DecodedMessage,
 };
 
-use super::event::FeeTransferredEvent;
+use super::event::InitializeEvent;
 
 #[derive(Debug)]
-pub struct FeeTransferredEventHandler<T>(pub T);
+pub struct InitializeEventHandler<T>(pub T);
 
-impl<T> EventHandler for FeeTransferredEventHandler<T>
+impl<T> EventHandler for InitializeEventHandler<T>
 where
-    T: FeeTransferredEvent + Debug + Sync + Send,
+    T: InitializeEvent + Debug + Sync + Send,
 {
     async fn process_event(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
-        info!("Handling fees transfer: {:#?}", self.0);
+        info!("Handling initialized: {:#?}", self.0);
 
-        // Get or create the sender account
-        let sender_account =
-            get_or_create_account(self.0.sender()?, decoded_consumer_context).await?;
+        let mut tx = decoded_consumer_context.pg_pool.begin().await?;
 
-        // Upsert the protocol multisig account
-        let protocol_multisig_account = self
-            .0
-            .upsert_protocol_multisig_account(decoded_consumer_context)
-            .await?;
+        Initialize::builder()
+            .version(self.0.version()?)
+            .block_number(U256Wrapper::try_from(event.block_number)?)
+            .block_timestamp(event.block_timestamp)
+            .transaction_hash(event.transaction_hash.clone())
+            .log_index(event.log_index as i32)
+            .build()
+            .upsert(&decoded_consumer_context.backend_schema, tx.as_mut())
+            .await
+            .map_err(ConsumerError::ModelError)?;
 
-        // Create the fee transfer record
-        self.0
-            .create_fee_transfer(
-                decoded_consumer_context,
-                &sender_account,
-                &protocol_multisig_account,
-                event,
-            )
-            .await?;
+        // Update the contract version
+        if decoded_consumer_context.initial_contract_version.is_none() {
+            self.0
+                .update_contract_version_context(decoded_consumer_context, self.0.version()?)?;
+        }
 
         // Create the event
         self.create_event(decoded_consumer_context, event).await?;
+
+        tx.commit().await?;
 
         Ok(())
     }
@@ -65,8 +65,7 @@ where
         // Create the event
         Event::builder()
             .id(DecodedMessage::event_id(event))
-            .event_type(EventType::FeesTransfered)
-            .fee_transfer_id(DecodedMessage::event_id(event))
+            .event_type(EventType::Initialized)
             .block_number(U256Wrapper::try_from(event.block_number)?)
             .block_timestamp(event.block_timestamp)
             .transaction_hash(event.transaction_hash.clone())
