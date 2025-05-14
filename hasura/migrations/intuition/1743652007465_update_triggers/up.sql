@@ -40,20 +40,27 @@ AFTER INSERT ON deposit
 FOR EACH ROW
 EXECUTE FUNCTION update_vault_positions_on_deposit();
 
-CREATE OR REPLACE FUNCTION update_vault_positions_on_position_delete()
+CREATE OR REPLACE FUNCTION update_vault_positions_on_position_update()
 RETURNS TRIGGER AS $$
 BEGIN
-  UPDATE vault
-    SET position_count = position_count - 1
-  WHERE term_id = OLD.term_id AND curve_id = OLD.curve_id;
-  RETURN OLD;
+  -- If shares are being set to zero, decrement position count
+  IF NEW.shares = 0 AND OLD.shares > 0 THEN
+    UPDATE vault
+      SET position_count = position_count - 1
+    WHERE term_id = OLD.term_id AND curve_id = OLD.curve_id;
+  END IF;
+  RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER position_delete_vault_trigger
-AFTER DELETE ON position
-FOR EACH ROW
-EXECUTE FUNCTION update_vault_positions_on_position_delete();
+-- Drop old trigger if exists
+DROP TRIGGER IF EXISTS update_vault_positions_on_position_delete ON position;
+
+-- Create new trigger
+CREATE TRIGGER update_vault_positions_on_position_update
+  AFTER UPDATE ON position
+  FOR EACH ROW
+  EXECUTE FUNCTION update_vault_positions_on_position_update();
 
 -- Update vault.position_count to match the number of related positions
 UPDATE vault

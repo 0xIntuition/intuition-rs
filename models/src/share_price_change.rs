@@ -178,4 +178,31 @@ impl SharePriceChange {
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
     }
+
+    pub async fn find_last_share_price_event<'e, E>(
+        schema: &str,
+        executor: E,
+        term_id: U256Wrapper,
+        curve_id: U256Wrapper,
+    ) -> Result<Option<Self>, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
+        let query = format!(
+            r#"
+            SELECT * FROM {}.share_price_change 
+            WHERE term_id = $1 and curve_id = $2
+            ORDER BY updated_at DESC
+            LIMIT 1
+            "#,
+            schema,
+        );
+
+        sqlx::query_as::<_, SharePriceChange>(&query)
+            .bind(term_id.to_big_decimal()?)
+            .bind(curve_id.to_big_decimal()?)
+            .fetch_optional(executor)
+            .await
+            .map_err(|e| ModelError::QueryError(e.to_string()))
+    }
 }

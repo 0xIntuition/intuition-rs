@@ -29,7 +29,7 @@ impl SimpleCrud<String> for PredicateObject {
         let query = format!(
             r#"
             INSERT INTO {}.predicate_object (id, predicate_id, object_id, triple_count)
-            VALUES ($1, $2, $3, $4, $5)
+            VALUES ($1, $2, $3, $4)
             ON CONFLICT (id) DO UPDATE SET
                 predicate_id = EXCLUDED.predicate_id,
                 object_id = EXCLUDED.object_id,

@@ -9,6 +9,7 @@ use crate::{
 use alloy::primitives::Uint;
 use models::{
     event::{Event, EventType},
+    redemption::Redemption,
     term::{Term, TermType},
     traits::SimpleCrud,
     types::U256Wrapper,
@@ -94,14 +95,30 @@ where
         }
 
         // Update vault values when dealing with v1 redeemed events
-        self.0
-            .update_vault_values(
-                decoded_consumer_context,
-                &mut tx,
-                current_share_price,
-                total_shares,
-            )
-            .await?;
+        // find the last redemption record for the transaction hash and verify if we need to update the vault
+        let block_number = U256Wrapper::try_from(event.block_number)?;
+        let last_redemption_record = Redemption::find_last_redemption_by_transaction_hash(
+            event.transaction_hash.clone(),
+            &decoded_consumer_context.backend_schema,
+            &decoded_consumer_context.pg_pool,
+        )
+        .await?;
+        let should_update = last_redemption_record
+            .map(|record| {
+                block_number > record.block_number
+                    || (block_number == record.block_number && event.log_index > record.log_index)
+            })
+            .unwrap_or(true);
+        if should_update {
+            self.0
+                .update_vault_values(
+                    decoded_consumer_context,
+                    &mut tx,
+                    current_share_price,
+                    total_shares,
+                )
+                .await?;
+        }
         // 4. Create event and signal records
         self.create_event(decoded_consumer_context, event).await?;
 

@@ -8,6 +8,7 @@ use models::{
     types::U256Wrapper,
 };
 use sqlx::{Postgres, Transaction};
+use tracing::info;
 
 /// This trait represents a share price changed event
 pub trait SharePriceChangedEvent: SharePriceEvent + VaultManager + Clone {
@@ -40,7 +41,7 @@ pub trait SharePriceChangedEvent: SharePriceEvent + VaultManager + Clone {
             .log_index(event.log_index)
             .build();
         SharePriceChange::insert(new_share_price, backend_schema, tx.as_mut()).await?;
-
+        info!("Inserted share price changed event");
         Ok(())
     }
 }

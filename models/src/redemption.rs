@@ -174,4 +174,26 @@ impl Redemption {
 
         Ok(result.unwrap_or_default())
     }
+
+    /// Finds the last redemption record for a given transaction hash
+    /// The Redemption id is made out of the concatenation of the transaction hash
+    /// and the log index.
+    pub async fn find_last_redemption_by_transaction_hash(
+        transaction_hash: String,
+        schema: &str,
+        pool: &sqlx::PgPool,
+    ) -> Result<Option<Self>, ModelError> {
+        let query = format!(
+        "SELECT * FROM {}.redemption WHERE transaction_hash = $1 ORDER BY log_index DESC LIMIT 1",
+        schema
+    );
+
+        let result: Option<Redemption> = sqlx::query_as(&query)
+            .bind(transaction_hash)
+            .fetch_optional(pool)
+            .await
+            .map_err(|e| ModelError::QueryError(e.to_string()))?;
+
+        Ok(result)
+    }
 }

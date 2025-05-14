@@ -1,4 +1,5 @@
 use crate::{
+    error::ModelError,
     traits::{Model, SimpleCrud},
     types::U256Wrapper,
 };
@@ -36,11 +37,7 @@ impl Model for Deposit {}
 impl SimpleCrud<String> for Deposit {
     /// Upserts a deposit record in the database.
     /// If a record with the same ID exists, it will be updated, otherwise a new record will be created.
-    async fn upsert<'e, E>(
-        &self,
-        schema: &str,
-        executor: E,
-    ) -> Result<Self, crate::error::ModelError>
+    async fn upsert<'e, E>(&self, schema: &str, executor: E) -> Result<Self, ModelError>
     where
         E: Executor<'e, Database = Postgres>,
     {
@@ -120,7 +117,7 @@ impl SimpleCrud<String> for Deposit {
             .bind(self.log_index)
             .fetch_one(executor)
             .await
-            .map_err(|e| crate::error::ModelError::DepositInsertError(e.to_string()))
+            .map_err(|e| ModelError::DepositInsertError(e.to_string()))
     }
 
     /// Finds a deposit record by its ID.
@@ -129,7 +126,7 @@ impl SimpleCrud<String> for Deposit {
         id: String,
         schema: &str,
         executor: E,
-    ) -> Result<Option<Self>, crate::error::ModelError>
+    ) -> Result<Option<Self>, ModelError>
     where
         E: Executor<'e, Database = Postgres>,
     {
@@ -159,7 +156,7 @@ impl SimpleCrud<String> for Deposit {
             .bind(id.to_lowercase())
             .fetch_optional(executor)
             .await
-            .map_err(|e| crate::error::ModelError::QueryError(e.to_string()))
+            .map_err(|e| ModelError::QueryError(e.to_string()))
     }
 }
 
@@ -171,7 +168,7 @@ impl Deposit {
         curve_id: U256Wrapper,
         pool: &PgPool,
         schema: &str,
-    ) -> Result<U256Wrapper, crate::error::ModelError> {
+    ) -> Result<U256Wrapper, ModelError> {
         let query = format!(
             r#"
             SELECT COALESCE(SUM(receiver_total_shares_in_vault), 0) as total_shares
@@ -187,8 +184,30 @@ impl Deposit {
             .bind(curve_id.to_big_decimal()?)
             .fetch_optional(pool)
             .await
-            .map_err(|e| crate::error::ModelError::QueryError(e.to_string()))?;
+            .map_err(|e| ModelError::QueryError(e.to_string()))?;
 
         Ok(result.unwrap_or_default())
+    }
+
+    /// Finds the last deposit record for a given transaction hash
+    /// The Deposit id is made out of the concatenation of the transaction hash
+    /// and the log index.
+    pub async fn find_last_deposit_by_transaction_hash(
+        transaction_hash: String,
+        schema: &str,
+        pool: &sqlx::PgPool,
+    ) -> Result<Option<Self>, ModelError> {
+        let query = format!(
+            "SELECT * FROM {}.deposit WHERE transaction_hash = $1 ORDER BY log_index DESC LIMIT 1",
+            schema
+        );
+
+        let result: Option<Deposit> = sqlx::query_as(&query)
+            .bind(transaction_hash)
+            .fetch_optional(pool)
+            .await
+            .map_err(|e| ModelError::QueryError(e.to_string()))?;
+
+        Ok(result)
     }
 }

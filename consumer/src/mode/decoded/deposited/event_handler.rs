@@ -5,6 +5,7 @@ use crate::{
     schemas::types::DecodedMessage,
 };
 use models::{
+    deposit::Deposit,
     event::{Event, EventType},
     traits::SimpleCrud,
     types::U256Wrapper,
@@ -55,15 +56,32 @@ where
             .handle_positions(decoded_consumer_context, &mut tx, event)
             .await?;
 
-        // Update vault values when dealing with v1 deposit events
-        self.0
-            .update_vault_values(
-                decoded_consumer_context,
-                &mut tx,
-                current_share_price,
-                total_shares,
-            )
-            .await?;
+        // find the last deposit record for the transaction hash and verify if we need to update the vault
+        let last_deposit_record = Deposit::find_last_deposit_by_transaction_hash(
+            event.transaction_hash.clone(),
+            &decoded_consumer_context.backend_schema,
+            &decoded_consumer_context.pg_pool,
+        )
+        .await?;
+        let block_number = U256Wrapper::try_from(event.block_number)?;
+        let should_update = last_deposit_record
+            .map(|record| {
+                block_number > record.block_number
+                    || (block_number == record.block_number && event.log_index > record.log_index)
+            })
+            .unwrap_or(true);
+        if should_update {
+            // Update vault values when dealing with v1 deposit events
+            self.0
+                .update_vault_values(
+                    decoded_consumer_context,
+                    &mut tx,
+                    current_share_price,
+                    total_shares,
+                )
+                .await?;
+        }
+
         tx.commit().await?;
 
         // Create event
