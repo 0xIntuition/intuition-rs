@@ -33,5 +33,8 @@ forge script script/DeployToLocalGeth.s.sol --rpc-url http://geth:8545 --keystor
 MULTIVAULT_ADDRESS=$(jq -r '\''.transactions[] | select(.contractName=="TransparentUpgradeableProxy") | .contractAddress'\'' ./broadcast/DeployToLocalGeth.s.sol/1337/run-latest.json)\n\
 PGPASSWORD=$POSTGRES_PASSWORD psql -h database -U $POSTGRES_USER -d $POSTGRES_DB -p $POSTGRES_PORT -c "UPDATE histocrawler.app_config SET contract_address = '\''$MULTIVAULT_ADDRESS'\'', start_block = 0 WHERE indexer_schema = '\''histo_base_sepolia_1_5'\''"' > /app/deploy.sh && chmod +x /app/deploy.sh
 
+RUN echo '#!/bin/sh\n\
+forge script script/DeployToLocalGeth.s.sol --rpc-url http://geth:8545 --keystore /data/keystore.json --password-file /data/password.txt --broadcast --resume --verify --verifier blockscout --verifier-url http://host.docker.internal/api/\n' > /app/verify.sh && chmod +x /app/verify.sh
+
 # Set the entrypoint to the script
 ENTRYPOINT ["/app/deploy.sh"]

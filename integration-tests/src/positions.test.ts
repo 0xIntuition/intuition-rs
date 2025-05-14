@@ -46,7 +46,8 @@ suite('positions', () => {
       { address: david.account.address.toString().toLowerCase() })
 
     expect(result2).toBeDefined()
-    expect(result2.account.positions.length).toBe(0)
+    expect(result2.account.positions.length).toBe(1)
+    expect(result2.account.positions[0].shares).toBe('0')
 
   })
 })
