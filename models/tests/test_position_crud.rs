@@ -40,6 +40,8 @@ mod tests {
             term_id: position.term_id.clone(),
             shares: U256Wrapper::from_str("200").unwrap(), // Update shares
             curve_id: position.curve_id.clone(),
+            block_number: position.block_number,
+            log_index: position.log_index,
         };
 
         // Update using upsert

@@ -8,6 +8,7 @@ CREATE TABLE share_price_change(
     block_number NUMERIC(78, 0) NOT NULL,
     block_timestamp BIGINT NOT NULL,
     transaction_hash TEXT NOT NULL,
+    log_index BIGINT NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -18,3 +19,5 @@ CREATE INDEX idx_share_price_change_block_number ON share_price_change(block_num
 CREATE INDEX idx_share_price_change_term_block_number ON share_price_change(block_number);
 CREATE INDEX idx_share_price_change_transaction_hash ON share_price_change(transaction_hash);
 CREATE INDEX idx_share_price_change_term_transaction_hash ON share_price_change(transaction_hash);
+CREATE INDEX idx_share_price_change_log_index ON share_price_change(log_index);
+CREATE INDEX idx_share_price_change_term_log_index ON share_price_change(log_index);

@@ -64,6 +64,7 @@ pub trait DepositedEvent: SharePriceEvent + VaultManager + Clone {
             .block_number(U256Wrapper::try_from(event.block_number)?)
             .block_timestamp(event.block_timestamp)
             .transaction_hash(event.transaction_hash.clone())
+            .log_index(event.log_index)
             .build()
             .upsert(backend_schema, tx.as_mut())
             .await
@@ -151,6 +152,8 @@ pub trait DepositedEvent: SharePriceEvent + VaultManager + Clone {
         &self,
         position_id: String,
         backend_schema: &str,
+        block_number: i64,
+        log_index: i64,
         tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Position, ConsumerError> {
         Position::builder()
@@ -159,6 +162,8 @@ pub trait DepositedEvent: SharePriceEvent + VaultManager + Clone {
             .term_id(U256Wrapper::from(self.vault_id()?))
             .curve_id(DepositedEvent::curve_id(self)?)
             .shares(self.receiver_total_shares_in_vault()?)
+            .block_number(block_number)
+            .log_index(log_index)
             .build()
             .upsert(backend_schema, tx.as_mut())
             .await
@@ -182,6 +187,7 @@ pub trait DepositedEvent: SharePriceEvent + VaultManager + Clone {
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         tx: &mut Transaction<'_, Postgres>,
+        event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
         let position_id =
             self.format_position_id(DepositedEvent::curve_id(self)?.to_string().as_str())?;
@@ -198,6 +204,8 @@ pub trait DepositedEvent: SharePriceEvent + VaultManager + Clone {
             self.create_new_position(
                 position_id.to_string(),
                 &decoded_consumer_context.backend_schema,
+                event.block_number,
+                event.log_index,
                 tx,
             )
             .await?;

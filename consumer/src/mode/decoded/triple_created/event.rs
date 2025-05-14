@@ -353,7 +353,6 @@ pub trait TripleCreatedEvent: SharePriceEvent + VaultManager + Debug + Clone {
                 .id(id)
                 .predicate_id(self.predicate_id()?)
                 .object_id(self.object_id()?)
-                .position_count(0)
                 .triple_count(1)
                 .build()
                 .upsert(backend_schema, tx.as_mut())

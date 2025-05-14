@@ -237,7 +237,6 @@ pub async fn get_or_create_term(
     }
 }
 
-#[allow(dead_code)]
 /// This function gets or creates an account
 pub async fn get_or_create_account_from_event(
     event: impl AccountManager + Debug,

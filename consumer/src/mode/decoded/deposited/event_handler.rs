@@ -52,7 +52,7 @@ where
 
         // Handle position and related entities
         self.0
-            .handle_positions(decoded_consumer_context, &mut tx)
+            .handle_positions(decoded_consumer_context, &mut tx, event)
             .await?;
 
         // Update vault values when dealing with v1 deposit events

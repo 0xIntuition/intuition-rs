@@ -124,8 +124,18 @@ CREATE TABLE deposit (
   is_atom_wallet BOOLEAN NOT NULL,
   block_number NUMERIC(78, 0) NOT NULL,
   block_timestamp BIGINT NOT NULL,
-  transaction_hash TEXT NOT NULL
+  transaction_hash TEXT NOT NULL,
+  log_index BIGINT NOT NULL
 );
+
+CREATE INDEX deposit_block_number_idx ON deposit(block_number);
+CREATE INDEX deposit_transaction_hash_idx ON deposit(transaction_hash);
+CREATE INDEX deposit_log_index_idx ON deposit(log_index);
+CREATE INDEX deposit_sender_idx ON deposit(sender_id);
+CREATE INDEX deposit_receiver_idx ON deposit(receiver_id);
+CREATE INDEX deposit_vault_idx ON deposit(vault_id);
+CREATE INDEX deposit_is_triple_idx ON deposit(is_triple);
+CREATE INDEX deposit_is_atom_wallet_idx ON deposit(is_atom_wallet);
 
 CREATE TABLE redemption (
   id TEXT PRIMARY KEY NOT NULL,
@@ -138,8 +148,16 @@ CREATE TABLE redemption (
   vault_id NUMERIC(78, 0) REFERENCES vault(id) NOT NULL,
   block_number NUMERIC(78, 0) NOT NULL,
   block_timestamp BIGINT NOT NULL,
-  transaction_hash TEXT NOT NULL
+  transaction_hash TEXT NOT NULL,
+  log_index BIGINT NOT NULL
 );
+
+CREATE INDEX redemption_block_number_idx ON redemption(block_number);
+CREATE INDEX redemption_transaction_hash_idx ON redemption(transaction_hash);
+CREATE INDEX redemption_log_index_idx ON redemption(log_index);
+CREATE INDEX redemption_sender_idx ON redemption(sender_id);
+CREATE INDEX redemption_receiver_idx ON redemption(receiver_id);
+CREATE INDEX redemption_vault_idx ON redemption(vault_id);
 
 CREATE TABLE event (
   id TEXT PRIMARY KEY NOT NULL,
@@ -159,11 +177,15 @@ CREATE TABLE position (
   id TEXT PRIMARY KEY NOT NULL,
   account_id TEXT REFERENCES account(id) NOT NULL,
   vault_id NUMERIC(78, 0) REFERENCES vault(id) NOT NULL,
-  shares NUMERIC(78, 0) NOT NULL
+  shares NUMERIC(78, 0) NOT NULL,
+  block_number BIGINT NOT NULL,
+  log_index BIGINT NOT NULL
 );
 
 CREATE INDEX position_account_vault_idx ON position(account_id, vault_id);
 CREATE INDEX position_shares_idx ON position(shares);
+CREATE INDEX position_block_number_idx ON position(block_number);
+CREATE INDEX position_log_index_idx ON position(log_index);
 
 -- id is a concatenation of account_id and vault_id with a dash in between
 CREATE TABLE claim (
@@ -184,8 +206,7 @@ CREATE TABLE predicate_object (
   id TEXT PRIMARY KEY NOT NULL,
   predicate_id NUMERIC(78, 0) REFERENCES atom(id) NOT NULL,
   object_id NUMERIC(78, 0) REFERENCES atom(id) NOT NULL,
-  triple_count INTEGER NOT NULL,
-  position_count INTEGER NOT NULL
+  triple_count INTEGER NOT NULL
 );
 
 CREATE TABLE signal (
@@ -302,4 +323,3 @@ CREATE INDEX idx_event_triple ON event(triple_id);
 CREATE INDEX idx_event_block_number ON event(block_number);
 CREATE INDEX idx_event_block_timestamp ON event(block_timestamp);
 CREATE INDEX idx_event_transaction_hash ON event(transaction_hash);
-

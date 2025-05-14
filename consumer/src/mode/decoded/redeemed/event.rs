@@ -13,7 +13,7 @@ use models::{
     redemption::Redemption,
     signal::Signal,
     term::{Term, TermType},
-    traits::{Deletable, SimpleCrud},
+    traits::SimpleCrud,
     types::U256Wrapper,
     vault::Vault,
 };
@@ -59,6 +59,7 @@ pub trait RedeemedEvent: Clone {
             .block_timestamp(event.block_timestamp)
             .transaction_hash(event.transaction_hash.clone())
             .curve_id(U256Wrapper::from(RedeemedEvent::curve_id(self)?))
+            .log_index(event.log_index)
             .build()
             .upsert(backend_schema, tx.as_mut())
             .await
@@ -77,10 +78,11 @@ pub trait RedeemedEvent: Clone {
 
         // Only if the position is being closed should we update vault position_count.
         // For instance, if the redemption fully depletes the position:
-        if let Some(_pos) = position {
+        if let Some(mut position) = position {
             info!("Position shares are zero, removing position record.");
             // Remove the position record..
-            Position::delete(position_id.to_string(), backend_schema, tx.as_mut()).await?;
+            position.shares = U256Wrapper::try_from(0)?;
+            position.upsert(backend_schema, tx.as_mut()).await?;
         }
 
         Ok(())

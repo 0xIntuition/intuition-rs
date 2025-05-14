@@ -19,6 +19,7 @@ pub struct SharePriceChange {
     pub block_number: U256Wrapper,
     pub block_timestamp: i64,
     pub transaction_hash: String,
+    pub log_index: i64,
 }
 
 /// This struct is used to create a new share price change.
@@ -32,6 +33,7 @@ pub struct SharePriceChangeInternal {
     pub block_number: U256Wrapper,
     pub block_timestamp: i64,
     pub transaction_hash: String,
+    pub log_index: i64,
 }
 
 impl Model for SharePriceChange {}
@@ -44,20 +46,39 @@ impl SimpleCrud<U256Wrapper> for SharePriceChange {
     {
         let query = format!(
             r#"
-            INSERT INTO {}.share_price_change (id, term_id, curve_id, share_price, total_assets, total_shares, block_number, block_timestamp, transaction_hash, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-            ON CONFLICT (id) DO UPDATE SET
-                term_id = EXCLUDED.term_id,
-                curve_id = EXCLUDED.curve_id,
-                share_price = EXCLUDED.share_price,
-                total_assets = EXCLUDED.total_assets,
-                total_shares = EXCLUDED.total_shares,
-                block_number = EXCLUDED.block_number,
-                block_timestamp = EXCLUDED.block_timestamp,
-                transaction_hash = EXCLUDED.transaction_hash,
-                updated_at = EXCLUDED.updated_at
-            RETURNING *
-            "#,
+        INSERT INTO {}.share_price_change (
+            id, term_id, curve_id, share_price, total_assets,
+            total_shares, block_number, block_timestamp,
+            transaction_hash, log_index, updated_at
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        ON CONFLICT (id) DO UPDATE SET
+            term_id = EXCLUDED.term_id,
+            curve_id = EXCLUDED.curve_id,
+            share_price = EXCLUDED.share_price,
+            total_assets = EXCLUDED.total_assets,
+            total_shares = EXCLUDED.total_shares,
+            block_number = EXCLUDED.block_number,
+            block_timestamp = EXCLUDED.block_timestamp,
+            transaction_hash = EXCLUDED.transaction_hash,
+            log_index = EXCLUDED.log_index,
+            updated_at = EXCLUDED.updated_at
+        WHERE (
+            share_price_change.term_id IS DISTINCT FROM EXCLUDED.term_id OR
+            share_price_change.curve_id IS DISTINCT FROM EXCLUDED.curve_id OR
+            share_price_change.share_price IS DISTINCT FROM EXCLUDED.share_price OR
+            share_price_change.total_assets IS DISTINCT FROM EXCLUDED.total_assets OR
+            share_price_change.total_shares IS DISTINCT FROM EXCLUDED.total_shares OR
+            share_price_change.block_timestamp IS DISTINCT FROM EXCLUDED.block_timestamp OR
+            share_price_change.transaction_hash IS DISTINCT FROM EXCLUDED.transaction_hash OR
+            share_price_change.log_index IS DISTINCT FROM EXCLUDED.log_index OR
+            share_price_change.updated_at IS DISTINCT FROM EXCLUDED.updated_at
+        ) AND (
+            EXCLUDED.block_number > share_price_change.block_number OR
+            (EXCLUDED.block_number = share_price_change.block_number AND EXCLUDED.log_index > share_price_change.log_index)
+        )
+        RETURNING *
+        "#,
             schema,
         );
 
@@ -68,10 +89,11 @@ impl SimpleCrud<U256Wrapper> for SharePriceChange {
             .bind(self.share_price.to_big_decimal()?)
             .bind(self.total_assets.to_big_decimal()?)
             .bind(self.total_shares.to_big_decimal()?)
-            .bind(self.updated_at)
-            .bind(self.block_number.to_big_decimal()?)
+            .bind(self.block_number.to_big_decimal()?) // <- corrected position
             .bind(self.block_timestamp)
             .bind(self.transaction_hash.clone())
+            .bind(self.log_index)
+            .bind(self.updated_at) // <- moved to last
             .fetch_one(executor)
             .await
             .map_err(|e| ModelError::InsertError(e.to_string()))
@@ -111,9 +133,9 @@ impl SharePriceChange {
     {
         let query = format!(
             r#"
-            INSERT INTO {}.share_price_change (term_id, curve_id, share_price, total_assets, total_shares, block_number, block_timestamp, transaction_hash)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-            RETURNING id, term_id, curve_id, share_price, total_assets, total_shares, block_number, block_timestamp, transaction_hash, updated_at
+            INSERT INTO {}.share_price_change (term_id, curve_id, share_price, total_assets, total_shares, block_number, block_timestamp, transaction_hash, log_index)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            RETURNING id, term_id, curve_id, share_price, total_assets, total_shares, block_number, block_timestamp, transaction_hash, log_index, updated_at
             "#,
             schema,
         );
@@ -127,6 +149,7 @@ impl SharePriceChange {
             .bind(share_price_change.block_number.to_big_decimal()?)
             .bind(share_price_change.block_timestamp)
             .bind(share_price_change.transaction_hash.clone())
+            .bind(share_price_change.log_index)
             .fetch_one(executor)
             .await
             .map_err(|e| ModelError::InsertError(e.to_string()))

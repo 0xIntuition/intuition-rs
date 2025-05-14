@@ -22,6 +22,7 @@ pub struct Redemption {
     pub block_timestamp: i64,
     pub transaction_hash: String,
     pub curve_id: U256Wrapper,
+    pub log_index: i64,
 }
 
 /// This is a trait that all models must implement.
@@ -38,35 +39,53 @@ impl SimpleCrud<String> for Redemption {
     {
         let query = format!(
             r#"
-            INSERT INTO {}.redemption (
-                id, sender_id, receiver_id, sender_total_shares_in_vault,
-                assets_for_receiver, shares_redeemed_by_sender, exit_fee, term_id,
-                block_number, block_timestamp, transaction_hash, curve_id
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-            ON CONFLICT (id) DO UPDATE SET
-                sender_id = EXCLUDED.sender_id,
-                receiver_id = EXCLUDED.receiver_id,
-                sender_total_shares_in_vault = EXCLUDED.sender_total_shares_in_vault,
-                assets_for_receiver = EXCLUDED.assets_for_receiver,
-                shares_redeemed_by_sender = EXCLUDED.shares_redeemed_by_sender,
-                exit_fee = EXCLUDED.exit_fee,
-                term_id = EXCLUDED.term_id,
-                block_number = EXCLUDED.block_number,
-                block_timestamp = EXCLUDED.block_timestamp,
-                transaction_hash = EXCLUDED.transaction_hash,
-                curve_id = EXCLUDED.curve_id
-            RETURNING 
-                id, sender_id, receiver_id,
-                sender_total_shares_in_vault,
-                assets_for_receiver,
-                shares_redeemed_by_sender,
-                exit_fee,
-                term_id,
-                block_number,
-                block_timestamp,
-                transaction_hash,
-                curve_id
-            "#,
+        INSERT INTO {}.redemption (
+            id, sender_id, receiver_id, sender_total_shares_in_vault,
+            assets_for_receiver, shares_redeemed_by_sender, exit_fee, term_id,
+            block_number, block_timestamp, transaction_hash, curve_id, log_index
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+        ON CONFLICT (id) DO UPDATE SET
+            sender_id = EXCLUDED.sender_id,
+            receiver_id = EXCLUDED.receiver_id,
+            sender_total_shares_in_vault = EXCLUDED.sender_total_shares_in_vault,
+            assets_for_receiver = EXCLUDED.assets_for_receiver,
+            shares_redeemed_by_sender = EXCLUDED.shares_redeemed_by_sender,
+            exit_fee = EXCLUDED.exit_fee,
+            term_id = EXCLUDED.term_id,
+            block_number = EXCLUDED.block_number,
+            block_timestamp = EXCLUDED.block_timestamp,
+            transaction_hash = EXCLUDED.transaction_hash,
+            curve_id = EXCLUDED.curve_id,
+            log_index = EXCLUDED.log_index
+        WHERE (
+            redemption.sender_id IS DISTINCT FROM EXCLUDED.sender_id OR
+            redemption.receiver_id IS DISTINCT FROM EXCLUDED.receiver_id OR
+            redemption.sender_total_shares_in_vault IS DISTINCT FROM EXCLUDED.sender_total_shares_in_vault OR
+            redemption.assets_for_receiver IS DISTINCT FROM EXCLUDED.assets_for_receiver OR
+            redemption.shares_redeemed_by_sender IS DISTINCT FROM EXCLUDED.shares_redeemed_by_sender OR
+            redemption.exit_fee IS DISTINCT FROM EXCLUDED.exit_fee OR
+            redemption.term_id IS DISTINCT FROM EXCLUDED.term_id OR
+            redemption.block_timestamp IS DISTINCT FROM EXCLUDED.block_timestamp OR
+            redemption.transaction_hash IS DISTINCT FROM EXCLUDED.transaction_hash OR
+            redemption.curve_id IS DISTINCT FROM EXCLUDED.curve_id OR
+            redemption.log_index IS DISTINCT FROM EXCLUDED.log_index
+        ) AND (
+            EXCLUDED.block_number > redemption.block_number OR
+            (EXCLUDED.block_number = redemption.block_number AND EXCLUDED.log_index > redemption.log_index)
+        )
+        RETURNING 
+            id, sender_id, receiver_id,
+            sender_total_shares_in_vault,
+            assets_for_receiver,
+            shares_redeemed_by_sender,
+            exit_fee,
+            term_id,
+            block_number,
+            block_timestamp,
+            transaction_hash,
+            curve_id,
+            log_index
+        "#,
             schema,
         );
 
@@ -83,6 +102,7 @@ impl SimpleCrud<String> for Redemption {
             .bind(self.block_timestamp)
             .bind(self.transaction_hash.clone())
             .bind(self.curve_id.to_big_decimal()?)
+            .bind(self.log_index)
             .fetch_one(executor)
             .await
             .map_err(|e| crate::error::ModelError::InsertError(e.to_string()))
@@ -110,7 +130,8 @@ impl SimpleCrud<String> for Redemption {
                 block_number,
                 block_timestamp,
                 transaction_hash,
-                curve_id
+                curve_id,
+                log_index
             FROM {}.redemption
             WHERE id = $1
             "#,

@@ -186,6 +186,7 @@ pub fn create_test_deposit(
         .block_number(create_random_u256wrapper())
         .block_timestamp(create_random_number())
         .transaction_hash(create_random_string())
+        .log_index(create_random_number())
         .build()
 }
 
@@ -269,6 +270,7 @@ pub fn create_test_redemption(
         .block_number(create_random_u256wrapper())
         .block_timestamp(create_random_number())
         .transaction_hash(create_random_string())
+        .log_index(create_random_number())
         .build()
 }
 
@@ -319,6 +321,8 @@ pub fn create_test_position(account_id: String, term_id: U256Wrapper) -> Positio
         .term_id(term_id)
         .shares(create_random_u256wrapper())
         .curve_id(U256Wrapper::from_str("1").unwrap())
+        .block_number(create_random_number())
+        .log_index(create_random_number())
         .build()
 }
 
