@@ -1,4 +1,5 @@
 use crate::{
+    config::ContractVersion,
     error::ConsumerError,
     mode::{
         resolver::types::ResolverConsumerMessage,
@@ -39,6 +40,7 @@ pub trait TripleCreatedEvent: SharePriceEvent + VaultManager + Debug + Clone {
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
+        contract_version: &ContractVersion,
     ) -> Result<(), ConsumerError> {
         // Get the counter vault ID
         let counter_vault_id = decoded_consumer_context
@@ -53,10 +55,19 @@ pub trait TripleCreatedEvent: SharePriceEvent + VaultManager + Debug + Clone {
             TermType::Triple,
         )
         .await?;
+
+        // Get the block number, we use this to differ between v1 and v1_5
+        let block_number = if let ContractVersion::V1 = contract_version {
+            Some(event.block_number)
+        } else {
+            None
+        };
+
         // Get or update the counter vault
         self.get_or_create_counter_vault(
             U256Wrapper::from(counter_vault_id),
             decoded_consumer_context,
+            block_number,
         )
         .await?;
 
@@ -67,6 +78,7 @@ pub trait TripleCreatedEvent: SharePriceEvent + VaultManager + Debug + Clone {
         &self,
         counter_vault_id: U256Wrapper,
         decoded_consumer_context: &DecodedConsumerContext,
+        block_number: Option<i64>,
     ) -> Result<Vault, ConsumerError> {
         let vault = Vault::find_by_term_id_and_curve_id(
             counter_vault_id.clone(),
@@ -92,10 +104,13 @@ pub trait TripleCreatedEvent: SharePriceEvent + VaultManager + Debug + Clone {
                 .term_id(U256Wrapper::from(self.vault_id()?))
                 .curve_id(U256Wrapper::from_str("1")?)
                 .current_share_price(
-                    self.current_share_price(decoded_consumer_context, None)
+                    self.current_share_price(decoded_consumer_context, block_number)
                         .await?,
                 )
-                .total_shares(self.total_shares(decoded_consumer_context, None).await?)
+                .total_shares(
+                    self.total_shares(decoded_consumer_context, block_number)
+                        .await?,
+                )
                 .position_count(0)
                 .build()
                 .upsert(

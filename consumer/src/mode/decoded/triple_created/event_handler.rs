@@ -26,9 +26,10 @@ where
     ) -> Result<(), ConsumerError> {
         info!("Handling triple creation: {self:#?}");
 
+        let contract_version = decoded_consumer_context.contract_version.read()?.clone();
         // Ensure that the vault and counter vault exist
         self.0
-            .get_or_create_vaults(decoded_consumer_context, event)
+            .get_or_create_vaults(decoded_consumer_context, event, &contract_version)
             .await?;
 
         let mut tx = decoded_consumer_context.pg_pool.begin().await?;
