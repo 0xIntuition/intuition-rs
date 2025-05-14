@@ -1,0 +1,208 @@
+use std::{fmt::Debug, str::FromStr};
+
+use alloy::primitives::Uint;
+use models::{
+    account::{Account, AccountType},
+    atom::{Atom, AtomResolvingStatus, AtomType},
+    term::TermType,
+    traits::SimpleCrud,
+    types::U256Wrapper,
+    vault::Vault,
+};
+use sqlx::PgPool;
+use tracing::{info, warn};
+
+use crate::{
+    error::ConsumerError,
+    mode::{
+        resolver::types::ResolverConsumerMessage,
+        types::DecodedConsumerContext,
+        utils::{get_or_create_account, get_or_create_account_from_event, get_or_create_vault},
+    },
+    schemas::types::DecodedMessage,
+    traits::{AccountManager, SharePriceEvent, VaultManager},
+};
+
+/// This trait represents a fee transferred event
+pub trait AtomCreatedEvent:
+    SharePriceEvent + VaultManager + AccountManager + Debug + Clone
+{
+    fn vault_id(&self) -> Result<Uint<256, 4>, ConsumerError>;
+    fn creator_id(&self) -> Result<String, ConsumerError>;
+    fn atom_data(&self) -> Result<String, ConsumerError>;
+    /// This function updates the vault current share price and it returns the vault and atom
+    async fn update_vault_current_share_price(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+        event: &DecodedMessage,
+    ) -> Result<(Vault, Atom), ConsumerError> {
+        // Get or create the vault
+        let vault = get_or_create_vault(
+            self.clone(),
+            Some(event.block_number),
+            decoded_consumer_context,
+            TermType::Atom,
+        )
+        .await?;
+
+        // In order to upsert a [`Vault`] we need to have an [`Atom`] first.
+        // Verify that the atom exists, if not, create it. Note that in order
+        // to create the atom, we need to have the creator and the wallet accounts
+        // created first, so if they don't exist, we create them as part of this
+        // process.
+        let atom = self
+            .get_or_create_vault_atom(decoded_consumer_context, event)
+            .await?;
+
+        Ok((vault, atom))
+    }
+    /// This function verifies if the atom exists in our DB. If it does, it returns it.
+    /// If it does not, it creates it.
+    async fn get_or_create_vault_atom(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+        event: &DecodedMessage,
+    ) -> Result<Atom, ConsumerError> {
+        if let Some(atom) = Atom::find_by_id(
+            self.vault_id()?.into(),
+            &decoded_consumer_context.backend_schema,
+            &decoded_consumer_context.pg_pool,
+        )
+        .await?
+        {
+            if atom.transaction_hash == "0x0000000000000000000000000000000000000000" {
+                info!("Atom exists with zero transaction hash, updating it");
+                let atom = self
+                    .update_atom_with_zero_transaction_hash_or_create_atom(
+                        decoded_consumer_context,
+                        event,
+                    )
+                    .await?;
+                return Ok(atom);
+            }
+            // If the atom exists, return it
+            info!("Atom already exists, returning it");
+            Ok(atom)
+        } else {
+            info!("Atom does not exist, creating it");
+            let atom = self
+                .update_atom_with_zero_transaction_hash_or_create_atom(
+                    decoded_consumer_context,
+                    event,
+                )
+                .await?;
+
+            Ok(atom)
+        }
+    }
+    /// This function updates an atom with a zero transaction hash
+    async fn update_atom_with_zero_transaction_hash_or_create_atom(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+        event: &DecodedMessage,
+    ) -> Result<Atom, ConsumerError> {
+        let mut atom_wallet_account = self
+            .get_or_create_atom_wallet_account(
+                &decoded_consumer_context.backend_schema,
+                &decoded_consumer_context.pg_pool,
+            )
+            .await?;
+        let creator_account =
+            get_or_create_account(self.creator_id()?, decoded_consumer_context).await?;
+        let atom = Atom::builder()
+            .term_id(self.vault_id()?)
+            .wallet_id(atom_wallet_account.id.clone())
+            .creator_id(creator_account.id)
+            .value_id(U256Wrapper::from_str(&self.vault_id()?.to_string())?)
+            .raw_data(self.atom_data()?)
+            .atom_type(AtomType::Unknown)
+            .block_number(U256Wrapper::try_from(event.block_number)?)
+            .block_timestamp(event.block_timestamp)
+            .transaction_hash(event.transaction_hash.clone())
+            .resolving_status(AtomResolvingStatus::Pending)
+            .build()
+            .upsert(
+                &decoded_consumer_context.backend_schema,
+                &decoded_consumer_context.pg_pool,
+            )
+            .await?;
+        Self::update_account_with_atom_id(
+            &mut atom_wallet_account,
+            atom.term_id.clone(),
+            decoded_consumer_context,
+        )
+        .await?;
+        Ok(atom)
+    }
+    /// This function verifies if the atom wallet account exists in our DB. If it does, it returns it.
+    /// If it does not, it creates it.
+    async fn get_or_create_atom_wallet_account(
+        &self,
+        backend_schema: &str,
+        pg_pool: &PgPool,
+    ) -> Result<Account, ConsumerError> {
+        // First try to find existing account
+        let mut account =
+            get_or_create_account_from_event(self.clone(), backend_schema, pg_pool).await?;
+
+        // We update the account type to `AtomWallet` if it is not already set
+        if account.account_type != AccountType::AtomWallet {
+            account.account_type = AccountType::AtomWallet;
+            account.upsert(backend_schema, pg_pool).await?;
+        }
+        Ok(account)
+    }
+    /// This function updates an account with an atom ID and enqueues a resolver message
+    async fn update_account_with_atom_id(
+        account: &mut Account,
+        atom_id: U256Wrapper,
+        decoded_consumer_context: &DecodedConsumerContext,
+    ) -> Result<(), ConsumerError> {
+        account.atom_id = Some(atom_id);
+        account
+            .upsert(
+                &decoded_consumer_context.backend_schema,
+                &decoded_consumer_context.pg_pool,
+            )
+            .await?;
+        info!("Updated account: {:?}", account);
+
+        // Now we need to enqueue the message to be processed by the resolver. In this
+        // process we check if the account has ENS data associated, and if it does, we
+        // update the account with the ENS data (name [label] and image)
+        let message = ResolverConsumerMessage::new_account(account.clone());
+        decoded_consumer_context
+            .client
+            .send_message(serde_json::to_string(&message)?, None)
+            .await?;
+        Ok(())
+    }
+    /// This function decodes the atom data
+    async fn decode_atom_data_and_update_atom(
+        &self,
+        atom: &mut Atom,
+        decoded_consumer_context: &DecodedConsumerContext,
+        // tx: &mut Transaction<'_, Postgres>,
+    ) -> Result<String, ConsumerError> {
+        // decode the hex data from the atomData.
+        let decoded_atom_data = if let Ok(decoded_atom_data) = Atom::decode_data(self.atom_data()?)
+        {
+            decoded_atom_data
+        } else {
+            warn!(
+                "Failed to decode atom data. This is not a critical error, but this atom will be created with empty data and `Unknown` type.",
+            );
+            // return an empty string
+            String::new()
+        };
+
+        // Update the atom with the decoded data
+        atom.data = Some(decoded_atom_data.clone());
+        atom.upsert(
+            &decoded_consumer_context.backend_schema,
+            &decoded_consumer_context.pg_pool,
+        )
+        .await?;
+        Ok(decoded_atom_data)
+    }
+}

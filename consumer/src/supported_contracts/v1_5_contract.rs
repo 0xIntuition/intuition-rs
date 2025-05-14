@@ -14,6 +14,7 @@ use crate::{
     error::ConsumerError,
     mode::{
         decoded::{
+            atom_created::event_handler::AtomCreatedEventHandler,
             deposited::event_handler::DepositedEventHandler,
             fee_transferred::event_handler::FeeTransferredEventHandler,
             initialized::event_handler::InitializeEventHandler,
@@ -230,7 +231,9 @@ impl EventProcessor for &EthMultiVaultV1_5Events {
                     .with_label_values(&["AtomCreated"])
                     .start_timer();
                 info!("Received: {atom_data:#?}");
-                atom_data.handle_atom_creation(context, message).await?;
+                AtomCreatedEventHandler(atom_data)
+                    .process_event(context, message)
+                    .await?;
                 timer.observe_duration();
             }
             EthMultiVaultV1_5Events::FeesTransferred(fees_data) => {
