@@ -40,7 +40,7 @@ args = ["build", "-t", "ghcr.io/0xintuition/consumer-api:latest", "-f", "consume
 
 [tasks.build-contract-deployer-1-5]
 command = "docker"
-args = ["build","--no-cache", "-t", "ghcr.io/0xintuition/contract-deployer-1-5:latest", "-f", "integration-tests/contract-deployer-1-5/Dockerfile", "."]
+args = ["build", "-t", "ghcr.io/0xintuition/contract-deployer-1-5:latest", "-f", "integration-tests/contract-deployer-1-5/Dockerfile", "."]
 
 [tasks.build-contract-deployer-1-0]
 command = "docker"
