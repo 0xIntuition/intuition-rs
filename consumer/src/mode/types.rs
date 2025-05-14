@@ -53,15 +53,6 @@ pub enum ConsumerMode {
 }
 
 impl ConsumerMode {
-    pub fn backend_schema(&self) -> &str {
-        match self {
-            ConsumerMode::Decoded(context) => &context.backend_schema,
-            ConsumerMode::Raw(context) => &context.backend_schema,
-            ConsumerMode::Resolver(context) => &context.backend_schema,
-            ConsumerMode::IpfsUpload(context) => &context.backend_schema,
-        }
-    }
-
     pub fn contract_version(&self) -> Option<ContractVersion> {
         match self {
             ConsumerMode::Decoded(context) => {
@@ -299,19 +290,14 @@ impl AtomUpdater for DecodedConsumerContext {
 pub struct IpfsUploadConsumerContext {
     pub client: Arc<dyn BasicConsumer>,
     pub image_guard_url: String,
-    pub ipfs_resolver: IPFSResolver,
-    pub pg_pool: PgPool,
     pub reqwest_client: reqwest::Client,
-    pub backend_schema: String,
 }
 
 /// Represents the raw consumer context
 #[derive(Clone)]
 pub struct RawConsumerContext {
     pub client: Arc<dyn BasicConsumer>,
-    pub pg_pool: PgPool,
     pub indexing_source: Arc<IndexerSource>,
-    pub backend_schema: String,
     pub contract_version: Arc<RwLock<ContractVersion>>,
 }
 
@@ -319,13 +305,10 @@ pub struct RawConsumerContext {
 #[derive(Clone)]
 pub struct ResolverConsumerContext {
     pub client: Arc<dyn BasicConsumer>,
-    pub image_guard_url: String,
     pub ipfs_resolver: IPFSResolver,
     pub mainnet_client: Arc<ENSRegistryInstance<DynProvider, Ethereum>>,
     pub pg_pool: PgPool,
-    pub reqwest_client: reqwest::Client,
     pub server_initialize: ServerInitialize,
-    pub backend_schema: String,
 }
 
 impl AtomUpdater for ResolverConsumerContext {
@@ -474,7 +457,6 @@ impl ConsumerMode {
     /// This function creates a ipfs upload consumer
     async fn create_ipfs_upload_consumer(
         data: ServerInitialize,
-        pg_pool: PgPool,
     ) -> Result<ConsumerMode, ConsumerError> {
         let client = Self::build_client(
             data.clone(),
@@ -489,18 +471,13 @@ impl ConsumerMode {
         )
         .await?;
 
-        let ipfs_resolver = Self::create_ipfs_resolver(data.clone()).await?;
-
         let image_guard_url = Self::create_image_guard(data.clone()).await?;
 
         let reqwest_client = reqwest::Client::new();
         Ok(ConsumerMode::IpfsUpload(IpfsUploadConsumerContext {
             client,
             image_guard_url,
-            ipfs_resolver,
-            pg_pool,
             reqwest_client,
-            backend_schema: data.env.backend_schema.clone(),
         }))
     }
 
@@ -540,9 +517,7 @@ impl ConsumerMode {
 
         Ok(ConsumerMode::Raw(RawConsumerContext {
             client,
-            pg_pool,
             indexing_source,
-            backend_schema: data.env.backend_schema.clone(),
             contract_version,
         }))
     }
@@ -579,19 +554,13 @@ impl ConsumerMode {
         .await?;
 
         let ipfs_resolver = Self::create_ipfs_resolver(data.clone()).await?;
-        let image_guard_url = Self::create_image_guard(data.clone()).await?;
-        let backend_schema = data.env.backend_schema.clone();
 
-        let reqwest_client = reqwest::Client::new();
         Ok(ConsumerMode::Resolver(ResolverConsumerContext {
             client,
-            image_guard_url,
             ipfs_resolver,
             mainnet_client,
             pg_pool,
-            reqwest_client,
             server_initialize: data,
-            backend_schema,
         }))
     }
 
@@ -607,7 +576,7 @@ impl ConsumerMode {
                 Self::create_resolver_consumer(data, pg_pool).await
             }
             "IpfsUpload" | "ipfs-upload" | "IPFS_UPLOAD" => {
-                Self::create_ipfs_upload_consumer(data, pg_pool).await
+                Self::create_ipfs_upload_consumer(data).await
             }
             _ => Err(ConsumerError::UnsuportedMode),
         }
