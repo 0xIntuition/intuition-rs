@@ -193,7 +193,7 @@ services:
       timeout: 2s
       retries: 10
     entrypoint: sh /root/init-script.sh
-    command: '--dev --dev.period=1 --cache=8192 --gcmode=full --history.state=0 --history.transactions=0 --syncmode=full --cache.gc=0 --http --http.api=eth,web3,net --mine  --http.port=8545 --http.vhosts=* --http.addr=0.0.0.0 --http.corsdomain="https://remix.ethereum.org" --datadir=/data --password=/root/password.txt'
+    command: '--dev --dev.period=1 --cache=8192 --gcmode=full --history.state=0 --history.transactions=0 --syncmode=full --cache.gc=0 --http --http.api=eth,web3,net,debug,txpool --mine  --http.port=8545 --http.vhosts=* --http.addr=0.0.0.0 --http.corsdomain="https://remix.ethereum.org" --datadir=/data --password=/root/password.txt'
     volumes:
       - data_geth:/data
       - ./geth/genesis.json:/config/genesis.json
@@ -215,8 +215,21 @@ services:
     volumes:
       - ./geth/keystore.json:/data/keystore.json
       - ./geth/password.txt:/data/password.txt
+      - contract-deployer-data:/app
 
-
+  contract-verifier:
+    container_name: contract-verifier
+    image: ghcr.io/0xintuition/contract-deployer:latest
+    entrypoint: /app/verify.sh
+    depends_on:
+      geth:
+        condition: service_healthy 
+      contract-deployer:
+        condition: service_completed_successfully
+    volumes:
+      - ./geth/keystore.json:/data/keystore.json
+      - ./geth/password.txt:/data/password.txt
+      - contract-deployer-data:/app
 networks:
   intuition-be:
     driver: bridge
@@ -226,3 +239,4 @@ volumes:
   pgadmin-data:
   ipfs_data:
   data_geth:
+  contract-deployer-data:

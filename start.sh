@@ -16,17 +16,28 @@ fi
 
 # If started with arg histo_local_1_5 deploy contract to local geth and get contract address
 if [ "$INDEXER_SCHEMA" == "histo_local_1_5" ]; then
-    docker compose -f docker-compose-shared.yml up contract-deployer geth -d --wait --force-recreate
+    docker compose -f docker-compose-shared.yml up contract-deployer geth -d --wait 
 
+    docker compose -f blockscout/docker-compose.yml up -d --wait
+
+    docker compose -f docker-compose-shared.yml up contract-verifier -d --wait 
+    
     # Select contract_address from histocrawler.app_config wait until it changes from 0x63B90A9c109fF8f137916026876171ffeEdEe714 or empty
     while [ "$CONTRACT_ADDRESS" == "0x63B90A9c109fF8f137916026876171ffeEdEe714" ] || [ -z "$CONTRACT_ADDRESS" ]; do
         CONTRACT_ADDRESS=$(docker compose -f docker-compose-shared.yml exec database psql -U postgres -d storage -c "SELECT contract_address FROM histocrawler.app_config WHERE indexer_schema = 'histo_base_sepolia_1_5'" -tA)
         sleep 1
     done
+    
+    echo -e "\nTo run integration tests in a different terminal, run:"
+    echo -e "\n\nexport VITE_INTUITION_CONTRACT_ADDRESS=$CONTRACT_ADDRESS"
+    echo "cd integration-tests"
+    echo "pnpm test src/create-predicates.test.ts"
 
-    echo "export VITE_INTUITION_CONTRACT_ADDRESS=$CONTRACT_ADDRESS"
-
+    echo -e "\nExplore the contract on blockscout:"
+    echo -e "http://localhost/address/$CONTRACT_ADDRESS?tab=logs\n\n"
+    
     # Set env vars
+    export VITE_INTUITION_CONTRACT_ADDRESS=$CONTRACT_ADDRESS
     export INTUITION_CONTRACT_ADDRESS=$CONTRACT_ADDRESS
     export INITIAL_CONTRACT_VERSION="v1_5"
     export INDEXER_SCHEMA="histo_base_sepolia_1_5"
