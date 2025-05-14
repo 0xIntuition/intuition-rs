@@ -1,12 +1,4 @@
-use std::fmt::Debug;
-use tracing::info;
-
-use models::{
-    event::{Event, EventType},
-    traits::SimpleCrud,
-    types::U256Wrapper,
-};
-
+use super::event::AtomCreatedEvent;
 use crate::{
     error::ConsumerError,
     mode::{
@@ -15,8 +7,13 @@ use crate::{
     },
     schemas::types::DecodedMessage,
 };
-
-use super::event::AtomCreatedEvent;
+use models::{
+    event::{Event, EventType},
+    traits::SimpleCrud,
+    types::U256Wrapper,
+};
+use std::fmt::Debug;
+use tracing::info;
 
 #[derive(Debug)]
 pub struct AtomCreatedEventHandler<T>(pub T);

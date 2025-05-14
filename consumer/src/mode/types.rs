@@ -114,6 +114,7 @@ impl DecodedConsumerContext {
 
     /// This function fetches the current contract balance using the provider,
     /// since your contract does not expose a `balance()` function.
+    #[allow(dead_code)]
     pub async fn fetch_contract_balance(&self) -> Result<U256, ConsumerError> {
         // Build the block identifier from the event's block number.
         // let block = BlockId::from_str(&event.block_number.to_string())?;

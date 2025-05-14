@@ -151,6 +151,7 @@ impl ContractInstance {
     }
 
     /// Returns the provider of the contract instance
+    #[allow(dead_code)]
     pub fn provider(&self) -> Result<DynProvider, ConsumerError> {
         match self {
             Self::V1(client) => Ok(client.provider().clone()),

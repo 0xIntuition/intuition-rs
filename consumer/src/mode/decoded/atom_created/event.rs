@@ -1,17 +1,3 @@
-use std::{fmt::Debug, str::FromStr};
-
-use alloy::primitives::Uint;
-use models::{
-    account::{Account, AccountType},
-    atom::{Atom, AtomResolvingStatus, AtomType},
-    term::TermType,
-    traits::SimpleCrud,
-    types::U256Wrapper,
-    vault::Vault,
-};
-use sqlx::PgPool;
-use tracing::{info, warn};
-
 use crate::{
     error::ConsumerError,
     mode::{
@@ -22,6 +8,18 @@ use crate::{
     schemas::types::DecodedMessage,
     traits::{AccountManager, SharePriceEvent, VaultManager},
 };
+use alloy::primitives::Uint;
+use models::{
+    account::{Account, AccountType},
+    atom::{Atom, AtomResolvingStatus, AtomType},
+    term::TermType,
+    traits::SimpleCrud,
+    types::U256Wrapper,
+    vault::Vault,
+};
+use sqlx::PgPool;
+use std::{fmt::Debug, str::FromStr};
+use tracing::{info, warn};
 
 /// This trait represents a fee transferred event
 pub trait AtomCreatedEvent:

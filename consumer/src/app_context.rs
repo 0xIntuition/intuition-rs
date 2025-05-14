@@ -1,18 +1,19 @@
 use std::convert::Infallible;
 
 use crate::{
+    ConsumerArgs,
     config::Env,
     error::ConsumerError,
     mode::types::{ConsumerMode, ResolverConsumerContext},
-    ConsumerArgs,
 };
 use clap::Parser;
-use prometheus::{gather, Encoder, TextEncoder};
+use prometheus::{Encoder, TextEncoder, gather};
 use tracing::info;
-use tracing_subscriber::{layer::SubscriberExt, EnvFilter};
+use tracing_subscriber::{EnvFilter, layer::SubscriberExt};
 use warp::Filter;
 
 impl ConsumerMode {
+    #[allow(dead_code)]
     // Assuming you have a field that holds the ResolverConsumerContext
     pub fn resolver_consumer_context(&self) -> Option<&ResolverConsumerContext> {
         // Return the context from the appropriate field

@@ -19,7 +19,8 @@ use crate::{
             fee_transferred::event_handler::FeeTransferredEventHandler,
             initialized::event_handler::InitializeEventHandler,
             redeemed::event_handler::RedeemedEventHandler,
-            share_price_changed::event_handler::SharePriceChangedEventHandler, utils::EventHandler,
+            share_price_changed::event_handler::SharePriceChangedEventHandler,
+            triple_created::event_handler::TripleCreatedEventHandler, utils::EventHandler,
         },
         types::{DecodedConsumerContext, get_event_processing_histogram},
     },
@@ -251,7 +252,9 @@ impl EventProcessor for &EthMultiVaultV1_5Events {
                     .with_label_values(&["TripleCreated"])
                     .start_timer();
                 info!("Received: {triple_data:#?}");
-                triple_data.handle_triple_creation(context, message).await?;
+                TripleCreatedEventHandler(triple_data)
+                    .process_event(context, message)
+                    .await?;
                 timer.observe_duration();
             }
             EthMultiVaultV1_5Events::Deposited(deposited_data) => {
