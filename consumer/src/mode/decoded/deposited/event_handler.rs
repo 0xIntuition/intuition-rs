@@ -1,6 +1,5 @@
 use super::event::DepositedEvent;
 use crate::{
-    config::ContractVersion,
     error::ConsumerError,
     mode::{decoded::utils::EventHandler, types::DecodedConsumerContext},
     schemas::types::DecodedMessage,
@@ -36,23 +35,13 @@ where
 
         // This is only for V1, we need to fetch the data from the RPC before
         // starting the transaction
-        let contract_version = decoded_consumer_context.contract_version.read()?.clone();
-
-        let (current_share_price, total_shares) = if let ContractVersion::V1 = contract_version {
-            // Fetch the current share price and total shares
-            let current_share_price: U256Wrapper = decoded_consumer_context
-                .fetch_current_share_price(self.0.vault_id()?, event.block_number)
-                .await?
-                .into();
-
-            // Fetch the total shares in the vault
-            let total_shares = decoded_consumer_context
-                .fetch_total_shares_in_vault(self.0.vault_id()?, event.block_number)
-                .await?;
-            (Some(current_share_price), Some(total_shares))
-        } else {
-            (None, None)
-        };
+        let (current_share_price, total_shares) = self
+            .get_current_share_price_and_total_assets(
+                decoded_consumer_context,
+                event,
+                self.0.vault_id()?,
+            )
+            .await?;
 
         let mut tx = decoded_consumer_context.pg_pool.begin().await?;
 
@@ -63,14 +52,18 @@ where
 
         // Handle position and related entities
         self.0
-            .handle_positions(
+            .handle_positions(decoded_consumer_context, &mut tx)
+            .await?;
+
+        // Update vault values when dealing with v1 deposit events
+        self.0
+            .update_vault_values(
                 decoded_consumer_context,
                 &mut tx,
                 current_share_price,
                 total_shares,
             )
             .await?;
-
         tx.commit().await?;
 
         // Create event

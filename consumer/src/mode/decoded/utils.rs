@@ -1,6 +1,7 @@
 use std::fmt::Debug;
 
 use crate::{
+    config::ContractVersion,
     error::ConsumerError,
     mode::{types::DecodedConsumerContext, utils::get_or_create_vault},
     schemas::types::DecodedMessage,
@@ -26,6 +27,32 @@ pub trait EventHandler: Debug + Sync + Send {
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError>;
+    /// This function gets the current share price and total assets based
+    /// on the contract version
+    async fn get_current_share_price_and_total_assets(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+        event: &DecodedMessage,
+        vault_id: Uint<256, 4>,
+    ) -> Result<(Option<U256Wrapper>, Option<Uint<256, 4>>), ConsumerError> {
+        let contract_version = decoded_consumer_context.contract_version.read()?.clone();
+
+        if let ContractVersion::V1 = contract_version {
+            // Fetch the current share price and total shares
+            let current_share_price: U256Wrapper = decoded_consumer_context
+                .fetch_current_share_price(vault_id, event.block_number)
+                .await?
+                .into();
+
+            // Fetch the total shares in the vault
+            let total_shares = decoded_consumer_context
+                .fetch_total_shares_in_vault(vault_id, event.block_number)
+                .await?;
+            Ok((Some(current_share_price), Some(total_shares)))
+        } else {
+            Ok((None, None))
+        }
+    }
 }
 /// This enum represents the different types of updates that can be made to a vault
 pub enum VaultUpdate {

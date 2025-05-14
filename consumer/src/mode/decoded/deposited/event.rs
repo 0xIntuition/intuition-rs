@@ -182,8 +182,6 @@ pub trait DepositedEvent: SharePriceEvent + VaultManager + Clone {
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         tx: &mut Transaction<'_, Postgres>,
-        current_share_price: Option<U256Wrapper>,
-        total_shares: Option<Uint<256, 4>>,
     ) -> Result<(), ConsumerError> {
         let position_id =
             self.format_position_id(DepositedEvent::curve_id(self)?.to_string().as_str())?;
@@ -225,15 +223,6 @@ pub trait DepositedEvent: SharePriceEvent + VaultManager + Clone {
                 "No need to update positions. Position not found and receiver total shares in vault is 0."
             );
         }
-
-        // Update vault values when dealing with v1 deposit events
-        self.update_vault_values(
-            decoded_consumer_context,
-            tx,
-            current_share_price,
-            total_shares,
-        )
-        .await?;
 
         Ok(())
     }

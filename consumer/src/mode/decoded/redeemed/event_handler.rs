@@ -1,0 +1,165 @@
+use super::event::RedeemedEvent;
+use crate::{
+    error::ConsumerError,
+    mode::{
+        decoded::utils::EventHandler, types::DecodedConsumerContext, utils::get_or_create_account,
+    },
+    schemas::types::DecodedMessage,
+};
+use alloy::primitives::Uint;
+use models::{
+    event::{Event, EventType},
+    term::{Term, TermType},
+    traits::SimpleCrud,
+    types::U256Wrapper,
+    vault::Vault,
+};
+use std::fmt::Debug;
+use tracing::info;
+
+#[derive(Debug)]
+pub struct RedeemedEventHandler<T>(pub T);
+
+impl<T> EventHandler for RedeemedEventHandler<T>
+where
+    T: RedeemedEvent + Debug + Sync + Send,
+{
+    async fn process_event(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+        event: &DecodedMessage,
+    ) -> Result<(), ConsumerError> {
+        info!("Handling Redeemed / RedeemedCurve events : {self:#?}");
+
+        // 1. Ensure the vault exists
+        let vault = Vault::find_by_term_id_and_curve_id(
+            self.0.vault_id()?.into(),
+            1.try_into()?,
+            &decoded_consumer_context.pg_pool.clone(),
+            &decoded_consumer_context.backend_schema,
+        )
+        .await?
+        .ok_or(ConsumerError::VaultNotFound)?;
+
+        // 2. Set up accounts
+        let sender_account =
+            get_or_create_account(self.0.sender()?, decoded_consumer_context).await?;
+        let receiver_account =
+            get_or_create_account(self.0.receiver()?, decoded_consumer_context).await?;
+
+        // This is only for V1, we need to fetch the data from the RPC before
+        // starting the transaction
+        let (current_share_price, total_shares) = self
+            .get_current_share_price_and_total_assets(
+                decoded_consumer_context,
+                event,
+                self.0.vault_id()?,
+            )
+            .await?;
+
+        let mut tx = decoded_consumer_context.pg_pool.begin().await?;
+
+        // 3. Create redemption record
+        self.0
+            .create_redemption_record(
+                &decoded_consumer_context.backend_schema,
+                &sender_account,
+                &receiver_account,
+                event,
+                &mut tx,
+            )
+            .await?;
+
+        // When the redemption fully depletes the sender's shares:
+        if self.0.sender_total_shares_in_vault()? == Uint::from(0) {
+            // Build the position ID
+            let position_id = format!("{}-1-{}", vault.term_id, sender_account.id.to_lowercase());
+            // Call the handler to remove the position
+            self.0
+                .handle_position_redemption(
+                    &decoded_consumer_context.backend_schema,
+                    &position_id,
+                    &mut tx,
+                )
+                .await?;
+        } else {
+            self.0
+                .handle_remaining_shares(
+                    &vault,
+                    &sender_account,
+                    &decoded_consumer_context.backend_schema,
+                    &mut tx,
+                )
+                .await?;
+        }
+
+        // Update vault values when dealing with v1 redeemed events
+        self.0
+            .update_vault_values(
+                decoded_consumer_context,
+                &mut tx,
+                current_share_price,
+                total_shares,
+            )
+            .await?;
+        // 4. Create event and signal records
+        self.create_event(decoded_consumer_context, event).await?;
+
+        self.0
+            .create_signal(decoded_consumer_context, event, &vault)
+            .await?;
+
+        Ok(())
+    }
+    async fn create_event(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+        event: &DecodedMessage,
+    ) -> Result<(), ConsumerError> {
+        let vault = Vault::find_by_id(
+            self.0.vault_id()?.into(),
+            &decoded_consumer_context.backend_schema,
+            &decoded_consumer_context.pg_pool,
+        )
+        .await?
+        .ok_or(ConsumerError::VaultNotFound)?;
+
+        let term_type = Term::find_by_id(
+            vault.term_id.clone(),
+            &decoded_consumer_context.backend_schema,
+            &decoded_consumer_context.pg_pool,
+        )
+        .await?
+        .ok_or(ConsumerError::TermNotFound)?;
+
+        let event = if let TermType::Triple = term_type.term_type {
+            Event::builder()
+                .id(DecodedMessage::event_id(event))
+                .event_type(EventType::Redeemed)
+                .block_number(U256Wrapper::try_from(event.block_number)?)
+                .block_timestamp(event.block_timestamp)
+                .transaction_hash(event.transaction_hash.clone())
+                .redemption_id(DecodedMessage::event_id(event))
+                .triple_id(vault.term_id.clone())
+                .build()
+        } else {
+            Event::builder()
+                .id(DecodedMessage::event_id(event))
+                .event_type(EventType::Redeemed)
+                .block_number(U256Wrapper::try_from(event.block_number)?)
+                .block_timestamp(event.block_timestamp)
+                .transaction_hash(event.transaction_hash.clone())
+                .redemption_id(DecodedMessage::event_id(event))
+                .atom_id(vault.term_id.clone())
+                .build()
+        };
+
+        event
+            .upsert(
+                &decoded_consumer_context.backend_schema,
+                &decoded_consumer_context.pg_pool,
+            )
+            .await?;
+        Ok(())
+    }
+}

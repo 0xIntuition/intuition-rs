@@ -16,7 +16,8 @@ use crate::{
         decoded::{
             deposited::event_handler::DepositedEventHandler,
             fee_transferred::event_handler::FeeTransferredEventHandler,
-            initialize::event_handler::InitializeEventHandler,
+            initialized::event_handler::InitializeEventHandler,
+            redeemed::event_handler::RedeemedEventHandler,
             share_price_changed::event_handler::SharePriceChangedEventHandler, utils::EventHandler,
         },
         types::{DecodedConsumerContext, get_event_processing_histogram},
@@ -265,8 +266,8 @@ impl EventProcessor for &EthMultiVaultV1_5Events {
                     .with_label_values(&["Redeemed"])
                     .start_timer();
                 info!("Received: {redeemed_data:#?}");
-                redeemed_data
-                    .handle_redeemed_creation(context, message)
+                RedeemedEventHandler(redeemed_data)
+                    .process_event(context, message)
                     .await?;
                 timer.observe_duration();
             }
@@ -285,8 +286,8 @@ impl EventProcessor for &EthMultiVaultV1_5Events {
                     .with_label_values(&["RedeemedCurve"])
                     .start_timer();
                 info!("Received: {redeemed_curve_data:#?}");
-                redeemed_curve_data
-                    .handle_curve_redeemed_creation(context, message)
+                RedeemedEventHandler(redeemed_curve_data)
+                    .process_event(context, message)
                     .await?;
                 timer.observe_duration();
             }
