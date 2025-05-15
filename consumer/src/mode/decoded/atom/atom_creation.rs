@@ -144,7 +144,7 @@ impl AtomCreated {
             // for now, this will be updated later with the resolver consumer.
             let atom = Atom::builder()
                 .id(U256Wrapper::from_str(
-                    &self.vaultID.to_string().to_lowercase(),
+                    &self.vaultID.to_string(),
                 )?)
                 .wallet_id(atom_wallet_account.id.clone())
                 .creator_id(creator_account.id)

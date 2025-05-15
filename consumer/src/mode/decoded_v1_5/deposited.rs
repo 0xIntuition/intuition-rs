@@ -246,7 +246,7 @@ impl Deposited {
             if !self.isTriple {
                 Signal::builder()
                     .id(DecodedMessage::event_id(event))
-                    .account_id(self.sender.to_string().to_lowercase())
+                    .account_id(self.sender.to_string())
                     .delta(U256Wrapper::from(self.senderAssetsAfterTotalFees))
                     .atom_id(vault.term_id.clone())
                     .deposit_id(DecodedMessage::event_id(event))
@@ -264,7 +264,7 @@ impl Deposited {
             } else {
                 Signal::builder()
                     .id(DecodedMessage::event_id(event))
-                    .account_id(self.sender.to_string().to_lowercase())
+                    .account_id(self.sender.to_string())
                     .delta(U256Wrapper::from(self.senderAssetsAfterTotalFees))
                     .triple_id(vault.term_id.clone())
                     .deposit_id(DecodedMessage::event_id(event))
@@ -291,7 +291,7 @@ impl Deposited {
         format!(
             "{}-1-{}",
             self.vaultId,
-            self.receiver.to_string().to_lowercase()
+            self.receiver.to_string()
         )
     }
 
@@ -300,7 +300,7 @@ impl Deposited {
         format!(
             "{}-1-{}",
             self.vaultId,
-            self.receiver.to_string().to_lowercase()
+            self.receiver.to_string()
         )
     }
 

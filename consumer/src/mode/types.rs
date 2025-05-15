@@ -967,8 +967,8 @@ mod tests {
                 let contract_address = decoded_context.base_client.address();
                 // Normalize to lowercase (the builder may parse the address in lowercase).
                 assert_eq!(
-                    contract_address.to_string().to_lowercase(),
-                    "0x1a6950807e33d5bc9975067e6d6b5ea4cd661665"
+                    contract_address.to_string(),
+                    "0x1A6950807E33d5bC9975067e6D6b5Ea4cD661665"
                 );
                 Ok(decoded_context)
             }

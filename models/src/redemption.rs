@@ -137,7 +137,7 @@ impl Redemption {
         );
 
         let result: Option<U256Wrapper> = sqlx::query_scalar(&query)
-            .bind(sender_id.to_lowercase())
+            .bind(sender_id)
             .bind(term_id.to_big_decimal()?)
             .bind(curve_id.to_big_decimal()?)
             .fetch_optional(pool)

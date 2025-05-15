@@ -56,7 +56,7 @@ impl SimpleCrud<String> for Account {
         );
 
         sqlx::query_as::<_, Account>(&query)
-            .bind(self.id.to_lowercase())
+            .bind(self.id)
             .bind(self.atom_id.as_ref().and_then(|w| w.to_big_decimal().ok()))
             .bind(&self.label)
             .bind(&self.image)
@@ -87,7 +87,7 @@ impl SimpleCrud<String> for Account {
         );
 
         sqlx::query_as::<_, Account>(&query)
-            .bind(id.to_lowercase())
+            .bind(id)
             .fetch_optional(pool)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))

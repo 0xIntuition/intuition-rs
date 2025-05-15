@@ -119,7 +119,7 @@ impl Redeemed {
         if let TermType::Triple = term_type.term_type {
             Signal::builder()
                 .id(DecodedMessage::event_id(event))
-                .account_id(self.sender.to_string().to_lowercase())
+                .account_id(self.sender.to_string())
                 // This is the equivalent of multiplying the assets for receiver by -1
                 .delta(U256Wrapper::from(
                     U256::ZERO.saturating_sub(self.assetsForReceiver),
@@ -140,7 +140,7 @@ impl Redeemed {
         } else {
             Signal::builder()
                 .id(DecodedMessage::event_id(event))
-                .account_id(self.sender.to_string().to_lowercase())
+                .account_id(self.sender.to_string())
                 // This is the equivalent of multiplying the assets for receiver by -1
                 .delta(U256Wrapper::from(
                     U256::ZERO.saturating_sub(self.assetsForReceiver),
@@ -196,7 +196,7 @@ impl Redeemed {
         // When the redemption fully depletes the sender's shares:
         if self.senderTotalSharesInVault == Uint::from(0) {
             // Build the position ID
-            let position_id = format!("{}-1-{}", vault.term_id, sender_account.id.to_lowercase());
+            let position_id = format!("{}-1-{}", vault.term_id, sender_account.id);
             // Call the handler to remove the position
             self.handle_position_redemption(decoded_consumer_context, &position_id)
                 .await?;
@@ -226,7 +226,7 @@ impl Redeemed {
     ) -> Result<(), ConsumerError> {
         // Update position
         if let Some(mut position) = Position::find_by_id(
-            format!("{}-1-{}", vault.term_id, sender_account.id.to_lowercase()),
+            format!("{}-1-{}", vault.term_id, sender_account.id),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
@@ -260,7 +260,7 @@ impl Redeemed {
         .await?
         {
             // Delete claim
-            let claim_id = format!("{}-{}", triple.term_id, sender_account.id.to_lowercase());
+            let claim_id = format!("{}-{}", triple.term_id, sender_account.id);
             Claim::delete(
                 claim_id,
                 &decoded_consumer_context.pg_pool,

@@ -85,7 +85,7 @@ impl RedeemedCurve {
             if let TermType::Triple = term_type.term_type {
                 Signal::builder()
                     .id(DecodedMessage::event_id(event))
-                    .account_id(self.sender.to_string().to_lowercase())
+                    .account_id(self.sender.to_string())
                     // This is the equivalent of multiplying the assets for receiver by -1
                     .delta(U256Wrapper::from(
                         U256::ZERO.saturating_sub(self.assetsForReceiver),
@@ -106,7 +106,7 @@ impl RedeemedCurve {
             } else {
                 Signal::builder()
                     .id(DecodedMessage::event_id(event))
-                    .account_id(self.sender.to_string().to_lowercase())
+                    .account_id(self.sender.to_string())
                     // This is the equivalent of multiplying the assets for receiver by -1
                     .delta(U256Wrapper::from(
                         U256::ZERO.saturating_sub(self.assetsForReceiver),
@@ -140,7 +140,7 @@ impl RedeemedCurve {
             "{}-{}-{}",
             curve_vault.term_id,
             self.curveId,
-            self.sender.to_string().to_lowercase()
+            self.sender.to_string()
         );
 
         // Check if the position exists before deleting

@@ -109,8 +109,8 @@ impl SimpleCrud<U256Wrapper> for Atom {
         );
 
         sqlx::query_as::<_, Atom>(&query)
-            .bind(self.wallet_id.to_lowercase())
-            .bind(self.creator_id.to_lowercase())
+            .bind(self.wallet_id)
+            .bind(self.creator_id)
             .bind(self.term_id.to_big_decimal()?)
             .bind(self.data.clone())
             .bind(self.raw_data.clone())

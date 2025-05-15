@@ -51,8 +51,8 @@ impl SimpleCrud<String> for Position {
         );
 
         sqlx::query_as::<_, Position>(&query)
-            .bind(self.id.to_lowercase())
-            .bind(self.account_id.to_lowercase())
+            .bind(self.id)
+            .bind(self.account_id)
             .bind(self.term_id.to_big_decimal()?)
             .bind(self.shares.to_big_decimal()?)
             .bind(self.curve_id.to_big_decimal()?)
@@ -82,7 +82,7 @@ impl SimpleCrud<String> for Position {
         );
 
         sqlx::query_as::<_, Position>(&query)
-            .bind(id.to_lowercase())
+            .bind(id)
             .fetch_optional(pool)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
@@ -96,7 +96,7 @@ impl Deletable for Position {
         let query = format!(r#"DELETE FROM {}.position WHERE id = $1"#, schema);
 
         sqlx::query(&query)
-            .bind(id.to_lowercase())
+            .bind(id)
             .execute(pool)
             .await
             .map(|_| ())

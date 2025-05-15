@@ -119,7 +119,7 @@ impl Ens {
 
     /// This function prepares the name for the ENS resolver.
     fn prepare_name(address: Address) -> String {
-        let addr_str = address.to_string().to_lowercase();
+        let addr_str = address.to_string();
         format!("{}.addr.reverse", addr_str.trim_start_matches("0x"))
     }
 }

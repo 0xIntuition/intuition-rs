@@ -191,7 +191,7 @@ impl Deposited {
             if let Some(atom_id) = vault.atom_id.clone() {
                 Signal::builder()
                     .id(DecodedMessage::event_id(event))
-                    .account_id(self.sender.to_string().to_lowercase())
+                    .account_id(self.sender.to_string())
                     .delta(U256Wrapper::from(self.senderAssetsAfterTotalFees))
                     .atom_id(atom_id)
                     .deposit_id(DecodedMessage::event_id(event))
@@ -207,7 +207,7 @@ impl Deposited {
             } else {
                 Signal::builder()
                     .id(DecodedMessage::event_id(event))
-                    .account_id(self.sender.to_string().to_lowercase())
+                    .account_id(self.sender.to_string())
                     .delta(U256Wrapper::from(self.senderAssetsAfterTotalFees))
                     .triple_id(
                         vault
@@ -237,7 +237,7 @@ impl Deposited {
         format!(
             "{}-{}",
             self.vaultId,
-            self.receiver.to_string().to_lowercase()
+            self.receiver.to_string()
         )
     }
 
@@ -246,7 +246,7 @@ impl Deposited {
         format!(
             "{}-{}",
             self.vaultId,
-            self.receiver.to_string().to_lowercase()
+            self.receiver.to_string()
         )
     }
 
@@ -463,7 +463,7 @@ impl Deposited {
         triple: &Triple,
         vault: &Vault,
     ) -> Result<Claim, ConsumerError> {
-        let claim_id = format!("{}-{}", triple.term_id, self.receiver.to_string().to_lowercase());
+        let claim_id = format!("{}-{}", triple.term_id, self.receiver.to_string());
 
         let claim = match Claim::find_by_id(
             claim_id.clone(),

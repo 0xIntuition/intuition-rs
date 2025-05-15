@@ -40,9 +40,9 @@ impl SimpleCrud<String> for Claim {
         );
 
         sqlx::query_as::<_, Claim>(&query)
-            .bind(self.id.to_lowercase())
-            .bind(self.account_id.to_lowercase())
-            .bind(self.position_id.to_lowercase())
+            .bind(self.id)
+            .bind(self.account_id)
+            .bind(self.position_id)
             .fetch_one(pool)
             .await
             .map_err(|e| ModelError::InsertError(e.to_string()))
@@ -70,7 +70,7 @@ impl SimpleCrud<String> for Claim {
         );
 
         sqlx::query_as::<_, Claim>(&query)
-            .bind(id.to_lowercase())
+            .bind(id)
             .fetch_optional(pool)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
@@ -84,7 +84,7 @@ impl Deletable for Claim {
         let query = format!(r#"DELETE FROM {}.claim WHERE position_id = $1"#, schema);
 
         sqlx::query(&query)
-            .bind(id.to_lowercase())
+            .bind(id)
             .execute(pool)
             .await
             .map(|_| ())
@@ -98,7 +98,7 @@ impl Claim {
             "{}-{}-{}",
             triple_term_id,
             curve_id,
-            account_id.to_lowercase()
+            account_id
         )
     }
 }

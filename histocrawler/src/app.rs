@@ -30,7 +30,7 @@ impl HistoCrawler {
         let backoff_delay = Duration::from_millis(1500);
         let app_config = AppConfig::find_by_indexer_schema(&env.indexer_schema, &pg_pool).await?;
         if let Some(app_config) = app_config {
-            let contract_address = Address::from_str(&app_config.contract_address.to_lowercase())?;
+            let contract_address = Address::from_str(&app_config.contract_address)?;
             let provider = Self::get_provider(&app_config.rpc_url).await?;
             Ok(Self {
                 contract_address,

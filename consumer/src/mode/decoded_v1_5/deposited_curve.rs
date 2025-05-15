@@ -90,7 +90,7 @@ impl DepositedCurve {
             "{}-{}-{}",
             self.vaultId,
             self.curveId,
-            self.receiver.to_string().to_lowercase()
+            self.receiver.to_string()
         )
     }
 
@@ -100,7 +100,7 @@ impl DepositedCurve {
             "{}-{}-{}",
             self.vaultId,
             self.curveId,
-            self.receiver.to_string().to_lowercase()
+            self.receiver.to_string()
         )
     }
     /// This function creates a new position or updates an existing one
@@ -173,7 +173,7 @@ impl DepositedCurve {
             if !self.isTriple {
                 Signal::builder()
                     .id(DecodedMessage::event_id(event))
-                    .account_id(self.sender.to_string().to_lowercase())
+                    .account_id(self.sender.to_string())
                     .delta(U256Wrapper::from(self.senderAssetsAfterTotalFees))
                     .atom_id(curve_vault.term_id.clone())
                     .deposit_id(DecodedMessage::event_id(event))
@@ -191,7 +191,7 @@ impl DepositedCurve {
             } else {
                 Signal::builder()
                     .id(DecodedMessage::event_id(event))
-                    .account_id(self.sender.to_string().to_lowercase())
+                    .account_id(self.sender.to_string())
                     .delta(U256Wrapper::from(self.senderAssetsAfterTotalFees))
                     .triple_id(curve_vault.term_id.clone())
                     .deposit_id(DecodedMessage::event_id(event))

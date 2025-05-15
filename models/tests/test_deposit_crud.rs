@@ -37,7 +37,7 @@ mod tests {
 
         // Test initial upsert
         let upserted_deposit = deposit.upsert(&pool, TEST_SCHEMA).await?;
-        assert_eq!(upserted_deposit.id, deposit.id.to_lowercase());
+        assert_eq!(upserted_deposit.id, deposit.id);
         assert_eq!(
             upserted_deposit.shares_for_receiver,
             deposit.shares_for_receiver
@@ -62,7 +62,7 @@ mod tests {
             .await?
             .expect("Deposit should exist");
 
-        assert_eq!(found_deposit.id, deposit.id.to_lowercase());
+        assert_eq!(found_deposit.id, deposit.id);
         assert_eq!(
             found_deposit.shares_for_receiver,
             updated_deposit.shares_for_receiver

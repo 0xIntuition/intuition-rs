@@ -43,7 +43,7 @@ impl SubstreamsStream {
                     Some(
                         prepared_endpoint_package
                             .mutable_modules(
-                                app.env.intuition_contract_address.clone().to_lowercase(),
+                                app.env.intuition_contract_address.clone(),
                             )
                             .await
                             .unwrap(),
