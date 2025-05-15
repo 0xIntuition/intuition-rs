@@ -1,6 +1,7 @@
 use super::{resolver::types::ResolverConsumerMessage, types::DecodedConsumerContext};
 use crate::{
     error::ConsumerError,
+    schemas::types::DecodedMessage,
     traits::{AccountManager, SharePriceEvent},
 };
 use alloy::primitives::U256;
@@ -133,6 +134,7 @@ pub async fn get_or_create_vault(
     block_number: Option<i64>,
     decoded_consumer_context: &DecodedConsumerContext,
     term_type: TermType,
+    transaction_data: &DecodedMessage,
 ) -> Result<Vault, ConsumerError> {
     let vault = Vault::find_by_term_id_and_curve_id(
         event.term_id()?,
@@ -172,6 +174,9 @@ pub async fn get_or_create_vault(
                         .await?)
                     / U256Wrapper::from(U256::from(10).pow(U256::from(18))),
             )
+            .block_number(block_number.unwrap_or(0))
+            .log_index(transaction_data.log_index)
+            .transaction_hash(transaction_data.transaction_hash.clone())
             .build()
             .upsert(
                 &decoded_consumer_context.backend_schema,

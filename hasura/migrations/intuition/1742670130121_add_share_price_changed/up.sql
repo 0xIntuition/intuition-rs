@@ -9,7 +9,8 @@ CREATE TABLE share_price_change(
     block_timestamp BIGINT NOT NULL,
     transaction_hash TEXT NOT NULL,
     log_index BIGINT NOT NULL,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(term_id, curve_id, block_number, log_index)
 );
 
 CREATE INDEX idx_share_price_change_curve_id ON share_price_change(curve_id);

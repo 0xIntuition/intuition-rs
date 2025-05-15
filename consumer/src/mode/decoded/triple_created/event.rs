@@ -53,21 +53,16 @@ pub trait TripleCreatedEvent: SharePriceEvent + VaultManager + Debug + Clone {
             Some(event.block_number),
             decoded_consumer_context,
             TermType::Triple,
+            event,
         )
         .await?;
-
-        // Get the block number, we use this to differ between v1 and v1_5
-        let block_number = if let ContractVersion::V1 = contract_version {
-            Some(event.block_number)
-        } else {
-            None
-        };
 
         // Get or update the counter vault
         self.get_or_create_counter_vault(
             U256Wrapper::from(counter_vault_id),
             decoded_consumer_context,
-            block_number,
+            contract_version,
+            event,
         )
         .await?;
 
@@ -78,8 +73,15 @@ pub trait TripleCreatedEvent: SharePriceEvent + VaultManager + Debug + Clone {
         &self,
         counter_vault_id: U256Wrapper,
         decoded_consumer_context: &DecodedConsumerContext,
-        block_number: Option<i64>,
+        contract_version: &ContractVersion,
+        event: &DecodedMessage,
     ) -> Result<Vault, ConsumerError> {
+        // Get the block number, we use this to differ between v1 and v1_5
+        let block_number = if let ContractVersion::V1 = contract_version {
+            Some(event.block_number)
+        } else {
+            None
+        };
         let vault = Vault::find_by_term_id_and_curve_id(
             counter_vault_id.clone(),
             U256Wrapper::from_str("1")?,
@@ -112,6 +114,9 @@ pub trait TripleCreatedEvent: SharePriceEvent + VaultManager + Debug + Clone {
                         .await?,
                 )
                 .position_count(0)
+                .block_number(event.block_number)
+                .log_index(event.log_index)
+                .transaction_hash(event.transaction_hash.clone())
                 .build()
                 .upsert(
                     &decoded_consumer_context.backend_schema,
@@ -236,6 +241,7 @@ pub trait TripleCreatedEvent: SharePriceEvent + VaultManager + Debug + Clone {
             Some(event.block_number),
             decoded_consumer_context,
             TermType::Triple,
+            event,
         )
         .await?;
 

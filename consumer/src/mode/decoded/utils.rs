@@ -119,6 +119,7 @@ pub async fn update_vault_from_share_price_changed_events(
     decoded_consumer_context: &DecodedConsumerContext,
     term_type: TermType,
     tx: &mut Transaction<'_, Postgres>,
+    transaction_data: &DecodedMessage,
 ) -> Result<(), ConsumerError> {
     info!(
         "Processing SharePriceChanged event: {:?}",
@@ -162,6 +163,7 @@ pub async fn update_vault_from_share_price_changed_events(
             None,
             decoded_consumer_context,
             term_type,
+            transaction_data,
         )
         .await?
         .upsert(&decoded_consumer_context.backend_schema, tx.as_mut())

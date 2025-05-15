@@ -133,9 +133,27 @@ impl SharePriceChange {
     {
         let query = format!(
             r#"
-            INSERT INTO {}.share_price_change (term_id, curve_id, share_price, total_assets, total_shares, block_number, block_timestamp, transaction_hash, log_index)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-            RETURNING id, term_id, curve_id, share_price, total_assets, total_shares, block_number, block_timestamp, transaction_hash, log_index, updated_at
+            WITH upsert AS (
+                INSERT INTO {0}.share_price_change (term_id, curve_id, share_price, total_assets, total_shares, block_number, block_timestamp, transaction_hash, log_index)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                ON CONFLICT (term_id, curve_id, block_number, log_index) DO UPDATE SET
+                    share_price = EXCLUDED.share_price,
+                    total_assets = EXCLUDED.total_assets,
+                    total_shares = EXCLUDED.total_shares,
+                    block_timestamp = EXCLUDED.block_timestamp,
+                    transaction_hash = EXCLUDED.transaction_hash
+                WHERE (
+                    EXCLUDED.block_number > share_price_change.block_number OR
+                    (EXCLUDED.block_number = share_price_change.block_number AND EXCLUDED.log_index > share_price_change.log_index)
+                )
+                RETURNING id, term_id, curve_id, share_price, total_assets, total_shares, block_number, block_timestamp, transaction_hash, log_index, updated_at
+            )
+            SELECT * FROM upsert
+            UNION ALL
+            SELECT id, term_id, curve_id, share_price, total_assets, total_shares, block_number, block_timestamp, transaction_hash, log_index, updated_at
+            FROM {0}.share_price_change
+            WHERE term_id = $1 AND curve_id = $2 AND block_number = $6 AND log_index = $9
+            AND NOT EXISTS (SELECT 1 FROM upsert)
             "#,
             schema,
         );

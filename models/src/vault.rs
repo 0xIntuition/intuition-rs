@@ -20,6 +20,9 @@ pub struct Vault {
     pub position_count: i32,
     pub total_assets: Option<U256Wrapper>,
     pub market_cap: Option<U256Wrapper>,
+    pub block_number: i64,
+    pub log_index: i64,
+    pub transaction_hash: String,
 }
 /// This is a trait that all models must implement.
 impl Model for Vault {}
@@ -34,16 +37,36 @@ impl SimpleCrud<U256Wrapper> for Vault {
     {
         let query = format!(
             r#"
-            INSERT INTO {}.vault (term_id, curve_id, total_shares, current_share_price, position_count, total_assets, market_cap)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
+        WITH upsert AS (
+            INSERT INTO {0}.vault (
+                term_id, curve_id, total_shares, current_share_price, position_count,
+                total_assets, market_cap, block_number, log_index, transaction_hash
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             ON CONFLICT (term_id, curve_id) DO UPDATE SET
                 total_shares = EXCLUDED.total_shares,
                 current_share_price = EXCLUDED.current_share_price,
                 position_count = EXCLUDED.position_count,
                 total_assets = EXCLUDED.total_assets,
-                market_cap = EXCLUDED.market_cap
-            RETURNING term_id, curve_id, total_shares, current_share_price, position_count, total_assets, market_cap
-            "#,
+                market_cap = EXCLUDED.market_cap,
+                block_number = EXCLUDED.block_number,
+                log_index = EXCLUDED.log_index,
+                transaction_hash = EXCLUDED.transaction_hash
+            WHERE vault.block_number IS NULL
+                OR vault.block_number < EXCLUDED.block_number
+                OR (vault.block_number = EXCLUDED.block_number AND vault.log_index < EXCLUDED.log_index)
+            RETURNING term_id, curve_id, total_shares, current_share_price, position_count,
+                      total_assets, market_cap, block_number, log_index, transaction_hash
+        )
+        SELECT * FROM upsert
+        UNION ALL
+        (
+            SELECT term_id, curve_id, total_shares, current_share_price, position_count,
+                total_assets, market_cap, block_number, log_index, transaction_hash
+            FROM {0}.vault
+            WHERE term_id = $1 AND curve_id = $2
+            AND NOT EXISTS (SELECT 1 FROM upsert)
+        )"#,
             schema,
         );
 
@@ -63,6 +86,9 @@ impl SimpleCrud<U256Wrapper> for Vault {
                     .as_ref()
                     .and_then(|w| w.to_big_decimal().ok()),
             )
+            .bind(self.block_number)
+            .bind(self.log_index)
+            .bind(self.transaction_hash.clone())
             .fetch_one(executor)
             .await
             .map_err(|e| ModelError::InsertError(e.to_string()))
@@ -86,7 +112,10 @@ impl SimpleCrud<U256Wrapper> for Vault {
                 current_share_price,
                 position_count,
                 total_assets,
-                market_cap
+                market_cap,
+                block_number,
+                log_index,
+                transaction_hash
             FROM {}.vault 
             WHERE term_id = $1
             "#,
@@ -117,7 +146,7 @@ impl Vault {
             UPDATE {}.vault 
             SET current_share_price = $1 
             WHERE term_id = $2 AND curve_id = $3
-            RETURNING term_id, curve_id, total_shares, current_share_price, position_count, total_assets, market_cap
+            RETURNING term_id, curve_id, total_shares, current_share_price, position_count, total_assets, market_cap, block_number, log_index, transaction_hash
             "#,
             schema,
         );

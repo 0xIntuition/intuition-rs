@@ -192,19 +192,26 @@ impl Deposit {
     /// Finds the last deposit record for a given transaction hash
     /// The Deposit id is made out of the concatenation of the transaction hash
     /// and the log index.
-    pub async fn find_last_deposit_by_transaction_hash(
+    pub async fn find_last_deposit_by_transaction_hash_term_id_and_curve_id<'e, E>(
         transaction_hash: String,
+        term_id: U256Wrapper,
+        curve_id: U256Wrapper,
         schema: &str,
-        pool: &sqlx::PgPool,
-    ) -> Result<Option<Self>, ModelError> {
+        executor: E,
+    ) -> Result<Option<Self>, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
-            "SELECT * FROM {}.deposit WHERE transaction_hash = $1 ORDER BY log_index DESC LIMIT 1",
+            "SELECT * FROM {}.deposit WHERE transaction_hash = $1 AND term_id = $2 AND curve_id = $3 ORDER BY log_index DESC LIMIT 1",
             schema
         );
 
         let result: Option<Deposit> = sqlx::query_as(&query)
             .bind(transaction_hash)
-            .fetch_optional(pool)
+            .bind(term_id.to_big_decimal()?)
+            .bind(curve_id.to_big_decimal()?)
+            .fetch_optional(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))?;
 

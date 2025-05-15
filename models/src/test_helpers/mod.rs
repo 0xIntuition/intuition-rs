@@ -120,6 +120,9 @@ pub fn create_test_vault_with_atom(atom_id: U256Wrapper) -> Vault {
         .curve_id(U256Wrapper::from_str("1").unwrap())
         .total_shares(create_random_u256wrapper())
         .current_share_price(create_random_u256wrapper())
+        .block_number(create_random_number())
+        .log_index(create_random_number())
+        .transaction_hash(create_random_string())
         .position_count(1)
         .build()
 }
@@ -132,6 +135,9 @@ pub fn create_test_vault_with_triple(triple_id: U256Wrapper) -> Vault {
         .total_shares(create_random_u256wrapper())
         .current_share_price(create_random_u256wrapper())
         .position_count(1)
+        .block_number(create_random_number())
+        .log_index(create_random_number())
+        .transaction_hash(create_random_string())
         .build()
 }
 

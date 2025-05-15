@@ -135,6 +135,7 @@ pub trait DepositedEvent: SharePriceEvent + VaultManager + Clone {
             } else {
                 TermType::Atom
             },
+            event,
         )
         .await
     }

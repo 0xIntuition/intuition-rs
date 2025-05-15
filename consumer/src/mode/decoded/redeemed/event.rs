@@ -79,7 +79,7 @@ pub trait RedeemedEvent: Clone {
         // Only if the position is being closed should we update vault position_count.
         // For instance, if the redemption fully depletes the position:
         if let Some(mut position) = position {
-            info!("Position shares are zero, removing position record.");
+            info!("Position shares are zero, updating position shares to 0.");
             // Remove the position record..
             position.shares = U256Wrapper::try_from(0)?;
             position.upsert(backend_schema, tx.as_mut()).await?;

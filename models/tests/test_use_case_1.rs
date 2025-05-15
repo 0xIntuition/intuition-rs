@@ -72,6 +72,9 @@ mod tests {
             .total_shares(create_random_u256wrapper())
             .current_share_price(create_random_u256wrapper())
             .position_count(0)
+            .block_number(create_random_number())
+            .log_index(create_random_number())
+            .transaction_hash(create_random_string())
             .build()
             .upsert(TEST_SCHEMA, &pool)
             .await
@@ -112,6 +115,9 @@ mod tests {
             .total_shares(create_random_u256wrapper())
             .current_share_price(create_random_u256wrapper())
             .position_count(0)
+            .block_number(create_random_number())
+            .log_index(create_random_number())
+            .transaction_hash(create_random_string())
             .build()
             .upsert(TEST_SCHEMA, &pool)
             .await

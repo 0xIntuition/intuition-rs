@@ -58,18 +58,6 @@ impl SimpleCrud<String> for Redemption {
             curve_id = EXCLUDED.curve_id,
             log_index = EXCLUDED.log_index
         WHERE (
-            redemption.sender_id IS DISTINCT FROM EXCLUDED.sender_id OR
-            redemption.receiver_id IS DISTINCT FROM EXCLUDED.receiver_id OR
-            redemption.sender_total_shares_in_vault IS DISTINCT FROM EXCLUDED.sender_total_shares_in_vault OR
-            redemption.assets_for_receiver IS DISTINCT FROM EXCLUDED.assets_for_receiver OR
-            redemption.shares_redeemed_by_sender IS DISTINCT FROM EXCLUDED.shares_redeemed_by_sender OR
-            redemption.exit_fee IS DISTINCT FROM EXCLUDED.exit_fee OR
-            redemption.term_id IS DISTINCT FROM EXCLUDED.term_id OR
-            redemption.block_timestamp IS DISTINCT FROM EXCLUDED.block_timestamp OR
-            redemption.transaction_hash IS DISTINCT FROM EXCLUDED.transaction_hash OR
-            redemption.curve_id IS DISTINCT FROM EXCLUDED.curve_id OR
-            redemption.log_index IS DISTINCT FROM EXCLUDED.log_index
-        ) AND (
             EXCLUDED.block_number > redemption.block_number OR
             (EXCLUDED.block_number = redemption.block_number AND EXCLUDED.log_index > redemption.log_index)
         )
@@ -178,19 +166,26 @@ impl Redemption {
     /// Finds the last redemption record for a given transaction hash
     /// The Redemption id is made out of the concatenation of the transaction hash
     /// and the log index.
-    pub async fn find_last_redemption_by_transaction_hash(
+    pub async fn find_last_redemption_by_transaction_hash_term_id_and_curve_id<'e, E>(
         transaction_hash: String,
+        term_id: U256Wrapper,
+        curve_id: U256Wrapper,
         schema: &str,
-        pool: &sqlx::PgPool,
-    ) -> Result<Option<Self>, ModelError> {
+        executor: E,
+    ) -> Result<Option<Self>, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
-        "SELECT * FROM {}.redemption WHERE transaction_hash = $1 ORDER BY log_index DESC LIMIT 1",
+            "SELECT * FROM {}.redemption WHERE transaction_hash = $1 AND term_id = $2 AND curve_id = $3 ORDER BY log_index DESC LIMIT 1",
         schema
     );
 
         let result: Option<Redemption> = sqlx::query_as(&query)
             .bind(transaction_hash)
-            .fetch_optional(pool)
+            .bind(term_id.to_big_decimal()?)
+            .bind(curve_id.to_big_decimal()?)
+            .fetch_optional(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))?;
 
