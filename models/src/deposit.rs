@@ -63,24 +63,6 @@ impl SimpleCrud<String> for Deposit {
                 transaction_hash = EXCLUDED.transaction_hash,
                 curve_id = EXCLUDED.curve_id,
                 log_index = EXCLUDED.log_index
-            WHERE (
-                deposit.sender_id IS DISTINCT FROM EXCLUDED.sender_id OR
-                deposit.receiver_id IS DISTINCT FROM EXCLUDED.receiver_id OR
-                deposit.receiver_total_shares_in_vault IS DISTINCT FROM EXCLUDED.receiver_total_shares_in_vault OR
-                deposit.sender_assets_after_total_fees IS DISTINCT FROM EXCLUDED.sender_assets_after_total_fees OR
-                deposit.shares_for_receiver IS DISTINCT FROM EXCLUDED.shares_for_receiver OR
-                deposit.entry_fee IS DISTINCT FROM EXCLUDED.entry_fee OR
-                deposit.term_id IS DISTINCT FROM EXCLUDED.term_id OR
-                deposit.is_triple IS DISTINCT FROM EXCLUDED.is_triple OR
-                deposit.is_atom_wallet IS DISTINCT FROM EXCLUDED.is_atom_wallet OR
-                deposit.block_timestamp IS DISTINCT FROM EXCLUDED.block_timestamp OR
-                deposit.transaction_hash IS DISTINCT FROM EXCLUDED.transaction_hash OR
-                deposit.curve_id IS DISTINCT FROM EXCLUDED.curve_id OR
-                deposit.log_index IS DISTINCT FROM EXCLUDED.log_index
-            ) AND (
-                EXCLUDED.block_number > deposit.block_number OR
-                (EXCLUDED.block_number = deposit.block_number AND EXCLUDED.log_index > deposit.log_index)
-            )
             RETURNING 
                 id, sender_id, receiver_id,
                 receiver_total_shares_in_vault,

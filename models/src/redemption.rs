@@ -57,10 +57,6 @@ impl SimpleCrud<String> for Redemption {
             transaction_hash = EXCLUDED.transaction_hash,
             curve_id = EXCLUDED.curve_id,
             log_index = EXCLUDED.log_index
-        WHERE (
-            EXCLUDED.block_number > redemption.block_number OR
-            (EXCLUDED.block_number = redemption.block_number AND EXCLUDED.log_index > redemption.log_index)
-        )
         RETURNING 
             id, sender_id, receiver_id,
             sender_total_shares_in_vault,
