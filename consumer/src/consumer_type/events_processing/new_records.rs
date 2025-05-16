@@ -56,7 +56,8 @@ impl SqsHibrid {
         listener.listen(&self.app_config.raw_logs_channel).await?;
 
         info!("Start pulling historical records");
-        self.process_historical_records().await?;
+        self.process_historical_records(semaphore.clone(), shutdown_rx.clone(), &mode)
+            .await?;
 
         info!("Processed historical records");
 
@@ -119,7 +120,7 @@ impl SqsHibrid {
         }
     }
 
-    async fn store_failed_notification(
+    pub async fn store_failed_notification(
         &self,
         notification: &PgNotification,
     ) -> Result<(), ConsumerError> {
@@ -154,7 +155,7 @@ impl SqsHibrid {
     }
 
     /// This function decodes a raw message and returns a decoded message.
-    async fn decode_raw_message(
+    pub async fn decode_raw_message(
         &self,
         raw_log: RawLog,
         contract_version: &ContractVersion,
@@ -176,7 +177,7 @@ impl SqsHibrid {
 
     /// This function processes a notification and sends it to the SQS queue if
     /// it is newer than the start time.
-    async fn process_notification(
+    pub async fn process_notification(
         &self,
         notification: &PgNotification,
         mode: &ConsumerMode,

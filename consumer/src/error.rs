@@ -147,6 +147,10 @@ pub enum ConsumerError {
     Utf8(#[from] std::string::FromUtf8Error),
     #[error(transparent)]
     UrlParse(#[from] sqlx_core::url::ParseError),
+    #[error(transparent)]
+    AcquireError(#[from] tokio::sync::AcquireError),
+    #[error(transparent)]
+    JoinError(#[from] tokio::task::JoinError),
     #[error("Term not found")]
     TermNotFound,
 }

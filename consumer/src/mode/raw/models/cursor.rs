@@ -95,17 +95,26 @@ impl HistoFluxCursor {
             .map_err(ConsumerError::SqlError)
     }
 
-    /// Update the cursor's last_processed_id in the DB.
+    /// Update the cursor's last_processed_id in the DB only if the new value is greater.
     pub async fn update_last_processed_id<'e, E: Executor<'e, Database = Postgres>>(
         executor: E,
         environment: &str,
         last_processed_id: i64,
     ) -> Result<Self, ConsumerError> {
         let query = r#"
-        UPDATE histocrawler.histoflux_cursor 
-        SET last_processed_id = $1, updated_at = NOW()
-        WHERE environment = $2
-        RETURNING last_processed_id, environment, paused, queue_url, updated_at::timestamptz as updated_at
+            WITH updated AS (
+                UPDATE histocrawler.histoflux_cursor
+                SET last_processed_id = $1, updated_at = NOW()
+                WHERE environment = $2
+                  AND (last_processed_id IS NULL OR last_processed_id < $1)
+                RETURNING *
+            )
+            SELECT last_processed_id, environment, paused, queue_url, updated_at::timestamptz AS updated_at
+            FROM updated
+            UNION ALL
+            SELECT last_processed_id, environment, paused, queue_url, updated_at::timestamptz AS updated_at
+            FROM histocrawler.histoflux_cursor
+            WHERE environment = $2 AND NOT EXISTS (SELECT 1 FROM updated)
         "#;
 
         sqlx::query_as::<_, HistoFluxCursor>(query)

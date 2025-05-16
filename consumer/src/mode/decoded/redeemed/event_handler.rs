@@ -74,6 +74,7 @@ where
             .await?;
 
         // When the redemption fully depletes the sender's shares:
+        info!("Checking if the sender's shares are zero");
         if self.0.sender_total_shares_in_vault()? == Uint::from(0) {
             // Build the position ID
             let position_id = format!("{}-1-{}", vault.term_id, sender_account.id.to_lowercase());
@@ -86,6 +87,10 @@ where
                 )
                 .await?;
         } else {
+            info!(
+                "The sender's shares are not zero, currently {} shares remaining",
+                self.0.sender_total_shares_in_vault()?
+            );
             self.0
                 .handle_remaining_shares(
                     &vault,

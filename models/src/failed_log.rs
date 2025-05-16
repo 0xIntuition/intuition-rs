@@ -1,7 +1,7 @@
 use serde::{Deserialize, Deserializer, Serialize};
 use sqlx::PgPool;
 
-use crate::error::ModelError;
+use crate::{error::ModelError, raw_logs::RawLog};
 
 /// This struct defines the body of the message that we are
 /// receiving decoded consumer failed logs
@@ -20,6 +20,21 @@ pub struct FailedLog {
     pub block_timestamp: i64,
 }
 
+impl From<RawLog> for FailedLog {
+    fn from(raw_log: RawLog) -> Self {
+        FailedLog::builder()
+            .block_number(raw_log.block_number)
+            .block_hash(raw_log.block_hash)
+            .transaction_hash(raw_log.transaction_hash)
+            .transaction_index(raw_log.transaction_index)
+            .log_index(raw_log.log_index)
+            .address(raw_log.address)
+            .data(raw_log.data)
+            .topics(raw_log.topics)
+            .block_timestamp(raw_log.block_timestamp)
+            .build()
+    }
+}
 /// This is a helper function to deserialize the `topics` field from a
 /// string to a vector of strings.
 fn deserialize_from_string<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>

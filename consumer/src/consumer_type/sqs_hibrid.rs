@@ -1,5 +1,6 @@
 use crate::{
     app_context::ServerInitialize,
+    consumer_type::events_processing::new_records::MAX_RETRIES,
     error::ConsumerError,
     mode::{
         raw::models::cursor::{HistoFluxCursor, NewHistoFluxCursor},
@@ -11,12 +12,17 @@ use async_trait::async_trait;
 use aws_sdk_sqs::{
     Client as AWSClient, operation::receive_message::ReceiveMessageOutput, types::Message,
 };
-use models::histocrawler::AppConfig;
+use models::{failed_log::FailedLog, histocrawler::AppConfig, raw_logs::RawLog};
+use serde_json;
 use shared_utils::postgres::connect_to_db;
 use sqlx::PgPool;
-use std::sync::Arc;
-use tokio::sync::{Semaphore, watch};
-use tracing::info;
+use std::{sync::Arc, time::Duration};
+use tokio::{
+    sync::{Semaphore, watch},
+    task::JoinSet,
+    time::sleep,
+};
+use tracing::{error, info};
 
 /// Represents the SQS consumer
 #[derive(Debug, Clone)]
@@ -126,6 +132,136 @@ impl SqsHibrid {
     /// Get the output queue
     pub fn get_output_queue(&self) -> String {
         self.histoflux_cursor.queue_url.clone()
+    }
+
+    /// This function processes all existing records in the database and sends
+    /// them to the pg_notify channel.
+    pub async fn process_historical_records(
+        &self,
+        semaphore: Arc<Semaphore>,
+        mut shutdown_rx: watch::Receiver<bool>,
+        mode: &ConsumerMode,
+    ) -> Result<(), ConsumerError> {
+        info!("Getting last processed id from the DB");
+        let last_processed_id =
+            HistoFluxCursor::find(&self.histoflux_pg_pool, &self.histoflux_cursor.environment)
+                .await?
+                .ok_or(ConsumerError::NotFound)?
+                .last_processed_id;
+
+        info!("Last processed id: {}", last_processed_id);
+
+        let amount_of_logs =
+            RawLog::get_total_count(&self.histoflux_pg_pool, &self.app_config.indexer_schema)
+                .await?;
+        if amount_of_logs == 0 {
+            return Ok(());
+        }
+
+        let page_size = Self::get_page_size(amount_of_logs);
+        let pages = Self::ceiling_div(amount_of_logs, page_size);
+        info!("Processing {} pages with page size {}", pages, page_size);
+
+        let mut processed_logs_counter = 0;
+        let mut join_set = JoinSet::new();
+
+        'outer_loop: for _page in 0..pages {
+            if *shutdown_rx.borrow() {
+                info!("Shutdown signal received before page fetch. Exiting...");
+                break 'outer_loop;
+            }
+
+            let logs = RawLog::get_paginated_after_id(
+                &self.histoflux_pg_pool,
+                last_processed_id as i32,
+                page_size,
+                &self.app_config.indexer_schema,
+            )
+            .await?;
+
+            if logs.is_empty() {
+                break;
+            }
+
+            info!("Processing {} logs", logs.len());
+
+            for log in logs {
+                if processed_logs_counter >= amount_of_logs {
+                    break 'outer_loop;
+                }
+
+                if shutdown_rx.has_changed()? && *shutdown_rx.borrow_and_update() {
+                    info!("Shutdown signal received during processing. Exiting...");
+                    break 'outer_loop;
+                }
+
+                let permit = semaphore.clone().acquire_owned().await?;
+                let mode = mode.clone(); // ensure Clone
+                let log_for_task = log.clone();
+                let ctx = self.clone(); // ensure Clone
+                let log_id = log.id as i64;
+
+                join_set.spawn(async move {
+                    let _permit = permit;
+                    let mut retries = 0;
+
+                    let result = loop {
+                        match async {
+                            let version = mode
+                                .contract_version()
+                                .ok_or(ConsumerError::ContractVersionNotFound)?;
+                            let decoded = ctx
+                                .decode_raw_message(log_for_task.clone().into(), &version)
+                                .await?;
+                            mode.process_message(serde_json::to_string(&decoded)?).await
+                        }
+                        .await
+                        {
+                            Ok(_) => break Ok(()),
+                            Err(e) if retries < MAX_RETRIES => {
+                                retries += 1;
+                                let backoff = Duration::from_millis(100 * 2u64.pow(retries));
+                                error!(
+                                    "Retry {}/{} for log {}: {}. Backing off for {:?}",
+                                    retries, MAX_RETRIES, log_id, e, backoff
+                                );
+                                sleep(backoff).await;
+                            }
+                            Err(e) => break Err(e),
+                        }
+                    };
+
+                    // Always update the cursor and optionally store failure
+                    if let Err(err) = &result {
+                        error!("Final failure for log {}: {}", log_id, err);
+                        let failed_log = FailedLog::from(RawLog::from(log_for_task));
+                        failed_log
+                            .insert(&ctx.hasura_pg_pool, &ctx.backend_schema)
+                            .await?;
+                    }
+
+                    // Update last processed ID (monotonic safety)
+                    ctx.update_last_processed_id(log_id).await?;
+                    result
+                });
+
+                processed_logs_counter += 1;
+
+                // Optionally throttle to avoid memory bloat
+                if join_set.len() >= 1000 {
+                    while let Some(res) = join_set.join_next().await {
+                        res??;
+                    }
+                }
+            }
+        }
+
+        // Await remaining tasks
+        while let Some(res) = join_set.join_next().await {
+            res??;
+        }
+
+        Ok(())
     }
 }
 
