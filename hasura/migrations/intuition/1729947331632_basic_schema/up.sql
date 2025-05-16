@@ -211,8 +211,8 @@ CREATE TABLE claim (
 -- id is a concatenation of predicate_id and object_id with a dash in between
 CREATE TABLE predicate_object (
   id TEXT PRIMARY KEY NOT NULL,
-  predicate_id NUMERIC(78, 0) REFERENCES atom(id) NOT NULL,
-  object_id NUMERIC(78, 0) REFERENCES atom(id) NOT NULL,
+  predicate_id NUMERIC(78, 0) NOT NULL,
+  object_id NUMERIC(78, 0) NOT NULL,
   triple_count INTEGER NOT NULL
 );
 
