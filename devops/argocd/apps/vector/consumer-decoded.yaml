@@ -12,9 +12,9 @@ spec:
         elements:
           - cluster: prod-eks
             server: 'https://kubernetes.default.svc'
-            revision: luis/eng-6546-vector-db-support
-            env: prod-base-sepolia-v-1-5-vector
-            namespace: prod-base-sepolia-v-1-5-vector
+            revision: luis/eng-6560-create-a-new-consumer-to-ingest-v1-data-in-v15-fomat-from
+            env: prod-base-sepolia-v1-5-final
+            namespace: prod-base-sepolia-v1-5-vector
             rpcURL: 'http://prod-rpc-proxy.default.svc.cluster.local:3008/84532/proxy'
   template:
     metadata:
@@ -61,12 +61,17 @@ spec:
                   path: /spec/template/spec/containers/0/env/-
                   value:
                     name: CONSUMER_TYPE
-                    value: 'sqs'
+                    value: 'sqs_hibrid'
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
                     name: INTUITION_CONTRACT_ADDRESS
-                    value: '0x63B90A9c109fF8f137916026876171ffeEdEe714'
+                    value: '0x1A6950807E33d5bC9975067e6D6b5Ea4cD661665'
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: THREADS
+                    value: '3'
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
