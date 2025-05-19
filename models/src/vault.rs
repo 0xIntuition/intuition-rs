@@ -54,7 +54,8 @@ impl SimpleCrud<U256Wrapper> for Vault {
                 transaction_hash = EXCLUDED.transaction_hash
             WHERE vault.block_number IS NULL
                 OR vault.block_number < EXCLUDED.block_number
-                OR (vault.block_number = EXCLUDED.block_number AND vault.log_index < EXCLUDED.log_index)
+                OR (vault.block_number = EXCLUDED.block_number AND 
+                    (vault.log_index < EXCLUDED.log_index OR vault.transaction_hash != EXCLUDED.transaction_hash))
             RETURNING term_id, curve_id, total_shares, current_share_price, position_count,
                       total_assets, market_cap, block_number, log_index, transaction_hash
         )

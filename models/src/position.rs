@@ -38,6 +38,15 @@ impl SimpleCrud<String> for Position {
     where
         E: Executor<'e, Database = Postgres>,
     {
+        // Consider using totalShares to determine which transaction is most recent
+        // For deposits, the new totalShares will always be higher than before
+        // FOr redeems, the new totalShares will alwayhs be lower than before.
+
+        // The assumption was: blockNumber -> logIndex
+        // The reality is: blockNumber -> transactionHash -> logIndex
+        // Meaning you can have multiple logIndexes per transactionHash, and many transactionHashes per blockNumber.
+        // Therefore you cannot compare logIndex to another logIndex for priority while ignoring the transactionHash
+        // If the transactionHashes are different, their logIndex priorities are not correlated.
         let query = format!(
             r#"
             WITH upsert AS (
@@ -60,7 +69,7 @@ impl SimpleCrud<String> for Position {
                     position.log_index IS DISTINCT FROM EXCLUDED.log_index
                 ) AND (
                     EXCLUDED.block_number > position.block_number OR
-                    (EXCLUDED.block_number = position.block_number AND EXCLUDED.log_index > position.log_index)
+                    (EXCLUDED.block_number = position.block_number)
                 )
                 RETURNING *
             )
