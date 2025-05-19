@@ -13,7 +13,7 @@ spec:
           - cluster: prod-eks
             server: 'https://kubernetes.default.svc'
             revision: luis/eng-6560-create-a-new-consumer-to-ingest-v1-data-in-v15-fomat-from
-            env: prod-base-sepolia-v1-5-final
+            env: prod-base-sepolia-v-1-5-final
             namespace: prod-base-sepolia-v1-5-vector
             rpcURL: 'http://prod-rpc-proxy.default.svc.cluster.local:3008/84532/proxy'
   template:
