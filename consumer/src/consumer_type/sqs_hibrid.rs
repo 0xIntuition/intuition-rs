@@ -143,7 +143,7 @@ impl SqsHibrid {
         mode: &ConsumerMode,
     ) -> Result<(), ConsumerError> {
         info!("Getting last processed id from the DB");
-        let last_processed_id =
+        let mut last_processed_id =
             HistoFluxCursor::find(&self.histoflux_pg_pool, &self.histoflux_cursor.environment)
                 .await?
                 .ok_or(ConsumerError::NotFound)?
@@ -200,6 +200,7 @@ impl SqsHibrid {
                 let log_for_task = log.clone();
                 let ctx = self.clone(); // ensure Clone
                 let log_id = log.id as i64;
+                last_processed_id = log_id;
 
                 join_set.spawn(async move {
                     let _permit = permit;

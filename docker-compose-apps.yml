@@ -79,18 +79,18 @@ services:
       AWS_SECRET_ACCESS_KEY: 'example'
       CONSUMER_TYPE: 'sqs_hibrid'
       INDEXER_DATABASE_URL: "postgres://postgres:postgres@database:5435/storage"
-      INDEXER_SCHEMA: $INDEXER_SCHEMA
+      INDEXER_SCHEMA: "histo_base_sepolia_1_5"
       ENVIRONMENT_NAME: "local_v_1_0"
       THREADS: '5'
       INITIAL_CONTRACT_VERSION: "v1"
       CONSUMER_METRICS_API_PORT: '3002'
       DATABASE_URL: 'postgres://postgres:postgres@database:5435/storage'
       DECODED_LOGS_QUEUE_URL: 'http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/decoded_logs.fifo'
-      INTUITION_CONTRACT_ADDRESS: $INTUITION_CONTRACT_ADDRESS
+      INTUITION_CONTRACT_ADDRESS: "0x430BbF52503Bd4801E51182f4cB9f8F534225DE5"
       LOCALSTACK_URL: 'http://sqs:4566/'
       PG_MIN_CONNECTIONS: '20'
       RESOLVER_QUEUE_URL: 'http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/resolver'
-      RPC_URL_BASE: "http://prod-rpc-proxy:3008/8453/proxy"
+      RPC_URL_BASE: "http://prod-rpc-proxy:3008/84532/proxy"
       RUST_LOG: 'warn'
       BACKEND_SCHEMA: 'public'
     restart: always

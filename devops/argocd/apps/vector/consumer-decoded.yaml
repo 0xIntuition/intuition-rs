@@ -13,8 +13,8 @@ spec:
           - cluster: prod-eks
             server: 'https://kubernetes.default.svc'
             revision: luis/eng-6560-create-a-new-consumer-to-ingest-v1-data-in-v15-fomat-from
-            env: prod-base-sepolia-v-1-5-final
-            namespace: prod-base-sepolia-v1-5-vector
+            env: prod-base-sepolia-v-1-5-vector-final
+            namespace: prod-base-sepolia-v-1-5-vector
             rpcURL: 'http://prod-rpc-proxy.default.svc.cluster.local:3008/84532/proxy'
   template:
     metadata:
@@ -55,8 +55,23 @@ spec:
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
+                    name: INDEXER_DATABASE_URL
+                    value: 'postgres://$(MAINDB_username):$(MAINDB_password)@$(MAINDB_endpoint)/histoflux?sslmode=require'
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
                     name: BACKEND_SCHEMA
                     value: 'public' # not sure if needs to be templated
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: ENVIRONMENT_NAME
+                    value: 'base_sepolia_upgradeable'
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: INDEXER_SCHEMA
+                    value: 'histo_base_sepolia_1_0'
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
