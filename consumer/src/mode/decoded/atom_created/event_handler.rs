@@ -37,7 +37,7 @@ where
         // decode the hex data from the atomData.
         let decoded_atom_data = self
             .0
-            .decode_atom_data_and_update_atom(&mut atom, decoded_consumer_context)
+            .decode_atom_data_and_update_atom(&mut atom, decoded_consumer_context, event)
             .await?;
         info!("Decoded atom data and updated atom");
 

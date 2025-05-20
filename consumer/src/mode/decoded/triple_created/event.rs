@@ -196,6 +196,7 @@ pub trait TripleCreatedEvent: SharePriceEvent + VaultManager + Debug + Clone {
         atom_data: String,
         account: Account,
         vault: Vault,
+        event: &DecodedMessage,
     ) -> Result<Atom, ConsumerError> {
         Atom::builder()
             .wallet_id(account.id.clone())
@@ -209,6 +210,7 @@ pub trait TripleCreatedEvent: SharePriceEvent + VaultManager + Debug + Clone {
             .block_timestamp(0)
             .transaction_hash("0x0000000000000000000000000000000000000000".to_string())
             .resolving_status(AtomResolvingStatus::Pending)
+            .log_index(event.log_index)
             .build()
             .upsert(backend_schema, tx.as_mut())
             .await
@@ -252,6 +254,7 @@ pub trait TripleCreatedEvent: SharePriceEvent + VaultManager + Debug + Clone {
                 atom_data.to_string(),
                 account,
                 vault,
+                event,
             )
             .await?;
 
@@ -412,6 +415,7 @@ pub trait TripleCreatedEvent: SharePriceEvent + VaultManager + Debug + Clone {
         object_atom: &Atom,
         backend_schema: &str,
         tx: &mut Transaction<'_, Postgres>,
+        event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
         if let Some(mut atom) = Atom::find_by_id(
             U256Wrapper::from(self.subject_id()?),
@@ -422,6 +426,8 @@ pub trait TripleCreatedEvent: SharePriceEvent + VaultManager + Debug + Clone {
         {
             atom.label = object_atom.label.clone();
             atom.image = object_atom.image.clone();
+            atom.log_index = event.log_index;
+            atom.block_number = U256Wrapper::try_from(event.block_number)?;
             atom.upsert(backend_schema, tx.as_mut()).await?;
             Ok(())
         } else {
@@ -448,8 +454,13 @@ pub trait TripleCreatedEvent: SharePriceEvent + VaultManager + Debug + Clone {
                 tx,
             )
             .await?;
-            self.update_atom(&object_atom, &decoded_consumer_context.backend_schema, tx)
-                .await?;
+            self.update_atom(
+                &object_atom,
+                &decoded_consumer_context.backend_schema,
+                tx,
+                event,
+            )
+            .await?;
         }
         Ok(())
     }

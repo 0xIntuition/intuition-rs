@@ -82,7 +82,7 @@ pub trait DepositedEvent: SharePriceEvent + VaultManager + Clone {
             let signal = if !self.is_triple()? {
                 Signal::builder()
                     .id(DecodedMessage::event_id(event))
-                    .account_id(self.sender()?.to_lowercase())
+                    .account_id(self.sender()?)
                     .delta(U256Wrapper::from(self.sender_assets_after_total_fees()?))
                     .atom_id(vault.term_id.clone())
                     .deposit_id(DecodedMessage::event_id(event))
@@ -95,7 +95,7 @@ pub trait DepositedEvent: SharePriceEvent + VaultManager + Clone {
             } else {
                 Signal::builder()
                     .id(DecodedMessage::event_id(event))
-                    .account_id(self.sender()?.to_lowercase())
+                    .account_id(self.sender()?)
                     .delta(U256Wrapper::from(self.sender_assets_after_total_fees()?))
                     .triple_id(vault.term_id.clone())
                     .deposit_id(DecodedMessage::event_id(event))
@@ -146,7 +146,7 @@ pub trait DepositedEvent: SharePriceEvent + VaultManager + Clone {
             "{}-{}-{}",
             self.vault_id()?,
             curve_id,
-            self.receiver()?.to_lowercase()
+            self.receiver()?
         ))
     }
     /// This function creates a new position
@@ -158,7 +158,7 @@ pub trait DepositedEvent: SharePriceEvent + VaultManager + Clone {
     ) -> Result<Position, ConsumerError> {
         Position::builder()
             .id(position_id.clone())
-            .account_id(self.receiver()?.to_lowercase())
+            .account_id(self.receiver()?)
             .term_id(U256Wrapper::from(self.vault_id()?))
             .curve_id(DepositedEvent::curve_id(self)?)
             .shares(self.receiver_total_shares_in_vault()?)

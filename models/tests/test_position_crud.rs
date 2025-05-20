@@ -54,7 +54,7 @@ mod tests {
             .await?
             .expect("Position should exist");
 
-        assert_eq!(retrieved_position.id, position.id.to_lowercase());
+        assert_eq!(retrieved_position.id, position.id);
         assert_eq!(retrieved_position.account_id, position.account_id);
         assert_eq!(retrieved_position.term_id, position.term_id);
         assert_eq!(retrieved_position.shares, updated_position.shares);

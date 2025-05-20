@@ -55,6 +55,7 @@ mod tests {
             .block_timestamp(create_random_number())
             .transaction_hash(create_random_string())
             .resolving_status(AtomResolvingStatus::Pending)
+            .log_index(create_random_number())
             .build()
             .upsert(TEST_SCHEMA, &pool)
             .await
@@ -104,6 +105,7 @@ mod tests {
             .block_timestamp(create_random_number())
             .transaction_hash(create_random_string())
             .resolving_status(AtomResolvingStatus::Pending)
+            .log_index(create_random_number())
             .build()
             .upsert(TEST_SCHEMA, &pool)
             .await

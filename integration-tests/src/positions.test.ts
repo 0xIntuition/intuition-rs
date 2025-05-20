@@ -34,7 +34,7 @@ suite('positions', () => {
 
     const result = await execute(
       positionsQuery,
-      { address: david.account.address.toString().toLowerCase() })
+      { address: david.account.address.toString() })
 
     expect(result).toBeDefined()
     expect(result.account.positions.length).toBe(1)
@@ -47,7 +47,7 @@ suite('positions', () => {
 
     const result2 = await execute(
       positionsQuery,
-      { address: david.account.address.toString().toLowerCase() })
+      { address: david.account.address.toString() })
 
     expect(result2).toBeDefined()
     expect(result2.account.positions.length).toBe(1)

@@ -9,7 +9,7 @@ WHERE
  account.type = 'Default'
  AND claim.subject_id = subject
  AND claim.predicate_id = predicate
- AND claim.account_id = LOWER(address);
+ AND claim.account_id = address;
 $$;
 
 CREATE FUNCTION following(address text) RETURNS SETOF account

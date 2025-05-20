@@ -37,12 +37,12 @@ suite('follow account', async () => {
         }
       }
       `),
-      { address: alice.account.address.toLowerCase() }
+      { address: alice.account.address }
     )
     expect(result).toBeDefined()
     expect(result.following.length).toBe(1)
     expect(result.following[0].atom_id).toBe(bobAtom.vaultId.toString())
-    expect(result.following[0].id).toBe(bob.account.address.toLowerCase())
+    expect(result.following[0].id).toBe(bob.account.address)
   })
 
 })

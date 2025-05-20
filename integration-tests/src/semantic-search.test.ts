@@ -130,7 +130,7 @@ suite('follow account and semantic search', async () => {
         }
       }
       `),
-      { address: alice.account.address.toLowerCase(), query: 'domestic animal' }
+      { address: alice.account.address, query: 'domestic animal' }
     )
     expect(result).toBeDefined()
     expect(result.search_term_from_following.length).toBe(2)

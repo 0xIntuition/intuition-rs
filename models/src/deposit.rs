@@ -82,9 +82,9 @@ impl SimpleCrud<String> for Deposit {
         );
 
         sqlx::query_as::<_, Deposit>(&query)
-            .bind(self.id.to_lowercase())
-            .bind(self.sender_id.to_lowercase())
-            .bind(self.receiver_id.to_lowercase())
+            .bind(self.id.clone())
+            .bind(self.sender_id.clone())
+            .bind(self.receiver_id.clone())
             .bind(self.receiver_total_shares_in_vault.to_big_decimal()?)
             .bind(self.sender_assets_after_total_fees.to_big_decimal()?)
             .bind(self.shares_for_receiver.to_big_decimal()?)
@@ -135,7 +135,7 @@ impl SimpleCrud<String> for Deposit {
         );
 
         sqlx::query_as::<_, Deposit>(&query)
-            .bind(id.to_lowercase())
+            .bind(id)
             .fetch_optional(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
@@ -161,7 +161,7 @@ impl Deposit {
         );
 
         let result: Option<U256Wrapper> = sqlx::query_scalar(&query)
-            .bind(receiver_id.to_lowercase())
+            .bind(receiver_id.clone())
             .bind(term_id.to_big_decimal()?)
             .bind(curve_id.to_big_decimal()?)
             .fetch_optional(pool)

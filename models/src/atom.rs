@@ -26,6 +26,7 @@ pub struct Atom {
     pub block_timestamp: i64,
     pub transaction_hash: String,
     pub resolving_status: AtomResolvingStatus,
+    pub log_index: i64,
 }
 
 #[derive(sqlx::Type, Clone, Debug, Display, EnumString, PartialEq, Serialize, Deserialize)]
@@ -74,46 +75,74 @@ impl SimpleCrud<U256Wrapper> for Atom {
     {
         let query = format!(
             r#"
-            INSERT INTO {}.atom 
-                (wallet_id, creator_id, term_id, data, raw_data, type, emoji, label, image, value_id, block_number, block_timestamp, transaction_hash, resolving_status)
-            VALUES ($1, $2, $3, $4, $5, $6::text::{}.atom_type, $7, $8, $9, $10, $11, $12, $13, $14::text::{}.atom_resolving_status)
-            ON CONFLICT (term_id) DO UPDATE SET
-                wallet_id = EXCLUDED.wallet_id,
-                creator_id = EXCLUDED.creator_id,
-                term_id = EXCLUDED.term_id,
-                data = EXCLUDED.data,
-                raw_data = EXCLUDED.raw_data,
-                type = EXCLUDED.type,
-                emoji = EXCLUDED.emoji,
-                label = EXCLUDED.label,
-                image = EXCLUDED.image,
-                value_id = EXCLUDED.value_id,
-                block_number = EXCLUDED.block_number,
-                block_timestamp = EXCLUDED.block_timestamp,
-                transaction_hash = EXCLUDED.transaction_hash,
-                resolving_status = EXCLUDED.resolving_status
-            RETURNING 
-                "wallet_id", 
-                "creator_id", 
-                "term_id", 
-                "data", 
-                "raw_data",
-                "type" as "atom_type", 
-                "emoji", 
-                "label", 
-                "image", 
-                "value_id",
-                "block_number",
-                "block_timestamp",
-                "transaction_hash",
-                "resolving_status"
+            WITH upsert AS (
+                INSERT INTO {0}.atom (
+                    wallet_id, creator_id, term_id, data, raw_data, type, emoji, label,
+                    image, value_id, block_number, block_timestamp, transaction_hash, resolving_status, log_index
+                )
+                VALUES (
+                    $1, $2, $3, $4, $5, $6::text::{0}.atom_type, $7, $8, $9, $10, $11, $12, $13, $14::text::{0}.atom_resolving_status, $15
+                )
+                ON CONFLICT (term_id) DO UPDATE SET
+                    wallet_id = EXCLUDED.wallet_id,
+                    creator_id = EXCLUDED.creator_id,
+                    data = EXCLUDED.data,
+                    raw_data = EXCLUDED.raw_data,
+                    type = EXCLUDED.type,
+                    emoji = EXCLUDED.emoji,
+                    label = EXCLUDED.label,
+                    image = EXCLUDED.image,
+                    value_id = EXCLUDED.value_id,
+                    block_number = EXCLUDED.block_number,
+                    block_timestamp = EXCLUDED.block_timestamp,
+                    transaction_hash = EXCLUDED.transaction_hash,
+                    resolving_status = EXCLUDED.resolving_status,
+                    log_index = EXCLUDED.log_index
+                RETURNING
+                    wallet_id,
+                    creator_id,
+                    term_id,
+                    data,
+                    raw_data,
+                    type AS atom_type,
+                    emoji,
+                    label,
+                    image,
+                    value_id,
+                    block_number,
+                    block_timestamp,
+                    transaction_hash,
+                    resolving_status,
+                    log_index
+            )
+            SELECT * FROM upsert
+            UNION ALL
+            SELECT
+                wallet_id,
+                creator_id,
+                term_id,
+                data,
+                raw_data,
+                type AS atom_type,
+                emoji,
+                label,
+                image,
+                value_id,
+                block_number,
+                block_timestamp,
+                transaction_hash,
+                resolving_status,
+                log_index
+            FROM {0}.atom
+            WHERE term_id = $3
+              AND NOT EXISTS (SELECT 1 FROM upsert)
             "#,
-            schema, schema, schema
+            schema
         );
 
         sqlx::query_as::<_, Atom>(&query)
-            .bind(self.wallet_id.to_lowercase())
-            .bind(self.creator_id.to_lowercase())
+            .bind(self.wallet_id.clone())
+            .bind(self.creator_id.clone())
             .bind(self.term_id.to_big_decimal()?)
             .bind(self.data.clone())
             .bind(self.raw_data.clone())
@@ -126,6 +155,7 @@ impl SimpleCrud<U256Wrapper> for Atom {
             .bind(self.block_timestamp)
             .bind(self.transaction_hash.clone())
             .bind(self.resolving_status.to_string())
+            .bind(self.log_index)
             .fetch_one(executor)
             .await
             .map_err(ModelError::from)
@@ -167,7 +197,8 @@ impl SimpleCrud<U256Wrapper> for Atom {
                    block_number,
                    block_timestamp,
                    transaction_hash,
-                   resolving_status
+                   resolving_status,
+                   log_index
             FROM {}.atom
             WHERE term_id = $1
             "#,

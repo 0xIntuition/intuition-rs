@@ -90,6 +90,7 @@ pub fn create_test_atom(wallet_id: String, creator_id: String) -> Atom {
         .block_timestamp(create_random_number())
         .transaction_hash(create_random_string())
         .resolving_status(AtomResolvingStatus::Pending)
+        .log_index(create_random_number())
         .build()
 }
 

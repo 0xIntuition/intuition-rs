@@ -97,7 +97,7 @@ suite('create person triple', async () => {
         }
       }
       `),
-      { atomId: originalThing.vaultId.toString(), address: alice.account.address.toLowerCase() })
+      { atomId: originalThing.vaultId.toString(), address: alice.account.address })
     expect(result).toBeDefined()
     expect(result.atom.label).toBe('Foo')
     expect(result.positions.length).toBe(1)

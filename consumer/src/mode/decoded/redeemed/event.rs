@@ -114,7 +114,7 @@ pub trait RedeemedEvent: Clone {
             format!(
                 "{}-{}-{}",
                 vault.term_id,
-                sender_account.id.to_lowercase(),
+                sender_account.id,
                 RedeemedEvent::curve_id(self)?
             ),
             &decoded_consumer_context.backend_schema,
@@ -155,7 +155,7 @@ pub trait RedeemedEvent: Clone {
         let signal = if let TermType::Triple = term_type.term_type {
             Signal::builder()
                 .id(DecodedMessage::event_id(event))
-                .account_id(self.sender()?.to_lowercase())
+                .account_id(self.sender()?)
                 // This is the equivalent of multiplying the assets for receiver by -1
                 .delta(U256Wrapper::from(
                     U256::ZERO.saturating_sub(self.assets_for_receiver()?),
@@ -171,7 +171,7 @@ pub trait RedeemedEvent: Clone {
         } else {
             Signal::builder()
                 .id(DecodedMessage::event_id(event))
-                .account_id(self.sender()?.to_lowercase())
+                .account_id(self.sender()?)
                 // This is the equivalent of multiplying the assets for receiver by -1
                 .delta(U256Wrapper::from(
                     U256::ZERO.saturating_sub(self.assets_for_receiver()?),

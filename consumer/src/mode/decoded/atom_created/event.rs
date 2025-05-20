@@ -119,6 +119,7 @@ pub trait AtomCreatedEvent:
             .block_timestamp(event.block_timestamp)
             .transaction_hash(event.transaction_hash.clone())
             .resolving_status(AtomResolvingStatus::Pending)
+            .log_index(event.log_index)
             .build()
             .upsert(
                 &decoded_consumer_context.backend_schema,
@@ -181,7 +182,7 @@ pub trait AtomCreatedEvent:
         &self,
         atom: &mut Atom,
         decoded_consumer_context: &DecodedConsumerContext,
-        // tx: &mut Transaction<'_, Postgres>,
+        event: &DecodedMessage,
     ) -> Result<String, ConsumerError> {
         // decode the hex data from the atomData.
         let decoded_atom_data = if let Ok(decoded_atom_data) = Atom::decode_data(self.atom_data()?)
@@ -197,6 +198,8 @@ pub trait AtomCreatedEvent:
 
         // Update the atom with the decoded data
         atom.data = Some(decoded_atom_data.clone());
+        atom.block_number = U256Wrapper::try_from(event.block_number)?;
+        atom.log_index = event.log_index;
         atom.upsert(
             &decoded_consumer_context.backend_schema,
             &decoded_consumer_context.pg_pool,

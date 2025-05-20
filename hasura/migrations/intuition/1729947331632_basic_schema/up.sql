@@ -66,9 +66,11 @@ CREATE TABLE atom (
   block_number NUMERIC(78, 0) NOT NULL,
   block_timestamp BIGINT NOT NULL,
   transaction_hash TEXT NOT NULL,
-  resolving_status atom_resolving_status NOT NULL DEFAULT 'Pending'
+  resolving_status atom_resolving_status NOT NULL DEFAULT 'Pending',
+  log_index BIGINT NOT NULL
 );
 
+CREATE INDEX atom_log_index_idx ON atom(log_index);
 -- Add foreign key constraints after tables are created
 ALTER TABLE account
   ADD CONSTRAINT fk_account_atom

@@ -37,37 +37,38 @@ impl SimpleCrud<U256Wrapper> for Vault {
     {
         let query = format!(
             r#"
-        WITH upsert AS (
-            INSERT INTO {0}.vault (
-                term_id, curve_id, total_shares, current_share_price, position_count,
-                total_assets, market_cap, block_number, log_index, transaction_hash
+            WITH upsert AS (
+                INSERT INTO {0}.vault (
+                    term_id, curve_id, total_shares, current_share_price, position_count,
+                    total_assets, market_cap, block_number, log_index, transaction_hash
+                )
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                ON CONFLICT (term_id, curve_id) DO UPDATE SET
+                    total_shares = EXCLUDED.total_shares,
+                    current_share_price = EXCLUDED.current_share_price,
+                    position_count = EXCLUDED.position_count,
+                    total_assets = EXCLUDED.total_assets,
+                    market_cap = EXCLUDED.market_cap,
+                    block_number = EXCLUDED.block_number,
+                    log_index = EXCLUDED.log_index,
+                    transaction_hash = EXCLUDED.transaction_hash
+                WHERE
+                    EXCLUDED.block_number > vault.block_number
+                    OR (
+                        EXCLUDED.block_number = vault.block_number
+                        AND EXCLUDED.log_index > vault.log_index
+                    )
+                RETURNING term_id, curve_id, total_shares, current_share_price, position_count,
+                          total_assets, market_cap, block_number, log_index, transaction_hash
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-            ON CONFLICT (term_id, curve_id) DO UPDATE SET
-                total_shares = EXCLUDED.total_shares,
-                current_share_price = EXCLUDED.current_share_price,
-                position_count = EXCLUDED.position_count,
-                total_assets = EXCLUDED.total_assets,
-                market_cap = EXCLUDED.market_cap,
-                block_number = EXCLUDED.block_number,
-                log_index = EXCLUDED.log_index,
-                transaction_hash = EXCLUDED.transaction_hash
-            WHERE vault.block_number IS NULL
-                OR vault.block_number < EXCLUDED.block_number
-                OR (vault.block_number = EXCLUDED.block_number AND 
-                    (vault.log_index < EXCLUDED.log_index OR vault.transaction_hash != EXCLUDED.transaction_hash))
-            RETURNING term_id, curve_id, total_shares, current_share_price, position_count,
-                      total_assets, market_cap, block_number, log_index, transaction_hash
-        )
-        SELECT * FROM upsert
-        UNION ALL
-        (
+            SELECT * FROM upsert
+            UNION ALL
             SELECT term_id, curve_id, total_shares, current_share_price, position_count,
-                total_assets, market_cap, block_number, log_index, transaction_hash
+                   total_assets, market_cap, block_number, log_index, transaction_hash
             FROM {0}.vault
             WHERE term_id = $1 AND curve_id = $2
             AND NOT EXISTS (SELECT 1 FROM upsert)
-        )"#,
+            "#,
             schema,
         );
 

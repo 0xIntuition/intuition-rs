@@ -71,7 +71,7 @@ where
         info!("Checking if the sender's shares are zero");
         if self.0.sender_total_shares_in_vault()? == Uint::from(0) {
             // Build the position ID
-            let position_id = format!("{}-1-{}", vault.term_id, sender_account.id.to_lowercase());
+            let position_id = format!("{}-1-{}", vault.term_id, sender_account.id);
             // Call the handler to remove the position
             self.0
                 .handle_position_redemption(decoded_consumer_context, &position_id, event)

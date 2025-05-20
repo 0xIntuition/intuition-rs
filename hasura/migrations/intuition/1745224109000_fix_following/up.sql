@@ -10,7 +10,7 @@ WHERE
  account.type = 'Default'
  AND triple.subject_id = subject
  AND triple.predicate_id = predicate
- AND position.account_id = LOWER(address);
+ AND position.account_id = address;
 $$;
 
 
