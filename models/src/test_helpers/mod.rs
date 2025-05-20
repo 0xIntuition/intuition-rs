@@ -329,6 +329,8 @@ pub fn create_test_position(account_id: String, term_id: U256Wrapper) -> Positio
         .curve_id(U256Wrapper::from_str("1").unwrap())
         .block_number(create_random_number())
         .log_index(create_random_number())
+        .transaction_hash(create_random_string())
+        .transaction_index(create_random_number())
         .build()
 }
 

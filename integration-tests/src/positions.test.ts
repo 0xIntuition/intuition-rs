@@ -14,7 +14,11 @@ suite('positions', () => {
     // deposit 0.05 ETH to david
     const deposit = await david.multivault.depositAtom(davidAccount.vaultId, parseEther('0.05'))
     await wait(deposit.hash)
-
+    console.log('Deposit shares', deposit.shares)
+    console.log('awaiting 2 seconds before redeeming')
+    await new Promise(resolve => setTimeout(resolve, 2000))
+    console.log('redeeming position')
+    
     const positionsQuery = graphql(`
       query positions($address: String!) {
         account(id: $address) {
@@ -36,7 +40,7 @@ suite('positions', () => {
     expect(result.account.positions.length).toBe(1)
 
     // fully redeem the position
-
+    console.log('Shares to redeem', result.account.positions[0].shares)
     const redemtion = await david.multivault.redeemAtom(davidAccount.vaultId, BigInt(result.account.positions[0].shares))
     expect(redemtion).toBeDefined()
     await wait(redemtion.hash)

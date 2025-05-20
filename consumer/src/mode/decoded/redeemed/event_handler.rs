@@ -56,20 +56,14 @@ where
                 self.0.vault_id()?,
             )
             .await?;
-        info!("Creating the redemption record");
-
-        let mut tx = decoded_consumer_context.pg_pool.begin().await?;
-
-        info!("Starting the TX");
 
         // 3. Create redemption record
         self.0
             .create_redemption_record(
-                &decoded_consumer_context.backend_schema,
+                decoded_consumer_context,
                 &sender_account,
                 &receiver_account,
                 event,
-                &mut tx,
             )
             .await?;
 
@@ -80,11 +74,7 @@ where
             let position_id = format!("{}-1-{}", vault.term_id, sender_account.id.to_lowercase());
             // Call the handler to remove the position
             self.0
-                .handle_position_redemption(
-                    &decoded_consumer_context.backend_schema,
-                    &position_id,
-                    &mut tx,
-                )
+                .handle_position_redemption(decoded_consumer_context, &position_id, event)
                 .await?;
         } else {
             info!(
@@ -92,12 +82,7 @@ where
                 self.0.sender_total_shares_in_vault()?
             );
             self.0
-                .handle_remaining_shares(
-                    &vault,
-                    &sender_account,
-                    &decoded_consumer_context.backend_schema,
-                    &mut tx,
-                )
+                .handle_remaining_shares(&vault, &sender_account, decoded_consumer_context, event)
                 .await?;
         }
 
@@ -105,13 +90,11 @@ where
         self.0
             .update_vault_values(
                 decoded_consumer_context,
-                &mut tx,
                 current_share_price,
                 total_shares,
+                event,
             )
             .await?;
-
-        tx.commit().await?;
 
         // 4. Create event and signal records
         self.create_event(decoded_consumer_context, event).await?;

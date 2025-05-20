@@ -17,7 +17,6 @@ use models::{
     types::U256Wrapper,
     vault::Vault,
 };
-use sqlx::{Postgres, Transaction};
 use tracing::info;
 /// This trait represents a redeemed event
 pub trait RedeemedEvent: Clone {
@@ -40,11 +39,10 @@ pub trait RedeemedEvent: Clone {
     // Helper methods to break down the complexity:
     async fn create_redemption_record(
         &self,
-        backend_schema: &str,
+        decoded_consumer_context: &DecodedConsumerContext,
         sender_account: &Account,
         receiver_account: &Account,
         event: &DecodedMessage,
-        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Redemption, ConsumerError> {
         Redemption::builder()
             .id(DecodedMessage::event_id(event))
@@ -61,20 +59,27 @@ pub trait RedeemedEvent: Clone {
             .curve_id(U256Wrapper::from(RedeemedEvent::curve_id(self)?))
             .log_index(event.log_index)
             .build()
-            .upsert(backend_schema, tx.as_mut())
+            .upsert(
+                &decoded_consumer_context.backend_schema,
+                &decoded_consumer_context.pg_pool,
+            )
             .await
             .map_err(ConsumerError::ModelError)
     }
     /// This function handles the deletion of a position
     async fn handle_position_redemption(
         &self,
-        backend_schema: &str,
+        decoded_consumer_context: &DecodedConsumerContext,
         position_id: &str,
-        tx: &mut Transaction<'_, Postgres>,
+        event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
         // Fetch the position
-        let position =
-            Position::find_by_id(position_id.to_string(), backend_schema, tx.as_mut()).await?;
+        let position = Position::find_by_id(
+            position_id.to_string(),
+            &decoded_consumer_context.backend_schema,
+            &decoded_consumer_context.pg_pool,
+        )
+        .await?;
 
         // Only if the position is being closed should we update vault position_count.
         // For instance, if the redemption fully depletes the position:
@@ -82,7 +87,16 @@ pub trait RedeemedEvent: Clone {
             info!("Position shares are zero, updating position shares to 0.");
             // Remove the position record..
             position.shares = U256Wrapper::try_from(0)?;
-            position.upsert(backend_schema, tx.as_mut()).await?;
+            position.block_number = event.block_number;
+            position.log_index = event.log_index;
+            position.transaction_hash = event.transaction_hash.clone();
+            position.transaction_index = event.transaction_index;
+            position
+                .upsert(
+                    &decoded_consumer_context.backend_schema,
+                    &decoded_consumer_context.pg_pool,
+                )
+                .await?;
         }
 
         Ok(())
@@ -92,8 +106,8 @@ pub trait RedeemedEvent: Clone {
         &self,
         vault: &Vault,
         sender_account: &Account,
-        backend_schema: &str,
-        tx: &mut Transaction<'_, Postgres>,
+        decoded_consumer_context: &DecodedConsumerContext,
+        event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
         // Update position
         if let Some(mut position) = Position::find_by_id(
@@ -103,13 +117,22 @@ pub trait RedeemedEvent: Clone {
                 sender_account.id.to_lowercase(),
                 RedeemedEvent::curve_id(self)?
             ),
-            backend_schema,
-            tx.as_mut(),
+            &decoded_consumer_context.backend_schema,
+            &decoded_consumer_context.pg_pool,
         )
         .await?
         {
             position.shares = U256Wrapper::from(self.sender_total_shares_in_vault()?);
-            position.upsert(backend_schema, tx.as_mut()).await?;
+            position.block_number = event.block_number;
+            position.log_index = event.log_index;
+            position.transaction_hash = event.transaction_hash.clone();
+            position.transaction_index = event.transaction_index;
+            position
+                .upsert(
+                    &decoded_consumer_context.backend_schema,
+                    &decoded_consumer_context.pg_pool,
+                )
+                .await?;
         }
 
         Ok(())
@@ -174,9 +197,9 @@ pub trait RedeemedEvent: Clone {
     async fn update_vault_values(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
-        tx: &mut Transaction<'_, Postgres>,
         current_share_price: Option<U256Wrapper>,
         total_shares: Option<Uint<256, 4>>,
+        event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
         if let Some(current_share_price) = current_share_price {
             if let Some(total_shares) = total_shares {
@@ -187,9 +210,9 @@ pub trait RedeemedEvent: Clone {
                     },
                     self.vault_id()?,
                     decoded_consumer_context,
-                    tx,
                     current_share_price,
                     total_shares,
+                    event,
                 )
                 .await?;
             }

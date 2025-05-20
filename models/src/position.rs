@@ -24,6 +24,10 @@ pub struct Position {
     pub block_number: i64,
     /// Log index of the transaction that created the position
     pub log_index: i64,
+    /// Transaction hash of the transaction that created the position
+    pub transaction_hash: String,
+    /// Transaction index of the transaction that created the position
+    pub transaction_index: i64,
 }
 
 /// This is a trait that all models must implement.
@@ -50,26 +54,24 @@ impl SimpleCrud<String> for Position {
         let query = format!(
             r#"
             WITH upsert AS (
-                INSERT INTO {}.position (id, account_id, term_id, shares, curve_id, block_number, log_index)
-                VALUES ($1, $2, $3, $4, $5, $6, $7)
-                ON CONFLICT (id) 
+                INSERT INTO {}.position (id, account_id, term_id, shares, curve_id, block_number, log_index, transaction_hash, transaction_index)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                ON CONFLICT (id)
                 DO UPDATE SET
                     account_id = EXCLUDED.account_id,
                     term_id = EXCLUDED.term_id,
                     shares = EXCLUDED.shares,
                     curve_id = EXCLUDED.curve_id,
                     block_number = EXCLUDED.block_number,
-                    log_index = EXCLUDED.log_index
+                    log_index = EXCLUDED.log_index,
+                    transaction_hash = EXCLUDED.transaction_hash,
+                    transaction_index = EXCLUDED.transaction_index
                 WHERE (
-                    position.account_id IS DISTINCT FROM EXCLUDED.account_id OR
-                    position.term_id IS DISTINCT FROM EXCLUDED.term_id OR
-                    position.shares IS DISTINCT FROM EXCLUDED.shares OR
-                    position.curve_id IS DISTINCT FROM EXCLUDED.curve_id OR
-                    position.block_number IS DISTINCT FROM EXCLUDED.block_number OR
-                    position.log_index IS DISTINCT FROM EXCLUDED.log_index
-                ) AND (
-                    EXCLUDED.block_number > position.block_number OR
-                    (EXCLUDED.block_number = position.block_number)
+                    EXCLUDED.block_number > position.block_number
+                    OR (
+                        EXCLUDED.block_number = position.block_number
+                        AND EXCLUDED.log_index > position.log_index
+                    )
                 )
                 RETURNING *
             )
@@ -90,6 +92,8 @@ impl SimpleCrud<String> for Position {
             .bind(self.curve_id.to_big_decimal()?)
             .bind(self.block_number)
             .bind(self.log_index)
+            .bind(self.transaction_hash.clone())
+            .bind(self.transaction_index)
             .fetch_one(executor)
             .await
             .map_err(|e| ModelError::PositionInsertError(e.to_string()))
@@ -113,6 +117,8 @@ impl SimpleCrud<String> for Position {
                 shares,
                 block_number,
                 log_index,
+                transaction_hash,
+                transaction_index,
                 curve_id
             FROM {}.position
             WHERE id = $1
@@ -187,7 +193,9 @@ impl Position {
                 shares,
                 curve_id,
                 block_number,
-                log_index
+                log_index,
+                transaction_hash,
+                transaction_index
             FROM {}.position 
             WHERE id = $1
             "#,

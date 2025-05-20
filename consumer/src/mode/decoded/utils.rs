@@ -73,15 +73,15 @@ pub async fn update_vault(
     vault_update: VaultUpdate,
     vault_id: Uint<256, 4>,
     decoded_consumer_context: &DecodedConsumerContext,
-    tx: &mut Transaction<'_, Postgres>,
     current_share_price: U256Wrapper,
     total_shares: Uint<256, 4>,
+    event: &DecodedMessage,
 ) -> Result<(), ConsumerError> {
     // Update vault
     let mut vault = Vault::find_by_id(
         vault_id.into(),
         &decoded_consumer_context.backend_schema,
-        tx.as_mut(),
+        &decoded_consumer_context.pg_pool,
     )
     .await?
     .ok_or(ConsumerError::VaultNotFound)?;
@@ -107,8 +107,14 @@ pub async fn update_vault(
         U256Wrapper::from(total_shares) * current_share_price
             / U256Wrapper::from(U256::from(10).pow(U256::from(18))),
     );
+    vault.block_number = event.block_number;
+    vault.log_index = event.log_index;
+    vault.transaction_hash = event.transaction_hash.clone();
     vault
-        .upsert(&decoded_consumer_context.backend_schema, tx.as_mut())
+        .upsert(
+            &decoded_consumer_context.backend_schema,
+            &decoded_consumer_context.pg_pool,
+        )
         .await?;
     Ok(())
 }

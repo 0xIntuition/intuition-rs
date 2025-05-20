@@ -25,7 +25,7 @@ use std::{
     sync::{Arc, RwLock},
 };
 use tokio::time::{Duration, sleep};
-use tracing::{debug, info, warn};
+use tracing::{info, warn};
 
 // Create a OnceCell to hold the histogram
 static EVENT_PROCESSING_HISTOGRAM: OnceCell<HistogramVec> = OnceCell::new();
@@ -689,7 +689,6 @@ impl ConsumerMode {
         message: String,
         decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<(), ConsumerError> {
-        debug!("Processing a decoded message: {message:?}");
         let decoded_message: DecodedMessage = serde_json::from_str(&message)?;
 
         // Check if we already updated the stats for contract balance for

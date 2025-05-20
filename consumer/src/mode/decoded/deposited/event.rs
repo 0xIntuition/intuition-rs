@@ -13,7 +13,6 @@ use models::{
     deposit::Deposit, position::Position, signal::Signal, term::TermType, traits::SimpleCrud,
     types::U256Wrapper, vault::Vault,
 };
-use sqlx::{Postgres, Transaction};
 use tracing::info;
 
 /// This trait represents a deposited event
@@ -42,8 +41,7 @@ pub trait DepositedEvent: SharePriceEvent + VaultManager + Clone {
     async fn create_deposit(
         &self,
         event: &DecodedMessage,
-        backend_schema: &str,
-        tx: &mut Transaction<'_, Postgres>,
+        decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<Deposit, ConsumerError> {
         Deposit::builder()
             .id(DecodedMessage::event_id(event))
@@ -66,7 +64,10 @@ pub trait DepositedEvent: SharePriceEvent + VaultManager + Clone {
             .transaction_hash(event.transaction_hash.clone())
             .log_index(event.log_index)
             .build()
-            .upsert(backend_schema, tx.as_mut())
+            .upsert(
+                &decoded_consumer_context.backend_schema,
+                &decoded_consumer_context.pg_pool,
+            )
             .await
             .map_err(ConsumerError::ModelError)
     }
@@ -152,10 +153,8 @@ pub trait DepositedEvent: SharePriceEvent + VaultManager + Clone {
     async fn create_new_position(
         &self,
         position_id: String,
-        backend_schema: &str,
-        block_number: i64,
-        log_index: i64,
-        tx: &mut Transaction<'_, Postgres>,
+        decoded_consumer_context: &DecodedConsumerContext,
+        event: &DecodedMessage,
     ) -> Result<Position, ConsumerError> {
         Position::builder()
             .id(position_id.clone())
@@ -163,23 +162,35 @@ pub trait DepositedEvent: SharePriceEvent + VaultManager + Clone {
             .term_id(U256Wrapper::from(self.vault_id()?))
             .curve_id(DepositedEvent::curve_id(self)?)
             .shares(self.receiver_total_shares_in_vault()?)
-            .block_number(block_number)
-            .log_index(log_index)
+            .block_number(event.block_number)
+            .log_index(event.log_index)
+            .transaction_hash(event.transaction_hash.clone())
+            .transaction_index(event.transaction_index)
             .build()
-            .upsert(backend_schema, tx.as_mut())
+            .upsert(
+                &decoded_consumer_context.backend_schema,
+                &decoded_consumer_context.pg_pool,
+            )
             .await
             .map_err(ConsumerError::ModelError)
     }
     /// This function updates the position
     async fn update_position(
         &self,
-        backend_schema: &str,
-        tx: &mut Transaction<'_, Postgres>,
+        decoded_consumer_context: &DecodedConsumerContext,
         position: &mut Position,
+        event: &DecodedMessage,
     ) -> Result<Position, ConsumerError> {
         position.shares = U256Wrapper::from(self.receiver_total_shares_in_vault()?);
+        position.block_number = event.block_number;
+        position.log_index = event.log_index;
+        position.transaction_hash = event.transaction_hash.clone();
+        position.transaction_index = event.transaction_index;
         position
-            .upsert(backend_schema, tx.as_mut())
+            .upsert(
+                &decoded_consumer_context.backend_schema,
+                &decoded_consumer_context.pg_pool,
+            )
             .await
             .map_err(ConsumerError::ModelError)
     }
@@ -187,7 +198,6 @@ pub trait DepositedEvent: SharePriceEvent + VaultManager + Clone {
     async fn handle_positions(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
-        tx: &mut Transaction<'_, Postgres>,
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
         let position_id =
@@ -196,34 +206,24 @@ pub trait DepositedEvent: SharePriceEvent + VaultManager + Clone {
         let position = Position::find_by_id(
             position_id.clone(),
             &decoded_consumer_context.backend_schema,
-            tx.as_mut(),
+            &decoded_consumer_context.pg_pool,
         )
         .await?;
 
         if position.is_none() && self.receiver_total_shares_in_vault()? > U256::from(0) {
             info!("Creating new position with ID: {}", position_id);
-            self.create_new_position(
-                position_id.to_string(),
-                &decoded_consumer_context.backend_schema,
-                event.block_number,
-                event.log_index,
-                tx,
-            )
-            .await?;
+            self.create_new_position(position_id.to_string(), decoded_consumer_context, event)
+                .await?;
         } else if let Some(mut position) = position {
             if self.receiver_total_shares_in_vault()? > U256::from(0) {
                 info!(
-                    "Position found, updating existing position with ID: {} and current shares: {}",
-                    position_id, position.shares
+                    "Position found, updating existing position with ID: {} and current shares: {}, shares are going to be {}",
+                    position_id,
+                    position.shares,
+                    self.receiver_total_shares_in_vault()?
                 );
-                if position.shares != U256Wrapper::from(self.receiver_total_shares_in_vault()?) {
-                    self.update_position(
-                        &decoded_consumer_context.backend_schema,
-                        tx,
-                        &mut position,
-                    )
+                self.update_position(decoded_consumer_context, &mut position, event)
                     .await?;
-                }
             } else {
                 info!("No need to update positions, receiver total shares in vault is 0.");
             }
@@ -240,9 +240,9 @@ pub trait DepositedEvent: SharePriceEvent + VaultManager + Clone {
     async fn update_vault_values(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
-        tx: &mut Transaction<'_, Postgres>,
         current_share_price: Option<U256Wrapper>,
         total_shares: Option<Uint<256, 4>>,
+        event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
         if let Some(current_share_price) = current_share_price {
             if let Some(total_shares) = total_shares {
@@ -255,9 +255,9 @@ pub trait DepositedEvent: SharePriceEvent + VaultManager + Clone {
                     },
                     self.vault_id()?,
                     decoded_consumer_context,
-                    tx,
                     current_share_price,
                     total_shares,
+                    event,
                 )
                 .await?;
             }

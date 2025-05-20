@@ -44,9 +44,7 @@ impl HistoFlux {
         &self,
         notification: PgNotification,
     ) -> Result<(), HistoFluxError> {
-        info!("Processing notification: {:?}", notification);
         let payload: NotificationPayload = serde_json::from_str(notification.payload())?;
-        info!("Payload: {:?}", payload);
 
         // Convert numeric fields to strings if RawLog expects them as strings
         let raw_log = RawLog::builder()

@@ -42,6 +42,8 @@ mod tests {
             curve_id: position.curve_id.clone(),
             block_number: position.block_number,
             log_index: position.log_index,
+            transaction_hash: position.transaction_hash.clone(),
+            transaction_index: position.transaction_index,
         };
 
         // Update using upsert

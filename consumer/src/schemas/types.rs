@@ -45,6 +45,7 @@ pub struct DecodedMessage {
     pub block_timestamp: i64,
     pub transaction_hash: String,
     pub log_index: i64,
+    pub transaction_index: i64,
 }
 
 /// This function creates a new [`DecodedMessage`] struct
@@ -57,6 +58,7 @@ impl DecodedMessage {
             block_timestamp: raw_log.block_timestamp,
             transaction_hash: raw_log.transaction_hash,
             log_index: raw_log.log_index,
+            transaction_index: raw_log.transaction_index,
         }
     }
 

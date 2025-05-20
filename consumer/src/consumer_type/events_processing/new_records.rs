@@ -183,7 +183,6 @@ impl SqsHibrid {
         mode: &ConsumerMode,
         contract_version: &ContractVersion,
     ) -> Result<(), ConsumerError> {
-        info!("Processing notification: {:?}", notification);
         // We receive the raw log indexed by HistoCrawler from the DB
         let notification: NotificationPayload = serde_json::from_str(notification.payload())?;
 

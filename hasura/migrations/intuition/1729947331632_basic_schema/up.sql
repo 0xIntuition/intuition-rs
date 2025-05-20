@@ -186,13 +186,17 @@ CREATE TABLE position (
   vault_id NUMERIC(78, 0) REFERENCES vault(id) NOT NULL,
   shares NUMERIC(78, 0) NOT NULL,
   block_number BIGINT NOT NULL,
-  log_index BIGINT NOT NULL
+  log_index BIGINT NOT NULL,
+  transaction_hash TEXT NOT NULL,
+  transaction_index BIGINT NOT NULL
 );
 
 CREATE INDEX position_account_vault_idx ON position(account_id, vault_id);
 CREATE INDEX position_shares_idx ON position(shares);
 CREATE INDEX position_block_number_idx ON position(block_number);
 CREATE INDEX position_log_index_idx ON position(log_index);
+CREATE INDEX position_transaction_hash_idx ON position(transaction_hash);
+CREATE INDEX position_transaction_index_idx ON position(transaction_index);
 
 -- id is a concatenation of account_id and vault_id with a dash in between
 CREATE TABLE claim (

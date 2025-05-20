@@ -43,29 +43,25 @@ where
             )
             .await?;
 
-        let mut tx = decoded_consumer_context.pg_pool.begin().await?;
-
         // Create deposit record
         self.0
-            .create_deposit(event, &decoded_consumer_context.backend_schema, &mut tx)
+            .create_deposit(event, decoded_consumer_context)
             .await?;
 
         // Handle position and related entities
         self.0
-            .handle_positions(decoded_consumer_context, &mut tx, event)
+            .handle_positions(decoded_consumer_context, event)
             .await?;
 
         // Update vault values when dealing with v1 deposit events
         self.0
             .update_vault_values(
                 decoded_consumer_context,
-                &mut tx,
                 current_share_price,
                 total_shares,
+                event,
             )
             .await?;
-
-        tx.commit().await?;
 
         // Create event
         self.create_event(decoded_consumer_context, event).await?;
