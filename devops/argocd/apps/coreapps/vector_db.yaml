@@ -12,7 +12,7 @@ spec:
     kustomize:
       patches:
         - target:
-            kind: Deployment
+            kind: StatefulSet
             name: vector-db
           patch: |-
             - op: replace
