@@ -17,6 +17,11 @@ spec:
         - name: vector-db
           image: timescale/timescaledb-ha:pg17.4-ts2.19.2
           imagePullPolicy: Always 
+          resources:
+            requests:
+              cpu: "2"
+            limits:
+              cpu: "2"
           ports:
           - containerPort: 5432
             protocol: TCP

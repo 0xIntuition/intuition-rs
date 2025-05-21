@@ -12,19 +12,12 @@ spec:
     kustomize:
       patches:
         - target:
-            kind: StatefulSet
+            kind: Deployment
             name: vector-db
           patch: |-
             - op: replace
               path: /spec/template/spec/serviceAccountName
               value: prod-eks-secrets-access-sa
-            - op: add
-              path: /spec/template/spec/containers/0/resources
-              value:
-                requests:
-                  cpu: "2"
-                limits:
-                  cpu: "2"
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: default
