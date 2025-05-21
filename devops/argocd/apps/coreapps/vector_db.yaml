@@ -7,17 +7,24 @@ spec:
   project: prod
   source:
     repoURL: 'https://github.com/0xintuition/intuition-rs.git'
-    targetRevision: luis/eng-6546-vector-db-support
+    targetRevision: luis/eng-6560-create-a-new-consumer-to-ingest-v1-data-in-v15-fomat-from
     path: devops/aws-rolling-releases/vector_db/
     kustomize:
       patches:
         - target:
-            kind: Deployment
+            kind: StatefulSet
             name: vector-db
           patch: |-
             - op: replace
               path: /spec/template/spec/serviceAccountName
               value: prod-eks-secrets-access-sa
+            - op: add
+              path: /spec/template/spec/containers/0/resources
+              value:
+                requests:
+                  cpu: "2"
+                limits:
+                  cpu: "2"
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: default
