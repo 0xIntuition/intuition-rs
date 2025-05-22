@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: consumer-resolver
+  name: consumer-resolver-vector
   namespace: argocd
 spec:
   goTemplate: true
