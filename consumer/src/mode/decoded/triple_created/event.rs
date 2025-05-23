@@ -96,14 +96,14 @@ pub trait TripleCreatedEvent: SharePriceEvent + VaultManager + Debug + Clone {
             // Ensure that the term exists for the vault
             get_or_create_term(
                 &self.clone(),
-                Some(counter_vault_id),
+                Some(counter_vault_id.clone()),
                 decoded_consumer_context,
                 TermType::Triple,
             )
             .await?;
 
             let new_vault = Vault::builder()
-                .term_id(U256Wrapper::from(self.vault_id()?))
+                .term_id(counter_vault_id)
                 .curve_id(U256Wrapper::from_str("1")?)
                 .current_share_price(
                     self.current_share_price(decoded_consumer_context, block_number)

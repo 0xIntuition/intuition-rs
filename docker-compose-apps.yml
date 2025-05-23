@@ -86,7 +86,7 @@ services:
       CONSUMER_METRICS_API_PORT: '3002'
       DATABASE_URL: 'postgres://postgres:postgres@database:5435/storage'
       DECODED_LOGS_QUEUE_URL: 'http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/decoded_logs.fifo'
-      INTUITION_CONTRACT_ADDRESS: "0x430BbF52503Bd4801E51182f4cB9f8F534225DE5"
+      INTUITION_CONTRACT_ADDRESS: $INTUITION_CONTRACT_ADDRESS
       LOCALSTACK_URL: 'http://sqs:4566/'
       PG_MIN_CONNECTIONS: '20'
       RESOLVER_QUEUE_URL: 'http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/resolver'
