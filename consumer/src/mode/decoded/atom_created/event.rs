@@ -3,7 +3,9 @@ use crate::{
     mode::{
         resolver::types::ResolverConsumerMessage,
         types::DecodedConsumerContext,
-        utils::{get_or_create_account, get_or_create_account_from_event, get_or_create_vault},
+        utils::{
+            Origin, get_or_create_account, get_or_create_account_from_event, get_or_create_vault,
+        },
     },
     schemas::types::DecodedMessage,
     traits::{AccountManager, SharePriceEvent, VaultManager},
@@ -35,14 +37,29 @@ pub trait AtomCreatedEvent:
         event: &DecodedMessage,
     ) -> Result<(Vault, Atom), ConsumerError> {
         // Get or create the vault
-        let vault = get_or_create_vault(
+        let vault = match get_or_create_vault(
             self.clone(),
             Some(event.block_number),
             decoded_consumer_context,
             TermType::Atom,
             event,
+            Origin::AtomCreated,
         )
-        .await?;
+        .await
+        {
+            Ok(vault) => vault,
+            Err(e) => {
+                warn!("Error inserting vault: {:?}, returning existing vault", e);
+                Vault::find_by_term_id_and_curve_id(
+                    self.vault_id()?.into(),
+                    self.curve_id()?,
+                    &decoded_consumer_context.pg_pool,
+                    &decoded_consumer_context.backend_schema,
+                )
+                .await?
+                .ok_or(ConsumerError::VaultNotFound)?
+            }
+        };
 
         // In order to upsert a [`Vault`] we need to have an [`Atom`] first.
         // Verify that the atom exists, if not, create it. Note that in order

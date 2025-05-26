@@ -16,6 +16,15 @@ use sqlx::PgPool;
 use std::fmt::Debug;
 use tracing::{info, warn};
 
+/// This enum represents the origin of a vault
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Origin {
+    AtomCreated,
+    TripleCreated,
+    Deposit,
+    SharePriceChanged,
+}
+
 /// Shortens an address string by taking first 6 and last 4 chars
 pub fn short_id(address: &str) -> String {
     format!("{}...{}", &address[..6], &address[address.len() - 4..])
@@ -133,6 +142,7 @@ pub async fn get_or_create_vault(
     decoded_consumer_context: &DecodedConsumerContext,
     term_type: TermType,
     transaction_data: &DecodedMessage,
+    origin: Origin,
 ) -> Result<Vault, ConsumerError> {
     let vault = Vault::find_by_term_id_and_curve_id(
         event.term_id()?,
@@ -180,13 +190,28 @@ pub async fn get_or_create_vault(
             .block_number(block_number.unwrap_or(0))
             .log_index(transaction_data.log_index)
             .transaction_hash(transaction_data.transaction_hash.clone())
-            .build()
-            .upsert(
-                &decoded_consumer_context.backend_schema,
-                &decoded_consumer_context.pg_pool.clone(),
-            )
-            .await
-            .map_err(ConsumerError::ModelError)?;
+            .build();
+
+        match origin {
+            // On atom or triple creation, we insert the vault, because if it already exists,
+            // it means that the vault was created before the atom or triple was created by a
+            // different transaction, like a deposit or redemption, and we don't want to overwrite
+            // it.
+            Origin::AtomCreated | Origin::TripleCreated => new_vault
+                .insert(
+                    &decoded_consumer_context.pg_pool.clone(),
+                    &decoded_consumer_context.backend_schema,
+                )
+                .await
+                .map_err(ConsumerError::ModelError)?,
+            Origin::Deposit | Origin::SharePriceChanged => new_vault
+                .upsert(
+                    &decoded_consumer_context.backend_schema,
+                    &decoded_consumer_context.pg_pool.clone(),
+                )
+                .await
+                .map_err(ConsumerError::ModelError)?,
+        };
 
         Ok(new_vault)
     }

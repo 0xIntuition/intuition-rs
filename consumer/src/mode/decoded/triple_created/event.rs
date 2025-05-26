@@ -4,7 +4,7 @@ use crate::{
     mode::{
         resolver::types::ResolverConsumerMessage,
         types::DecodedConsumerContext,
-        utils::{get_or_create_term, get_or_create_vault, short_id},
+        utils::{Origin, get_or_create_term, get_or_create_vault, short_id},
     },
     schemas::types::DecodedMessage,
     traits::{SharePriceEvent, VaultManager},
@@ -22,6 +22,7 @@ use models::{
 };
 use sqlx::{Postgres, Transaction};
 use std::{fmt::Debug, str::FromStr};
+use tracing::warn;
 
 /// This trait represents a fee transferred event
 pub trait TripleCreatedEvent: SharePriceEvent + VaultManager + Debug + Clone {
@@ -54,6 +55,7 @@ pub trait TripleCreatedEvent: SharePriceEvent + VaultManager + Debug + Clone {
             decoded_consumer_context,
             TermType::Triple,
             event,
+            Origin::TripleCreated,
         )
         .await?;
 
@@ -240,14 +242,30 @@ pub trait TripleCreatedEvent: SharePriceEvent + VaultManager + Debug + Clone {
         let account = self
             .get_or_create_temporary_account(&decoded_consumer_context.backend_schema, tx)
             .await?;
-        let vault = get_or_create_vault(
+
+        let vault = match get_or_create_vault(
             self.clone(),
             Some(event.block_number),
             decoded_consumer_context,
             TermType::Triple,
             event,
+            Origin::TripleCreated,
         )
-        .await?;
+        .await
+        {
+            Ok(vault) => vault,
+            Err(e) => {
+                warn!("Error inserting vault: {:?}, returning existing vault", e);
+                Vault::find_by_term_id_and_curve_id(
+                    self.vault_id()?.into(),
+                    self.curve_id()?,
+                    &decoded_consumer_context.pg_pool,
+                    &decoded_consumer_context.backend_schema,
+                )
+                .await?
+                .ok_or(ConsumerError::VaultNotFound)?
+            }
+        };
 
         let atom = self
             .create_atom(

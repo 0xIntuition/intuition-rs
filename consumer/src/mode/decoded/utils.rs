@@ -3,7 +3,10 @@ use std::fmt::Debug;
 use crate::{
     config::ContractVersion,
     error::ConsumerError,
-    mode::{types::DecodedConsumerContext, utils::get_or_create_vault},
+    mode::{
+        types::DecodedConsumerContext,
+        utils::{Origin, get_or_create_vault},
+    },
     schemas::types::DecodedMessage,
     traits::SharePriceEvent,
 };
@@ -169,6 +172,7 @@ pub async fn update_vault_from_share_price_changed_events(
             decoded_consumer_context,
             term_type,
             transaction_data,
+            Origin::SharePriceChanged,
         )
         .await?
         .upsert(&decoded_consumer_context.backend_schema, tx.as_mut())

@@ -3,7 +3,7 @@ use crate::{
     mode::{
         decoded::utils::{VaultUpdate, update_vault},
         types::DecodedConsumerContext,
-        utils::{get_or_create_account, get_or_create_vault},
+        utils::{Origin, get_or_create_account, get_or_create_vault},
     },
     schemas::types::DecodedMessage,
     traits::{SharePriceEvent, VaultManager},
@@ -137,6 +137,7 @@ pub trait DepositedEvent: SharePriceEvent + VaultManager + Clone {
                 TermType::Atom
             },
             event,
+            Origin::Deposit,
         )
         .await
     }
