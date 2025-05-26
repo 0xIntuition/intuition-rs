@@ -12,7 +12,7 @@ spec:
         elements:
           - cluster: prod-eks
             server: 'https://kubernetes.default.svc'
-            revision: luis/eng-6560-create-a-new-consumer-to-ingest-v1-data-in-v15-fomat-from
+            revision: next
             env: prod-base-sepolia-v-1-5-vector-final
             namespace: prod-base-sepolia-v-1-5-vector
             imageGuardURL: 'http://prod-base-api.default.svc.cluster.local:3000'

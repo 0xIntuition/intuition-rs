@@ -7,7 +7,7 @@ spec:
   project: prod
   source:
     repoURL: 'https://github.com/0xintuition/intuition-rs.git'
-    targetRevision: luis/eng-6560-create-a-new-consumer-to-ingest-v1-data-in-v15-fomat-from
+    targetRevision: next
     path: devops/aws-rolling-releases/vector_db/
     kustomize:
       patches:

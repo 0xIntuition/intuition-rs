@@ -11,7 +11,7 @@ spec:
         elements:
           - cluster: prod-eks
             server: 'https://kubernetes.default.svc'
-            revision: luis/eng-6560-create-a-new-consumer-to-ingest-v1-data-in-v15-fomat-from
+            revision: next
             namespace: default
   template:
     metadata:
