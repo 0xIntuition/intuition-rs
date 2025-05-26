@@ -12,7 +12,7 @@ suite('positions2', () => {
     expect(fooAtom.vaultId).toBeDefined()
 
     const felix = await getIntuition(201)
-    console.log(felix.account.address.toString().toLowerCase())
+    console.log(felix.account.address.toString())
 
     const deposit = await felix.multivault.depositAtom(fooAtom.vaultId, parseEther('0.05'))
     await wait(deposit.hash)
@@ -36,7 +36,7 @@ suite('positions2', () => {
 
     const result = await execute(
       positionsQuery,
-      { address: felix.account.address.toString().toLowerCase() })
+      { address: felix.account.address.toString() })
 
     expect(result).toBeDefined()
     expect(result.account.positions.length).toBe(1)
@@ -54,7 +54,7 @@ suite('positions2', () => {
 
     const result2 = await execute(
       positionsQuery,
-      { address: felix.account.address.toString().toLowerCase() })
+      { address: felix.account.address.toString() })
 
     expect(result2).toBeDefined()
     expect(result2.account.positions.length).toBe(1)
