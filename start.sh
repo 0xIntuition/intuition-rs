@@ -71,7 +71,7 @@ if [ "$INDEXER_SCHEMA" == "histo_local_1_0" ]; then
     # Set env vars
     export VITE_INTUITION_CONTRACT_ADDRESS=$CONTRACT_ADDRESS
     export INTUITION_CONTRACT_ADDRESS=$CONTRACT_ADDRESS
-    export INITIAL_CONTRACT_VERSION="v1_0"
+    export INITIAL_CONTRACT_VERSION="v1"
     export INDEXER_SCHEMA="histo_base_sepolia_1_5"
     export BASE_SEPOLIA_RPC_URL="http://geth:8545"
     export BASE_MAINNET_RPC_URL="http://geth:8545"
