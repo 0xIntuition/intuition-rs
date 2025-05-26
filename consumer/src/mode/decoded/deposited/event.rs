@@ -202,7 +202,6 @@ pub trait DepositedEvent: SharePriceEvent + VaultManager + Clone {
     ) -> Result<(), ConsumerError> {
         let position_id =
             self.format_position_id(DepositedEvent::curve_id(self)?.to_string().as_str())?;
-        info!("Handling position with ID: {}", position_id);
         let position = Position::find_by_id(
             position_id.clone(),
             &decoded_consumer_context.backend_schema,
@@ -211,26 +210,13 @@ pub trait DepositedEvent: SharePriceEvent + VaultManager + Clone {
         .await?;
 
         if position.is_none() && self.receiver_total_shares_in_vault()? > U256::from(0) {
-            info!("Creating new position with ID: {}", position_id);
             self.create_new_position(position_id.to_string(), decoded_consumer_context, event)
                 .await?;
         } else if let Some(mut position) = position {
             if self.receiver_total_shares_in_vault()? > U256::from(0) {
-                info!(
-                    "Position found, updating existing position with ID: {} and current shares: {}, shares are going to be {}",
-                    position_id,
-                    position.shares,
-                    self.receiver_total_shares_in_vault()?
-                );
                 self.update_position(decoded_consumer_context, &mut position, event)
                     .await?;
-            } else {
-                info!("No need to update positions, receiver total shares in vault is 0.");
             }
-        } else {
-            info!(
-                "No need to update positions. Position not found and receiver total shares in vault is 0."
-            );
         }
 
         Ok(())

@@ -76,6 +76,8 @@ mod tests {
             .block_number(create_random_number())
             .log_index(create_random_number())
             .transaction_hash(create_random_string())
+            .total_assets(create_random_u256wrapper())
+            .market_cap(create_random_u256wrapper())
             .build()
             .upsert(TEST_SCHEMA, &pool)
             .await
@@ -120,6 +122,8 @@ mod tests {
             .block_number(create_random_number())
             .log_index(create_random_number())
             .transaction_hash(create_random_string())
+            .total_assets(create_random_u256wrapper())
+            .market_cap(create_random_u256wrapper())
             .build()
             .upsert(TEST_SCHEMA, &pool)
             .await

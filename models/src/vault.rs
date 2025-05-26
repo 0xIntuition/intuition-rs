@@ -18,8 +18,8 @@ pub struct Vault {
     pub total_shares: U256Wrapper,
     pub current_share_price: U256Wrapper,
     pub position_count: i32,
-    pub total_assets: Option<U256Wrapper>,
-    pub market_cap: Option<U256Wrapper>,
+    pub total_assets: U256Wrapper,
+    pub market_cap: U256Wrapper,
     pub block_number: i64,
     pub log_index: i64,
     pub transaction_hash: String,
@@ -53,11 +53,11 @@ impl SimpleCrud<U256Wrapper> for Vault {
                     log_index = EXCLUDED.log_index,
                     transaction_hash = EXCLUDED.transaction_hash
                 WHERE
-                    EXCLUDED.block_number > vault.block_number
-                    OR (
-                        EXCLUDED.block_number = vault.block_number
-                        AND EXCLUDED.log_index > vault.log_index
-                    )
+                EXCLUDED.block_number > vault.block_number
+                OR (
+                    EXCLUDED.block_number = vault.block_number
+                    AND EXCLUDED.log_index > vault.log_index
+                )
                 RETURNING term_id, curve_id, total_shares, current_share_price, position_count,
                           total_assets, market_cap, block_number, log_index, transaction_hash
             )
@@ -78,16 +78,8 @@ impl SimpleCrud<U256Wrapper> for Vault {
             .bind(self.total_shares.to_big_decimal()?)
             .bind(self.current_share_price.to_big_decimal()?)
             .bind(self.position_count)
-            .bind(
-                self.total_assets
-                    .as_ref()
-                    .and_then(|w| w.to_big_decimal().ok()),
-            )
-            .bind(
-                self.market_cap
-                    .as_ref()
-                    .and_then(|w| w.to_big_decimal().ok()),
-            )
+            .bind(self.total_assets.to_big_decimal()?)
+            .bind(self.market_cap.to_big_decimal()?)
             .bind(self.block_number)
             .bind(self.log_index)
             .bind(self.transaction_hash.clone())

@@ -14,7 +14,7 @@ use models::{
 };
 use sqlx::PgPool;
 use std::fmt::Debug;
-use tracing::info;
+use tracing::{info, warn};
 
 /// Shortens an address string by taking first 6 and last 4 chars
 pub fn short_id(address: &str) -> String {
@@ -114,11 +114,9 @@ pub async fn get_or_create_account(
             .await?;
             Ok(account)
         } else {
-            info!("Returning existing account for: {}", id);
             Ok(account)
         }
     } else {
-        info!("Creating account for: {}", id);
         let account = update_unknown_account_or_create_account_and_enqueue_resolver_message(
             decoded_consumer_context,
             id,
@@ -147,6 +145,11 @@ pub async fn get_or_create_vault(
     if let Some(vault) = vault {
         Ok(vault)
     } else {
+        warn!(
+            "Creating new vault for: {} with total_assets: {}",
+            event.term_id()?,
+            event.total_assets()?
+        );
         // Ensure that the term exists for the vault
         get_or_create_term(&event, None, decoded_consumer_context, term_type).await?;
 

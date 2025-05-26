@@ -27,7 +27,7 @@ COPY . .
 ENV SQLX_OFFLINE=true
 RUN cargo build --release --bin consumer
 RUN cargo build --release --bin consumer-api
-RUN cargo build --release --bin cli
+# RUN cargo build --release --bin cli
 RUN cargo build --release --bin rpc-proxy
 RUN cargo build --release --bin histoflux
 RUN cargo build --release --bin histocrawler
@@ -39,7 +39,7 @@ FROM gcr.io/distroless/cc-debian12
 # Copy binary from builder
 COPY --from=builder --chown=nonroot:nonroot /app/target/release/consumer /app/consumer
 COPY --from=builder --chown=nonroot:nonroot /app/target/release/consumer-api /app/consumer-api
-COPY --from=builder --chown=nonroot:nonroot /app/target/release/cli /app/cli
+# COPY --from=builder --chown=nonroot:nonroot /app/target/release/cli /app/cli
 COPY --from=builder --chown=nonroot:nonroot /app/target/release/rpc-proxy /app/rpc-proxy
 COPY --from=builder --chown=nonroot:nonroot /app/target/release/histoflux /app/histoflux
 COPY --from=builder --chown=nonroot:nonroot /app/target/release/histocrawler /app/histocrawler

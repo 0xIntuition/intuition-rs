@@ -125,6 +125,8 @@ pub fn create_test_vault_with_atom(atom_id: U256Wrapper) -> Vault {
         .log_index(create_random_number())
         .transaction_hash(create_random_string())
         .position_count(1)
+        .total_assets(create_random_u256wrapper())
+        .market_cap(create_random_u256wrapper())
         .build()
 }
 
@@ -139,6 +141,8 @@ pub fn create_test_vault_with_triple(triple_id: U256Wrapper) -> Vault {
         .block_number(create_random_number())
         .log_index(create_random_number())
         .transaction_hash(create_random_string())
+        .total_assets(create_random_u256wrapper())
+        .market_cap(create_random_u256wrapper())
         .build()
 }
 

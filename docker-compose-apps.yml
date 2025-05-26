@@ -79,7 +79,7 @@ services:
       AWS_SECRET_ACCESS_KEY: 'example'
       CONSUMER_TYPE: 'sqs_hibrid'
       INDEXER_DATABASE_URL: "postgres://postgres:postgres@database:5435/storage"
-      INDEXER_SCHEMA: "histo_base_sepolia_1_5"
+      INDEXER_SCHEMA: $INDEXER_SCHEMA
       ENVIRONMENT_NAME: "local_v_1_0"
       THREADS: '5'
       INITIAL_CONTRACT_VERSION: "v1"

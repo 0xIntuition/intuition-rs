@@ -10,7 +10,7 @@ use crate::{
 use alloy::primitives::{U256, Uint};
 use models::{term::TermType, traits::SimpleCrud, types::U256Wrapper, vault::Vault};
 use sqlx::{Postgres, Transaction};
-use tracing::info;
+use tracing::{info, warn};
 
 /// This trait represents an event processor. We need to implement this trait for each event type
 /// for all the contracts we support
@@ -91,22 +91,23 @@ pub async fn update_vault(
         VaultUpdate::Deposited {
             sender_assets_after_total_fees,
         } => {
-            vault.total_assets =
-                Some(vault.total_assets.unwrap_or(0.try_into()?) + sender_assets_after_total_fees);
+            warn!(
+                "Updating vault total assets: {:?} to {:?}",
+                vault.total_assets.clone(),
+                vault.total_assets.clone() + sender_assets_after_total_fees.clone()
+            );
+            vault.total_assets += sender_assets_after_total_fees;
         }
         VaultUpdate::Redeemed {
             shares_for_receiver,
         } => {
-            vault.total_assets =
-                Some(vault.total_assets.unwrap_or(0.try_into()?) - shares_for_receiver);
+            vault.total_assets -= shares_for_receiver;
         }
     }
     // Update regular fields
     vault.current_share_price = current_share_price.clone();
-    vault.market_cap = Some(
-        U256Wrapper::from(total_shares) * current_share_price
-            / U256Wrapper::from(U256::from(10).pow(U256::from(18))),
-    );
+    vault.market_cap = U256Wrapper::from(total_shares) * current_share_price
+        / U256Wrapper::from(U256::from(10).pow(U256::from(18)));
     vault.block_number = event.block_number;
     vault.log_index = event.log_index;
     vault.transaction_hash = event.transaction_hash.clone();
@@ -147,16 +148,14 @@ pub async fn update_vault_from_share_price_changed_events(
         vault.total_shares = share_price_changed
             .total_shares(decoded_consumer_context, None)
             .await?;
-        vault.total_assets = Some(share_price_changed.total_assets()?);
-        vault.market_cap = Some(
-            (share_price_changed
-                .total_shares(decoded_consumer_context, None)
-                .await?
-                * share_price_changed
-                    .current_share_price(decoded_consumer_context, None)
-                    .await?)
-                / U256Wrapper::from(U256::from(10).pow(U256::from(18))),
-        );
+        vault.total_assets = share_price_changed.total_assets()?;
+        vault.market_cap = (share_price_changed
+            .total_shares(decoded_consumer_context, None)
+            .await?
+            * share_price_changed
+                .current_share_price(decoded_consumer_context, None)
+                .await?)
+            / U256Wrapper::from(U256::from(10).pow(U256::from(18)));
         vault
             .upsert(&decoded_consumer_context.backend_schema, tx.as_mut())
             .await?;

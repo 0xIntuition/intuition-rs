@@ -117,6 +117,8 @@ pub trait TripleCreatedEvent: SharePriceEvent + VaultManager + Debug + Clone {
                 .block_number(event.block_number)
                 .log_index(event.log_index)
                 .transaction_hash(event.transaction_hash.clone())
+                .total_assets(self.total_assets()?)
+                .market_cap(self.market_cap()?)
                 .build()
                 .upsert(
                     &decoded_consumer_context.backend_schema,

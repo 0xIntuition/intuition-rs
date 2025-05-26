@@ -64,7 +64,11 @@ impl VaultManager for &Deposited {
 }
 
 /// This impl is used to convert the `DepositedV1_5` event into a `SharePriceEvent`
-impl SharePriceEvent for &Deposited {}
+impl SharePriceEvent for &Deposited {
+    fn total_assets(&self) -> Result<U256Wrapper, ConsumerError> {
+        Ok(self.senderAssetsAfterTotalFees.into())
+    }
+}
 
 impl DepositedEvent for &Deposited {
     fn sender(&self) -> Result<String, ConsumerError> {

@@ -61,7 +61,11 @@ impl VaultManager for &Deposited {
     }
 }
 
-impl SharePriceEvent for &Deposited {}
+impl SharePriceEvent for &Deposited {
+    fn total_assets(&self) -> Result<U256Wrapper, ConsumerError> {
+        Ok(self.senderAssetsAfterTotalFees.into())
+    }
+}
 
 impl DepositedEvent for &Deposited {
     fn sender(&self) -> Result<String, ConsumerError> {

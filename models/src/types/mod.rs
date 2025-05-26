@@ -1,6 +1,6 @@
 use std::{
     fmt::Display,
-    ops::{Add, Div, Mul, Sub, SubAssign},
+    ops::{Add, AddAssign, Div, Mul, Sub, SubAssign},
     str::FromStr,
 };
 
@@ -18,6 +18,12 @@ use sqlx::{
 /// the `sqlx` library.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Serialize, Deserialize)]
 pub struct U256Wrapper(pub U256);
+
+impl AddAssign for U256Wrapper {
+    fn add_assign(&mut self, other: Self) {
+        self.0 += other.0;
+    }
+}
 
 impl TryInto<U256> for U256Wrapper {
     type Error = ModelError;

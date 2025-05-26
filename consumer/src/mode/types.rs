@@ -135,20 +135,13 @@ impl DecodedConsumerContext {
         id: Uint<256, 4>,
         block_number: i64,
     ) -> Result<U256, ConsumerError> {
-        info!(
-            "Fetching current share price for vault {:?} and block number {:?}",
-            id, block_number
-        );
         self.retry_with_backoff(|| async {
             let current_share_price = self
                 .base_client
                 .current_share_price(id, BlockId::from_str(&block_number.to_string())?)
                 .await;
             match &current_share_price {
-                Ok(price) => {
-                    info!("Current share price: {:?}", price);
-                    Ok(*price)
-                }
+                Ok(price) => Ok(*price),
                 Err(e) => {
                     warn!("Response: {:?}", current_share_price);
                     warn!("Error fetching current share price: {}", e);
@@ -190,10 +183,7 @@ impl DecodedConsumerContext {
                 .get_total_shares(id, BlockId::from_str(&block_number.to_string())?)
                 .await;
             match &total_shares {
-                Ok(shares) => {
-                    info!("Total shares in vault: {:?}", shares);
-                    Ok(*shares)
-                }
+                Ok(shares) => Ok(*shares),
                 Err(e) => {
                     warn!("Response: {:?}", total_shares);
                     warn!("Error fetching total shares in vault: {}", e);
@@ -653,10 +643,6 @@ impl ConsumerMode {
         if let Some(stats) = stats {
             if let Some(stored_block_number) = stats.last_processed_block_number {
                 if stored_block_number < U256Wrapper::try_from(decoded_message.block_number)? {
-                    info!(
-                        "Updating stats for block number: {}, current block number: {}",
-                        decoded_message.block_number, stored_block_number
-                    );
                     let contract_balance = decoded_consumer_context
                         .fetch_contract_balance_at_block(&decoded_message.block_number.to_string())
                         .await?;
@@ -669,17 +655,12 @@ impl ConsumerMode {
                     )
                     .await
                     .map_err(ConsumerError::ModelError)?;
-                } else {
-                    info!(
-                        "Skipping update for block number: {}, already up to date",
-                        decoded_message.block_number,
-                    );
                 }
             } else {
-                info!("No block number found for stats, unable to update");
+                warn!("No block number found for stats, unable to update");
             }
         } else {
-            info!("No stats found, unable to update");
+            warn!("No stats found, unable to update");
         }
         Ok(())
     }
