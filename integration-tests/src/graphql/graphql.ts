@@ -4318,7 +4318,6 @@ export type Predicate_Objects = {
   /** An object relationship */
   object: Atoms;
   object_id: Scalars['numeric']['output'];
-  position_count: Scalars['Int']['output'];
   /** An object relationship */
   predicate: Atoms;
   predicate_id: Scalars['numeric']['output'];
@@ -4385,7 +4384,6 @@ export type Predicate_Objects_Aggregate_Order_By = {
 export type Predicate_Objects_Avg_Fields = {
   __typename?: 'predicate_objects_avg_fields';
   object_id?: Maybe<Scalars['Float']['output']>;
-  position_count?: Maybe<Scalars['Float']['output']>;
   predicate_id?: Maybe<Scalars['Float']['output']>;
   triple_count?: Maybe<Scalars['Float']['output']>;
 };
@@ -4393,7 +4391,6 @@ export type Predicate_Objects_Avg_Fields = {
 /** order by avg() on columns of table "predicate_object" */
 export type Predicate_Objects_Avg_Order_By = {
   object_id?: InputMaybe<Order_By>;
-  position_count?: InputMaybe<Order_By>;
   predicate_id?: InputMaybe<Order_By>;
   triple_count?: InputMaybe<Order_By>;
 };
@@ -4406,7 +4403,6 @@ export type Predicate_Objects_Bool_Exp = {
   id?: InputMaybe<String_Comparison_Exp>;
   object?: InputMaybe<Atoms_Bool_Exp>;
   object_id?: InputMaybe<Numeric_Comparison_Exp>;
-  position_count?: InputMaybe<Int_Comparison_Exp>;
   predicate?: InputMaybe<Atoms_Bool_Exp>;
   predicate_id?: InputMaybe<Numeric_Comparison_Exp>;
   triple_count?: InputMaybe<Int_Comparison_Exp>;
@@ -4417,7 +4413,6 @@ export type Predicate_Objects_Max_Fields = {
   __typename?: 'predicate_objects_max_fields';
   id?: Maybe<Scalars['String']['output']>;
   object_id?: Maybe<Scalars['numeric']['output']>;
-  position_count?: Maybe<Scalars['Int']['output']>;
   predicate_id?: Maybe<Scalars['numeric']['output']>;
   triple_count?: Maybe<Scalars['Int']['output']>;
 };
@@ -4426,7 +4421,6 @@ export type Predicate_Objects_Max_Fields = {
 export type Predicate_Objects_Max_Order_By = {
   id?: InputMaybe<Order_By>;
   object_id?: InputMaybe<Order_By>;
-  position_count?: InputMaybe<Order_By>;
   predicate_id?: InputMaybe<Order_By>;
   triple_count?: InputMaybe<Order_By>;
 };
@@ -4436,7 +4430,6 @@ export type Predicate_Objects_Min_Fields = {
   __typename?: 'predicate_objects_min_fields';
   id?: Maybe<Scalars['String']['output']>;
   object_id?: Maybe<Scalars['numeric']['output']>;
-  position_count?: Maybe<Scalars['Int']['output']>;
   predicate_id?: Maybe<Scalars['numeric']['output']>;
   triple_count?: Maybe<Scalars['Int']['output']>;
 };
@@ -4445,7 +4438,6 @@ export type Predicate_Objects_Min_Fields = {
 export type Predicate_Objects_Min_Order_By = {
   id?: InputMaybe<Order_By>;
   object_id?: InputMaybe<Order_By>;
-  position_count?: InputMaybe<Order_By>;
   predicate_id?: InputMaybe<Order_By>;
   triple_count?: InputMaybe<Order_By>;
 };
@@ -4455,7 +4447,6 @@ export type Predicate_Objects_Order_By = {
   id?: InputMaybe<Order_By>;
   object?: InputMaybe<Atoms_Order_By>;
   object_id?: InputMaybe<Order_By>;
-  position_count?: InputMaybe<Order_By>;
   predicate?: InputMaybe<Atoms_Order_By>;
   predicate_id?: InputMaybe<Order_By>;
   triple_count?: InputMaybe<Order_By>;
@@ -4468,8 +4459,6 @@ export enum Predicate_Objects_Select_Column {
   /** column name */
   ObjectId = 'object_id',
   /** column name */
-  PositionCount = 'position_count',
-  /** column name */
   PredicateId = 'predicate_id',
   /** column name */
   TripleCount = 'triple_count'
@@ -4479,7 +4468,6 @@ export enum Predicate_Objects_Select_Column {
 export type Predicate_Objects_Stddev_Fields = {
   __typename?: 'predicate_objects_stddev_fields';
   object_id?: Maybe<Scalars['Float']['output']>;
-  position_count?: Maybe<Scalars['Float']['output']>;
   predicate_id?: Maybe<Scalars['Float']['output']>;
   triple_count?: Maybe<Scalars['Float']['output']>;
 };
@@ -4487,7 +4475,6 @@ export type Predicate_Objects_Stddev_Fields = {
 /** order by stddev() on columns of table "predicate_object" */
 export type Predicate_Objects_Stddev_Order_By = {
   object_id?: InputMaybe<Order_By>;
-  position_count?: InputMaybe<Order_By>;
   predicate_id?: InputMaybe<Order_By>;
   triple_count?: InputMaybe<Order_By>;
 };
@@ -4496,7 +4483,6 @@ export type Predicate_Objects_Stddev_Order_By = {
 export type Predicate_Objects_Stddev_Pop_Fields = {
   __typename?: 'predicate_objects_stddev_pop_fields';
   object_id?: Maybe<Scalars['Float']['output']>;
-  position_count?: Maybe<Scalars['Float']['output']>;
   predicate_id?: Maybe<Scalars['Float']['output']>;
   triple_count?: Maybe<Scalars['Float']['output']>;
 };
@@ -4504,7 +4490,6 @@ export type Predicate_Objects_Stddev_Pop_Fields = {
 /** order by stddev_pop() on columns of table "predicate_object" */
 export type Predicate_Objects_Stddev_Pop_Order_By = {
   object_id?: InputMaybe<Order_By>;
-  position_count?: InputMaybe<Order_By>;
   predicate_id?: InputMaybe<Order_By>;
   triple_count?: InputMaybe<Order_By>;
 };
@@ -4513,7 +4498,6 @@ export type Predicate_Objects_Stddev_Pop_Order_By = {
 export type Predicate_Objects_Stddev_Samp_Fields = {
   __typename?: 'predicate_objects_stddev_samp_fields';
   object_id?: Maybe<Scalars['Float']['output']>;
-  position_count?: Maybe<Scalars['Float']['output']>;
   predicate_id?: Maybe<Scalars['Float']['output']>;
   triple_count?: Maybe<Scalars['Float']['output']>;
 };
@@ -4521,7 +4505,6 @@ export type Predicate_Objects_Stddev_Samp_Fields = {
 /** order by stddev_samp() on columns of table "predicate_object" */
 export type Predicate_Objects_Stddev_Samp_Order_By = {
   object_id?: InputMaybe<Order_By>;
-  position_count?: InputMaybe<Order_By>;
   predicate_id?: InputMaybe<Order_By>;
   triple_count?: InputMaybe<Order_By>;
 };
@@ -4538,7 +4521,6 @@ export type Predicate_Objects_Stream_Cursor_Input = {
 export type Predicate_Objects_Stream_Cursor_Value_Input = {
   id?: InputMaybe<Scalars['String']['input']>;
   object_id?: InputMaybe<Scalars['numeric']['input']>;
-  position_count?: InputMaybe<Scalars['Int']['input']>;
   predicate_id?: InputMaybe<Scalars['numeric']['input']>;
   triple_count?: InputMaybe<Scalars['Int']['input']>;
 };
@@ -4547,7 +4529,6 @@ export type Predicate_Objects_Stream_Cursor_Value_Input = {
 export type Predicate_Objects_Sum_Fields = {
   __typename?: 'predicate_objects_sum_fields';
   object_id?: Maybe<Scalars['numeric']['output']>;
-  position_count?: Maybe<Scalars['Int']['output']>;
   predicate_id?: Maybe<Scalars['numeric']['output']>;
   triple_count?: Maybe<Scalars['Int']['output']>;
 };
@@ -4555,7 +4536,6 @@ export type Predicate_Objects_Sum_Fields = {
 /** order by sum() on columns of table "predicate_object" */
 export type Predicate_Objects_Sum_Order_By = {
   object_id?: InputMaybe<Order_By>;
-  position_count?: InputMaybe<Order_By>;
   predicate_id?: InputMaybe<Order_By>;
   triple_count?: InputMaybe<Order_By>;
 };
@@ -4564,7 +4544,6 @@ export type Predicate_Objects_Sum_Order_By = {
 export type Predicate_Objects_Var_Pop_Fields = {
   __typename?: 'predicate_objects_var_pop_fields';
   object_id?: Maybe<Scalars['Float']['output']>;
-  position_count?: Maybe<Scalars['Float']['output']>;
   predicate_id?: Maybe<Scalars['Float']['output']>;
   triple_count?: Maybe<Scalars['Float']['output']>;
 };
@@ -4572,7 +4551,6 @@ export type Predicate_Objects_Var_Pop_Fields = {
 /** order by var_pop() on columns of table "predicate_object" */
 export type Predicate_Objects_Var_Pop_Order_By = {
   object_id?: InputMaybe<Order_By>;
-  position_count?: InputMaybe<Order_By>;
   predicate_id?: InputMaybe<Order_By>;
   triple_count?: InputMaybe<Order_By>;
 };
@@ -4581,7 +4559,6 @@ export type Predicate_Objects_Var_Pop_Order_By = {
 export type Predicate_Objects_Var_Samp_Fields = {
   __typename?: 'predicate_objects_var_samp_fields';
   object_id?: Maybe<Scalars['Float']['output']>;
-  position_count?: Maybe<Scalars['Float']['output']>;
   predicate_id?: Maybe<Scalars['Float']['output']>;
   triple_count?: Maybe<Scalars['Float']['output']>;
 };
@@ -4589,7 +4566,6 @@ export type Predicate_Objects_Var_Samp_Fields = {
 /** order by var_samp() on columns of table "predicate_object" */
 export type Predicate_Objects_Var_Samp_Order_By = {
   object_id?: InputMaybe<Order_By>;
-  position_count?: InputMaybe<Order_By>;
   predicate_id?: InputMaybe<Order_By>;
   triple_count?: InputMaybe<Order_By>;
 };
@@ -4598,7 +4574,6 @@ export type Predicate_Objects_Var_Samp_Order_By = {
 export type Predicate_Objects_Variance_Fields = {
   __typename?: 'predicate_objects_variance_fields';
   object_id?: Maybe<Scalars['Float']['output']>;
-  position_count?: Maybe<Scalars['Float']['output']>;
   predicate_id?: Maybe<Scalars['Float']['output']>;
   triple_count?: Maybe<Scalars['Float']['output']>;
 };
@@ -4606,7 +4581,6 @@ export type Predicate_Objects_Variance_Fields = {
 /** order by variance() on columns of table "predicate_object" */
 export type Predicate_Objects_Variance_Order_By = {
   object_id?: InputMaybe<Order_By>;
-  position_count?: InputMaybe<Order_By>;
   predicate_id?: InputMaybe<Order_By>;
   triple_count?: InputMaybe<Order_By>;
 };
@@ -9185,7 +9159,7 @@ export type Vaults = {
   deposits: Array<Deposits>;
   /** An aggregate relationship */
   deposits_aggregate: Deposits_Aggregate;
-  market_cap?: Maybe<Scalars['numeric']['output']>;
+  market_cap: Scalars['numeric']['output'];
   position_count: Scalars['Int']['output'];
   /** An array relationship */
   positions: Array<Positions>;
@@ -9202,7 +9176,7 @@ export type Vaults = {
   /** An object relationship */
   term: Terms;
   term_id: Scalars['numeric']['output'];
-  total_assets?: Maybe<Scalars['numeric']['output']>;
+  total_assets: Scalars['numeric']['output'];
   total_shares: Scalars['numeric']['output'];
 };
 
@@ -9706,6 +9680,13 @@ export type GetTransactionEventsQueryVariables = Exact<{
 
 export type GetTransactionEventsQuery = { __typename?: 'query_root', events: Array<{ __typename?: 'events', transaction_hash: string }> };
 
+export type SignalsQueryVariables = Exact<{
+  atom_id?: InputMaybe<Scalars['numeric']['input']>;
+}>;
+
+
+export type SignalsQuery = { __typename?: 'query_root', signals: Array<{ __typename?: 'signals', delta: any }> };
+
 export class TypedDocumentString<TResult, TVariables>
   extends String
   implements DocumentTypeDecoration<TResult, TVariables>
@@ -9875,3 +9856,10 @@ export const GetTransactionEventsDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<GetTransactionEventsQuery, GetTransactionEventsQueryVariables>;
+export const SignalsDocument = new TypedDocumentString(`
+    query signals($atom_id: numeric) {
+  signals(where: {atom_id: {_eq: $atom_id}}, order_by: {block_timestamp: desc}) {
+    delta
+  }
+}
+    `) as unknown as TypedDocumentString<SignalsQuery, SignalsQueryVariables>;
