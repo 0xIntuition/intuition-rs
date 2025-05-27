@@ -212,4 +212,33 @@ impl Vault {
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
     }
+
+    /// This function inserts a vault into the database
+    pub async fn insert<'e, E>(&self, executor: E, schema: &str) -> Result<Self, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
+        let query = format!(
+            r#"
+            INSERT INTO {}.vault (term_id, curve_id, total_shares, current_share_price, position_count, total_assets, market_cap, block_number, log_index, transaction_hash)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            "#,
+            schema,
+        );
+
+        sqlx::query_as::<_, Vault>(&query)
+            .bind(self.term_id.to_big_decimal()?)
+            .bind(self.curve_id.to_big_decimal()?)
+            .bind(self.total_shares.to_big_decimal()?)
+            .bind(self.current_share_price.to_big_decimal()?)
+            .bind(self.position_count)
+            .bind(self.total_assets.to_big_decimal()?)
+            .bind(self.market_cap.to_big_decimal()?)
+            .bind(self.block_number)
+            .bind(self.log_index)
+            .bind(self.transaction_hash.clone())
+            .fetch_one(executor)
+            .await
+            .map_err(|e| ModelError::InsertError(e.to_string()))
+    }
 }
