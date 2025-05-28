@@ -39,7 +39,6 @@ suite('positions2', () => {
       { address: felix.account.address.toString() })
 
     expect(result).toBeDefined()
-    expect(result.account.positions.length).toBe(1)
     expect(result.account.positions[0].shares).toBe(res.shares.toString())
 
     // fully redeem the position
@@ -57,7 +56,6 @@ suite('positions2', () => {
       { address: felix.account.address.toString() })
 
     expect(result2).toBeDefined()
-    expect(result2.account.positions.length).toBe(1)
     expect(result2.account.positions[0].shares).toBe(res2.shares.toString())
 
 

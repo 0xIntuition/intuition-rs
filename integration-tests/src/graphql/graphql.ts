@@ -9687,6 +9687,13 @@ export type SignalsQueryVariables = Exact<{
 
 export type SignalsQuery = { __typename?: 'query_root', signals: Array<{ __typename?: 'signals', delta: any }> };
 
+export type Signals2QueryVariables = Exact<{
+  triple_id?: InputMaybe<Scalars['numeric']['input']>;
+}>;
+
+
+export type Signals2Query = { __typename?: 'query_root', signals: Array<{ __typename?: 'signals', delta: any }> };
+
 export class TypedDocumentString<TResult, TVariables>
   extends String
   implements DocumentTypeDecoration<TResult, TVariables>
@@ -9863,3 +9870,13 @@ export const SignalsDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<SignalsQuery, SignalsQueryVariables>;
+export const Signals2Document = new TypedDocumentString(`
+    query signals2($triple_id: numeric) {
+  signals(
+    where: {triple_id: {_eq: $triple_id}}
+    order_by: {block_timestamp: desc}
+  ) {
+    delta
+  }
+}
+    `) as unknown as TypedDocumentString<Signals2Query, Signals2QueryVariables>;

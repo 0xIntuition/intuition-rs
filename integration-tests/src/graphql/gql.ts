@@ -24,6 +24,7 @@ type Documents = {
     "query SearchFromFollowing($address: String!, $query: String!) {\n        search_term_from_following(args: {address: $address, query: $query} limit: 2) {\n          id\n          atom {\n            label\n          }\n        }\n      }\n      ": typeof types.SearchFromFollowingDocument,
     "\n        query GetTransactionEvents($hash: String!) {\n          events(where: { transaction_hash: { _eq: $hash } }) {\n            transaction_hash\n          }\n        }\n      ": typeof types.GetTransactionEventsDocument,
     "\n      query signals($atom_id: numeric) {\n        signals(where: {atom_id: {_eq: $atom_id}}, order_by: {block_timestamp: desc}) {\n          delta\n        }\n      }\n    ": typeof types.SignalsDocument,
+    "\n      query signals2($triple_id: numeric) {\n        signals(where: {triple_id: {_eq: $triple_id}}, order_by: {block_timestamp: desc}) {\n          delta\n        }\n      }\n    ": typeof types.Signals2Document,
 };
 const documents: Documents = {
     "query Term($termId: numeric!) {\n        atom(term_id: $termId) {\n          label\n        }\n      }": types.TermDocument,
@@ -35,6 +36,7 @@ const documents: Documents = {
     "query SearchFromFollowing($address: String!, $query: String!) {\n        search_term_from_following(args: {address: $address, query: $query} limit: 2) {\n          id\n          atom {\n            label\n          }\n        }\n      }\n      ": types.SearchFromFollowingDocument,
     "\n        query GetTransactionEvents($hash: String!) {\n          events(where: { transaction_hash: { _eq: $hash } }) {\n            transaction_hash\n          }\n        }\n      ": types.GetTransactionEventsDocument,
     "\n      query signals($atom_id: numeric) {\n        signals(where: {atom_id: {_eq: $atom_id}}, order_by: {block_timestamp: desc}) {\n          delta\n        }\n      }\n    ": types.SignalsDocument,
+    "\n      query signals2($triple_id: numeric) {\n        signals(where: {triple_id: {_eq: $triple_id}}, order_by: {block_timestamp: desc}) {\n          delta\n        }\n      }\n    ": types.Signals2Document,
 };
 
 /**
@@ -73,6 +75,10 @@ export function graphql(source: "\n        query GetTransactionEvents($hash: Str
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
 export function graphql(source: "\n      query signals($atom_id: numeric) {\n        signals(where: {atom_id: {_eq: $atom_id}}, order_by: {block_timestamp: desc}) {\n          delta\n        }\n      }\n    "): typeof import('./graphql').SignalsDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n      query signals2($triple_id: numeric) {\n        signals(where: {triple_id: {_eq: $triple_id}}, order_by: {block_timestamp: desc}) {\n          delta\n        }\n      }\n    "): typeof import('./graphql').Signals2Document;
 
 
 export function graphql(source: string) {
