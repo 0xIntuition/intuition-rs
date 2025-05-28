@@ -6,7 +6,7 @@ use crate::{
     },
     schemas::types::DecodedMessage,
 };
-use alloy::primitives::{U256, Uint};
+use alloy::primitives::Uint;
 use models::{
     account::Account,
     position::Position,
@@ -156,10 +156,7 @@ pub trait RedeemedEvent: Clone {
             Signal::builder()
                 .id(DecodedMessage::event_id(event))
                 .account_id(self.sender()?)
-                // This is the equivalent of multiplying the assets for receiver by -1
-                .delta(U256Wrapper::from(
-                    U256::ZERO.saturating_sub(self.assets_for_receiver()?),
-                ))
+                .delta(U256Wrapper::from(self.assets_for_receiver()?))
                 .triple_id(vault.term_id.clone())
                 .redemption_id(DecodedMessage::event_id(event))
                 .block_number(U256Wrapper::try_from(event.block_number)?)
@@ -172,10 +169,7 @@ pub trait RedeemedEvent: Clone {
             Signal::builder()
                 .id(DecodedMessage::event_id(event))
                 .account_id(self.sender()?)
-                // This is the equivalent of multiplying the assets for receiver by -1
-                .delta(U256Wrapper::from(
-                    U256::ZERO.saturating_sub(self.assets_for_receiver()?),
-                ))
+                .delta(U256Wrapper::from(self.assets_for_receiver()?))
                 .atom_id(vault.term_id.clone())
                 .redemption_id(DecodedMessage::event_id(event))
                 .block_number(U256Wrapper::try_from(event.block_number)?)
@@ -218,5 +212,36 @@ pub trait RedeemedEvent: Clone {
             }
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use alloy::primitives::U256;
+    use models::types::U256Wrapper;
+
+    #[test]
+    fn test_negative_delta_calculation() {
+        // Create a test value
+        let test_value = U256::from(100);
+
+        // Calculate negative delta using saturating_sub
+        let negative_delta = U256::ZERO.saturating_sub(test_value);
+
+        // Convert to U256Wrapper
+        let wrapped_delta = U256Wrapper::from(negative_delta);
+
+        // Verify the value is zero (since U256 can't represent negative numbers)
+        assert_eq!(wrapped_delta.0, U256::ZERO);
+
+        // Test with a larger number
+        let large_value = U256::from(1000000);
+        let large_negative = U256Wrapper::from(U256::ZERO.saturating_sub(large_value));
+        assert_eq!(large_negative.0, U256::ZERO);
+
+        // Test that the original value is preserved when subtracting from a larger number
+        let base = U256::from(200);
+        let subtracted = base.saturating_sub(test_value);
+        assert_eq!(subtracted, U256::from(100));
     }
 }

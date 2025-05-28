@@ -40,7 +40,7 @@ AFTER INSERT ON deposit
 FOR EACH ROW
 EXECUTE FUNCTION update_vault_positions_on_deposit();
 
-CREATE OR REPLACE FUNCTION update_vault_positions_on_position_update()
+CREATE OR REPLACE FUNCTION update_vault_positions_on_redemption()
 RETURNS TRIGGER AS $$
 BEGIN
   -- If shares are being set to zero, decrement position count
@@ -54,13 +54,13 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Drop old trigger if exists
-DROP TRIGGER IF EXISTS update_vault_positions_on_position_delete ON position;
+DROP TRIGGER IF EXISTS update_vault_positions_on_redemption ON position;
 
 -- Create new trigger
-CREATE TRIGGER update_vault_positions_on_position_update
-  AFTER UPDATE ON position
-  FOR EACH ROW
-  EXECUTE FUNCTION update_vault_positions_on_position_update();
+CREATE TRIGGER redemption_insert_trigger
+AFTER UPDATE ON redemption
+FOR EACH ROW
+EXECUTE FUNCTION update_vault_positions_on_redemption();
 
 -- Update vault.position_count to match the number of related positions
 UPDATE vault
