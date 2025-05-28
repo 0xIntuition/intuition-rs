@@ -16,56 +16,71 @@ DROP TRIGGER IF EXISTS position_delete_vault_trigger ON position;
 DROP FUNCTION IF EXISTS update_vault_positions_on_deposit();
 DROP FUNCTION IF EXISTS update_vault_positions_on_position_delete();
 
--- Create new trigger functions with updated column names
-CREATE OR REPLACE FUNCTION update_vault_positions_on_deposit()
+DROP TRIGGER IF EXISTS deposit_insert_trigger ON deposit;
+DROP TRIGGER IF EXISTS redemption_insert_trigger ON redemption;
+DROP TRIGGER IF EXISTS position_update_trigger ON position;
+DROP TRIGGER IF EXISTS position_reopen_trigger ON position;
+DROP FUNCTION IF EXISTS decrement_vault_position_on_redemption;
+
+-- INSERT into position with shares > 0
+CREATE OR REPLACE FUNCTION increment_vault_position_count()
 RETURNS TRIGGER AS $$
 BEGIN
-  IF NOT EXISTS (
-    SELECT 1
-    FROM position
-    WHERE term_id = NEW.term_id
-      AND curve_id = NEW.curve_id
-      AND account_id = NEW.receiver_id
-  ) THEN
+  IF NEW.shares > 0 THEN
     UPDATE vault
-      SET position_count = position_count + 1
+    SET position_count = position_count + 1
     WHERE term_id = NEW.term_id AND curve_id = NEW.curve_id;
   END IF;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER deposit_insert_trigger
-AFTER INSERT ON deposit
+CREATE TRIGGER position_update_trigger
+AFTER INSERT ON position
 FOR EACH ROW
-EXECUTE FUNCTION update_vault_positions_on_deposit();
+EXECUTE FUNCTION increment_vault_position_count();
 
-CREATE OR REPLACE FUNCTION update_vault_positions_on_redemption()
+-- UPDATE position where shares go 0 → > 0 (reopen)
+CREATE OR REPLACE FUNCTION reopen_vault_position_count()
 RETURNS TRIGGER AS $$
 BEGIN
-  -- If shares are being set to zero, decrement position count
-  IF NEW.shares = 0 AND OLD.shares > 0 THEN
+  IF OLD.shares = 0 AND NEW.shares > 0 THEN
     UPDATE vault
-      SET position_count = position_count - 1
-    WHERE term_id = OLD.term_id AND curve_id = OLD.curve_id;
+    SET position_count = position_count + 1
+    WHERE term_id = NEW.term_id AND curve_id = NEW.curve_id;
   END IF;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
--- Drop old trigger if exists
-DROP TRIGGER IF EXISTS update_vault_positions_on_redemption ON position;
-
--- Create new trigger
-CREATE TRIGGER redemption_insert_trigger
-AFTER UPDATE ON redemption
+CREATE TRIGGER position_reopen_trigger
+AFTER UPDATE ON position
 FOR EACH ROW
-EXECUTE FUNCTION update_vault_positions_on_redemption();
+EXECUTE FUNCTION reopen_vault_position_count();
 
--- Update vault.position_count to match the number of related positions
+-- UPDATE position where shares go > 0 → 0 (close)
+CREATE OR REPLACE FUNCTION decrement_vault_position_count()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF OLD.shares > 0 AND NEW.shares = 0 THEN
+    UPDATE vault
+    SET position_count = position_count - 1
+    WHERE term_id = NEW.term_id AND curve_id = NEW.curve_id;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER position_close_trigger
+AFTER UPDATE ON position
+FOR EACH ROW
+EXECUTE FUNCTION decrement_vault_position_count();
+
+-- One-Time Reconciliation
 UPDATE vault
 SET position_count = (
-  SELECT COUNT(*)
-  FROM position
-  WHERE position.term_id = vault.term_id AND position.curve_id = vault.curve_id
-); 
+  SELECT COUNT(*) FROM position
+  WHERE position.term_id = vault.term_id
+    AND position.curve_id = vault.curve_id
+    AND shares > 0
+);

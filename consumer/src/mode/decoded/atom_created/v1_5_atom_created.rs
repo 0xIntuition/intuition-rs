@@ -87,9 +87,8 @@ impl VaultManager for &AtomCreated {
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<i32, ConsumerError> {
-        Ok(Position::count_by_vault_and_curve(
+        Ok(Position::count_by_term_id(
             self.vaultId.into(),
-            U256Wrapper::from_str("1")?,
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )

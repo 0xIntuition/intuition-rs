@@ -235,7 +235,10 @@ impl Vault {
             .bind(self.total_assets.to_big_decimal()?)
             .bind(self.market_cap.to_big_decimal()?)
             .bind(self.block_number)
-            .bind(self.log_index)
+            // this is to avoid race conditions with deposit events. AtomCreate and TripleCreate
+            // events are using the insert, but we need to make sure that deposits are going to be
+            // able to override the total_assets properly, thus we set the log_index to 0.
+            .bind(0)
             .bind(self.transaction_hash.clone())
             .fetch_one(executor)
             .await

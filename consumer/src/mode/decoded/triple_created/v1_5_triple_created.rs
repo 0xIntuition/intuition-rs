@@ -57,9 +57,8 @@ impl VaultManager for &TripleCreated {
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<i32, ConsumerError> {
-        Ok(Position::count_by_vault_and_curve(
+        Ok(Position::count_by_term_id(
             self.vaultId.into(),
-            1.try_into()?,
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
