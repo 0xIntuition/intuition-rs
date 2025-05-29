@@ -2,8 +2,9 @@
 source .env
 
 # Start shared services
-docker compose -f docker-compose-shared.yml up database vectorizer-worker sqs ipfs safe-content graphql-engine local-migrations indexer-migrations hasura-migrations prometheus -d --wait --force-recreate
-
+docker compose -f docker-compose-shared.yml up database -d --wait --force-recreate
+docker compose -f docker-compose-shared.yml run --rm --entrypoint "python -m pgai install -d postgres://postgres:postgres@database:5435/storage" vectorizer-worker
+docker compose -f docker-compose-shared.yml up vectorizer-worker sqs ipfs safe-content graphql-engine local-migrations indexer-migrations hasura-migrations prometheus -d --wait --force-recreate
 
 # First arg is indexer schema
 INDEXER_SCHEMA="$1"

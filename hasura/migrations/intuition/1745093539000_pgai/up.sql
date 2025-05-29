@@ -12,12 +12,11 @@ create extension if not exists ai cascade;
 
 SELECT ai.create_vectorizer(
    'term_text'::regclass,
-   destination => 'term_embeddings',
+   destination => ai.destination_table('term_embeddings'),
    embedding => ai.embedding_openai('text-embedding-3-small', 768),
-   chunking => ai.chunking_recursive_character_text_splitter('description'),
+   loading => ai.loading_column('description'),
    formatting => ai.formatting_python_template('title: $title id: $id $chunk')
 );
-
 
 CREATE FUNCTION search_term (query text) RETURNS SETOF term LANGUAGE sql STABLE AS $$
     SELECT id, type, atom_id, triple_id, total_assets, total_market_cap FROM (
