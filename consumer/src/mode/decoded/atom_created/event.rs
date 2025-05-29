@@ -3,7 +3,7 @@ use crate::{
     mode::{
         resolver::types::ResolverConsumerMessage,
         types::DecodedConsumerContext,
-        utils::{Origin, get_or_create_account, get_or_create_account_from_event},
+        utils::{VaultOrigin, get_or_create_account, get_or_create_account_from_event},
     },
     schemas::types::DecodedMessage,
     traits::{AccountManager, SharePriceEvent, VaultManager},
@@ -35,7 +35,7 @@ pub trait AtomCreatedEvent:
         event: &DecodedMessage,
     ) -> Result<(Vault, Atom), ConsumerError> {
         // Get or create the vault
-        let vault = match Origin::AtomCreated
+        let vault = match VaultOrigin::AtomCreated
             .get_or_create_vault(
                 self.clone(),
                 decoded_consumer_context,

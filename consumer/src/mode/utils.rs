@@ -18,17 +18,18 @@ use tracing::debug;
 
 /// This enum represents the origin of a vault
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Origin {
+pub enum VaultOrigin {
     AtomCreated,
     TripleCreated,
     Deposit,
     SharePriceChanged,
 }
 
-impl Origin {
-    /// This function returns true if the origin should insert a new vault
+impl VaultOrigin {
+    /// This function returns true if the origin should insert a new vault,
+    /// false if it should update an existing vault
     fn should_insert(&self) -> bool {
-        matches!(self, Origin::AtomCreated | Origin::TripleCreated)
+        matches!(self, VaultOrigin::AtomCreated | VaultOrigin::TripleCreated)
     }
 
     /// This function gets or creates a vault from a vault manager

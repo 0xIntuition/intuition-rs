@@ -3,7 +3,7 @@ use crate::{
     mode::{
         resolver::types::ResolverConsumerMessage,
         types::DecodedConsumerContext,
-        utils::{Origin, get_or_create_term, short_id},
+        utils::{VaultOrigin, get_or_create_term, short_id},
     },
     schemas::types::DecodedMessage,
     traits::{SharePriceEvent, VaultManager},
@@ -47,7 +47,7 @@ pub trait TripleCreatedEvent: SharePriceEvent + VaultManager + Debug + Clone {
             .await?;
 
         // Get or update the vault
-        Origin::TripleCreated
+        VaultOrigin::TripleCreated
             .get_or_create_vault(
                 self.clone(),
                 decoded_consumer_context,
@@ -232,7 +232,7 @@ pub trait TripleCreatedEvent: SharePriceEvent + VaultManager + Debug + Clone {
             .get_or_create_temporary_account(&decoded_consumer_context.backend_schema, tx)
             .await?;
 
-        let vault = match Origin::TripleCreated
+        let vault = match VaultOrigin::TripleCreated
             .get_or_create_vault(
                 self.clone(),
                 decoded_consumer_context,

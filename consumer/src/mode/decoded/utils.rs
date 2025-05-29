@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use crate::{
     config::ContractVersion,
     error::ConsumerError,
-    mode::{types::DecodedConsumerContext, utils::Origin},
+    mode::{types::DecodedConsumerContext, utils::VaultOrigin},
     schemas::types::DecodedMessage,
     traits::SharePriceEvent,
 };
@@ -12,6 +12,11 @@ use models::{term::TermType, traits::SimpleCrud, types::U256Wrapper, vault::Vaul
 use sqlx::{Postgres, Transaction};
 use tracing::debug;
 
+/// This struct represents the vault info, used to update the vault values
+/// in the v1 contracts. The values are fetched from the RPC and used to
+/// update the vault values in the database. For v1.5 contracts we don't
+/// need to fetch the values from the RPC, since we have share price changed
+/// events that update the vault values.
 pub struct VaultInfo {
     pub current_share_price: U256Wrapper,
     pub total_shares: U256Wrapper,
@@ -148,7 +153,7 @@ pub async fn update_vault_from_share_price_changed_events(
         // The term is going to be updated by the trigger on the vault table
     } else {
         debug!("Vault not found, creating it");
-        Origin::SharePriceChanged
+        VaultOrigin::SharePriceChanged
             .get_or_create_vault(
                 share_price_changed,
                 decoded_consumer_context,

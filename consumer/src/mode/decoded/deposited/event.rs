@@ -3,7 +3,7 @@ use crate::{
     mode::{
         decoded::utils::VaultInfo,
         types::DecodedConsumerContext,
-        utils::{Origin, get_or_create_account},
+        utils::{VaultOrigin, get_or_create_account},
     },
     schemas::types::DecodedMessage,
     traits::{SharePriceEvent, VaultManager},
@@ -127,7 +127,7 @@ pub trait DepositedEvent: SharePriceEvent + VaultManager + Clone {
         let _sender = get_or_create_account(self.sender()?, decoded_consumer_context).await?;
         let _receiver = get_or_create_account(self.receiver()?, decoded_consumer_context).await?;
 
-        Origin::Deposit
+        VaultOrigin::Deposit
             .get_or_create_vault(
                 self.clone(),
                 decoded_consumer_context,
