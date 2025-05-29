@@ -10,7 +10,7 @@ use crate::{
 };
 use models::term::TermType;
 use std::fmt::Debug;
-use tracing::info;
+use tracing::{debug, info};
 
 #[derive(Debug)]
 pub struct SharePriceChangedEventHandler<T>(pub T);
@@ -40,7 +40,7 @@ where
 
         let mut tx = decoded_consumer_context.pg_pool.begin().await?;
 
-        info!("Updating vault from share price changed event");
+        debug!("Updating vault from share price changed event");
         update_vault_from_share_price_changed_events(
             self.0.clone(),
             decoded_consumer_context,
@@ -49,7 +49,7 @@ where
             event,
         )
         .await?;
-        info!("Finished updating vault, updating share price aggregate");
+        debug!("Finished updating vault, updating share price aggregate");
 
         // Update the share price aggregate of the vault
         self.0

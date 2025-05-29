@@ -1,10 +1,9 @@
 use crate::{
-    config::ContractVersion,
     error::ConsumerError,
     mode::{
         resolver::types::ResolverConsumerMessage,
         types::DecodedConsumerContext,
-        utils::{Origin, get_or_create_term, get_or_create_vault, short_id},
+        utils::{Origin, get_or_create_term, short_id},
     },
     schemas::types::DecodedMessage,
     traits::{SharePriceEvent, VaultManager},
@@ -41,7 +40,6 @@ pub trait TripleCreatedEvent: SharePriceEvent + VaultManager + Debug + Clone {
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
-        contract_version: &ContractVersion,
     ) -> Result<(), ConsumerError> {
         // Get the counter vault ID
         let counter_vault_id = decoded_consumer_context
@@ -49,21 +47,19 @@ pub trait TripleCreatedEvent: SharePriceEvent + VaultManager + Debug + Clone {
             .await?;
 
         // Get or update the vault
-        get_or_create_vault(
-            self.clone(),
-            Some(event.block_number),
-            decoded_consumer_context,
-            TermType::Triple,
-            event,
-            Origin::TripleCreated,
-        )
-        .await?;
+        Origin::TripleCreated
+            .get_or_create_vault(
+                self.clone(),
+                decoded_consumer_context,
+                TermType::Triple,
+                event,
+            )
+            .await?;
 
         // Get or update the counter vault
         self.get_or_create_counter_vault(
             U256Wrapper::from(counter_vault_id),
             decoded_consumer_context,
-            contract_version,
             event,
         )
         .await?;
@@ -75,15 +71,8 @@ pub trait TripleCreatedEvent: SharePriceEvent + VaultManager + Debug + Clone {
         &self,
         counter_vault_id: U256Wrapper,
         decoded_consumer_context: &DecodedConsumerContext,
-        contract_version: &ContractVersion,
         event: &DecodedMessage,
     ) -> Result<Vault, ConsumerError> {
-        // Get the block number, we use this to differ between v1 and v1_5
-        let block_number = if let ContractVersion::V1 = contract_version {
-            Some(event.block_number)
-        } else {
-            None
-        };
         let vault = Vault::find_by_term_id_and_curve_id(
             counter_vault_id.clone(),
             U256Wrapper::from_str("1")?,
@@ -108,11 +97,7 @@ pub trait TripleCreatedEvent: SharePriceEvent + VaultManager + Debug + Clone {
                 .term_id(counter_vault_id)
                 .curve_id(U256Wrapper::from_str("1")?)
                 .current_share_price(
-                    self.current_share_price(decoded_consumer_context, block_number)
-                        .await?,
-                )
-                .total_shares(
-                    self.total_shares(decoded_consumer_context, block_number)
+                    self.current_share_price(decoded_consumer_context, event.block_number)
                         .await?,
                 )
                 .position_count(0)
@@ -243,15 +228,14 @@ pub trait TripleCreatedEvent: SharePriceEvent + VaultManager + Debug + Clone {
             .get_or_create_temporary_account(&decoded_consumer_context.backend_schema, tx)
             .await?;
 
-        let vault = match get_or_create_vault(
-            self.clone(),
-            Some(event.block_number),
-            decoded_consumer_context,
-            TermType::Triple,
-            event,
-            Origin::TripleCreated,
-        )
-        .await
+        let vault = match Origin::TripleCreated
+            .get_or_create_vault(
+                self.clone(),
+                decoded_consumer_context,
+                TermType::Triple,
+                event,
+            )
+            .await
         {
             Ok(vault) => vault,
             Err(e) => {

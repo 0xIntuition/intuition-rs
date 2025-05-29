@@ -22,7 +22,7 @@ use models::{
 use serde::{Deserialize, Serialize};
 use sqlx::{Postgres, Transaction};
 use std::str::FromStr;
-use tracing::info;
+use tracing::debug;
 
 /// This struct represents a message that is sent to the resolver
 /// consumer to be processed.
@@ -54,12 +54,12 @@ impl ResolverMessageType {
     ) -> Result<(), ConsumerError> {
         match self {
             ResolverMessageType::Atom(resolver_message) => {
-                info!("Processing a resolved message: {resolver_message:?}");
+                debug!("Processing a resolved message: {resolver_message:?}");
                 self.process_atom(resolver_consumer_context, resolver_message)
                     .await
             }
             ResolverMessageType::Account(account) => {
-                info!("Processing a resolved account: {account:?}");
+                debug!("Processing a resolved account: {account:?}");
                 self.process_account(resolver_consumer_context, &mut account.clone())
                     .await
             }
@@ -74,7 +74,7 @@ impl ResolverMessageType {
     ) -> Result<(), ConsumerError> {
         let ens = Ens::get_ens(Address::from_str(&account.id)?, resolver_consumer_context).await?;
         if let Some(_name) = ens.name.clone() {
-            info!("ENS for account: {:?}", ens);
+            debug!("ENS for account: {:?}", ens);
             // We need to update the account metadata
             self.update_account_metadata(
                 resolver_consumer_context,
@@ -90,10 +90,10 @@ impl ResolverMessageType {
                 // We deal with the case where the account atom_id was not set
                 // when the account was created. In this case, we need to query the DB
                 // to find the atom_id, as this update happens in another consumer
-                info!("No atom found for account: {:?}", account)
+                debug!("No atom found for account: {:?}", account)
             }
         } else {
-            info!("No ENS found for account: {:?}", account);
+            debug!("No ENS found for account: {:?}", account);
         }
         Ok(())
     }
@@ -109,11 +109,11 @@ impl ResolverMessageType {
         let metadata = self
             .resolve_and_parse_atom_data(resolver_consumer_context, atom_id, &mut tx)
             .await?;
-        info!("Metadata: {:?}", metadata);
+        debug!("Metadata: {:?}", metadata);
 
         // If the atom type is not unknown, we handle the new atom type that was resolved
         if AtomType::from_str(&metadata.atom_type)? != AtomType::Unknown {
-            info!("Handling known atom type: {:?}", metadata);
+            debug!("Handling known atom type: {:?}", metadata);
             self.handle_known_atom_type(resolver_consumer_context, atom_id, metadata, &mut tx)
                 .await?;
         } else {
@@ -159,31 +159,31 @@ impl ResolverMessageType {
         // This is the case where we receive a response from the IPFS node, but we dont know yet
         // if the response is a JSON or a binary file.
         if let Some(data) = data {
-            info!("Atom data is an IPFS URI and we have a response from the IPFS node");
+            debug!("Atom data is an IPFS URI and we have a response from the IPFS node");
             // First we try to decode the response as bytes
             match data.bytes().await {
                 Ok(bytes) => {
                     // Try to convert bytes to text
                     match String::from_utf8(bytes.to_vec()) {
                         Ok(text) => {
-                            info!("Trying to get text from {}", text);
+                            debug!("Trying to get text from {}", text);
                             let data = text.replace('\u{feff}', "");
                             try_to_parse_json_or_text(&data, &atom, resolver_consumer_context).await
                         }
                         Err(_) => {
-                            info!("Failed to parse as text, trying to parse atom data as Binary");
+                            debug!("Failed to parse as text, trying to parse atom data as Binary");
                             handle_binary_data(resolver_consumer_context, &atom, bytes).await
                         }
                     }
                 }
                 Err(e) => {
-                    info!("Failed to get bytes from IPFS response: {e}");
+                    debug!("Failed to get bytes from IPFS response: {e}");
                     Err(ConsumerError::FailedToGetBytes)
                 }
             }
         // This is the case where the atom data is not an IPFS URI, so we try to parse it as JSON
         } else {
-            info!(
+            debug!(
                 "No IPFS URI found or IPFS URI is not valid, trying to parse atom data as JSON or text..."
             );
             try_to_parse_json_or_text(
@@ -221,7 +221,7 @@ impl ResolverMessageType {
         )
         .await?;
 
-        info!("Updated atom metadata: {atom:?}");
+        debug!("Updated atom metadata: {atom:?}");
         Ok(())
     }
 
@@ -265,7 +265,7 @@ impl ResolverMessageType {
         resolver_consumer_context: &ResolverConsumerContext,
         image: String,
     ) -> Result<(), ConsumerError> {
-        info!("Sending image to IPFS upload consumer: {}", image);
+        debug!("Sending image to IPFS upload consumer: {}", image);
         resolver_consumer_context
             .client
             .send_message(serde_json::to_string(&IpfsUploadMessage { image })?, None)

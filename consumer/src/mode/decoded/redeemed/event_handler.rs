@@ -15,7 +15,7 @@ use models::{
     vault::Vault,
 };
 use std::fmt::Debug;
-use tracing::info;
+use tracing::{debug, info};
 
 #[derive(Debug)]
 pub struct RedeemedEventHandler<T>(pub T);
@@ -68,7 +68,7 @@ where
             .await?;
 
         // When the redemption fully depletes the sender's shares:
-        info!("Checking if the sender's shares are zero");
+        debug!("Checking if the sender's shares are zero");
         if self.0.sender_total_shares_in_vault()? == Uint::from(0) {
             // Build the position ID
             let position_id = format!("{}-1-{}", vault.term_id, sender_account.id);
@@ -77,7 +77,7 @@ where
                 .handle_position_redemption(decoded_consumer_context, &position_id, event)
                 .await?;
         } else {
-            info!(
+            debug!(
                 "The sender's shares are not zero, currently {} shares remaining",
                 self.0.sender_total_shares_in_vault()?
             );

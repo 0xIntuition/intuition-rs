@@ -77,8 +77,6 @@ pub enum ConsumerError {
             aws_smithy_runtime_api::http::Response,
         >,
     ),
-    #[error("Block number not found")]
-    BlockNumberNotFound,
     #[error("Failed to parse consumer type: {0}")]
     ConsumerTypeParse(String),
     #[error("Contract version not found")]
@@ -137,6 +135,8 @@ pub enum ConsumerError {
     Strum(#[from] strum::ParseError),
     #[error(transparent)]
     RecvError(#[from] tokio::sync::watch::error::RecvError),
+    #[error("Shutdown signal received")]
+    Shutdown,
     #[error(transparent)]
     Tracing(#[from] tracing::subscriber::SetGlobalDefaultError),
     #[error("Unsuported mode")]

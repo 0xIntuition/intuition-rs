@@ -3,7 +3,7 @@ use crate::{
     mode::{
         decoded::utils::{VaultUpdate, update_vault},
         types::DecodedConsumerContext,
-        utils::{Origin, get_or_create_account, get_or_create_vault},
+        utils::{Origin, get_or_create_account},
     },
     schemas::types::DecodedMessage,
     traits::{SharePriceEvent, VaultManager},
@@ -13,7 +13,7 @@ use models::{
     deposit::Deposit, position::Position, signal::Signal, term::TermType, traits::SimpleCrud,
     types::U256Wrapper, vault::Vault,
 };
-use tracing::info;
+use tracing::debug;
 
 /// This trait represents a deposited event
 pub trait DepositedEvent: SharePriceEvent + VaultManager + Clone {
@@ -113,7 +113,7 @@ pub trait DepositedEvent: SharePriceEvent + VaultManager + Clone {
                 )
                 .await?;
         } else {
-            info!("Sender assets after total fees is 0, nothing to do.");
+            debug!("Sender assets after total fees is 0, nothing to do.");
         }
         Ok(())
     }
@@ -127,19 +127,18 @@ pub trait DepositedEvent: SharePriceEvent + VaultManager + Clone {
         let _sender = get_or_create_account(self.sender()?, decoded_consumer_context).await?;
         let _receiver = get_or_create_account(self.receiver()?, decoded_consumer_context).await?;
 
-        get_or_create_vault(
-            self.clone(),
-            Some(event.block_number),
-            decoded_consumer_context,
-            if self.is_triple()? {
-                TermType::Triple
-            } else {
-                TermType::Atom
-            },
-            event,
-            Origin::Deposit,
-        )
-        .await
+        Origin::Deposit
+            .get_or_create_vault(
+                self.clone(),
+                decoded_consumer_context,
+                if self.is_triple()? {
+                    TermType::Triple
+                } else {
+                    TermType::Atom
+                },
+                event,
+            )
+            .await
     }
     /// This function formats the position ID
     fn format_position_id(&self, curve_id: &str) -> Result<String, ConsumerError> {

@@ -25,7 +25,7 @@ use crate::{
     schemas::types::DecodedMessage,
     traits::{ContractClient, EventProcessor},
 };
-use tracing::info;
+use tracing::debug;
 // Codegen from ABI file to interact with the Intuition contract.
 sol!(
     #[derive(Debug, Deserialize, Serialize)]
@@ -66,7 +66,7 @@ impl EventProcessor for &EthMultiVaultV1Events {
                 let timer = get_event_processing_histogram()
                     .with_label_values(&["Paused"])
                     .start_timer();
-                info!("Received: {paused_data:#?}");
+                debug!("Received: {paused_data:#?}");
                 // paused_data.handle_paused_creation(context, message).await?;
                 timer.observe_duration();
             }
@@ -74,7 +74,7 @@ impl EventProcessor for &EthMultiVaultV1Events {
                 let timer = get_event_processing_histogram()
                     .with_label_values(&["Unpaused"])
                     .start_timer();
-                info!("Received: {unpaused_data:#?}");
+                debug!("Received: {unpaused_data:#?}");
                 // unpaused_data.handle_unpaused_creation(context, message).await?;
                 timer.observe_duration();
             }
@@ -82,7 +82,7 @@ impl EventProcessor for &EthMultiVaultV1Events {
                 let timer = get_event_processing_histogram()
                     .with_label_values(&["Initialized"])
                     .start_timer();
-                info!("Received: {initialized_data:#?}");
+                debug!("Received: {initialized_data:#?}");
                 InitializeEventHandler(initialized_data)
                     .process_event(context, message)
                     .await?;
@@ -92,7 +92,7 @@ impl EventProcessor for &EthMultiVaultV1Events {
                 let timer = get_event_processing_histogram()
                     .with_label_values(&["AtomCreated"])
                     .start_timer();
-                info!("Received: {atom_data:#?}");
+                debug!("Received: {atom_data:#?}");
                 AtomCreatedEventHandler(atom_data)
                     .process_event(context, message)
                     .await?;
@@ -102,7 +102,7 @@ impl EventProcessor for &EthMultiVaultV1Events {
                 let timer = get_event_processing_histogram()
                     .with_label_values(&["FeesTransferred"])
                     .start_timer();
-                info!("Received: {fees_data:#?}");
+                debug!("Received: {fees_data:#?}");
                 FeeTransferredEventHandler(fees_data)
                     .process_event(context, message)
                     .await?;
@@ -112,7 +112,7 @@ impl EventProcessor for &EthMultiVaultV1Events {
                 let timer = get_event_processing_histogram()
                     .with_label_values(&["TripleCreated"])
                     .start_timer();
-                info!("Received: {triple_data:#?}");
+                debug!("Received: {triple_data:#?}");
                 TripleCreatedEventHandler(triple_data)
                     .process_event(context, message)
                     .await?;
@@ -122,7 +122,7 @@ impl EventProcessor for &EthMultiVaultV1Events {
                 let timer = get_event_processing_histogram()
                     .with_label_values(&["Deposited"])
                     .start_timer();
-                info!("Received: {deposited_data:#?}");
+                debug!("Received: {deposited_data:#?}");
                 DepositedEventHandler(deposited_data)
                     .process_event(context, message)
                     .await?;
@@ -132,14 +132,14 @@ impl EventProcessor for &EthMultiVaultV1Events {
                 let timer = get_event_processing_histogram()
                     .with_label_values(&["Redeemed"])
                     .start_timer();
-                info!("Received: {redeemed_data:#?}");
+                debug!("Received: {redeemed_data:#?}");
                 RedeemedEventHandler(redeemed_data)
                     .process_event(context, message)
                     .await?;
                 timer.observe_duration();
             }
             _ => {
-                info!("Received unsupported event: {:#?}", self);
+                debug!("Received unsupported event: {:#?}", self);
             }
         };
         Ok(())

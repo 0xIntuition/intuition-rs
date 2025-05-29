@@ -25,7 +25,7 @@ use std::{
     sync::{Arc, RwLock},
 };
 use tokio::time::{Duration, sleep};
-use tracing::{info, warn};
+use tracing::{debug, warn};
 
 // Create a OnceCell to hold the histogram
 static EVENT_PROCESSING_HISTOGRAM: OnceCell<HistogramVec> = OnceCell::new();
@@ -117,7 +117,7 @@ impl DecodedConsumerContext {
             let balance_result = self.base_client.get_balance(contract_address).await;
             match balance_result {
                 Ok(balance) => {
-                    info!("Contract balance: {:?}", balance);
+                    debug!("Contract balance: {:?}", balance);
                     Ok(balance)
                 }
                 Err(e) => {
@@ -158,7 +158,7 @@ impl DecodedConsumerContext {
             let is_triple_id = self.base_client.is_triple_id(id).await;
             match &is_triple_id {
                 Ok(is_triple_id) => {
-                    info!("Is triple id: {:?}", is_triple_id);
+                    debug!("Is triple id: {:?}", is_triple_id);
                     Ok(*is_triple_id)
                 }
                 Err(e) => {
@@ -200,7 +200,7 @@ impl DecodedConsumerContext {
             let atom_data = self.base_client.get_atoms(id).await;
             match &atom_data {
                 Ok(data) => {
-                    info!("Atom data: {:?}", data);
+                    debug!("Atom data: {:?}", data);
                     Ok(data.clone())
                 }
                 Err(e) => {
@@ -222,7 +222,7 @@ impl DecodedConsumerContext {
             let counter_id = self.base_client.get_counter_id_from_triple(vault_id).await;
             match &counter_id {
                 Ok(counter_id) => {
-                    info!("Counter id: {:?}", counter_id);
+                    debug!("Counter id: {:?}", counter_id);
                     Ok(*counter_id)
                 }
                 Err(e) => {
@@ -250,7 +250,7 @@ impl DecodedConsumerContext {
                 .await;
             match balance_result {
                 Ok(balance) => {
-                    info!("Contract balance at block {}: {:?}", block_id_str, balance);
+                    debug!("Contract balance at block {}: {:?}", block_id_str, balance);
                     Ok(balance)
                 }
                 Err(e) => {

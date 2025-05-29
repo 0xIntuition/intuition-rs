@@ -5,7 +5,7 @@ use models::{
     traits::SimpleCrud,
     types::U256Wrapper,
 };
-use tracing::info;
+use tracing::debug;
 
 use crate::{
     EthMultiVault::FeesTransferred, EthMultiVaultV1_5::FeesTransferred as FeesTransferredV1_5,
@@ -35,7 +35,7 @@ pub trait FeeTransferredEvent {
         )
         .await?
         {
-            info!("Fee transfer already exists: {fee_transfer:#?}");
+            debug!("Fee transfer already exists: {fee_transfer:#?}");
             return Ok(fee_transfer);
         }
         FeeTransfer::builder()

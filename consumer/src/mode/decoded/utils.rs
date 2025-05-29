@@ -3,17 +3,14 @@ use std::fmt::Debug;
 use crate::{
     config::ContractVersion,
     error::ConsumerError,
-    mode::{
-        types::DecodedConsumerContext,
-        utils::{Origin, get_or_create_vault},
-    },
+    mode::{types::DecodedConsumerContext, utils::Origin},
     schemas::types::DecodedMessage,
     traits::SharePriceEvent,
 };
 use alloy::primitives::{U256, Uint};
 use models::{term::TermType, traits::SimpleCrud, types::U256Wrapper, vault::Vault};
 use sqlx::{Postgres, Transaction};
-use tracing::{info, warn};
+use tracing::{debug, warn};
 
 /// This trait represents an event processor. We need to implement this trait for each event type
 /// for all the contracts we support
@@ -131,7 +128,7 @@ pub async fn update_vault_from_share_price_changed_events(
     tx: &mut Transaction<'_, Postgres>,
     transaction_data: &DecodedMessage,
 ) -> Result<(), ConsumerError> {
-    info!(
+    debug!(
         "Processing SharePriceChanged event: {:?}",
         share_price_changed
     );
@@ -145,40 +142,36 @@ pub async fn update_vault_from_share_price_changed_events(
     .await?;
 
     if let Some(mut vault) = vault {
-        info!("Updating vault share price and total shares");
+        debug!("Updating vault share price and total shares");
         // Update the share price of the vault
         vault.current_share_price = share_price_changed.new_share_price()?;
-        vault.total_shares = share_price_changed
-            .total_shares(decoded_consumer_context, None)
-            .await?;
         vault.total_assets = share_price_changed.total_assets()?;
         vault.market_cap = (share_price_changed
-            .total_shares(decoded_consumer_context, None)
+            .total_shares(decoded_consumer_context, transaction_data.block_number)
             .await?
             * share_price_changed
-                .current_share_price(decoded_consumer_context, None)
+                .current_share_price(decoded_consumer_context, transaction_data.block_number)
                 .await?)
             / U256Wrapper::from(U256::from(10).pow(U256::from(18)));
         vault
             .upsert(&decoded_consumer_context.backend_schema, tx.as_mut())
             .await?;
-        info!("Updated vault share price and total shares");
+        debug!("Updated vault share price and total shares");
         // The term is going to be updated by the trigger on the vault table
     } else {
-        info!("Vault not found, creating it");
-        get_or_create_vault(
-            share_price_changed,
-            None,
-            decoded_consumer_context,
-            term_type,
-            transaction_data,
-            Origin::SharePriceChanged,
-        )
-        .await?
-        .upsert(&decoded_consumer_context.backend_schema, tx.as_mut())
-        .await?;
+        debug!("Vault not found, creating it");
+        Origin::SharePriceChanged
+            .get_or_create_vault(
+                share_price_changed,
+                decoded_consumer_context,
+                term_type,
+                transaction_data,
+            )
+            .await?
+            .upsert(&decoded_consumer_context.backend_schema, tx.as_mut())
+            .await?;
     }
-    info!("Finished updating vault, updating share price aggregate");
+    debug!("Finished updating vault, updating share price aggregate");
 
     Ok(())
 }

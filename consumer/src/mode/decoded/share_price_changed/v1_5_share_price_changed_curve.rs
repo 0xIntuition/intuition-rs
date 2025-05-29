@@ -20,7 +20,7 @@ impl VaultManager for &SharePriceChangedCurve {
     async fn total_shares(
         &self,
         _decoded_consumer_context: &DecodedConsumerContext,
-        _block_number: Option<i64>,
+        _block_number: i64,
     ) -> Result<U256Wrapper, ConsumerError> {
         Ok(U256Wrapper::from(self.totalShares))
     }
@@ -28,7 +28,7 @@ impl VaultManager for &SharePriceChangedCurve {
     async fn current_share_price(
         &self,
         _decoded_consumer_context: &DecodedConsumerContext,
-        _block_number: Option<i64>,
+        _block_number: i64,
     ) -> Result<U256Wrapper, ConsumerError> {
         Ok(U256Wrapper::from(self.newSharePrice))
     }

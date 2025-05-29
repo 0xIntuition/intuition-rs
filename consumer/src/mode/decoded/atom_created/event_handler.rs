@@ -13,7 +13,7 @@ use models::{
     types::U256Wrapper,
 };
 use std::fmt::Debug;
-use tracing::info;
+use tracing::{debug, info};
 
 #[derive(Debug)]
 pub struct AtomCreatedEventHandler<T>(pub T);
@@ -39,7 +39,7 @@ where
             .0
             .decode_atom_data_and_update_atom(&mut atom, decoded_consumer_context, event)
             .await?;
-        info!("Decoded atom data and updated atom");
+        debug!("Decoded atom data and updated atom");
 
         // get the supported atom metadata and update the atom metadata
         let supported_atom_metadata =

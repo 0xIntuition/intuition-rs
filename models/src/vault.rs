@@ -15,7 +15,6 @@ use sqlx::{Executor, PgPool, Postgres, Result};
 pub struct Vault {
     pub term_id: U256Wrapper,
     pub curve_id: U256Wrapper,
-    pub total_shares: U256Wrapper,
     pub current_share_price: U256Wrapper,
     pub position_count: i32,
     pub total_assets: U256Wrapper,
@@ -39,12 +38,11 @@ impl SimpleCrud<U256Wrapper> for Vault {
             r#"
             WITH upsert AS (
                 INSERT INTO {0}.vault (
-                    term_id, curve_id, total_shares, current_share_price, position_count,
+                    term_id, curve_id, current_share_price, position_count,
                     total_assets, market_cap, block_number, log_index, transaction_hash
                 )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
                 ON CONFLICT (term_id, curve_id) DO UPDATE SET
-                    total_shares = EXCLUDED.total_shares,
                     current_share_price = EXCLUDED.current_share_price,
                     position_count = EXCLUDED.position_count,
                     total_assets = EXCLUDED.total_assets,
@@ -58,12 +56,12 @@ impl SimpleCrud<U256Wrapper> for Vault {
                     EXCLUDED.block_number = vault.block_number
                     AND EXCLUDED.log_index > vault.log_index
                 )
-                RETURNING term_id, curve_id, total_shares, current_share_price, position_count,
+                RETURNING term_id, curve_id, current_share_price, position_count,
                           total_assets, market_cap, block_number, log_index, transaction_hash
             )
             SELECT * FROM upsert
             UNION ALL
-            SELECT term_id, curve_id, total_shares, current_share_price, position_count,
+            SELECT term_id, curve_id, current_share_price, position_count,
                    total_assets, market_cap, block_number, log_index, transaction_hash
             FROM {0}.vault
             WHERE term_id = $1 AND curve_id = $2
@@ -75,7 +73,6 @@ impl SimpleCrud<U256Wrapper> for Vault {
         sqlx::query_as::<_, Vault>(&query)
             .bind(self.term_id.to_big_decimal()?)
             .bind(self.curve_id.to_big_decimal()?)
-            .bind(self.total_shares.to_big_decimal()?)
             .bind(self.current_share_price.to_big_decimal()?)
             .bind(self.position_count)
             .bind(self.total_assets.to_big_decimal()?)
@@ -102,7 +99,6 @@ impl SimpleCrud<U256Wrapper> for Vault {
             SELECT 
                 term_id, 
                 curve_id,
-                total_shares, 
                 current_share_price,
                 position_count,
                 total_assets,
@@ -140,7 +136,7 @@ impl Vault {
             UPDATE {}.vault 
             SET current_share_price = $1 
             WHERE term_id = $2 AND curve_id = $3
-            RETURNING term_id, curve_id, total_shares, current_share_price, position_count, total_assets, market_cap, block_number, log_index, transaction_hash
+            RETURNING term_id, curve_id, current_share_price, position_count, total_assets, market_cap, block_number, log_index, transaction_hash
             "#,
             schema,
         );
@@ -220,8 +216,8 @@ impl Vault {
     {
         let query = format!(
             r#"
-            INSERT INTO {}.vault (term_id, curve_id, total_shares, current_share_price, position_count, total_assets, market_cap, block_number, log_index, transaction_hash)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            INSERT INTO {}.vault (term_id, curve_id, current_share_price, position_count, total_assets, market_cap, block_number, log_index, transaction_hash)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             "#,
             schema,
         );
@@ -229,7 +225,6 @@ impl Vault {
         sqlx::query_as::<_, Vault>(&query)
             .bind(self.term_id.to_big_decimal()?)
             .bind(self.curve_id.to_big_decimal()?)
-            .bind(self.total_shares.to_big_decimal()?)
             .bind(self.current_share_price.to_big_decimal()?)
             .bind(self.position_count)
             .bind(self.total_assets.to_big_decimal()?)

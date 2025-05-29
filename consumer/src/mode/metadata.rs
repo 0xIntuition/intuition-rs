@@ -20,7 +20,7 @@ use models::{
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use std::str::FromStr;
-use tracing::info;
+use tracing::debug;
 /// Represents the metadata for an atom
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AtomMetadata {
@@ -118,7 +118,7 @@ impl AtomMetadata {
     ) -> Result<(), ConsumerError> {
         match AtomType::from_str(self.atom_type.as_str())? {
             AtomType::Account => {
-                info!(
+                debug!(
                     "Updating account for: {}",
                     resolved_atom.atom.data.clone().unwrap()
                 );
@@ -126,7 +126,7 @@ impl AtomMetadata {
                     .await
             }
             AtomType::Caip10 => {
-                info!(
+                debug!(
                     "Creating caip10 for: {}",
                     resolved_atom.atom.data.clone().unwrap()
                 );
@@ -139,7 +139,7 @@ impl AtomMetadata {
                 Ok(())
             }
             _ => {
-                info!(
+                debug!(
                     "This atom type is updated at the end of processing: {}",
                     self.atom_type
                 );
@@ -269,7 +269,7 @@ impl AtomMetadata {
         decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<(), ConsumerError> {
         if self.atom_type != "Account" {
-            info!("Skipping account creation for: {}", self.atom_type);
+            debug!("Skipping account creation for: {}", self.atom_type);
             return Ok(());
         }
 
@@ -299,7 +299,7 @@ impl AtomMetadata {
         .await?
         .is_some()
         {
-            info!("Atom value already exists, skipping...");
+            debug!("Atom value already exists, skipping...");
             return Ok(());
         }
 
@@ -408,28 +408,28 @@ pub async fn get_supported_atom_metadata(
 ) -> Result<AtomMetadata, ConsumerError> {
     // 1. Handling the happy path (schema.org URL, predicate)
     if let Some(schema_org_url) = try_to_resolve_schema_org_url(decoded_atom_data).await? {
-        info!("Schema.org URL found, returning predicate metadata...");
+        debug!("Schema.org URL found, returning predicate metadata...");
         // As we dont need to resolve anything, we can mark the atom as resolved
         atom.resolving_status = AtomResolvingStatus::Resolved;
         return Ok(get_predicate_metadata(schema_org_url, atom.image.clone()));
     } else {
-        info!("No schema.org URL found, verifying if atom data is an address...");
+        debug!("No schema.org URL found, verifying if atom data is an address...");
     }
 
     // 2. Handling the happy path (address)
     if is_valid_address(decoded_atom_data)? {
-        info!("Atom data is an address, returning account metadata...");
+        debug!("Atom data is an address, returning account metadata...");
         // As we dont need to resolve anything, we can mark the atom as resolved
         atom.resolving_status = AtomResolvingStatus::Resolved;
         Ok(AtomMetadata::address(decoded_atom_data, atom.image.clone()))
     // 3. Handling the happy path (CAIP10)
     } else if is_valid_caip10(decoded_atom_data)? {
-        info!("Atom data is a CAIP10, returning account metadata...");
+        debug!("Atom data is a CAIP10, returning account metadata...");
         // As we dont need to resolve anything, we can mark the atom as resolved
         atom.resolving_status = AtomResolvingStatus::Resolved;
         Ok(AtomMetadata::caip10(decoded_atom_data.to_string()))
     } else {
-        info!("Atom data is not an address, verifying if it's an IPFS URI...");
+        debug!("Atom data is not an address, verifying if it's an IPFS URI...");
         // 4. Now we need to enqueue the message to be processed by the resolver
         let message = ResolverConsumerMessage::new_atom(atom.term_id.to_string());
         decoded_consumer_context

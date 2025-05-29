@@ -9,7 +9,7 @@ use alloy::{
     providers::DynProvider,
 };
 use alloy_network::Ethereum;
-use tracing::info;
+use tracing::debug;
 
 /// This struct represents the ENS name and avatar for an address.
 #[derive(Clone, Debug)]
@@ -54,7 +54,7 @@ impl Ens {
         match reqwest::get(&url).await {
             Ok(response) => {
                 if response.status() == 200 {
-                    info!("Sending image to IPFS upload consumer: {}", url);
+                    debug!("Sending image to IPFS upload consumer: {}", url);
                     consumer_context
                         .client
                         .send_message(
@@ -76,7 +76,7 @@ impl Ens {
         address: Address,
         mainnet_client: &ENSRegistryInstance<DynProvider, Ethereum>,
     ) -> Result<Option<String>, ConsumerError> {
-        info!("Getting ENS name for {}", address);
+        debug!("Getting ENS name for {}", address);
         let address_hash = Self::namehash(&Self::prepare_name(address));
         let resolver_address =
             Self::get_resolver_address(address, &address_hash, mainnet_client).await?;
@@ -87,7 +87,7 @@ impl Ens {
                 .name(FixedBytes::from_slice(address_hash.as_slice()))
                 .call()
                 .await?;
-            info!("ResolvedENS name: {:?}", name);
+            debug!("ResolvedENS name: {:?}", name);
             Ok(Some(name))
         } else {
             Ok(None)
@@ -106,9 +106,9 @@ impl Ens {
             .await?;
 
         if resolver_address == Address::ZERO {
-            info!("No resolver found for {}", address);
+            debug!("No resolver found for {}", address);
         } else {
-            info!("Resolver found for {}: {}", address, resolver_address);
+            debug!("Resolver found for {}: {}", address, resolver_address);
         }
 
         Ok(resolver_address)
