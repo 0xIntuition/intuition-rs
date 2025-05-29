@@ -25,8 +25,9 @@ impl VaultManager for &Deposited {
         block_number: i64,
     ) -> Result<U256Wrapper, ConsumerError> {
         Ok(decoded_consumer_context
-            .fetch_total_shares_in_vault(self.vaultId, block_number)
+            .fetch_total_shares_and_assets_in_vault(self.vaultId, block_number)
             .await?
+            .0
             .into())
     }
 

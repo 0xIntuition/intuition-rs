@@ -24,6 +24,17 @@ pub struct VaultInfo {
 }
 
 impl VaultInfo {
+    pub async fn new(
+        current_share_price: Uint<256, 4>,
+        total_shares: Uint<256, 4>,
+        total_assets: Uint<256, 4>,
+    ) -> Result<Self, ConsumerError> {
+        Ok(Self {
+            current_share_price: current_share_price.into(),
+            total_shares: total_shares.into(),
+            total_assets: total_assets.into(),
+        })
+    }
     /// This function updates the vault with the new total assets
     pub async fn update_vault(
         &self,
@@ -85,28 +96,18 @@ pub trait EventHandler: Debug + Sync + Send {
 
         if let ContractVersion::V1 = contract_version {
             // Fetch the current share price and total shares
-            let current_share_price: U256Wrapper = decoded_consumer_context
+            let current_share_price = decoded_consumer_context
                 .fetch_current_share_price(vault_id, event.block_number)
-                .await?
-                .into();
+                .await?;
 
             // Fetch the total shares in the vault
-            let total_shares: U256Wrapper = decoded_consumer_context
-                .fetch_total_shares_in_vault(vault_id, event.block_number)
-                .await?
-                .into();
+            let (total_shares, total_assets) = decoded_consumer_context
+                .fetch_total_shares_and_assets_in_vault(vault_id, event.block_number)
+                .await?;
 
-            // Fetch the total assets in the vault
-            let total_assets: U256Wrapper = decoded_consumer_context
-                .fetch_total_assets_in_vault(vault_id, event.block_number)
-                .await?
-                .into();
-
-            Ok(Some(VaultInfo {
-                current_share_price,
-                total_shares,
-                total_assets,
-            }))
+            Ok(Some(
+                VaultInfo::new(current_share_price, total_shares, total_assets).await?,
+            ))
         } else {
             Ok(None)
         }

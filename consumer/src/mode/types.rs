@@ -171,45 +171,22 @@ impl DecodedConsumerContext {
         .await
     }
 
-    /// This function fetches the total shares in the vault
-    pub async fn fetch_total_shares_in_vault(
+    /// This function fetches the total shares and assets in the vault
+    pub async fn fetch_total_shares_and_assets_in_vault(
         &self,
         id: Uint<256, 4>,
         block_number: i64,
-    ) -> Result<U256, ConsumerError> {
+    ) -> Result<(U256, U256), ConsumerError> {
         self.retry_with_backoff(|| async {
             let total_shares = self
                 .base_client
-                .get_total_shares(id, BlockId::from_str(&block_number.to_string())?)
+                .get_total_shares_and_assets(id, BlockId::from_str(&block_number.to_string())?)
                 .await;
             match &total_shares {
                 Ok(shares) => Ok(*shares),
                 Err(e) => {
                     warn!("Response: {:?}", total_shares);
                     warn!("Error fetching total shares in vault: {}", e);
-                    Err(ConsumerError::MaxRetriesExceeded)
-                }
-            }
-        })
-        .await
-    }
-
-    /// This function fetches the total shares in the vault
-    pub async fn fetch_total_assets_in_vault(
-        &self,
-        id: Uint<256, 4>,
-        block_number: i64,
-    ) -> Result<U256, ConsumerError> {
-        self.retry_with_backoff(|| async {
-            let total_assets = self
-                .base_client
-                .get_total_assets(id, BlockId::from_str(&block_number.to_string())?)
-                .await;
-            match &total_assets {
-                Ok(assets) => Ok(*assets),
-                Err(e) => {
-                    warn!("Response: {:?}", total_assets);
-                    warn!("Error fetching total assets in vault: {}", e);
                     Err(ConsumerError::MaxRetriesExceeded)
                 }
             }
@@ -907,7 +884,7 @@ mod tests {
         let vault_id = Uint::<256, 4>::from_str("0x329b").unwrap();
 
         let total_shares = decoded_consumer
-            .fetch_total_shares_in_vault(vault_id, 21854762)
+            .fetch_total_shares_and_assets_in_vault(vault_id, 21854762)
             .await
             .unwrap();
 
