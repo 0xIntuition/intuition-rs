@@ -48,6 +48,7 @@ pub trait SharePriceEvent: VaultManager {
     fn total_assets(&self) -> Result<U256Wrapper, ConsumerError> {
         Ok(0.try_into()?)
     }
+
     #[allow(dead_code)]
     fn market_cap(&self) -> Result<U256Wrapper, ConsumerError> {
         Ok(0.try_into()?)

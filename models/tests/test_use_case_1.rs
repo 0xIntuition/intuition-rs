@@ -77,6 +77,7 @@ mod tests {
             .transaction_hash(create_random_string())
             .total_assets(create_random_u256wrapper())
             .market_cap(create_random_u256wrapper())
+            .total_shares(create_random_u256wrapper())
             .build()
             .upsert(TEST_SCHEMA, &pool)
             .await
@@ -122,6 +123,7 @@ mod tests {
             .transaction_hash(create_random_string())
             .total_assets(create_random_u256wrapper())
             .market_cap(create_random_u256wrapper())
+            .total_shares(create_random_u256wrapper())
             .build()
             .upsert(TEST_SCHEMA, &pool)
             .await

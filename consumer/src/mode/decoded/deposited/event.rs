@@ -1,7 +1,7 @@
 use crate::{
     error::ConsumerError,
     mode::{
-        decoded::utils::{VaultUpdate, update_vault},
+        decoded::utils::VaultInfo,
         types::DecodedConsumerContext,
         utils::{Origin, get_or_create_account},
     },
@@ -226,27 +226,14 @@ pub trait DepositedEvent: SharePriceEvent + VaultManager + Clone {
     async fn update_vault_values(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
-        current_share_price: Option<U256Wrapper>,
-        total_shares: Option<Uint<256, 4>>,
+        vault_info: Option<VaultInfo>,
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
-        if let Some(current_share_price) = current_share_price {
-            if let Some(total_shares) = total_shares {
-                // Update vault values
-                update_vault(
-                    VaultUpdate::Deposited {
-                        sender_assets_after_total_fees: U256Wrapper::from(
-                            self.sender_assets_after_total_fees()?,
-                        ),
-                    },
-                    self.vault_id()?,
-                    decoded_consumer_context,
-                    current_share_price,
-                    total_shares,
-                    event,
-                )
+        if let Some(vault_info) = vault_info {
+            // Update vault values
+            vault_info
+                .update_vault(self.vault_id()?, decoded_consumer_context, event)
                 .await?;
-            }
         }
         Ok(())
     }

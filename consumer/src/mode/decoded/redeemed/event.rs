@@ -1,9 +1,6 @@
 use crate::{
     error::ConsumerError,
-    mode::{
-        decoded::utils::{VaultUpdate, update_vault},
-        types::DecodedConsumerContext,
-    },
+    mode::{decoded::utils::VaultInfo, types::DecodedConsumerContext},
     schemas::types::DecodedMessage,
 };
 use alloy::primitives::Uint;
@@ -191,25 +188,14 @@ pub trait RedeemedEvent: Clone {
     async fn update_vault_values(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
-        current_share_price: Option<U256Wrapper>,
-        total_shares: Option<Uint<256, 4>>,
+        vault_info: Option<VaultInfo>,
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
-        if let Some(current_share_price) = current_share_price {
-            if let Some(total_shares) = total_shares {
-                // Update vault values
-                update_vault(
-                    VaultUpdate::Redeemed {
-                        shares_for_receiver: U256Wrapper::from(self.shares_redeemed_by_sender()?),
-                    },
-                    self.vault_id()?,
-                    decoded_consumer_context,
-                    current_share_price,
-                    total_shares,
-                    event,
-                )
+        if let Some(vault_info) = vault_info {
+            // Update vault values
+            vault_info
+                .update_vault(self.vault_id()?, decoded_consumer_context, event)
                 .await?;
-            }
         }
         Ok(())
     }

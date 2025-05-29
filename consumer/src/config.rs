@@ -237,4 +237,16 @@ impl ContractInstance {
             Self::V1_5(client) => Ok(client.vaults(id).block(block_id).call().await?.totalShares),
         }
     }
+
+    /// Returns the total assets of the contract instance
+    pub async fn get_total_assets(
+        &self,
+        id: Uint<256, 4>,
+        block_id: BlockId,
+    ) -> Result<U256, ConsumerError> {
+        match self {
+            Self::V1(client) => Ok(client.vaults(id).block(block_id).call().await?.totalAssets),
+            Self::V1_5(client) => Ok(client.vaults(id).block(block_id).call().await?.totalAssets),
+        }
+    }
 }

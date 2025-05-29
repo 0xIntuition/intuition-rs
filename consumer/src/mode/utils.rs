@@ -107,6 +107,7 @@ impl Origin {
             .position_count(position_count)
             .market_cap(market_cap)
             .block_number(block_number)
+            .total_shares(total_shares)
             .log_index(tx.log_index)
             .transaction_hash(tx.transaction_hash.clone())
             .build())

@@ -194,6 +194,29 @@ impl DecodedConsumerContext {
         .await
     }
 
+    /// This function fetches the total shares in the vault
+    pub async fn fetch_total_assets_in_vault(
+        &self,
+        id: Uint<256, 4>,
+        block_number: i64,
+    ) -> Result<U256, ConsumerError> {
+        self.retry_with_backoff(|| async {
+            let total_assets = self
+                .base_client
+                .get_total_assets(id, BlockId::from_str(&block_number.to_string())?)
+                .await;
+            match &total_assets {
+                Ok(assets) => Ok(*assets),
+                Err(e) => {
+                    warn!("Response: {:?}", total_assets);
+                    warn!("Error fetching total assets in vault: {}", e);
+                    Err(ConsumerError::MaxRetriesExceeded)
+                }
+            }
+        })
+        .await
+    }
+
     /// This function fetches the atom data from the contract
     pub async fn fetch_atom_data(&self, id: Uint<256, 4>) -> Result<Bytes, ConsumerError> {
         self.retry_with_backoff(|| async {

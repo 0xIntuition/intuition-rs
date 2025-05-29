@@ -49,12 +49,8 @@ where
 
         // This is only for V1, we need to fetch the data from the RPC before
         // starting the transaction
-        let (current_share_price, total_shares) = self
-            .get_current_share_price_and_total_assets(
-                decoded_consumer_context,
-                event,
-                self.0.vault_id()?,
-            )
+        let vault_info = self
+            .get_vault_info(decoded_consumer_context, event, self.0.vault_id()?)
             .await?;
 
         // 3. Create redemption record
@@ -88,12 +84,7 @@ where
 
         // Update vault values when dealing with v1 redeemed events
         self.0
-            .update_vault_values(
-                decoded_consumer_context,
-                current_share_price,
-                total_shares,
-                event,
-            )
+            .update_vault_values(decoded_consumer_context, vault_info, event)
             .await?;
 
         // 4. Create event and signal records

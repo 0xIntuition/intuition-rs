@@ -10,7 +10,48 @@ use crate::{
 use alloy::primitives::{U256, Uint};
 use models::{term::TermType, traits::SimpleCrud, types::U256Wrapper, vault::Vault};
 use sqlx::{Postgres, Transaction};
-use tracing::{debug, warn};
+use tracing::debug;
+
+pub struct VaultInfo {
+    pub current_share_price: U256Wrapper,
+    pub total_shares: U256Wrapper,
+    pub total_assets: U256Wrapper,
+}
+
+impl VaultInfo {
+    /// This function updates the vault with the new total assets
+    pub async fn update_vault(
+        &self,
+        vault_id: Uint<256, 4>,
+        decoded_consumer_context: &DecodedConsumerContext,
+        event: &DecodedMessage,
+    ) -> Result<(), ConsumerError> {
+        // Update vault
+        let mut vault = Vault::find_by_id(
+            vault_id.into(),
+            &decoded_consumer_context.backend_schema,
+            &decoded_consumer_context.pg_pool,
+        )
+        .await?
+        .ok_or(ConsumerError::VaultNotFound)?;
+        // Update regular fields
+        vault.current_share_price = self.current_share_price.clone();
+        vault.market_cap = self.total_shares.clone() * self.current_share_price.clone()
+            / U256Wrapper::from(U256::from(10).pow(U256::from(18)));
+        vault.total_shares = self.total_shares.clone();
+        vault.total_assets = self.total_assets.clone();
+        vault.block_number = event.block_number;
+        vault.log_index = event.log_index;
+        vault.transaction_hash = event.transaction_hash.clone();
+        vault
+            .upsert(
+                &decoded_consumer_context.backend_schema,
+                &decoded_consumer_context.pg_pool,
+            )
+            .await?;
+        Ok(())
+    }
+}
 
 /// This trait represents an event processor. We need to implement this trait for each event type
 /// for all the contracts we support
@@ -27,14 +68,14 @@ pub trait EventHandler: Debug + Sync + Send {
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError>;
-    /// This function gets the current share price and total assets based
+    /// This function gets the current share price and total shares based
     /// on the contract version
-    async fn get_current_share_price_and_total_assets(
+    async fn get_vault_info(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
         vault_id: Uint<256, 4>,
-    ) -> Result<(Option<U256Wrapper>, Option<Uint<256, 4>>), ConsumerError> {
+    ) -> Result<Option<VaultInfo>, ConsumerError> {
         let contract_version = decoded_consumer_context.contract_version.read()?.clone();
 
         if let ContractVersion::V1 = contract_version {
@@ -45,79 +86,26 @@ pub trait EventHandler: Debug + Sync + Send {
                 .into();
 
             // Fetch the total shares in the vault
-            let total_shares = decoded_consumer_context
+            let total_shares: U256Wrapper = decoded_consumer_context
                 .fetch_total_shares_in_vault(vault_id, event.block_number)
-                .await?;
-            Ok((Some(current_share_price), Some(total_shares)))
+                .await?
+                .into();
+
+            // Fetch the total assets in the vault
+            let total_assets: U256Wrapper = decoded_consumer_context
+                .fetch_total_assets_in_vault(vault_id, event.block_number)
+                .await?
+                .into();
+
+            Ok(Some(VaultInfo {
+                current_share_price,
+                total_shares,
+                total_assets,
+            }))
         } else {
-            Ok((None, None))
+            Ok(None)
         }
     }
-}
-/// This enum represents the different types of updates that can be made to a vault
-pub enum VaultUpdate {
-    /// This variant represents a deposited event
-    Deposited {
-        /// The assets that were sent by the sender after total fees
-        sender_assets_after_total_fees: U256Wrapper,
-    },
-    /// This variant represents a redeemed event
-    Redeemed {
-        /// The shares that were sent to the receiver
-        shares_for_receiver: U256Wrapper,
-    },
-}
-
-/// This function updates the vault with the new total assets
-pub async fn update_vault(
-    vault_update: VaultUpdate,
-    vault_id: Uint<256, 4>,
-    decoded_consumer_context: &DecodedConsumerContext,
-    current_share_price: U256Wrapper,
-    total_shares: Uint<256, 4>,
-    event: &DecodedMessage,
-) -> Result<(), ConsumerError> {
-    // Update vault
-    let mut vault = Vault::find_by_id(
-        vault_id.into(),
-        &decoded_consumer_context.backend_schema,
-        &decoded_consumer_context.pg_pool,
-    )
-    .await?
-    .ok_or(ConsumerError::VaultNotFound)?;
-
-    // Update the vault conditionally based on the type of update
-    match vault_update {
-        VaultUpdate::Deposited {
-            sender_assets_after_total_fees,
-        } => {
-            warn!(
-                "Updating vault total assets: {:?} to {:?}",
-                vault.total_assets.clone(),
-                vault.total_assets.clone() + sender_assets_after_total_fees.clone()
-            );
-            vault.total_assets += sender_assets_after_total_fees;
-        }
-        VaultUpdate::Redeemed {
-            shares_for_receiver,
-        } => {
-            vault.total_assets -= shares_for_receiver;
-        }
-    }
-    // Update regular fields
-    vault.current_share_price = current_share_price.clone();
-    vault.market_cap = U256Wrapper::from(total_shares) * current_share_price
-        / U256Wrapper::from(U256::from(10).pow(U256::from(18)));
-    vault.block_number = event.block_number;
-    vault.log_index = event.log_index;
-    vault.transaction_hash = event.transaction_hash.clone();
-    vault
-        .upsert(
-            &decoded_consumer_context.backend_schema,
-            &decoded_consumer_context.pg_pool,
-        )
-        .await?;
-    Ok(())
 }
 
 /// This function gets or creates a vault from a share price changed event

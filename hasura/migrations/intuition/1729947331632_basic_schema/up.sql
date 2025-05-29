@@ -93,6 +93,7 @@ CREATE TABLE vault (
   id NUMERIC(78, 0) PRIMARY KEY NOT NULL,
   atom_id NUMERIC(78, 0),
   triple_id NUMERIC(78, 0),
+  total_shares NUMERIC(78, 0) NOT NULL,
   current_share_price NUMERIC(78, 0) NOT NULL,
   position_count INTEGER NOT NULL,
   block_number BIGINT NOT NULL,
@@ -107,6 +108,7 @@ CREATE INDEX vault_atom_id_idx ON vault(atom_id);
 CREATE INDEX vault_triple_id_idx ON vault(triple_id);
 CREATE INDEX vault_current_share_price_idx ON vault(current_share_price);
 CREATE INDEX vault_position_count_idx ON vault(position_count);
+CREATE INDEX vault_total_shares_idx ON vault(total_shares);
 
 CREATE TABLE fee_transfer (
   id TEXT PRIMARY KEY NOT NULL,
