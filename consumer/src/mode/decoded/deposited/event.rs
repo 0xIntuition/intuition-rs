@@ -1,7 +1,7 @@
 use crate::{
     error::ConsumerError,
     mode::{
-        decoded::utils::VaultInfo,
+        decoded::utils::{VaultInfo, get_block_timestamp},
         types::DecodedConsumerContext,
         utils::{VaultOrigin, get_or_create_account},
     },
@@ -60,7 +60,7 @@ pub trait DepositedEvent: SharePriceEvent + VaultManager + Clone {
             .is_triple(self.is_triple()?)
             .is_atom_wallet(self.is_atom_wallet()?)
             .block_number(U256Wrapper::try_from(event.block_number)?)
-            .block_timestamp(event.block_timestamp)
+            .created_at(get_block_timestamp(event.block_timestamp)?)
             .transaction_hash(event.transaction_hash.clone())
             .log_index(event.log_index)
             .build()
@@ -79,6 +79,7 @@ pub trait DepositedEvent: SharePriceEvent + VaultManager + Clone {
         vault: &Vault,
     ) -> Result<(), ConsumerError> {
         if self.sender_assets_after_total_fees()? > U256::from(0) {
+            let created_at = get_block_timestamp(event.block_timestamp)?;
             let signal = if !self.is_triple()? {
                 Signal::builder()
                     .id(DecodedMessage::event_id(event))
@@ -87,7 +88,7 @@ pub trait DepositedEvent: SharePriceEvent + VaultManager + Clone {
                     .atom_id(vault.term_id.clone())
                     .deposit_id(DecodedMessage::event_id(event))
                     .block_number(U256Wrapper::try_from(event.block_number)?)
-                    .block_timestamp(event.block_timestamp)
+                    .created_at(created_at)
                     .transaction_hash(event.transaction_hash.clone())
                     .term_id(vault.term_id.clone())
                     .curve_id(DepositedEvent::curve_id(self)?)
@@ -100,7 +101,7 @@ pub trait DepositedEvent: SharePriceEvent + VaultManager + Clone {
                     .triple_id(vault.term_id.clone())
                     .deposit_id(DecodedMessage::event_id(event))
                     .block_number(U256Wrapper::try_from(event.block_number)?)
-                    .block_timestamp(event.block_timestamp)
+                    .created_at(created_at)
                     .transaction_hash(event.transaction_hash.clone())
                     .term_id(vault.term_id.clone())
                     .curve_id(DepositedEvent::curve_id(self)?)

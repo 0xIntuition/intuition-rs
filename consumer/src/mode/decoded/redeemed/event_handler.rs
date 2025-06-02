@@ -2,7 +2,9 @@ use super::event::RedeemedEvent;
 use crate::{
     error::ConsumerError,
     mode::{
-        decoded::utils::EventHandler, types::DecodedConsumerContext, utils::get_or_create_account,
+        decoded::utils::{EventHandler, get_block_timestamp},
+        types::DecodedConsumerContext,
+        utils::get_or_create_account,
     },
     schemas::types::DecodedMessage,
 };
@@ -122,7 +124,7 @@ where
                 .id(DecodedMessage::event_id(event))
                 .event_type(EventType::Redeemed)
                 .block_number(U256Wrapper::try_from(event.block_number)?)
-                .block_timestamp(event.block_timestamp)
+                .created_at(get_block_timestamp(event.block_timestamp)?)
                 .transaction_hash(event.transaction_hash.clone())
                 .redemption_id(DecodedMessage::event_id(event))
                 .triple_id(vault.term_id.clone())
@@ -132,7 +134,7 @@ where
                 .id(DecodedMessage::event_id(event))
                 .event_type(EventType::Redeemed)
                 .block_number(U256Wrapper::try_from(event.block_number)?)
-                .block_timestamp(event.block_timestamp)
+                .created_at(get_block_timestamp(event.block_timestamp)?)
                 .transaction_hash(event.transaction_hash.clone())
                 .redemption_id(DecodedMessage::event_id(event))
                 .atom_id(vault.term_id.clone())

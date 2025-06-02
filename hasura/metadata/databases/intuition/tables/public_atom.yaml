@@ -108,7 +108,7 @@ select_permissions:
       columns:
         - transaction_hash
         - block_number
-        - block_timestamp
+        - created_at
         - term_id
         - value_id
         - creator_id

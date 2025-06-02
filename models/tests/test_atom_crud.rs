@@ -2,8 +2,10 @@
 #[cfg(test)]
 mod tests {
     use alloy::primitives::U256;
+    use chrono::{DateTime, Utc};
     use models::{
         atom::Atom,
+        error::ModelError,
         test_helpers::{
             create_random_string, create_test_account_db, create_test_atom, setup_test_db,
             TEST_SCHEMA,
@@ -54,7 +56,11 @@ mod tests {
         updated_atom.label = Some("Updated Test Atom".to_string());
         updated_atom.image = Some("https://example.com/image.jpg".to_string());
         updated_atom.block_number = U256Wrapper::from(U256::from(5u64));
-        updated_atom.block_timestamp = 6;
+        updated_atom.created_at = DateTime::<Utc>::from_timestamp(6, 0)
+            .ok_or(ModelError::QueryError(
+                "Invalid block timestamp".to_string(),
+            ))
+            .unwrap();
         updated_atom.transaction_hash = create_random_string();
 
         // Step 8: Upsert the updated Atom

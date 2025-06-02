@@ -4,6 +4,7 @@ use crate::{
     types::U256Wrapper,
 };
 use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 use sqlx::{Executor, Postgres};
 
 /// This struct represents a fee transfer in the database.
@@ -17,7 +18,7 @@ pub struct FeeTransfer {
     pub receiver_id: String,
     pub amount: U256Wrapper,
     pub block_number: U256Wrapper,
-    pub block_timestamp: i64,
+    pub created_at: DateTime<Utc>,
     pub transaction_hash: String,
 }
 
@@ -36,27 +37,27 @@ impl SimpleCrud<String> for FeeTransfer {
         let query = format!(
             r#"
             INSERT INTO {}.fee_transfer (
-                id, sender_id, receiver_id, amount, block_number, block_timestamp, transaction_hash
+                id, sender_id, receiver_id, amount, block_number, created_at, transaction_hash
             ) VALUES ($1, $2, $3, $4, $5, $6, $7)
             ON CONFLICT (id) DO UPDATE SET
                 sender_id = EXCLUDED.sender_id,
                 receiver_id = EXCLUDED.receiver_id,
                 amount = EXCLUDED.amount,
                 block_number = EXCLUDED.block_number,
-                block_timestamp = EXCLUDED.block_timestamp,
+                created_at = EXCLUDED.created_at,
                 transaction_hash = EXCLUDED.transaction_hash
             WHERE
                 fee_transfer.sender_id IS DISTINCT FROM EXCLUDED.sender_id OR
                 fee_transfer.receiver_id IS DISTINCT FROM EXCLUDED.receiver_id OR
                 fee_transfer.amount IS DISTINCT FROM EXCLUDED.amount OR
                 fee_transfer.block_number IS DISTINCT FROM EXCLUDED.block_number OR
-                fee_transfer.block_timestamp IS DISTINCT FROM EXCLUDED.block_timestamp OR
+                fee_transfer.created_at IS DISTINCT FROM EXCLUDED.created_at OR
                 fee_transfer.transaction_hash IS DISTINCT FROM EXCLUDED.transaction_hash
             RETURNING 
                 id, sender_id, receiver_id, 
                 amount,
                 block_number,
-                block_timestamp,
+                created_at,
                 transaction_hash
             "#,
             schema,
@@ -68,7 +69,7 @@ impl SimpleCrud<String> for FeeTransfer {
             .bind(self.receiver_id.clone())
             .bind(self.amount.to_big_decimal()?)
             .bind(self.block_number.to_big_decimal()?)
-            .bind(self.block_timestamp)
+            .bind(self.created_at)
             .bind(self.transaction_hash.clone())
             .fetch_one(executor)
             .await
@@ -91,7 +92,7 @@ impl SimpleCrud<String> for FeeTransfer {
                 id, sender_id, receiver_id,
                 amount,
                 block_number,
-                block_timestamp,
+                created_at,
                 transaction_hash
             FROM {}.fee_transfer
             WHERE id = $1

@@ -1,6 +1,9 @@
 use crate::{
     error::ConsumerError,
-    mode::{decoded::utils::VaultInfo, types::DecodedConsumerContext},
+    mode::{
+        decoded::utils::{VaultInfo, get_block_timestamp},
+        types::DecodedConsumerContext,
+    },
     schemas::types::DecodedMessage,
 };
 use alloy::primitives::Uint;
@@ -51,7 +54,7 @@ pub trait RedeemedEvent: Clone {
             .exit_fee(self.exit_fee()?)
             .term_id(U256Wrapper::from(self.vault_id()?))
             .block_number(U256Wrapper::try_from(event.block_number)?)
-            .block_timestamp(event.block_timestamp)
+            .created_at(get_block_timestamp(event.block_timestamp)?)
             .transaction_hash(event.transaction_hash.clone())
             .curve_id(U256Wrapper::from(RedeemedEvent::curve_id(self)?))
             .log_index(event.log_index)
@@ -149,6 +152,7 @@ pub trait RedeemedEvent: Clone {
         .await?
         .ok_or(ConsumerError::TermNotFound)?;
 
+        let created_at = get_block_timestamp(event.block_timestamp)?;
         let signal = if let TermType::Triple = term_type.term_type {
             Signal::builder()
                 .id(DecodedMessage::event_id(event))
@@ -157,7 +161,7 @@ pub trait RedeemedEvent: Clone {
                 .triple_id(vault.term_id.clone())
                 .redemption_id(DecodedMessage::event_id(event))
                 .block_number(U256Wrapper::try_from(event.block_number)?)
-                .block_timestamp(event.block_timestamp)
+                .created_at(created_at)
                 .transaction_hash(event.transaction_hash.clone())
                 .term_id(vault.term_id.clone())
                 .curve_id(U256Wrapper::from(RedeemedEvent::curve_id(self)?))
@@ -170,7 +174,7 @@ pub trait RedeemedEvent: Clone {
                 .atom_id(vault.term_id.clone())
                 .redemption_id(DecodedMessage::event_id(event))
                 .block_number(U256Wrapper::try_from(event.block_number)?)
-                .block_timestamp(event.block_timestamp)
+                .created_at(created_at)
                 .transaction_hash(event.transaction_hash.clone())
                 .term_id(vault.term_id.clone())
                 .curve_id(U256Wrapper::from(RedeemedEvent::curve_id(self)?))

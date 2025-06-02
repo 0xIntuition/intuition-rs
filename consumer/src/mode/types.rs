@@ -1,4 +1,7 @@
-use super::{ipfs_upload::types::IpfsUploadMessage, resolver::types::ResolverConsumerMessage};
+use super::{
+    decoded::utils::get_block_timestamp, ipfs_upload::types::IpfsUploadMessage,
+    resolver::types::ResolverConsumerMessage,
+};
 use crate::{
     ENSRegistry::{self, ENSRegistryInstance},
     app_context::ServerInitialize,
@@ -646,10 +649,12 @@ impl ConsumerMode {
                     let contract_balance = decoded_consumer_context
                         .fetch_contract_balance_at_block(&decoded_message.block_number.to_string())
                         .await?;
+                    let timestamp = get_block_timestamp(decoded_message.block_timestamp)?;
+
                     Stats::update_current_block_number_and_contract_balance(
-                        decoded_message.block_number,
+                        U256Wrapper::try_from(decoded_message.block_number)?,
                         U256Wrapper::from(contract_balance),
-                        decoded_message.block_timestamp,
+                        Some(timestamp),
                         &decoded_consumer_context.pg_pool,
                         &decoded_consumer_context.backend_schema,
                     )

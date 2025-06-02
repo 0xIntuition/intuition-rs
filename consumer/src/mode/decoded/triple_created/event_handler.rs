@@ -1,7 +1,10 @@
 use super::event::TripleCreatedEvent;
 use crate::{
     error::ConsumerError,
-    mode::{decoded::utils::EventHandler, types::DecodedConsumerContext},
+    mode::{
+        decoded::utils::{EventHandler, get_block_timestamp},
+        types::DecodedConsumerContext,
+    },
     schemas::types::DecodedMessage,
 };
 use models::{
@@ -65,7 +68,7 @@ where
             .event_type(EventType::TripleCreated)
             .triple_id(triple_id)
             .block_number(U256Wrapper::try_from(event.block_number)?)
-            .block_timestamp(event.block_timestamp)
+            .created_at(get_block_timestamp(event.block_timestamp)?)
             .transaction_hash(event.transaction_hash.clone())
             .build()
             .upsert(

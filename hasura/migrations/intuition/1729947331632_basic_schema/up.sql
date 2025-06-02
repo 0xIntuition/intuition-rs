@@ -27,7 +27,7 @@ CREATE TABLE stats (
   total_fees NUMERIC(78, 0),
   contract_balance NUMERIC(78, 0),
   last_processed_block_number NUMERIC(78, 0),
-  last_processed_block_timestamp BIGINT,
+  last_processed_block_timestamp TIMESTAMP WITH TIME ZONE,
   last_updated TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -64,7 +64,7 @@ CREATE TABLE atom (
   image TEXT,
   value_id NUMERIC(78, 0),
   block_number NUMERIC(78, 0) NOT NULL,
-  block_timestamp BIGINT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL,
   transaction_hash TEXT NOT NULL,
   resolving_status atom_resolving_status NOT NULL DEFAULT 'Pending',
   log_index BIGINT NOT NULL
@@ -85,7 +85,7 @@ CREATE TABLE triple (
   vault_id NUMERIC(78, 0) NOT NULL,
   counter_vault_id NUMERIC(78, 0) NOT NULL,
   block_number NUMERIC(78, 0) NOT NULL,
-  block_timestamp BIGINT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL,
   transaction_hash TEXT NOT NULL
 );
 
@@ -116,7 +116,7 @@ CREATE TABLE fee_transfer (
   receiver_id TEXT REFERENCES account(id) NOT NULL,
   amount NUMERIC(78, 0) NOT NULL,
   block_number NUMERIC(78, 0) NOT NULL,
-  block_timestamp BIGINT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL,
   transaction_hash TEXT NOT NULL
 );
 
@@ -124,6 +124,7 @@ CREATE INDEX fee_transfer_block_number_idx ON fee_transfer(block_number);
 CREATE INDEX fee_transfer_transaction_hash_idx ON fee_transfer(transaction_hash);
 CREATE INDEX fee_transfer_sender_idx ON fee_transfer(sender_id);
 CREATE INDEX fee_transfer_receiver_idx ON fee_transfer(receiver_id);
+CREATE INDEX fee_transfer_created_at_idx ON fee_transfer(created_at);
 
 CREATE TABLE deposit (
   id TEXT PRIMARY KEY NOT NULL,
@@ -137,7 +138,7 @@ CREATE TABLE deposit (
   is_triple BOOLEAN NOT NULL,
   is_atom_wallet BOOLEAN NOT NULL,
   block_number NUMERIC(78, 0) NOT NULL,
-  block_timestamp BIGINT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL,
   transaction_hash TEXT NOT NULL,
   log_index BIGINT NOT NULL
 );
@@ -150,6 +151,7 @@ CREATE INDEX deposit_receiver_idx ON deposit(receiver_id);
 CREATE INDEX deposit_vault_idx ON deposit(vault_id);
 CREATE INDEX deposit_is_triple_idx ON deposit(is_triple);
 CREATE INDEX deposit_is_atom_wallet_idx ON deposit(is_atom_wallet);
+CREATE INDEX deposit_created_at_idx ON deposit(created_at);
 
 CREATE TABLE redemption (
   id TEXT PRIMARY KEY NOT NULL,
@@ -161,7 +163,7 @@ CREATE TABLE redemption (
   exit_fee NUMERIC(78, 0) NOT NULL,
   vault_id NUMERIC(78, 0) REFERENCES vault(id) NOT NULL,
   block_number NUMERIC(78, 0) NOT NULL,
-  block_timestamp BIGINT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL,
   transaction_hash TEXT NOT NULL,
   log_index BIGINT NOT NULL
 );
@@ -172,6 +174,7 @@ CREATE INDEX redemption_log_index_idx ON redemption(log_index);
 CREATE INDEX redemption_sender_idx ON redemption(sender_id);
 CREATE INDEX redemption_receiver_idx ON redemption(receiver_id);
 CREATE INDEX redemption_vault_idx ON redemption(vault_id);
+CREATE INDEX redemption_created_at_idx ON redemption(created_at);
 
 CREATE TABLE event (
   id TEXT PRIMARY KEY NOT NULL,
@@ -182,7 +185,7 @@ CREATE TABLE event (
   deposit_id TEXT REFERENCES deposit(id),
   redemption_id TEXT REFERENCES redemption(id),
   block_number NUMERIC(78, 0) NOT NULL,
-  block_timestamp BIGINT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL,
   transaction_hash TEXT NOT NULL
 );
 
@@ -236,7 +239,7 @@ CREATE TABLE signal (
   deposit_id TEXT REFERENCES deposit(id),
   redemption_id TEXT REFERENCES redemption(id),
   block_number NUMERIC(78, 0) NOT NULL,
-  block_timestamp BIGINT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL,
   transaction_hash TEXT NOT NULL,
   -- Ensure that exactly one of atom_id or triple_id is set
   CONSTRAINT check_signal_constraints CHECK (
@@ -321,6 +324,7 @@ CREATE INDEX idx_predicate_object_object ON predicate_object(object_id);
 CREATE INDEX idx_signal_account ON signal(account_id);
 CREATE INDEX idx_signal_atom ON signal(atom_id);
 CREATE INDEX idx_signal_triple ON signal(triple_id);
+CREATE INDEX idx_signal_created_at ON signal(created_at);
 CREATE INDEX idx_atom_value_atom ON atom_value(id);
 CREATE INDEX idx_atom_value_thing ON atom_value(thing_id);
 CREATE INDEX idx_atom_value_person ON atom_value(person_id);
@@ -339,5 +343,5 @@ CREATE INDEX idx_event_type ON event(type);
 CREATE INDEX idx_event_atom ON event(atom_id);
 CREATE INDEX idx_event_triple ON event(triple_id);
 CREATE INDEX idx_event_block_number ON event(block_number);
-CREATE INDEX idx_event_block_timestamp ON event(block_timestamp);
+CREATE INDEX idx_event_created_at ON event(created_at);
 CREATE INDEX idx_event_transaction_hash ON event(transaction_hash);

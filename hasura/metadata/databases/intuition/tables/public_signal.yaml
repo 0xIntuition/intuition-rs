@@ -43,7 +43,7 @@ select_permissions:
         - transaction_hash
         - atom_id
         - block_number
-        - block_timestamp
+        - created_at
         - delta
         - triple_id
         - account_id

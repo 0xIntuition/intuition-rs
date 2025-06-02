@@ -3,6 +3,7 @@ use crate::{
     traits::{Model, SimpleCrud},
     types::U256Wrapper,
 };
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::{Executor, Postgres};
 use strum_macros::{Display, EnumString};
@@ -23,7 +24,7 @@ pub struct Atom {
     pub image: Option<String>,
     pub value_id: Option<U256Wrapper>,
     pub block_number: U256Wrapper,
-    pub block_timestamp: i64,
+    pub created_at: DateTime<Utc>,
     pub transaction_hash: String,
     pub resolving_status: AtomResolvingStatus,
     pub log_index: i64,
@@ -78,7 +79,7 @@ impl SimpleCrud<U256Wrapper> for Atom {
             WITH upsert AS (
                 INSERT INTO {0}.atom (
                     wallet_id, creator_id, term_id, data, raw_data, type, emoji, label,
-                    image, value_id, block_number, block_timestamp, transaction_hash, resolving_status, log_index
+                    image, value_id, block_number, created_at, transaction_hash, resolving_status, log_index
                 )
                 VALUES (
                     $1, $2, $3, $4, $5, $6::text::{0}.atom_type, $7, $8, $9, $10, $11, $12, $13, $14::text::{0}.atom_resolving_status, $15
@@ -94,7 +95,7 @@ impl SimpleCrud<U256Wrapper> for Atom {
                     image = EXCLUDED.image,
                     value_id = EXCLUDED.value_id,
                     block_number = EXCLUDED.block_number,
-                    block_timestamp = EXCLUDED.block_timestamp,
+                    created_at = EXCLUDED.created_at,
                     transaction_hash = EXCLUDED.transaction_hash,
                     resolving_status = EXCLUDED.resolving_status,
                     log_index = EXCLUDED.log_index
@@ -110,7 +111,7 @@ impl SimpleCrud<U256Wrapper> for Atom {
                     image,
                     value_id,
                     block_number,
-                    block_timestamp,
+                    created_at,
                     transaction_hash,
                     resolving_status,
                     log_index
@@ -129,7 +130,7 @@ impl SimpleCrud<U256Wrapper> for Atom {
                 image,
                 value_id,
                 block_number,
-                block_timestamp,
+                created_at,
                 transaction_hash,
                 resolving_status,
                 log_index
@@ -152,7 +153,7 @@ impl SimpleCrud<U256Wrapper> for Atom {
             .bind(self.image.clone())
             .bind(self.value_id.as_ref().and_then(|w| w.to_big_decimal().ok()))
             .bind(self.block_number.to_big_decimal()?)
-            .bind(self.block_timestamp)
+            .bind(self.created_at)
             .bind(self.transaction_hash.clone())
             .bind(self.resolving_status.to_string())
             .bind(self.log_index)
@@ -195,7 +196,7 @@ impl SimpleCrud<U256Wrapper> for Atom {
                    image, 
                    value_id,
                    block_number,
-                   block_timestamp,
+                   created_at,
                    transaction_hash,
                    resolving_status,
                    log_index

@@ -1,6 +1,7 @@
 use crate::{
     error::ConsumerError,
     mode::{
+        decoded::utils::get_block_timestamp,
         resolver::types::ResolverConsumerMessage,
         types::DecodedConsumerContext,
         utils::{VaultOrigin, get_or_create_term, short_id},
@@ -200,7 +201,7 @@ pub trait TripleCreatedEvent: SharePriceEvent + VaultManager + Debug + Clone {
             .raw_data(atom_data.to_string())
             .atom_type(AtomType::Unknown)
             .block_number(U256Wrapper::from_str("0")?)
-            .block_timestamp(0)
+            .created_at(get_block_timestamp(event.block_timestamp)?)
             .transaction_hash("0x0000000000000000000000000000000000000000".to_string())
             .resolving_status(AtomResolvingStatus::Pending)
             .log_index(event.log_index)
@@ -330,6 +331,7 @@ pub trait TripleCreatedEvent: SharePriceEvent + VaultManager + Debug + Clone {
             .await?;
 
         let term_id = U256Wrapper::from(self.vault_id()?);
+        let created_at = get_block_timestamp(event.block_timestamp)?;
         Triple::find_by_id(
             term_id.clone(),
             &decoded_consumer_context.backend_schema,
@@ -345,7 +347,7 @@ pub trait TripleCreatedEvent: SharePriceEvent + VaultManager + Debug + Clone {
                 .term_id(term_id)
                 .counter_term_id(U256Wrapper::from(counter_vault_id))
                 .block_number(U256Wrapper::try_from(event.block_number).unwrap_or_default())
-                .block_timestamp(event.block_timestamp)
+                .created_at(created_at)
                 .transaction_hash(event.transaction_hash.clone())
                 .build()
         })

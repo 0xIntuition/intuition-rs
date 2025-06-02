@@ -4,10 +4,12 @@ mod tests {
     use std::str::FromStr;
 
     use alloy::primitives::U256;
+    use chrono::{DateTime, Utc};
     use models::{
         account::{Account, AccountType},
         atom::{Atom, AtomResolvingStatus, AtomType},
         atom_value::AtomValue,
+        error::ModelError,
         person::Person,
         test_helpers::{
             create_random_number, create_random_string, create_random_u256wrapper, setup_test_db,
@@ -52,7 +54,13 @@ mod tests {
             .emoji("⛓️".to_string())
             .label("0x00...01".to_string())
             .block_number(create_random_u256wrapper())
-            .block_timestamp(create_random_number())
+            .created_at(
+                DateTime::<Utc>::from_timestamp(create_random_number() as i64, 0)
+                    .ok_or(ModelError::QueryError(
+                        "Invalid block timestamp".to_string(),
+                    ))
+                    .unwrap(),
+            )
             .transaction_hash(create_random_string())
             .resolving_status(AtomResolvingStatus::Pending)
             .log_index(create_random_number())
@@ -104,7 +112,13 @@ mod tests {
             .emoji("👤".to_string())
             .label("Alice".to_string())
             .block_number(create_random_u256wrapper())
-            .block_timestamp(create_random_number())
+            .created_at(
+                DateTime::<Utc>::from_timestamp(create_random_number() as i64, 0)
+                    .ok_or(ModelError::QueryError(
+                        "Invalid block timestamp".to_string(),
+                    ))
+                    .unwrap(),
+            )
             .transaction_hash(create_random_string())
             .resolving_status(AtomResolvingStatus::Pending)
             .log_index(create_random_number())

@@ -1,6 +1,7 @@
 use crate::{
     error::ConsumerError,
     mode::{
+        decoded::utils::get_block_timestamp,
         resolver::types::ResolverConsumerMessage,
         types::DecodedConsumerContext,
         utils::{VaultOrigin, get_or_create_account, get_or_create_account_from_event},
@@ -130,7 +131,7 @@ pub trait AtomCreatedEvent:
             .raw_data(self.atom_data()?)
             .atom_type(AtomType::Unknown)
             .block_number(U256Wrapper::try_from(event.block_number)?)
-            .block_timestamp(event.block_timestamp)
+            .created_at(get_block_timestamp(event.block_timestamp)?)
             .transaction_hash(event.transaction_hash.clone())
             .resolving_status(AtomResolvingStatus::Pending)
             .log_index(event.log_index)

@@ -40,7 +40,7 @@ select_permissions:
         - transaction_hash
         - assets_for_receiver
         - block_number
-        - block_timestamp
+        - created_at
         - exit_fee
         - sender_total_shares_in_vault
         - shares_redeemed_by_sender

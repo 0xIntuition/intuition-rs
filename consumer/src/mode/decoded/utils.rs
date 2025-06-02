@@ -8,9 +8,16 @@ use crate::{
     traits::SharePriceEvent,
 };
 use alloy::primitives::{U256, Uint};
+use chrono::{DateTime, Utc};
 use models::{term::TermType, traits::SimpleCrud, types::U256Wrapper, vault::Vault};
-use sqlx::{Postgres, Transaction};
 use tracing::debug;
+
+/// This function gets the block timestamp from the block number
+pub fn get_block_timestamp(block_timestamp: i64) -> Result<DateTime<Utc>, ConsumerError> {
+    DateTime::<Utc>::from_timestamp(block_timestamp, 0).ok_or(ConsumerError::BlockTimestampError(
+        "Invalid block timestamp".to_string(),
+    ))
+}
 
 /// This struct represents the vault info, used to update the vault values
 /// in the v1 contracts. The values are fetched from the RPC and used to
@@ -119,7 +126,6 @@ pub async fn update_vault_from_share_price_changed_events(
     share_price_changed: impl SharePriceEvent + Debug,
     decoded_consumer_context: &DecodedConsumerContext,
     term_type: TermType,
-    tx: &mut Transaction<'_, Postgres>,
     transaction_data: &DecodedMessage,
 ) -> Result<(), ConsumerError> {
     debug!(
@@ -130,7 +136,7 @@ pub async fn update_vault_from_share_price_changed_events(
     let vault = Vault::find_by_term_id_and_curve_id(
         share_price_changed.term_id()?,
         share_price_changed.curve_id()?,
-        tx.as_mut(),
+        &decoded_consumer_context.pg_pool,
         &decoded_consumer_context.backend_schema,
     )
     .await?;
@@ -148,7 +154,10 @@ pub async fn update_vault_from_share_price_changed_events(
                 .await?)
             / U256Wrapper::from(U256::from(10).pow(U256::from(18)));
         vault
-            .upsert(&decoded_consumer_context.backend_schema, tx.as_mut())
+            .upsert(
+                &decoded_consumer_context.backend_schema,
+                &decoded_consumer_context.pg_pool,
+            )
             .await?;
         debug!("Updated vault share price and total shares");
         // The term is going to be updated by the trigger on the vault table
@@ -162,7 +171,10 @@ pub async fn update_vault_from_share_price_changed_events(
                 transaction_data,
             )
             .await?
-            .upsert(&decoded_consumer_context.backend_schema, tx.as_mut())
+            .upsert(
+                &decoded_consumer_context.backend_schema,
+                &decoded_consumer_context.pg_pool,
+            )
             .await?;
     }
     debug!("Finished updating vault, updating share price aggregate");

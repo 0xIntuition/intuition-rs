@@ -4,6 +4,7 @@ use crate::{
     account::{Account, AccountType},
     atom::{Atom, AtomResolvingStatus, AtomType},
     deposit::Deposit,
+    error::ModelError,
     event::{Event, EventType},
     fee_transfer::FeeTransfer,
     organization::Organization,
@@ -20,6 +21,7 @@ use crate::{
     types::U256Wrapper,
     vault::Vault,
 };
+use chrono::{DateTime, Utc};
 use rand::{
     // distributions::{Alphanumeric, DistString},
     distr::{Alphanumeric, SampleString},
@@ -87,7 +89,13 @@ pub fn create_test_atom(wallet_id: String, creator_id: String) -> Atom {
         .emoji("🧪".to_string())
         .label(create_random_string())
         .block_number(create_random_u256wrapper())
-        .block_timestamp(create_random_number())
+        .created_at(
+            DateTime::<Utc>::from_timestamp(create_random_number() as i64, 0)
+                .ok_or(ModelError::QueryError(
+                    "Invalid block timestamp".to_string(),
+                ))
+                .unwrap(),
+        )
         .transaction_hash(create_random_string())
         .resolving_status(AtomResolvingStatus::Pending)
         .log_index(create_random_number())
@@ -109,7 +117,13 @@ pub fn create_test_triple(
         .term_id(create_random_u256wrapper())
         .counter_term_id(create_random_u256wrapper())
         .block_number(create_random_u256wrapper())
-        .block_timestamp(create_random_number())
+        .created_at(
+            DateTime::<Utc>::from_timestamp(create_random_number() as i64, 0)
+                .ok_or(ModelError::QueryError(
+                    "Invalid block timestamp".to_string(),
+                ))
+                .unwrap(),
+        )
         .transaction_hash(create_random_string())
         .build()
 }
@@ -195,7 +209,13 @@ pub fn create_test_deposit(
         .is_triple(false)
         .is_atom_wallet(false)
         .block_number(create_random_u256wrapper())
-        .block_timestamp(create_random_number())
+        .created_at(
+            DateTime::<Utc>::from_timestamp(create_random_number() as i64, 0)
+                .ok_or(ModelError::QueryError(
+                    "Invalid block timestamp".to_string(),
+                ))
+                .unwrap(),
+        )
         .transaction_hash(create_random_string())
         .log_index(create_random_number())
         .build()
@@ -216,7 +236,13 @@ pub fn create_test_event_with_atom(atom_id: U256Wrapper) -> Event {
         .atom_id(atom_id)
         .event_type(EventType::FeesTransfered)
         .block_number(create_random_u256wrapper())
-        .block_timestamp(create_random_number())
+        .created_at(
+            DateTime::<Utc>::from_timestamp(create_random_number() as i64, 0)
+                .ok_or(ModelError::QueryError(
+                    "Invalid block timestamp".to_string(),
+                ))
+                .unwrap(),
+        )
         .transaction_hash(create_random_string())
         .build()
 }
@@ -228,7 +254,13 @@ pub fn create_test_event_with_triple(triple_id: U256Wrapper) -> Event {
         .triple_id(triple_id)
         .event_type(EventType::TripleCreated)
         .block_number(create_random_u256wrapper())
-        .block_timestamp(create_random_number())
+        .created_at(
+            DateTime::<Utc>::from_timestamp(create_random_number() as i64, 0)
+                .ok_or(ModelError::QueryError(
+                    "Invalid block timestamp".to_string(),
+                ))
+                .unwrap(),
+        )
         .transaction_hash(create_random_string())
         .build()
 }
@@ -249,7 +281,13 @@ pub fn create_test_fee_transfer(sender_id: String, receiver_id: String) -> FeeTr
         .receiver_id(receiver_id)
         .amount(create_random_u256wrapper())
         .block_number(create_random_u256wrapper())
-        .block_timestamp(create_random_number())
+        .created_at(
+            DateTime::<Utc>::from_timestamp(create_random_number() as i64, 0)
+                .ok_or(ModelError::QueryError(
+                    "Invalid block timestamp".to_string(),
+                ))
+                .unwrap(),
+        )
         .transaction_hash(create_random_string())
         .build()
 }
@@ -279,7 +317,13 @@ pub fn create_test_redemption(
         .term_id(term_id)
         .curve_id(U256Wrapper::from_str("1").unwrap())
         .block_number(create_random_u256wrapper())
-        .block_timestamp(create_random_number())
+        .created_at(
+            DateTime::<Utc>::from_timestamp(create_random_number() as i64, 0)
+                .ok_or(ModelError::QueryError(
+                    "Invalid block timestamp".to_string(),
+                ))
+                .unwrap(),
+        )
         .transaction_hash(create_random_string())
         .log_index(create_random_number())
         .build()
@@ -382,7 +426,13 @@ pub fn create_test_signal_with_atom_and_deposit(
         .account_id(account_id)
         .atom_id(atom_id)
         .block_number(create_random_u256wrapper())
-        .block_timestamp(create_random_number())
+        .created_at(
+            DateTime::<Utc>::from_timestamp(create_random_number() as i64, 0)
+                .ok_or(ModelError::QueryError(
+                    "Invalid block timestamp".to_string(),
+                ))
+                .unwrap(),
+        )
         .deposit_id(deposit_id)
         .transaction_hash(create_random_string())
         .term_id(create_random_u256wrapper())

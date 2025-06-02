@@ -1,4 +1,5 @@
 use crate::{error::ModelError, types::U256Wrapper};
+use chrono::{DateTime, Utc};
 use sqlx::PgPool;
 
 #[derive(sqlx::FromRow, Debug, Builder)]
@@ -13,7 +14,7 @@ pub struct Stats {
     pub total_fees: Option<U256Wrapper>,
     pub contract_balance: Option<U256Wrapper>,
     pub last_processed_block_number: Option<U256Wrapper>,
-    pub last_processed_block_timestamp: Option<i64>,
+    pub last_processed_block_timestamp: Option<DateTime<Utc>>,
 }
 
 impl Stats {
@@ -99,25 +100,28 @@ impl Stats {
 
     /// This is a method to update the current block number.
     pub async fn update_current_block_number_and_contract_balance(
-        block_number: i64,
+        block_number: U256Wrapper,
         contract_balance: U256Wrapper,
-        last_processed_block_timestamp: i64,
+        last_processed_block_timestamp: Option<DateTime<Utc>>,
         pool: &PgPool,
         schema: &str,
     ) -> Result<Self, ModelError> {
         let query = format!(
             r#"
             UPDATE {}.stats 
-            SET last_processed_block_number = $1, contract_balance = $2, last_processed_block_timestamp = $3
+            SET last_processed_block_number = $1, 
+                contract_balance = $2, 
+                last_processed_block_timestamp = $3
             WHERE id = 0
             RETURNING id, total_accounts, total_atoms, total_triples, total_positions, total_signals,
-                      total_fees, contract_balance, last_processed_block_number, last_processed_block_timestamp
+                      total_fees, contract_balance, last_processed_block_number, 
+                      last_processed_block_timestamp
             "#,
             schema,
         );
 
         sqlx::query_as::<_, Stats>(&query)
-            .bind(block_number)
+            .bind(block_number.to_big_decimal().ok())
             .bind(contract_balance.to_big_decimal().ok())
             .bind(last_processed_block_timestamp)
             .fetch_one(pool)

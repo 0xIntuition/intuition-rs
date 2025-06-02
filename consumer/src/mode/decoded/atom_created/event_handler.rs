@@ -2,8 +2,10 @@ use super::event::AtomCreatedEvent;
 use crate::{
     error::ConsumerError,
     mode::{
-        decoded::utils::EventHandler, metadata::get_supported_atom_metadata,
-        resolver::types::ResolveAtom, types::DecodedConsumerContext,
+        decoded::utils::{EventHandler, get_block_timestamp},
+        metadata::get_supported_atom_metadata,
+        resolver::types::ResolveAtom,
+        types::DecodedConsumerContext,
     },
     schemas::types::DecodedMessage,
 };
@@ -73,7 +75,7 @@ where
             .event_type(EventType::AtomCreated)
             .atom_id(self.0.vault_id()?)
             .block_number(U256Wrapper::try_from(event.block_number)?)
-            .block_timestamp(event.block_timestamp)
+            .created_at(get_block_timestamp(event.block_timestamp)?)
             .transaction_hash(event.transaction_hash.clone())
             .build()
             .upsert(

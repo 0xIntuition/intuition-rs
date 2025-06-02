@@ -4,6 +4,7 @@ use crate::{
     types::U256Wrapper,
 };
 use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 use sqlx::{Executor, PgPool, Postgres};
 
 /// This struct represents a deposit in the database. Note that `sender_id`,
@@ -23,7 +24,7 @@ pub struct Deposit {
     pub is_triple: bool,
     pub is_atom_wallet: bool,
     pub block_number: U256Wrapper,
-    pub block_timestamp: i64,
+    pub created_at: DateTime<Utc>,
     pub transaction_hash: String,
     pub curve_id: U256Wrapper,
     pub log_index: i64,
@@ -46,7 +47,7 @@ impl SimpleCrud<String> for Deposit {
             INSERT INTO {}.deposit (
                 id, sender_id, receiver_id, receiver_total_shares_in_vault,
                 sender_assets_after_total_fees, shares_for_receiver, entry_fee, term_id,
-                is_triple, is_atom_wallet, block_number, block_timestamp, transaction_hash, curve_id, log_index
+                is_triple, is_atom_wallet, block_number, created_at, transaction_hash, curve_id, log_index
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
             ON CONFLICT (id) DO UPDATE SET
                 sender_id = EXCLUDED.sender_id,
@@ -59,7 +60,7 @@ impl SimpleCrud<String> for Deposit {
                 is_triple = EXCLUDED.is_triple,
                 is_atom_wallet = EXCLUDED.is_atom_wallet,
                 block_number = EXCLUDED.block_number,
-                block_timestamp = EXCLUDED.block_timestamp,
+                created_at = EXCLUDED.created_at,
                 transaction_hash = EXCLUDED.transaction_hash,
                 curve_id = EXCLUDED.curve_id,
                 log_index = EXCLUDED.log_index
@@ -73,7 +74,7 @@ impl SimpleCrud<String> for Deposit {
                 is_triple,
                 is_atom_wallet,
                 block_number,
-                block_timestamp,
+                created_at,
                 transaction_hash,
                 curve_id,
                 log_index
@@ -93,7 +94,7 @@ impl SimpleCrud<String> for Deposit {
             .bind(self.is_triple)
             .bind(self.is_atom_wallet)
             .bind(self.block_number.to_big_decimal()?)
-            .bind(self.block_timestamp)
+            .bind(self.created_at)
             .bind(self.transaction_hash.clone())
             .bind(self.curve_id.to_big_decimal()?)
             .bind(self.log_index)
@@ -124,7 +125,7 @@ impl SimpleCrud<String> for Deposit {
                 is_triple,
                 is_atom_wallet,
                 block_number,
-                block_timestamp,
+                created_at,
                 transaction_hash,
                 curve_id,
                 log_index
