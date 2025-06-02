@@ -1,7 +1,7 @@
 services:
   database:
     container_name: database
-    image: timescale/timescaledb-ha:pg17.5-ts2.20.1-oss
+    image: timescale/timescaledb-ha:pg17.5-ts2.20.1
     environment:
       OPENAI_API_KEY: $OPENAI_API_KEY
       POSTGRES_USER: postgres
