@@ -91,7 +91,7 @@ spec:
                   path: /spec/template/spec/containers/0/env/-
                   value:
                     name: CONSUMER_METRICS_API_PORT
-                    value: '3008'
+                    value: '3002'
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
