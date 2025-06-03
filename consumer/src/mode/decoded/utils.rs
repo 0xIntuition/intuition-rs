@@ -153,6 +153,9 @@ pub async fn update_vault_from_share_price_changed_events(
                 .current_share_price(decoded_consumer_context, transaction_data.block_number)
                 .await?)
             / U256Wrapper::from(U256::from(10).pow(U256::from(18)));
+        vault.block_number = transaction_data.block_number;
+        vault.log_index = transaction_data.log_index;
+        vault.transaction_hash = transaction_data.transaction_hash.clone();
         vault
             .upsert(
                 &decoded_consumer_context.backend_schema,
