@@ -13,14 +13,6 @@ BEGIN
         ALTER TABLE position DROP CONSTRAINT position_vault_fkey;
     END IF;
     
-    IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'claim_vault_fkey') THEN
-        ALTER TABLE claim DROP CONSTRAINT claim_vault_fkey;
-    END IF;
-    
-    IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'claim_counter_vault_fkey') THEN
-        ALTER TABLE claim DROP CONSTRAINT claim_counter_vault_fkey;
-    END IF;
-    
     IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'atom_pkey') THEN
         ALTER TABLE atom DROP CONSTRAINT atom_pkey;
     END IF;
@@ -49,13 +41,6 @@ BEGIN
         ALTER TABLE position DROP COLUMN curve_id;
     END IF;
     
-    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'claim' AND column_name = 'curve_id') THEN
-        ALTER TABLE claim DROP COLUMN curve_id;
-    END IF;
-    
-    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'claim' AND column_name = 'counter_curve_id') THEN
-        ALTER TABLE claim DROP COLUMN counter_curve_id;
-    END IF;
 END $$;
 
 -- Rename term_id back to vault_id
@@ -71,14 +56,6 @@ BEGIN
     
     IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'position' AND column_name = 'term_id') THEN
         ALTER TABLE position RENAME COLUMN term_id TO vault_id;
-    END IF;
-    
-    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'claim' AND column_name = 'term_id') THEN
-        ALTER TABLE claim RENAME COLUMN term_id TO vault_id;
-    END IF;
-    
-    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'claim' AND column_name = 'counter_term_id') THEN
-        ALTER TABLE claim RENAME COLUMN counter_term_id TO counter_vault_id;
     END IF;
     
     IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'triple' AND column_name = 'term_id') THEN
@@ -155,10 +132,6 @@ ALTER TABLE redemption ADD CONSTRAINT redemption_vault_id_fkey
     FOREIGN KEY (vault_id) REFERENCES vault(id);
 ALTER TABLE position ADD CONSTRAINT position_vault_id_fkey 
     FOREIGN KEY (vault_id) REFERENCES vault(id);
-ALTER TABLE claim ADD CONSTRAINT claim_vault_id_fkey 
-    FOREIGN KEY (vault_id) REFERENCES vault(id);
-ALTER TABLE claim ADD CONSTRAINT claim_counter_vault_id_fkey 
-    FOREIGN KEY (counter_vault_id) REFERENCES vault(id);
 ALTER TABLE share_price_change ADD CONSTRAINT share_price_change_term_id_fkey
     FOREIGN KEY (term_id) REFERENCES vault(id);
 ALTER TABLE triple ADD CONSTRAINT triple_vault_id_fkey

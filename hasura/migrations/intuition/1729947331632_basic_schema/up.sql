@@ -194,7 +194,7 @@ CREATE TABLE event (
   transaction_hash TEXT NOT NULL
 );
 
--- position and claim id are using  the same idea, id is a concatenation of account_id and vault_id with a dash in between
+-- id is a concatenation of account_id and vault_id with a dash in between
 CREATE TABLE position (
   id TEXT PRIMARY KEY NOT NULL,
   account_id TEXT REFERENCES account(id) NOT NULL,
@@ -214,20 +214,6 @@ CREATE INDEX position_block_number_idx ON position(block_number);
 CREATE INDEX position_log_index_idx ON position(log_index);
 CREATE INDEX position_transaction_hash_idx ON position(transaction_hash);
 CREATE INDEX position_transaction_index_idx ON position(transaction_index);
-
--- id is a concatenation of account_id and vault_id with a dash in between
-CREATE TABLE claim (
-  id TEXT PRIMARY KEY NOT NULL,
-  account_id TEXT REFERENCES account(id) NOT NULL,
-  triple_id NUMERIC(78, 0) REFERENCES triple(id) NOT NULL,
-  subject_id NUMERIC(78, 0) REFERENCES atom(id) NOT NULL,
-  predicate_id NUMERIC(78, 0) REFERENCES atom(id) NOT NULL,
-  object_id NUMERIC(78, 0) REFERENCES atom(id) NOT NULL,
-  shares NUMERIC(78, 0) NOT NULL,
-  counter_shares NUMERIC(78, 0) NOT NULL,
-  vault_id NUMERIC(78, 0) REFERENCES vault(id) NOT NULL,
-  counter_vault_id NUMERIC(78, 0) REFERENCES vault(id) NOT NULL
-);
 
 -- id is a concatenation of predicate_id and object_id with a dash in between
 CREATE TABLE predicate_object (
@@ -320,12 +306,6 @@ CREATE INDEX idx_redemption_receiver ON redemption(receiver_id);
 CREATE INDEX idx_redemption_vault ON redemption(vault_id);
 CREATE INDEX idx_position_account ON position(account_id);
 CREATE INDEX idx_position_vault ON position(vault_id);
-CREATE INDEX idx_claim_account ON claim(account_id);
-CREATE INDEX idx_claim_subject ON claim(subject_id);
-CREATE INDEX idx_claim_predicate ON claim(predicate_id);
-CREATE INDEX idx_claim_object ON claim(object_id);
-CREATE INDEX idx_claim_vault ON claim(vault_id);
-CREATE INDEX idx_claim_triple ON claim(triple_id);
 CREATE INDEX idx_predicate_object_predicate ON predicate_object(predicate_id);
 CREATE INDEX idx_predicate_object_object ON predicate_object(object_id);
 CREATE INDEX idx_signal_account ON signal(account_id);

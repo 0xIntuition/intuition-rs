@@ -2,9 +2,6 @@
 ALTER TABLE term ADD COLUMN total_assets NUMERIC(78, 0);
 ALTER TABLE term ADD COLUMN total_market_cap NUMERIC(78, 0);
 
--- Add position_id to claim table
-ALTER TABLE claim ADD COLUMN position_id TEXT;
-
 -- Add term_id and curve_id to signal table
 ALTER TABLE signal ADD COLUMN term_id NUMERIC(78, 0);
 ALTER TABLE signal ADD COLUMN curve_id NUMERIC(78, 0);
@@ -53,33 +50,6 @@ ALTER TABLE signal ADD CONSTRAINT signal_term_fkey
     FOREIGN KEY (term_id) REFERENCES term(id);
 ALTER TABLE signal ADD CONSTRAINT signal_vault_fkey 
     FOREIGN KEY (term_id, curve_id) REFERENCES vault(term_id, curve_id);
-
--- Migrate data to set position_id in claim table
-UPDATE claim c
-SET position_id = p.id
-FROM position p
-WHERE c.account_id = p.account_id 
-AND c.term_id = p.term_id 
-AND c.curve_id = p.curve_id;
-
--- Make position_id NOT NULL after migration
-ALTER TABLE claim ALTER COLUMN position_id SET NOT NULL;
-
--- Add foreign key constraint for position_id
-ALTER TABLE claim ADD CONSTRAINT claim_position_fkey 
-    FOREIGN KEY (position_id) REFERENCES position(id);
-
--- Remove unnecessary columns from claim table
-ALTER TABLE claim DROP COLUMN triple_id;
-ALTER TABLE claim DROP COLUMN subject_id;
-ALTER TABLE claim DROP COLUMN predicate_id;
-ALTER TABLE claim DROP COLUMN object_id;
-ALTER TABLE claim DROP COLUMN shares;
-ALTER TABLE claim DROP COLUMN counter_shares;
-ALTER TABLE claim DROP COLUMN term_id;
-ALTER TABLE claim DROP COLUMN curve_id;
-ALTER TABLE claim DROP COLUMN counter_term_id;
-ALTER TABLE claim DROP COLUMN counter_curve_id;
 
 -- Verify term relations
 DO $$ 

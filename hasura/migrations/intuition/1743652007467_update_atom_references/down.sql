@@ -6,9 +6,6 @@ ALTER TABLE account DROP CONSTRAINT IF EXISTS fk_account_atom;
 ALTER TABLE triple DROP CONSTRAINT IF EXISTS triple_subject_id_fkey;
 ALTER TABLE triple DROP CONSTRAINT IF EXISTS triple_predicate_id_fkey;
 ALTER TABLE triple DROP CONSTRAINT IF EXISTS triple_object_id_fkey;
-ALTER TABLE claim DROP CONSTRAINT IF EXISTS claim_subject_id_fkey;
-ALTER TABLE claim DROP CONSTRAINT IF EXISTS claim_predicate_id_fkey;
-ALTER TABLE claim DROP CONSTRAINT IF EXISTS claim_object_id_fkey;
 ALTER TABLE predicate_object DROP CONSTRAINT IF EXISTS predicate_object_predicate_id_fkey;
 ALTER TABLE predicate_object DROP CONSTRAINT IF EXISTS predicate_object_object_id_fkey;
 ALTER TABLE atom_value DROP CONSTRAINT IF EXISTS atom_value_atom_id_fkey;
@@ -28,15 +25,6 @@ ALTER TABLE triple ADD CONSTRAINT triple_predicate_id_fkey
     FOREIGN KEY (predicate_id) REFERENCES atom(id);
 
 ALTER TABLE triple ADD CONSTRAINT triple_object_id_fkey 
-    FOREIGN KEY (object_id) REFERENCES atom(id);
-
-ALTER TABLE claim ADD CONSTRAINT claim_subject_id_fkey 
-    FOREIGN KEY (subject_id) REFERENCES atom(id);
-
-ALTER TABLE claim ADD CONSTRAINT claim_predicate_id_fkey 
-    FOREIGN KEY (predicate_id) REFERENCES atom(id);
-
-ALTER TABLE claim ADD CONSTRAINT claim_object_id_fkey 
     FOREIGN KEY (object_id) REFERENCES atom(id);
 
 ALTER TABLE predicate_object ADD CONSTRAINT predicate_object_predicate_id_fkey 
