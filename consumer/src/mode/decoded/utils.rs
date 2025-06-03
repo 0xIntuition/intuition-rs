@@ -143,12 +143,14 @@ pub async fn update_vault_from_share_price_changed_events(
 
     if let Some(mut vault) = vault {
         debug!("Updating vault share price and total shares");
+        let total_shares = share_price_changed
+            .total_shares(decoded_consumer_context, transaction_data.block_number)
+            .await?;
         // Update the share price of the vault
         vault.current_share_price = share_price_changed.new_share_price()?;
         vault.total_assets = share_price_changed.total_assets()?;
-        vault.market_cap = (share_price_changed
-            .total_shares(decoded_consumer_context, transaction_data.block_number)
-            .await?
+        vault.total_shares = total_shares.clone();
+        vault.market_cap = (total_shares
             * share_price_changed
                 .current_share_price(decoded_consumer_context, transaction_data.block_number)
                 .await?)
