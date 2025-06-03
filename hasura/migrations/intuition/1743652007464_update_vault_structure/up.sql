@@ -13,14 +13,6 @@ BEGIN
         ALTER TABLE position DROP CONSTRAINT position_vault_id_fkey CASCADE;
     END IF;
     
-    IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'claim_vault_id_fkey') THEN
-        ALTER TABLE claim DROP CONSTRAINT claim_vault_id_fkey CASCADE;
-    END IF;
-    
-    IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'claim_counter_vault_id_fkey') THEN
-        ALTER TABLE claim DROP CONSTRAINT claim_counter_vault_id_fkey CASCADE;
-    END IF;
-    
     IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'share_price_change_term_id_fkey') THEN
         ALTER TABLE share_price_change DROP CONSTRAINT share_price_change_term_id_fkey CASCADE;
     END IF;
@@ -107,8 +99,6 @@ CREATE INDEX idx_curve_id ON vault(curve_id);
 ALTER TABLE deposit RENAME COLUMN vault_id TO term_id;
 ALTER TABLE redemption RENAME COLUMN vault_id TO term_id;
 ALTER TABLE position RENAME COLUMN vault_id TO term_id;
-ALTER TABLE claim RENAME COLUMN vault_id TO term_id;
-ALTER TABLE claim RENAME COLUMN counter_vault_id TO counter_term_id;
 ALTER TABLE triple RENAME COLUMN vault_id TO term_id;
 ALTER TABLE triple RENAME COLUMN counter_vault_id TO counter_term_id;
 ALTER TABLE atom RENAME COLUMN vault_id TO term_id;
@@ -127,21 +117,16 @@ ALTER TABLE triple ADD PRIMARY KEY (term_id);
 ALTER TABLE deposit ADD COLUMN curve_id NUMERIC(78, 0);
 ALTER TABLE redemption ADD COLUMN curve_id NUMERIC(78, 0);
 ALTER TABLE position ADD COLUMN curve_id NUMERIC(78, 0);
-ALTER TABLE claim ADD COLUMN curve_id NUMERIC(78, 0);
-ALTER TABLE claim ADD COLUMN counter_curve_id NUMERIC(78, 0);
 
 -- Update the new columns with curve_id values
 UPDATE deposit SET curve_id = 1;
 UPDATE redemption SET curve_id = 1;
 UPDATE position SET curve_id = 1;
-UPDATE claim SET curve_id = 1, counter_curve_id = 1;
 
 -- Make the new columns NOT NULL
 ALTER TABLE deposit ALTER COLUMN curve_id SET NOT NULL;
 ALTER TABLE redemption ALTER COLUMN curve_id SET NOT NULL;
 ALTER TABLE position ALTER COLUMN curve_id SET NOT NULL;
-ALTER TABLE claim ALTER COLUMN curve_id SET NOT NULL;
-ALTER TABLE claim ALTER COLUMN counter_curve_id SET NOT NULL;
 
 -- Add foreign key constraints to term table
 ALTER TABLE vault ADD CONSTRAINT vault_term_fkey 
@@ -156,10 +141,6 @@ ALTER TABLE redemption ADD CONSTRAINT redemption_term_fkey
     FOREIGN KEY (term_id) REFERENCES term(id);
 ALTER TABLE position ADD CONSTRAINT position_term_fkey 
     FOREIGN KEY (term_id) REFERENCES term(id);
-ALTER TABLE claim ADD CONSTRAINT claim_term_fkey 
-    FOREIGN KEY (term_id) REFERENCES term(id);
-ALTER TABLE claim ADD CONSTRAINT claim_counter_term_fkey 
-    FOREIGN KEY (counter_term_id) REFERENCES term(id);
 
 -- Add new foreign key constraints for vault references
 ALTER TABLE deposit ADD CONSTRAINT deposit_vault_fkey 
@@ -168,10 +149,6 @@ ALTER TABLE redemption ADD CONSTRAINT redemption_vault_fkey
     FOREIGN KEY (term_id, curve_id) REFERENCES vault(term_id, curve_id);
 ALTER TABLE position ADD CONSTRAINT position_vault_fkey 
     FOREIGN KEY (term_id, curve_id) REFERENCES vault(term_id, curve_id);
-ALTER TABLE claim ADD CONSTRAINT claim_vault_fkey 
-    FOREIGN KEY (term_id, curve_id) REFERENCES vault(term_id, curve_id);
-ALTER TABLE claim ADD CONSTRAINT claim_counter_vault_fkey 
-    FOREIGN KEY (counter_term_id, counter_curve_id) REFERENCES vault(term_id, curve_id);
 
 -- Create a temporary table to store position counts
 CREATE TEMPORARY TABLE temp_position_counts AS
