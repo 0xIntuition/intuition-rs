@@ -23,6 +23,8 @@ type Documents = {
     "query SearchTerm($query: String!) {\n        search_term(args: {query: $query}, limit: 2) {\n          id\n          atom {\n            label\n          }\n        }\n      }\n      ": typeof types.SearchTermDocument,
     "query SearchFromFollowing($address: String!, $query: String!) {\n        search_term_from_following(args: {address: $address, query: $query} limit: 2) {\n          id\n          atom {\n            label\n          }\n        }\n      }\n      ": typeof types.SearchFromFollowingDocument,
     "\n        query GetTransactionEvents($hash: String!) {\n          events(where: { transaction_hash: { _eq: $hash } }) {\n            transaction_hash\n          }\n        }\n      ": typeof types.GetTransactionEventsDocument,
+    "\n      query atom($id: numeric!) {\n        atom(term_id: $id) {\n          wallet_id\n        }\n      }\n    ": typeof types.AtomDocument,
+    "\n      query positions2($address: String!, $term_id: numeric!, $curve_id: numeric!) {\n        positions(where: {account_id: {_eq: $address}, curve_id: {_eq: $curve_id}, term_id: {_eq: $term_id}}) {\n          id\n          curve_id\n          term_id\n          shares\n        }\n      }\n    ": typeof types.Positions2Document,
 };
 const documents: Documents = {
     "query Term($termId: numeric!) {\n        atom(term_id: $termId) {\n          label\n        }\n      }": types.TermDocument,
@@ -33,6 +35,8 @@ const documents: Documents = {
     "query SearchTerm($query: String!) {\n        search_term(args: {query: $query}, limit: 2) {\n          id\n          atom {\n            label\n          }\n        }\n      }\n      ": types.SearchTermDocument,
     "query SearchFromFollowing($address: String!, $query: String!) {\n        search_term_from_following(args: {address: $address, query: $query} limit: 2) {\n          id\n          atom {\n            label\n          }\n        }\n      }\n      ": types.SearchFromFollowingDocument,
     "\n        query GetTransactionEvents($hash: String!) {\n          events(where: { transaction_hash: { _eq: $hash } }) {\n            transaction_hash\n          }\n        }\n      ": types.GetTransactionEventsDocument,
+    "\n      query atom($id: numeric!) {\n        atom(term_id: $id) {\n          wallet_id\n        }\n      }\n    ": types.AtomDocument,
+    "\n      query positions2($address: String!, $term_id: numeric!, $curve_id: numeric!) {\n        positions(where: {account_id: {_eq: $address}, curve_id: {_eq: $curve_id}, term_id: {_eq: $term_id}}) {\n          id\n          curve_id\n          term_id\n          shares\n        }\n      }\n    ": types.Positions2Document,
 };
 
 /**
@@ -67,6 +71,14 @@ export function graphql(source: "query SearchFromFollowing($address: String!, $q
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
 export function graphql(source: "\n        query GetTransactionEvents($hash: String!) {\n          events(where: { transaction_hash: { _eq: $hash } }) {\n            transaction_hash\n          }\n        }\n      "): typeof import('./graphql').GetTransactionEventsDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n      query atom($id: numeric!) {\n        atom(term_id: $id) {\n          wallet_id\n        }\n      }\n    "): typeof import('./graphql').AtomDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n      query positions2($address: String!, $term_id: numeric!, $curve_id: numeric!) {\n        positions(where: {account_id: {_eq: $address}, curve_id: {_eq: $curve_id}, term_id: {_eq: $term_id}}) {\n          id\n          curve_id\n          term_id\n          shares\n        }\n      }\n    "): typeof import('./graphql').Positions2Document;
 
 
 export function graphql(source: string) {
