@@ -11,8 +11,8 @@ data:
     scrape_configs:
       - job_name: 'prometheus'
         static_configs:
-          - targets: ['decoded-consumer.prod-base-sepolia-v-1-5-vector.svc.cluster.local:3002']
-          - targets: ['decoded-consumer.prod-base-mainnet-v-1-5-vector.svc.cluster.local:3002']
+          - targets: ['decoded-consumer.prod-base-sepolia-v-1-5-vector.svc.cluster.local:3008']
+          - targets: ['decoded-consumer.prod-base-mainnet-v-1-5-vector.svc.cluster.local:3008']
       - job_name: 'decoded-consumer'
         kubernetes_sd_configs:
           - role: service
