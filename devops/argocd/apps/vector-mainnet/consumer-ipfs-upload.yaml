@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: consumer-decoded
+  name: consumer-ipfs-upload-vector
   namespace: argocd
 spec:
   goTemplate: true
@@ -13,35 +13,26 @@ spec:
           - cluster: prod-eks
             server: 'https://kubernetes.default.svc'
             revision: next
-            env: prod-base-sepolia-v-1-5-vector-upgradable
-            namespace: prod-base-sepolia-v-1-5-vector-upgradable
-            rpcURL: 'http://prod-rpc-proxy.default.svc.cluster.local:3008/84532/proxy'
+            env: prod-base-mainnet-v-1-5-vector-final
+            namespace: prod-base-mainnet-v-1-5-vector
+            imageGuardURL: 'http://prod-base-api.default.svc.cluster.local:3000'
+
   template:
     metadata:
-      name: '{{.cluster}}-consumer-decoded-{{.namespace}}'
+      name: '{{.cluster}}-consumer-ipfs-upload-{{.namespace}}'
       annotations:
         argocd.argoproj.io/manifest-generate-paths: '.;/devops/argocd'
     spec:
       project: default
       source:
         repoURL: https://github.com/0xintuition/intuition-rs.git
-        path: 'devops/aws-rolling-releases/consumers/overlays/{{.env}}/decoded'
+        path: 'devops/aws-rolling-releases/consumers/overlays/{{.env}}/ipfs-upload'
         targetRevision: '{{.revision}}'
         kustomize:
           patches:
             - target:
-                kind: Queue
-                name: resolver-queue
-              patch: |-
-                - op: replace
-                  path: /metadata/name
-                  value: '{{.namespace}}-resolver'
-                - op: replace
-                  path: /spec/forProvider/name
-                  value: '{{.cluster}}-{{.namespace}}-resolver'
-            - target:
                 kind: Deployment
-                name: decoded-consumer
+                name: ipfs-upload-consumer
               patch: |-
                 - op: replace
                   path: /spec/template/spec/serviceAccountName
@@ -55,38 +46,39 @@ spec:
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
+                    name: IPFS_UPLOAD_QUEUE_URL
+                    value: 'https://sqs.us-west-2.amazonaws.com/064662847354/{{.cluster}}-{{.namespace}}-ipfs-upload'
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: IMAGE_GUARD_URL
+                    value: '{{.imageGuardURL}}' # probably better to have all of that dynamically created
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: IPFS_GATEWAY_URL
+                    value: 'http://ipfs.default.svc.cluster.local:8080' # probably better to have all of that dynamically created
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
                     name: BACKEND_SCHEMA
                     value: 'public' # not sure if needs to be templated
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
                     name: CONSUMER_TYPE
-                    value: 'sqs_hibrid'
+                    value: 'sqs'
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
-                    name: INTUITION_CONTRACT_ADDRESS
-                    value: '0x63B90A9c109fF8f137916026876171ffeEdEe714'
+                    name: IMAGE_GUARD_URL
+                    value: '{{.imageGuardURL}}' # probably better to have all of that dynamically created
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
-                    name: CONSUMER_METRICS_API_PORT
-                    value: '3008'
-                - op: add
-                  path: /spec/template/spec/containers/0/env/-
-                  value:
-                    name: RESOLVER_QUEUE_URL
-                    value: 'https://sqs.us-west-2.amazonaws.com/064662847354/{{.cluster}}-{{.namespace}}-resolver'
-                - op: add
-                  path: /spec/template/spec/containers/0/env/-
-                  value:
-                    name: DECODED_LOGS_QUEUE_URL
-                    value: 'https://sqs.us-west-2.amazonaws.com/064662847354/{{.cluster}}-{{.namespace}}-decoded-logs.fifo'
-                - op: add
-                  path: /spec/template/spec/containers/0/env/-
-                  value:
-                    name: RPC_URL_BASE
-                    value: '{{.rpcURL}}' # probably better to have all of that dynamically created
+                    name: IPFS_UPLOAD_URL
+                    value: 'http://ipfs.default.svc.cluster.local:5001' # probably better to have all of that dynamically created
+
 
       destination:
         server: '{{.server}}'

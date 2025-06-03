@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: graphql-service
+  name: graphql-service-vector
   namespace: argocd
 spec:
   goTemplate: true
@@ -13,8 +13,8 @@ spec:
           - cluster: prod-eks
             server: 'https://kubernetes.default.svc'
             revision: next
-            env: prod-base-sepolia-v-1-5-vector-upgradable
-            namespace: prod-base-sepolia-v-1-5-vector-upgradable
+            env: prod-base-mainnet-v1-5-final
+            namespace: prod-base-mainnet-v-1-5-vector
   template:
     metadata:
       name: '{{.cluster}}-graphql-service-{{.namespace}}'
