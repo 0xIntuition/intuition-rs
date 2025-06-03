@@ -179,7 +179,7 @@ export async function wait(hash: string | null) {
   const promise = new Promise(async (resolve, reject) => {
     let count = 0
     while (true) {
-      console.log(`Waiting for transaction ${hash}...`)
+      console.log(`Waiting for transaction http://localhost/tx/${hash}`)
       console.log(`Count: ${count}`)
       const data = await execute(graphql(`
         query GetTransactionEvents($hash: String!) {
