@@ -146,15 +146,15 @@ pub async fn update_vault_from_share_price_changed_events(
         let total_shares = share_price_changed
             .total_shares(decoded_consumer_context, transaction_data.block_number)
             .await?;
+        let current_share_price = share_price_changed
+            .current_share_price(decoded_consumer_context, transaction_data.block_number)
+            .await?;
         // Update the share price of the vault
         vault.current_share_price = share_price_changed.new_share_price()?;
         vault.total_assets = share_price_changed.total_assets()?;
         vault.total_shares = total_shares.clone();
-        vault.market_cap = (total_shares
-            * share_price_changed
-                .current_share_price(decoded_consumer_context, transaction_data.block_number)
-                .await?)
-            / U256Wrapper::from(U256::from(10).pow(U256::from(18)));
+        vault.market_cap =
+            VaultOrigin::compute_market_cap(total_shares.clone(), current_share_price.clone());
         vault.block_number = transaction_data.block_number;
         vault.log_index = transaction_data.log_index;
         vault.transaction_hash = transaction_data.transaction_hash.clone();

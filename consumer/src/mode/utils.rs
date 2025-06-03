@@ -78,11 +78,7 @@ impl VaultOrigin {
         Ok(new_vault)
     }
     /// This function computes the market cap of a vault
-    fn compute_market_cap(
-        &self,
-        total_shares: U256Wrapper,
-        share_price: U256Wrapper,
-    ) -> U256Wrapper {
+    pub fn compute_market_cap(total_shares: U256Wrapper, share_price: U256Wrapper) -> U256Wrapper {
         (total_shares * share_price) / U256Wrapper::from(U256::from(10).pow(U256::from(18)))
     }
 
@@ -102,7 +98,7 @@ impl VaultOrigin {
         let position_count = event.position_count(context).await?;
         let created_at = get_block_timestamp(tx.block_timestamp)?;
 
-        let market_cap = self.compute_market_cap(total_shares.clone(), share_price.clone());
+        let market_cap = Self::compute_market_cap(total_shares.clone(), share_price.clone());
 
         Ok(Vault::builder()
             .term_id(term_id)
