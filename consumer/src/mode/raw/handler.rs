@@ -9,7 +9,7 @@ use crate::{
     },
     traits::IntoRawMessage,
 };
-use tracing::{debug, info, warn};
+use tracing::{debug, warn};
 
 impl ConsumerMode {
     /// This function returns a raw message based on the indexer source
@@ -62,7 +62,7 @@ impl ConsumerMode {
                             .client
                             .send_message(serde_json::to_string(&message)?, Some("raw".to_string()))
                             .await?;
-                        info!("Sent a decoded message to the queue!");
+                        debug!("Sent a decoded message to the queue!");
                     }
                     Err(e) => {
                         warn!("Failed to decode raw log: {e}");

@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::{
     config::ContractVersion,
     consumer_type::sqs_hibrid::SqsHibrid,
@@ -11,8 +9,10 @@ use crate::{
 use models::{failed_log::FailedLog, raw_logs::RawLog};
 use serde::Deserialize;
 use sqlx::postgres::{PgListener, PgNotification};
+use std::sync::Arc;
 use tokio::{
     sync::{Semaphore, watch},
+    task::JoinSet,
     time::{Duration, sleep},
 };
 use tracing::{error, info, warn};
@@ -39,36 +39,71 @@ pub struct NotificationPayload {
 }
 
 pub const MAX_RETRIES: u32 = 5;
+pub const MAX_BACKOFF_SECS: u64 = 30;
 
 impl SqsHibrid {
-    /// This function starts polling the database for raw logs and sends them to
-    /// the SQS queue.
+    /// Entry point for event polling lifecycle.
+    /// Connects to the listener, processes historical records, and enters the main loop.
     pub async fn start_pooling_events(
         self: Arc<Self>,
         mode: ConsumerMode,
         semaphore: Arc<Semaphore>,
-        mut shutdown_rx: watch::Receiver<bool>,
+        shutdown_rx: watch::Receiver<bool>,
     ) -> Result<(), ConsumerError> {
         info!("Starting polling events");
 
-        // Start listening BEFORE processing historical records
-        let mut listener = PgListener::connect(&self.indexer_database_url).await?;
-        listener.listen(&self.app_config.raw_logs_channel).await?;
+        let listener = Self::setup_listener(
+            &self.indexer_database_url,
+            &self.app_config.raw_logs_channel,
+        )
+        .await?;
+        self.process_historical_and_listen(listener, mode, semaphore, shutdown_rx)
+            .await
+    }
 
+    /// Initializes and subscribes the PostgreSQL listener to the target channel.
+    async fn setup_listener(db_url: &str, channel: &str) -> Result<PgListener, ConsumerError> {
+        let mut listener = PgListener::connect(db_url).await?;
+        listener.listen(channel).await?;
+        Ok(listener)
+    }
+
+    /// Handles the full event lifecycle: historical backfill and live notification listening.
+    async fn process_historical_and_listen(
+        self: Arc<Self>,
+        listener: PgListener,
+        mode: ConsumerMode,
+        semaphore: Arc<Semaphore>,
+        shutdown_rx: watch::Receiver<bool>,
+    ) -> Result<(), ConsumerError> {
         info!("Start pulling historical records");
         self.process_historical_records(semaphore.clone(), shutdown_rx.clone(), &mode)
             .await?;
-
         info!("Processed historical records");
 
-        // Process notifications continuously
+        self.handle_notification_loop(listener, mode, semaphore, shutdown_rx)
+            .await
+    }
+
+    /// Main event loop: waits for shutdown signal or new notifications.
+    /// Spawns handlers for notifications and handles graceful termination.
+    async fn handle_notification_loop(
+        self: Arc<Self>,
+        mut listener: PgListener,
+        mode: ConsumerMode,
+        semaphore: Arc<Semaphore>,
+        mut shutdown_rx: watch::Receiver<bool>,
+    ) -> Result<(), ConsumerError> {
+        let mut join_set = JoinSet::new();
+
         loop {
             tokio::select! {
                 biased;
 
                 _ = shutdown_rx.changed() => {
                     if *shutdown_rx.borrow() {
-                        info!("Shutdown signal received. Exiting polling loop.");
+                        warn!("Shutdown signal received. Cancelling tasks...");
+                        join_set.shutdown().await;
                         return Ok(());
                     }
                 }
@@ -76,45 +111,95 @@ impl SqsHibrid {
                 notification = listener.recv() => {
                     match notification {
                         Ok(notification) => {
-                            let permit = match semaphore.clone().acquire_owned().await {
-                                Ok(p) => p,
-                                Err(_) => {
-                                    warn!("Semaphore closed — exiting spawn");
-                                    return Ok(());
-                                }
-                            };
-
                             let this = self.clone();
                             let mode = mode.clone();
-                            let contract_version = mode.contract_version().ok_or(ConsumerError::ContractVersionNotFound)?;
+                            let semaphore = semaphore.clone();
 
-                            tokio::spawn(async move {
-                                let _permit = permit;
-                                let mut attempts = 0;
-                                loop {
-                                    match this.process_notification(&notification, &mode, &contract_version).await {
-                                        Ok(_) => break,
-                                        Err(e) if attempts < MAX_RETRIES => {
-                                            warn!("Attempt {} failed: {e}. Retrying...", attempts + 1);
-                                            attempts += 1;
-                                            sleep(Duration::from_secs(2_u64.pow(attempts))).await;
-                                        }
-                                        Err(e) => {
-                                            error!("Notification failed after retries: {e}");
-                                            if let Err(store_err) = this.store_failed_notification(&notification).await {
-                                                error!("Failed to store failed notification: {store_err}");
-                                            }
-                                            break;
-                                        }
-                                    }
+                            join_set.spawn(async move {
+                                if let Err(e) = this.spawn_notification_processor(notification, mode, semaphore).await {
+                                    error!("Failed to spawn notification processor: {e}");
                                 }
                             });
                         }
                         Err(e) => {
                             error!("Error receiving notification: {:?}", e);
-                            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                            sleep(Duration::from_secs(1)).await;
                         }
                     }
+                }
+            }
+        }
+    }
+
+    /// Attempts to acquire a semaphore permit and spawn a task to process a notification.
+    async fn spawn_notification_processor(
+        self: Arc<Self>,
+        notification: PgNotification,
+        mode: ConsumerMode,
+        semaphore: Arc<Semaphore>,
+    ) -> Result<(), ConsumerError> {
+        let contract_version = mode
+            .contract_version()
+            .ok_or(ConsumerError::ContractVersionNotFound)?;
+        let permit = semaphore.acquire_owned().await.map_err(|_| {
+            warn!("Semaphore closed — exiting spawn");
+            ConsumerError::Shutdown
+        })?;
+
+        let this = self.clone();
+        tokio::spawn(async move {
+            let _permit = permit;
+            this.process_notification_with_retry(notification, &mode, &contract_version)
+                .await;
+        });
+
+        Ok(())
+    }
+
+    /// Processes a single notification with retry logic and exponential backoff.
+    /// Logs and stores failed notifications if all attempts fail.
+    async fn process_notification_with_retry(
+        &self,
+        notification: PgNotification,
+        mode: &ConsumerMode,
+        contract_version: &ContractVersion,
+    ) {
+        let mut attempts = 0;
+
+        loop {
+            match self
+                .process_notification(&notification, mode, contract_version)
+                .await
+            {
+                Ok(_) => break,
+                Err(e) if attempts < MAX_RETRIES => {
+                    let backoff = Duration::from_secs((2_u64.pow(attempts)).min(MAX_BACKOFF_SECS));
+                    warn!(
+                        "Attempt {} failed: {}. Retrying in {:?}...",
+                        attempts + 1,
+                        e,
+                        backoff
+                    );
+                    sleep(backoff).await;
+                    attempts += 1;
+                }
+                Err(e) => {
+                    match &e {
+                        ConsumerError::LogDecodingError(msg) => {
+                            warn!("Failed to decode log: {}", msg);
+                        }
+                        _ => {
+                            error!(
+                                "Notification failed after retries: {e}, storing in the failed logs table"
+                            );
+                            if let Err(store_err) =
+                                self.store_failed_notification(&notification).await
+                            {
+                                error!("Failed to store failed notification: {store_err}");
+                            }
+                        }
+                    }
+                    break;
                 }
             }
         }

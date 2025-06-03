@@ -8,10 +8,8 @@ mod tests {
             create_test_vault_with_atom, create_test_vault_with_triple, setup_test_db, TEST_SCHEMA,
         },
         traits::SimpleCrud,
-        types::U256Wrapper,
         vault::Vault,
     };
-    use std::str::FromStr;
 
     #[sqlx::test]
     async fn test_vault_find_by_id() -> Result<(), ModelError> {
@@ -32,7 +30,6 @@ mod tests {
         let found_vault = found_vault.unwrap();
         assert_eq!(found_vault.term_id, stored_vault.term_id);
         assert_eq!(found_vault.curve_id, stored_vault.curve_id);
-        assert_eq!(found_vault.total_shares, stored_vault.total_shares);
         assert_eq!(
             found_vault.current_share_price,
             stored_vault.current_share_price
@@ -58,7 +55,6 @@ mod tests {
         // Check if the inserted vault matches the original
         assert_eq!(inserted_vault.term_id, vault.term_id);
         assert_eq!(inserted_vault.curve_id, vault.curve_id);
-        assert_eq!(inserted_vault.total_shares, vault.total_shares);
         assert_eq!(
             inserted_vault.current_share_price,
             vault.current_share_price
@@ -66,7 +62,6 @@ mod tests {
         assert_eq!(inserted_vault.position_count, vault.position_count);
 
         // Update the vault
-        vault.total_shares = U256Wrapper::from_str("2000").unwrap();
         vault.position_count = 10;
 
         // Upsert the updated vault
@@ -75,7 +70,6 @@ mod tests {
         // Check if the updated vault matches the changes
         assert_eq!(updated_vault.term_id, vault.term_id);
         assert_eq!(updated_vault.curve_id, vault.curve_id);
-        assert_eq!(updated_vault.total_shares, vault.total_shares);
         assert_eq!(updated_vault.current_share_price, vault.current_share_price);
         assert_eq!(updated_vault.position_count, vault.position_count);
 
@@ -102,7 +96,6 @@ mod tests {
         // Check if the inserted vault matches the original
         assert_eq!(newly_inserted_vault.term_id, new_vault.term_id);
         assert_eq!(newly_inserted_vault.curve_id, new_vault.curve_id);
-        assert_eq!(newly_inserted_vault.total_shares, new_vault.total_shares);
         assert_eq!(
             newly_inserted_vault.current_share_price,
             new_vault.current_share_price
@@ -113,7 +106,6 @@ mod tests {
         );
 
         // Update the vault
-        new_vault.total_shares = U256Wrapper::from_str("2000").unwrap();
         new_vault.position_count = 10;
 
         // Upsert the updated vault
@@ -122,7 +114,6 @@ mod tests {
         // Check if the updated vault matches the changes
         assert_eq!(updated_vault.term_id, new_vault.term_id);
         assert_eq!(updated_vault.curve_id, new_vault.curve_id);
-        assert_eq!(updated_vault.total_shares, new_vault.total_shares);
         assert_eq!(
             updated_vault.current_share_price,
             new_vault.current_share_price

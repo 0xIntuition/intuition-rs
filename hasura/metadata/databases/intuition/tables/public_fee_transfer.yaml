@@ -27,7 +27,7 @@ select_permissions:
         - transaction_hash
         - amount
         - block_number
-        - block_timestamp
+        - created_at
         - id
         - receiver_id
         - sender_id

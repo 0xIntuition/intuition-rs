@@ -5,11 +5,14 @@ use models::{
     traits::SimpleCrud,
     types::U256Wrapper,
 };
-use tracing::info;
+use tracing::debug;
 
 use crate::{
-    EthMultiVault::FeesTransferred, EthMultiVaultV1_5::FeesTransferred as FeesTransferredV1_5,
-    error::ConsumerError, mode::types::DecodedConsumerContext, schemas::types::DecodedMessage,
+    EthMultiVault::FeesTransferred,
+    EthMultiVaultV1_5::FeesTransferred as FeesTransferredV1_5,
+    error::ConsumerError,
+    mode::{decoded::utils::get_block_timestamp, types::DecodedConsumerContext},
+    schemas::types::DecodedMessage,
 };
 
 /// This trait represents a fee transferred event
@@ -35,7 +38,7 @@ pub trait FeeTransferredEvent {
         )
         .await?
         {
-            info!("Fee transfer already exists: {fee_transfer:#?}");
+            debug!("Fee transfer already exists: {fee_transfer:#?}");
             return Ok(fee_transfer);
         }
         FeeTransfer::builder()
@@ -44,7 +47,7 @@ pub trait FeeTransferredEvent {
             .receiver_id(protocol_multisig_account.id.clone())
             .amount(self.amount()?)
             .block_number(U256Wrapper::try_from(event.block_number)?)
-            .block_timestamp(event.block_timestamp)
+            .created_at(get_block_timestamp(event.block_timestamp)?)
             .transaction_hash(event.transaction_hash.clone())
             .build()
             .upsert(

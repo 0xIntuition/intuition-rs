@@ -48,6 +48,7 @@ pub trait SharePriceEvent: VaultManager {
     fn total_assets(&self) -> Result<U256Wrapper, ConsumerError> {
         Ok(0.try_into()?)
     }
+
     #[allow(dead_code)]
     fn market_cap(&self) -> Result<U256Wrapper, ConsumerError> {
         Ok(0.try_into()?)
@@ -61,12 +62,12 @@ pub trait VaultManager {
     async fn total_shares(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
-        block_number: Option<i64>,
+        block_number: i64,
     ) -> Result<U256Wrapper, ConsumerError>;
     async fn current_share_price(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
-        block_number: Option<i64>,
+        block_number: i64,
     ) -> Result<U256Wrapper, ConsumerError>;
     async fn position_count(
         &self,

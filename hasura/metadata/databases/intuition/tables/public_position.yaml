@@ -39,6 +39,8 @@ select_permissions:
         - term_id
         - account_id
         - id
+        - created_at
+        - updated_at
       filter: {}
       limit: 100
       allow_aggregations: true

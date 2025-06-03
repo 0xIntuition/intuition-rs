@@ -1,5 +1,6 @@
 use crate::{
     error::ConsumerError,
+    mode::types::DecodedConsumerContext,
     schemas::types::DecodedMessage,
     traits::{SharePriceEvent, VaultManager},
 };
@@ -7,7 +8,6 @@ use models::{
     share_price_change::{SharePriceChange, SharePriceChangeInternal},
     types::U256Wrapper,
 };
-use sqlx::{Postgres, Transaction};
 use tracing::info;
 
 /// This trait represents a share price changed event
@@ -25,9 +25,8 @@ pub trait SharePriceChangedEvent: SharePriceEvent + VaultManager + Clone {
     /// This function updates the share price changed curve
     async fn update_share_price_changed_curve(
         &self,
-        backend_schema: &str,
+        decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
-        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
         let new_share_price = SharePriceChangeInternal::builder()
             .term_id(SharePriceChangedEvent::term_id(self)?)
@@ -40,7 +39,12 @@ pub trait SharePriceChangedEvent: SharePriceEvent + VaultManager + Clone {
             .transaction_hash(event.transaction_hash.clone())
             .log_index(event.log_index)
             .build();
-        SharePriceChange::insert(new_share_price, backend_schema, tx.as_mut()).await?;
+        SharePriceChange::insert(
+            new_share_price,
+            &decoded_consumer_context.backend_schema,
+            &decoded_consumer_context.pg_pool,
+        )
+        .await?;
         info!("Inserted share price changed event");
         Ok(())
     }

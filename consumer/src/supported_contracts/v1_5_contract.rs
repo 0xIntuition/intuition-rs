@@ -7,7 +7,7 @@ use alloy::{
 };
 use alloy_network::Ethereum;
 use serde::{Deserialize, Serialize};
-use tracing::{info, warn};
+use tracing::{debug, warn};
 
 use crate::{
     config::ContractInstance,
@@ -70,14 +70,14 @@ impl EventProcessor for &EthMultiVaultV1_5Events {
                 let timer = get_event_processing_histogram()
                     .with_label_values(&["AdminSet"])
                     .start_timer();
-                info!("Received: {admin_set_data:#?}");
+                debug!("Received: {admin_set_data:#?}");
                 timer.observe_duration();
             }
             EthMultiVaultV1_5Events::ApprovalTypeUpdated(approval_type_updated_data) => {
                 let timer = get_event_processing_histogram()
                     .with_label_values(&["ApprovalTypeUpdated"])
                     .start_timer();
-                info!("Received: {approval_type_updated_data:#?}");
+                debug!("Received: {approval_type_updated_data:#?}");
                 timer.observe_duration();
             }
             EthMultiVaultV1_5Events::AtomCreationProtocolFeeSet(
@@ -86,21 +86,21 @@ impl EventProcessor for &EthMultiVaultV1_5Events {
                 let timer = get_event_processing_histogram()
                     .with_label_values(&["AtomCreationProtocolFeeSet"])
                     .start_timer();
-                info!("Received: {atom_creation_protocol_fee_set_data:#?}");
+                debug!("Received: {atom_creation_protocol_fee_set_data:#?}");
                 timer.observe_duration();
             }
             EthMultiVaultV1_5Events::AtomUriMaxLengthSet(atom_uri_max_length_set_data) => {
                 let timer = get_event_processing_histogram()
                     .with_label_values(&["AtomUriMaxLengthSet"])
                     .start_timer();
-                info!("Received: {atom_uri_max_length_set_data:#?}");
+                debug!("Received: {atom_uri_max_length_set_data:#?}");
                 timer.observe_duration();
             }
             EthMultiVaultV1_5Events::AtomWalletDeployed(atom_wallet_deployed_data) => {
                 let timer = get_event_processing_histogram()
                     .with_label_values(&["AtomWalletDeployed"])
                     .start_timer();
-                info!("Received: {atom_wallet_deployed_data:#?}");
+                debug!("Received: {atom_wallet_deployed_data:#?}");
                 timer.observe_duration();
             }
             EthMultiVaultV1_5Events::AtomWalletInitialDepositAmountSet(
@@ -109,70 +109,70 @@ impl EventProcessor for &EthMultiVaultV1_5Events {
                 let timer = get_event_processing_histogram()
                     .with_label_values(&["AtomWalletInitialDepositAmountSet"])
                     .start_timer();
-                info!("Received: {atom_wallet_initial_deposit_amount_set_data:#?}");
+                debug!("Received: {atom_wallet_initial_deposit_amount_set_data:#?}");
                 timer.observe_duration();
             }
             EthMultiVaultV1_5Events::AtomWardenSet(atom_warden_set_data) => {
                 let timer = get_event_processing_histogram()
                     .with_label_values(&["AtomWardenSet"])
                     .start_timer();
-                info!("Received: {atom_warden_set_data:#?}");
+                debug!("Received: {atom_warden_set_data:#?}");
                 timer.observe_duration();
             }
             EthMultiVaultV1_5Events::EntryFeeSet(entry_fee_set_data) => {
                 let timer = get_event_processing_histogram()
                     .with_label_values(&["EntryFeeSet"])
                     .start_timer();
-                info!("Received: {entry_fee_set_data:#?}");
+                debug!("Received: {entry_fee_set_data:#?}");
                 timer.observe_duration();
             }
             EthMultiVaultV1_5Events::ExitFeeSet(exit_fee_set_data) => {
                 let timer = get_event_processing_histogram()
                     .with_label_values(&["ExitFeeSet"])
                     .start_timer();
-                info!("Received: {exit_fee_set_data:#?}");
+                debug!("Received: {exit_fee_set_data:#?}");
                 timer.observe_duration();
             }
             EthMultiVaultV1_5Events::MinDepositSet(min_deposit_set_data) => {
                 let timer = get_event_processing_histogram()
                     .with_label_values(&["MinDepositSet"])
                     .start_timer();
-                info!("Received: {min_deposit_set_data:#?}");
+                debug!("Received: {min_deposit_set_data:#?}");
                 timer.observe_duration();
             }
             EthMultiVaultV1_5Events::MinShareSet(min_share_set_data) => {
                 let timer = get_event_processing_histogram()
                     .with_label_values(&["MinShareSet"])
                     .start_timer();
-                info!("Received: {min_share_set_data:#?}");
+                debug!("Received: {min_share_set_data:#?}");
                 timer.observe_duration();
             }
             EthMultiVaultV1_5Events::OperationCancelled(operation_cancelled_data) => {
                 let timer = get_event_processing_histogram()
                     .with_label_values(&["OperationCancelled"])
                     .start_timer();
-                info!("Received: {operation_cancelled_data:#?}");
+                debug!("Received: {operation_cancelled_data:#?}");
                 timer.observe_duration();
             }
             EthMultiVaultV1_5Events::OperationExecuted(operation_executed_data) => {
                 let timer = get_event_processing_histogram()
                     .with_label_values(&["OperationExecuted"])
                     .start_timer();
-                info!("Received: {operation_executed_data:#?}");
+                debug!("Received: {operation_executed_data:#?}");
                 timer.observe_duration();
             }
             EthMultiVaultV1_5Events::OperationScheduled(operation_scheduled_data) => {
                 let timer = get_event_processing_histogram()
                     .with_label_values(&["OperationScheduled"])
                     .start_timer();
-                info!("Received: {operation_scheduled_data:#?}");
+                debug!("Received: {operation_scheduled_data:#?}");
                 timer.observe_duration();
             }
             EthMultiVaultV1_5Events::ProtocolFeeSet(protocol_fee_set_data) => {
                 let timer = get_event_processing_histogram()
                     .with_label_values(&["ProtocolFeeSet"])
                     .start_timer();
-                info!("Received: {protocol_fee_set_data:#?}");
+                debug!("Received: {protocol_fee_set_data:#?}");
                 timer.observe_duration();
             }
             EthMultiVaultV1_5Events::TotalAtomDepositsForTripleSet(
@@ -181,7 +181,7 @@ impl EventProcessor for &EthMultiVaultV1_5Events {
                 let timer = get_event_processing_histogram()
                     .with_label_values(&["TotalAtomDepositsForTripleSet"])
                     .start_timer();
-                info!("Received: {total_atom_deposits_for_triple_set_data:#?}");
+                debug!("Received: {total_atom_deposits_for_triple_set_data:#?}");
                 timer.observe_duration();
             }
             EthMultiVaultV1_5Events::TotalAtomDepositsOnTripleCreationSet(
@@ -190,7 +190,7 @@ impl EventProcessor for &EthMultiVaultV1_5Events {
                 let timer = get_event_processing_histogram()
                     .with_label_values(&["TotalAtomDepositsOnTripleCreationSet"])
                     .start_timer();
-                info!("Received: {total_atom_deposits_on_triple_creation_set_data:#?}");
+                debug!("Received: {total_atom_deposits_on_triple_creation_set_data:#?}");
                 timer.observe_duration();
             }
             EthMultiVaultV1_5Events::TripleCreationProtocolFeeSet(
@@ -199,7 +199,7 @@ impl EventProcessor for &EthMultiVaultV1_5Events {
                 let timer = get_event_processing_histogram()
                     .with_label_values(&["TripleCreationProtocolFeeSet"])
                     .start_timer();
-                info!("Received: {triple_creation_protocol_fee_set_data:#?}");
+                debug!("Received: {triple_creation_protocol_fee_set_data:#?}");
                 timer.observe_duration();
             }
 
@@ -207,21 +207,21 @@ impl EventProcessor for &EthMultiVaultV1_5Events {
                 let timer = get_event_processing_histogram()
                     .with_label_values(&["Paused"])
                     .start_timer();
-                info!("Received: {paused_data:#?}");
+                debug!("Received: {paused_data:#?}");
                 timer.observe_duration();
             }
             EthMultiVaultV1_5Events::Unpaused(unpaused_data) => {
                 let timer = get_event_processing_histogram()
                     .with_label_values(&["Unpaused"])
                     .start_timer();
-                info!("Received: {unpaused_data:#?}");
+                debug!("Received: {unpaused_data:#?}");
                 timer.observe_duration();
             }
             EthMultiVaultV1_5Events::Initialized(initialized_data) => {
                 let timer = get_event_processing_histogram()
                     .with_label_values(&["Initialized"])
                     .start_timer();
-                info!("Received: {initialized_data:#?}");
+                debug!("Received: {initialized_data:#?}");
                 InitializeEventHandler(initialized_data)
                     .process_event(context, message)
                     .await?;
@@ -231,7 +231,7 @@ impl EventProcessor for &EthMultiVaultV1_5Events {
                 let timer = get_event_processing_histogram()
                     .with_label_values(&["AtomCreated"])
                     .start_timer();
-                info!("Received: {atom_data:#?}");
+                debug!("Received: {atom_data:#?}");
                 AtomCreatedEventHandler(atom_data)
                     .process_event(context, message)
                     .await?;
@@ -241,7 +241,7 @@ impl EventProcessor for &EthMultiVaultV1_5Events {
                 let timer = get_event_processing_histogram()
                     .with_label_values(&["FeesTransferred"])
                     .start_timer();
-                info!("Received: {fees_data:#?}");
+                debug!("Received: {fees_data:#?}");
                 FeeTransferredEventHandler(fees_data)
                     .process_event(context, message)
                     .await?;
@@ -251,7 +251,7 @@ impl EventProcessor for &EthMultiVaultV1_5Events {
                 let timer = get_event_processing_histogram()
                     .with_label_values(&["TripleCreated"])
                     .start_timer();
-                info!("Received: {triple_data:#?}");
+                debug!("Received: {triple_data:#?}");
                 TripleCreatedEventHandler(triple_data)
                     .process_event(context, message)
                     .await?;
@@ -261,7 +261,7 @@ impl EventProcessor for &EthMultiVaultV1_5Events {
                 let timer = get_event_processing_histogram()
                     .with_label_values(&["Deposited"])
                     .start_timer();
-                info!("Received: {deposited_data:#?}");
+                debug!("Received: {deposited_data:#?}");
                 DepositedEventHandler(deposited_data)
                     .process_event(context, message)
                     .await?;
@@ -271,7 +271,7 @@ impl EventProcessor for &EthMultiVaultV1_5Events {
                 let timer = get_event_processing_histogram()
                     .with_label_values(&["Redeemed"])
                     .start_timer();
-                info!("Received: {redeemed_data:#?}");
+                debug!("Received: {redeemed_data:#?}");
                 RedeemedEventHandler(redeemed_data)
                     .process_event(context, message)
                     .await?;
@@ -281,7 +281,7 @@ impl EventProcessor for &EthMultiVaultV1_5Events {
                 let timer = get_event_processing_histogram()
                     .with_label_values(&["DepositedCurve"])
                     .start_timer();
-                info!("Received: {deposited_curve_data:#?}");
+                debug!("Received: {deposited_curve_data:#?}");
                 DepositedEventHandler(deposited_curve_data)
                     .process_event(context, message)
                     .await?;
@@ -291,7 +291,7 @@ impl EventProcessor for &EthMultiVaultV1_5Events {
                 let timer = get_event_processing_histogram()
                     .with_label_values(&["RedeemedCurve"])
                     .start_timer();
-                info!("Received: {redeemed_curve_data:#?}");
+                debug!("Received: {redeemed_curve_data:#?}");
                 RedeemedEventHandler(redeemed_curve_data)
                     .process_event(context, message)
                     .await?;
@@ -301,7 +301,7 @@ impl EventProcessor for &EthMultiVaultV1_5Events {
                 let timer = get_event_processing_histogram()
                     .with_label_values(&["SharePriceChangedCurve"])
                     .start_timer();
-                info!("Received: {share_price_changed_curve_data:#?}");
+                debug!("Received: {share_price_changed_curve_data:#?}");
                 SharePriceChangedEventHandler(share_price_changed_curve_data)
                     .process_event(context, message)
                     .await?;
@@ -311,7 +311,7 @@ impl EventProcessor for &EthMultiVaultV1_5Events {
                 let timer = get_event_processing_histogram()
                     .with_label_values(&["SharePriceChanged"])
                     .start_timer();
-                info!("Received: {share_price_changed_data:#?}");
+                debug!("Received: {share_price_changed_data:#?}");
                 SharePriceChangedEventHandler(share_price_changed_data)
                     .process_event(context, message)
                     .await?;

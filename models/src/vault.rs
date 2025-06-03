@@ -4,6 +4,7 @@ use crate::{
     types::U256Wrapper,
 };
 use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 use sqlx::{Executor, PgPool, Postgres, Result};
 
 /// This struct defines the vault in the database. Note that both `atom_id` and
@@ -23,6 +24,7 @@ pub struct Vault {
     pub block_number: i64,
     pub log_index: i64,
     pub transaction_hash: String,
+    pub created_at: DateTime<Utc>,
 }
 /// This is a trait that all models must implement.
 impl Model for Vault {}
@@ -40,9 +42,10 @@ impl SimpleCrud<U256Wrapper> for Vault {
             WITH upsert AS (
                 INSERT INTO {0}.vault (
                     term_id, curve_id, total_shares, current_share_price, position_count,
-                    total_assets, market_cap, block_number, log_index, transaction_hash
+                    total_assets, market_cap, block_number, log_index, transaction_hash,
+                    created_at
                 )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
                 ON CONFLICT (term_id, curve_id) DO UPDATE SET
                     total_shares = EXCLUDED.total_shares,
                     current_share_price = EXCLUDED.current_share_price,
@@ -51,7 +54,8 @@ impl SimpleCrud<U256Wrapper> for Vault {
                     market_cap = EXCLUDED.market_cap,
                     block_number = EXCLUDED.block_number,
                     log_index = EXCLUDED.log_index,
-                    transaction_hash = EXCLUDED.transaction_hash
+                    transaction_hash = EXCLUDED.transaction_hash,
+                    created_at = EXCLUDED.created_at
                 WHERE
                 EXCLUDED.block_number > vault.block_number
                 OR (
@@ -59,12 +63,14 @@ impl SimpleCrud<U256Wrapper> for Vault {
                     AND EXCLUDED.log_index > vault.log_index
                 )
                 RETURNING term_id, curve_id, total_shares, current_share_price, position_count,
-                          total_assets, market_cap, block_number, log_index, transaction_hash
+                          total_assets, market_cap, block_number, log_index, transaction_hash,
+                          created_at
             )
             SELECT * FROM upsert
             UNION ALL
             SELECT term_id, curve_id, total_shares, current_share_price, position_count,
-                   total_assets, market_cap, block_number, log_index, transaction_hash
+                   total_assets, market_cap, block_number, log_index, transaction_hash,
+                   created_at
             FROM {0}.vault
             WHERE term_id = $1 AND curve_id = $2
             AND NOT EXISTS (SELECT 1 FROM upsert)
@@ -83,6 +89,7 @@ impl SimpleCrud<U256Wrapper> for Vault {
             .bind(self.block_number)
             .bind(self.log_index)
             .bind(self.transaction_hash.clone())
+            .bind(self.created_at)
             .fetch_one(executor)
             .await
             .map_err(|e| ModelError::InsertError(e.to_string()))
@@ -109,7 +116,8 @@ impl SimpleCrud<U256Wrapper> for Vault {
                 market_cap,
                 block_number,
                 log_index,
-                transaction_hash
+                transaction_hash,
+                created_at
             FROM {}.vault 
             WHERE term_id = $1
             "#,
@@ -140,7 +148,7 @@ impl Vault {
             UPDATE {}.vault 
             SET current_share_price = $1 
             WHERE term_id = $2 AND curve_id = $3
-            RETURNING term_id, curve_id, total_shares, current_share_price, position_count, total_assets, market_cap, block_number, log_index, transaction_hash
+            RETURNING term_id, curve_id, total_shares, current_share_price, position_count, total_assets, market_cap, block_number, log_index, transaction_hash, created_at
             "#,
             schema,
         );
@@ -220,8 +228,8 @@ impl Vault {
     {
         let query = format!(
             r#"
-            INSERT INTO {}.vault (term_id, curve_id, total_shares, current_share_price, position_count, total_assets, market_cap, block_number, log_index, transaction_hash)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            INSERT INTO {}.vault (term_id, curve_id, total_shares, current_share_price, position_count, total_assets, market_cap, block_number, log_index, transaction_hash, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             "#,
             schema,
         );
@@ -240,6 +248,7 @@ impl Vault {
             // able to override the total_assets properly, thus we set the log_index to 0.
             .bind(0)
             .bind(self.transaction_hash.clone())
+            .bind(self.created_at)
             .fetch_one(executor)
             .await
             .map_err(|e| ModelError::InsertError(e.to_string()))

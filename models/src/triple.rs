@@ -4,6 +4,7 @@ use crate::{
     types::U256Wrapper,
 };
 use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 use sqlx::{Executor, Postgres, Result};
 /// Triple is a struct that represents a triple in the database. All
 /// of the fields are mandatory except for the label.
@@ -17,7 +18,7 @@ pub struct Triple {
     pub object_id: U256Wrapper,
     pub counter_term_id: U256Wrapper,
     pub block_number: U256Wrapper,
-    pub block_timestamp: i64,
+    pub created_at: DateTime<Utc>,
     pub transaction_hash: String,
 }
 
@@ -34,7 +35,7 @@ impl SimpleCrud<U256Wrapper> for Triple {
     {
         let query = format!(
             r#"
-            INSERT INTO {}.triple (creator_id, subject_id, predicate_id, object_id, term_id, counter_term_id, block_number, block_timestamp, transaction_hash)
+            INSERT INTO {}.triple (creator_id, subject_id, predicate_id, object_id, term_id, counter_term_id, block_number, created_at, transaction_hash)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             ON CONFLICT (term_id) DO UPDATE SET
                 creator_id = EXCLUDED.creator_id,
@@ -44,10 +45,10 @@ impl SimpleCrud<U256Wrapper> for Triple {
                 term_id = EXCLUDED.term_id,
                 counter_term_id = EXCLUDED.counter_term_id,
                 block_number = EXCLUDED.block_number,
-                block_timestamp = EXCLUDED.block_timestamp,
+                created_at = EXCLUDED.created_at,
                 transaction_hash = EXCLUDED.transaction_hash
             RETURNING creator_id, subject_id, predicate_id, object_id, 
-                      term_id, counter_term_id, block_number, block_timestamp, transaction_hash
+                      term_id, counter_term_id, block_number, created_at, transaction_hash
             "#,
             schema,
         );
@@ -60,7 +61,7 @@ impl SimpleCrud<U256Wrapper> for Triple {
             .bind(self.term_id.to_big_decimal()?)
             .bind(self.counter_term_id.to_big_decimal()?)
             .bind(self.block_number.to_big_decimal()?)
-            .bind(self.block_timestamp)
+            .bind(self.created_at)
             .bind(&self.transaction_hash)
             .fetch_one(executor)
             .await
@@ -86,7 +87,7 @@ impl SimpleCrud<U256Wrapper> for Triple {
                 term_id, 
                 counter_term_id, 
                 block_number, 
-                block_timestamp, 
+                created_at, 
                 transaction_hash
             FROM {}.triple
             WHERE term_id = $1 OR counter_term_id = $1

@@ -4,6 +4,7 @@ use crate::{
     types::U256Wrapper,
 };
 use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 use sqlx::{Executor, Postgres};
 use strum_macros::{Display, EnumString};
 
@@ -33,7 +34,7 @@ pub struct Event {
     pub deposit_id: Option<String>,
     pub redemption_id: Option<String>,
     pub block_number: U256Wrapper,
-    pub block_timestamp: i64,
+    pub created_at: DateTime<Utc>,
     pub transaction_hash: String,
 }
 
@@ -53,7 +54,7 @@ impl SimpleCrud<String> for Event {
     {
         let query = format!(
             r#"
-            INSERT INTO {}.event (id, type, atom_id, triple_id, fee_transfer_id, deposit_id, redemption_id, block_number, block_timestamp, transaction_hash)
+            INSERT INTO {}.event (id, type, atom_id, triple_id, fee_transfer_id, deposit_id, redemption_id, block_number, created_at, transaction_hash)
             VALUES ($1, $2::text::{}.event_type, $3, $4, $5, $6, $7, $8, $9, $10)
             ON CONFLICT (id) DO UPDATE SET
                 type = EXCLUDED.type,
@@ -63,9 +64,9 @@ impl SimpleCrud<String> for Event {
                 deposit_id = EXCLUDED.deposit_id,
                 redemption_id = EXCLUDED.redemption_id,
                 block_number = EXCLUDED.block_number,
-                block_timestamp = EXCLUDED.block_timestamp,
+                created_at = EXCLUDED.created_at,
                 transaction_hash = EXCLUDED.transaction_hash
-            RETURNING id, type as event_type, atom_id, triple_id, fee_transfer_id, deposit_id, redemption_id, block_number, block_timestamp, transaction_hash
+            RETURNING id, type as event_type, atom_id, triple_id, fee_transfer_id, deposit_id, redemption_id, block_number, created_at, transaction_hash
             "#,
             schema, schema
         );
@@ -83,7 +84,7 @@ impl SimpleCrud<String> for Event {
             .bind(self.deposit_id.clone())
             .bind(self.redemption_id.clone())
             .bind(self.block_number.to_big_decimal()?)
-            .bind(self.block_timestamp)
+            .bind(self.created_at)
             .bind(&self.transaction_hash)
             .fetch_one(executor)
             .await
@@ -108,7 +109,7 @@ impl SimpleCrud<String> for Event {
                    deposit_id,
                    redemption_id,
                    block_number,
-                   block_timestamp,
+                   created_at,
                    transaction_hash
             FROM {}.event
             WHERE id = $1

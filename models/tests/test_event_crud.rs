@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
     use alloy::primitives::U256;
+    use chrono::{DateTime, Utc};
     use models::{
         error::ModelError,
         event::Event,
@@ -38,15 +39,12 @@ mod tests {
         // Update the event with new values
         let mut updated_event = event.clone();
         updated_event.block_number = U256Wrapper::from(U256::from_str("2").unwrap());
-        updated_event.block_timestamp = 2000;
+        updated_event.created_at = DateTime::<Utc>::from_timestamp(2000, 0).unwrap();
 
         // Test update via upsert
         let upserted_updated = updated_event.upsert(TEST_SCHEMA, &pool).await?;
         assert_eq!(upserted_updated.block_number, updated_event.block_number);
-        assert_eq!(
-            upserted_updated.block_timestamp,
-            updated_event.block_timestamp
-        );
+        assert_eq!(upserted_updated.created_at, updated_event.created_at);
 
         // Test find_by_id
         let found_event = Event::find_by_id(event.id.clone(), TEST_SCHEMA, &pool)
@@ -55,7 +53,7 @@ mod tests {
 
         assert_eq!(found_event.id, event.id);
         assert_eq!(found_event.block_number, updated_event.block_number);
-        assert_eq!(found_event.block_timestamp, updated_event.block_timestamp);
+        assert_eq!(found_event.created_at, updated_event.created_at);
 
         Ok(())
     }

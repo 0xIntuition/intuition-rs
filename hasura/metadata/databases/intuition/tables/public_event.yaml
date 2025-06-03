@@ -42,7 +42,7 @@ select_permissions:
         - transaction_hash
         - atom_id
         - block_number
-        - block_timestamp
+        - created_at
         - triple_id
         - deposit_id
         - fee_transfer_id

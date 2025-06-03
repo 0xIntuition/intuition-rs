@@ -56,7 +56,7 @@ impl VaultManager for &AtomCreated {
     async fn total_shares(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
-        _block_number: Option<i64>,
+        _block_number: i64,
     ) -> Result<U256Wrapper, ConsumerError> {
         Ok(SharePriceChange::fetch_current_share_price(
             U256Wrapper::from(self.vaultId),
@@ -71,7 +71,7 @@ impl VaultManager for &AtomCreated {
     async fn current_share_price(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
-        _block_number: Option<i64>,
+        _block_number: i64,
     ) -> Result<U256Wrapper, ConsumerError> {
         Ok(SharePriceChange::fetch_current_share_price(
             U256Wrapper::from(self.vaultId),

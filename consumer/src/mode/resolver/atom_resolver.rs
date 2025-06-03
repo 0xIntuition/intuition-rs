@@ -19,7 +19,7 @@ use models::{
 use reqwest::Response;
 use serde_json::Value;
 use std::str::FromStr;
-use tracing::{info, warn};
+use tracing::{debug, warn};
 
 /// Supported schema.org contexts
 pub const SCHEMA_ORG_CONTEXTS: [&str; 4] = [
@@ -316,7 +316,7 @@ async fn handle_regular_json(
     atom: &Atom,
     json: &Value,
 ) -> Result<AtomMetadata, ConsumerError> {
-    info!(
+    debug!(
         "No @context found in JSON: {:?}, returning it as JsonObject",
         json
     );
@@ -333,7 +333,7 @@ pub async fn handle_binary_data(
     atom: &Atom,
     atom_data: Bytes,
 ) -> Result<AtomMetadata, ConsumerError> {
-    info!("Data is likely binary, returning it as ByteObject");
+    debug!("Data is likely binary, returning it as ByteObject");
     let byte_object = create_byte_object_from_obj(atom, atom_data.to_vec());
     match byte_object {
         Ok(byte_object) => {
@@ -362,7 +362,7 @@ async fn handle_text_data(
         return Ok(AtomMetadata::unknown());
     }
 
-    info!("Data is likely text, returning it as TextObject");
+    debug!("Data is likely text, returning it as TextObject");
     let text_object = create_text_object_from_obj(atom, atom_data)
         .upsert(consumer_context.backend_schema(), consumer_context.pool())
         .await?;

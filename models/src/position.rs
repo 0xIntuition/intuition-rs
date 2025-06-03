@@ -4,6 +4,7 @@ use crate::{
     types::U256Wrapper,
 };
 use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 use sqlx::{Executor, Postgres};
 
 /// This struct is used to represent a position in a vault
@@ -28,6 +29,8 @@ pub struct Position {
     pub transaction_hash: String,
     /// Transaction index of the transaction that created the position
     pub transaction_index: i64,
+    /// Timestamp of the transaction that created the position
+    pub created_at: DateTime<Utc>,
 }
 
 /// This is a trait that all models must implement.
@@ -54,8 +57,8 @@ impl SimpleCrud<String> for Position {
         let query = format!(
             r#"
             WITH upsert AS (
-                INSERT INTO {}.position (id, account_id, term_id, shares, curve_id, block_number, log_index, transaction_hash, transaction_index)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                INSERT INTO {}.position (id, account_id, term_id, shares, curve_id, block_number, log_index, transaction_hash, transaction_index, created_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
                 ON CONFLICT (id)
                 DO UPDATE SET
                     account_id = EXCLUDED.account_id,
@@ -65,7 +68,8 @@ impl SimpleCrud<String> for Position {
                     block_number = EXCLUDED.block_number,
                     log_index = EXCLUDED.log_index,
                     transaction_hash = EXCLUDED.transaction_hash,
-                    transaction_index = EXCLUDED.transaction_index
+                    transaction_index = EXCLUDED.transaction_index,
+                    created_at = EXCLUDED.created_at
                 WHERE (
                     EXCLUDED.block_number > position.block_number
                     OR (
@@ -94,6 +98,7 @@ impl SimpleCrud<String> for Position {
             .bind(self.log_index)
             .bind(self.transaction_hash.clone())
             .bind(self.transaction_index)
+            .bind(self.created_at)
             .fetch_one(executor)
             .await
             .map_err(|e| ModelError::PositionInsertError(e.to_string()))
@@ -119,7 +124,8 @@ impl SimpleCrud<String> for Position {
                 log_index,
                 transaction_hash,
                 transaction_index,
-                curve_id
+                curve_id,
+                created_at
             FROM {}.position
             WHERE id = $1
             "#,
@@ -217,7 +223,8 @@ impl Position {
                 block_number,
                 log_index,
                 transaction_hash,
-                transaction_index
+                transaction_index,
+                created_at
             FROM {}.position 
             WHERE id = $1
             "#,

@@ -1,4 +1,7 @@
-use super::{ipfs_upload::types::IpfsUploadMessage, resolver::types::ResolverConsumerMessage};
+use super::{
+    decoded::utils::get_block_timestamp, ipfs_upload::types::IpfsUploadMessage,
+    resolver::types::ResolverConsumerMessage,
+};
 use crate::{
     ENSRegistry::{self, ENSRegistryInstance},
     app_context::ServerInitialize,
@@ -25,7 +28,7 @@ use std::{
     sync::{Arc, RwLock},
 };
 use tokio::time::{Duration, sleep};
-use tracing::{info, warn};
+use tracing::{debug, warn};
 
 // Create a OnceCell to hold the histogram
 static EVENT_PROCESSING_HISTOGRAM: OnceCell<HistogramVec> = OnceCell::new();
@@ -117,7 +120,7 @@ impl DecodedConsumerContext {
             let balance_result = self.base_client.get_balance(contract_address).await;
             match balance_result {
                 Ok(balance) => {
-                    info!("Contract balance: {:?}", balance);
+                    debug!("Contract balance: {:?}", balance);
                     Ok(balance)
                 }
                 Err(e) => {
@@ -158,7 +161,7 @@ impl DecodedConsumerContext {
             let is_triple_id = self.base_client.is_triple_id(id).await;
             match &is_triple_id {
                 Ok(is_triple_id) => {
-                    info!("Is triple id: {:?}", is_triple_id);
+                    debug!("Is triple id: {:?}", is_triple_id);
                     Ok(*is_triple_id)
                 }
                 Err(e) => {
@@ -171,16 +174,16 @@ impl DecodedConsumerContext {
         .await
     }
 
-    /// This function fetches the total shares in the vault
-    pub async fn fetch_total_shares_in_vault(
+    /// This function fetches the total shares and assets in the vault
+    pub async fn fetch_total_shares_and_assets_in_vault(
         &self,
         id: Uint<256, 4>,
         block_number: i64,
-    ) -> Result<U256, ConsumerError> {
+    ) -> Result<(U256, U256), ConsumerError> {
         self.retry_with_backoff(|| async {
             let total_shares = self
                 .base_client
-                .get_total_shares(id, BlockId::from_str(&block_number.to_string())?)
+                .get_total_shares_and_assets(id, BlockId::from_str(&block_number.to_string())?)
                 .await;
             match &total_shares {
                 Ok(shares) => Ok(*shares),
@@ -200,7 +203,7 @@ impl DecodedConsumerContext {
             let atom_data = self.base_client.get_atoms(id).await;
             match &atom_data {
                 Ok(data) => {
-                    info!("Atom data: {:?}", data);
+                    debug!("Atom data: {:?}", data);
                     Ok(data.clone())
                 }
                 Err(e) => {
@@ -222,7 +225,7 @@ impl DecodedConsumerContext {
             let counter_id = self.base_client.get_counter_id_from_triple(vault_id).await;
             match &counter_id {
                 Ok(counter_id) => {
-                    info!("Counter id: {:?}", counter_id);
+                    debug!("Counter id: {:?}", counter_id);
                     Ok(*counter_id)
                 }
                 Err(e) => {
@@ -250,7 +253,7 @@ impl DecodedConsumerContext {
                 .await;
             match balance_result {
                 Ok(balance) => {
-                    info!("Contract balance at block {}: {:?}", block_id_str, balance);
+                    debug!("Contract balance at block {}: {:?}", block_id_str, balance);
                     Ok(balance)
                 }
                 Err(e) => {
@@ -646,10 +649,12 @@ impl ConsumerMode {
                     let contract_balance = decoded_consumer_context
                         .fetch_contract_balance_at_block(&decoded_message.block_number.to_string())
                         .await?;
+                    let timestamp = get_block_timestamp(decoded_message.block_timestamp)?;
+
                     Stats::update_current_block_number_and_contract_balance(
-                        decoded_message.block_number,
+                        U256Wrapper::try_from(decoded_message.block_number)?,
                         U256Wrapper::from(contract_balance),
-                        decoded_message.block_timestamp,
+                        Some(timestamp),
                         &decoded_consumer_context.pg_pool,
                         &decoded_consumer_context.backend_schema,
                     )
@@ -884,7 +889,7 @@ mod tests {
         let vault_id = Uint::<256, 4>::from_str("0x329b").unwrap();
 
         let total_shares = decoded_consumer
-            .fetch_total_shares_in_vault(vault_id, 21854762)
+            .fetch_total_shares_and_assets_in_vault(vault_id, 21854762)
             .await
             .unwrap();
 

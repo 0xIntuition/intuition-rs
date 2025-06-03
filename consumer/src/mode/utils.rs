@@ -1,4 +1,7 @@
-use super::{resolver::types::ResolverConsumerMessage, types::DecodedConsumerContext};
+use super::{
+    decoded::utils::get_block_timestamp, resolver::types::ResolverConsumerMessage,
+    types::DecodedConsumerContext,
+};
 use crate::{
     error::ConsumerError,
     schemas::types::DecodedMessage,
@@ -14,15 +17,103 @@ use models::{
 };
 use sqlx::PgPool;
 use std::fmt::Debug;
-use tracing::{info, warn};
+use tracing::debug;
 
 /// This enum represents the origin of a vault
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Origin {
+pub enum VaultOrigin {
     AtomCreated,
     TripleCreated,
     Deposit,
     SharePriceChanged,
+}
+
+impl VaultOrigin {
+    /// This function returns true if the origin should insert a new vault,
+    /// false if it should update an existing vault
+    fn should_insert(&self) -> bool {
+        matches!(self, VaultOrigin::AtomCreated | VaultOrigin::TripleCreated)
+    }
+
+    /// This function gets or creates a vault from a vault manager
+    pub async fn get_or_create_vault(
+        &self,
+        event: impl SharePriceEvent,
+        context: &DecodedConsumerContext,
+        term_type: TermType,
+        tx: &DecodedMessage,
+    ) -> Result<Vault, ConsumerError> {
+        if let Some(existing) = Vault::find_by_term_id_and_curve_id(
+            event.term_id()?,
+            event.curve_id()?,
+            &context.pg_pool,
+            &context.backend_schema,
+        )
+        .await?
+        {
+            return Ok(existing);
+        }
+
+        debug!(
+            "Creating new term and vault for term_id: {}",
+            event.term_id()?
+        );
+
+        get_or_create_term(&event, None, context, term_type).await?;
+
+        let new_vault = self.build_new_vault(&event, context, tx).await?;
+
+        if self.should_insert() {
+            new_vault
+                .insert(&context.pg_pool, &context.backend_schema)
+                .await
+                .map_err(ConsumerError::ModelError)?;
+        } else {
+            new_vault
+                .upsert(&context.backend_schema, &context.pg_pool)
+                .await
+                .map_err(ConsumerError::ModelError)?;
+        }
+
+        Ok(new_vault)
+    }
+    /// This function computes the market cap of a vault
+    pub fn compute_market_cap(total_shares: U256Wrapper, share_price: U256Wrapper) -> U256Wrapper {
+        (total_shares * share_price) / U256Wrapper::from(U256::from(10).pow(U256::from(18)))
+    }
+
+    /// This function builds a new vault from a share price event
+    async fn build_new_vault(
+        &self,
+        event: &impl SharePriceEvent,
+        context: &DecodedConsumerContext,
+        tx: &DecodedMessage,
+    ) -> Result<Vault, ConsumerError> {
+        let term_id = event.term_id()?;
+        let curve_id = event.curve_id()?;
+        let block_number = tx.block_number;
+        let total_shares = event.total_shares(context, block_number).await?;
+        let share_price = event.current_share_price(context, block_number).await?;
+        let total_assets = event.total_assets()?;
+        let position_count = event.position_count(context).await?;
+        let created_at = get_block_timestamp(tx.block_timestamp)?;
+
+        let market_cap = Self::compute_market_cap(total_shares.clone(), share_price.clone());
+
+        Ok(Vault::builder()
+            .term_id(term_id)
+            .curve_id(curve_id)
+            .current_share_price(share_price)
+            .total_assets(total_assets)
+            .position_count(position_count)
+            .market_cap(market_cap)
+            .block_number(block_number)
+            .total_shares(total_shares)
+            .log_index(tx.log_index)
+            .transaction_hash(tx.transaction_hash.clone())
+            .created_at(created_at)
+            .build())
+    }
 }
 
 /// Shortens an address string by taking first 6 and last 4 chars
@@ -89,7 +180,7 @@ pub async fn update_account_with_atom_id(
             &decoded_consumer_context.pg_pool,
         )
         .await?;
-    info!("Updated account: {:?}", account);
+    debug!("Updated account: {:?}", account);
 
     // Now we need to enqueue the message to be processed by the resolver. In this
     // process we check if the account has ENS data associated, and if it does, we
@@ -115,7 +206,7 @@ pub async fn get_or_create_account(
     .await?
     {
         if account.id == "0x0000000000000000000000000000000000000000" {
-            info!("Account is unknown, updating it");
+            debug!("Account is unknown, updating it");
             let account = update_unknown_account_or_create_account_and_enqueue_resolver_message(
                 decoded_consumer_context,
                 id,
@@ -132,88 +223,6 @@ pub async fn get_or_create_account(
         )
         .await?;
         Ok(account)
-    }
-}
-
-/// This function gets or creates a vault from a vault manager
-pub async fn get_or_create_vault(
-    event: impl SharePriceEvent,
-    block_number: Option<i64>,
-    decoded_consumer_context: &DecodedConsumerContext,
-    term_type: TermType,
-    transaction_data: &DecodedMessage,
-    origin: Origin,
-) -> Result<Vault, ConsumerError> {
-    let vault = Vault::find_by_term_id_and_curve_id(
-        event.term_id()?,
-        event.curve_id()?,
-        &decoded_consumer_context.pg_pool.clone(),
-        &decoded_consumer_context.backend_schema,
-    )
-    .await?;
-
-    if let Some(vault) = vault {
-        Ok(vault)
-    } else {
-        warn!(
-            "Creating new vault for: {} with total_assets: {}",
-            event.term_id()?,
-            event.total_assets()?
-        );
-        // Ensure that the term exists for the vault
-        get_or_create_term(&event, None, decoded_consumer_context, term_type).await?;
-
-        let new_vault = Vault::builder()
-            .term_id(event.term_id()?)
-            .curve_id(event.curve_id()?)
-            .current_share_price(
-                event
-                    .current_share_price(decoded_consumer_context, block_number)
-                    .await?,
-            )
-            .total_shares(
-                event
-                    .total_shares(decoded_consumer_context, block_number)
-                    .await?,
-            )
-            .position_count(event.position_count(decoded_consumer_context).await?)
-            .total_assets(event.total_assets()?)
-            .market_cap(
-                (event
-                    .total_shares(decoded_consumer_context, block_number)
-                    .await?
-                    * event
-                        .current_share_price(decoded_consumer_context, block_number)
-                        .await?)
-                    / U256Wrapper::from(U256::from(10).pow(U256::from(18))),
-            )
-            .block_number(block_number.unwrap_or(0))
-            .log_index(transaction_data.log_index)
-            .transaction_hash(transaction_data.transaction_hash.clone())
-            .build();
-
-        match origin {
-            // On atom or triple creation, we insert the vault, because if it already exists,
-            // it means that the vault was created before the atom or triple was created by a
-            // different transaction, like a deposit or redemption, and we don't want to overwrite
-            // it.
-            Origin::AtomCreated | Origin::TripleCreated => new_vault
-                .insert(
-                    &decoded_consumer_context.pg_pool.clone(),
-                    &decoded_consumer_context.backend_schema,
-                )
-                .await
-                .map_err(ConsumerError::ModelError)?,
-            Origin::Deposit | Origin::SharePriceChanged => new_vault
-                .upsert(
-                    &decoded_consumer_context.backend_schema,
-                    &decoded_consumer_context.pg_pool.clone(),
-                )
-                .await
-                .map_err(ConsumerError::ModelError)?,
-        };
-
-        Ok(new_vault)
     }
 }
 

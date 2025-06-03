@@ -1,11 +1,10 @@
 use crate::{
     error::ConsumerError,
     mode::{
+        decoded::utils::get_block_timestamp,
         resolver::types::ResolverConsumerMessage,
         types::DecodedConsumerContext,
-        utils::{
-            Origin, get_or_create_account, get_or_create_account_from_event, get_or_create_vault,
-        },
+        utils::{VaultOrigin, get_or_create_account, get_or_create_account_from_event},
     },
     schemas::types::DecodedMessage,
     traits::{AccountManager, SharePriceEvent, VaultManager},
@@ -21,7 +20,7 @@ use models::{
 };
 use sqlx::PgPool;
 use std::{fmt::Debug, str::FromStr};
-use tracing::{info, warn};
+use tracing::{debug, warn};
 
 /// This trait represents a fee transferred event
 pub trait AtomCreatedEvent:
@@ -37,15 +36,14 @@ pub trait AtomCreatedEvent:
         event: &DecodedMessage,
     ) -> Result<(Vault, Atom), ConsumerError> {
         // Get or create the vault
-        let vault = match get_or_create_vault(
-            self.clone(),
-            Some(event.block_number),
-            decoded_consumer_context,
-            TermType::Atom,
-            event,
-            Origin::AtomCreated,
-        )
-        .await
+        let vault = match VaultOrigin::AtomCreated
+            .get_or_create_vault(
+                self.clone(),
+                decoded_consumer_context,
+                TermType::Atom,
+                event,
+            )
+            .await
         {
             Ok(vault) => vault,
             Err(e) => {
@@ -87,7 +85,7 @@ pub trait AtomCreatedEvent:
         .await?
         {
             if atom.transaction_hash == "0x0000000000000000000000000000000000000000" {
-                info!("Atom exists with zero transaction hash, updating it");
+                debug!("Atom exists with zero transaction hash, updating it");
                 let atom = self
                     .update_atom_with_zero_transaction_hash_or_create_atom(
                         decoded_consumer_context,
@@ -97,10 +95,10 @@ pub trait AtomCreatedEvent:
                 return Ok(atom);
             }
             // If the atom exists, return it
-            info!("Atom already exists, returning it");
+            debug!("Atom already exists, returning it");
             Ok(atom)
         } else {
-            info!("Atom does not exist, creating it");
+            debug!("Atom does not exist, creating it");
             let atom = self
                 .update_atom_with_zero_transaction_hash_or_create_atom(
                     decoded_consumer_context,
@@ -133,7 +131,7 @@ pub trait AtomCreatedEvent:
             .raw_data(self.atom_data()?)
             .atom_type(AtomType::Unknown)
             .block_number(U256Wrapper::try_from(event.block_number)?)
-            .block_timestamp(event.block_timestamp)
+            .created_at(get_block_timestamp(event.block_timestamp)?)
             .transaction_hash(event.transaction_hash.clone())
             .resolving_status(AtomResolvingStatus::Pending)
             .log_index(event.log_index)
@@ -182,7 +180,7 @@ pub trait AtomCreatedEvent:
                 &decoded_consumer_context.pg_pool,
             )
             .await?;
-        info!("Updated account: {:?}", account);
+        debug!("Updated account: {:?}", account);
 
         // Now we need to enqueue the message to be processed by the resolver. In this
         // process we check if the account has ENS data associated, and if it does, we

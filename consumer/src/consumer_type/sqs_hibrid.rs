@@ -22,7 +22,7 @@ use tokio::{
     task::JoinSet,
     time::sleep,
 };
-use tracing::{error, info};
+use tracing::{debug, error, info, warn};
 
 /// Represents the SQS consumer
 #[derive(Debug, Clone)]
@@ -142,14 +142,14 @@ impl SqsHibrid {
         mut shutdown_rx: watch::Receiver<bool>,
         mode: &ConsumerMode,
     ) -> Result<(), ConsumerError> {
-        info!("Getting last processed id from the DB");
+        debug!("Getting last processed id from the DB");
         let mut last_processed_id =
             HistoFluxCursor::find(&self.histoflux_pg_pool, &self.histoflux_cursor.environment)
                 .await?
                 .ok_or(ConsumerError::NotFound)?
                 .last_processed_id;
 
-        info!("Last processed id: {}", last_processed_id);
+        debug!("Last processed id: {}", last_processed_id);
 
         let amount_of_logs =
             RawLog::get_total_count(&self.histoflux_pg_pool, &self.app_config.indexer_schema)
@@ -160,14 +160,14 @@ impl SqsHibrid {
 
         let page_size = Self::get_page_size(amount_of_logs);
         let pages = Self::ceiling_div(amount_of_logs, page_size);
-        info!("Processing {} pages with page size {}", pages, page_size);
+        debug!("Processing {} pages with page size {}", pages, page_size);
 
         let mut processed_logs_counter = 0;
         let mut join_set = JoinSet::new();
 
         'outer_loop: for _page in 0..pages {
             if *shutdown_rx.borrow() {
-                info!("Shutdown signal received before page fetch. Exiting...");
+                warn!("Shutdown signal received before page fetch. Exiting...");
                 break 'outer_loop;
             }
 
@@ -183,7 +183,7 @@ impl SqsHibrid {
                 break;
             }
 
-            info!("Processing {} logs", logs.len());
+            debug!("Processing {} logs", logs.len());
 
             for log in logs {
                 if processed_logs_counter >= amount_of_logs {
@@ -191,7 +191,7 @@ impl SqsHibrid {
                 }
 
                 if shutdown_rx.has_changed()? && *shutdown_rx.borrow_and_update() {
-                    info!("Shutdown signal received during processing. Exiting...");
+                    warn!("Shutdown signal received during processing. Exiting...");
                     break 'outer_loop;
                 }
 

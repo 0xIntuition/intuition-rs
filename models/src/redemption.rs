@@ -4,6 +4,7 @@ use crate::{
     types::U256Wrapper,
 };
 use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 use sqlx::{Executor, Postgres};
 
 /// This is the `Redemption` struct that represents a redemption in the database.
@@ -19,7 +20,7 @@ pub struct Redemption {
     pub exit_fee: U256Wrapper,
     pub term_id: U256Wrapper,
     pub block_number: U256Wrapper,
-    pub block_timestamp: i64,
+    pub created_at: DateTime<Utc>,
     pub transaction_hash: String,
     pub curve_id: U256Wrapper,
     pub log_index: i64,
@@ -42,7 +43,7 @@ impl SimpleCrud<String> for Redemption {
         INSERT INTO {}.redemption (
             id, sender_id, receiver_id, sender_total_shares_in_vault,
             assets_for_receiver, shares_redeemed_by_sender, exit_fee, term_id,
-            block_number, block_timestamp, transaction_hash, curve_id, log_index
+            block_number, created_at, transaction_hash, curve_id, log_index
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
         ON CONFLICT (id) DO UPDATE SET
             sender_id = EXCLUDED.sender_id,
@@ -53,7 +54,7 @@ impl SimpleCrud<String> for Redemption {
             exit_fee = EXCLUDED.exit_fee,
             term_id = EXCLUDED.term_id,
             block_number = EXCLUDED.block_number,
-            block_timestamp = EXCLUDED.block_timestamp,
+            created_at = EXCLUDED.created_at,
             transaction_hash = EXCLUDED.transaction_hash,
             curve_id = EXCLUDED.curve_id,
             log_index = EXCLUDED.log_index
@@ -65,7 +66,7 @@ impl SimpleCrud<String> for Redemption {
             exit_fee,
             term_id,
             block_number,
-            block_timestamp,
+            created_at,
             transaction_hash,
             curve_id,
             log_index
@@ -83,7 +84,7 @@ impl SimpleCrud<String> for Redemption {
             .bind(self.exit_fee.to_big_decimal()?)
             .bind(self.term_id.to_big_decimal()?)
             .bind(self.block_number.to_big_decimal()?)
-            .bind(self.block_timestamp)
+            .bind(self.created_at)
             .bind(self.transaction_hash.clone())
             .bind(self.curve_id.to_big_decimal()?)
             .bind(self.log_index)
@@ -112,7 +113,7 @@ impl SimpleCrud<String> for Redemption {
                 exit_fee,
                 term_id,
                 block_number,
-                block_timestamp,
+                created_at,
                 transaction_hash,
                 curve_id,
                 log_index

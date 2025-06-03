@@ -8,12 +8,12 @@ BEGIN
     -- Handle both INSERT and UPDATE events. (For UPDATE, only act if the timestamp changed.)
     IF TG_OP = 'UPDATE' THEN
         IF NEW.last_processed_block_timestamp IS DISTINCT FROM OLD.last_processed_block_timestamp THEN
-            new_hour := date_trunc('hour', to_timestamp(NEW.last_processed_block_timestamp::double precision));
+            new_hour := date_trunc('hour', NEW.last_processed_block_timestamp);
         ELSE
             RETURN NEW;
         END IF;
     ELSE  -- For INSERT (or other operations if needed)
-        new_hour := date_trunc('hour', to_timestamp(NEW.last_processed_block_timestamp::double precision));
+        new_hour := date_trunc('hour', NEW.last_processed_block_timestamp);
     END IF;
     
     -- Debug output: ensure the function is invoked as expected.

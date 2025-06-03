@@ -1,10 +1,10 @@
+-- Create a function to get the accounts that a given account follows
 CREATE OR REPLACE FUNCTION accounts_that_claim_about_account(address text, subject numeric, predicate numeric) RETURNS SETOF account
     LANGUAGE sql STABLE
     AS $$
 SELECT account.*
-FROM position 
-JOIN term ON position.term_id = term.id
-JOIN triple ON triple.term_id = term.triple_id
+FROM position
+JOIN triple ON position.term_id = triple.term_id
 JOIN account ON account.atom_id = triple.object_id
 WHERE 
  account.type = 'Default'
@@ -12,7 +12,6 @@ WHERE
  AND triple.predicate_id = predicate
  AND position.account_id = address;
 $$;
-
 
 CREATE OR REPLACE FUNCTION following(address text) RETURNS SETOF account
     LANGUAGE sql STABLE
@@ -25,7 +24,22 @@ FROM accounts_that_claim_about_account(
 );
 $$;
 
-CREATE FUNCTION positions_from_following(address text) RETURNS SETOF "position"
+CREATE OR REPLACE FUNCTION signals_from_following (address text)
+	RETURNS SETOF signal
+	LANGUAGE sql
+	STABLE
+	AS $$
+	SELECT
+		*
+	FROM
+		signal
+	WHERE
+		signal.account_id IN(
+			SELECT
+				"id" FROM FOLLOWING (address));
+$$;
+
+CREATE OR REPLACE FUNCTION positions_from_following(address text) RETURNS SETOF "position"
     LANGUAGE sql STABLE
     AS $$
 	SELECT

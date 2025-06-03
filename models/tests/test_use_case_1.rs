@@ -4,10 +4,12 @@ mod tests {
     use std::str::FromStr;
 
     use alloy::primitives::U256;
+    use chrono::{DateTime, Utc};
     use models::{
         account::{Account, AccountType},
         atom::{Atom, AtomResolvingStatus, AtomType},
         atom_value::AtomValue,
+        error::ModelError,
         person::Person,
         test_helpers::{
             create_random_number, create_random_string, create_random_u256wrapper, setup_test_db,
@@ -52,7 +54,13 @@ mod tests {
             .emoji("⛓️".to_string())
             .label("0x00...01".to_string())
             .block_number(create_random_u256wrapper())
-            .block_timestamp(create_random_number())
+            .created_at(
+                DateTime::<Utc>::from_timestamp(create_random_number() as i64, 0)
+                    .ok_or(ModelError::QueryError(
+                        "Invalid block timestamp".to_string(),
+                    ))
+                    .unwrap(),
+            )
             .transaction_hash(create_random_string())
             .resolving_status(AtomResolvingStatus::Pending)
             .log_index(create_random_number())
@@ -70,7 +78,6 @@ mod tests {
         let _alice_vault = Vault::builder()
             .term_id(alice_vault_id.clone())
             .curve_id(U256Wrapper::from_str("1").unwrap())
-            .total_shares(create_random_u256wrapper())
             .current_share_price(create_random_u256wrapper())
             .position_count(0)
             .block_number(create_random_number())
@@ -78,6 +85,14 @@ mod tests {
             .transaction_hash(create_random_string())
             .total_assets(create_random_u256wrapper())
             .market_cap(create_random_u256wrapper())
+            .total_shares(create_random_u256wrapper())
+            .created_at(
+                DateTime::<Utc>::from_timestamp(create_random_number() as i64, 0)
+                    .ok_or(ModelError::QueryError(
+                        "Invalid block timestamp".to_string(),
+                    ))
+                    .unwrap(),
+            )
             .build()
             .upsert(TEST_SCHEMA, &pool)
             .await
@@ -104,7 +119,13 @@ mod tests {
             .emoji("👤".to_string())
             .label("Alice".to_string())
             .block_number(create_random_u256wrapper())
-            .block_timestamp(create_random_number())
+            .created_at(
+                DateTime::<Utc>::from_timestamp(create_random_number() as i64, 0)
+                    .ok_or(ModelError::QueryError(
+                        "Invalid block timestamp".to_string(),
+                    ))
+                    .unwrap(),
+            )
             .transaction_hash(create_random_string())
             .resolving_status(AtomResolvingStatus::Pending)
             .log_index(create_random_number())
@@ -116,7 +137,6 @@ mod tests {
         let _alice_person_vault = Vault::builder()
             .term_id(alice_person_vault_id.clone())
             .curve_id(U256Wrapper::from_str("1").unwrap())
-            .total_shares(create_random_u256wrapper())
             .current_share_price(create_random_u256wrapper())
             .position_count(0)
             .block_number(create_random_number())
@@ -124,6 +144,14 @@ mod tests {
             .transaction_hash(create_random_string())
             .total_assets(create_random_u256wrapper())
             .market_cap(create_random_u256wrapper())
+            .total_shares(create_random_u256wrapper())
+            .created_at(
+                DateTime::<Utc>::from_timestamp(create_random_number() as i64, 0)
+                    .ok_or(ModelError::QueryError(
+                        "Invalid block timestamp".to_string(),
+                    ))
+                    .unwrap(),
+            )
             .build()
             .upsert(TEST_SCHEMA, &pool)
             .await

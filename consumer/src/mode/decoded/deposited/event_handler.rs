@@ -1,7 +1,10 @@
 use super::event::DepositedEvent;
 use crate::{
     error::ConsumerError,
-    mode::{decoded::utils::EventHandler, types::DecodedConsumerContext},
+    mode::{
+        decoded::utils::{EventHandler, get_block_timestamp},
+        types::DecodedConsumerContext,
+    },
     schemas::types::DecodedMessage,
 };
 use models::{
@@ -35,12 +38,8 @@ where
 
         // This is only for V1, we need to fetch the data from the RPC before
         // starting the transaction
-        let (current_share_price, total_shares) = self
-            .get_current_share_price_and_total_assets(
-                decoded_consumer_context,
-                event,
-                self.0.vault_id()?,
-            )
+        let vault_info = self
+            .get_vault_info(decoded_consumer_context, event, self.0.vault_id()?)
             .await?;
 
         // Create deposit record
@@ -55,12 +54,7 @@ where
 
         // Update vault values when dealing with v1 deposit events
         self.0
-            .update_vault_values(
-                decoded_consumer_context,
-                current_share_price,
-                total_shares,
-                event,
-            )
+            .update_vault_values(decoded_consumer_context, vault_info, event)
             .await?;
 
         // Create event
@@ -86,7 +80,7 @@ where
                 .event_type(EventType::Deposited)
                 .deposit_id(DecodedMessage::event_id(event))
                 .block_number(U256Wrapper::try_from(event.block_number)?)
-                .block_timestamp(event.block_timestamp)
+                .created_at(get_block_timestamp(event.block_timestamp)?)
                 .transaction_hash(event.transaction_hash.clone())
                 .triple_id(U256Wrapper::from(self.0.vault_id()?))
                 .build()
@@ -96,7 +90,7 @@ where
                 .event_type(EventType::Deposited)
                 .deposit_id(DecodedMessage::event_id(event))
                 .block_number(U256Wrapper::try_from(event.block_number)?)
-                .block_timestamp(event.block_timestamp)
+                .created_at(get_block_timestamp(event.block_timestamp)?)
                 .transaction_hash(event.transaction_hash.clone())
                 .atom_id(U256Wrapper::from(self.0.vault_id()?))
                 .build()

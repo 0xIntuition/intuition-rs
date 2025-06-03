@@ -1,7 +1,10 @@
 use super::event::TripleCreatedEvent;
 use crate::{
     error::ConsumerError,
-    mode::{decoded::utils::EventHandler, types::DecodedConsumerContext},
+    mode::{
+        decoded::utils::{EventHandler, get_block_timestamp},
+        types::DecodedConsumerContext,
+    },
     schemas::types::DecodedMessage,
 };
 use models::{
@@ -10,7 +13,7 @@ use models::{
     types::U256Wrapper,
 };
 use std::fmt::Debug;
-use tracing::info;
+use tracing::{debug, info};
 
 #[derive(Debug)]
 pub struct TripleCreatedEventHandler<T>(pub T);
@@ -25,11 +28,9 @@ where
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
         info!("Handling triple creation: {self:#?}");
-
-        let contract_version = decoded_consumer_context.contract_version.read()?.clone();
         // Ensure that the vault and counter vault exist
         self.0
-            .get_or_create_vaults(decoded_consumer_context, event, &contract_version)
+            .get_or_create_vaults(decoded_consumer_context, event)
             .await?;
 
         let mut tx = decoded_consumer_context.pg_pool.begin().await?;
@@ -40,7 +41,7 @@ where
             .get_or_create_triple(decoded_consumer_context, event, &mut tx)
             .await?;
 
-        info!("Triple created: {triple:#?}");
+        debug!("Triple created: {triple:#?}");
         // Update the predicate object triple count
         self.0
             .update_predicate_object_triple_count(&decoded_consumer_context.backend_schema, &mut tx)
@@ -67,7 +68,7 @@ where
             .event_type(EventType::TripleCreated)
             .triple_id(triple_id)
             .block_number(U256Wrapper::try_from(event.block_number)?)
-            .block_timestamp(event.block_timestamp)
+            .created_at(get_block_timestamp(event.block_timestamp)?)
             .transaction_hash(event.transaction_hash.clone())
             .build()
             .upsert(

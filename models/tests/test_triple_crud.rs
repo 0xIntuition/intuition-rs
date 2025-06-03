@@ -204,7 +204,7 @@ mod tests {
         assert_eq!(retrieved_triple.term_id, triple.term_id);
         assert_eq!(retrieved_triple.counter_term_id, triple.counter_term_id);
         assert_eq!(retrieved_triple.block_number, triple.block_number);
-        assert_eq!(retrieved_triple.block_timestamp, triple.block_timestamp);
+        assert_eq!(retrieved_triple.created_at, triple.created_at);
         assert_eq!(retrieved_triple.transaction_hash, triple.transaction_hash);
 
         // Test update

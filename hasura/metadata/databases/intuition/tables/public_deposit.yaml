@@ -41,7 +41,7 @@ select_permissions:
         - is_triple
         - transaction_hash
         - block_number
-        - block_timestamp
+        - created_at
         - entry_fee
         - receiver_total_shares_in_vault
         - sender_assets_after_total_fees

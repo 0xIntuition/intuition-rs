@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
     use alloy::primitives::U256;
+    use chrono::{DateTime, Utc};
     use models::{
         error::ModelError,
         stats::Stats,
@@ -34,7 +35,11 @@ mod tests {
             last_processed_block_number: Some(U256Wrapper::from(
                 U256::from_str("1234567890").unwrap(),
             )),
-            last_processed_block_timestamp: Some(1234567890),
+            last_processed_block_timestamp: Some(
+                DateTime::<Utc>::from_timestamp(1234567890, 0).ok_or(ModelError::QueryError(
+                    "Invalid block timestamp".to_string(),
+                ))?,
+            ),
         };
 
         // Upsert updated Stats

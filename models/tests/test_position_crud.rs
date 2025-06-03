@@ -44,6 +44,7 @@ mod tests {
             log_index: position.log_index,
             transaction_hash: position.transaction_hash.clone(),
             transaction_index: position.transaction_index,
+            created_at: position.created_at,
         };
 
         // Update using upsert

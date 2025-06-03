@@ -2,7 +2,9 @@ use super::event::RedeemedEvent;
 use crate::{
     error::ConsumerError,
     mode::{
-        decoded::utils::EventHandler, types::DecodedConsumerContext, utils::get_or_create_account,
+        decoded::utils::{EventHandler, get_block_timestamp},
+        types::DecodedConsumerContext,
+        utils::get_or_create_account,
     },
     schemas::types::DecodedMessage,
 };
@@ -15,7 +17,7 @@ use models::{
     vault::Vault,
 };
 use std::fmt::Debug;
-use tracing::info;
+use tracing::{debug, info};
 
 #[derive(Debug)]
 pub struct RedeemedEventHandler<T>(pub T);
@@ -49,12 +51,8 @@ where
 
         // This is only for V1, we need to fetch the data from the RPC before
         // starting the transaction
-        let (current_share_price, total_shares) = self
-            .get_current_share_price_and_total_assets(
-                decoded_consumer_context,
-                event,
-                self.0.vault_id()?,
-            )
+        let vault_info = self
+            .get_vault_info(decoded_consumer_context, event, self.0.vault_id()?)
             .await?;
 
         // 3. Create redemption record
@@ -68,7 +66,7 @@ where
             .await?;
 
         // When the redemption fully depletes the sender's shares:
-        info!("Checking if the sender's shares are zero");
+        debug!("Checking if the sender's shares are zero");
         if self.0.sender_total_shares_in_vault()? == Uint::from(0) {
             // Build the position ID
             let position_id = format!("{}-1-{}", vault.term_id, sender_account.id);
@@ -77,7 +75,7 @@ where
                 .handle_position_redemption(decoded_consumer_context, &position_id, event)
                 .await?;
         } else {
-            info!(
+            debug!(
                 "The sender's shares are not zero, currently {} shares remaining",
                 self.0.sender_total_shares_in_vault()?
             );
@@ -88,12 +86,7 @@ where
 
         // Update vault values when dealing with v1 redeemed events
         self.0
-            .update_vault_values(
-                decoded_consumer_context,
-                current_share_price,
-                total_shares,
-                event,
-            )
+            .update_vault_values(decoded_consumer_context, vault_info, event)
             .await?;
 
         // 4. Create event and signal records
@@ -131,7 +124,7 @@ where
                 .id(DecodedMessage::event_id(event))
                 .event_type(EventType::Redeemed)
                 .block_number(U256Wrapper::try_from(event.block_number)?)
-                .block_timestamp(event.block_timestamp)
+                .created_at(get_block_timestamp(event.block_timestamp)?)
                 .transaction_hash(event.transaction_hash.clone())
                 .redemption_id(DecodedMessage::event_id(event))
                 .triple_id(vault.term_id.clone())
@@ -141,7 +134,7 @@ where
                 .id(DecodedMessage::event_id(event))
                 .event_type(EventType::Redeemed)
                 .block_number(U256Wrapper::try_from(event.block_number)?)
-                .block_timestamp(event.block_timestamp)
+                .created_at(get_block_timestamp(event.block_timestamp)?)
                 .transaction_hash(event.transaction_hash.clone())
                 .redemption_id(DecodedMessage::event_id(event))
                 .atom_id(vault.term_id.clone())

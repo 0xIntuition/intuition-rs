@@ -1,7 +1,7 @@
 use crate::{
     error::ConsumerError,
     mode::{
-        decoded::utils::{VaultUpdate, update_vault},
+        decoded::utils::{VaultInfo, get_block_timestamp},
         types::DecodedConsumerContext,
     },
     schemas::types::DecodedMessage,
@@ -54,7 +54,7 @@ pub trait RedeemedEvent: Clone {
             .exit_fee(self.exit_fee()?)
             .term_id(U256Wrapper::from(self.vault_id()?))
             .block_number(U256Wrapper::try_from(event.block_number)?)
-            .block_timestamp(event.block_timestamp)
+            .created_at(get_block_timestamp(event.block_timestamp)?)
             .transaction_hash(event.transaction_hash.clone())
             .curve_id(U256Wrapper::from(RedeemedEvent::curve_id(self)?))
             .log_index(event.log_index)
@@ -152,6 +152,7 @@ pub trait RedeemedEvent: Clone {
         .await?
         .ok_or(ConsumerError::TermNotFound)?;
 
+        let created_at = get_block_timestamp(event.block_timestamp)?;
         let signal = if let TermType::Triple = term_type.term_type {
             Signal::builder()
                 .id(DecodedMessage::event_id(event))
@@ -160,7 +161,7 @@ pub trait RedeemedEvent: Clone {
                 .triple_id(vault.term_id.clone())
                 .redemption_id(DecodedMessage::event_id(event))
                 .block_number(U256Wrapper::try_from(event.block_number)?)
-                .block_timestamp(event.block_timestamp)
+                .created_at(created_at)
                 .transaction_hash(event.transaction_hash.clone())
                 .term_id(vault.term_id.clone())
                 .curve_id(U256Wrapper::from(RedeemedEvent::curve_id(self)?))
@@ -173,7 +174,7 @@ pub trait RedeemedEvent: Clone {
                 .atom_id(vault.term_id.clone())
                 .redemption_id(DecodedMessage::event_id(event))
                 .block_number(U256Wrapper::try_from(event.block_number)?)
-                .block_timestamp(event.block_timestamp)
+                .created_at(created_at)
                 .transaction_hash(event.transaction_hash.clone())
                 .term_id(vault.term_id.clone())
                 .curve_id(U256Wrapper::from(RedeemedEvent::curve_id(self)?))
@@ -191,25 +192,14 @@ pub trait RedeemedEvent: Clone {
     async fn update_vault_values(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
-        current_share_price: Option<U256Wrapper>,
-        total_shares: Option<Uint<256, 4>>,
+        vault_info: Option<VaultInfo>,
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
-        if let Some(current_share_price) = current_share_price {
-            if let Some(total_shares) = total_shares {
-                // Update vault values
-                update_vault(
-                    VaultUpdate::Redeemed {
-                        shares_for_receiver: U256Wrapper::from(self.shares_redeemed_by_sender()?),
-                    },
-                    self.vault_id()?,
-                    decoded_consumer_context,
-                    current_share_price,
-                    total_shares,
-                    event,
-                )
+        if let Some(vault_info) = vault_info {
+            // Update vault values
+            vault_info
+                .update_vault(self.vault_id()?, decoded_consumer_context, event)
                 .await?;
-            }
         }
         Ok(())
     }
