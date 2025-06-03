@@ -41,18 +41,7 @@ impl SimpleCrud<String> for Signal {
             INSERT INTO {}.signal 
                 (id, delta, account_id, atom_id, triple_id, deposit_id, redemption_id, block_number, created_at, transaction_hash, term_id, curve_id) 
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) 
-            ON CONFLICT (id) DO UPDATE SET 
-                delta = EXCLUDED.delta, 
-                account_id = EXCLUDED.account_id, 
-                atom_id = EXCLUDED.atom_id, 
-                triple_id = EXCLUDED.triple_id, 
-                deposit_id = EXCLUDED.deposit_id, 
-                redemption_id = EXCLUDED.redemption_id, 
-                block_number = EXCLUDED.block_number, 
-                created_at = EXCLUDED.created_at, 
-                transaction_hash = EXCLUDED.transaction_hash,
-                term_id = EXCLUDED.term_id,
-                curve_id = EXCLUDED.curve_id
+            
             RETURNING 
                 id, 
                 delta, 
