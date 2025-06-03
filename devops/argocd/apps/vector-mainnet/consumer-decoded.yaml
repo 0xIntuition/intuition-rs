@@ -15,7 +15,7 @@ spec:
             revision: next
             env: prod-base-mainnet-v-1-5-vector-final
             namespace: prod-base-mainnet-v-1-5-vector
-            rpcURL: 'http://prod-rpc-proxy.default.svc.cluster.local:3008/84532/proxy'
+            rpcURL: 'http://prod-rpc-proxy.default.svc.cluster.local:3008/8453/proxy'
   template:
     metadata:
       name: '{{.cluster}}-consumer-decoded-{{.namespace}}'
@@ -66,12 +66,12 @@ spec:
                   path: /spec/template/spec/containers/0/env/-
                   value:
                     name: ENVIRONMENT_NAME
-                    value: 'base_sepolia_upgradeable'
+                    value: 'base_mainnet_upgradeable'
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
                     name: INDEXER_SCHEMA
-                    value: 'histo_base_sepolia_1_0'
+                    value: 'histo_base_mainnet_1_0'
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
@@ -81,12 +81,12 @@ spec:
                   path: /spec/template/spec/containers/0/env/-
                   value:
                     name: INTUITION_CONTRACT_ADDRESS
-                    value: '0x1A6950807E33d5bC9975067e6D6b5Ea4cD661665'
+                    value: '0x430BbF52503Bd4801E51182f4cB9f8F534225DE5'
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
                     name: THREADS
-                    value: '3'
+                    value: '4'
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
