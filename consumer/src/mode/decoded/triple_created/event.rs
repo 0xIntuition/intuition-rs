@@ -111,6 +111,7 @@ pub trait TripleCreatedEvent: SharePriceEvent + VaultManager + Debug + Clone {
                     self.total_shares(decoded_consumer_context, event.block_number)
                         .await?,
                 )
+                .created_at(get_block_timestamp(event.block_timestamp)?)
                 .build()
                 .upsert(
                     &decoded_consumer_context.backend_schema,

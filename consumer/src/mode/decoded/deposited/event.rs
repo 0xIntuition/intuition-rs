@@ -167,6 +167,7 @@ pub trait DepositedEvent: SharePriceEvent + VaultManager + Clone {
             .log_index(event.log_index)
             .transaction_hash(event.transaction_hash.clone())
             .transaction_index(event.transaction_index)
+            .created_at(get_block_timestamp(event.block_timestamp)?)
             .build()
             .upsert(
                 &decoded_consumer_context.backend_schema,

@@ -28,7 +28,7 @@ pub fn draw(f: &mut Frame, app: &App, area: Rect) {
                 .to_string();
 
             Row::new(vec![
-                Cell::from(predicate_object.position_count.to_string()),
+                Cell::from(String::from("N/A")),
                 Cell::from(predicate_object.triple_count.to_string()),
                 Cell::from(predicate_label),
                 Cell::from(object_label),

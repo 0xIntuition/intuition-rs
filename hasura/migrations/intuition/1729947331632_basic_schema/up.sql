@@ -67,7 +67,8 @@ CREATE TABLE atom (
   created_at TIMESTAMP WITH TIME ZONE NOT NULL,
   transaction_hash TEXT NOT NULL,
   resolving_status atom_resolving_status NOT NULL DEFAULT 'Pending',
-  log_index BIGINT NOT NULL
+  log_index BIGINT NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
 
 CREATE INDEX atom_log_index_idx ON atom(log_index);
@@ -98,7 +99,9 @@ CREATE TABLE vault (
   position_count INTEGER NOT NULL,
   block_number BIGINT NOT NULL,
   log_index BIGINT NOT NULL,
-  transaction_hash TEXT NOT NULL
+  transaction_hash TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
 
 CREATE INDEX vault_block_number_idx ON vault(block_number);
@@ -109,6 +112,8 @@ CREATE INDEX vault_triple_id_idx ON vault(triple_id);
 CREATE INDEX vault_current_share_price_idx ON vault(current_share_price);
 CREATE INDEX vault_position_count_idx ON vault(position_count);
 CREATE INDEX vault_total_shares_idx ON vault(total_shares);
+CREATE INDEX vault_created_at_idx ON vault(created_at);
+CREATE INDEX vault_updated_at_idx ON vault(updated_at);
 
 CREATE TABLE fee_transfer (
   id TEXT PRIMARY KEY NOT NULL,
@@ -198,7 +203,9 @@ CREATE TABLE position (
   block_number BIGINT NOT NULL,
   log_index BIGINT NOT NULL,
   transaction_hash TEXT NOT NULL,
-  transaction_index BIGINT NOT NULL
+  transaction_index BIGINT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
 
 CREATE INDEX position_account_vault_idx ON position(account_id, vault_id);

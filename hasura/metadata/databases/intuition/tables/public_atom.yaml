@@ -118,6 +118,7 @@ select_permissions:
         - label
         - wallet_id
         - type
+        - updated_at
       filter: {}
       limit: 250
       allow_aggregations: true

@@ -141,6 +141,13 @@ pub fn create_test_vault_with_atom(atom_id: U256Wrapper) -> Vault {
         .position_count(1)
         .total_assets(create_random_u256wrapper())
         .market_cap(create_random_u256wrapper())
+        .created_at(
+            DateTime::<Utc>::from_timestamp(create_random_number() as i64, 0)
+                .ok_or(ModelError::QueryError(
+                    "Invalid block timestamp".to_string(),
+                ))
+                .unwrap(),
+        )
         .build()
 }
 
@@ -157,6 +164,13 @@ pub fn create_test_vault_with_triple(triple_id: U256Wrapper) -> Vault {
         .total_assets(create_random_u256wrapper())
         .total_shares(create_random_u256wrapper())
         .market_cap(create_random_u256wrapper())
+        .created_at(
+            DateTime::<Utc>::from_timestamp(create_random_number() as i64, 0)
+                .ok_or(ModelError::QueryError(
+                    "Invalid block timestamp".to_string(),
+                ))
+                .unwrap(),
+        )
         .build()
 }
 
@@ -380,6 +394,13 @@ pub fn create_test_position(account_id: String, term_id: U256Wrapper) -> Positio
         .log_index(create_random_number())
         .transaction_hash(create_random_string())
         .transaction_index(create_random_number())
+        .created_at(
+            DateTime::<Utc>::from_timestamp(create_random_number() as i64, 0)
+                .ok_or(ModelError::QueryError(
+                    "Invalid block timestamp".to_string(),
+                ))
+                .unwrap(),
+        )
         .build()
 }
 

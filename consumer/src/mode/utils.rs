@@ -1,4 +1,7 @@
-use super::{resolver::types::ResolverConsumerMessage, types::DecodedConsumerContext};
+use super::{
+    decoded::utils::get_block_timestamp, resolver::types::ResolverConsumerMessage,
+    types::DecodedConsumerContext,
+};
 use crate::{
     error::ConsumerError,
     schemas::types::DecodedMessage,
@@ -97,6 +100,7 @@ impl VaultOrigin {
         let share_price = event.current_share_price(context, block_number).await?;
         let total_assets = event.total_assets()?;
         let position_count = event.position_count(context).await?;
+        let created_at = get_block_timestamp(tx.block_timestamp)?;
 
         let market_cap = self.compute_market_cap(total_shares.clone(), share_price.clone());
 
@@ -111,6 +115,7 @@ impl VaultOrigin {
             .total_shares(total_shares)
             .log_index(tx.log_index)
             .transaction_hash(tx.transaction_hash.clone())
+            .created_at(created_at)
             .build())
     }
 }

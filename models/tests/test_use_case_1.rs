@@ -86,6 +86,13 @@ mod tests {
             .total_assets(create_random_u256wrapper())
             .market_cap(create_random_u256wrapper())
             .total_shares(create_random_u256wrapper())
+            .created_at(
+                DateTime::<Utc>::from_timestamp(create_random_number() as i64, 0)
+                    .ok_or(ModelError::QueryError(
+                        "Invalid block timestamp".to_string(),
+                    ))
+                    .unwrap(),
+            )
             .build()
             .upsert(TEST_SCHEMA, &pool)
             .await
@@ -138,6 +145,13 @@ mod tests {
             .total_assets(create_random_u256wrapper())
             .market_cap(create_random_u256wrapper())
             .total_shares(create_random_u256wrapper())
+            .created_at(
+                DateTime::<Utc>::from_timestamp(create_random_number() as i64, 0)
+                    .ok_or(ModelError::QueryError(
+                        "Invalid block timestamp".to_string(),
+                    ))
+                    .unwrap(),
+            )
             .build()
             .upsert(TEST_SCHEMA, &pool)
             .await
