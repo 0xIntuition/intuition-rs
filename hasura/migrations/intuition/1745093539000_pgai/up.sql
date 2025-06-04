@@ -11,11 +11,11 @@ create extension if not exists ai cascade;
 -- CREATE EXTENSION IF NOT EXISTS pgai CASCADE;
 
 SELECT ai.create_vectorizer(
-   'term_text'::regclass,
-   destination => 'term_embeddings',
-   embedding => ai.embedding_openai('text-embedding-3-small', 768),
-   chunking => ai.chunking_recursive_character_text_splitter('description'),
-   formatting => ai.formatting_python_template('title: $title id: $id $chunk')
+    'term_text'::regclass,
+    destination => ai.destination_table('term_embeddings'),
+    embedding => ai.embedding_openai('text-embedding-3-small', 768),
+    loading => ai.loading_column('description'),
+    formatting => ai.formatting_python_template('title: $title id: $id $chunk')
 );
 
 

@@ -224,7 +224,7 @@ CREATE TABLE predicate_object (
 );
 
 CREATE TABLE signal (
-  id TEXT PRIMARY KEY NOT NULL,
+  id TEXT NOT NULL,
   delta NUMERIC(78, 0) NOT NULL,
   account_id TEXT REFERENCES account(id) NOT NULL,
   atom_id NUMERIC(78, 0), 
@@ -240,6 +240,9 @@ CREATE TABLE signal (
     OR
     (atom_id IS NULL AND triple_id IS NOT NULL))
   )
+)  WITH (
+   tsdb.hypertable,
+   tsdb.partition_column='created_at'
 );
 
 CREATE TABLE thing (
