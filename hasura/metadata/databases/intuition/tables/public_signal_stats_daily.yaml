@@ -1,0 +1,25 @@
+table:
+  name: signal_stats_daily
+  schema: public
+object_relationships:
+  - name: term
+    using:
+      manual_configuration:
+        column_mapping:
+          term_id: id
+        insertion_order: null
+        remote_table:
+          name: term
+          schema: public
+select_permissions:
+  - role: anonymous
+    permission:
+      columns:
+        - count_daily
+        - curve_id
+        - term_id
+        - volume_daily
+        - bucket_daily
+      filter: {}
+      limit: 1000
+    comment: ""
