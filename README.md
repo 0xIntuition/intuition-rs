@@ -41,6 +41,7 @@ aws_secret_access_key = YOUR_SECRET_ACCESS_KEY
 
 There is a `.env.sample` file that you need to use as a template to create the `.env` file. First, you need to set the values for following variables:
 
+* `OPENAI_API_KEY`: You can get the key from [OpenAI](https://platform.openai.com/api-keys)
 * `PINATA_GATEWAY_TOKEN`: You can get the token from [Pinata](https://app.pinata.cloud/developers/gateway-settings)
 * `PINATA_API_JWT`: You can get the token from [Pinata](https://app.pinata.cloud/developers/api-keys)
 * `RPC_URL_MAINNET`: We are currently using Alchemy. You can create new ones using the [Alchemy dashboard](https://dashboard.alchemy.com/)
