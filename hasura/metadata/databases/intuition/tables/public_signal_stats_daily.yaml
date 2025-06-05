@@ -15,11 +15,11 @@ select_permissions:
   - role: anonymous
     permission:
       columns:
-        - count_daily
+        - count
         - curve_id
         - term_id
-        - volume_daily
-        - bucket_daily
+        - volume
+        - bucket
       filter: {}
       limit: 1000
     comment: ""

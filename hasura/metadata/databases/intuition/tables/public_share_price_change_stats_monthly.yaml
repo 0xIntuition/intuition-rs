@@ -21,7 +21,7 @@ select_permissions:
         - first_share_price
         - last_share_price
         - term_id
-        - bucket_monthly
+        - bucket
       filter: {}
       limit: 1000
     comment: ""

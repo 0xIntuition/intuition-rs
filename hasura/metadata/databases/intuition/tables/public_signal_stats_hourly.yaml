@@ -15,11 +15,11 @@ select_permissions:
   - role: anonymous
     permission:
       columns:
-        - count_hourly
+        - count
         - curve_id
         - term_id
-        - volume_hourly
-        - bucket_hourly
+        - volume
+        - bucket
       filter: {}
       limit: 1000
     comment: ""
