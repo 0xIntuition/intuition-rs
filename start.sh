@@ -2,10 +2,9 @@
 source .env
 
 # Start shared services
-docker compose -f docker-compose-shared.yml up database -d --wait --force-recreate
-docker compose -f docker-compose-shared.yml run --rm --entrypoint "python -m pgai install -d postgres://postgres:postgres@database:5435/storage" vectorizer-worker
-docker compose -f docker-compose-shared.yml up vectorizer-worker sqs ipfs safe-content graphql-engine local-migrations indexer-migrations hasura-migrations prometheus -d --wait --force-recreate
+docker compose -f docker-compose-shared.yml up database pgai-installer vectorizer-worker sqs ipfs safe-content graphql-engine local-migrations indexer-migrations hasura-migrations prometheus -d --wait --force-recreate
 
+export INITIAL_CONTRACT_VERSION="v1"
 # First arg is indexer schema
 INDEXER_SCHEMA="$1"
 CONTRACT_ADDRESS=$(docker compose -f docker-compose-shared.yml exec database psql -U postgres -d storage -c "SELECT contract_address FROM histocrawler.app_config WHERE indexer_schema = '$INDEXER_SCHEMA'" -tA)

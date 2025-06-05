@@ -19,6 +19,14 @@ services:
       timeout: 5s
       retries: 10
 
+  pgai-installer:
+    container_name: pgai-installer
+    image: timescale/pgai-vectorizer-worker:v0.10.5
+    entrypoint: [ "python", "-m", "pgai", "install", "-d", "postgres://postgres:postgres@database:5435/storage" ]
+    depends_on:
+      database:
+        condition: service_healthy
+
   vectorizer-worker:
     container_name: vectorizer-worker
     image: timescale/pgai-vectorizer-worker:v0.10.5
@@ -26,6 +34,9 @@ services:
       PGAI_VECTORIZER_WORKER_DB_URL: postgres://postgres:postgres@database:5435/storage
       OPENAI_API_KEY: $OPENAI_API_KEY
     command: [ "--poll-interval", "5s", "--log-level", "DEBUG" ]
+    depends_on:
+      pgai-installer:
+        condition: service_completed_successfully
 
   sqs:
     container_name: sqs
@@ -166,6 +177,8 @@ services:
     depends_on:
       database:
         condition: service_healthy
+      pgai-installer:
+        condition: service_completed_successfully
       graphql-engine:
         condition: service_healthy
     restart: "no"
