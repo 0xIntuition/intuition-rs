@@ -1,0 +1,27 @@
+table:
+  name: share_price_change_stats_monthly
+  schema: public
+object_relationships:
+  - name: term
+    using:
+      manual_configuration:
+        column_mapping:
+          term_id: id
+        insertion_order: null
+        remote_table:
+          name: term
+          schema: public
+select_permissions:
+  - role: anonymous
+    permission:
+      columns:
+        - change_count
+        - curve_id
+        - difference
+        - first_share_price
+        - last_share_price
+        - term_id
+        - bucket_monthly
+      filter: {}
+      limit: 1000
+    comment: ""

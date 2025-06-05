@@ -136,12 +136,13 @@ impl SharePriceChange {
             WITH upsert AS (
                 INSERT INTO {0}.share_price_change (term_id, curve_id, share_price, total_assets, total_shares, block_number, block_timestamp, transaction_hash, log_index)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-                ON CONFLICT (term_id, curve_id, block_number, log_index) DO UPDATE SET
+                ON CONFLICT (term_id, curve_id, block_number, log_index, updated_at) DO UPDATE SET
                     share_price = EXCLUDED.share_price,
                     total_assets = EXCLUDED.total_assets,
                     total_shares = EXCLUDED.total_shares,
                     block_timestamp = EXCLUDED.block_timestamp,
-                    transaction_hash = EXCLUDED.transaction_hash
+                    transaction_hash = EXCLUDED.transaction_hash,
+                    updated_at = EXCLUDED.updated_at
                 WHERE (
                     EXCLUDED.block_number > share_price_change.block_number OR
                     (EXCLUDED.block_number = share_price_change.block_number AND EXCLUDED.log_index > share_price_change.log_index)
