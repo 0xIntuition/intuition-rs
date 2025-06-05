@@ -1,11 +1,11 @@
 CREATE MATERIALIZED VIEW signal_stats_hourly
 WITH (timescaledb.continuous)
 AS SELECT
-    time_bucket('1 h'::interval, created_at) as bucket_hourly,
+    time_bucket('1 h'::interval, created_at) as bucket,
     term_id,
     curve_id,
-    sum(delta) as volume_hourly,
-    count(*) as count_hourly
+    sum(delta) as volume,
+    count(*) as count
 FROM signal
 GROUP BY 1, 2, 3;
 
@@ -21,11 +21,11 @@ SELECT add_continuous_aggregate_policy('signal_stats_hourly',
 CREATE MATERIALIZED VIEW signal_stats_daily
 WITH (timescaledb.continuous)
 AS SELECT
-    time_bucket('1 day'::interval, bucket_hourly) as bucket_daily,
+    time_bucket('1 day'::interval, bucket) as bucket,
     term_id,
     curve_id,
-    sum(volume_hourly) as volume_daily,
-    sum(count_hourly) as count_daily
+    sum(volume) as volume,
+    sum(count) as count
 FROM signal_stats_hourly
 GROUP BY 1, 2, 3;
 
@@ -39,11 +39,11 @@ SELECT add_continuous_aggregate_policy('signal_stats_daily',
 CREATE MATERIALIZED VIEW signal_stats_weekly
 WITH (timescaledb.continuous)
 AS SELECT
-    time_bucket('1 week'::interval, bucket_daily) as bucket_weekly,
+    time_bucket('1 week'::interval, bucket) as bucket,
     term_id,
     curve_id,
-    sum(volume_daily) as volume_weekly,
-    sum(count_daily) as count_weekly
+    sum(volume) as volume,
+    sum(count) as count
 FROM signal_stats_daily
 GROUP BY 1, 2, 3;
 
@@ -57,11 +57,11 @@ SELECT add_continuous_aggregate_policy('signal_stats_weekly',
 CREATE MATERIALIZED VIEW signal_stats_monthly
 WITH (timescaledb.continuous)
 AS SELECT
-    time_bucket('1 month'::interval, bucket_daily) as bucket_monthly,
+    time_bucket('1 month'::interval, bucket) as bucket,
     term_id,
     curve_id,
-    sum(volume_daily) as volume_monthly,
-    sum(count_daily) as count_monthly
+    sum(volume) as volume,
+    sum(count) as count
 FROM signal_stats_daily
 GROUP BY 1, 2, 3;
 
@@ -75,7 +75,7 @@ SELECT add_continuous_aggregate_policy('signal_stats_monthly',
 CREATE MATERIALIZED VIEW share_price_change_stats_hourly
 WITH (timescaledb.continuous)
 AS SELECT
-    time_bucket('1 h'::interval, updated_at) as bucket_hourly,
+    time_bucket('1 h'::interval, updated_at) as bucket,
     term_id,
     curve_id,
     FIRST(share_price, updated_at) as first_share_price,
@@ -95,12 +95,12 @@ SELECT add_continuous_aggregate_policy('share_price_change_stats_hourly',
 CREATE MATERIALIZED VIEW share_price_change_stats_daily
 WITH (timescaledb.continuous)
 AS SELECT
-    time_bucket('1 day'::interval, bucket_hourly) as bucket_daily,
+    time_bucket('1 day'::interval, bucket) as bucket,
     term_id,
     curve_id,
-    FIRST(first_share_price, bucket_hourly) as first_share_price,
-    LAST(last_share_price, bucket_hourly) as last_share_price,
-    LAST(last_share_price, bucket_hourly) - FIRST(first_share_price, bucket_hourly) as difference,
+    FIRST(first_share_price, bucket) as first_share_price,
+    LAST(last_share_price, bucket) as last_share_price,
+    LAST(last_share_price, bucket) - FIRST(first_share_price, bucket) as difference,
     sum(change_count) as change_count
 FROM share_price_change_stats_hourly
 GROUP BY 1, 2, 3;
@@ -115,12 +115,12 @@ SELECT add_continuous_aggregate_policy('share_price_change_stats_daily',
 CREATE MATERIALIZED VIEW share_price_change_stats_weekly
 WITH (timescaledb.continuous)
 AS SELECT
-    time_bucket('1 week'::interval, bucket_daily) as bucket_weekly,
+    time_bucket('1 week'::interval, bucket) as bucket,
     term_id,
     curve_id,
-    FIRST(first_share_price, bucket_daily) as first_share_price,
-    LAST(last_share_price, bucket_daily) as last_share_price,
-    LAST(last_share_price, bucket_daily) - FIRST(first_share_price, bucket_daily) as difference,
+    FIRST(first_share_price, bucket) as first_share_price,
+    LAST(last_share_price, bucket) as last_share_price,
+    LAST(last_share_price, bucket) - FIRST(first_share_price, bucket) as difference,
     sum(change_count) as change_count
 FROM share_price_change_stats_daily
 GROUP BY 1, 2, 3;
@@ -135,12 +135,12 @@ SELECT add_continuous_aggregate_policy('share_price_change_stats_weekly',
 CREATE MATERIALIZED VIEW share_price_change_stats_monthly
 WITH (timescaledb.continuous)
 AS SELECT
-    time_bucket('1 month'::interval, bucket_daily) as bucket_monthly,
+    time_bucket('1 month'::interval, bucket) as bucket,
     term_id,
     curve_id,
-    FIRST(first_share_price, bucket_daily) as first_share_price,
-    LAST(last_share_price, bucket_daily) as last_share_price,
-    LAST(last_share_price, bucket_daily) - FIRST(first_share_price, bucket_daily) as difference,
+    FIRST(first_share_price, bucket) as first_share_price,
+    LAST(last_share_price, bucket) as last_share_price,
+    LAST(last_share_price, bucket) - FIRST(first_share_price, bucket) as difference,
     sum(change_count) as change_count
 FROM share_price_change_stats_daily
 GROUP BY 1, 2, 3;
