@@ -66,6 +66,34 @@ impl EventProcessor for &EthMultiVaultV1_5Events {
         message: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
         match self {
+            EthMultiVaultV1_5Events::SenderApproved(sender_approved_data) => {
+                let timer = get_event_processing_histogram()
+                    .with_label_values(&["SenderApproved"])
+                    .start_timer();
+                debug!("Received: {sender_approved_data:#?}");
+                timer.observe_duration();
+            }
+            EthMultiVaultV1_5Events::SenderRevoked(sender_revoked_data) => {
+                let timer = get_event_processing_histogram()
+                    .with_label_values(&["SenderRevoked"])
+                    .start_timer();
+                debug!("Received: {sender_revoked_data:#?}");
+                timer.observe_duration();
+            }
+            EthMultiVaultV1_5Events::BeforeExecution(before_execution_data) => {
+                let timer = get_event_processing_histogram()
+                    .with_label_values(&["BeforeExecution"])
+                    .start_timer();
+                debug!("Received: {before_execution_data:#?}");
+                timer.observe_duration();
+            }
+            EthMultiVaultV1_5Events::UserOperationEvent(user_operation_event_data) => {
+                let timer = get_event_processing_histogram()
+                    .with_label_values(&["UserOperationEvent"])
+                    .start_timer();
+                debug!("Received: {user_operation_event_data:#?}");
+                timer.observe_duration();
+            }
             EthMultiVaultV1_5Events::AdminSet(admin_set_data) => {
                 let timer = get_event_processing_histogram()
                     .with_label_values(&["AdminSet"])
