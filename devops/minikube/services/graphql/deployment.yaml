@@ -47,7 +47,7 @@ spec:
                 secretKeyRef:
                   name: secrets
                   key: PINATA_AUTH
-          image: hasura/graphql-engine:v2.44.0
+          image: hasura/graphql-engine:v2.48.0
           livenessProbe:
             exec:
               command:
