@@ -5,6 +5,7 @@ metadata:
 spec:
   template:
     spec:
+      restartPolicy: OnFailure
       serviceAccountName: secrets-access-sa
       containers:
         - name: pgai
