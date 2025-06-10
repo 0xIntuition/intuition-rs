@@ -1,0 +1,12 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pgai
+spec:
+  template:
+    spec:
+      serviceAccountName: secrets-access-sa
+      containers:
+        - name: pgai
+          image: ghcr.io/0xintuition/pgai:3.0.12
+          imagePullPolicy: Always

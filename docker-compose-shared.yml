@@ -21,8 +21,9 @@ services:
 
   pgai-installer:
     container_name: pgai-installer
-    image: timescale/pgai-vectorizer-worker:v0.10.5
-    entrypoint: [ "python", "-m", "pgai", "install", "-d", "postgres://postgres:postgres@database:5435/storage" ]
+    image: ghcr.io/0xintuition/pgai:latest
+    environment:
+      POSTGRES_URL: postgres://postgres:postgres@database:5435/storage
     depends_on:
       database:
         condition: service_healthy

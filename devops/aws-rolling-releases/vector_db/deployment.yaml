@@ -15,7 +15,7 @@ spec:
       serviceAccountName: secrets-access-sa
       containers:
         - name: vector-db
-          image: timescale/timescaledb-ha:pg17.4-ts2.19.2
+          image: timescale/timescaledb-ha:pg17.5-ts2.20.1
           imagePullPolicy: Always 
           resources:
             requests:
