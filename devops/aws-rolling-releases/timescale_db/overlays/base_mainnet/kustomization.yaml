@@ -1,0 +1,22 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base 
+  - pvc.yaml
+  - storageclass.yaml
+  - secret-provider.yaml
+  # - pgai-patch.yaml
+
+patches:
+  - path: pgai-patch.yaml
+    target:
+      kind: Job
+      name: pgai
+  - path: deployment-patch.yaml
+    target:
+      kind: Deployment
+      name: timescale-db
+
+commonLabels:
+  component: vector-db 

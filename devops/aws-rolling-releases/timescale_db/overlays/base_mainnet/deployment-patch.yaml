@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: timescale-db
+spec:
+  template:
+    spec:
+      serviceAccountName: secrets-access-sa
+      containers:
+        - name: timescale-db
+          volumeMounts:
+            - name: secrets-store-inline
+              mountPath: "/mnt/secrets"
+              readOnly: true
+          envFrom:
+            - secretRef:
+                name: prod-base-mainnet-v-1-5-vector-aws-secrets
+      volumes:
+        - name: secrets-store-inline
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: "prod-base-mainnet-v-1-5-vector-aws-secrets"
+  volumeClaimTemplates:
+  - metadata:
+      name: vector-db-data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: gp3
+      resources:
+        requests:
+          storage: 30Gi

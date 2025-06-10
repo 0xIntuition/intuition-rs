@@ -1,0 +1,23 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pgai
+spec:
+  template:
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: secrets-access-sa
+      containers:
+        - name: pgai
+          image: ghcr.io/0xintuition/pgai:3.0.12
+          imagePullPolicy: Always
+          envFrom:
+            - secretRef:
+                name: prod-base-mainnet-v-1-5-vector-aws-secrets
+      volumes:
+        - name: secrets-store-inline
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: "prod-base-mainnet-v-1-5-vector-aws-secrets"
