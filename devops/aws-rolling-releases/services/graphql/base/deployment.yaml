@@ -40,7 +40,7 @@ spec:
           - name: HASURA_GRAPHQL_PERSISTED_QUERIES_TTL
             value: "300"
           envFrom: []
-          image: hasura/graphql-engine:v2.44.0
+          image: hasura/graphql-engine:v2.48.0
           livenessProbe:
             exec:
               command:
