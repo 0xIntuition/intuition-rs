@@ -256,7 +256,13 @@ impl SqsHibrid {
 
         match event {
             Ok(event) => Ok(DecodedMessage::new(event, raw_message.body)),
-            Err(e) => Err(ConsumerError::LogDecodingError(e.to_string())),
+            Err(e) => Err(ConsumerError::LogDecodingError(format!(
+                "{}, transaction hash: {}, block number: {}, log index: {}",
+                e,
+                raw_message.body.transaction_hash,
+                raw_message.body.block_number,
+                raw_message.body.log_index
+            ))),
         }
     }
 

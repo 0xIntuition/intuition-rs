@@ -8,5 +8,11 @@ resources:
   - storageclass.yaml
   - secret-provider.yaml
 
+patches:
+  - path: pgai-patch.yaml
+    target:
+      kind: Job
+      name: pgai
+
 commonLabels:
   component: vector-db 

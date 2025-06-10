@@ -15,7 +15,7 @@ spec:
       serviceAccountName: secrets-access-sa
       containers:
         - name: vectorizer-worker
-          image: timescale/pgai-vectorizer-worker:latest
+          image: timescale/pgai-vectorizer-worker:v0.10.5
           imagePullPolicy: Always 
           ports:
           - containerPort: 5435

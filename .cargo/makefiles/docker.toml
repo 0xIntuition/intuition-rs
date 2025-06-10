@@ -49,3 +49,7 @@ args = ["build", "-t", "ghcr.io/0xintuition/contract-deployer-1-0:latest", "-f",
 [tasks.build-apps]
 command = "docker"
 args = ["build", "-t", "ghcr.io/0xintuition/apps:latest", "-f", "Dockerfile", "."]
+
+[tasks.build-pgai]
+command = "docker"
+args = ["build", "-t", "ghcr.io/0xintuition/pgai:latest", "-f", "models/Dockerfile", "."]

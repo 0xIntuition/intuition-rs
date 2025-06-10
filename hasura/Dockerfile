@@ -15,7 +15,7 @@ COPY hasura /app/hasura
 WORKDIR /app
 
 # Download and install hasura
-RUN curl -L https://github.com/hasura/graphql-engine/raw/stable/cli/get.sh | bash
+RUN curl -L https://github.com/hasura/graphql-engine/raw/stable/cli/get.sh | VERSION=v2.48.0 bash
 
-# Execute the hasura deploy command
-CMD ["hasura", "deploy", "--project", "hasura"]
+# Execute hasura migrate and metadata apply commands
+CMD ["bash", "-c", "hasura metadata apply --project hasura && hasura migrate apply --no-transaction --database-name intuition --project hasura && hasura metadata apply --project hasura"]

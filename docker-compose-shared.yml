@@ -1,7 +1,7 @@
 services:
   database:
     container_name: database
-    image: timescale/timescaledb-ha:pg17.4-ts2.19.2
+    image: timescale/timescaledb-ha:pg17.5-ts2.20.1
     environment:
       OPENAI_API_KEY: $OPENAI_API_KEY
       POSTGRES_USER: postgres
@@ -19,12 +19,25 @@ services:
       timeout: 5s
       retries: 10
 
+  pgai-installer:
+    container_name: pgai-installer
+    image: ghcr.io/0xintuition/pgai:latest
+    environment:
+      POSTGRES_URL: postgres://postgres:postgres@database:5435/storage
+    depends_on:
+      database:
+        condition: service_healthy
+
   vectorizer-worker:
     container_name: vectorizer-worker
-    image: timescale/pgai-vectorizer-worker:latest
+    image: timescale/pgai-vectorizer-worker:v0.10.5
     environment:
       PGAI_VECTORIZER_WORKER_DB_URL: postgres://postgres:postgres@database:5435/storage
+      OPENAI_API_KEY: $OPENAI_API_KEY
     command: [ "--poll-interval", "5s", "--log-level", "DEBUG" ]
+    depends_on:
+      pgai-installer:
+        condition: service_completed_successfully
 
   sqs:
     container_name: sqs
@@ -58,7 +71,7 @@ services:
     
   graphql-engine:
     container_name: graphql-engine
-    image: hasura/graphql-engine:v2.44.0
+    image: hasura/graphql-engine:v2.48.0
     ports:
       - '8080:8080'
     restart: always
@@ -165,6 +178,8 @@ services:
     depends_on:
       database:
         condition: service_healthy
+      pgai-installer:
+        condition: service_completed_successfully
       graphql-engine:
         condition: service_healthy
     restart: "no"
