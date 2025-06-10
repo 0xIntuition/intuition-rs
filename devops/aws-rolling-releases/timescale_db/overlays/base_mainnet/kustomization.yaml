@@ -15,7 +15,7 @@ patches:
       name: pgai
   - path: deployment-patch.yaml
     target:
-      kind: Deployment
+      kind: StatefulSet
       name: timescale-db
 
 commonLabels:

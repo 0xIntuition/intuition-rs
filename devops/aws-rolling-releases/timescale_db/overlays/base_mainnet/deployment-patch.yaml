@@ -1,5 +1,5 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: timescale-db
 spec:
@@ -12,6 +12,8 @@ spec:
             - name: secrets-store-inline
               mountPath: "/mnt/secrets"
               readOnly: true
+            - name: timescale-db-data
+              mountPath: /var/lib/postgresql/data
           envFrom:
             - secretRef:
                 name: prod-base-mainnet-v-1-5-vector-aws-secrets
@@ -23,11 +25,11 @@ spec:
             volumeAttributes:
               secretProviderClass: "prod-base-mainnet-v-1-5-vector-aws-secrets"
   volumeClaimTemplates:
-  - metadata:
-      name: vector-db-data
-    spec:
-      accessModes: [ "ReadWriteOnce" ]
-      storageClassName: gp3
-      resources:
-        requests:
-          storage: 30Gi
+    - metadata:
+        name: timescale-db-data
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: gp3
+        resources:
+          requests:
+            storage: 30Gi
