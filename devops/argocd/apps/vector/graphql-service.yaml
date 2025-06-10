@@ -48,6 +48,9 @@ spec:
                 name: graphql-engine
               patch: |-
                 - op: replace
+                  path: /spec/template/spec/containers/0/image
+                  value: hasura/graphql-engine:v2.48.0
+                - op: replace
                   path: /spec/template/spec/serviceAccountName
                   value: '{{.cluster}}-secrets-access-sa'
                 - op: replace
