@@ -24,12 +24,6 @@ spec:
             readOnly: true
             volumeAttributes:
               secretProviderClass: "prod-base-mainnet-v-1-5-vector-aws-secrets"
-  volumeClaimTemplates:
-    - metadata:
-        name: timescale-db-data
-      spec:
-        accessModes: [ "ReadWriteOnce" ]
-        storageClassName: gp3
-        resources:
-          requests:
-            storage: 30Gi
+        - name: timescale-db-data
+          persistentVolumeClaim:
+            claimName: timescale-db-data
