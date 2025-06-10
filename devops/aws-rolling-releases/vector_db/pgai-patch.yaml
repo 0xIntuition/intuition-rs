@@ -11,14 +11,3 @@ spec:
         - name: pgai
           image: ghcr.io/0xintuition/pgai:3.0.12
           imagePullPolicy: Always
-          volumeMounts:
-            - name: secrets-store-inline
-              mountPath: "/mnt/secrets"
-              readOnly: true
-      volumes:
-        - name: secrets-store-inline
-          csi:
-            driver: secrets-store.csi.k8s.io
-            readOnly: true
-            volumeAttributes:
-              secretProviderClass: "vector-db-aws-secrets"
