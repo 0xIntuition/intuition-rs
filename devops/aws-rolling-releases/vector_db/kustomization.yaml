@@ -7,7 +7,6 @@ resources:
   - pvc.yaml
   - storageclass.yaml
   - secret-provider.yaml
-  - pgai-patch.yaml
 
 patches:
   - path: pgai-patch.yaml
