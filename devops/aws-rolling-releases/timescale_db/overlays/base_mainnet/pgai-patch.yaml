@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: pgai
+  name: timescale-db-pgai
 spec:
   template:
     spec:

@@ -6,13 +6,13 @@ resources:
   - pvc.yaml
   - storageclass.yaml
   - secret-provider.yaml
-  # - pgai-patch.yaml
+  - pgai-patch.yaml
 
 patches:
   - path: pgai-patch.yaml
     target:
       kind: Job
-      name: pgai
+      name: timescale-db-pgai
   - path: deployment-patch.yaml
     target:
       kind: StatefulSet
