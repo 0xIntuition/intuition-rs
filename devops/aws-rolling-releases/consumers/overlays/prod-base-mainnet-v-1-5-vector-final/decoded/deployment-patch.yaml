@@ -12,9 +12,9 @@ spec:
           imagePullPolicy: Always
           resources:
             requests:
-              cpu: "3"
+              cpu: "4"
             limits:
-              cpu: "3"
+              cpu: "4"
           volumeMounts:
             - name: secrets-store-inline
               mountPath: "/mnt/secrets"
