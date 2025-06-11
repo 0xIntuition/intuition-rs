@@ -86,7 +86,7 @@ spec:
                   path: /spec/template/spec/containers/0/env/-
                   value:
                     name: THREADS
-                    value: '4'
+                    value: '3'
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:
