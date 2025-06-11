@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: consumer-decoded-vector
+  name: consumer-decoded-vector-mainnet
   namespace: argocd
 spec:
   goTemplate: true
