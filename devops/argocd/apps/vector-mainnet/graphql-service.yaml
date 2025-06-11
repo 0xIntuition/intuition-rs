@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: graphql-service-vector
+  name: graphql-service-vector-mainnet
   namespace: argocd
 spec:
   goTemplate: true
@@ -47,6 +47,9 @@ spec:
                 kind: Deployment
                 name: graphql-engine
               patch: |-
+                - op: replace
+                  path: /spec/template/spec/containers/0/image
+                  value: hasura/graphql-engine:v2.48.1
                 - op: replace
                   path: /spec/template/spec/serviceAccountName
                   value: '{{.cluster}}-secrets-access-sa'
