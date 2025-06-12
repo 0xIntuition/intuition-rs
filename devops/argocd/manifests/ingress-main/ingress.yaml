@@ -6,6 +6,7 @@ metadata:
     alb.ingress.kubernetes.io/scheme: "internet-facing"
     alb.ingress.kubernetes.io/target-type: "ip"
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
     alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-west-2:064662847354:certificate/abc30744-f258-4b61-8363-c0a15b893e78
     external-dns.alpha.kubernetes.io/hostname: prod.base-mainnet-v-1-0.intuition.sh,prod.base-sepolia.intuition-api.com
 spec:
