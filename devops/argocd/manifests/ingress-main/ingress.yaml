@@ -3,15 +3,15 @@ kind: Ingress
 metadata:
   name: ingress-main
   annotations:
-    alb.ingress.kubernetes.io/scheme: "internet-facing"
-    alb.ingress.kubernetes.io/target-type: "ip"
-    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
-    alb.ingress.kubernetes.io/certificate-arn: >-
+    kubernetes.io/ingress.class: kong
+    konghq.com/protocols: https
+    konghq.com/https-redirect-status-code: "301"
+    konghq.com/certificate: >-
       arn:aws:acm:us-west-2:064662847354:certificate/abc30744-f258-4b61-8363-c0a15b893e78,
       arn:aws:acm:us-west-2:064662847354:certificate/20ffcf56-d3c7-4bbf-b64c-a8259b1dcd4f
     external-dns.alpha.kubernetes.io/hostname: prod.base-mainnet-v-1-0.intuition.sh,prod.base-sepolia.intuition-api.com
 spec:
-  ingressClassName: alb
+  ingressClassName: kong
   rules:
   - host: prod.base-mainnet-v-1-0.intuition.sh
     http:
