@@ -3,8 +3,6 @@ kind: Ingress
 metadata:
   name: ingress-main
   annotations:
-    nginx.ingress.kubernetes.io/ssl-redirect: "true"
-    cert-manager.io/cluster-issuer: letsencrypt-prod
     alb.ingress.kubernetes.io/scheme: "internet-facing"
     alb.ingress.kubernetes.io/target-type: "ip"
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
@@ -26,21 +24,6 @@ spec:
                 port:
                   number: 8080
     - host: prod.base-sepolia.intuition-api.com
-      http:
-        paths:
-          - path: /v1/graphql
-            pathType: Prefix
-            backend:
-              service:
-                name: prod-base-sepolia-v-1-5-vector-graphql-engine
-                port:
-                  number: 8080
-  ingressClassName: nginx
-  tls:
-  - hosts:
-    - nginx.prod.base-sepolia.intuition.sh
-  rules:
-    - host: nginx.prod.base-sepolia.intuition.sh
       http:
         paths:
           - path: /v1/graphql
