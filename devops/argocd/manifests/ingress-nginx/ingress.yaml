@@ -3,17 +3,15 @@ kind: Ingress
 metadata:
   name: ingress-nginx
   annotations:
-    service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     cert-manager.io/cluster-issuer: letsencrypt-prod
     external-dns.alpha.kubernetes.io/hostname: nginx.prod.base-sepolia.intuition.sh
 spec:
-  type: LoadBalancer
   ingressClassName: nginx
   tls:
-  - hosts:
-      - nginx.prod.base-sepolia.intuition.sh
-    secretName: nginx-prod-base-sepolia-cert
+    - hosts:
+        - nginx.prod.base-sepolia.intuition.sh
+      secretName: nginx-prod-base-sepolia-cert
   rules:
     - host: nginx.prod.base-sepolia.intuition.sh
       http:
