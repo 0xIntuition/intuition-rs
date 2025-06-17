@@ -9,6 +9,9 @@ metadata:
     nginx.ingress.kubernetes.io/limit-connections: "1"
     nginx.ingress.kubernetes.io/limit-rpm: "60"
     nginx.ingress.kubernetes.io/limit-burst-multiplier: "3"
+    nginx.ingress.kubernetes.io/limit-by: "binary_remote_addr"
+    nginx.ingress.kubernetes.io/limit-rate-after: "0"
+    nginx.ingress.kubernetes.io/limit-rate: "0"
 spec:
   ingressClassName: nginx
   tls:
