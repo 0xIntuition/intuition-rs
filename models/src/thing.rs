@@ -27,6 +27,18 @@ impl SimpleCrud<U256Wrapper> for Thing {
     where
         E: Executor<'e, Database = Postgres>,
     {
+        // Check if URL is too long for database index (max 8191 bytes)
+        let url_to_use = if let Some(ref url) = self.url {
+            if url.len() > 8000 {
+                // URL too long, fall back to image value
+                self.image.clone()
+            } else {
+                Some(url.clone())
+            }
+        } else {
+            None
+        };
+
         let query = format!(
             r#"
             INSERT INTO {}.thing (id, name, description, image, url) 
@@ -50,7 +62,7 @@ impl SimpleCrud<U256Wrapper> for Thing {
             .bind(self.name.clone())
             .bind(self.description.clone())
             .bind(self.image.clone())
-            .bind(self.url.clone())
+            .bind(url_to_use)
             .fetch_one(executor)
             .await
             .map_err(|e| ModelError::InsertError(e.to_string()))
