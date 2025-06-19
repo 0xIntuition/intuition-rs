@@ -37,6 +37,12 @@ spec:
                 - op: replace
                   path: /spec/template/spec/serviceAccountName
                   value: '{{.cluster}}-secrets-access-sa'
+                - op: replace
+                  path: /spec/template/spec/containers/0/resources/requests/cpu
+                  value: "1"
+                - op: replace
+                  path: /spec/template/spec/containers/0/resources/limits/cpu
+                  value: "1"
       destination:
         server: '{{.server}}'
         namespace: 'default'

@@ -12,7 +12,7 @@ spec:
             - name: secrets-store-inline
               mountPath: "/mnt/secrets"
               readOnly: true
-            - name: timescale-db-data
+            - name: timescale-db-data-linea-mainnet-v-1-0
               mountPath: /var/lib/postgresql/data
           envFrom:
             - secretRef:
@@ -24,6 +24,6 @@ spec:
             readOnly: true
             volumeAttributes:
               secretProviderClass: "prod-linea-mainnet-v-1-5-vector-aws-secrets"
-        - name: timescale-db-data
+        - name: timescale-db-data-linea-mainnet-v-1-0
           persistentVolumeClaim:
-            claimName: timescale-db-data
+            claimName: timescale-db-data-linea-mainnet-v-1-0
