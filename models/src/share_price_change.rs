@@ -224,4 +224,37 @@ impl SharePriceChange {
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
     }
+
+    pub async fn fetch_share_price_from_internal<'e, E>(
+        share_price_change: &SharePriceChangeInternal,
+        schema: &str,
+        executor: E,
+    ) -> Result<Option<Self>, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
+        let query = format!(
+            r#"
+            SELECT * FROM {}.share_price_change 
+            WHERE term_id = $1 AND curve_id = $2 AND share_price = $3 AND total_assets = $4 AND total_shares = $5 AND block_number = $6 AND block_timestamp = $7 AND transaction_hash = $8 AND log_index = $9
+            ORDER BY updated_at DESC
+            LIMIT 1
+            "#,
+            schema,
+        );
+
+        sqlx::query_as::<_, SharePriceChange>(&query)
+            .bind(share_price_change.term_id.to_big_decimal()?)
+            .bind(share_price_change.curve_id.to_big_decimal()?)
+            .bind(share_price_change.share_price.to_big_decimal()?)
+            .bind(share_price_change.total_assets.to_big_decimal()?)
+            .bind(share_price_change.total_shares.to_big_decimal()?)
+            .bind(share_price_change.block_number.to_big_decimal()?)
+            .bind(share_price_change.block_timestamp)
+            .bind(share_price_change.transaction_hash.clone())
+            .bind(share_price_change.log_index)
+            .fetch_optional(executor)
+            .await
+            .map_err(|e| ModelError::QueryError(e.to_string()))
+    }
 }

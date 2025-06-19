@@ -8,7 +8,11 @@ use crate::{
     schemas::types::DecodedMessage,
     traits::SharePriceEvent,
 };
-use models::term::TermType;
+use models::{
+    share_price_change::{SharePriceChange, SharePriceChangeInternal},
+    term::TermType,
+    types::U256Wrapper,
+};
 use std::fmt::Debug;
 use tracing::{debug, info};
 
@@ -28,6 +32,36 @@ where
             "Handling SharePriceChanged / SharePriceChangedCurve event: {:?}",
             self
         );
+
+        // Check if the share price changed already exists, skip if it does
+        match SharePriceChange::fetch_share_price_from_internal(
+            &SharePriceChangeInternal::builder()
+                .term_id(SharePriceChangedEvent::term_id(&self.0)?)
+                .curve_id(SharePriceChangedEvent::curve_id(&self.0)?)
+                .share_price(SharePriceEvent::new_share_price(&self.0)?)
+                .total_assets(SharePriceEvent::total_assets(&self.0)?)
+                .total_shares(SharePriceChangedEvent::total_shares(&self.0)?)
+                .block_number(U256Wrapper::try_from(event.block_number)?)
+                .block_timestamp(event.block_timestamp)
+                .transaction_hash(event.transaction_hash.clone())
+                .log_index(event.log_index)
+                .build(),
+            &decoded_consumer_context.backend_schema,
+            &decoded_consumer_context.pg_pool,
+        )
+        .await?
+        {
+            Some(share_price_changed) => {
+                info!(
+                    "Share price changed already exists: {:?}",
+                    share_price_changed
+                );
+                return Ok(());
+            }
+            None => {
+                info!("Share price changed does not exist, creating it");
+            }
+        }
 
         let term_type = if decoded_consumer_context
             .is_triple_id(SharePriceChangedEvent::term_id(&self.0)?.0)

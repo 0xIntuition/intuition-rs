@@ -10,6 +10,7 @@ use crate::{
 use models::{
     event::{Event, EventType},
     traits::SimpleCrud,
+    triple::Triple,
     types::U256Wrapper,
 };
 use std::fmt::Debug;
@@ -28,6 +29,23 @@ where
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
         info!("Handling triple creation: {self:#?}");
+
+        // Check if the triple already exists, skip if it does
+        match Triple::find_by_id(
+            self.0.vault_id()?.into(),
+            &decoded_consumer_context.backend_schema,
+            &decoded_consumer_context.pg_pool,
+        )
+        .await?
+        {
+            Some(triple) => {
+                info!("Triple already exists: {:?}", triple);
+                return Ok(());
+            }
+            None => {
+                info!("Triple does not exist, creating it");
+            }
+        }
         // Ensure that the vault and counter vault exist
         self.0
             .get_or_create_vaults(decoded_consumer_context, event)

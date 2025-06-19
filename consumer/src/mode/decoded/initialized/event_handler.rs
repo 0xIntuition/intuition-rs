@@ -33,6 +33,22 @@ where
     ) -> Result<(), ConsumerError> {
         info!("Handling initialized: {:#?}", self.0);
 
+        // Check if the initialized already exists, skip if it does
+        match Initialize::find_by_id(
+            self.0.version()?.to_string(),
+            &decoded_consumer_context.backend_schema,
+            &decoded_consumer_context.pg_pool,
+        )
+        .await?
+        {
+            Some(initialized) => {
+                info!("Initialized already exists: {:?}", initialized);
+                return Ok(());
+            }
+            None => {
+                info!("Initialized does not exist, creating it");
+            }
+        }
         let mut tx = decoded_consumer_context.pg_pool.begin().await?;
 
         Initialize::builder()

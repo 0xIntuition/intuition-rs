@@ -11,6 +11,7 @@ use crate::{
 use alloy::primitives::Uint;
 use models::{
     event::{Event, EventType},
+    redemption::Redemption,
     term::{Term, TermType},
     traits::SimpleCrud,
     types::U256Wrapper,
@@ -32,6 +33,23 @@ where
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
         info!("Handling Redeemed / RedeemedCurve events : {self:#?}");
+
+        // Check if the redemption already exists, skip if it does
+        match Redemption::find_by_id(
+            DecodedMessage::event_id(event),
+            &decoded_consumer_context.backend_schema,
+            &decoded_consumer_context.pg_pool,
+        )
+        .await?
+        {
+            Some(redemption) => {
+                info!("Redemption already exists: {:?}", redemption);
+                return Ok(());
+            }
+            None => {
+                info!("Redemption does not exist, creating it");
+            }
+        }
 
         // 1. Ensure the vault exists
         let vault = Vault::find_by_term_id_and_curve_id(

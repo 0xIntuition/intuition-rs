@@ -10,11 +10,11 @@ spec:
   generators:
     - list:
         elements:
-          - cluster: prod-eks
-            server: 'https://kubernetes.default.svc'
-            revision: next
-            env: prod-linea-mainnet-v-1-0
-            namespace: prod-linea-mainnet-v-1-0
+          # - cluster: prod-eks
+          #   server: 'https://kubernetes.default.svc'
+          #   revision: next
+          #   env: prod-linea-mainnet-v-1-0
+          #   namespace: prod-linea-mainnet-v-1-0
 
   template:
     metadata:
@@ -30,6 +30,13 @@ spec:
         kustomize:
           namePrefix: '{{.namespace}}-'
           patches:
+            - target:
+                kind: SecretProviderClass
+                name: 'vectorizer-worker-secret'
+              patch: |-
+                - op: replace
+                  path: /spec/secretObjects/0/secretName
+                  value: '{{.namespace}}-vectorizer-worker-secret'
             - target:
                 kind: Deployment
                 name: timescale-db-vectorizer

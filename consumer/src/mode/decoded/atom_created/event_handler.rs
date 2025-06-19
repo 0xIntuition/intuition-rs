@@ -10,6 +10,7 @@ use crate::{
     schemas::types::DecodedMessage,
 };
 use models::{
+    atom::Atom,
     event::{Event, EventType},
     traits::SimpleCrud,
     types::U256Wrapper,
@@ -30,6 +31,23 @@ where
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
         info!("Handling atom creation: {self:#?}");
+
+        // Check if the atom already exists, skip if it does
+        match Atom::find_by_id(
+            self.0.term_id()?,
+            &decoded_consumer_context.backend_schema,
+            &decoded_consumer_context.pg_pool,
+        )
+        .await?
+        {
+            Some(atom) => {
+                info!("Atom already exists: {:?}", atom);
+                return Ok(());
+            }
+            None => {
+                info!("Atom does not exist, creating it");
+            }
+        }
         // Update the vault current share price
         let (_vault, mut atom) = self
             .0

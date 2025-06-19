@@ -8,6 +8,7 @@ use crate::{
     schemas::types::DecodedMessage,
 };
 use models::{
+    deposit::Deposit,
     event::{Event, EventType},
     traits::SimpleCrud,
     types::U256Wrapper,
@@ -28,6 +29,23 @@ where
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
         info!("Handling Deposited / DepositedCurve event: {:?}", self.0);
+
+        // Check if the deposit already exists, skip if it does
+        match Deposit::find_by_id(
+            DecodedMessage::event_id(event),
+            &decoded_consumer_context.backend_schema,
+            &decoded_consumer_context.pg_pool,
+        )
+        .await?
+        {
+            Some(deposit) => {
+                info!("Deposit already exists: {:?}", deposit);
+                return Ok(());
+            }
+            None => {
+                info!("Deposit does not exist, creating it");
+            }
+        }
 
         // We need to process the deposit one way or another, so the accounts, vault and term
         // must be initialized. This dont need to be part of the transaction.

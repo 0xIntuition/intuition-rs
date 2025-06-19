@@ -3,6 +3,7 @@ use tracing::info;
 
 use models::{
     event::{Event, EventType},
+    fee_transfer::FeeTransfer,
     traits::SimpleCrud,
     types::U256Wrapper,
 };
@@ -32,6 +33,23 @@ where
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
         info!("Handling fees transfer: {:#?}", self.0);
+
+        // Check if the fee transfer already exists, skip if it does
+        match FeeTransfer::find_by_id(
+            DecodedMessage::event_id(event),
+            &decoded_consumer_context.backend_schema,
+            &decoded_consumer_context.pg_pool,
+        )
+        .await?
+        {
+            Some(fee_transfer) => {
+                info!("Fee transfer already exists: {:?}", fee_transfer);
+                return Ok(());
+            }
+            None => {
+                info!("Fee transfer does not exist, creating it");
+            }
+        }
 
         // Get or create the sender account
         let sender_account =
