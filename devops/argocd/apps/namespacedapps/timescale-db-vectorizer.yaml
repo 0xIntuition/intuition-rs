@@ -1,0 +1,29 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: timescale-db-vectorizer
+  namespace: argocd
+spec:
+  project: prod
+  source:
+    repoURL: 'https://github.com/0xintuition/intuition-rs.git'
+    targetRevision: next
+    path: devops/aws-rolling-releases/timescale_vectorizer_worker/overlays/base_mainnet
+    kustomize:
+      patches:
+        - target:
+            kind: Deployment
+            name: timescale-db-vectorizer
+          patch: |-
+            - op: replace
+              path: /spec/template/spec/serviceAccountName
+              value: prod-eks-secrets-access-sa
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true

@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: timescale-db
+spec:
+  template:
+    spec:
+      serviceAccountName: secrets-access-sa
+      containers:
+        - name: timescale-db
+          volumeMounts:
+            - name: secrets-store-inline
+              mountPath: "/mnt/secrets"
+              readOnly: true
+            - name: timescale-db-data
+              mountPath: /var/lib/postgresql/data
+          envFrom:
+            - secretRef:
+                name: prod-linea-mainnet-v-1-5-vector-aws-secrets
+      volumes:
+        - name: secrets-store-inline
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: "prod-linea-mainnet-v-1-5-vector-aws-secrets"
+        - name: timescale-db-data
+          persistentVolumeClaim:
+            claimName: timescale-db-data

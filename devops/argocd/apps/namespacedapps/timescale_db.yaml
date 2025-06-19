@@ -1,0 +1,48 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: timescale-db
+  namespace: argocd
+spec:
+  goTemplate: true
+  syncPolicy:
+    preserveResourcesOnDeletion: true
+  generators:
+    - list:
+        elements:
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: next
+            env: prod-linea-mainnet-v-1-0
+            namespace: prod-linea-mainnet-v-1-0
+
+  template:
+    metadata:
+      name: '{{.cluster}}-timescale-db-{{.namespace}}'
+      annotations:
+        argocd.argoproj.io/manifest-generate-paths: '.;/devops/argocd'
+    spec:
+      project: default
+      source:
+        repoURL: 'https://github.com/0xintuition/intuition-rs.git'
+        targetRevision: '{{.revision}}'
+        path: 'devops/aws-rolling-releases/timescale_db/overlays/{{.env}}'
+        kustomize:
+          namePrefix: '{{.namespace}}-'
+          patches:
+            - target:
+                kind: StatefulSet
+                name: timescale-db
+              patch: |-
+                - op: replace
+                  path: /spec/template/spec/serviceAccountName
+                  value: '{{.cluster}}-secrets-access-sa'
+      destination:
+        server: '{{.server}}'
+        namespace: 'default'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+        - CreateNamespace=true
