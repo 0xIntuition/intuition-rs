@@ -14,11 +14,11 @@ spec:
               readOnly: true
           envFrom:
             - secretRef:
-                name: prod-linea-mainnet-v-1-0-vectorizer-secrets
+                name: vectorizer-worker-secret
       volumes:
         - name: secrets-store-inline
           csi:
             driver: secrets-store.csi.k8s.io
             readOnly: true
             volumeAttributes:
-              secretProviderClass: "prod-linea-mainnet-v-1-0-vectorizer-secrets"
+              secretProviderClass: "vectorizer-worker-secret"

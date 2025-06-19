@@ -45,11 +45,30 @@ spec:
                   path: /spec/template/spec/serviceAccountName
                   value: '{{.cluster}}-secrets-access-sa'
                 - op: replace
+                  path: /spec/template/spec/volumes/0/csi/volumeAttributes/secretProviderClass
+                  value: '{{.namespace}}-timescaledb-aws-secrets'
+                - op: replace
+                  path: /spec/template/spec/containers/0/envFrom/0/secretRef/name
+                  value: '{{.namespace}}-timescaledb-aws-secrets'
+                - op: replace
                   path: /spec/template/spec/containers/0/resources/requests/cpu
                   value: "1"
                 - op: replace
                   path: /spec/template/spec/containers/0/resources/limits/cpu
                   value: "1"
+            - target:
+                kind: Job
+                name: timescale-db-pgai
+              patch: |-
+                - op: replace
+                  path: /spec/template/spec/serviceAccountName
+                  value: '{{.cluster}}-secrets-access-sa'
+                - op: replace
+                  path: /spec/template/spec/volumes/0/csi/volumeAttributes/secretProviderClass
+                  value: '{{.namespace}}-timescaledb-aws-secrets'
+                - op: replace
+                  path: /spec/template/spec/containers/0/envFrom/0/secretRef/name
+                  value: '{{.namespace}}-timescaledb-aws-secrets'
       destination:
         server: '{{.server}}'
         namespace: 'default'
