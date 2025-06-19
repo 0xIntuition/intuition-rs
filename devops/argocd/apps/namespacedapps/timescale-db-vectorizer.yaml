@@ -1,29 +1,54 @@
 apiVersion: argoproj.io/v1alpha1
-kind: Application
+kind: ApplicationSet
 metadata:
   name: timescale-db-vectorizer
   namespace: argocd
 spec:
-  project: prod
-  source:
-    repoURL: 'https://github.com/0xintuition/intuition-rs.git'
-    targetRevision: next
-    path: devops/aws-rolling-releases/timescale_vectorizer_worker/overlays/base_mainnet
-    kustomize:
-      patches:
-        - target:
-            kind: Deployment
-            name: timescale-db-vectorizer
-          patch: |-
-            - op: replace
-              path: /spec/template/spec/serviceAccountName
-              value: prod-eks-secrets-access-sa
-  destination:
-    server: 'https://kubernetes.default.svc'
-    namespace: default
+  goTemplate: true
   syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-    syncOptions:
-    - CreateNamespace=true
+    preserveResourcesOnDeletion: true
+  generators:
+    - list:
+        elements:
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: next
+            env: prod-linea-mainnet-v-1-0
+            namespace: prod-linea-mainnet-v-1-0
+
+  template:
+    metadata:
+      name: '{{.cluster}}-timescale-db-vectorizer-{{.namespace}}'
+      annotations:
+        argocd.argoproj.io/manifest-generate-paths: '.;/devops/argocd'
+    spec:
+      project: default
+      source:
+        repoURL: 'https://github.com/0xintuition/intuition-rs.git'
+        targetRevision: '{{.revision}}'
+        path: 'devops/aws-rolling-releases/timescale_vectorizer_worker/overlays/{{.env}}'
+        kustomize:
+          namePrefix: '{{.namespace}}-'
+          patches:
+            - target:
+                kind: Deployment
+                name: timescale-db-vectorizer
+              patch: |-
+                - op: replace
+                  path: /spec/template/spec/serviceAccountName
+                  value: '{{.cluster}}-secrets-access-sa'
+                - op: replace
+                  path: /spec/template/spec/volumes/0/csi/volumeAttributes/secretProviderClass
+                  value: '{{.namespace}}-vectorizer-worker-secret'
+                - op: replace
+                  path: /spec/template/spec/containers/0/envFrom/0/secretRef/name
+                  value: '{{.namespace}}-vectorizer-worker-secret'
+      destination:
+        server: '{{.server}}'
+        namespace: 'default'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+        - CreateNamespace=true
