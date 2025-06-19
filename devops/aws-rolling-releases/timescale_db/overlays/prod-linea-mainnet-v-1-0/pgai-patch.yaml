@@ -13,11 +13,11 @@ spec:
           imagePullPolicy: Always
           envFrom:
             - secretRef:
-                name: prod-linea-mainnet-v-1-5-vector-aws-secrets
+                name: timescaledb-aws-secrets
       volumes:
         - name: secrets-store-inline
           csi:
             driver: secrets-store.csi.k8s.io
             readOnly: true
             volumeAttributes:
-              secretProviderClass: "prod-linea-mainnet-v-1-5-vector-aws-secrets"
+              secretProviderClass: "timescaledb-aws-secrets"

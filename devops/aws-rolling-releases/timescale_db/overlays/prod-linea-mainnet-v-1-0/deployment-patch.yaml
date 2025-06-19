@@ -16,14 +16,14 @@ spec:
               mountPath: /var/lib/postgresql/data
           envFrom:
             - secretRef:
-                name: prod-linea-mainnet-v-1-5-vector-aws-secrets
+                name: timescaledb-aws-secrets
       volumes:
         - name: secrets-store-inline
           csi:
             driver: secrets-store.csi.k8s.io
             readOnly: true
             volumeAttributes:
-              secretProviderClass: "prod-linea-mainnet-v-1-5-vector-aws-secrets"
+              secretProviderClass: "timescaledb-aws-secrets"
         - name: timescale-db-data-linea-mainnet-v-1-0
           persistentVolumeClaim:
             claimName: timescale-db-data-linea-mainnet-v-1-0

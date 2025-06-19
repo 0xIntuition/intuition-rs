@@ -31,6 +31,13 @@ spec:
           namePrefix: '{{.namespace}}-'
           patches:
             - target:
+                kind: SecretProviderClass
+                name: 'timescaledb-aws-secrets'
+              patch: |-
+                - op: replace
+                  path: /spec/secretObjects/0/secretName
+                  value: '{{.namespace}}-timescaledb-aws-secrets'
+            - target:
                 kind: StatefulSet
                 name: timescale-db
               patch: |-
