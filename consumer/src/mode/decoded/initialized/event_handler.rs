@@ -35,7 +35,7 @@ where
 
         // Check if the initialized already exists, skip if it does
         match Initialize::find_by_id(
-            self.0.version()?.to_string(),
+            self.0.version()?,
             &decoded_consumer_context.backend_schema,
             &decoded_consumer_context.pg_pool,
         )

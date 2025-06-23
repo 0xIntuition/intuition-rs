@@ -24,7 +24,7 @@ impl Model for Initialize {}
 
 /// This trait works as a contract for all models that need to be upserted into the database.
 #[async_trait]
-impl SimpleCrud<String> for Initialize {
+impl SimpleCrud<i64> for Initialize {
     /// Upserts a fee transfer record in the database.
     /// If a record with the same ID exists, it will be updated, otherwise a new record will be created.
     async fn upsert<'e, E>(&self, schema: &str, executor: E) -> Result<Self, ModelError>
@@ -65,7 +65,7 @@ impl SimpleCrud<String> for Initialize {
     /// Finds a fee transfer record by its ID.
     /// Returns None if no record is found.
     async fn find_by_id<'e, E>(
-        id: String,
+        id: i64,
         schema: &str,
         executor: E,
     ) -> Result<Option<Self>, ModelError>
