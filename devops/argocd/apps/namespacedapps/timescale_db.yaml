@@ -10,11 +10,11 @@ spec:
   generators:
     - list:
         elements:
-          # - cluster: prod-eks
-          #   server: 'https://kubernetes.default.svc'
-          #   revision: next
-          #   env: prod-linea-mainnet-v-1-0
-          #   namespace: prod-linea-mainnet-v-1-0
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: next
+            env: prod-linea-mainnet-v-1-0
+            namespace: prod-linea-mainnet-v-1-0
 
   template:
     metadata:
@@ -38,6 +38,13 @@ spec:
                   path: /spec/secretObjects/0/secretName
                   value: '{{.namespace}}-timescaledb-aws-secrets'
             - target:
+                kind: Service
+                name: timescale-db
+              patch: |-
+                - op: add
+                  path: /spec/selector/env
+                  value: '{{.namespace}}'
+            - target:
                 kind: StatefulSet
                 name: timescale-db
               patch: |-
@@ -52,10 +59,16 @@ spec:
                   value: '{{.namespace}}-timescaledb-aws-secrets'
                 - op: replace
                   path: /spec/template/spec/containers/0/resources/requests/cpu
-                  value: "1"
+                  value: "2"
                 - op: replace
                   path: /spec/template/spec/containers/0/resources/limits/cpu
-                  value: "1"
+                  value: "2"
+                - op: add
+                  path: /spec/template/metadata/labels/env
+                  value: '{{.namespace}}'
+                - op: replace
+                  path: /spec/selector/matchLabels/env
+                  value: '{{.namespace}}'
             - target:
                 kind: Job
                 name: timescale-db-pgai
