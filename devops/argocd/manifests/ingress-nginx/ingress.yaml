@@ -12,6 +12,7 @@ metadata:
     nginx.ingress.kubernetes.io/limit-by: "binary_remote_addr"
     nginx.ingress.kubernetes.io/limit-rate-after: "0"
     nginx.ingress.kubernetes.io/limit-rate: "0"
+    nginx.ingress.kubernetes.io/limit-req-status: "429"
 spec:
   ingressClassName: nginx
   tls:
