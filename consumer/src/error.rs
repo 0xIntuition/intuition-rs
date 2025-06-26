@@ -95,8 +95,6 @@ pub enum ConsumerError {
     FailedToGetBytes,
     #[error(transparent)]
     Hex(#[from] hex::FromHexError),
-    #[error(transparent)]
-    HexConversion(#[from] rustc_hex::FromHexError),
     #[error("Indexer database URL not found")]
     IndexerDatabaseUrlNotFound,
     #[error("Indexer schema not found")]

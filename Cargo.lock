@@ -2217,7 +2217,6 @@ dependencies = [
  "prometheus",
  "regex",
  "reqwest 0.12.9",
- "rustc-hex",
  "serde",
  "serde_json",
  "shared-utils",

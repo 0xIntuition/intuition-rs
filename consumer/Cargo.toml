@@ -6,7 +6,6 @@ edition = "2024"
 [dependencies]
 clap = { version = "4.4.7", features = ["derive"] }
 hex = "0.4.3"
-rustc-hex = "2.1.0"
 sqlx-core = "0.8.0"
 
 # Local dependencies
