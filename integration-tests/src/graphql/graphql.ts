@@ -4514,14 +4514,26 @@ export type Query_Root = {
   search_term_from_following: Array<Terms>;
   /** execute function "search_term_from_following" and query aggregates on result of table type "term" */
   search_term_from_following_aggregate: Terms_Aggregate;
-  /** fetch data from the table: "share_price_change" using primary key columns */
-  share_price_change?: Maybe<Share_Price_Changes>;
+  /** fetch data from the table: "share_price_change_stats_daily" */
+  share_price_change_stats_daily: Array<Share_Price_Change_Stats_Daily>;
+  /** fetch data from the table: "share_price_change_stats_hourly" */
+  share_price_change_stats_hourly: Array<Share_Price_Change_Stats_Hourly>;
+  /** fetch data from the table: "share_price_change_stats_monthly" */
+  share_price_change_stats_monthly: Array<Share_Price_Change_Stats_Monthly>;
+  /** fetch data from the table: "share_price_change_stats_weekly" */
+  share_price_change_stats_weekly: Array<Share_Price_Change_Stats_Weekly>;
   /** fetch data from the table: "share_price_change" */
   share_price_changes: Array<Share_Price_Changes>;
   /** fetch aggregated fields from the table: "share_price_change" */
   share_price_changes_aggregate: Share_Price_Changes_Aggregate;
-  /** fetch data from the table: "signal" using primary key columns */
-  signal?: Maybe<Signals>;
+  /** fetch data from the table: "signal_stats_daily" */
+  signal_stats_daily: Array<Signal_Stats_Daily>;
+  /** fetch data from the table: "signal_stats_hourly" */
+  signal_stats_hourly: Array<Signal_Stats_Hourly>;
+  /** fetch data from the table: "signal_stats_monthly" */
+  signal_stats_monthly: Array<Signal_Stats_Monthly>;
+  /** fetch data from the table: "signal_stats_weekly" */
+  signal_stats_weekly: Array<Signal_Stats_Weekly>;
   /** An array relationship */
   signals: Array<Signals>;
   /** An aggregate relationship */
@@ -4556,6 +4568,14 @@ export type Query_Root = {
   things_aggregate: Things_Aggregate;
   /** fetch data from the table: "triple" using primary key columns */
   triple?: Maybe<Triples>;
+  /** fetch data from the table: "triple_term" */
+  triple_term: Array<Triple_Term>;
+  /** fetch data from the table: "triple_term" using primary key columns */
+  triple_term_by_pk?: Maybe<Triple_Term>;
+  /** fetch data from the table: "triple_vault" */
+  triple_vault: Array<Triple_Vault>;
+  /** fetch data from the table: "triple_vault" using primary key columns */
+  triple_vault_by_pk?: Maybe<Triple_Vault>;
   /** An array relationship */
   triples: Array<Triples>;
   /** An aggregate relationship */
@@ -5036,8 +5056,39 @@ export type Query_RootSearch_Term_From_Following_AggregateArgs = {
 };
 
 
-export type Query_RootShare_Price_ChangeArgs = {
-  id: Scalars['bigint']['input'];
+export type Query_RootShare_Price_Change_Stats_DailyArgs = {
+  distinct_on?: InputMaybe<Array<Share_Price_Change_Stats_Daily_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Share_Price_Change_Stats_Daily_Order_By>>;
+  where?: InputMaybe<Share_Price_Change_Stats_Daily_Bool_Exp>;
+};
+
+
+export type Query_RootShare_Price_Change_Stats_HourlyArgs = {
+  distinct_on?: InputMaybe<Array<Share_Price_Change_Stats_Hourly_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Share_Price_Change_Stats_Hourly_Order_By>>;
+  where?: InputMaybe<Share_Price_Change_Stats_Hourly_Bool_Exp>;
+};
+
+
+export type Query_RootShare_Price_Change_Stats_MonthlyArgs = {
+  distinct_on?: InputMaybe<Array<Share_Price_Change_Stats_Monthly_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Share_Price_Change_Stats_Monthly_Order_By>>;
+  where?: InputMaybe<Share_Price_Change_Stats_Monthly_Bool_Exp>;
+};
+
+
+export type Query_RootShare_Price_Change_Stats_WeeklyArgs = {
+  distinct_on?: InputMaybe<Array<Share_Price_Change_Stats_Weekly_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Share_Price_Change_Stats_Weekly_Order_By>>;
+  where?: InputMaybe<Share_Price_Change_Stats_Weekly_Bool_Exp>;
 };
 
 
@@ -5059,8 +5110,39 @@ export type Query_RootShare_Price_Changes_AggregateArgs = {
 };
 
 
-export type Query_RootSignalArgs = {
-  id: Scalars['String']['input'];
+export type Query_RootSignal_Stats_DailyArgs = {
+  distinct_on?: InputMaybe<Array<Signal_Stats_Daily_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Signal_Stats_Daily_Order_By>>;
+  where?: InputMaybe<Signal_Stats_Daily_Bool_Exp>;
+};
+
+
+export type Query_RootSignal_Stats_HourlyArgs = {
+  distinct_on?: InputMaybe<Array<Signal_Stats_Hourly_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Signal_Stats_Hourly_Order_By>>;
+  where?: InputMaybe<Signal_Stats_Hourly_Bool_Exp>;
+};
+
+
+export type Query_RootSignal_Stats_MonthlyArgs = {
+  distinct_on?: InputMaybe<Array<Signal_Stats_Monthly_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Signal_Stats_Monthly_Order_By>>;
+  where?: InputMaybe<Signal_Stats_Monthly_Bool_Exp>;
+};
+
+
+export type Query_RootSignal_Stats_WeeklyArgs = {
+  distinct_on?: InputMaybe<Array<Signal_Stats_Weekly_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Signal_Stats_Weekly_Order_By>>;
+  where?: InputMaybe<Signal_Stats_Weekly_Bool_Exp>;
 };
 
 
@@ -5195,6 +5277,35 @@ export type Query_RootThings_AggregateArgs = {
 
 
 export type Query_RootTripleArgs = {
+  term_id: Scalars['numeric']['input'];
+};
+
+
+export type Query_RootTriple_TermArgs = {
+  distinct_on?: InputMaybe<Array<Triple_Term_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Triple_Term_Order_By>>;
+  where?: InputMaybe<Triple_Term_Bool_Exp>;
+};
+
+
+export type Query_RootTriple_Term_By_PkArgs = {
+  term_id: Scalars['numeric']['input'];
+};
+
+
+export type Query_RootTriple_VaultArgs = {
+  distinct_on?: InputMaybe<Array<Triple_Vault_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Triple_Vault_Order_By>>;
+  where?: InputMaybe<Triple_Vault_Bool_Exp>;
+};
+
+
+export type Query_RootTriple_Vault_By_PkArgs = {
+  curve_id: Scalars['numeric']['input'];
   term_id: Scalars['numeric']['input'];
 };
 
@@ -5675,6 +5786,318 @@ export type Search_Term_From_Following_Args = {
   query?: InputMaybe<Scalars['String']['input']>;
 };
 
+/** columns and relationships of "share_price_change_stats_daily" */
+export type Share_Price_Change_Stats_Daily = {
+  __typename?: 'share_price_change_stats_daily';
+  bucket?: Maybe<Scalars['timestamptz']['output']>;
+  change_count?: Maybe<Scalars['numeric']['output']>;
+  curve_id?: Maybe<Scalars['numeric']['output']>;
+  difference?: Maybe<Scalars['numeric']['output']>;
+  first_share_price?: Maybe<Scalars['numeric']['output']>;
+  last_share_price?: Maybe<Scalars['numeric']['output']>;
+  /** An object relationship */
+  term?: Maybe<Terms>;
+  term_id?: Maybe<Scalars['numeric']['output']>;
+};
+
+/** Boolean expression to filter rows from the table "share_price_change_stats_daily". All fields are combined with a logical 'AND'. */
+export type Share_Price_Change_Stats_Daily_Bool_Exp = {
+  _and?: InputMaybe<Array<Share_Price_Change_Stats_Daily_Bool_Exp>>;
+  _not?: InputMaybe<Share_Price_Change_Stats_Daily_Bool_Exp>;
+  _or?: InputMaybe<Array<Share_Price_Change_Stats_Daily_Bool_Exp>>;
+  bucket?: InputMaybe<Timestamptz_Comparison_Exp>;
+  change_count?: InputMaybe<Numeric_Comparison_Exp>;
+  curve_id?: InputMaybe<Numeric_Comparison_Exp>;
+  difference?: InputMaybe<Numeric_Comparison_Exp>;
+  first_share_price?: InputMaybe<Numeric_Comparison_Exp>;
+  last_share_price?: InputMaybe<Numeric_Comparison_Exp>;
+  term?: InputMaybe<Terms_Bool_Exp>;
+  term_id?: InputMaybe<Numeric_Comparison_Exp>;
+};
+
+/** Ordering options when selecting data from "share_price_change_stats_daily". */
+export type Share_Price_Change_Stats_Daily_Order_By = {
+  bucket?: InputMaybe<Order_By>;
+  change_count?: InputMaybe<Order_By>;
+  curve_id?: InputMaybe<Order_By>;
+  difference?: InputMaybe<Order_By>;
+  first_share_price?: InputMaybe<Order_By>;
+  last_share_price?: InputMaybe<Order_By>;
+  term?: InputMaybe<Terms_Order_By>;
+  term_id?: InputMaybe<Order_By>;
+};
+
+/** select columns of table "share_price_change_stats_daily" */
+export enum Share_Price_Change_Stats_Daily_Select_Column {
+  /** column name */
+  Bucket = 'bucket',
+  /** column name */
+  ChangeCount = 'change_count',
+  /** column name */
+  CurveId = 'curve_id',
+  /** column name */
+  Difference = 'difference',
+  /** column name */
+  FirstSharePrice = 'first_share_price',
+  /** column name */
+  LastSharePrice = 'last_share_price',
+  /** column name */
+  TermId = 'term_id'
+}
+
+/** Streaming cursor of the table "share_price_change_stats_daily" */
+export type Share_Price_Change_Stats_Daily_Stream_Cursor_Input = {
+  /** Stream column input with initial value */
+  initial_value: Share_Price_Change_Stats_Daily_Stream_Cursor_Value_Input;
+  /** cursor ordering */
+  ordering?: InputMaybe<Cursor_Ordering>;
+};
+
+/** Initial value of the column from where the streaming should start */
+export type Share_Price_Change_Stats_Daily_Stream_Cursor_Value_Input = {
+  bucket?: InputMaybe<Scalars['timestamptz']['input']>;
+  change_count?: InputMaybe<Scalars['numeric']['input']>;
+  curve_id?: InputMaybe<Scalars['numeric']['input']>;
+  difference?: InputMaybe<Scalars['numeric']['input']>;
+  first_share_price?: InputMaybe<Scalars['numeric']['input']>;
+  last_share_price?: InputMaybe<Scalars['numeric']['input']>;
+  term_id?: InputMaybe<Scalars['numeric']['input']>;
+};
+
+/** columns and relationships of "share_price_change_stats_hourly" */
+export type Share_Price_Change_Stats_Hourly = {
+  __typename?: 'share_price_change_stats_hourly';
+  bucket?: Maybe<Scalars['timestamptz']['output']>;
+  change_count?: Maybe<Scalars['bigint']['output']>;
+  curve_id?: Maybe<Scalars['numeric']['output']>;
+  difference?: Maybe<Scalars['numeric']['output']>;
+  first_share_price?: Maybe<Scalars['numeric']['output']>;
+  last_share_price?: Maybe<Scalars['numeric']['output']>;
+  /** An object relationship */
+  term?: Maybe<Terms>;
+  term_id?: Maybe<Scalars['numeric']['output']>;
+};
+
+/** Boolean expression to filter rows from the table "share_price_change_stats_hourly". All fields are combined with a logical 'AND'. */
+export type Share_Price_Change_Stats_Hourly_Bool_Exp = {
+  _and?: InputMaybe<Array<Share_Price_Change_Stats_Hourly_Bool_Exp>>;
+  _not?: InputMaybe<Share_Price_Change_Stats_Hourly_Bool_Exp>;
+  _or?: InputMaybe<Array<Share_Price_Change_Stats_Hourly_Bool_Exp>>;
+  bucket?: InputMaybe<Timestamptz_Comparison_Exp>;
+  change_count?: InputMaybe<Bigint_Comparison_Exp>;
+  curve_id?: InputMaybe<Numeric_Comparison_Exp>;
+  difference?: InputMaybe<Numeric_Comparison_Exp>;
+  first_share_price?: InputMaybe<Numeric_Comparison_Exp>;
+  last_share_price?: InputMaybe<Numeric_Comparison_Exp>;
+  term?: InputMaybe<Terms_Bool_Exp>;
+  term_id?: InputMaybe<Numeric_Comparison_Exp>;
+};
+
+/** Ordering options when selecting data from "share_price_change_stats_hourly". */
+export type Share_Price_Change_Stats_Hourly_Order_By = {
+  bucket?: InputMaybe<Order_By>;
+  change_count?: InputMaybe<Order_By>;
+  curve_id?: InputMaybe<Order_By>;
+  difference?: InputMaybe<Order_By>;
+  first_share_price?: InputMaybe<Order_By>;
+  last_share_price?: InputMaybe<Order_By>;
+  term?: InputMaybe<Terms_Order_By>;
+  term_id?: InputMaybe<Order_By>;
+};
+
+/** select columns of table "share_price_change_stats_hourly" */
+export enum Share_Price_Change_Stats_Hourly_Select_Column {
+  /** column name */
+  Bucket = 'bucket',
+  /** column name */
+  ChangeCount = 'change_count',
+  /** column name */
+  CurveId = 'curve_id',
+  /** column name */
+  Difference = 'difference',
+  /** column name */
+  FirstSharePrice = 'first_share_price',
+  /** column name */
+  LastSharePrice = 'last_share_price',
+  /** column name */
+  TermId = 'term_id'
+}
+
+/** Streaming cursor of the table "share_price_change_stats_hourly" */
+export type Share_Price_Change_Stats_Hourly_Stream_Cursor_Input = {
+  /** Stream column input with initial value */
+  initial_value: Share_Price_Change_Stats_Hourly_Stream_Cursor_Value_Input;
+  /** cursor ordering */
+  ordering?: InputMaybe<Cursor_Ordering>;
+};
+
+/** Initial value of the column from where the streaming should start */
+export type Share_Price_Change_Stats_Hourly_Stream_Cursor_Value_Input = {
+  bucket?: InputMaybe<Scalars['timestamptz']['input']>;
+  change_count?: InputMaybe<Scalars['bigint']['input']>;
+  curve_id?: InputMaybe<Scalars['numeric']['input']>;
+  difference?: InputMaybe<Scalars['numeric']['input']>;
+  first_share_price?: InputMaybe<Scalars['numeric']['input']>;
+  last_share_price?: InputMaybe<Scalars['numeric']['input']>;
+  term_id?: InputMaybe<Scalars['numeric']['input']>;
+};
+
+/** columns and relationships of "share_price_change_stats_monthly" */
+export type Share_Price_Change_Stats_Monthly = {
+  __typename?: 'share_price_change_stats_monthly';
+  bucket?: Maybe<Scalars['timestamptz']['output']>;
+  change_count?: Maybe<Scalars['numeric']['output']>;
+  curve_id?: Maybe<Scalars['numeric']['output']>;
+  difference?: Maybe<Scalars['numeric']['output']>;
+  first_share_price?: Maybe<Scalars['numeric']['output']>;
+  last_share_price?: Maybe<Scalars['numeric']['output']>;
+  /** An object relationship */
+  term?: Maybe<Terms>;
+  term_id?: Maybe<Scalars['numeric']['output']>;
+};
+
+/** Boolean expression to filter rows from the table "share_price_change_stats_monthly". All fields are combined with a logical 'AND'. */
+export type Share_Price_Change_Stats_Monthly_Bool_Exp = {
+  _and?: InputMaybe<Array<Share_Price_Change_Stats_Monthly_Bool_Exp>>;
+  _not?: InputMaybe<Share_Price_Change_Stats_Monthly_Bool_Exp>;
+  _or?: InputMaybe<Array<Share_Price_Change_Stats_Monthly_Bool_Exp>>;
+  bucket?: InputMaybe<Timestamptz_Comparison_Exp>;
+  change_count?: InputMaybe<Numeric_Comparison_Exp>;
+  curve_id?: InputMaybe<Numeric_Comparison_Exp>;
+  difference?: InputMaybe<Numeric_Comparison_Exp>;
+  first_share_price?: InputMaybe<Numeric_Comparison_Exp>;
+  last_share_price?: InputMaybe<Numeric_Comparison_Exp>;
+  term?: InputMaybe<Terms_Bool_Exp>;
+  term_id?: InputMaybe<Numeric_Comparison_Exp>;
+};
+
+/** Ordering options when selecting data from "share_price_change_stats_monthly". */
+export type Share_Price_Change_Stats_Monthly_Order_By = {
+  bucket?: InputMaybe<Order_By>;
+  change_count?: InputMaybe<Order_By>;
+  curve_id?: InputMaybe<Order_By>;
+  difference?: InputMaybe<Order_By>;
+  first_share_price?: InputMaybe<Order_By>;
+  last_share_price?: InputMaybe<Order_By>;
+  term?: InputMaybe<Terms_Order_By>;
+  term_id?: InputMaybe<Order_By>;
+};
+
+/** select columns of table "share_price_change_stats_monthly" */
+export enum Share_Price_Change_Stats_Monthly_Select_Column {
+  /** column name */
+  Bucket = 'bucket',
+  /** column name */
+  ChangeCount = 'change_count',
+  /** column name */
+  CurveId = 'curve_id',
+  /** column name */
+  Difference = 'difference',
+  /** column name */
+  FirstSharePrice = 'first_share_price',
+  /** column name */
+  LastSharePrice = 'last_share_price',
+  /** column name */
+  TermId = 'term_id'
+}
+
+/** Streaming cursor of the table "share_price_change_stats_monthly" */
+export type Share_Price_Change_Stats_Monthly_Stream_Cursor_Input = {
+  /** Stream column input with initial value */
+  initial_value: Share_Price_Change_Stats_Monthly_Stream_Cursor_Value_Input;
+  /** cursor ordering */
+  ordering?: InputMaybe<Cursor_Ordering>;
+};
+
+/** Initial value of the column from where the streaming should start */
+export type Share_Price_Change_Stats_Monthly_Stream_Cursor_Value_Input = {
+  bucket?: InputMaybe<Scalars['timestamptz']['input']>;
+  change_count?: InputMaybe<Scalars['numeric']['input']>;
+  curve_id?: InputMaybe<Scalars['numeric']['input']>;
+  difference?: InputMaybe<Scalars['numeric']['input']>;
+  first_share_price?: InputMaybe<Scalars['numeric']['input']>;
+  last_share_price?: InputMaybe<Scalars['numeric']['input']>;
+  term_id?: InputMaybe<Scalars['numeric']['input']>;
+};
+
+/** columns and relationships of "share_price_change_stats_weekly" */
+export type Share_Price_Change_Stats_Weekly = {
+  __typename?: 'share_price_change_stats_weekly';
+  bucket?: Maybe<Scalars['timestamptz']['output']>;
+  change_count?: Maybe<Scalars['numeric']['output']>;
+  curve_id?: Maybe<Scalars['numeric']['output']>;
+  difference?: Maybe<Scalars['numeric']['output']>;
+  first_share_price?: Maybe<Scalars['numeric']['output']>;
+  last_share_price?: Maybe<Scalars['numeric']['output']>;
+  /** An object relationship */
+  term?: Maybe<Terms>;
+  term_id?: Maybe<Scalars['numeric']['output']>;
+};
+
+/** Boolean expression to filter rows from the table "share_price_change_stats_weekly". All fields are combined with a logical 'AND'. */
+export type Share_Price_Change_Stats_Weekly_Bool_Exp = {
+  _and?: InputMaybe<Array<Share_Price_Change_Stats_Weekly_Bool_Exp>>;
+  _not?: InputMaybe<Share_Price_Change_Stats_Weekly_Bool_Exp>;
+  _or?: InputMaybe<Array<Share_Price_Change_Stats_Weekly_Bool_Exp>>;
+  bucket?: InputMaybe<Timestamptz_Comparison_Exp>;
+  change_count?: InputMaybe<Numeric_Comparison_Exp>;
+  curve_id?: InputMaybe<Numeric_Comparison_Exp>;
+  difference?: InputMaybe<Numeric_Comparison_Exp>;
+  first_share_price?: InputMaybe<Numeric_Comparison_Exp>;
+  last_share_price?: InputMaybe<Numeric_Comparison_Exp>;
+  term?: InputMaybe<Terms_Bool_Exp>;
+  term_id?: InputMaybe<Numeric_Comparison_Exp>;
+};
+
+/** Ordering options when selecting data from "share_price_change_stats_weekly". */
+export type Share_Price_Change_Stats_Weekly_Order_By = {
+  bucket?: InputMaybe<Order_By>;
+  change_count?: InputMaybe<Order_By>;
+  curve_id?: InputMaybe<Order_By>;
+  difference?: InputMaybe<Order_By>;
+  first_share_price?: InputMaybe<Order_By>;
+  last_share_price?: InputMaybe<Order_By>;
+  term?: InputMaybe<Terms_Order_By>;
+  term_id?: InputMaybe<Order_By>;
+};
+
+/** select columns of table "share_price_change_stats_weekly" */
+export enum Share_Price_Change_Stats_Weekly_Select_Column {
+  /** column name */
+  Bucket = 'bucket',
+  /** column name */
+  ChangeCount = 'change_count',
+  /** column name */
+  CurveId = 'curve_id',
+  /** column name */
+  Difference = 'difference',
+  /** column name */
+  FirstSharePrice = 'first_share_price',
+  /** column name */
+  LastSharePrice = 'last_share_price',
+  /** column name */
+  TermId = 'term_id'
+}
+
+/** Streaming cursor of the table "share_price_change_stats_weekly" */
+export type Share_Price_Change_Stats_Weekly_Stream_Cursor_Input = {
+  /** Stream column input with initial value */
+  initial_value: Share_Price_Change_Stats_Weekly_Stream_Cursor_Value_Input;
+  /** cursor ordering */
+  ordering?: InputMaybe<Cursor_Ordering>;
+};
+
+/** Initial value of the column from where the streaming should start */
+export type Share_Price_Change_Stats_Weekly_Stream_Cursor_Value_Input = {
+  bucket?: InputMaybe<Scalars['timestamptz']['input']>;
+  change_count?: InputMaybe<Scalars['numeric']['input']>;
+  curve_id?: InputMaybe<Scalars['numeric']['input']>;
+  difference?: InputMaybe<Scalars['numeric']['input']>;
+  first_share_price?: InputMaybe<Scalars['numeric']['input']>;
+  last_share_price?: InputMaybe<Scalars['numeric']['input']>;
+  term_id?: InputMaybe<Scalars['numeric']['input']>;
+};
+
 /** columns and relationships of "share_price_change" */
 export type Share_Price_Changes = {
   __typename?: 'share_price_changes';
@@ -5689,7 +6112,7 @@ export type Share_Price_Changes = {
   total_assets: Scalars['numeric']['output'];
   total_shares: Scalars['numeric']['output'];
   transaction_hash: Scalars['String']['output'];
-  updated_at?: Maybe<Scalars['timestamptz']['output']>;
+  updated_at: Scalars['timestamptz']['output'];
   /** An object relationship */
   vault?: Maybe<Vaults>;
 };
@@ -5937,6 +6360,270 @@ export type Share_Price_Changes_Variance_Fields = {
   term_id?: Maybe<Scalars['Float']['output']>;
   total_assets?: Maybe<Scalars['Float']['output']>;
   total_shares?: Maybe<Scalars['Float']['output']>;
+};
+
+/** columns and relationships of "signal_stats_daily" */
+export type Signal_Stats_Daily = {
+  __typename?: 'signal_stats_daily';
+  bucket?: Maybe<Scalars['timestamptz']['output']>;
+  count?: Maybe<Scalars['numeric']['output']>;
+  curve_id?: Maybe<Scalars['numeric']['output']>;
+  /** An object relationship */
+  term?: Maybe<Terms>;
+  term_id?: Maybe<Scalars['numeric']['output']>;
+  volume?: Maybe<Scalars['numeric']['output']>;
+};
+
+/** Boolean expression to filter rows from the table "signal_stats_daily". All fields are combined with a logical 'AND'. */
+export type Signal_Stats_Daily_Bool_Exp = {
+  _and?: InputMaybe<Array<Signal_Stats_Daily_Bool_Exp>>;
+  _not?: InputMaybe<Signal_Stats_Daily_Bool_Exp>;
+  _or?: InputMaybe<Array<Signal_Stats_Daily_Bool_Exp>>;
+  bucket?: InputMaybe<Timestamptz_Comparison_Exp>;
+  count?: InputMaybe<Numeric_Comparison_Exp>;
+  curve_id?: InputMaybe<Numeric_Comparison_Exp>;
+  term?: InputMaybe<Terms_Bool_Exp>;
+  term_id?: InputMaybe<Numeric_Comparison_Exp>;
+  volume?: InputMaybe<Numeric_Comparison_Exp>;
+};
+
+/** Ordering options when selecting data from "signal_stats_daily". */
+export type Signal_Stats_Daily_Order_By = {
+  bucket?: InputMaybe<Order_By>;
+  count?: InputMaybe<Order_By>;
+  curve_id?: InputMaybe<Order_By>;
+  term?: InputMaybe<Terms_Order_By>;
+  term_id?: InputMaybe<Order_By>;
+  volume?: InputMaybe<Order_By>;
+};
+
+/** select columns of table "signal_stats_daily" */
+export enum Signal_Stats_Daily_Select_Column {
+  /** column name */
+  Bucket = 'bucket',
+  /** column name */
+  Count = 'count',
+  /** column name */
+  CurveId = 'curve_id',
+  /** column name */
+  TermId = 'term_id',
+  /** column name */
+  Volume = 'volume'
+}
+
+/** Streaming cursor of the table "signal_stats_daily" */
+export type Signal_Stats_Daily_Stream_Cursor_Input = {
+  /** Stream column input with initial value */
+  initial_value: Signal_Stats_Daily_Stream_Cursor_Value_Input;
+  /** cursor ordering */
+  ordering?: InputMaybe<Cursor_Ordering>;
+};
+
+/** Initial value of the column from where the streaming should start */
+export type Signal_Stats_Daily_Stream_Cursor_Value_Input = {
+  bucket?: InputMaybe<Scalars['timestamptz']['input']>;
+  count?: InputMaybe<Scalars['numeric']['input']>;
+  curve_id?: InputMaybe<Scalars['numeric']['input']>;
+  term_id?: InputMaybe<Scalars['numeric']['input']>;
+  volume?: InputMaybe<Scalars['numeric']['input']>;
+};
+
+/** columns and relationships of "signal_stats_hourly" */
+export type Signal_Stats_Hourly = {
+  __typename?: 'signal_stats_hourly';
+  bucket?: Maybe<Scalars['timestamptz']['output']>;
+  count?: Maybe<Scalars['bigint']['output']>;
+  curve_id?: Maybe<Scalars['numeric']['output']>;
+  /** An object relationship */
+  term?: Maybe<Terms>;
+  term_id?: Maybe<Scalars['numeric']['output']>;
+  volume?: Maybe<Scalars['numeric']['output']>;
+};
+
+/** Boolean expression to filter rows from the table "signal_stats_hourly". All fields are combined with a logical 'AND'. */
+export type Signal_Stats_Hourly_Bool_Exp = {
+  _and?: InputMaybe<Array<Signal_Stats_Hourly_Bool_Exp>>;
+  _not?: InputMaybe<Signal_Stats_Hourly_Bool_Exp>;
+  _or?: InputMaybe<Array<Signal_Stats_Hourly_Bool_Exp>>;
+  bucket?: InputMaybe<Timestamptz_Comparison_Exp>;
+  count?: InputMaybe<Bigint_Comparison_Exp>;
+  curve_id?: InputMaybe<Numeric_Comparison_Exp>;
+  term?: InputMaybe<Terms_Bool_Exp>;
+  term_id?: InputMaybe<Numeric_Comparison_Exp>;
+  volume?: InputMaybe<Numeric_Comparison_Exp>;
+};
+
+/** Ordering options when selecting data from "signal_stats_hourly". */
+export type Signal_Stats_Hourly_Order_By = {
+  bucket?: InputMaybe<Order_By>;
+  count?: InputMaybe<Order_By>;
+  curve_id?: InputMaybe<Order_By>;
+  term?: InputMaybe<Terms_Order_By>;
+  term_id?: InputMaybe<Order_By>;
+  volume?: InputMaybe<Order_By>;
+};
+
+/** select columns of table "signal_stats_hourly" */
+export enum Signal_Stats_Hourly_Select_Column {
+  /** column name */
+  Bucket = 'bucket',
+  /** column name */
+  Count = 'count',
+  /** column name */
+  CurveId = 'curve_id',
+  /** column name */
+  TermId = 'term_id',
+  /** column name */
+  Volume = 'volume'
+}
+
+/** Streaming cursor of the table "signal_stats_hourly" */
+export type Signal_Stats_Hourly_Stream_Cursor_Input = {
+  /** Stream column input with initial value */
+  initial_value: Signal_Stats_Hourly_Stream_Cursor_Value_Input;
+  /** cursor ordering */
+  ordering?: InputMaybe<Cursor_Ordering>;
+};
+
+/** Initial value of the column from where the streaming should start */
+export type Signal_Stats_Hourly_Stream_Cursor_Value_Input = {
+  bucket?: InputMaybe<Scalars['timestamptz']['input']>;
+  count?: InputMaybe<Scalars['bigint']['input']>;
+  curve_id?: InputMaybe<Scalars['numeric']['input']>;
+  term_id?: InputMaybe<Scalars['numeric']['input']>;
+  volume?: InputMaybe<Scalars['numeric']['input']>;
+};
+
+/** columns and relationships of "signal_stats_monthly" */
+export type Signal_Stats_Monthly = {
+  __typename?: 'signal_stats_monthly';
+  bucket?: Maybe<Scalars['timestamptz']['output']>;
+  count?: Maybe<Scalars['numeric']['output']>;
+  curve_id?: Maybe<Scalars['numeric']['output']>;
+  /** An object relationship */
+  term?: Maybe<Terms>;
+  term_id?: Maybe<Scalars['numeric']['output']>;
+  volume?: Maybe<Scalars['numeric']['output']>;
+};
+
+/** Boolean expression to filter rows from the table "signal_stats_monthly". All fields are combined with a logical 'AND'. */
+export type Signal_Stats_Monthly_Bool_Exp = {
+  _and?: InputMaybe<Array<Signal_Stats_Monthly_Bool_Exp>>;
+  _not?: InputMaybe<Signal_Stats_Monthly_Bool_Exp>;
+  _or?: InputMaybe<Array<Signal_Stats_Monthly_Bool_Exp>>;
+  bucket?: InputMaybe<Timestamptz_Comparison_Exp>;
+  count?: InputMaybe<Numeric_Comparison_Exp>;
+  curve_id?: InputMaybe<Numeric_Comparison_Exp>;
+  term?: InputMaybe<Terms_Bool_Exp>;
+  term_id?: InputMaybe<Numeric_Comparison_Exp>;
+  volume?: InputMaybe<Numeric_Comparison_Exp>;
+};
+
+/** Ordering options when selecting data from "signal_stats_monthly". */
+export type Signal_Stats_Monthly_Order_By = {
+  bucket?: InputMaybe<Order_By>;
+  count?: InputMaybe<Order_By>;
+  curve_id?: InputMaybe<Order_By>;
+  term?: InputMaybe<Terms_Order_By>;
+  term_id?: InputMaybe<Order_By>;
+  volume?: InputMaybe<Order_By>;
+};
+
+/** select columns of table "signal_stats_monthly" */
+export enum Signal_Stats_Monthly_Select_Column {
+  /** column name */
+  Bucket = 'bucket',
+  /** column name */
+  Count = 'count',
+  /** column name */
+  CurveId = 'curve_id',
+  /** column name */
+  TermId = 'term_id',
+  /** column name */
+  Volume = 'volume'
+}
+
+/** Streaming cursor of the table "signal_stats_monthly" */
+export type Signal_Stats_Monthly_Stream_Cursor_Input = {
+  /** Stream column input with initial value */
+  initial_value: Signal_Stats_Monthly_Stream_Cursor_Value_Input;
+  /** cursor ordering */
+  ordering?: InputMaybe<Cursor_Ordering>;
+};
+
+/** Initial value of the column from where the streaming should start */
+export type Signal_Stats_Monthly_Stream_Cursor_Value_Input = {
+  bucket?: InputMaybe<Scalars['timestamptz']['input']>;
+  count?: InputMaybe<Scalars['numeric']['input']>;
+  curve_id?: InputMaybe<Scalars['numeric']['input']>;
+  term_id?: InputMaybe<Scalars['numeric']['input']>;
+  volume?: InputMaybe<Scalars['numeric']['input']>;
+};
+
+/** columns and relationships of "signal_stats_weekly" */
+export type Signal_Stats_Weekly = {
+  __typename?: 'signal_stats_weekly';
+  bucket?: Maybe<Scalars['timestamptz']['output']>;
+  count?: Maybe<Scalars['numeric']['output']>;
+  curve_id?: Maybe<Scalars['numeric']['output']>;
+  /** An object relationship */
+  term?: Maybe<Terms>;
+  term_id?: Maybe<Scalars['numeric']['output']>;
+  volume?: Maybe<Scalars['numeric']['output']>;
+};
+
+/** Boolean expression to filter rows from the table "signal_stats_weekly". All fields are combined with a logical 'AND'. */
+export type Signal_Stats_Weekly_Bool_Exp = {
+  _and?: InputMaybe<Array<Signal_Stats_Weekly_Bool_Exp>>;
+  _not?: InputMaybe<Signal_Stats_Weekly_Bool_Exp>;
+  _or?: InputMaybe<Array<Signal_Stats_Weekly_Bool_Exp>>;
+  bucket?: InputMaybe<Timestamptz_Comparison_Exp>;
+  count?: InputMaybe<Numeric_Comparison_Exp>;
+  curve_id?: InputMaybe<Numeric_Comparison_Exp>;
+  term?: InputMaybe<Terms_Bool_Exp>;
+  term_id?: InputMaybe<Numeric_Comparison_Exp>;
+  volume?: InputMaybe<Numeric_Comparison_Exp>;
+};
+
+/** Ordering options when selecting data from "signal_stats_weekly". */
+export type Signal_Stats_Weekly_Order_By = {
+  bucket?: InputMaybe<Order_By>;
+  count?: InputMaybe<Order_By>;
+  curve_id?: InputMaybe<Order_By>;
+  term?: InputMaybe<Terms_Order_By>;
+  term_id?: InputMaybe<Order_By>;
+  volume?: InputMaybe<Order_By>;
+};
+
+/** select columns of table "signal_stats_weekly" */
+export enum Signal_Stats_Weekly_Select_Column {
+  /** column name */
+  Bucket = 'bucket',
+  /** column name */
+  Count = 'count',
+  /** column name */
+  CurveId = 'curve_id',
+  /** column name */
+  TermId = 'term_id',
+  /** column name */
+  Volume = 'volume'
+}
+
+/** Streaming cursor of the table "signal_stats_weekly" */
+export type Signal_Stats_Weekly_Stream_Cursor_Input = {
+  /** Stream column input with initial value */
+  initial_value: Signal_Stats_Weekly_Stream_Cursor_Value_Input;
+  /** cursor ordering */
+  ordering?: InputMaybe<Cursor_Ordering>;
+};
+
+/** Initial value of the column from where the streaming should start */
+export type Signal_Stats_Weekly_Stream_Cursor_Value_Input = {
+  bucket?: InputMaybe<Scalars['timestamptz']['input']>;
+  count?: InputMaybe<Scalars['numeric']['input']>;
+  curve_id?: InputMaybe<Scalars['numeric']['input']>;
+  term_id?: InputMaybe<Scalars['numeric']['input']>;
+  volume?: InputMaybe<Scalars['numeric']['input']>;
 };
 
 /** columns and relationships of "signal" */
@@ -6701,16 +7388,44 @@ export type Subscription_Root = {
   search_term_from_following: Array<Terms>;
   /** execute function "search_term_from_following" and query aggregates on result of table type "term" */
   search_term_from_following_aggregate: Terms_Aggregate;
-  /** fetch data from the table: "share_price_change" using primary key columns */
-  share_price_change?: Maybe<Share_Price_Changes>;
+  /** fetch data from the table: "share_price_change_stats_daily" */
+  share_price_change_stats_daily: Array<Share_Price_Change_Stats_Daily>;
+  /** fetch data from the table in a streaming manner: "share_price_change_stats_daily" */
+  share_price_change_stats_daily_stream: Array<Share_Price_Change_Stats_Daily>;
+  /** fetch data from the table: "share_price_change_stats_hourly" */
+  share_price_change_stats_hourly: Array<Share_Price_Change_Stats_Hourly>;
+  /** fetch data from the table in a streaming manner: "share_price_change_stats_hourly" */
+  share_price_change_stats_hourly_stream: Array<Share_Price_Change_Stats_Hourly>;
+  /** fetch data from the table: "share_price_change_stats_monthly" */
+  share_price_change_stats_monthly: Array<Share_Price_Change_Stats_Monthly>;
+  /** fetch data from the table in a streaming manner: "share_price_change_stats_monthly" */
+  share_price_change_stats_monthly_stream: Array<Share_Price_Change_Stats_Monthly>;
+  /** fetch data from the table: "share_price_change_stats_weekly" */
+  share_price_change_stats_weekly: Array<Share_Price_Change_Stats_Weekly>;
+  /** fetch data from the table in a streaming manner: "share_price_change_stats_weekly" */
+  share_price_change_stats_weekly_stream: Array<Share_Price_Change_Stats_Weekly>;
   /** fetch data from the table: "share_price_change" */
   share_price_changes: Array<Share_Price_Changes>;
   /** fetch aggregated fields from the table: "share_price_change" */
   share_price_changes_aggregate: Share_Price_Changes_Aggregate;
   /** fetch data from the table in a streaming manner: "share_price_change" */
   share_price_changes_stream: Array<Share_Price_Changes>;
-  /** fetch data from the table: "signal" using primary key columns */
-  signal?: Maybe<Signals>;
+  /** fetch data from the table: "signal_stats_daily" */
+  signal_stats_daily: Array<Signal_Stats_Daily>;
+  /** fetch data from the table in a streaming manner: "signal_stats_daily" */
+  signal_stats_daily_stream: Array<Signal_Stats_Daily>;
+  /** fetch data from the table: "signal_stats_hourly" */
+  signal_stats_hourly: Array<Signal_Stats_Hourly>;
+  /** fetch data from the table in a streaming manner: "signal_stats_hourly" */
+  signal_stats_hourly_stream: Array<Signal_Stats_Hourly>;
+  /** fetch data from the table: "signal_stats_monthly" */
+  signal_stats_monthly: Array<Signal_Stats_Monthly>;
+  /** fetch data from the table in a streaming manner: "signal_stats_monthly" */
+  signal_stats_monthly_stream: Array<Signal_Stats_Monthly>;
+  /** fetch data from the table: "signal_stats_weekly" */
+  signal_stats_weekly: Array<Signal_Stats_Weekly>;
+  /** fetch data from the table in a streaming manner: "signal_stats_weekly" */
+  signal_stats_weekly_stream: Array<Signal_Stats_Weekly>;
   /** An array relationship */
   signals: Array<Signals>;
   /** An aggregate relationship */
@@ -6755,6 +7470,18 @@ export type Subscription_Root = {
   things_stream: Array<Things>;
   /** fetch data from the table: "triple" using primary key columns */
   triple?: Maybe<Triples>;
+  /** fetch data from the table: "triple_term" */
+  triple_term: Array<Triple_Term>;
+  /** fetch data from the table: "triple_term" using primary key columns */
+  triple_term_by_pk?: Maybe<Triple_Term>;
+  /** fetch data from the table in a streaming manner: "triple_term" */
+  triple_term_stream: Array<Triple_Term>;
+  /** fetch data from the table: "triple_vault" */
+  triple_vault: Array<Triple_Vault>;
+  /** fetch data from the table: "triple_vault" using primary key columns */
+  triple_vault_by_pk?: Maybe<Triple_Vault>;
+  /** fetch data from the table in a streaming manner: "triple_vault" */
+  triple_vault_stream: Array<Triple_Vault>;
   /** An array relationship */
   triples: Array<Triples>;
   /** An aggregate relationship */
@@ -7365,8 +8092,67 @@ export type Subscription_RootSearch_Term_From_Following_AggregateArgs = {
 };
 
 
-export type Subscription_RootShare_Price_ChangeArgs = {
-  id: Scalars['bigint']['input'];
+export type Subscription_RootShare_Price_Change_Stats_DailyArgs = {
+  distinct_on?: InputMaybe<Array<Share_Price_Change_Stats_Daily_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Share_Price_Change_Stats_Daily_Order_By>>;
+  where?: InputMaybe<Share_Price_Change_Stats_Daily_Bool_Exp>;
+};
+
+
+export type Subscription_RootShare_Price_Change_Stats_Daily_StreamArgs = {
+  batch_size: Scalars['Int']['input'];
+  cursor: Array<InputMaybe<Share_Price_Change_Stats_Daily_Stream_Cursor_Input>>;
+  where?: InputMaybe<Share_Price_Change_Stats_Daily_Bool_Exp>;
+};
+
+
+export type Subscription_RootShare_Price_Change_Stats_HourlyArgs = {
+  distinct_on?: InputMaybe<Array<Share_Price_Change_Stats_Hourly_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Share_Price_Change_Stats_Hourly_Order_By>>;
+  where?: InputMaybe<Share_Price_Change_Stats_Hourly_Bool_Exp>;
+};
+
+
+export type Subscription_RootShare_Price_Change_Stats_Hourly_StreamArgs = {
+  batch_size: Scalars['Int']['input'];
+  cursor: Array<InputMaybe<Share_Price_Change_Stats_Hourly_Stream_Cursor_Input>>;
+  where?: InputMaybe<Share_Price_Change_Stats_Hourly_Bool_Exp>;
+};
+
+
+export type Subscription_RootShare_Price_Change_Stats_MonthlyArgs = {
+  distinct_on?: InputMaybe<Array<Share_Price_Change_Stats_Monthly_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Share_Price_Change_Stats_Monthly_Order_By>>;
+  where?: InputMaybe<Share_Price_Change_Stats_Monthly_Bool_Exp>;
+};
+
+
+export type Subscription_RootShare_Price_Change_Stats_Monthly_StreamArgs = {
+  batch_size: Scalars['Int']['input'];
+  cursor: Array<InputMaybe<Share_Price_Change_Stats_Monthly_Stream_Cursor_Input>>;
+  where?: InputMaybe<Share_Price_Change_Stats_Monthly_Bool_Exp>;
+};
+
+
+export type Subscription_RootShare_Price_Change_Stats_WeeklyArgs = {
+  distinct_on?: InputMaybe<Array<Share_Price_Change_Stats_Weekly_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Share_Price_Change_Stats_Weekly_Order_By>>;
+  where?: InputMaybe<Share_Price_Change_Stats_Weekly_Bool_Exp>;
+};
+
+
+export type Subscription_RootShare_Price_Change_Stats_Weekly_StreamArgs = {
+  batch_size: Scalars['Int']['input'];
+  cursor: Array<InputMaybe<Share_Price_Change_Stats_Weekly_Stream_Cursor_Input>>;
+  where?: InputMaybe<Share_Price_Change_Stats_Weekly_Bool_Exp>;
 };
 
 
@@ -7395,8 +8181,67 @@ export type Subscription_RootShare_Price_Changes_StreamArgs = {
 };
 
 
-export type Subscription_RootSignalArgs = {
-  id: Scalars['String']['input'];
+export type Subscription_RootSignal_Stats_DailyArgs = {
+  distinct_on?: InputMaybe<Array<Signal_Stats_Daily_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Signal_Stats_Daily_Order_By>>;
+  where?: InputMaybe<Signal_Stats_Daily_Bool_Exp>;
+};
+
+
+export type Subscription_RootSignal_Stats_Daily_StreamArgs = {
+  batch_size: Scalars['Int']['input'];
+  cursor: Array<InputMaybe<Signal_Stats_Daily_Stream_Cursor_Input>>;
+  where?: InputMaybe<Signal_Stats_Daily_Bool_Exp>;
+};
+
+
+export type Subscription_RootSignal_Stats_HourlyArgs = {
+  distinct_on?: InputMaybe<Array<Signal_Stats_Hourly_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Signal_Stats_Hourly_Order_By>>;
+  where?: InputMaybe<Signal_Stats_Hourly_Bool_Exp>;
+};
+
+
+export type Subscription_RootSignal_Stats_Hourly_StreamArgs = {
+  batch_size: Scalars['Int']['input'];
+  cursor: Array<InputMaybe<Signal_Stats_Hourly_Stream_Cursor_Input>>;
+  where?: InputMaybe<Signal_Stats_Hourly_Bool_Exp>;
+};
+
+
+export type Subscription_RootSignal_Stats_MonthlyArgs = {
+  distinct_on?: InputMaybe<Array<Signal_Stats_Monthly_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Signal_Stats_Monthly_Order_By>>;
+  where?: InputMaybe<Signal_Stats_Monthly_Bool_Exp>;
+};
+
+
+export type Subscription_RootSignal_Stats_Monthly_StreamArgs = {
+  batch_size: Scalars['Int']['input'];
+  cursor: Array<InputMaybe<Signal_Stats_Monthly_Stream_Cursor_Input>>;
+  where?: InputMaybe<Signal_Stats_Monthly_Bool_Exp>;
+};
+
+
+export type Subscription_RootSignal_Stats_WeeklyArgs = {
+  distinct_on?: InputMaybe<Array<Signal_Stats_Weekly_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Signal_Stats_Weekly_Order_By>>;
+  where?: InputMaybe<Signal_Stats_Weekly_Bool_Exp>;
+};
+
+
+export type Subscription_RootSignal_Stats_Weekly_StreamArgs = {
+  batch_size: Scalars['Int']['input'];
+  cursor: Array<InputMaybe<Signal_Stats_Weekly_Stream_Cursor_Input>>;
+  where?: InputMaybe<Signal_Stats_Weekly_Bool_Exp>;
 };
 
 
@@ -7567,6 +8412,49 @@ export type Subscription_RootThings_StreamArgs = {
 
 export type Subscription_RootTripleArgs = {
   term_id: Scalars['numeric']['input'];
+};
+
+
+export type Subscription_RootTriple_TermArgs = {
+  distinct_on?: InputMaybe<Array<Triple_Term_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Triple_Term_Order_By>>;
+  where?: InputMaybe<Triple_Term_Bool_Exp>;
+};
+
+
+export type Subscription_RootTriple_Term_By_PkArgs = {
+  term_id: Scalars['numeric']['input'];
+};
+
+
+export type Subscription_RootTriple_Term_StreamArgs = {
+  batch_size: Scalars['Int']['input'];
+  cursor: Array<InputMaybe<Triple_Term_Stream_Cursor_Input>>;
+  where?: InputMaybe<Triple_Term_Bool_Exp>;
+};
+
+
+export type Subscription_RootTriple_VaultArgs = {
+  distinct_on?: InputMaybe<Array<Triple_Vault_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Triple_Vault_Order_By>>;
+  where?: InputMaybe<Triple_Vault_Bool_Exp>;
+};
+
+
+export type Subscription_RootTriple_Vault_By_PkArgs = {
+  curve_id: Scalars['numeric']['input'];
+  term_id: Scalars['numeric']['input'];
+};
+
+
+export type Subscription_RootTriple_Vault_StreamArgs = {
+  batch_size: Scalars['Int']['input'];
+  cursor: Array<InputMaybe<Triple_Vault_Stream_Cursor_Input>>;
+  where?: InputMaybe<Triple_Vault_Bool_Exp>;
 };
 
 
@@ -8306,6 +9194,176 @@ export type Timestamptz_Comparison_Exp = {
   _nin?: InputMaybe<Array<Scalars['timestamptz']['input']>>;
 };
 
+/** columns and relationships of "triple_term" */
+export type Triple_Term = {
+  __typename?: 'triple_term';
+  /** An object relationship */
+  counter_term: Terms;
+  counter_term_id: Scalars['numeric']['output'];
+  /** An object relationship */
+  term: Terms;
+  term_id: Scalars['numeric']['output'];
+  total_assets: Scalars['numeric']['output'];
+  total_market_cap: Scalars['numeric']['output'];
+  updated_at: Scalars['timestamptz']['output'];
+};
+
+/** Boolean expression to filter rows from the table "triple_term". All fields are combined with a logical 'AND'. */
+export type Triple_Term_Bool_Exp = {
+  _and?: InputMaybe<Array<Triple_Term_Bool_Exp>>;
+  _not?: InputMaybe<Triple_Term_Bool_Exp>;
+  _or?: InputMaybe<Array<Triple_Term_Bool_Exp>>;
+  counter_term?: InputMaybe<Terms_Bool_Exp>;
+  counter_term_id?: InputMaybe<Numeric_Comparison_Exp>;
+  term?: InputMaybe<Terms_Bool_Exp>;
+  term_id?: InputMaybe<Numeric_Comparison_Exp>;
+  total_assets?: InputMaybe<Numeric_Comparison_Exp>;
+  total_market_cap?: InputMaybe<Numeric_Comparison_Exp>;
+  updated_at?: InputMaybe<Timestamptz_Comparison_Exp>;
+};
+
+/** Ordering options when selecting data from "triple_term". */
+export type Triple_Term_Order_By = {
+  counter_term?: InputMaybe<Terms_Order_By>;
+  counter_term_id?: InputMaybe<Order_By>;
+  term?: InputMaybe<Terms_Order_By>;
+  term_id?: InputMaybe<Order_By>;
+  total_assets?: InputMaybe<Order_By>;
+  total_market_cap?: InputMaybe<Order_By>;
+  updated_at?: InputMaybe<Order_By>;
+};
+
+/** select columns of table "triple_term" */
+export enum Triple_Term_Select_Column {
+  /** column name */
+  CounterTermId = 'counter_term_id',
+  /** column name */
+  TermId = 'term_id',
+  /** column name */
+  TotalAssets = 'total_assets',
+  /** column name */
+  TotalMarketCap = 'total_market_cap',
+  /** column name */
+  UpdatedAt = 'updated_at'
+}
+
+/** Streaming cursor of the table "triple_term" */
+export type Triple_Term_Stream_Cursor_Input = {
+  /** Stream column input with initial value */
+  initial_value: Triple_Term_Stream_Cursor_Value_Input;
+  /** cursor ordering */
+  ordering?: InputMaybe<Cursor_Ordering>;
+};
+
+/** Initial value of the column from where the streaming should start */
+export type Triple_Term_Stream_Cursor_Value_Input = {
+  counter_term_id?: InputMaybe<Scalars['numeric']['input']>;
+  term_id?: InputMaybe<Scalars['numeric']['input']>;
+  total_assets?: InputMaybe<Scalars['numeric']['input']>;
+  total_market_cap?: InputMaybe<Scalars['numeric']['input']>;
+  updated_at?: InputMaybe<Scalars['timestamptz']['input']>;
+};
+
+/** columns and relationships of "triple_vault" */
+export type Triple_Vault = {
+  __typename?: 'triple_vault';
+  block_number: Scalars['numeric']['output'];
+  /** An object relationship */
+  counter_term?: Maybe<Terms>;
+  counter_term_id: Scalars['numeric']['output'];
+  curve_id: Scalars['numeric']['output'];
+  log_index: Scalars['bigint']['output'];
+  market_cap: Scalars['numeric']['output'];
+  position_count: Scalars['bigint']['output'];
+  /** An object relationship */
+  term?: Maybe<Terms>;
+  term_id: Scalars['numeric']['output'];
+  total_assets: Scalars['numeric']['output'];
+  total_shares: Scalars['numeric']['output'];
+  updated_at: Scalars['timestamptz']['output'];
+};
+
+/** Boolean expression to filter rows from the table "triple_vault". All fields are combined with a logical 'AND'. */
+export type Triple_Vault_Bool_Exp = {
+  _and?: InputMaybe<Array<Triple_Vault_Bool_Exp>>;
+  _not?: InputMaybe<Triple_Vault_Bool_Exp>;
+  _or?: InputMaybe<Array<Triple_Vault_Bool_Exp>>;
+  block_number?: InputMaybe<Numeric_Comparison_Exp>;
+  counter_term?: InputMaybe<Terms_Bool_Exp>;
+  counter_term_id?: InputMaybe<Numeric_Comparison_Exp>;
+  curve_id?: InputMaybe<Numeric_Comparison_Exp>;
+  log_index?: InputMaybe<Bigint_Comparison_Exp>;
+  market_cap?: InputMaybe<Numeric_Comparison_Exp>;
+  position_count?: InputMaybe<Bigint_Comparison_Exp>;
+  term?: InputMaybe<Terms_Bool_Exp>;
+  term_id?: InputMaybe<Numeric_Comparison_Exp>;
+  total_assets?: InputMaybe<Numeric_Comparison_Exp>;
+  total_shares?: InputMaybe<Numeric_Comparison_Exp>;
+  updated_at?: InputMaybe<Timestamptz_Comparison_Exp>;
+};
+
+/** Ordering options when selecting data from "triple_vault". */
+export type Triple_Vault_Order_By = {
+  block_number?: InputMaybe<Order_By>;
+  counter_term?: InputMaybe<Terms_Order_By>;
+  counter_term_id?: InputMaybe<Order_By>;
+  curve_id?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
+  market_cap?: InputMaybe<Order_By>;
+  position_count?: InputMaybe<Order_By>;
+  term?: InputMaybe<Terms_Order_By>;
+  term_id?: InputMaybe<Order_By>;
+  total_assets?: InputMaybe<Order_By>;
+  total_shares?: InputMaybe<Order_By>;
+  updated_at?: InputMaybe<Order_By>;
+};
+
+/** select columns of table "triple_vault" */
+export enum Triple_Vault_Select_Column {
+  /** column name */
+  BlockNumber = 'block_number',
+  /** column name */
+  CounterTermId = 'counter_term_id',
+  /** column name */
+  CurveId = 'curve_id',
+  /** column name */
+  LogIndex = 'log_index',
+  /** column name */
+  MarketCap = 'market_cap',
+  /** column name */
+  PositionCount = 'position_count',
+  /** column name */
+  TermId = 'term_id',
+  /** column name */
+  TotalAssets = 'total_assets',
+  /** column name */
+  TotalShares = 'total_shares',
+  /** column name */
+  UpdatedAt = 'updated_at'
+}
+
+/** Streaming cursor of the table "triple_vault" */
+export type Triple_Vault_Stream_Cursor_Input = {
+  /** Stream column input with initial value */
+  initial_value: Triple_Vault_Stream_Cursor_Value_Input;
+  /** cursor ordering */
+  ordering?: InputMaybe<Cursor_Ordering>;
+};
+
+/** Initial value of the column from where the streaming should start */
+export type Triple_Vault_Stream_Cursor_Value_Input = {
+  block_number?: InputMaybe<Scalars['numeric']['input']>;
+  counter_term_id?: InputMaybe<Scalars['numeric']['input']>;
+  curve_id?: InputMaybe<Scalars['numeric']['input']>;
+  log_index?: InputMaybe<Scalars['bigint']['input']>;
+  market_cap?: InputMaybe<Scalars['numeric']['input']>;
+  position_count?: InputMaybe<Scalars['bigint']['input']>;
+  term_id?: InputMaybe<Scalars['numeric']['input']>;
+  total_assets?: InputMaybe<Scalars['numeric']['input']>;
+  total_shares?: InputMaybe<Scalars['numeric']['input']>;
+  updated_at?: InputMaybe<Scalars['timestamptz']['input']>;
+};
+
 /** columns and relationships of "triple" */
 export type Triples = {
   __typename?: 'triples';
@@ -8338,6 +9396,8 @@ export type Triples = {
   term?: Maybe<Terms>;
   term_id: Scalars['numeric']['output'];
   transaction_hash: Scalars['String']['output'];
+  /** An object relationship */
+  triple_term?: Maybe<Triple_Term>;
 };
 
 
@@ -8481,6 +9541,7 @@ export type Triples_Bool_Exp = {
   term?: InputMaybe<Terms_Bool_Exp>;
   term_id?: InputMaybe<Numeric_Comparison_Exp>;
   transaction_hash?: InputMaybe<String_Comparison_Exp>;
+  triple_term?: InputMaybe<Triple_Term_Bool_Exp>;
 };
 
 /** aggregate max on columns */
@@ -8556,6 +9617,7 @@ export type Triples_Order_By = {
   term?: InputMaybe<Terms_Order_By>;
   term_id?: InputMaybe<Order_By>;
   transaction_hash?: InputMaybe<Order_By>;
+  triple_term?: InputMaybe<Triple_Term_Order_By>;
 };
 
 /** select columns of table "triple" */
@@ -9314,6 +10376,13 @@ export type Positions2QueryVariables = Exact<{
 
 export type Positions2Query = { __typename?: 'query_root', positions: Array<{ __typename?: 'positions', id: string, curve_id: any, term_id: any, shares: any }> };
 
+export type TripleQueryVariables = Exact<{
+  term_id: Scalars['numeric']['input'];
+}>;
+
+
+export type TripleQuery = { __typename?: 'query_root', triple?: { __typename?: 'triples', term_id: any, term?: { __typename?: 'terms', total_assets?: any | null, total_market_cap?: any | null } | null, counter_term?: { __typename?: 'terms', total_assets?: any | null, total_market_cap?: any | null } | null, triple_term?: { __typename?: 'triple_term', total_assets: any, total_market_cap: any } | null } | null };
+
 export class TypedDocumentString<TResult, TVariables>
   extends String
   implements DocumentTypeDecoration<TResult, TVariables>
@@ -9502,3 +10571,22 @@ export const Positions2Document = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<Positions2Query, Positions2QueryVariables>;
+export const TripleDocument = new TypedDocumentString(`
+    query triple($term_id: numeric!) {
+  triple(term_id: $term_id) {
+    term_id
+    term {
+      total_assets
+      total_market_cap
+    }
+    counter_term {
+      total_assets
+      total_market_cap
+    }
+    triple_term {
+      total_assets
+      total_market_cap
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<TripleQuery, TripleQueryVariables>;

@@ -112,4 +112,36 @@ suite('vaults', () => {
     expect(result.positions[0].curve_id).toBe('1')
     expect(result.positions[0].term_id).toBe(counterVault.toString())
   })
+
+  test('triple vault numbers are correct', async () => {
+
+    const tripleQuery = graphql(`
+query triple($term_id: numeric!) {
+  triple(term_id: $term_id) {
+    term_id
+    term {
+      total_assets
+      total_market_cap
+    }
+    counter_term {
+      total_assets
+      total_market_cap
+    }
+    triple_term {
+      total_assets
+      total_market_cap
+    }
+  }
+}
+`)
+
+    const result = await execute(
+      tripleQuery,
+      { term_id: triple.vaultId.toString() })
+
+    expect(result).toBeDefined()
+    expect(BigInt(result.triple.triple_term.total_assets)).toEqual(BigInt(result.triple.term.total_assets) + BigInt(result.triple.counter_term.total_assets))
+    expect(BigInt(result.triple.triple_term.total_market_cap)).toEqual(BigInt(result.triple.term.total_market_cap) + BigInt(result.triple.counter_term.total_market_cap))
+  })
+
 })
