@@ -54,6 +54,11 @@ where
             .initialize_accounts_and_vault(decoded_consumer_context, event)
             .await?;
 
+        // If the deposit is a triple, we need to get or create the triple term and vault
+        self.0
+            .create_triple_term_and_vault(decoded_consumer_context, event)
+            .await?;
+
         // This is only for V1, we need to fetch the data from the RPC before
         // starting the transaction
         let vault_info = self

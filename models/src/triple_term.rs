@@ -11,6 +11,7 @@ use sqlx::{Executor, Postgres, Result};
 #[sqlx(type_name = "triple_term")]
 pub struct TripleTerm {
     pub term_id: U256Wrapper,
+    pub counter_term_id: U256Wrapper,
     pub total_assets: U256Wrapper,
     pub total_market_cap: U256Wrapper,
 }
@@ -27,18 +28,19 @@ impl SimpleCrud<U256Wrapper> for TripleTerm {
     {
         let query = format!(
             r#"
-            INSERT INTO {}.triple_term (term_id, total_assets, total_market_cap)
-            VALUES ($1, $2, $3)
+            INSERT INTO {}.triple_term (term_id, counter_term_id, total_assets, total_market_cap)
+            VALUES ($1, $2, $3, $4)
             ON CONFLICT (term_id) DO UPDATE SET
                 total_assets = EXCLUDED.total_assets,
                 total_market_cap = EXCLUDED.total_market_cap
-            RETURNING term_id, total_assets, total_market_cap
+            RETURNING term_id, counter_term_id, total_assets, total_market_cap
             "#,
             schema,
         );
 
         sqlx::query_as::<_, TripleTerm>(&query)
             .bind(self.term_id.to_big_decimal()?)
+            .bind(self.counter_term_id.to_big_decimal()?)
             .bind(self.total_assets.to_big_decimal()?)
             .bind(self.total_market_cap.to_big_decimal()?)
             .fetch_one(executor)
@@ -59,6 +61,7 @@ impl SimpleCrud<U256Wrapper> for TripleTerm {
             r#"
             SELECT 
                 term_id, 
+                counter_term_id,
                 total_assets,
                 total_market_cap
             FROM {}.triple_term 

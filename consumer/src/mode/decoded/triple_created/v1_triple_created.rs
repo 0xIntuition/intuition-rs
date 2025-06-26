@@ -8,7 +8,7 @@ use crate::{
     },
 };
 use alloy::primitives::Uint;
-use models::{position::Position, types::U256Wrapper};
+use models::{position::Position, traits::SimpleCrud, types::U256Wrapper, vault::Vault};
 
 /// This impl is used to convert the `TripleCreated` event into a `SharePriceEvent`
 impl SharePriceEvent for &TripleCreated {}
@@ -16,13 +16,33 @@ impl SharePriceEvent for &TripleCreated {}
 impl TripleTermManager for &TripleCreated {
     async fn triple_aggregate(
         &self,
-        _decoded_consumer_context: &DecodedConsumerContext,
-        _counter_vault_id: U256Wrapper,
+        decoded_consumer_context: &DecodedConsumerContext,
+        counter_vault_id: U256Wrapper,
     ) -> Result<TripleAggregate, ConsumerError> {
+        let term_id_vault = Vault::find_by_id(
+            self.vaultID.into(),
+            &decoded_consumer_context.backend_schema,
+            &decoded_consumer_context.pg_pool,
+        )
+        .await?
+        .ok_or(ConsumerError::VaultNotFound)?;
+
+        let counter_vault = Vault::find_by_id(
+            counter_vault_id,
+            &decoded_consumer_context.backend_schema,
+            &decoded_consumer_context.pg_pool,
+        )
+        .await?
+        .ok_or(ConsumerError::VaultNotFound)?;
+
+        let total_shares = term_id_vault.total_shares + counter_vault.total_shares;
+        let total_assets = term_id_vault.total_assets + counter_vault.total_assets;
+        let total_market_cap = term_id_vault.market_cap + counter_vault.market_cap;
+
         Ok(TripleAggregate::new(
-            U256Wrapper::try_from(0)?,
-            U256Wrapper::try_from(0)?,
-            U256Wrapper::try_from(0)?,
+            total_shares,
+            total_assets,
+            total_market_cap,
         ))
     }
 }
@@ -30,24 +50,55 @@ impl TripleTermManager for &TripleCreated {
 impl TripleVaultManager for &TripleCreated {
     async fn triple_vault_aggregate(
         &self,
-        _decoded_consumer_context: &DecodedConsumerContext,
-        _counter_vault_id: U256Wrapper,
-        _curve_id: U256Wrapper,
+        decoded_consumer_context: &DecodedConsumerContext,
+        counter_vault_id: U256Wrapper,
+        curve_id: U256Wrapper,
     ) -> Result<TripleAggregate, ConsumerError> {
+        let term_id_vault = Vault::find_by_term_id_and_curve_id(
+            self.vaultID.into(),
+            curve_id.clone(),
+            &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
+        )
+        .await?
+        .ok_or(ConsumerError::VaultNotFound)?;
+
+        let counter_vault = Vault::find_by_term_id_and_curve_id(
+            counter_vault_id,
+            curve_id,
+            &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
+        )
+        .await?
+        .ok_or(ConsumerError::VaultNotFound)?;
+
+        let total_shares = term_id_vault.total_shares + counter_vault.total_shares;
+        let total_assets = term_id_vault.total_assets + counter_vault.total_assets;
+        let total_market_cap = term_id_vault.market_cap + counter_vault.market_cap;
+
         Ok(TripleAggregate::new(
-            U256Wrapper::try_from(0)?,
-            U256Wrapper::try_from(0)?,
-            U256Wrapper::try_from(0)?,
+            total_shares,
+            total_assets,
+            total_market_cap,
         ))
     }
 
     async fn position_aggregate(
         &self,
-        _decoded_consumer_context: &DecodedConsumerContext,
-        _counter_vault_id: U256Wrapper,
-        _curve_id: U256Wrapper,
+        decoded_consumer_context: &DecodedConsumerContext,
+        counter_vault_id: U256Wrapper,
+        curve_id: U256Wrapper,
     ) -> Result<i64, ConsumerError> {
-        Ok(0)
+        let positions = Position::count_by_triple(
+            self.vaultID.into(),
+            counter_vault_id,
+            curve_id,
+            &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
+        )
+        .await?;
+
+        Ok(positions)
     }
 }
 

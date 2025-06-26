@@ -2,11 +2,93 @@ use super::event::DepositedEvent;
 use crate::{
     EthMultiVaultV1_5::DepositedCurve,
     error::ConsumerError,
-    mode::types::DecodedConsumerContext,
-    traits::{SharePriceEvent, VaultManager},
+    mode::{types::DecodedConsumerContext, utils::VaultOrigin},
+    traits::{
+        SharePriceEvent, TripleAggregate, TripleTermManager, TripleVaultManager, VaultManager,
+    },
 };
 use alloy::primitives::Uint;
 use models::{position::Position, share_price_change::SharePriceChange, types::U256Wrapper};
+
+impl TripleTermManager for &DepositedCurve {
+    async fn triple_aggregate(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+        counter_vault_id: U256Wrapper,
+    ) -> Result<TripleAggregate, ConsumerError> {
+        let shares = SharePriceChange::fetch_latest_triple_shares_per_terms(
+            self.vaultId.into(),
+            counter_vault_id,
+            &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
+        )
+        .await?;
+
+        let total_shares = shares.iter().map(|s| s.total_shares.clone()).sum();
+        let total_assets = shares.iter().map(|s| s.total_assets.clone()).sum();
+        let total_market_cap = shares
+            .iter()
+            .map(|s| VaultOrigin::compute_market_cap(s.total_shares.clone(), s.share_price.clone()))
+            .sum();
+
+        Ok(TripleAggregate::new(
+            total_shares,
+            total_assets,
+            total_market_cap,
+        ))
+    }
+}
+
+impl TripleVaultManager for &DepositedCurve {
+    async fn triple_vault_aggregate(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+        counter_vault_id: U256Wrapper,
+        curve_id: U256Wrapper,
+    ) -> Result<TripleAggregate, ConsumerError> {
+        let shares = SharePriceChange::fetch_latest_triple_shares_per_terms_and_curve(
+            self.vaultId.into(),
+            counter_vault_id,
+            curve_id,
+            &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
+        )
+        .await?;
+
+        let total_shares = shares.iter().map(|s| s.total_shares.clone()).sum();
+        let total_assets = shares.iter().map(|s| s.total_assets.clone()).sum();
+        let total_market_cap = shares
+            .iter()
+            .map(|s| VaultOrigin::compute_market_cap(s.total_shares.clone(), s.share_price.clone()))
+            .sum();
+
+        Ok(TripleAggregate::new(
+            total_shares,
+            total_assets,
+            total_market_cap,
+        ))
+    }
+
+    /// This function returns the number of positions in the given triple, which means
+    /// that we count the positions in the vault and the counter vault.
+    async fn position_aggregate(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+        counter_vault_id: U256Wrapper,
+        curve_id: U256Wrapper,
+    ) -> Result<i64, ConsumerError> {
+        let positions = Position::count_by_triple(
+            self.vaultId.into(),
+            counter_vault_id,
+            curve_id,
+            &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
+        )
+        .await?;
+
+        Ok(positions)
+    }
+}
 
 impl VaultManager for &DepositedCurve {
     fn term_id(&self) -> Result<U256Wrapper, ConsumerError> {

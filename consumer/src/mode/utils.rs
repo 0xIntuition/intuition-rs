@@ -5,13 +5,15 @@ use super::{
 use crate::{
     error::ConsumerError,
     schemas::types::DecodedMessage,
-    traits::{AccountManager, SharePriceEvent},
+    traits::{AccountManager, SharePriceEvent, TripleTermManager, TripleVaultManager},
 };
 use alloy::primitives::U256;
 use models::{
     account::{Account, AccountType},
     term::{Term, TermType},
     traits::SimpleCrud,
+    triple_term::TripleTerm,
+    triple_vault::TripleVault,
     types::U256Wrapper,
     vault::Vault,
 };
@@ -59,7 +61,7 @@ impl VaultOrigin {
             event.term_id()?
         );
 
-        get_or_create_term(&event, None, context, term_type).await?;
+        get_or_create_term(&event, None, context, term_type.clone()).await?;
 
         let new_vault = self.build_new_vault(&event, context, tx).await?;
 
@@ -80,6 +82,95 @@ impl VaultOrigin {
     /// This function computes the market cap of a vault
     pub fn compute_market_cap(total_shares: U256Wrapper, share_price: U256Wrapper) -> U256Wrapper {
         (total_shares * share_price) / U256Wrapper::from(U256::from(10).pow(U256::from(18)))
+    }
+
+    /// This function gets or creates a triple term
+    pub async fn get_or_create_triple_term(
+        &self,
+        event: impl SharePriceEvent + TripleTermManager,
+        decoded_consumer_context: &DecodedConsumerContext,
+        counter_vault_id: U256Wrapper,
+    ) -> Result<TripleTerm, ConsumerError> {
+        let triple_term = TripleTerm::find_by_id(
+            event.term_id()?,
+            &decoded_consumer_context.backend_schema,
+            &decoded_consumer_context.pg_pool,
+        )
+        .await?;
+
+        if let Some(triple_term) = triple_term {
+            Ok(triple_term)
+        } else {
+            let triple_aggregate = event
+                .triple_aggregate(decoded_consumer_context, counter_vault_id.clone())
+                .await?;
+            TripleTerm::builder()
+                .term_id(event.term_id()?)
+                .counter_term_id(counter_vault_id)
+                .total_assets(triple_aggregate.total_assets)
+                .total_market_cap(triple_aggregate.total_market_cap)
+                .build()
+                .upsert(
+                    &decoded_consumer_context.backend_schema,
+                    &decoded_consumer_context.pg_pool,
+                )
+                .await
+                .map_err(ConsumerError::ModelError)
+        }
+    }
+
+    /// This function gets or creates a triple vault
+    pub async fn get_or_create_triple_vault(
+        &self,
+        event: impl SharePriceEvent + TripleVaultManager,
+        decoded_consumer_context: &DecodedConsumerContext,
+        tx: &DecodedMessage,
+        counter_vault_id: U256Wrapper,
+    ) -> Result<TripleVault, ConsumerError> {
+        let triple_vault = TripleVault::find_by_id(
+            event.term_id()?,
+            &decoded_consumer_context.backend_schema,
+            &decoded_consumer_context.pg_pool,
+        )
+        .await?;
+
+        if let Some(triple_vault) = triple_vault {
+            Ok(triple_vault)
+        } else {
+            let triple_aggregate = event
+                .triple_vault_aggregate(
+                    decoded_consumer_context,
+                    counter_vault_id.clone(),
+                    event.curve_id()?,
+                )
+                .await?;
+
+            let position_count = event
+                .position_aggregate(
+                    decoded_consumer_context,
+                    counter_vault_id.clone(),
+                    event.curve_id()?,
+                )
+                .await?;
+
+            TripleVault::builder()
+                .term_id(event.term_id()?)
+                .counter_term_id(counter_vault_id)
+                .curve_id(event.curve_id()?)
+                .total_shares(triple_aggregate.total_shares)
+                .total_assets(triple_aggregate.total_assets)
+                .position_count(position_count)
+                .market_cap(triple_aggregate.total_market_cap)
+                .block_number(U256Wrapper::try_from(tx.block_number).unwrap_or_default())
+                .log_index(tx.log_index)
+                .build()
+                .upsert(
+                    &decoded_consumer_context.backend_schema,
+                    &decoded_consumer_context.pg_pool,
+                )
+                .await
+                .map_err(ConsumerError::ModelError)
+        }
     }
 
     /// This function builds a new vault from a share price event

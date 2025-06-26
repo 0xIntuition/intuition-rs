@@ -6,7 +6,7 @@ use crate::{
         utils::{VaultOrigin, get_or_create_account},
     },
     schemas::types::DecodedMessage,
-    traits::{SharePriceEvent, VaultManager},
+    traits::{SharePriceEvent, TripleTermManager, TripleVaultManager, VaultManager},
 };
 use alloy::primitives::{U256, Uint};
 use models::{
@@ -16,7 +16,9 @@ use models::{
 use tracing::debug;
 
 /// This trait represents a deposited event
-pub trait DepositedEvent: SharePriceEvent + VaultManager + Clone {
+pub trait DepositedEvent:
+    SharePriceEvent + TripleVaultManager + TripleTermManager + VaultManager + Clone
+{
     /// This function returns the sender of the deposit
     fn sender(&self) -> Result<String, ConsumerError>;
     /// This function returns the receiver of the deposit
@@ -70,6 +72,34 @@ pub trait DepositedEvent: SharePriceEvent + VaultManager + Clone {
             )
             .await
             .map_err(ConsumerError::ModelError)
+    }
+
+    /// This function creates a triple term
+    async fn create_triple_term_and_vault(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+        event: &DecodedMessage,
+    ) -> Result<(), ConsumerError> {
+        if self.is_triple()? {
+            // Get or create the triple term
+            VaultOrigin::Deposit
+                .get_or_create_triple_term(
+                    self.clone(),
+                    decoded_consumer_context,
+                    self.vault_id()?.into(),
+                )
+                .await?;
+            // Get or create the triple vault
+            VaultOrigin::Deposit
+                .get_or_create_triple_vault(
+                    self.clone(),
+                    decoded_consumer_context,
+                    event,
+                    self.vault_id()?.into(),
+                )
+                .await?;
+        }
+        Ok(())
     }
     /// This function creates a signal
     async fn create_signal(
