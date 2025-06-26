@@ -75,6 +75,53 @@ pub trait VaultManager {
     ) -> Result<i32, ConsumerError>;
 }
 
+/// Custom type for triple aggregate data
+pub struct TripleAggregate {
+    pub total_shares: U256Wrapper,
+    pub total_assets: U256Wrapper,
+    pub total_market_cap: U256Wrapper,
+}
+
+impl TripleAggregate {
+    pub fn new(
+        total_shares: U256Wrapper,
+        total_assets: U256Wrapper,
+        total_market_cap: U256Wrapper,
+    ) -> Self {
+        Self {
+            total_shares,
+            total_assets,
+            total_market_cap,
+        }
+    }
+}
+
+/// This trait is implemented by all triple term managers.
+pub trait TripleTermManager {
+    async fn triple_aggregate(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+        counter_vault_id: U256Wrapper,
+    ) -> Result<TripleAggregate, ConsumerError>;
+}
+
+/// This trait is implemented by all triple term managers.
+pub trait TripleVaultManager {
+    async fn triple_vault_aggregate(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+        counter_vault_id: U256Wrapper,
+        curve_id: U256Wrapper,
+    ) -> Result<TripleAggregate, ConsumerError>;
+
+    async fn position_aggregate(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+        counter_vault_id: U256Wrapper,
+        curve_id: U256Wrapper,
+    ) -> Result<i64, ConsumerError>;
+}
+
 /// This trait is implemented by all account managers. It allows us to create
 /// accounts in a generic way.
 

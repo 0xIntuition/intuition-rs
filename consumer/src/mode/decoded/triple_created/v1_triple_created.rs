@@ -3,13 +3,53 @@ use crate::{
     EthMultiVault::TripleCreated,
     error::ConsumerError,
     mode::types::DecodedConsumerContext,
-    traits::{SharePriceEvent, VaultManager},
+    traits::{
+        SharePriceEvent, TripleAggregate, TripleTermManager, TripleVaultManager, VaultManager,
+    },
 };
 use alloy::primitives::Uint;
 use models::{position::Position, types::U256Wrapper};
 
 /// This impl is used to convert the `TripleCreated` event into a `SharePriceEvent`
 impl SharePriceEvent for &TripleCreated {}
+
+impl TripleTermManager for &TripleCreated {
+    async fn triple_aggregate(
+        &self,
+        _decoded_consumer_context: &DecodedConsumerContext,
+        _counter_vault_id: U256Wrapper,
+    ) -> Result<TripleAggregate, ConsumerError> {
+        Ok(TripleAggregate::new(
+            U256Wrapper::try_from(0)?,
+            U256Wrapper::try_from(0)?,
+            U256Wrapper::try_from(0)?,
+        ))
+    }
+}
+
+impl TripleVaultManager for &TripleCreated {
+    async fn triple_vault_aggregate(
+        &self,
+        _decoded_consumer_context: &DecodedConsumerContext,
+        _counter_vault_id: U256Wrapper,
+        _curve_id: U256Wrapper,
+    ) -> Result<TripleAggregate, ConsumerError> {
+        Ok(TripleAggregate::new(
+            U256Wrapper::try_from(0)?,
+            U256Wrapper::try_from(0)?,
+            U256Wrapper::try_from(0)?,
+        ))
+    }
+
+    async fn position_aggregate(
+        &self,
+        _decoded_consumer_context: &DecodedConsumerContext,
+        _counter_vault_id: U256Wrapper,
+        _curve_id: U256Wrapper,
+    ) -> Result<i64, ConsumerError> {
+        Ok(0)
+    }
+}
 
 /// This impl is used to convert the `TripleCreated` event into a `VaultManager`
 impl VaultManager for &TripleCreated {

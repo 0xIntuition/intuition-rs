@@ -198,6 +198,60 @@ impl SharePriceChange {
             .map_err(|e| ModelError::QueryError(e.to_string()))
     }
 
+    /// This function fetches the latest share price change for each curve per term
+    /// and counter vault.
+    pub async fn fetch_latest_triple_shares_per_terms(
+        vault_id: U256Wrapper,
+        counter_vault_id: U256Wrapper,
+        pool: &PgPool,
+        schema: &str,
+    ) -> Result<Vec<SharePriceChange>, ModelError> {
+        let query = format!(
+            r#"
+            SELECT DISTINCT ON (term_id, curve_id) *
+            FROM {}.share_price_change
+            WHERE term_id = $1 OR term_id = $2
+            ORDER BY term_id, curve_id, updated_at DESC
+            "#,
+            schema,
+        );
+
+        sqlx::query_as::<_, SharePriceChange>(&query)
+            .bind(vault_id.to_big_decimal()?)
+            .bind(counter_vault_id.to_big_decimal()?)
+            .fetch_all(pool)
+            .await
+            .map_err(|e| ModelError::QueryError(e.to_string()))
+    }
+
+    /// This function fetches the latest share price change for each curve per term
+    /// and counter vault and curve.
+    pub async fn fetch_latest_triple_shares_per_terms_and_curve(
+        vault_id: U256Wrapper,
+        counter_vault_id: U256Wrapper,
+        curve_id: U256Wrapper,
+        pool: &PgPool,
+        schema: &str,
+    ) -> Result<Vec<SharePriceChange>, ModelError> {
+        let query = format!(
+            r#"
+        SELECT DISTINCT ON (term_id, curve_id) *
+        FROM {}.share_price_change
+        WHERE (term_id = $1 OR term_id = $2) AND curve_id = $3
+        ORDER BY term_id, curve_id, updated_at DESC
+        "#,
+            schema,
+        );
+
+        sqlx::query_as::<_, SharePriceChange>(&query)
+            .bind(vault_id.to_big_decimal()?)
+            .bind(counter_vault_id.to_big_decimal()?)
+            .bind(curve_id.to_big_decimal()?)
+            .fetch_all(pool)
+            .await
+            .map_err(|e| ModelError::QueryError(e.to_string()))
+    }
+
     pub async fn find_last_share_price_event<'e, E>(
         schema: &str,
         executor: E,

@@ -7,7 +7,7 @@ use crate::{
         utils::{VaultOrigin, get_or_create_term, short_id},
     },
     schemas::types::DecodedMessage,
-    traits::{SharePriceEvent, VaultManager},
+    traits::{SharePriceEvent, TripleTermManager, TripleVaultManager, VaultManager},
 };
 use alloy::primitives::Uint;
 use models::{
@@ -17,6 +17,8 @@ use models::{
     term::TermType,
     traits::SimpleCrud,
     triple::Triple,
+    triple_term::TripleTerm,
+    triple_vault::TripleVault,
     types::U256Wrapper,
     vault::Vault,
 };
@@ -25,7 +27,9 @@ use std::{fmt::Debug, str::FromStr};
 use tracing::warn;
 
 /// This trait represents a fee transferred event
-pub trait TripleCreatedEvent: SharePriceEvent + VaultManager + Debug + Clone {
+pub trait TripleCreatedEvent:
+    SharePriceEvent + VaultManager + TripleTermManager + TripleVaultManager + Debug + Clone
+{
     /// This function returns the vault ID
     fn vault_id(&self) -> Result<Uint<256, 4>, ConsumerError>;
     /// This function returns the creator ID
@@ -65,8 +69,102 @@ pub trait TripleCreatedEvent: SharePriceEvent + VaultManager + Debug + Clone {
         )
         .await?;
 
+        // Get or create the triple term
+        self.get_or_create_triple_term(decoded_consumer_context, counter_vault_id.into())
+            .await?;
+
+        // Get or create the triple vault
+        self.get_or_create_triple_vault(decoded_consumer_context, event, counter_vault_id.into())
+            .await?;
+
         Ok(())
     }
+
+    /// This function gets or creates a triple vault
+    async fn get_or_create_triple_vault(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+        event: &DecodedMessage,
+        counter_vault_id: U256Wrapper,
+    ) -> Result<TripleVault, ConsumerError> {
+        let triple_vault = TripleVault::find_by_id(
+            self.vault_id()?.into(),
+            &decoded_consumer_context.backend_schema,
+            &decoded_consumer_context.pg_pool,
+        )
+        .await?;
+
+        if let Some(triple_vault) = triple_vault {
+            Ok(triple_vault)
+        } else {
+            let triple_aggregate = self
+                .triple_vault_aggregate(
+                    decoded_consumer_context,
+                    counter_vault_id.clone(),
+                    U256Wrapper::from_str("1")?,
+                )
+                .await?;
+
+            let position_count = self
+                .position_aggregate(
+                    decoded_consumer_context,
+                    counter_vault_id,
+                    U256Wrapper::from_str("1")?,
+                )
+                .await?;
+
+            TripleVault::builder()
+                .term_id(self.vault_id()?)
+                .curve_id(U256Wrapper::from_str("1")?)
+                .total_shares(triple_aggregate.total_shares)
+                .total_assets(triple_aggregate.total_assets)
+                .position_count(position_count)
+                .market_cap(triple_aggregate.total_market_cap)
+                .block_number(U256Wrapper::try_from(event.block_number).unwrap_or_default())
+                .log_index(event.log_index)
+                .build()
+                .upsert(
+                    &decoded_consumer_context.backend_schema,
+                    &decoded_consumer_context.pg_pool,
+                )
+                .await
+                .map_err(ConsumerError::ModelError)
+        }
+    }
+
+    /// This function gets or creates a triple term
+    async fn get_or_create_triple_term(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+        counter_vault_id: U256Wrapper,
+    ) -> Result<TripleTerm, ConsumerError> {
+        let triple_term = TripleTerm::find_by_id(
+            self.vault_id()?.into(),
+            &decoded_consumer_context.backend_schema,
+            &decoded_consumer_context.pg_pool,
+        )
+        .await?;
+
+        if let Some(triple_term) = triple_term {
+            Ok(triple_term)
+        } else {
+            let triple_aggregate = self
+                .triple_aggregate(decoded_consumer_context, counter_vault_id)
+                .await?;
+            TripleTerm::builder()
+                .term_id(U256Wrapper::from(self.vault_id()?))
+                .total_assets(triple_aggregate.total_assets)
+                .total_market_cap(triple_aggregate.total_market_cap)
+                .build()
+                .upsert(
+                    &decoded_consumer_context.backend_schema,
+                    &decoded_consumer_context.pg_pool,
+                )
+                .await
+                .map_err(ConsumerError::ModelError)
+        }
+    }
+
     /// This function gets or creates a counter vault
     async fn get_or_create_counter_vault(
         &self,

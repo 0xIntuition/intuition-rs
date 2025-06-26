@@ -182,6 +182,32 @@ impl Position {
         Ok(count)
     }
 
+    pub async fn count_by_triple<'e, E>(
+        term_id: U256Wrapper,
+        counter_term_id: U256Wrapper,
+        curve_id: U256Wrapper,
+        executor: E,
+        schema: &str,
+    ) -> Result<i64, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
+        let query = format!(
+            "SELECT COUNT(*) FROM {}.position WHERE (term_id = $1 OR term_id = $2) AND curve_id = $3",
+            schema
+        );
+
+        let count: i64 = sqlx::query_scalar(&query)
+            .bind(term_id.to_big_decimal()?)
+            .bind(counter_term_id.to_big_decimal()?)
+            .bind(curve_id.to_big_decimal()?)
+            .fetch_one(executor)
+            .await
+            .map_err(|e| ModelError::QueryError(e.to_string()))?;
+
+        Ok(count)
+    }
+
     /// Returns the number of positions in the given term.
     pub async fn count_by_term_id<'e, E>(
         term_id: U256Wrapper,
