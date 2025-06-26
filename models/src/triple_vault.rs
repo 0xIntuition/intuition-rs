@@ -46,7 +46,7 @@ impl SimpleCrud<U256Wrapper> for TripleVault {
                     total_assets = EXCLUDED.total_assets,
                     market_cap = EXCLUDED.market_cap,
                     block_number = EXCLUDED.block_number,
-                    log_index = EXCLUDED.log_index,
+                    log_index = EXCLUDED.log_index
                 WHERE
                 EXCLUDED.block_number > triple_vault.block_number
                 OR (
@@ -103,8 +103,7 @@ impl SimpleCrud<U256Wrapper> for TripleVault {
                 market_cap,
                 block_number,
                 log_index,
-                transaction_hash,
-                created_at
+                updated_at
             FROM {}.triple_vault 
             WHERE term_id = $1 
             "#,
