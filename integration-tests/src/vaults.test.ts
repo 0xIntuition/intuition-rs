@@ -1,5 +1,5 @@
 import { expect, test, suite } from 'vitest'
-import { execute, getIntuition, pinJson, SystemAtom, wait } from './setup/utils.js'
+import { execute, getIntuition, getCounterVaultId, wait } from './setup/utils.js'
 import { graphql } from './graphql/gql.js'
 import { Address, parseEther } from 'viem'
 
@@ -104,13 +104,51 @@ suite('vaults', () => {
 
     const result = await execute(
       positionsQuery,
-      { address: user301.account.address.toString(), term_id: counterVault.toString(), curve_id: '1' })
+      {
+        address: user301.account.address.toString(),
+        term_id: counterVault.toString(),
+        curve_id: '1'
+      })
 
     expect(result).toBeDefined()
     expect(result.positions.length).toBe(1)
     expect(result.positions[0].shares).toBe(user301State.shares.toString())
     expect(result.positions[0].curve_id).toBe('1')
     expect(result.positions[0].term_id).toBe(counterVault.toString())
+  })
+
+  test('misc signals on a triple', async () => {
+    const user351 = await getIntuition(351)
+
+    const signal1 = await user351.multivault.depositTriple(counterVault, parseEther('0.01'))
+    await wait(signal1.hash)
+
+    const signal2 = await user351.multivault.redeemTriple(counterVault, parseEther('0.001'))
+    await wait(signal2.hash)
+
+    const user352 = await getIntuition(352)
+
+    const signal3 = await user352.multivault.depositTriple(triple.vaultId, parseEther('0.01'))
+    await wait(signal3.hash)
+
+    const signal4 = await user352.multivault.redeemTriple(triple.vaultId, parseEther('0.001'))
+    await wait(signal4.hash)
+
+    const user353 = await getIntuition(353)
+
+    const signal5 = await user353.multivault.depositTriple(counterVault, parseEther('0.01'))
+    await wait(signal5.hash)
+
+    const user353State = await user353.multivault.getVaultStateForUser(
+      counterVault,
+      user353.account.address
+    )
+
+    // full redeem
+    const signal6 = await user353.multivault.redeemTriple(counterVault, user353State.shares)
+    await wait(signal6.hash)
+
+    expect(signal6.hash).toBeDefined()
   })
 
   test('triple vault numbers are correct', async () => {
@@ -140,8 +178,16 @@ query triple($term_id: numeric!) {
       { term_id: triple.vaultId.toString() })
 
     expect(result).toBeDefined()
-    expect(BigInt(result.triple.triple_term.total_assets)).toEqual(BigInt(result.triple.term.total_assets) + BigInt(result.triple.counter_term.total_assets))
-    expect(BigInt(result.triple.triple_term.total_market_cap)).toEqual(BigInt(result.triple.term.total_market_cap) + BigInt(result.triple.counter_term.total_market_cap))
+    expect(BigInt(result.triple.triple_term.total_assets)).toEqual(
+      BigInt(result.triple.term.total_assets) + BigInt(result.triple.counter_term.total_assets)
+    )
+    expect(BigInt(result.triple.triple_term.total_market_cap)).toEqual(
+      BigInt(result.triple.term.total_market_cap) + BigInt(result.triple.counter_term.total_market_cap)
+    )
+  })
+
+  test('computing counterVaultId', () => {
+    expect(counterVault).toEqual(getCounterVaultId(triple.vaultId))
   })
 
 })
