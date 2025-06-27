@@ -62,6 +62,13 @@ array_relationships:
         table:
           name: redemption
           schema: public
+  - name: share_price_changes
+    using:
+      foreign_key_constraint_on:
+        column: term_id
+        table:
+          name: share_price_change
+          schema: public
   - name: signals
     using:
       foreign_key_constraint_on:
