@@ -186,3 +186,20 @@ pub async fn update_vault_from_share_price_changed_events(
 
     Ok(())
 }
+
+/// This function gets the absolute triple ID
+pub fn get_absolute_triple_id(vault_id: U256) -> U256 {
+    let max = (U256::from(2).pow(U256::from(255)) * U256::from(2) - U256::from(1)) / U256::from(2);
+    let is_counter_vault = max < vault_id;
+    let mut result = vault_id;
+    if is_counter_vault {
+        result = U256::from(2).pow(U256::from(255)) * U256::from(2) - U256::from(1) - vault_id;
+    }
+    result
+}
+
+/// This function gets the counter vault ID
+pub fn get_counter_vault_id(vault_id: U256) -> U256 {
+    let max = U256::from(2).pow(U256::from(255)) * U256::from(2) - U256::from(1);
+    max - vault_id
+}

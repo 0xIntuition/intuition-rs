@@ -1,7 +1,7 @@
 use crate::{
     error::ConsumerError,
     mode::{
-        decoded::utils::get_block_timestamp,
+        decoded::utils::{get_block_timestamp, get_counter_vault_id},
         resolver::types::ResolverConsumerMessage,
         types::DecodedConsumerContext,
         utils::{VaultOrigin, get_or_create_term, short_id},
@@ -45,9 +45,7 @@ pub trait TripleCreatedEvent:
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
         // Get the counter vault ID
-        let counter_vault_id = decoded_consumer_context
-            .get_counter_id_from_triple(self.vault_id()?)
-            .await?;
+        let counter_vault_id = get_counter_vault_id(self.vault_id()?);
 
         // Get or update the vault
         VaultOrigin::TripleCreated
@@ -78,12 +76,7 @@ pub trait TripleCreatedEvent:
 
         // Get or create the triple vault
         VaultOrigin::TripleCreated
-            .get_or_create_triple_vault(
-                self.clone(),
-                decoded_consumer_context,
-                event,
-                counter_vault_id.into(),
-            )
+            .get_or_create_triple_vault(self.clone(), decoded_consumer_context, event)
             .await?;
 
         Ok(())

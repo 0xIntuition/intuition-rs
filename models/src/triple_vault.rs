@@ -143,4 +143,39 @@ impl TripleVault {
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
     }
+
+    /// Finds a vault by its id.
+    pub async fn find_by_term_id_and_counter_term_id<'e, E>(
+        term_id: U256Wrapper,
+        schema: &str,
+        executor: E,
+    ) -> Result<Option<Self>, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
+        let query = format!(
+            r#"
+            SELECT 
+                term_id, 
+                counter_term_id,
+                curve_id,
+                total_shares, 
+                position_count,
+                total_assets,
+                market_cap,
+                block_number,
+                log_index,
+                updated_at
+            FROM {}.triple_vault 
+            WHERE term_id = $1 OR counter_term_id = $1
+            "#,
+            schema,
+        );
+
+        sqlx::query_as::<_, TripleVault>(&query)
+            .bind(term_id.to_big_decimal()?)
+            .fetch_optional(executor)
+            .await
+            .map_err(|e| ModelError::QueryError(e.to_string()))
+    }
 }

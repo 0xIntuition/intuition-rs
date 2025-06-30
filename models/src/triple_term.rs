@@ -77,3 +77,33 @@ impl SimpleCrud<U256Wrapper> for TripleTerm {
             .map_err(|e| ModelError::QueryError(e.to_string()))
     }
 }
+
+impl TripleTerm {
+    pub async fn find_by_term_id_and_counter_term_id<'e, E>(
+        term_id: U256Wrapper,
+        schema: &str,
+        executor: E,
+    ) -> Result<Option<Self>, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
+        let query = format!(
+            r#"
+            SELECT 
+                term_id, 
+                counter_term_id,
+                total_assets,
+                total_market_cap
+            FROM {}.triple_term 
+            WHERE term_id = $1 OR counter_term_id = $1
+            "#,
+            schema,
+        );
+
+        sqlx::query_as::<_, TripleTerm>(&query)
+            .bind(term_id.to_big_decimal()?)
+            .fetch_optional(executor)
+            .await
+            .map_err(|e| ModelError::QueryError(e.to_string()))
+    }
+}
