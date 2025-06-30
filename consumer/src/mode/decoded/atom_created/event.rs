@@ -55,7 +55,7 @@ pub trait AtomCreatedEvent:
                     &decoded_consumer_context.backend_schema,
                 )
                 .await?
-                .ok_or(ConsumerError::VaultNotFound)?
+                .ok_or(ConsumerError::VaultNotFound(self.vault_id()?.to_string()))?
             }
         };
 

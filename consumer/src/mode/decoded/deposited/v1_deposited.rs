@@ -24,7 +24,7 @@ impl TripleTermManager for &Deposited {
             &decoded_consumer_context.pg_pool,
         )
         .await?
-        .ok_or(ConsumerError::VaultNotFound)?;
+        .ok_or(ConsumerError::VaultNotFound(self.vaultId.to_string()))?;
 
         let counter_vault = Vault::find_by_id(
             counter_vault_id,
@@ -32,7 +32,7 @@ impl TripleTermManager for &Deposited {
             &decoded_consumer_context.pg_pool,
         )
         .await?
-        .ok_or(ConsumerError::VaultNotFound)?;
+        .ok_or(ConsumerError::VaultNotFound(self.vaultId.to_string()))?;
 
         let total_shares = term_id_vault.total_shares + counter_vault.total_shares;
         let total_assets = term_id_vault.total_assets + counter_vault.total_assets;
@@ -60,16 +60,18 @@ impl TripleVaultManager for &Deposited {
             &decoded_consumer_context.backend_schema,
         )
         .await?
-        .ok_or(ConsumerError::VaultNotFound)?;
+        .ok_or(ConsumerError::VaultNotFound(self.vaultId.to_string()))?;
 
         let counter_vault = Vault::find_by_term_id_and_curve_id(
-            counter_vault_id,
+            counter_vault_id.clone(),
             curve_id,
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
         .await?
-        .ok_or(ConsumerError::VaultNotFound)?;
+        .ok_or(ConsumerError::CounterVaultNotFound(
+            counter_vault_id.to_string(),
+        ))?;
 
         let total_shares = term_id_vault.total_shares + counter_vault.total_shares;
         let total_assets = term_id_vault.total_assets + counter_vault.total_assets;

@@ -56,7 +56,7 @@ impl VaultInfo {
             &decoded_consumer_context.pg_pool,
         )
         .await?
-        .ok_or(ConsumerError::VaultNotFound)?;
+        .ok_or(ConsumerError::VaultNotFound(vault_id.to_string()))?;
         // Update regular fields
         vault.current_share_price = self.current_share_price.clone();
         vault.market_cap = self.total_shares.clone() * self.current_share_price.clone()

@@ -59,7 +59,7 @@ where
             &decoded_consumer_context.backend_schema,
         )
         .await?
-        .ok_or(ConsumerError::VaultNotFound)?;
+        .ok_or(ConsumerError::VaultNotFound(self.0.vault_id()?.to_string()))?;
 
         // 2. Set up accounts
         let sender_account =
@@ -132,7 +132,7 @@ where
             &decoded_consumer_context.pg_pool,
         )
         .await?
-        .ok_or(ConsumerError::VaultNotFound)?;
+        .ok_or(ConsumerError::VaultNotFound(self.0.vault_id()?.to_string()))?;
 
         let term_type = Term::find_by_id(
             vault.term_id.clone(),
