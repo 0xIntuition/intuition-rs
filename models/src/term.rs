@@ -11,6 +11,7 @@ use sqlx::{Executor, Postgres, Result};
 pub enum TermType {
     Atom,
     Triple,
+    CounterTriple,
 }
 
 /// This struct defines the vault in the database. Note that both `atom_id` and

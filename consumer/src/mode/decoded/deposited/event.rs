@@ -1,7 +1,7 @@
 use crate::{
     error::ConsumerError,
     mode::{
-        decoded::utils::{VaultInfo, get_block_timestamp},
+        decoded::utils::{VaultInfo, get_block_timestamp, is_counter_vault},
         types::DecodedConsumerContext,
         utils::{VaultOrigin, get_or_create_account},
     },
@@ -13,7 +13,7 @@ use models::{
     deposit::Deposit, position::Position, signal::Signal, term::TermType, traits::SimpleCrud,
     triple_term::TripleTerm, triple_vault::TripleVault, types::U256Wrapper, vault::Vault,
 };
-use tracing::debug;
+use tracing::{debug, info};
 
 /// This trait represents a deposited event
 pub trait DepositedEvent:
@@ -92,11 +92,7 @@ pub trait DepositedEvent:
             if triple_term.is_none() {
                 // Get or create the triple term
                 VaultOrigin::Deposit
-                    .get_or_create_triple_term(
-                        self.clone(),
-                        decoded_consumer_context,
-                        self.vault_id()?.into(),
-                    )
+                    .get_or_create_triple_term(self.clone(), decoded_consumer_context)
                     .await?;
             }
             // verify if we already have the triple vault
@@ -177,7 +173,16 @@ pub trait DepositedEvent:
                 self.clone(),
                 decoded_consumer_context,
                 if self.is_triple()? {
-                    TermType::Triple
+                    if is_counter_vault(self.vault_id()?) {
+                        info!(
+                            "term type for deposit is counter triple: {:?}",
+                            self.vault_id()?
+                        );
+                        TermType::CounterTriple
+                    } else {
+                        info!("term type for deposit is triple: {:?}", self.vault_id()?);
+                        TermType::Triple
+                    }
                 } else {
                     TermType::Atom
                 },

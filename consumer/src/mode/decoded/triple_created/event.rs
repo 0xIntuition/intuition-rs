@@ -67,11 +67,7 @@ pub trait TripleCreatedEvent:
 
         // Get or create the triple term
         VaultOrigin::TripleCreated
-            .get_or_create_triple_term(
-                self.clone(),
-                decoded_consumer_context,
-                counter_vault_id.into(),
-            )
+            .get_or_create_triple_term(self.clone(), decoded_consumer_context)
             .await?;
 
         // Get or create the triple vault
@@ -105,7 +101,7 @@ pub trait TripleCreatedEvent:
                 &self.clone(),
                 Some(counter_vault_id.clone()),
                 decoded_consumer_context,
-                TermType::Triple,
+                TermType::CounterTriple,
             )
             .await?;
 

@@ -4,7 +4,7 @@ use super::{
 };
 use crate::{
     error::ConsumerError,
-    mode::decoded::utils::get_counter_vault_id,
+    mode::decoded::utils::{get_absolute_triple_id, get_counter_vault_id},
     schemas::types::DecodedMessage,
     traits::{AccountManager, SharePriceEvent, TripleTermManager, TripleVaultManager},
 };
@@ -20,7 +20,7 @@ use models::{
 };
 use sqlx::PgPool;
 use std::fmt::Debug;
-use tracing::debug;
+use tracing::{debug, info};
 
 /// This enum represents the origin of a vault
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -90,8 +90,9 @@ impl VaultOrigin {
         &self,
         event: impl SharePriceEvent + TripleTermManager,
         decoded_consumer_context: &DecodedConsumerContext,
-        counter_vault_id: U256Wrapper,
     ) -> Result<TripleTerm, ConsumerError> {
+        let counter_vault_id =
+            U256Wrapper::from(get_counter_vault_id(event.term_id()?.try_into()?));
         let triple_term = TripleTerm::find_by_id(
             event.term_id()?,
             &decoded_consumer_context.backend_schema,
@@ -213,24 +214,6 @@ impl VaultOrigin {
 /// Shortens an address string by taking first 6 and last 4 chars
 pub fn short_id(address: &str) -> String {
     format!("{}...{}", &address[..6], &address[address.len() - 4..])
-}
-
-/// Returns the absolute triple ID for a given vault ID by determining if it's a counter vault
-/// and adjusting the ID accordingly
-#[allow(dead_code)]
-pub fn get_absolute_triple_id(vault_id: U256) -> U256 {
-    // Calculate max value: (2^255 * 2 - 1) / 2
-    let max = (U256::from(2).pow(U256::from(255)) * U256::from(2) - U256::from(1)) / U256::from(2);
-
-    // Check if this is a counter vault by comparing against max
-    let is_counter_vault = max < vault_id;
-
-    if is_counter_vault {
-        // For counter vaults, calculate: 2^255 * 2 - 1 - vault_id
-        U256::from(2).pow(U256::from(255)) * U256::from(2) - U256::from(1) - vault_id
-    } else {
-        vault_id
-    }
 }
 
 /// This function updates an unknown account or creates an account and enqueues a resolver message
@@ -360,7 +343,19 @@ pub async fn get_or_create_term(
                 )
                 .await
                 .map_err(ConsumerError::ModelError)
+        } else if let TermType::CounterTriple = term_type {
+            let triple_id = U256Wrapper::from(get_absolute_triple_id(term_id.clone().try_into()?));
+            info!("Setting counter term with triple id: {:?}", triple_id);
+            term.triple_id(triple_id)
+                .build()
+                .upsert(
+                    &decoded_consumer_context.backend_schema,
+                    &decoded_consumer_context.pg_pool.clone(),
+                )
+                .await
+                .map_err(ConsumerError::ModelError)
         } else {
+            info!("Setting triple term with id: {:?}", term_id);
             term.triple_id(term_id)
                 .build()
                 .upsert(
