@@ -1,22 +1,24 @@
 use crate::{
     error::ConsumerError,
     mode::{
-        decoded::utils::{VaultInfo, get_block_timestamp},
+        decoded::utils::{VaultInfo, get_block_timestamp, is_counter_vault},
         types::DecodedConsumerContext,
         utils::{VaultOrigin, get_or_create_account},
     },
     schemas::types::DecodedMessage,
-    traits::{SharePriceEvent, VaultManager},
+    traits::{SharePriceEvent, TripleTermManager, TripleVaultManager, VaultManager},
 };
 use alloy::primitives::{U256, Uint};
 use models::{
     deposit::Deposit, position::Position, signal::Signal, term::TermType, traits::SimpleCrud,
-    types::U256Wrapper, vault::Vault,
+    triple_term::TripleTerm, triple_vault::TripleVault, types::U256Wrapper, vault::Vault,
 };
 use tracing::debug;
 
 /// This trait represents a deposited event
-pub trait DepositedEvent: SharePriceEvent + VaultManager + Clone {
+pub trait DepositedEvent:
+    SharePriceEvent + TripleVaultManager + TripleTermManager + VaultManager + Clone
+{
     /// This function returns the sender of the deposit
     fn sender(&self) -> Result<String, ConsumerError>;
     /// This function returns the receiver of the deposit
@@ -70,6 +72,44 @@ pub trait DepositedEvent: SharePriceEvent + VaultManager + Clone {
             )
             .await
             .map_err(ConsumerError::ModelError)
+    }
+
+    /// This function creates a triple term
+    async fn create_triple_term_and_vault(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+        event: &DecodedMessage,
+    ) -> Result<(), ConsumerError> {
+        if self.is_triple()? {
+            // verify if we already have the triple term and vault
+            let triple_term = TripleTerm::find_by_term_id_and_counter_term_id(
+                // This can be either the vault or the counter vault
+                self.vault_id()?.into(),
+                &decoded_consumer_context.backend_schema,
+                &decoded_consumer_context.pg_pool,
+            )
+            .await?;
+            if triple_term.is_none() {
+                // Get or create the triple term
+                VaultOrigin::Deposit
+                    .get_or_create_triple_term(self.clone(), decoded_consumer_context)
+                    .await?;
+            }
+            // verify if we already have the triple vault
+            let triple_vault = TripleVault::find_by_term_id_and_counter_term_id(
+                self.vault_id()?.into(),
+                &decoded_consumer_context.backend_schema,
+                &decoded_consumer_context.pg_pool,
+            )
+            .await?;
+            if triple_vault.is_none() {
+                // Get or create the triple vault
+                VaultOrigin::Deposit
+                    .get_or_create_triple_vault(self.clone(), decoded_consumer_context, event)
+                    .await?;
+            }
+        }
+        Ok(())
     }
     /// This function creates a signal
     async fn create_signal(
@@ -133,7 +173,11 @@ pub trait DepositedEvent: SharePriceEvent + VaultManager + Clone {
                 self.clone(),
                 decoded_consumer_context,
                 if self.is_triple()? {
-                    TermType::Triple
+                    if is_counter_vault(self.vault_id()?) {
+                        TermType::CounterTriple
+                    } else {
+                        TermType::Triple
+                    }
                 } else {
                     TermType::Atom
                 },

@@ -1,5 +1,6 @@
 use std::{
     fmt::Display,
+    iter::Sum,
     ops::{Add, AddAssign, Div, Mul, Sub, SubAssign},
     str::FromStr,
 };
@@ -22,6 +23,12 @@ pub struct U256Wrapper(pub U256);
 impl AddAssign for U256Wrapper {
     fn add_assign(&mut self, other: Self) {
         self.0 += other.0;
+    }
+}
+
+impl Sum for U256Wrapper {
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(U256Wrapper::default(), |acc, s| acc + s)
     }
 }
 

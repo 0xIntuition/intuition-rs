@@ -1,13 +1,13 @@
 use crate::{
     error::ConsumerError,
     mode::{
-        decoded::utils::get_block_timestamp,
+        decoded::utils::{get_block_timestamp, get_counter_vault_id},
         resolver::types::ResolverConsumerMessage,
         types::DecodedConsumerContext,
         utils::{VaultOrigin, get_or_create_term, short_id},
     },
     schemas::types::DecodedMessage,
-    traits::{SharePriceEvent, VaultManager},
+    traits::{SharePriceEvent, TripleTermManager, TripleVaultManager, VaultManager},
 };
 use alloy::primitives::Uint;
 use models::{
@@ -25,7 +25,9 @@ use std::{fmt::Debug, str::FromStr};
 use tracing::warn;
 
 /// This trait represents a fee transferred event
-pub trait TripleCreatedEvent: SharePriceEvent + VaultManager + Debug + Clone {
+pub trait TripleCreatedEvent:
+    SharePriceEvent + VaultManager + TripleTermManager + TripleVaultManager + Debug + Clone
+{
     /// This function returns the vault ID
     fn vault_id(&self) -> Result<Uint<256, 4>, ConsumerError>;
     /// This function returns the creator ID
@@ -43,9 +45,7 @@ pub trait TripleCreatedEvent: SharePriceEvent + VaultManager + Debug + Clone {
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
         // Get the counter vault ID
-        let counter_vault_id = decoded_consumer_context
-            .get_counter_id_from_triple(self.vault_id()?)
-            .await?;
+        let counter_vault_id = get_counter_vault_id(self.vault_id()?);
 
         // Get or update the vault
         VaultOrigin::TripleCreated
@@ -65,8 +65,19 @@ pub trait TripleCreatedEvent: SharePriceEvent + VaultManager + Debug + Clone {
         )
         .await?;
 
+        // Get or create the triple term
+        VaultOrigin::TripleCreated
+            .get_or_create_triple_term(self.clone(), decoded_consumer_context)
+            .await?;
+
+        // Get or create the triple vault
+        VaultOrigin::TripleCreated
+            .get_or_create_triple_vault(self.clone(), decoded_consumer_context, event)
+            .await?;
+
         Ok(())
     }
+
     /// This function gets or creates a counter vault
     async fn get_or_create_counter_vault(
         &self,
@@ -90,7 +101,7 @@ pub trait TripleCreatedEvent: SharePriceEvent + VaultManager + Debug + Clone {
                 &self.clone(),
                 Some(counter_vault_id.clone()),
                 decoded_consumer_context,
-                TermType::Triple,
+                TermType::CounterTriple,
             )
             .await?;
 

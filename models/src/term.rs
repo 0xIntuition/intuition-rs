@@ -6,11 +6,12 @@ use crate::{
 use async_trait::async_trait;
 use sqlx::{Executor, Postgres, Result};
 
-#[derive(Debug, sqlx::Type, Clone)]
+#[derive(Debug, sqlx::Type, Clone, PartialEq, Eq)]
 #[sqlx(type_name = "term_type")]
 pub enum TermType {
     Atom,
     Triple,
+    CounterTriple,
 }
 
 /// This struct defines the vault in the database. Note that both `atom_id` and

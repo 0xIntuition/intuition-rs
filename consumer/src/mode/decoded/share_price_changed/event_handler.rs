@@ -2,7 +2,9 @@ use super::event::SharePriceChangedEvent;
 use crate::{
     error::ConsumerError,
     mode::{
-        decoded::utils::{EventHandler, update_vault_from_share_price_changed_events},
+        decoded::utils::{
+            EventHandler, is_counter_vault, update_vault_from_share_price_changed_events,
+        },
         types::DecodedConsumerContext,
     },
     schemas::types::DecodedMessage,
@@ -67,7 +69,11 @@ where
             .is_triple_id(SharePriceChangedEvent::term_id(&self.0)?.0)
             .await?
         {
-            TermType::Triple
+            if is_counter_vault(SharePriceChangedEvent::term_id(&self.0)?.try_into()?) {
+                TermType::CounterTriple
+            } else {
+                TermType::Triple
+            }
         } else {
             TermType::Atom
         };

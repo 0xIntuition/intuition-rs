@@ -31,4 +31,6 @@
 - "!include public_text_object.yaml"
 - "!include public_thing.yaml"
 - "!include public_triple.yaml"
+- "!include public_triple_term.yaml"
+- "!include public_triple_vault.yaml"
 - "!include public_vault.yaml"

@@ -186,3 +186,98 @@ pub async fn update_vault_from_share_price_changed_events(
 
     Ok(())
 }
+
+/// This function gets the absolute triple ID
+pub fn get_absolute_triple_id(vault_id: U256) -> U256 {
+    let is_counter_vault = is_counter_vault(vault_id);
+    let mut result = vault_id;
+    if is_counter_vault {
+        result = U256::from(2).pow(U256::from(255)) * U256::from(2) - U256::from(1) - vault_id;
+    }
+    result
+}
+
+pub fn is_counter_vault(vault_id: U256) -> bool {
+    let max = U256::from(2).pow(U256::from(255)) - U256::from(1);
+    max < vault_id
+}
+
+/// This function gets the counter vault ID
+pub fn get_counter_vault_id(vault_id: U256) -> U256 {
+    let max = U256::from(2).pow(U256::from(255)) * U256::from(2) - U256::from(1);
+    max - vault_id
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get_absolute_triple_id_counter_vault() {
+        // Test vault_id: 115792089237316195423570985008687907853269984665640564039457584007913129639931
+        // Should return term_id: 4
+        let vault_id = U256::from_str_radix(
+            "115792089237316195423570985008687907853269984665640564039457584007913129639931",
+            10,
+        )
+        .unwrap();
+
+        let result = get_absolute_triple_id(vault_id);
+        let expected = U256::from(4);
+
+        assert_eq!(
+            result, expected,
+            "get_absolute_triple_id should return 4 for the given counter vault ID"
+        );
+    }
+
+    #[test]
+    fn test_get_absolute_triple_id_regular_vault() {
+        // Test with a regular vault ID (not a counter vault)
+        let vault_id = U256::from(100);
+        let result = get_absolute_triple_id(vault_id);
+
+        assert_eq!(
+            result, vault_id,
+            "get_absolute_triple_id should return the same ID for regular vaults"
+        );
+    }
+
+    #[test]
+    fn test_get_counter_vault_id() {
+        // Test the counter vault ID calculation
+        let vault_id = U256::from(4);
+        let counter_id = get_counter_vault_id(vault_id);
+
+        // The counter vault ID should be the max value minus the original vault ID
+        let max = U256::from(2).pow(U256::from(255)) * U256::from(2) - U256::from(1);
+        let expected = max - vault_id;
+
+        assert_eq!(
+            counter_id, expected,
+            "get_counter_vault_id should return max - vault_id"
+        );
+    }
+
+    #[test]
+    fn test_is_counter_vault() {
+        // Test with the specific counter vault ID that should return true
+        let vault_id = U256::from_str_radix(
+            "115792089237316195423570985008687907853269984665640564039457584007913129639931",
+            10,
+        )
+        .unwrap();
+
+        assert!(
+            is_counter_vault(vault_id),
+            "is_counter_vault should return true for the given counter vault ID"
+        );
+
+        // Test with a regular vault ID that should return false
+        let regular_vault_id = U256::from(100);
+        assert!(
+            !is_counter_vault(regular_vault_id),
+            "is_counter_vault should return false for regular vault IDs"
+        );
+    }
+}

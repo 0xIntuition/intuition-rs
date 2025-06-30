@@ -31,6 +31,8 @@ pub mod text_object;
 pub mod thing;
 pub mod traits;
 pub mod triple;
+pub mod triple_term;
+pub mod triple_vault;
 pub mod types;
 pub mod vault;
 #[macro_use]

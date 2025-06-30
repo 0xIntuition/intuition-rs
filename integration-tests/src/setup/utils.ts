@@ -43,13 +43,13 @@ export async function getIntuition(accountIndex: number) {
   console.log(`Balance: ${parseFloat(formatEther(balance)).toFixed(6)} ETH, account: ${account.address}`)
 
   if (balance.valueOf() < parseEther('0.1').valueOf()) {
-    console.log(`Fauceting 0.1 ETH to ${account.address}...`)
+    console.log(`Sending 1 ETH to ${account.address}...`)
 
     // Faucet
     //@ts-ignore
     const hash = await adminClient.sendTransaction({
       account: ADMIN,
-      value: parseEther('0.1'),
+      value: parseEther('1'),
       to: account.address,
     })
 
@@ -199,4 +199,21 @@ export async function wait(hash: string | null) {
     }
   });
   return promise;
+}
+
+
+export function getAbsoluteTripleId(vaultId: bigint): bigint {
+  const max = (BigInt(2) ** BigInt(255) * BigInt(2) - BigInt(1)) / BigInt(2)
+  const isCounterVault = max < BigInt(vaultId)
+  let result = vaultId
+  if (isCounterVault) {
+    result = BigInt(2) ** BigInt(255) * BigInt(2) - BigInt(1) - BigInt(vaultId)
+  }
+
+  return result
+}
+
+export function getCounterVaultId(vaultId: bigint): bigint {
+  const max = (BigInt(2) ** BigInt(255) * BigInt(2) - BigInt(1))
+  return max - vaultId
 }
