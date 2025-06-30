@@ -13,7 +13,7 @@ use models::{
     deposit::Deposit, position::Position, signal::Signal, term::TermType, traits::SimpleCrud,
     triple_term::TripleTerm, triple_vault::TripleVault, types::U256Wrapper, vault::Vault,
 };
-use tracing::{debug, info};
+use tracing::debug;
 
 /// This trait represents a deposited event
 pub trait DepositedEvent:
@@ -174,13 +174,8 @@ pub trait DepositedEvent:
                 decoded_consumer_context,
                 if self.is_triple()? {
                     if is_counter_vault(self.vault_id()?) {
-                        info!(
-                            "term type for deposit is counter triple: {:?}",
-                            self.vault_id()?
-                        );
                         TermType::CounterTriple
                     } else {
-                        info!("term type for deposit is triple: {:?}", self.vault_id()?);
                         TermType::Triple
                     }
                 } else {

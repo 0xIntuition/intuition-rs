@@ -20,7 +20,7 @@ use models::{
 };
 use sqlx::PgPool;
 use std::fmt::Debug;
-use tracing::{debug, info};
+use tracing::debug;
 
 /// This enum represents the origin of a vault
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -345,7 +345,6 @@ pub async fn get_or_create_term(
                 .map_err(ConsumerError::ModelError)
         } else if let TermType::CounterTriple = term_type {
             let triple_id = U256Wrapper::from(get_absolute_triple_id(term_id.clone().try_into()?));
-            info!("Setting counter term with triple id: {:?}", triple_id);
             term.triple_id(triple_id)
                 .build()
                 .upsert(
@@ -355,7 +354,6 @@ pub async fn get_or_create_term(
                 .await
                 .map_err(ConsumerError::ModelError)
         } else {
-            info!("Setting triple term with id: {:?}", term_id);
             term.triple_id(term_id)
                 .build()
                 .upsert(
