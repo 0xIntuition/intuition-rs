@@ -221,7 +221,7 @@ impl SqsHibrid {
                             Ok(_) => break Ok(()),
                             Err(e) if retries < MAX_RETRIES => {
                                 retries += 1;
-                                let backoff = Duration::from_millis(500 * 2u64.pow(retries));
+                                let backoff = Duration::from_millis(150 * 2u64.pow(retries));
                                 error!(
                                     "Retry {}/{} for log {}: {}. Backing off for {:?}",
                                     retries, MAX_RETRIES, log_id, e, backoff
