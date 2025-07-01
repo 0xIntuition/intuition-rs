@@ -74,6 +74,7 @@ pub trait DepositedEvent:
             .map_err(ConsumerError::ModelError)
     }
 
+    #[allow(dead_code)]
     /// This function creates a triple term
     async fn create_triple_term_and_vault(
         &self,
