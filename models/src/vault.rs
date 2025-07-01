@@ -133,6 +133,42 @@ impl SimpleCrud<U256Wrapper> for Vault {
 }
 
 impl Vault {
+    /// Finds all the vaults by its term_id.
+    pub async fn find_vaults_by_term_id<'e, E>(
+        term_id: U256Wrapper,
+        schema: &str,
+        executor: E,
+    ) -> Result<Vec<Self>, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
+        let query = format!(
+            r#"
+            SELECT 
+                term_id, 
+                curve_id,
+                total_shares, 
+                current_share_price,
+                position_count,
+                total_assets,
+                market_cap,
+                block_number,
+                log_index,
+                transaction_hash,
+                created_at
+            FROM {}.vault 
+            WHERE term_id = $1
+            "#,
+            schema,
+        );
+
+        sqlx::query_as::<_, Vault>(&query)
+            .bind(term_id.to_big_decimal()?)
+            .fetch_all(executor)
+            .await
+            .map_err(|e| ModelError::QueryError(e.to_string()))
+    }
+
     /// This function updates the current share price of a vault
     pub async fn update_current_share_price<'e, E>(
         id: U256Wrapper,
@@ -216,6 +252,25 @@ impl Vault {
         );
         sqlx::query_scalar::<_, U256Wrapper>(&query)
             .bind(term_id.to_big_decimal()?)
+            .fetch_one(pool)
+            .await
+            .map_err(|e| ModelError::QueryError(e.to_string()))
+    }
+
+    /// This function sums the position count of all the vaults for a given term
+    pub async fn sum_position_count(
+        term_id: U256Wrapper,
+        counter_term_id: U256Wrapper,
+        pool: &PgPool,
+        schema: &str,
+    ) -> Result<i64, ModelError> {
+        let query = format!(
+            r#"SELECT SUM(position_count) FROM {}.vault WHERE term_id = $1 OR term_id = $2"#,
+            schema
+        );
+        sqlx::query_scalar::<_, i64>(&query)
+            .bind(term_id.to_big_decimal()?)
+            .bind(counter_term_id.to_big_decimal()?)
             .fetch_one(pool)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))

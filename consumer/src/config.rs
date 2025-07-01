@@ -68,7 +68,7 @@ impl FromStr for IndexerSource {
 #[derive(Deserialize, Debug)]
 pub enum ConsumerType {
     Sqs,
-    SqsHibrid,
+    SqsHybrid,
 }
 /// As we only have one consumer type for now, we can implement the
 /// `FromStr` trait to return the `Sqs` enum.
@@ -78,8 +78,8 @@ impl FromStr for ConsumerType {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if s == "sqs" {
             Ok(Self::Sqs)
-        } else if s == "sqs_hibrid" {
-            Ok(Self::SqsHibrid)
+        } else if s == "sqs_hybrid" || s == "sqs_hibrid" {
+            Ok(Self::SqsHybrid)
         } else {
             Err(ConsumerError::ConsumerTypeParse(s.to_string()))
         }

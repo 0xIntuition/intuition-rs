@@ -42,7 +42,8 @@ impl VaultInfo {
             total_assets: total_assets.into(),
         })
     }
-    /// This function updates the vault with the new total assets
+    /// This function updates the vault with the new total assets. This function is used
+    /// only for v1 contracts, which means we have a single vault per term.
     pub async fn update_vault(
         &self,
         vault_id: Uint<256, 4>,

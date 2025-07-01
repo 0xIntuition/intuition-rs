@@ -8,7 +8,7 @@ use crate::{
     },
 };
 use alloy::primitives::Uint;
-use models::{position::Position, traits::SimpleCrud, types::U256Wrapper, vault::Vault};
+use models::{position::Position, types::U256Wrapper, vault::Vault};
 
 /// This impl is used to convert the `TripleCreated` event into a `SharePriceEvent`
 impl SharePriceEvent for &TripleCreated {}
@@ -19,30 +19,49 @@ impl TripleTermManager for &TripleCreated {
         decoded_consumer_context: &DecodedConsumerContext,
         counter_vault_id: U256Wrapper,
     ) -> Result<TripleAggregate, ConsumerError> {
-        let term_id_vault = Vault::find_by_id(
+        let term_id_vault = Vault::find_vaults_by_term_id(
             self.vaultID.into(),
             &decoded_consumer_context.backend_schema,
             &decoded_consumer_context.pg_pool,
         )
-        .await?
-        .ok_or(ConsumerError::VaultNotFound(self.vaultID.to_string()))?;
+        .await?;
 
-        let counter_vault = Vault::find_by_id(
+        let counter_vault = Vault::find_vaults_by_term_id(
             counter_vault_id,
             &decoded_consumer_context.backend_schema,
             &decoded_consumer_context.pg_pool,
         )
-        .await?
-        .ok_or(ConsumerError::VaultNotFound(self.vaultID.to_string()))?;
+        .await?;
 
-        let total_shares = term_id_vault.total_shares + counter_vault.total_shares;
-        let total_assets = term_id_vault.total_assets + counter_vault.total_assets;
-        let total_market_cap = term_id_vault.market_cap + counter_vault.market_cap;
+        let total_shares_term_id: U256Wrapper =
+            term_id_vault.iter().map(|v| v.total_shares.clone()).sum();
+        let total_assets_term_id: U256Wrapper =
+            term_id_vault.iter().map(|v| v.total_assets.clone()).sum();
+        let total_market_cap_term_id: U256Wrapper =
+            term_id_vault.iter().map(|v| v.market_cap.clone()).sum();
+        let total_position_count_term_id: i64 =
+            term_id_vault.iter().map(|v| v.position_count as i64).sum();
+
+        let total_shares_counter_vault: U256Wrapper =
+            counter_vault.iter().map(|v| v.total_shares.clone()).sum();
+        let total_assets_counter_vault: U256Wrapper =
+            counter_vault.iter().map(|v| v.total_assets.clone()).sum();
+        let total_market_cap_counter_vault: U256Wrapper =
+            counter_vault.iter().map(|v| v.market_cap.clone()).sum();
+        let total_position_count_counter_vault: i64 =
+            counter_vault.iter().map(|v| v.position_count as i64).sum();
+
+        let total_shares = total_shares_term_id + total_shares_counter_vault;
+        let total_assets = total_assets_term_id + total_assets_counter_vault;
+        let total_market_cap = total_market_cap_term_id + total_market_cap_counter_vault;
+        let total_position_count =
+            total_position_count_term_id + total_position_count_counter_vault;
 
         Ok(TripleAggregate::new(
             total_shares,
             total_assets,
             total_market_cap,
+            total_position_count,
         ))
     }
 }
@@ -77,11 +96,14 @@ impl TripleVaultManager for &TripleCreated {
         let total_shares = term_id_vault.total_shares + counter_vault.total_shares;
         let total_assets = term_id_vault.total_assets + counter_vault.total_assets;
         let total_market_cap = term_id_vault.market_cap + counter_vault.market_cap;
+        let total_position_count =
+            term_id_vault.position_count as i64 + counter_vault.position_count as i64;
 
         Ok(TripleAggregate::new(
             total_shares,
             total_assets,
             total_market_cap,
+            total_position_count,
         ))
     }
 

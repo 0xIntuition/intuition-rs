@@ -1,4 +1,4 @@
--- Create a function to update triple_term's total_assets and total_market_cap
+-- Create a function to update triple_term's total_assets, total_market_cap, and total_position_count
 CREATE OR REPLACE FUNCTION update_triple_term_totals()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -15,12 +15,17 @@ BEGIN
         counter_term_id_val := OLD.counter_term_id;
     END IF;
 
-    -- Update the triple_term table with the sum of total_assets and market_cap from triple_vault
+    -- Update the triple_term table with the sum of total_assets, market_cap, and position_count
     -- for the specific term_id and counter_term_id combination
     UPDATE triple_term
     SET 
         total_assets = COALESCE((SELECT SUM(total_assets) FROM triple_vault WHERE term_id = term_id_val AND counter_term_id = counter_term_id_val), 0),
         total_market_cap = COALESCE((SELECT SUM(market_cap) FROM triple_vault WHERE term_id = term_id_val AND counter_term_id = counter_term_id_val), 0),
+        total_position_count = COALESCE((
+            SELECT SUM(v.position_count) 
+            FROM vault v 
+            WHERE v.term_id IN (term_id_val, counter_term_id_val)
+        ), 0),
         updated_at = now()
     WHERE term_id = term_id_val AND counter_term_id = counter_term_id_val;
 
@@ -68,9 +73,26 @@ BEGIN
             WHERE v.term_id IN (triple_vault.term_id, triple_vault.counter_term_id)
             AND v.curve_id = triple_vault.curve_id
         ),
+        position_count = (
+            SELECT COALESCE(SUM(v.position_count), 0)
+            FROM vault v
+            WHERE v.term_id IN (triple_vault.term_id, triple_vault.counter_term_id)
+            AND v.curve_id = triple_vault.curve_id
+        ),
         updated_at = now()
     WHERE (triple_vault.term_id = affected_term_id OR triple_vault.counter_term_id = affected_term_id)
     AND triple_vault.curve_id = affected_curve_id;
+
+    -- Also update triple_term totals when vault changes
+    UPDATE triple_term
+    SET 
+        total_position_count = COALESCE((
+            SELECT SUM(v.position_count) 
+            FROM vault v 
+            WHERE v.term_id IN (triple_term.term_id, triple_term.counter_term_id)
+        ), 0),
+        updated_at = now()
+    WHERE (triple_term.term_id = affected_term_id OR triple_term.counter_term_id = affected_term_id);
 
     RETURN NULL;
 END;
@@ -84,17 +106,23 @@ FOR EACH ROW
 EXECUTE FUNCTION update_triple_vault_from_vault();
 
 -- Initialize the triple_term totals for existing triple_vault records
-INSERT INTO triple_term (term_id, counter_term_id, total_assets, total_market_cap, updated_at)
+INSERT INTO triple_term (term_id, counter_term_id, total_assets, total_market_cap, total_position_count, updated_at)
 SELECT 
     term_id,
     counter_term_id,
     COALESCE(SUM(total_assets), 0) as total_assets,
     COALESCE(SUM(market_cap), 0) as total_market_cap,
+    COALESCE((
+        SELECT SUM(v.position_count) 
+        FROM vault v 
+        WHERE v.term_id IN (tv.term_id, tv.counter_term_id)
+    ), 0) as total_position_count,
     now() as updated_at
-FROM triple_vault
+FROM triple_vault tv
 GROUP BY term_id, counter_term_id
 ON CONFLICT (term_id) DO UPDATE SET
     counter_term_id = EXCLUDED.counter_term_id,
     total_assets = EXCLUDED.total_assets,
     total_market_cap = EXCLUDED.total_market_cap,
+    total_position_count = EXCLUDED.total_position_count,
     updated_at = EXCLUDED.updated_at;

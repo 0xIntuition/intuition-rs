@@ -77,7 +77,7 @@ services:
       AWS_ACCESS_KEY_ID: 'example'
       AWS_REGION: 'us-west-2'
       AWS_SECRET_ACCESS_KEY: 'example'
-      CONSUMER_TYPE: 'sqs_hibrid'
+      CONSUMER_TYPE: 'sqs_hybrid'
       INDEXER_DATABASE_URL: "postgres://postgres:postgres@database:5435/storage"
       INDEXER_SCHEMA: $INDEXER_SCHEMA
       ENVIRONMENT_NAME: "local_v_1_0"
@@ -108,7 +108,7 @@ services:
       AWS_ACCESS_KEY_ID: 'example'
       AWS_REGION: 'us-west-2'
       AWS_SECRET_ACCESS_KEY: 'example'
-      CONSUMER_TYPE: 'sqs_hibrid'
+      CONSUMER_TYPE: 'sqs_hybrid'
       INDEXER_DATABASE_URL: "postgres://postgres:postgres@database:5435/storage"
       INDEXER_SCHEMA: $INDEXER_SCHEMA
       ENVIRONMENT_NAME: "local_v_1_5"

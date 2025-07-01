@@ -8,7 +8,9 @@ use crate::{
     },
 };
 use alloy::primitives::Uint;
-use models::{position::Position, share_price_change::SharePriceChange, types::U256Wrapper};
+use models::{
+    position::Position, share_price_change::SharePriceChange, types::U256Wrapper, vault::Vault,
+};
 
 impl TripleTermManager for &DepositedCurve {
     async fn triple_aggregate(
@@ -18,7 +20,7 @@ impl TripleTermManager for &DepositedCurve {
     ) -> Result<TripleAggregate, ConsumerError> {
         let shares = SharePriceChange::fetch_latest_triple_shares_per_terms(
             self.vaultId.into(),
-            counter_vault_id,
+            counter_vault_id.clone(),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
@@ -30,11 +32,19 @@ impl TripleTermManager for &DepositedCurve {
             .iter()
             .map(|s| VaultOrigin::compute_market_cap(s.total_shares.clone(), s.share_price.clone()))
             .sum();
+        let total_position_count = Vault::sum_position_count(
+            self.vaultId.into(),
+            counter_vault_id,
+            &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
+        )
+        .await?;
 
         Ok(TripleAggregate::new(
             total_shares,
             total_assets,
             total_market_cap,
+            total_position_count,
         ))
     }
 }
@@ -48,8 +58,8 @@ impl TripleVaultManager for &DepositedCurve {
     ) -> Result<TripleAggregate, ConsumerError> {
         let shares = SharePriceChange::fetch_latest_triple_shares_per_terms_and_curve(
             self.vaultId.into(),
-            counter_vault_id,
-            curve_id,
+            counter_vault_id.clone(),
+            curve_id.clone(),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
@@ -61,11 +71,20 @@ impl TripleVaultManager for &DepositedCurve {
             .iter()
             .map(|s| VaultOrigin::compute_market_cap(s.total_shares.clone(), s.share_price.clone()))
             .sum();
+        let positions = Position::count_by_triple(
+            self.vaultId.into(),
+            counter_vault_id,
+            curve_id,
+            &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
+        )
+        .await?;
 
         Ok(TripleAggregate::new(
             total_shares,
             total_assets,
             total_market_cap,
+            positions,
         ))
     }
 

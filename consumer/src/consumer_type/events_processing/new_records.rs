@@ -1,6 +1,6 @@
 use crate::{
     config::ContractVersion,
-    consumer_type::sqs_hibrid::SqsHibrid,
+    consumer_type::sqs_hybrid::SqsHybrid,
     error::ConsumerError,
     mode::types::ConsumerMode,
     schemas::{goldsky::RawMessage, histocrawler::HistoCrawlerRawLog, types::DecodedMessage},
@@ -41,7 +41,7 @@ pub struct NotificationPayload {
 pub const MAX_RETRIES: u32 = 5;
 pub const MAX_BACKOFF_SECS: u64 = 30;
 
-impl SqsHibrid {
+impl SqsHybrid {
     /// Entry point for event polling lifecycle.
     /// Connects to the listener, processes historical records, and enters the main loop.
     pub async fn start_pooling_events(

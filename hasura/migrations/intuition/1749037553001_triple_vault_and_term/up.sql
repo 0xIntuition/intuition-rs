@@ -28,6 +28,7 @@ CREATE TABLE triple_term (
   counter_term_id NUMERIC(78, 0) REFERENCES term(id) NOT NULL,
   total_assets NUMERIC(78, 0) NOT NULL,
   total_market_cap NUMERIC(78, 0) NOT NULL,
+  total_position_count BIGINT NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   PRIMARY KEY (term_id)
 );
