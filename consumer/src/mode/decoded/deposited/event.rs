@@ -79,12 +79,13 @@ pub trait DepositedEvent:
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
+        vault_id: U256Wrapper,
     ) -> Result<(), ConsumerError> {
         if self.is_triple()? {
             // verify if we already have the triple term and vault
             let triple_term = TripleTerm::find_by_term_id_and_counter_term_id(
                 // This can be either the vault or the counter vault
-                self.vault_id()?.into(),
+                vault_id.clone(),
                 &decoded_consumer_context.backend_schema,
                 &decoded_consumer_context.pg_pool,
             )
@@ -97,7 +98,7 @@ pub trait DepositedEvent:
             }
             // verify if we already have the triple vault
             let triple_vault = TripleVault::find_by_term_id_and_counter_term_id(
-                self.vault_id()?.into(),
+                vault_id.clone(),
                 &decoded_consumer_context.backend_schema,
                 &decoded_consumer_context.pg_pool,
             )

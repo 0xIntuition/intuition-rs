@@ -56,13 +56,17 @@ where
 
         // If the deposit is a triple, we need to get or create the triple term and vault
         self.0
-            .create_triple_term_and_vault(decoded_consumer_context, event)
+            .create_triple_term_and_vault(decoded_consumer_context, event, vault.term_id.clone())
             .await?;
 
         // This is only for V1, we need to fetch the data from the RPC before
         // starting the transaction
         let vault_info = self
-            .get_vault_info(decoded_consumer_context, event, self.0.vault_id()?)
+            .get_vault_info(
+                decoded_consumer_context,
+                event,
+                vault.term_id.clone().try_into()?,
+            )
             .await?;
 
         // Create deposit record
