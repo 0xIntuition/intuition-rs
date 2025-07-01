@@ -23,26 +23,39 @@ impl TripleTermManager for &Deposited {
             &decoded_consumer_context.backend_schema,
             &decoded_consumer_context.pg_pool,
         )
-        .await?
-        .ok_or(ConsumerError::VaultNotFound(self.vaultId.to_string()))?;
+        .await?;
 
         let counter_vault = Vault::find_by_id(
             counter_vault_id,
             &decoded_consumer_context.backend_schema,
             &decoded_consumer_context.pg_pool,
         )
-        .await?
-        .ok_or(ConsumerError::VaultNotFound(self.vaultId.to_string()))?;
+        .await?;
 
-        let total_shares = term_id_vault.total_shares + counter_vault.total_shares;
-        let total_assets = term_id_vault.total_assets + counter_vault.total_assets;
-        let total_market_cap = term_id_vault.market_cap + counter_vault.market_cap;
+        let triple_aggregate = match (term_id_vault, counter_vault) {
+            (Some(term_id_vault), Some(counter_vault)) => TripleAggregate::new(
+                term_id_vault.total_shares + counter_vault.total_shares,
+                term_id_vault.total_assets + counter_vault.total_assets,
+                term_id_vault.market_cap + counter_vault.market_cap,
+            ),
+            (Some(term_id_vault), None) => TripleAggregate::new(
+                term_id_vault.total_shares,
+                term_id_vault.total_assets,
+                term_id_vault.market_cap,
+            ),
+            (None, Some(counter_vault)) => TripleAggregate::new(
+                counter_vault.total_shares,
+                counter_vault.total_assets,
+                counter_vault.market_cap,
+            ),
+            (None, None) => TripleAggregate::new(
+                U256Wrapper::try_from(0)?,
+                U256Wrapper::try_from(0)?,
+                U256Wrapper::try_from(0)?,
+            ),
+        };
 
-        Ok(TripleAggregate::new(
-            total_shares,
-            total_assets,
-            total_market_cap,
-        ))
+        Ok(triple_aggregate)
     }
 }
 
@@ -59,8 +72,7 @@ impl TripleVaultManager for &Deposited {
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
-        .await?
-        .ok_or(ConsumerError::VaultNotFound(self.vaultId.to_string()))?;
+        .await?;
 
         let counter_vault = Vault::find_by_term_id_and_curve_id(
             counter_vault_id.clone(),
@@ -68,20 +80,32 @@ impl TripleVaultManager for &Deposited {
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
-        .await?
-        .ok_or(ConsumerError::CounterVaultNotFound(
-            counter_vault_id.to_string(),
-        ))?;
+        .await?;
 
-        let total_shares = term_id_vault.total_shares + counter_vault.total_shares;
-        let total_assets = term_id_vault.total_assets + counter_vault.total_assets;
-        let total_market_cap = term_id_vault.market_cap + counter_vault.market_cap;
+        let triple_aggregate = match (term_id_vault, counter_vault) {
+            (Some(term_id_vault), Some(counter_vault)) => TripleAggregate::new(
+                term_id_vault.total_shares + counter_vault.total_shares,
+                term_id_vault.total_assets + counter_vault.total_assets,
+                term_id_vault.market_cap + counter_vault.market_cap,
+            ),
+            (Some(term_id_vault), None) => TripleAggregate::new(
+                term_id_vault.total_shares,
+                term_id_vault.total_assets,
+                term_id_vault.market_cap,
+            ),
+            (None, Some(counter_vault)) => TripleAggregate::new(
+                counter_vault.total_shares,
+                counter_vault.total_assets,
+                counter_vault.market_cap,
+            ),
+            (None, None) => TripleAggregate::new(
+                U256Wrapper::try_from(0)?,
+                U256Wrapper::try_from(0)?,
+                U256Wrapper::try_from(0)?,
+            ),
+        };
 
-        Ok(TripleAggregate::new(
-            total_shares,
-            total_assets,
-            total_market_cap,
-        ))
+        Ok(triple_aggregate)
     }
 
     /// This function returns the number of positions in the given triple, which means
