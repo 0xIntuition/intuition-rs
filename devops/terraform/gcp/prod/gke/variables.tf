@@ -1,7 +1,7 @@
 variable "project_id" {
   description = "GCP project ID"
   type        = string
-  default     = "your-gcp-project-id"  # Replace with your actual project ID
+  default     = "your-gcp-project-id" # Replace with your actual project ID
 }
 
 variable "region" {
@@ -43,10 +43,10 @@ variable "public_subnet_cidrs" {
 variable "default_node_pool_config" {
   description = "Default node pool configuration"
   type = object({
-    machine_type = string
-    disk_size_gb = number
-    min_nodes    = number
-    max_nodes    = number
+    machine_type  = string
+    disk_size_gb  = number
+    min_nodes     = number
+    max_nodes     = number
     initial_nodes = number
   })
   default = {
@@ -61,12 +61,12 @@ variable "default_node_pool_config" {
 variable "large_node_pool_config" {
   description = "Large node pool configuration"
   type = object({
-    machine_type = string
-    disk_size_gb = number
-    min_nodes    = number
-    max_nodes    = number
+    machine_type  = string
+    disk_size_gb  = number
+    min_nodes     = number
+    max_nodes     = number
     initial_nodes = number
-    preemptible  = bool
+    preemptible   = bool
   })
   default = {
     machine_type  = "e2-standard-4"

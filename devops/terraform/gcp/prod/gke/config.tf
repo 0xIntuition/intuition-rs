@@ -9,7 +9,7 @@ terraform {
   }
 
   backend "gcs" {
-    bucket = "intuition-terraform-state-gcp"
+    bucket = "be-cluster-terraform-state"
     prefix = "terraform/state/prod/gke-vpc"
   }
 } 
