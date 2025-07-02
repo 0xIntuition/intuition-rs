@@ -142,7 +142,7 @@ where
         .await?
         .ok_or(ConsumerError::TermNotFound)?;
 
-        let event = if let TermType::Triple = term_type.term_type {
+        let event = if let TermType::Triple | TermType::CounterTriple = term_type.term_type {
             Event::builder()
                 .id(DecodedMessage::event_id(event))
                 .event_type(EventType::Redeemed)
