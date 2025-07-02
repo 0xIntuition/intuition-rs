@@ -80,6 +80,7 @@ pub struct TripleAggregate {
     pub total_shares: U256Wrapper,
     pub total_assets: U256Wrapper,
     pub total_market_cap: U256Wrapper,
+    pub total_position_count: i64,
 }
 
 impl TripleAggregate {
@@ -87,11 +88,13 @@ impl TripleAggregate {
         total_shares: U256Wrapper,
         total_assets: U256Wrapper,
         total_market_cap: U256Wrapper,
+        total_position_count: i64,
     ) -> Self {
         Self {
             total_shares,
             total_assets,
             total_market_cap,
+            total_position_count,
         }
     }
 }

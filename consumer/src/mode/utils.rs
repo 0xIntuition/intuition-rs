@@ -111,6 +111,7 @@ impl VaultOrigin {
                 .counter_term_id(counter_vault_id)
                 .total_assets(triple_aggregate.total_assets)
                 .total_market_cap(triple_aggregate.total_market_cap)
+                .total_position_count(triple_aggregate.total_position_count)
                 .build()
                 .upsert(
                     &decoded_consumer_context.backend_schema,

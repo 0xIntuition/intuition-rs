@@ -76,7 +76,7 @@ spec:
                   path: /spec/template/spec/containers/0/env/-
                   value:
                     name: CONSUMER_TYPE
-                    value: 'sqs_hibrid'
+                    value: 'sqs_hybrid'
                 - op: add
                   path: /spec/template/spec/containers/0/env/-
                   value:

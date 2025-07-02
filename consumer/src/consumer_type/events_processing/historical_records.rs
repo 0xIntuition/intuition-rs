@@ -1,8 +1,8 @@
 use crate::{
-    consumer_type::sqs_hibrid::SqsHibrid, error::ConsumerError,
+    consumer_type::sqs_hybrid::SqsHybrid, error::ConsumerError,
     mode::raw::models::cursor::HistoFluxCursor,
 };
-impl SqsHibrid {
+impl SqsHybrid {
     /// This function returns the page size based on the amount of logs. If the
     /// amount of logs is less than 100, it returns the amount of logs. Otherwise,
     /// it returns 100.
@@ -52,24 +52,24 @@ mod tests {
     #[test]
     fn test_ceiling_div() {
         // Even division cases
-        assert_eq!(SqsHibrid::ceiling_div(10, 2), 5);
-        assert_eq!(SqsHibrid::ceiling_div(100, 10), 10);
-        assert_eq!(SqsHibrid::ceiling_div(2, 100), 1);
+        assert_eq!(SqsHybrid::ceiling_div(10, 2), 5);
+        assert_eq!(SqsHybrid::ceiling_div(100, 10), 10);
+        assert_eq!(SqsHybrid::ceiling_div(2, 100), 1);
 
         // Uneven division cases (should round up)
-        assert_eq!(SqsHibrid::ceiling_div(11, 2), 6);
-        assert_eq!(SqsHibrid::ceiling_div(99, 10), 10);
+        assert_eq!(SqsHybrid::ceiling_div(11, 2), 6);
+        assert_eq!(SqsHybrid::ceiling_div(99, 10), 10);
 
         // Edge cases
-        assert_eq!(SqsHibrid::ceiling_div(1, 1), 1);
-        assert_eq!(SqsHibrid::ceiling_div(0, 5), 0);
+        assert_eq!(SqsHybrid::ceiling_div(1, 1), 1);
+        assert_eq!(SqsHybrid::ceiling_div(0, 5), 0);
 
         // Large numbers
-        assert_eq!(SqsHibrid::ceiling_div(1000000, 3), 333334);
+        assert_eq!(SqsHybrid::ceiling_div(1000000, 3), 333334);
 
         // Negative numbers (following integer division rules)
-        assert_eq!(SqsHibrid::ceiling_div(-10, 3), -3);
-        assert_eq!(SqsHibrid::ceiling_div(10, -3), -3);
-        assert_eq!(SqsHibrid::ceiling_div(-10, -3), 4);
+        assert_eq!(SqsHybrid::ceiling_div(-10, 3), -3);
+        assert_eq!(SqsHybrid::ceiling_div(10, -3), -3);
+        assert_eq!(SqsHybrid::ceiling_div(-10, -3), 4);
     }
 }

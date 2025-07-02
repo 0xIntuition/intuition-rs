@@ -126,10 +126,11 @@ where
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
-        let vault = Vault::find_by_id(
+        let vault = Vault::find_by_term_id_and_curve_id(
             self.0.vault_id()?.into(),
-            &decoded_consumer_context.backend_schema,
+            U256Wrapper::try_from(1)?,
             &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
         )
         .await?
         .ok_or(ConsumerError::VaultNotFound(self.0.vault_id()?.to_string()))?;

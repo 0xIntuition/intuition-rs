@@ -53,6 +53,15 @@ object_relationships:
         remote_table:
           name: triple_term
           schema: public
+  - name: triple_vault
+    using:
+      manual_configuration:
+        column_mapping:
+          term_id: term_id
+        insertion_order: null
+        remote_table:
+          name: triple_vault
+          schema: public
 array_relationships:
   - name: counter_positions
     using:

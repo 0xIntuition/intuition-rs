@@ -6,7 +6,7 @@ use crate::{
     ENSRegistry::{self, ENSRegistryInstance},
     app_context::ServerInitialize,
     config::{ConsumerType, ContractInstance, ContractVersion, IndexerSource},
-    consumer_type::{sqs::Sqs, sqs_hibrid::SqsHibrid},
+    consumer_type::{sqs::Sqs, sqs_hybrid::SqsHybrid},
     error::ConsumerError,
     schemas::types::DecodedMessage,
     traits::{AtomUpdater, BasicConsumer},
@@ -323,7 +323,7 @@ impl ConsumerMode {
     ) -> Result<Arc<dyn BasicConsumer>, ConsumerError> {
         match ConsumerType::from_str(&data.env.consumer_type)? {
             ConsumerType::Sqs => Ok(Arc::new(Sqs::new(input_queue, output_queue, data).await)),
-            ConsumerType::SqsHibrid => Ok(Arc::new(SqsHibrid::new(output_queue, data).await?)),
+            ConsumerType::SqsHybrid => Ok(Arc::new(SqsHybrid::new(output_queue, data).await?)),
         }
     }
 

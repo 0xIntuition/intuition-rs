@@ -26,7 +26,7 @@ use tracing::{debug, error, info, warn};
 
 /// Represents the SQS consumer
 #[derive(Debug, Clone)]
-pub struct SqsHibrid {
+pub struct SqsHybrid {
     pub client: AWSClient,
     pub histoflux_cursor: HistoFluxCursor,
     pub histoflux_pg_pool: PgPool,
@@ -37,7 +37,7 @@ pub struct SqsHibrid {
     pub threads: usize,
 }
 
-impl SqsHibrid {
+impl SqsHybrid {
     pub async fn new(
         // The fallback output queue, if the cursor does not exist
         output_queue: String,
@@ -267,7 +267,7 @@ impl SqsHibrid {
 }
 
 #[async_trait]
-impl BasicConsumer for SqsHibrid {
+impl BasicConsumer for SqsHybrid {
     /// This function receives a [`Message`] and try to delete it, logging
     /// the results.
     async fn consume_message(&self, _message: Message) -> Result<(), ConsumerError> {

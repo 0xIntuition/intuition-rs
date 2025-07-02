@@ -14,6 +14,7 @@ pub struct TripleTerm {
     pub counter_term_id: U256Wrapper,
     pub total_assets: U256Wrapper,
     pub total_market_cap: U256Wrapper,
+    pub total_position_count: i64,
 }
 /// This is a trait that all models must implement.
 impl Model for TripleTerm {}
@@ -28,12 +29,13 @@ impl SimpleCrud<U256Wrapper> for TripleTerm {
     {
         let query = format!(
             r#"
-            INSERT INTO {}.triple_term (term_id, counter_term_id, total_assets, total_market_cap)
-            VALUES ($1, $2, $3, $4)
+            INSERT INTO {}.triple_term (term_id, counter_term_id, total_assets, total_market_cap, total_position_count)
+            VALUES ($1, $2, $3, $4, $5)
             ON CONFLICT (term_id) DO UPDATE SET
                 total_assets = EXCLUDED.total_assets,
-                total_market_cap = EXCLUDED.total_market_cap
-            RETURNING term_id, counter_term_id, total_assets, total_market_cap
+                total_market_cap = EXCLUDED.total_market_cap,
+                total_position_count = EXCLUDED.total_position_count
+            RETURNING term_id, counter_term_id, total_assets, total_market_cap, total_position_count
             "#,
             schema,
         );
@@ -43,6 +45,7 @@ impl SimpleCrud<U256Wrapper> for TripleTerm {
             .bind(self.counter_term_id.to_big_decimal()?)
             .bind(self.total_assets.to_big_decimal()?)
             .bind(self.total_market_cap.to_big_decimal()?)
+            .bind(self.total_position_count)
             .fetch_one(executor)
             .await
             .map_err(|e| ModelError::InsertError(e.to_string()))
@@ -63,7 +66,8 @@ impl SimpleCrud<U256Wrapper> for TripleTerm {
                 term_id, 
                 counter_term_id,
                 total_assets,
-                total_market_cap
+                total_market_cap,
+                total_position_count
             FROM {}.triple_term 
             WHERE term_id = $1
             "#,
@@ -93,7 +97,8 @@ impl TripleTerm {
                 term_id, 
                 counter_term_id,
                 total_assets,
-                total_market_cap
+                total_market_cap,
+                total_position_count
             FROM {}.triple_term 
             WHERE term_id = $1 OR counter_term_id = $1
             "#,

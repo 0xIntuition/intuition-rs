@@ -46,12 +46,17 @@ ON CONFLICT (term_id, curve_id) DO UPDATE SET
     updated_at = NOW();
 
 -- Then, populate triple_term table by summing all triple_vault records for each term_id/counter_term_id combination
-INSERT INTO triple_term (term_id, counter_term_id, total_assets, total_market_cap, updated_at)
+INSERT INTO triple_term (term_id, counter_term_id, total_assets, total_market_cap, total_position_count, updated_at)
 SELECT 
     tv.term_id,
     tv.counter_term_id,
     COALESCE(SUM(tv.total_assets), 0) as total_assets,
     COALESCE(SUM(tv.market_cap), 0) as total_market_cap,
+    COALESCE((
+        SELECT SUM(v.position_count) 
+        FROM vault v 
+        WHERE v.term_id IN (tv.term_id, tv.counter_term_id)
+    ), 0) as total_position_count,
     NOW() as updated_at
 FROM triple_vault tv
 GROUP BY tv.term_id, tv.counter_term_id
@@ -59,4 +64,5 @@ ON CONFLICT (term_id) DO UPDATE SET
     counter_term_id = EXCLUDED.counter_term_id,
     total_assets = EXCLUDED.total_assets,
     total_market_cap = EXCLUDED.total_market_cap,
+    total_position_count = EXCLUDED.total_position_count,
     updated_at = NOW(); 
