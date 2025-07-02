@@ -153,7 +153,7 @@ pub trait RedeemedEvent: Clone {
         .ok_or(ConsumerError::TermNotFound)?;
 
         let created_at = get_block_timestamp(event.block_timestamp)?;
-        let signal = if let TermType::Triple = term_type.term_type {
+        let signal = if let TermType::Triple | TermType::CounterTriple = term_type.term_type {
             Signal::builder()
                 .id(DecodedMessage::event_id(event))
                 .account_id(self.sender()?)
