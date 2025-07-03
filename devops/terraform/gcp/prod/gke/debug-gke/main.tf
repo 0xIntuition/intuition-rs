@@ -1,10 +1,28 @@
+terraform {
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = "~> 5.0"
+    }
+  }
 
+  required_version = ">= 1.3.0"
+}
 
 provider "google" {
   project = var.project_id
   region  = var.region
 }
 
+variable "project_id" {
+  type    = string
+  default = "your-project-id"  # <- replace with your real GCP project ID
+}
+
+variable "region" {
+  type    = string
+  default = "us-west2"
+}
 
 resource "google_compute_network" "vpc" {
   name                    = "debug-vpc"
