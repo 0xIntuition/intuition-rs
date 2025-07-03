@@ -19,9 +19,6 @@ CREATE TABLE share_price_change(
 CREATE INDEX idx_share_price_change_curve_id ON share_price_change(curve_id);
 CREATE INDEX idx_share_price_change_updated_at ON share_price_change(updated_at);
 CREATE INDEX idx_share_price_change_term_updated_at ON share_price_change(updated_at);
-CREATE INDEX idx_share_price_change_block_number ON share_price_change(block_number);
 CREATE INDEX idx_share_price_change_term_block_number ON share_price_change(block_number);
-CREATE INDEX idx_share_price_change_transaction_hash ON share_price_change(transaction_hash);
 CREATE INDEX idx_share_price_change_term_transaction_hash ON share_price_change(transaction_hash);
-CREATE INDEX idx_share_price_change_log_index ON share_price_change(log_index);
 CREATE INDEX idx_share_price_change_term_log_index ON share_price_change(log_index);

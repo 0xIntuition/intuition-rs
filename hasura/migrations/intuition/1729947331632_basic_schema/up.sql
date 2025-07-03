@@ -127,8 +127,6 @@ CREATE TABLE fee_transfer (
 
 CREATE INDEX fee_transfer_block_number_idx ON fee_transfer(block_number);
 CREATE INDEX fee_transfer_transaction_hash_idx ON fee_transfer(transaction_hash);
-CREATE INDEX fee_transfer_sender_idx ON fee_transfer(sender_id);
-CREATE INDEX fee_transfer_receiver_idx ON fee_transfer(receiver_id);
 CREATE INDEX fee_transfer_created_at_idx ON fee_transfer(created_at);
 
 CREATE TABLE deposit (
@@ -151,9 +149,6 @@ CREATE TABLE deposit (
 CREATE INDEX deposit_block_number_idx ON deposit(block_number);
 CREATE INDEX deposit_transaction_hash_idx ON deposit(transaction_hash);
 CREATE INDEX deposit_log_index_idx ON deposit(log_index);
-CREATE INDEX deposit_sender_idx ON deposit(sender_id);
-CREATE INDEX deposit_receiver_idx ON deposit(receiver_id);
-CREATE INDEX deposit_vault_idx ON deposit(vault_id);
 CREATE INDEX deposit_is_triple_idx ON deposit(is_triple);
 CREATE INDEX deposit_is_atom_wallet_idx ON deposit(is_atom_wallet);
 CREATE INDEX deposit_created_at_idx ON deposit(created_at);
@@ -176,9 +171,6 @@ CREATE TABLE redemption (
 CREATE INDEX redemption_block_number_idx ON redemption(block_number);
 CREATE INDEX redemption_transaction_hash_idx ON redemption(transaction_hash);
 CREATE INDEX redemption_log_index_idx ON redemption(log_index);
-CREATE INDEX redemption_sender_idx ON redemption(sender_id);
-CREATE INDEX redemption_receiver_idx ON redemption(receiver_id);
-CREATE INDEX redemption_vault_idx ON redemption(vault_id);
 CREATE INDEX redemption_created_at_idx ON redemption(created_at);
 
 CREATE TABLE event (
