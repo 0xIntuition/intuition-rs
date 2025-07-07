@@ -1,14 +1,3 @@
-terraform {
-  required_providers {
-    google = {
-      source  = "hashicorp/google"
-      version = "~> 5.0"
-    }
-  }
-
-  required_version = ">= 1.3.0"
-}
-
 provider "google" {
   project = var.project_id
   region  = var.region
@@ -16,7 +5,7 @@ provider "google" {
 
 variable "project_id" {
   type    = string
-  default = "your-project-id"  # <- replace with your real GCP project ID
+  default = "be-cluster"  # <-- replace with actual project ID
 }
 
 variable "region" {
@@ -55,7 +44,7 @@ resource "google_container_cluster" "primary" {
   name     = "debug-cluster"
   location = var.region
 
-  remove_default_node_pool = true
+  initial_node_count = 1  # ✅ Required in stable provider
 
   network    = google_compute_network.vpc.name
   subnetwork = google_compute_subnetwork.private_subnet.self_link
@@ -66,6 +55,10 @@ resource "google_container_cluster" "primary" {
     enable_private_nodes    = true
     enable_private_endpoint = false
     master_ipv4_cidr_block  = "172.31.0.16/28"
+  }
+
+  workload_identity_config {
+    workload_pool = "${var.project_id}.svc.id.goog"
   }
 
   release_channel {
