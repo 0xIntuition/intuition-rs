@@ -15,11 +15,11 @@ spec:
           #   revision: next
           #   env: prod-linea-mainnet-v-1-0
           #   namespace: prod-linea-mainnet-v-1-0
-          - cluster: prod-base-mainnet-v-1-0
-            server: 'https://kubernetes.default.svc'
-            revision: next
-            env: prod-base-mainnet-v-1-0
-            namespace: prod-base-mainnet-v-1-0
+          # - cluster: prod-base-mainnet-v-1-0
+          #   server: 'https://kubernetes.default.svc'
+          #   revision: next
+          #   env: prod-base-mainnet-v-1-0
+          #   namespace: prod-base-mainnet-v-1-0
 
   template:
     metadata:
