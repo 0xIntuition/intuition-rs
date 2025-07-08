@@ -10,11 +10,11 @@ spec:
   generators:
     - list:
         elements:
-          # - cluster: prod-eks
-          #   server: 'https://kubernetes.default.svc'
-          #   revision: next
-          #   env: prod-base-mainnet-v1-5-final
-          #   namespace: prod-base-mainnet-v-1-5-vector
+          - cluster: prod-eks
+            server: 'https://kubernetes.default.svc'
+            revision: next
+            env: prod-base-mainnet-v1-5-final
+            namespace: prod-base-mainnet-v-1-5-vector
           # - cluster: prod-eks
           #   server: 'https://kubernetes.default.svc'
           #   revision: next
