@@ -3,7 +3,6 @@ kind: Kustomization
 
 resources:
   - ../../base 
-  - pvc.yaml
   - storageclass.yaml
   - secret-provider.yaml
   - pgai-patch.yaml

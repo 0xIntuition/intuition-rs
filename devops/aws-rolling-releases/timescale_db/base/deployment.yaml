@@ -7,6 +7,15 @@ spec:
   selector:
     matchLabels:
       io.kompose.service: timescale-db
+  volumeClaimTemplates:
+  - metadata:
+      name: timescale-db-data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: gp3
+      resources:
+        requests:
+          storage: 50Gi
   template:
     metadata:
       labels:
@@ -25,6 +34,9 @@ spec:
           ports:
           - containerPort: 5432
             protocol: TCP
+          volumeMounts:
+          - name: timescale-db-data
+            mountPath: /var/lib/postgresql/data
           env:
           - name: POSTGRES_SHARED_PRELOAD_LIBRARIES
             value: "ai"
