@@ -40,5 +40,7 @@ spec:
           env:
           - name: POSTGRES_SHARED_PRELOAD_LIBRARIES
             value: "ai"
+          - name: PGDATA
+            value: "/home/postgres/pgdata/data"
       
       
