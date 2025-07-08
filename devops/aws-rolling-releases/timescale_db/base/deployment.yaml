@@ -36,11 +36,11 @@ spec:
             protocol: TCP
           volumeMounts:
           - name: timescale-db-data
-            mountPath: /home/postgres/pgdata
+            mountPath: /var/lib/postgresql/data
           env:
           - name: POSTGRES_SHARED_PRELOAD_LIBRARIES
             value: "ai"
           - name: PGDATA
-            value: "/home/postgres/pgdata/data"
+            value: "/var/lib/postgresql/data"
       
       
