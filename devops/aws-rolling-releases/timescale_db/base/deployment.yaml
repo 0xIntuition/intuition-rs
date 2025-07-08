@@ -22,6 +22,11 @@ spec:
         io.kompose.service: timescale-db
     spec:
       serviceAccountName: secrets-access-sa
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      
       containers:
         - name: timescale-db
           image: timescale/timescaledb-ha:pg17.5-ts2.20.1
@@ -36,11 +41,9 @@ spec:
             protocol: TCP
           volumeMounts:
           - name: timescale-db-data
-            mountPath: /var/lib/postgresql/data/pgdata
+            mountPath: /var/lib/postgresql/data
           env:
           - name: POSTGRES_SHARED_PRELOAD_LIBRARIES
             value: "ai"
           - name: PGDATA
             value: "/var/lib/postgresql/data/pgdata"
-      
-      
