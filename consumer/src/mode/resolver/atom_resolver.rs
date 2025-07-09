@@ -381,7 +381,8 @@ pub async fn try_to_parse_json_or_text(
             Some(ctx_str) if SCHEMA_ORG_CONTEXTS.contains(&ctx_str) => {
                 // We need to store the regular JSON as a JsonObject
                 let _ = handle_regular_json(consumer_context, atom, &json).await?;
-                // We need to store the schema.org JSON as a JsonObject
+                // We need to store the schema.org as the interpretation of the atom data
+                // as well, so we need to return the metadata for the schema.org JSON
                 handle_schema_org_json(consumer_context, atom, &json).await
             }
             _ => handle_regular_json(consumer_context, atom, &json).await,
