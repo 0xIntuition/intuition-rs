@@ -379,6 +379,9 @@ pub async fn try_to_parse_json_or_text(
     if let Ok(json) = serde_json::from_str::<Value>(atom_data) {
         match json.get("@context").and_then(|c| c.as_str()) {
             Some(ctx_str) if SCHEMA_ORG_CONTEXTS.contains(&ctx_str) => {
+                // We need to store the regular JSON as a JsonObject
+                let _ = handle_regular_json(consumer_context, atom, &json).await?;
+                // We need to store the schema.org JSON as a JsonObject
                 handle_schema_org_json(consumer_context, atom, &json).await
             }
             _ => handle_regular_json(consumer_context, atom, &json).await,
