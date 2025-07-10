@@ -42,6 +42,7 @@ pub trait AtomCreatedEvent:
                 decoded_consumer_context,
                 TermType::Atom,
                 event,
+                None,
             )
             .await
         {

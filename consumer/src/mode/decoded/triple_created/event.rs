@@ -54,6 +54,7 @@ pub trait TripleCreatedEvent:
                 decoded_consumer_context,
                 TermType::Triple,
                 event,
+                None,
             )
             .await?;
 
@@ -237,20 +238,19 @@ pub trait TripleCreatedEvent:
             return Ok(atom);
         }
 
-        let atom_data = decoded_consumer_context
-            .fetch_atom_data(self.subject_id()?)
-            .await?;
+        let atom_data = decoded_consumer_context.fetch_atom_data(id.0).await?;
 
         let account = self
             .get_or_create_temporary_account(&decoded_consumer_context.backend_schema, tx)
             .await?;
 
-        let vault = match VaultOrigin::TripleCreated
+        let vault = match VaultOrigin::AtomCreated
             .get_or_create_vault(
                 self.clone(),
                 decoded_consumer_context,
-                TermType::Triple,
+                TermType::Atom,
                 event,
+                Some(id.clone()),
             )
             .await
         {
@@ -258,7 +258,7 @@ pub trait TripleCreatedEvent:
             Err(e) => {
                 warn!("Error inserting vault: {:?}, returning existing vault", e);
                 Vault::find_by_term_id_and_curve_id(
-                    self.vault_id()?.into(),
+                    id,
                     self.curve_id()?,
                     &decoded_consumer_context.pg_pool,
                     &decoded_consumer_context.backend_schema,

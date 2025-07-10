@@ -45,9 +45,15 @@ impl VaultOrigin {
         context: &DecodedConsumerContext,
         term_type: TermType,
         tx: &DecodedMessage,
+        custom_term_id: Option<U256Wrapper>,
     ) -> Result<Vault, ConsumerError> {
+        let term_id = match custom_term_id.clone() {
+            Some(term_id) => term_id,
+            None => event.term_id()?,
+        };
+
         if let Some(existing) = Vault::find_by_term_id_and_curve_id(
-            event.term_id()?,
+            term_id.clone(),
             event.curve_id()?,
             &context.pg_pool,
             &context.backend_schema,
@@ -57,14 +63,13 @@ impl VaultOrigin {
             return Ok(existing);
         }
 
-        debug!(
-            "Creating new term and vault for term_id: {}",
-            event.term_id()?
-        );
+        debug!("Creating new term and vault for term_id: {}", term_id);
 
-        get_or_create_term(&event, None, context, term_type.clone()).await?;
+        get_or_create_term(&event, custom_term_id.clone(), context, term_type.clone()).await?;
 
-        let new_vault = self.build_new_vault(&event, context, tx).await?;
+        let new_vault = self
+            .build_new_vault(&event, context, tx, custom_term_id)
+            .await?;
 
         if self.should_insert() {
             new_vault
@@ -184,8 +189,12 @@ impl VaultOrigin {
         event: &impl SharePriceEvent,
         context: &DecodedConsumerContext,
         tx: &DecodedMessage,
+        custom_term_id: Option<U256Wrapper>,
     ) -> Result<Vault, ConsumerError> {
-        let term_id = event.term_id()?;
+        let term_id = match custom_term_id {
+            Some(term_id) => term_id,
+            None => event.term_id()?,
+        };
         let curve_id = event.curve_id()?;
         let block_number = tx.block_number;
         let total_shares = event.total_shares(context, block_number).await?;

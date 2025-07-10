@@ -175,6 +175,7 @@ pub async fn update_vault_from_share_price_changed_events(
                 decoded_consumer_context,
                 term_type,
                 transaction_data,
+                None,
             )
             .await?
             .upsert(
