@@ -379,6 +379,10 @@ pub async fn try_to_parse_json_or_text(
     if let Ok(json) = serde_json::from_str::<Value>(atom_data) {
         match json.get("@context").and_then(|c| c.as_str()) {
             Some(ctx_str) if SCHEMA_ORG_CONTEXTS.contains(&ctx_str) => {
+                // We need to store the regular JSON as a JsonObject
+                let _ = handle_regular_json(consumer_context, atom, &json).await?;
+                // We need to store the schema.org as the interpretation of the atom data
+                // as well, so we need to return the metadata for the schema.org JSON
                 handle_schema_org_json(consumer_context, atom, &json).await
             }
             _ => handle_regular_json(consumer_context, atom, &json).await,
@@ -394,12 +398,27 @@ pub async fn create_byte_object_atom_value(
     byte_object: &ByteObject,
     consumer_context: &impl AtomUpdater,
 ) -> Result<(), ConsumerError> {
-    AtomValue::builder()
-        .id(atom.term_id.clone())
-        .byte_object_id(byte_object.id.clone())
-        .build()
-        .upsert(consumer_context.backend_schema(), consumer_context.pool())
-        .await?;
+    // We need to check if the atom value already exists
+    if let Some(mut atom_value) = AtomValue::find_by_id(
+        atom.term_id.clone(),
+        consumer_context.backend_schema(),
+        consumer_context.pool(),
+    )
+    .await?
+    {
+        // If the atom value already exists, we need to update it
+        atom_value.byte_object_id = Some(byte_object.id.clone());
+        atom_value
+            .upsert(consumer_context.backend_schema(), consumer_context.pool())
+            .await?;
+    } else {
+        AtomValue::builder()
+            .id(atom.term_id.clone())
+            .byte_object_id(byte_object.id.clone())
+            .build()
+            .upsert(consumer_context.backend_schema(), consumer_context.pool())
+            .await?;
+    }
     Ok(())
 }
 
@@ -409,12 +428,28 @@ pub async fn create_text_object_atom_value(
     text_object: &TextObject,
     consumer_context: &impl AtomUpdater,
 ) -> Result<(), ConsumerError> {
-    AtomValue::builder()
-        .id(atom.term_id.clone())
-        .text_object_id(text_object.id.clone())
-        .build()
-        .upsert(consumer_context.backend_schema(), consumer_context.pool())
-        .await?;
+    // We need to check if the atom value already exists
+    if let Some(mut atom_value) = AtomValue::find_by_id(
+        atom.term_id.clone(),
+        consumer_context.backend_schema(),
+        consumer_context.pool(),
+    )
+    .await?
+    {
+        // If the atom value already exists, we need to update it
+        atom_value.text_object_id = Some(text_object.id.clone());
+        atom_value
+            .upsert(consumer_context.backend_schema(), consumer_context.pool())
+            .await?;
+    } else {
+        // If the atom value does not exist, we need to create it
+        AtomValue::builder()
+            .id(atom.term_id.clone())
+            .text_object_id(text_object.id.clone())
+            .build()
+            .upsert(consumer_context.backend_schema(), consumer_context.pool())
+            .await?;
+    }
     Ok(())
 }
 
@@ -439,12 +474,28 @@ pub async fn create_thing_atom_value(
     thing: &Thing,
     consumer_context: &impl AtomUpdater,
 ) -> Result<(), ConsumerError> {
-    AtomValue::builder()
-        .id(atom.term_id.clone())
-        .thing_id(thing.id.clone())
-        .build()
-        .upsert(consumer_context.backend_schema(), consumer_context.pool())
-        .await?;
+    // We need to check if the atom value already exists
+    if let Some(mut atom_value) = AtomValue::find_by_id(
+        atom.term_id.clone(),
+        consumer_context.backend_schema(),
+        consumer_context.pool(),
+    )
+    .await?
+    {
+        // If the atom value already exists, we need to update it
+        atom_value.thing_id = Some(thing.id.clone());
+        atom_value
+            .upsert(consumer_context.backend_schema(), consumer_context.pool())
+            .await?;
+    } else {
+        // If the atom value does not exist, we need to create it
+        AtomValue::builder()
+            .id(atom.term_id.clone())
+            .thing_id(thing.id.clone())
+            .build()
+            .upsert(consumer_context.backend_schema(), consumer_context.pool())
+            .await?;
+    }
     Ok(())
 }
 
@@ -454,12 +505,28 @@ pub async fn create_person_atom_value(
     person: &Person,
     consumer_context: &impl AtomUpdater,
 ) -> Result<(), ConsumerError> {
-    AtomValue::builder()
-        .id(atom.term_id.clone())
-        .person_id(person.id.clone())
-        .build()
-        .upsert(consumer_context.backend_schema(), consumer_context.pool())
-        .await?;
+    // We need to check if the atom value already exists
+    if let Some(mut atom_value) = AtomValue::find_by_id(
+        atom.term_id.clone(),
+        consumer_context.backend_schema(),
+        consumer_context.pool(),
+    )
+    .await?
+    {
+        // If the atom value already exists, we need to update it
+        atom_value.person_id = Some(person.id.clone());
+        atom_value
+            .upsert(consumer_context.backend_schema(), consumer_context.pool())
+            .await?;
+    } else {
+        // If the atom value does not exist, we need to create it
+        AtomValue::builder()
+            .id(atom.term_id.clone())
+            .person_id(person.id.clone())
+            .build()
+            .upsert(consumer_context.backend_schema(), consumer_context.pool())
+            .await?;
+    }
     Ok(())
 }
 
@@ -469,12 +536,28 @@ pub async fn create_organization_atom_value(
     organization: &Organization,
     consumer_context: &impl AtomUpdater,
 ) -> Result<(), ConsumerError> {
-    AtomValue::builder()
-        .id(atom.term_id.clone())
-        .organization_id(organization.id.clone())
-        .build()
-        .upsert(consumer_context.backend_schema(), consumer_context.pool())
-        .await?;
+    // We need to check if the atom value already exists
+    if let Some(mut atom_value) = AtomValue::find_by_id(
+        atom.term_id.clone(),
+        consumer_context.backend_schema(),
+        consumer_context.pool(),
+    )
+    .await?
+    {
+        // If the atom value already exists, we need to update it
+        atom_value.organization_id = Some(organization.id.clone());
+        atom_value
+            .upsert(consumer_context.backend_schema(), consumer_context.pool())
+            .await?;
+    } else {
+        // If the atom value does not exist, we need to create it
+        AtomValue::builder()
+            .id(atom.term_id.clone())
+            .organization_id(organization.id.clone())
+            .build()
+            .upsert(consumer_context.backend_schema(), consumer_context.pool())
+            .await?;
+    }
     Ok(())
 }
 
@@ -484,11 +567,27 @@ pub async fn create_book_atom_value(
     book: &Book,
     consumer_context: &impl AtomUpdater,
 ) -> Result<(), ConsumerError> {
-    AtomValue::builder()
-        .id(atom.term_id.clone())
-        .book_id(book.id.clone())
-        .build()
-        .upsert(consumer_context.backend_schema(), consumer_context.pool())
-        .await?;
+    // We need to check if the atom value already exists
+    if let Some(mut atom_value) = AtomValue::find_by_id(
+        atom.term_id.clone(),
+        consumer_context.backend_schema(),
+        consumer_context.pool(),
+    )
+    .await?
+    {
+        // If the atom value already exists, we need to update it
+        atom_value.book_id = Some(book.id.clone());
+        atom_value
+            .upsert(consumer_context.backend_schema(), consumer_context.pool())
+            .await?;
+    } else {
+        // If the atom value does not exist, we need to create it
+        AtomValue::builder()
+            .id(atom.term_id.clone())
+            .book_id(book.id.clone())
+            .build()
+            .upsert(consumer_context.backend_schema(), consumer_context.pool())
+            .await?;
+    }
     Ok(())
 }
