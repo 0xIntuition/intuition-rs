@@ -83,7 +83,7 @@ Or you can run using local ethereum node and integration tests:
 ```
 
 #### Runing cli tool to verify latest data
-
+Make sure to uncomment the cli application in Dockerfile before building the docker file with cargo make.
 ```
 ./cli.sh
 ```
