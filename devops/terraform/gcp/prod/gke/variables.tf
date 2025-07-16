@@ -1,7 +1,7 @@
 variable "project_id" {
   description = "GCP project ID"
   type        = string
-  default     = "your-gcp-project-id" # Replace with your actual project ID
+  default     = "be-cluster"
 }
 
 variable "region" {

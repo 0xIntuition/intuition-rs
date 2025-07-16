@@ -28,30 +28,22 @@ output "vpc_id" {
   value       = google_compute_network.vpc.id
 }
 
-output "private_subnets" {
-  description = "Private subnet names"
-  value       = google_compute_subnetwork.private[*].name
+output "private_subnet" {
+  description = "Private subnet name"
+  value       = google_compute_subnetwork.private_subnet.name
 }
 
-output "public_subnets" {
-  description = "Public subnet names"
-  value       = google_compute_subnetwork.public[*].name
-}
-
-output "node_pools" {
-  description = "Node pool names"
-  value = {
-    default = google_container_node_pool.default_nodes.name
-    large   = google_container_node_pool.large_nodes.name
-  }
+output "private_subnet_id" {
+  description = "Private subnet ID"
+  value       = google_compute_subnetwork.private_subnet.id
 }
 
 output "project_id" {
   description = "GCP project ID"
-  value       = local.project_id
+  value       = var.project_id
 }
 
 output "region" {
   description = "GCP region"
-  value       = local.region
+  value       = var.region
 } 
