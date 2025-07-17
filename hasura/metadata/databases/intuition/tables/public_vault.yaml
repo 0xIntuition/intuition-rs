@@ -42,6 +42,56 @@ array_relationships:
         remote_table:
           name: redemption
           schema: public
+  - name: share_price_change_stats_daily
+    using:
+      manual_configuration:
+        column_mapping:
+          curve_id: curve_id
+          term_id: term_id
+        insertion_order: null
+        remote_table:
+          name: share_price_change_stats_daily
+          schema: public
+  - name: share_price_change_stats_hourly
+    using:
+      manual_configuration:
+        column_mapping:
+          curve_id: curve_id
+          term_id: term_id
+        insertion_order: null
+        remote_table:
+          name: share_price_change_stats_hourly
+          schema: public
+  - name: share_price_change_stats_monthly
+    using:
+      manual_configuration:
+        column_mapping:
+          curve_id: curve_id
+          term_id: term_id
+        insertion_order: null
+        remote_table:
+          name: share_price_change_stats_monthly
+          schema: public
+  - name: share_price_change_stats_weekly
+    using:
+      manual_configuration:
+        column_mapping:
+          curve_id: curve_id
+          term_id: term_id
+        insertion_order: null
+        remote_table:
+          name: share_price_change_stats_weekly
+          schema: public
+  - name: share_price_changes
+    using:
+      manual_configuration:
+        column_mapping:
+          curve_id: curve_id
+          term_id: term_id
+        insertion_order: null
+        remote_table:
+          name: share_price_change
+          schema: public
   - name: signals
     using:
       manual_configuration:
