@@ -184,6 +184,7 @@ pub trait DepositedEvent:
                     TermType::Atom
                 },
                 event,
+                None,
             )
             .await
     }
