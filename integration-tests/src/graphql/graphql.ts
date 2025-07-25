@@ -14,6 +14,7 @@ export type Scalars = {
   Boolean: { input: boolean; output: boolean; }
   Int: { input: number; output: number; }
   Float: { input: number; output: number; }
+  _text: { input: any; output: any; }
   account_type: { input: any; output: any; }
   atom_type: { input: any; output: any; }
   bigint: { input: any; output: any; }
@@ -4506,6 +4507,10 @@ export type Query_Root = {
   redemptions: Array<Redemptions>;
   /** An aggregate relationship */
   redemptions_aggregate: Redemptions_Aggregate;
+  /** execute function "search_positions_on_subject" which returns "position" */
+  search_positions_on_subject: Array<Positions>;
+  /** execute function "search_positions_on_subject" and query aggregates on result of table type "position" */
+  search_positions_on_subject_aggregate: Positions_Aggregate;
   /** execute function "search_term" which returns "term" */
   search_term: Array<Terms>;
   /** execute function "search_term" and query aggregates on result of table type "term" */
@@ -4522,9 +4527,9 @@ export type Query_Root = {
   share_price_change_stats_monthly: Array<Share_Price_Change_Stats_Monthly>;
   /** fetch data from the table: "share_price_change_stats_weekly" */
   share_price_change_stats_weekly: Array<Share_Price_Change_Stats_Weekly>;
-  /** fetch data from the table: "share_price_change" */
+  /** An array relationship */
   share_price_changes: Array<Share_Price_Changes>;
-  /** fetch aggregated fields from the table: "share_price_change" */
+  /** An aggregate relationship */
   share_price_changes_aggregate: Share_Price_Changes_Aggregate;
   /** fetch data from the table: "signal_stats_daily" */
   signal_stats_daily: Array<Signal_Stats_Daily>;
@@ -4568,14 +4573,14 @@ export type Query_Root = {
   things_aggregate: Things_Aggregate;
   /** fetch data from the table: "triple" using primary key columns */
   triple?: Maybe<Triples>;
-  /** fetch data from the table: "triple_term" */
-  triple_term: Array<Triple_Term>;
   /** fetch data from the table: "triple_term" using primary key columns */
-  triple_term_by_pk?: Maybe<Triple_Term>;
-  /** fetch data from the table: "triple_vault" */
-  triple_vault: Array<Triple_Vault>;
+  triple_term?: Maybe<Triple_Term>;
+  /** fetch data from the table: "triple_term" */
+  triple_terms: Array<Triple_Term>;
   /** fetch data from the table: "triple_vault" using primary key columns */
-  triple_vault_by_pk?: Maybe<Triple_Vault>;
+  triple_vault?: Maybe<Triple_Vault>;
+  /** fetch data from the table: "triple_vault" */
+  triple_vaults: Array<Triple_Vault>;
   /** An array relationship */
   triples: Array<Triples>;
   /** An aggregate relationship */
@@ -5016,6 +5021,26 @@ export type Query_RootRedemptions_AggregateArgs = {
 };
 
 
+export type Query_RootSearch_Positions_On_SubjectArgs = {
+  args: Search_Positions_On_Subject_Args;
+  distinct_on?: InputMaybe<Array<Positions_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Positions_Order_By>>;
+  where?: InputMaybe<Positions_Bool_Exp>;
+};
+
+
+export type Query_RootSearch_Positions_On_Subject_AggregateArgs = {
+  args: Search_Positions_On_Subject_Args;
+  distinct_on?: InputMaybe<Array<Positions_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Positions_Order_By>>;
+  where?: InputMaybe<Positions_Bool_Exp>;
+};
+
+
 export type Query_RootSearch_TermArgs = {
   args: Search_Term_Args;
   distinct_on?: InputMaybe<Array<Terms_Select_Column>>;
@@ -5282,6 +5307,11 @@ export type Query_RootTripleArgs = {
 
 
 export type Query_RootTriple_TermArgs = {
+  term_id: Scalars['numeric']['input'];
+};
+
+
+export type Query_RootTriple_TermsArgs = {
   distinct_on?: InputMaybe<Array<Triple_Term_Select_Column>>;
   limit?: InputMaybe<Scalars['Int']['input']>;
   offset?: InputMaybe<Scalars['Int']['input']>;
@@ -5290,23 +5320,18 @@ export type Query_RootTriple_TermArgs = {
 };
 
 
-export type Query_RootTriple_Term_By_PkArgs = {
+export type Query_RootTriple_VaultArgs = {
+  curve_id: Scalars['numeric']['input'];
   term_id: Scalars['numeric']['input'];
 };
 
 
-export type Query_RootTriple_VaultArgs = {
+export type Query_RootTriple_VaultsArgs = {
   distinct_on?: InputMaybe<Array<Triple_Vault_Select_Column>>;
   limit?: InputMaybe<Scalars['Int']['input']>;
   offset?: InputMaybe<Scalars['Int']['input']>;
   order_by?: InputMaybe<Array<Triple_Vault_Order_By>>;
   where?: InputMaybe<Triple_Vault_Bool_Exp>;
-};
-
-
-export type Query_RootTriple_Vault_By_PkArgs = {
-  curve_id: Scalars['numeric']['input'];
-  term_id: Scalars['numeric']['input'];
 };
 
 
@@ -5777,6 +5802,11 @@ export type Redemptions_Variance_Order_By = {
   term_id?: InputMaybe<Order_By>;
 };
 
+export type Search_Positions_On_Subject_Args = {
+  addresses?: InputMaybe<Scalars['_text']['input']>;
+  search_fields?: InputMaybe<Scalars['jsonb']['input']>;
+};
+
 export type Search_Term_Args = {
   query?: InputMaybe<Scalars['String']['input']>;
 };
@@ -6124,6 +6154,17 @@ export type Share_Price_Changes_Aggregate = {
   nodes: Array<Share_Price_Changes>;
 };
 
+export type Share_Price_Changes_Aggregate_Bool_Exp = {
+  count?: InputMaybe<Share_Price_Changes_Aggregate_Bool_Exp_Count>;
+};
+
+export type Share_Price_Changes_Aggregate_Bool_Exp_Count = {
+  arguments?: InputMaybe<Array<Share_Price_Changes_Select_Column>>;
+  distinct?: InputMaybe<Scalars['Boolean']['input']>;
+  filter?: InputMaybe<Share_Price_Changes_Bool_Exp>;
+  predicate: Int_Comparison_Exp;
+};
+
 /** aggregate fields of "share_price_change" */
 export type Share_Price_Changes_Aggregate_Fields = {
   __typename?: 'share_price_changes_aggregate_fields';
@@ -6147,6 +6188,21 @@ export type Share_Price_Changes_Aggregate_FieldsCountArgs = {
   distinct?: InputMaybe<Scalars['Boolean']['input']>;
 };
 
+/** order by aggregate values of table "share_price_change" */
+export type Share_Price_Changes_Aggregate_Order_By = {
+  avg?: InputMaybe<Share_Price_Changes_Avg_Order_By>;
+  count?: InputMaybe<Order_By>;
+  max?: InputMaybe<Share_Price_Changes_Max_Order_By>;
+  min?: InputMaybe<Share_Price_Changes_Min_Order_By>;
+  stddev?: InputMaybe<Share_Price_Changes_Stddev_Order_By>;
+  stddev_pop?: InputMaybe<Share_Price_Changes_Stddev_Pop_Order_By>;
+  stddev_samp?: InputMaybe<Share_Price_Changes_Stddev_Samp_Order_By>;
+  sum?: InputMaybe<Share_Price_Changes_Sum_Order_By>;
+  var_pop?: InputMaybe<Share_Price_Changes_Var_Pop_Order_By>;
+  var_samp?: InputMaybe<Share_Price_Changes_Var_Samp_Order_By>;
+  variance?: InputMaybe<Share_Price_Changes_Variance_Order_By>;
+};
+
 /** aggregate avg on columns */
 export type Share_Price_Changes_Avg_Fields = {
   __typename?: 'share_price_changes_avg_fields';
@@ -6158,6 +6214,18 @@ export type Share_Price_Changes_Avg_Fields = {
   term_id?: Maybe<Scalars['Float']['output']>;
   total_assets?: Maybe<Scalars['Float']['output']>;
   total_shares?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by avg() on columns of table "share_price_change" */
+export type Share_Price_Changes_Avg_Order_By = {
+  block_number?: InputMaybe<Order_By>;
+  block_timestamp?: InputMaybe<Order_By>;
+  curve_id?: InputMaybe<Order_By>;
+  id?: InputMaybe<Order_By>;
+  share_price?: InputMaybe<Order_By>;
+  term_id?: InputMaybe<Order_By>;
+  total_assets?: InputMaybe<Order_By>;
+  total_shares?: InputMaybe<Order_By>;
 };
 
 /** Boolean expression to filter rows from the table "share_price_change". All fields are combined with a logical 'AND'. */
@@ -6194,6 +6262,20 @@ export type Share_Price_Changes_Max_Fields = {
   updated_at?: Maybe<Scalars['timestamptz']['output']>;
 };
 
+/** order by max() on columns of table "share_price_change" */
+export type Share_Price_Changes_Max_Order_By = {
+  block_number?: InputMaybe<Order_By>;
+  block_timestamp?: InputMaybe<Order_By>;
+  curve_id?: InputMaybe<Order_By>;
+  id?: InputMaybe<Order_By>;
+  share_price?: InputMaybe<Order_By>;
+  term_id?: InputMaybe<Order_By>;
+  total_assets?: InputMaybe<Order_By>;
+  total_shares?: InputMaybe<Order_By>;
+  transaction_hash?: InputMaybe<Order_By>;
+  updated_at?: InputMaybe<Order_By>;
+};
+
 /** aggregate min on columns */
 export type Share_Price_Changes_Min_Fields = {
   __typename?: 'share_price_changes_min_fields';
@@ -6207,6 +6289,20 @@ export type Share_Price_Changes_Min_Fields = {
   total_shares?: Maybe<Scalars['numeric']['output']>;
   transaction_hash?: Maybe<Scalars['String']['output']>;
   updated_at?: Maybe<Scalars['timestamptz']['output']>;
+};
+
+/** order by min() on columns of table "share_price_change" */
+export type Share_Price_Changes_Min_Order_By = {
+  block_number?: InputMaybe<Order_By>;
+  block_timestamp?: InputMaybe<Order_By>;
+  curve_id?: InputMaybe<Order_By>;
+  id?: InputMaybe<Order_By>;
+  share_price?: InputMaybe<Order_By>;
+  term_id?: InputMaybe<Order_By>;
+  total_assets?: InputMaybe<Order_By>;
+  total_shares?: InputMaybe<Order_By>;
+  transaction_hash?: InputMaybe<Order_By>;
+  updated_at?: InputMaybe<Order_By>;
 };
 
 /** Ordering options when selecting data from "share_price_change". */
@@ -6262,6 +6358,18 @@ export type Share_Price_Changes_Stddev_Fields = {
   total_shares?: Maybe<Scalars['Float']['output']>;
 };
 
+/** order by stddev() on columns of table "share_price_change" */
+export type Share_Price_Changes_Stddev_Order_By = {
+  block_number?: InputMaybe<Order_By>;
+  block_timestamp?: InputMaybe<Order_By>;
+  curve_id?: InputMaybe<Order_By>;
+  id?: InputMaybe<Order_By>;
+  share_price?: InputMaybe<Order_By>;
+  term_id?: InputMaybe<Order_By>;
+  total_assets?: InputMaybe<Order_By>;
+  total_shares?: InputMaybe<Order_By>;
+};
+
 /** aggregate stddev_pop on columns */
 export type Share_Price_Changes_Stddev_Pop_Fields = {
   __typename?: 'share_price_changes_stddev_pop_fields';
@@ -6275,6 +6383,18 @@ export type Share_Price_Changes_Stddev_Pop_Fields = {
   total_shares?: Maybe<Scalars['Float']['output']>;
 };
 
+/** order by stddev_pop() on columns of table "share_price_change" */
+export type Share_Price_Changes_Stddev_Pop_Order_By = {
+  block_number?: InputMaybe<Order_By>;
+  block_timestamp?: InputMaybe<Order_By>;
+  curve_id?: InputMaybe<Order_By>;
+  id?: InputMaybe<Order_By>;
+  share_price?: InputMaybe<Order_By>;
+  term_id?: InputMaybe<Order_By>;
+  total_assets?: InputMaybe<Order_By>;
+  total_shares?: InputMaybe<Order_By>;
+};
+
 /** aggregate stddev_samp on columns */
 export type Share_Price_Changes_Stddev_Samp_Fields = {
   __typename?: 'share_price_changes_stddev_samp_fields';
@@ -6286,6 +6406,18 @@ export type Share_Price_Changes_Stddev_Samp_Fields = {
   term_id?: Maybe<Scalars['Float']['output']>;
   total_assets?: Maybe<Scalars['Float']['output']>;
   total_shares?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by stddev_samp() on columns of table "share_price_change" */
+export type Share_Price_Changes_Stddev_Samp_Order_By = {
+  block_number?: InputMaybe<Order_By>;
+  block_timestamp?: InputMaybe<Order_By>;
+  curve_id?: InputMaybe<Order_By>;
+  id?: InputMaybe<Order_By>;
+  share_price?: InputMaybe<Order_By>;
+  term_id?: InputMaybe<Order_By>;
+  total_assets?: InputMaybe<Order_By>;
+  total_shares?: InputMaybe<Order_By>;
 };
 
 /** Streaming cursor of the table "share_price_changes" */
@@ -6323,6 +6455,18 @@ export type Share_Price_Changes_Sum_Fields = {
   total_shares?: Maybe<Scalars['numeric']['output']>;
 };
 
+/** order by sum() on columns of table "share_price_change" */
+export type Share_Price_Changes_Sum_Order_By = {
+  block_number?: InputMaybe<Order_By>;
+  block_timestamp?: InputMaybe<Order_By>;
+  curve_id?: InputMaybe<Order_By>;
+  id?: InputMaybe<Order_By>;
+  share_price?: InputMaybe<Order_By>;
+  term_id?: InputMaybe<Order_By>;
+  total_assets?: InputMaybe<Order_By>;
+  total_shares?: InputMaybe<Order_By>;
+};
+
 /** aggregate var_pop on columns */
 export type Share_Price_Changes_Var_Pop_Fields = {
   __typename?: 'share_price_changes_var_pop_fields';
@@ -6334,6 +6478,18 @@ export type Share_Price_Changes_Var_Pop_Fields = {
   term_id?: Maybe<Scalars['Float']['output']>;
   total_assets?: Maybe<Scalars['Float']['output']>;
   total_shares?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by var_pop() on columns of table "share_price_change" */
+export type Share_Price_Changes_Var_Pop_Order_By = {
+  block_number?: InputMaybe<Order_By>;
+  block_timestamp?: InputMaybe<Order_By>;
+  curve_id?: InputMaybe<Order_By>;
+  id?: InputMaybe<Order_By>;
+  share_price?: InputMaybe<Order_By>;
+  term_id?: InputMaybe<Order_By>;
+  total_assets?: InputMaybe<Order_By>;
+  total_shares?: InputMaybe<Order_By>;
 };
 
 /** aggregate var_samp on columns */
@@ -6349,6 +6505,18 @@ export type Share_Price_Changes_Var_Samp_Fields = {
   total_shares?: Maybe<Scalars['Float']['output']>;
 };
 
+/** order by var_samp() on columns of table "share_price_change" */
+export type Share_Price_Changes_Var_Samp_Order_By = {
+  block_number?: InputMaybe<Order_By>;
+  block_timestamp?: InputMaybe<Order_By>;
+  curve_id?: InputMaybe<Order_By>;
+  id?: InputMaybe<Order_By>;
+  share_price?: InputMaybe<Order_By>;
+  term_id?: InputMaybe<Order_By>;
+  total_assets?: InputMaybe<Order_By>;
+  total_shares?: InputMaybe<Order_By>;
+};
+
 /** aggregate variance on columns */
 export type Share_Price_Changes_Variance_Fields = {
   __typename?: 'share_price_changes_variance_fields';
@@ -6360,6 +6528,18 @@ export type Share_Price_Changes_Variance_Fields = {
   term_id?: Maybe<Scalars['Float']['output']>;
   total_assets?: Maybe<Scalars['Float']['output']>;
   total_shares?: Maybe<Scalars['Float']['output']>;
+};
+
+/** order by variance() on columns of table "share_price_change" */
+export type Share_Price_Changes_Variance_Order_By = {
+  block_number?: InputMaybe<Order_By>;
+  block_timestamp?: InputMaybe<Order_By>;
+  curve_id?: InputMaybe<Order_By>;
+  id?: InputMaybe<Order_By>;
+  share_price?: InputMaybe<Order_By>;
+  term_id?: InputMaybe<Order_By>;
+  total_assets?: InputMaybe<Order_By>;
+  total_shares?: InputMaybe<Order_By>;
 };
 
 /** columns and relationships of "signal_stats_daily" */
@@ -7380,6 +7560,10 @@ export type Subscription_Root = {
   redemptions_aggregate: Redemptions_Aggregate;
   /** fetch data from the table in a streaming manner: "redemption" */
   redemptions_stream: Array<Redemptions>;
+  /** execute function "search_positions_on_subject" which returns "position" */
+  search_positions_on_subject: Array<Positions>;
+  /** execute function "search_positions_on_subject" and query aggregates on result of table type "position" */
+  search_positions_on_subject_aggregate: Positions_Aggregate;
   /** execute function "search_term" which returns "term" */
   search_term: Array<Terms>;
   /** execute function "search_term" and query aggregates on result of table type "term" */
@@ -7404,9 +7588,9 @@ export type Subscription_Root = {
   share_price_change_stats_weekly: Array<Share_Price_Change_Stats_Weekly>;
   /** fetch data from the table in a streaming manner: "share_price_change_stats_weekly" */
   share_price_change_stats_weekly_stream: Array<Share_Price_Change_Stats_Weekly>;
-  /** fetch data from the table: "share_price_change" */
+  /** An array relationship */
   share_price_changes: Array<Share_Price_Changes>;
-  /** fetch aggregated fields from the table: "share_price_change" */
+  /** An aggregate relationship */
   share_price_changes_aggregate: Share_Price_Changes_Aggregate;
   /** fetch data from the table in a streaming manner: "share_price_change" */
   share_price_changes_stream: Array<Share_Price_Changes>;
@@ -7470,18 +7654,18 @@ export type Subscription_Root = {
   things_stream: Array<Things>;
   /** fetch data from the table: "triple" using primary key columns */
   triple?: Maybe<Triples>;
-  /** fetch data from the table: "triple_term" */
-  triple_term: Array<Triple_Term>;
   /** fetch data from the table: "triple_term" using primary key columns */
-  triple_term_by_pk?: Maybe<Triple_Term>;
+  triple_term?: Maybe<Triple_Term>;
   /** fetch data from the table in a streaming manner: "triple_term" */
   triple_term_stream: Array<Triple_Term>;
-  /** fetch data from the table: "triple_vault" */
-  triple_vault: Array<Triple_Vault>;
+  /** fetch data from the table: "triple_term" */
+  triple_terms: Array<Triple_Term>;
   /** fetch data from the table: "triple_vault" using primary key columns */
-  triple_vault_by_pk?: Maybe<Triple_Vault>;
+  triple_vault?: Maybe<Triple_Vault>;
   /** fetch data from the table in a streaming manner: "triple_vault" */
   triple_vault_stream: Array<Triple_Vault>;
+  /** fetch data from the table: "triple_vault" */
+  triple_vaults: Array<Triple_Vault>;
   /** An array relationship */
   triples: Array<Triples>;
   /** An aggregate relationship */
@@ -8052,6 +8236,26 @@ export type Subscription_RootRedemptions_StreamArgs = {
 };
 
 
+export type Subscription_RootSearch_Positions_On_SubjectArgs = {
+  args: Search_Positions_On_Subject_Args;
+  distinct_on?: InputMaybe<Array<Positions_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Positions_Order_By>>;
+  where?: InputMaybe<Positions_Bool_Exp>;
+};
+
+
+export type Subscription_RootSearch_Positions_On_Subject_AggregateArgs = {
+  args: Search_Positions_On_Subject_Args;
+  distinct_on?: InputMaybe<Array<Positions_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Positions_Order_By>>;
+  where?: InputMaybe<Positions_Bool_Exp>;
+};
+
+
 export type Subscription_RootSearch_TermArgs = {
   args: Search_Term_Args;
   distinct_on?: InputMaybe<Array<Terms_Select_Column>>;
@@ -8416,15 +8620,6 @@ export type Subscription_RootTripleArgs = {
 
 
 export type Subscription_RootTriple_TermArgs = {
-  distinct_on?: InputMaybe<Array<Triple_Term_Select_Column>>;
-  limit?: InputMaybe<Scalars['Int']['input']>;
-  offset?: InputMaybe<Scalars['Int']['input']>;
-  order_by?: InputMaybe<Array<Triple_Term_Order_By>>;
-  where?: InputMaybe<Triple_Term_Bool_Exp>;
-};
-
-
-export type Subscription_RootTriple_Term_By_PkArgs = {
   term_id: Scalars['numeric']['input'];
 };
 
@@ -8436,16 +8631,16 @@ export type Subscription_RootTriple_Term_StreamArgs = {
 };
 
 
-export type Subscription_RootTriple_VaultArgs = {
-  distinct_on?: InputMaybe<Array<Triple_Vault_Select_Column>>;
+export type Subscription_RootTriple_TermsArgs = {
+  distinct_on?: InputMaybe<Array<Triple_Term_Select_Column>>;
   limit?: InputMaybe<Scalars['Int']['input']>;
   offset?: InputMaybe<Scalars['Int']['input']>;
-  order_by?: InputMaybe<Array<Triple_Vault_Order_By>>;
-  where?: InputMaybe<Triple_Vault_Bool_Exp>;
+  order_by?: InputMaybe<Array<Triple_Term_Order_By>>;
+  where?: InputMaybe<Triple_Term_Bool_Exp>;
 };
 
 
-export type Subscription_RootTriple_Vault_By_PkArgs = {
+export type Subscription_RootTriple_VaultArgs = {
   curve_id: Scalars['numeric']['input'];
   term_id: Scalars['numeric']['input'];
 };
@@ -8454,6 +8649,15 @@ export type Subscription_RootTriple_Vault_By_PkArgs = {
 export type Subscription_RootTriple_Vault_StreamArgs = {
   batch_size: Scalars['Int']['input'];
   cursor: Array<InputMaybe<Triple_Vault_Stream_Cursor_Input>>;
+  where?: InputMaybe<Triple_Vault_Bool_Exp>;
+};
+
+
+export type Subscription_RootTriple_VaultsArgs = {
+  distinct_on?: InputMaybe<Array<Triple_Vault_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Triple_Vault_Order_By>>;
   where?: InputMaybe<Triple_Vault_Bool_Exp>;
 };
 
@@ -8548,6 +8752,10 @@ export type Terms = {
   /** An aggregate relationship */
   redemptions_aggregate: Redemptions_Aggregate;
   /** An array relationship */
+  share_price_changes: Array<Share_Price_Changes>;
+  /** An aggregate relationship */
+  share_price_changes_aggregate: Share_Price_Changes_Aggregate;
+  /** An array relationship */
   signals: Array<Signals>;
   /** An aggregate relationship */
   signals_aggregate: Signals_Aggregate;
@@ -8623,6 +8831,26 @@ export type TermsRedemptions_AggregateArgs = {
   offset?: InputMaybe<Scalars['Int']['input']>;
   order_by?: InputMaybe<Array<Redemptions_Order_By>>;
   where?: InputMaybe<Redemptions_Bool_Exp>;
+};
+
+
+/** columns and relationships of "term" */
+export type TermsShare_Price_ChangesArgs = {
+  distinct_on?: InputMaybe<Array<Share_Price_Changes_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Share_Price_Changes_Order_By>>;
+  where?: InputMaybe<Share_Price_Changes_Bool_Exp>;
+};
+
+
+/** columns and relationships of "term" */
+export type TermsShare_Price_Changes_AggregateArgs = {
+  distinct_on?: InputMaybe<Array<Share_Price_Changes_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Share_Price_Changes_Order_By>>;
+  where?: InputMaybe<Share_Price_Changes_Bool_Exp>;
 };
 
 
@@ -8719,6 +8947,8 @@ export type Terms_Bool_Exp = {
   positions_aggregate?: InputMaybe<Positions_Aggregate_Bool_Exp>;
   redemptions?: InputMaybe<Redemptions_Bool_Exp>;
   redemptions_aggregate?: InputMaybe<Redemptions_Aggregate_Bool_Exp>;
+  share_price_changes?: InputMaybe<Share_Price_Changes_Bool_Exp>;
+  share_price_changes_aggregate?: InputMaybe<Share_Price_Changes_Aggregate_Bool_Exp>;
   signals?: InputMaybe<Signals_Bool_Exp>;
   signals_aggregate?: InputMaybe<Signals_Aggregate_Bool_Exp>;
   total_assets?: InputMaybe<Numeric_Comparison_Exp>;
@@ -8762,6 +8992,7 @@ export type Terms_Order_By = {
   id?: InputMaybe<Order_By>;
   positions_aggregate?: InputMaybe<Positions_Aggregate_Order_By>;
   redemptions_aggregate?: InputMaybe<Redemptions_Aggregate_Order_By>;
+  share_price_changes_aggregate?: InputMaybe<Share_Price_Changes_Aggregate_Order_By>;
   signals_aggregate?: InputMaybe<Signals_Aggregate_Order_By>;
   total_assets?: InputMaybe<Order_By>;
   total_market_cap?: InputMaybe<Order_By>;
@@ -9205,6 +9436,7 @@ export type Triple_Term = {
   term_id: Scalars['numeric']['output'];
   total_assets: Scalars['numeric']['output'];
   total_market_cap: Scalars['numeric']['output'];
+  total_position_count: Scalars['bigint']['output'];
   updated_at: Scalars['timestamptz']['output'];
 };
 
@@ -9219,6 +9451,7 @@ export type Triple_Term_Bool_Exp = {
   term_id?: InputMaybe<Numeric_Comparison_Exp>;
   total_assets?: InputMaybe<Numeric_Comparison_Exp>;
   total_market_cap?: InputMaybe<Numeric_Comparison_Exp>;
+  total_position_count?: InputMaybe<Bigint_Comparison_Exp>;
   updated_at?: InputMaybe<Timestamptz_Comparison_Exp>;
 };
 
@@ -9230,6 +9463,7 @@ export type Triple_Term_Order_By = {
   term_id?: InputMaybe<Order_By>;
   total_assets?: InputMaybe<Order_By>;
   total_market_cap?: InputMaybe<Order_By>;
+  total_position_count?: InputMaybe<Order_By>;
   updated_at?: InputMaybe<Order_By>;
 };
 
@@ -9243,6 +9477,8 @@ export enum Triple_Term_Select_Column {
   TotalAssets = 'total_assets',
   /** column name */
   TotalMarketCap = 'total_market_cap',
+  /** column name */
+  TotalPositionCount = 'total_position_count',
   /** column name */
   UpdatedAt = 'updated_at'
 }
@@ -9261,6 +9497,7 @@ export type Triple_Term_Stream_Cursor_Value_Input = {
   term_id?: InputMaybe<Scalars['numeric']['input']>;
   total_assets?: InputMaybe<Scalars['numeric']['input']>;
   total_market_cap?: InputMaybe<Scalars['numeric']['input']>;
+  total_position_count?: InputMaybe<Scalars['bigint']['input']>;
   updated_at?: InputMaybe<Scalars['timestamptz']['input']>;
 };
 
@@ -9398,6 +9635,8 @@ export type Triples = {
   transaction_hash: Scalars['String']['output'];
   /** An object relationship */
   triple_term?: Maybe<Triple_Term>;
+  /** An object relationship */
+  triple_vault?: Maybe<Triple_Vault>;
 };
 
 
@@ -9542,6 +9781,7 @@ export type Triples_Bool_Exp = {
   term_id?: InputMaybe<Numeric_Comparison_Exp>;
   transaction_hash?: InputMaybe<String_Comparison_Exp>;
   triple_term?: InputMaybe<Triple_Term_Bool_Exp>;
+  triple_vault?: InputMaybe<Triple_Vault_Bool_Exp>;
 };
 
 /** aggregate max on columns */
@@ -9618,6 +9858,7 @@ export type Triples_Order_By = {
   term_id?: InputMaybe<Order_By>;
   transaction_hash?: InputMaybe<Order_By>;
   triple_term?: InputMaybe<Triple_Term_Order_By>;
+  triple_vault?: InputMaybe<Triple_Vault_Order_By>;
 };
 
 /** select columns of table "triple" */
@@ -10302,6 +10543,19 @@ export type Vaults_Variance_Order_By = {
   total_shares?: InputMaybe<Order_By>;
 };
 
+export type GetAgentsQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type GetAgentsQuery = { __typename?: 'query_root', triples: Array<{ __typename?: 'triples', subject: { __typename?: 'atoms', data?: string | null, claims: Array<{ __typename?: 'triples', predicate: { __typename?: 'atoms', data?: string | null }, object: { __typename?: 'atoms', data?: string | null } }> } }> };
+
+export type SearchPositionsQueryVariables = Exact<{
+  addresses?: InputMaybe<Scalars['_text']['input']>;
+  search_fields?: InputMaybe<Scalars['jsonb']['input']>;
+}>;
+
+
+export type SearchPositionsQuery = { __typename?: 'query_root', positions: Array<{ __typename?: 'positions', term: { __typename?: 'terms', triple?: { __typename?: 'triples', subject: { __typename?: 'atoms', data?: string | null }, predicate: { __typename?: 'atoms', data?: string | null }, object: { __typename?: 'atoms', data?: string | null } } | null } }> };
+
 export type TermQueryVariables = Exact<{
   termId: Scalars['numeric']['input'];
 }>;
@@ -10402,6 +10656,46 @@ export class TypedDocumentString<TResult, TVariables>
   }
 }
 
+export const GetAgentsDocument = new TypedDocumentString(`
+    query GetAgents {
+  triples(
+    where: {_and: [{predicate: {data: {_eq: "type"}}}, {object: {data: {_eq: "agent"}}}]}
+  ) {
+    subject {
+      data
+      claims: as_subject_triples {
+        predicate {
+          data
+        }
+        object {
+          data
+        }
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<GetAgentsQuery, GetAgentsQueryVariables>;
+export const SearchPositionsDocument = new TypedDocumentString(`
+    query SearchPositions($addresses: _text, $search_fields: jsonb) {
+  positions: search_positions_on_subject(
+    args: {addresses: $addresses, search_fields: $search_fields}
+  ) {
+    term {
+      triple {
+        subject {
+          data
+        }
+        predicate {
+          data
+        }
+        object {
+          data
+        }
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<SearchPositionsQuery, SearchPositionsQueryVariables>;
 export const TermDocument = new TypedDocumentString(`
     query Term($termId: numeric!) {
   atom(term_id: $termId) {

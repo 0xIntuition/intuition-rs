@@ -10,7 +10,7 @@ WHERE
  account.type = 'Default'
  AND triple.subject_id = subject
  AND triple.predicate_id = predicate
- AND position.account_id = address;
+ AND LOWER(position.account_id) = LOWER(address);
 $$;
 
 CREATE OR REPLACE FUNCTION following(address text) RETURNS SETOF account
@@ -61,3 +61,4 @@ CREATE OR REPLACE FUNCTION search_term_from_following(address text, query text) 
 	ORDER BY distance
 	) s
 $$;
+
