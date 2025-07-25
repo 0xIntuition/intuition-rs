@@ -62,35 +62,3 @@ CREATE OR REPLACE FUNCTION search_term_from_following(address text, query text) 
 	) s
 $$;
 
-
-CREATE OR REPLACE FUNCTION public.positions_on_subjects_that_have_claim (
-  predicate_data text,
-  object_data text
-) RETURNS SETOF "position"
-LANGUAGE plpgsql STABLE AS $function$
-DECLARE
-  predicate_var numeric;
-  object_var numeric;
-BEGIN
-  SELECT term_id INTO predicate_var FROM atom WHERE data = predicate_data;
-  IF predicate_var IS NULL THEN
-    RAISE EXCEPTION 'Predicate % not found in atom table', predicate_data;
-  END IF;
-
-  SELECT term_id INTO object_var FROM atom WHERE data = object_data;
-  IF object_var IS NULL THEN
-    RAISE EXCEPTION 'Object % not found in atom table', object_data;
-  END IF;
-
-  RETURN QUERY
-  SELECT po.* FROM "position" po 
-  LEFT JOIN "triple" tr ON tr.term_id = po.term_id
-  WHERE po.shares > 0 AND tr.subject_id IN (
-    SELECT DISTINCT t.subject_id
-    FROM "position" p
-    LEFT JOIN triple t ON t.term_id = p.term_id
-    WHERE p.shares > 0 AND t.predicate_id = predicate_var
-      AND t.object_id = object_var
-  );
-END;
-$function$;
