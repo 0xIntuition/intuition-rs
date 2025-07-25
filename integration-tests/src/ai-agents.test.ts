@@ -83,39 +83,32 @@ suite('create ai agents', () => {
     const user = await getIntuition(11)
 
     const result = await execute(graphql(`
-      query GetAgentsForAccount($address: String) {
-        positions(where:{
-          _and: [
-            {account_id: {_eq: $address}}
-            {shares: {_gt: 0}}
-            {term:{triple: { predicate: {data: {_eq: "type"}}}}}      
-            {term:{triple: { object: {data: {_eq: "agent"}}}}}      
-          ]
-        }) {
-          account_id
-          term {
-            triple {
-              subject {
-                  data
-                  claims: as_subject_triples(where:{
-                    _and: [
-                      {positions: {account_id: {_eq: $address}}}
-                      {positions: {shares: {_gt: 0}}}
-                    ]
-                  }) {
-                    predicate {
-                      data
-                    }
-                    object {
-                      data
-                    }
-                  }
-                }
+    query SearchPositions($addresses: _text, $search_fields: jsonb) {
+      positions: search_positions_on_subject(
+        args: {addresses: $addresses, search_fields: $search_fields}
+      ) {
+        term {
+          triple {
+            subject {
+              data
+            }
+            predicate {
+              data
+            }
+            object {
+              data
             }
           }
         }
       }
-            `), { address: user.account.address })
+    }
+    `), {
+      addresses: `{"${user.account.address}"}`,
+      search_fields: [
+        { type: 'agent' },
+        { capabilities: 'defi' }
+      ]
+    })
     expect(result.positions.length).toBeGreaterThan(0)
   })
 

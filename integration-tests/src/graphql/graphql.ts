@@ -14,6 +14,7 @@ export type Scalars = {
   Boolean: { input: boolean; output: boolean; }
   Int: { input: number; output: number; }
   Float: { input: number; output: number; }
+  _text: { input: any; output: any; }
   account_type: { input: any; output: any; }
   atom_type: { input: any; output: any; }
   bigint: { input: any; output: any; }
@@ -4506,6 +4507,10 @@ export type Query_Root = {
   redemptions: Array<Redemptions>;
   /** An aggregate relationship */
   redemptions_aggregate: Redemptions_Aggregate;
+  /** execute function "search_positions_on_subject" which returns "position" */
+  search_positions_on_subject: Array<Positions>;
+  /** execute function "search_positions_on_subject" and query aggregates on result of table type "position" */
+  search_positions_on_subject_aggregate: Positions_Aggregate;
   /** execute function "search_term" which returns "term" */
   search_term: Array<Terms>;
   /** execute function "search_term" and query aggregates on result of table type "term" */
@@ -5013,6 +5018,26 @@ export type Query_RootRedemptions_AggregateArgs = {
   offset?: InputMaybe<Scalars['Int']['input']>;
   order_by?: InputMaybe<Array<Redemptions_Order_By>>;
   where?: InputMaybe<Redemptions_Bool_Exp>;
+};
+
+
+export type Query_RootSearch_Positions_On_SubjectArgs = {
+  args: Search_Positions_On_Subject_Args;
+  distinct_on?: InputMaybe<Array<Positions_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Positions_Order_By>>;
+  where?: InputMaybe<Positions_Bool_Exp>;
+};
+
+
+export type Query_RootSearch_Positions_On_Subject_AggregateArgs = {
+  args: Search_Positions_On_Subject_Args;
+  distinct_on?: InputMaybe<Array<Positions_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Positions_Order_By>>;
+  where?: InputMaybe<Positions_Bool_Exp>;
 };
 
 
@@ -5775,6 +5800,11 @@ export type Redemptions_Variance_Order_By = {
   sender_total_shares_in_vault?: InputMaybe<Order_By>;
   shares_redeemed_by_sender?: InputMaybe<Order_By>;
   term_id?: InputMaybe<Order_By>;
+};
+
+export type Search_Positions_On_Subject_Args = {
+  addresses?: InputMaybe<Scalars['_text']['input']>;
+  search_fields?: InputMaybe<Scalars['jsonb']['input']>;
 };
 
 export type Search_Term_Args = {
@@ -7530,6 +7560,10 @@ export type Subscription_Root = {
   redemptions_aggregate: Redemptions_Aggregate;
   /** fetch data from the table in a streaming manner: "redemption" */
   redemptions_stream: Array<Redemptions>;
+  /** execute function "search_positions_on_subject" which returns "position" */
+  search_positions_on_subject: Array<Positions>;
+  /** execute function "search_positions_on_subject" and query aggregates on result of table type "position" */
+  search_positions_on_subject_aggregate: Positions_Aggregate;
   /** execute function "search_term" which returns "term" */
   search_term: Array<Terms>;
   /** execute function "search_term" and query aggregates on result of table type "term" */
@@ -8199,6 +8233,26 @@ export type Subscription_RootRedemptions_StreamArgs = {
   batch_size: Scalars['Int']['input'];
   cursor: Array<InputMaybe<Redemptions_Stream_Cursor_Input>>;
   where?: InputMaybe<Redemptions_Bool_Exp>;
+};
+
+
+export type Subscription_RootSearch_Positions_On_SubjectArgs = {
+  args: Search_Positions_On_Subject_Args;
+  distinct_on?: InputMaybe<Array<Positions_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Positions_Order_By>>;
+  where?: InputMaybe<Positions_Bool_Exp>;
+};
+
+
+export type Subscription_RootSearch_Positions_On_Subject_AggregateArgs = {
+  args: Search_Positions_On_Subject_Args;
+  distinct_on?: InputMaybe<Array<Positions_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Positions_Order_By>>;
+  where?: InputMaybe<Positions_Bool_Exp>;
 };
 
 
@@ -10494,12 +10548,13 @@ export type GetAgentsQueryVariables = Exact<{ [key: string]: never; }>;
 
 export type GetAgentsQuery = { __typename?: 'query_root', triples: Array<{ __typename?: 'triples', subject: { __typename?: 'atoms', data?: string | null, claims: Array<{ __typename?: 'triples', predicate: { __typename?: 'atoms', data?: string | null }, object: { __typename?: 'atoms', data?: string | null } }> } }> };
 
-export type GetAgentsForAccountQueryVariables = Exact<{
-  address?: InputMaybe<Scalars['String']['input']>;
+export type SearchPositionsQueryVariables = Exact<{
+  addresses?: InputMaybe<Scalars['_text']['input']>;
+  search_fields?: InputMaybe<Scalars['jsonb']['input']>;
 }>;
 
 
-export type GetAgentsForAccountQuery = { __typename?: 'query_root', positions: Array<{ __typename?: 'positions', account_id: string, term: { __typename?: 'terms', triple?: { __typename?: 'triples', subject: { __typename?: 'atoms', data?: string | null, claims: Array<{ __typename?: 'triples', predicate: { __typename?: 'atoms', data?: string | null }, object: { __typename?: 'atoms', data?: string | null } }> } } | null } }> };
+export type SearchPositionsQuery = { __typename?: 'query_root', positions: Array<{ __typename?: 'positions', term: { __typename?: 'terms', triple?: { __typename?: 'triples', subject: { __typename?: 'atoms', data?: string | null }, predicate: { __typename?: 'atoms', data?: string | null }, object: { __typename?: 'atoms', data?: string | null } } | null } }> };
 
 export type TermQueryVariables = Exact<{
   termId: Scalars['numeric']['input'];
@@ -10620,32 +10675,27 @@ export const GetAgentsDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<GetAgentsQuery, GetAgentsQueryVariables>;
-export const GetAgentsForAccountDocument = new TypedDocumentString(`
-    query GetAgentsForAccount($address: String) {
-  positions(
-    where: {_and: [{account_id: {_eq: $address}}, {shares: {_gt: 0}}, {term: {triple: {predicate: {data: {_eq: "type"}}}}}, {term: {triple: {object: {data: {_eq: "agent"}}}}}]}
+export const SearchPositionsDocument = new TypedDocumentString(`
+    query SearchPositions($addresses: _text, $search_fields: jsonb) {
+  positions: search_positions_on_subject(
+    args: {addresses: $addresses, search_fields: $search_fields}
   ) {
-    account_id
     term {
       triple {
         subject {
           data
-          claims: as_subject_triples(
-            where: {_and: [{positions: {account_id: {_eq: $address}}}, {positions: {shares: {_gt: 0}}}]}
-          ) {
-            predicate {
-              data
-            }
-            object {
-              data
-            }
-          }
+        }
+        predicate {
+          data
+        }
+        object {
+          data
         }
       }
     }
   }
 }
-    `) as unknown as TypedDocumentString<GetAgentsForAccountQuery, GetAgentsForAccountQueryVariables>;
+    `) as unknown as TypedDocumentString<SearchPositionsQuery, SearchPositionsQueryVariables>;
 export const TermDocument = new TypedDocumentString(`
     query Term($termId: numeric!) {
   atom(term_id: $termId) {

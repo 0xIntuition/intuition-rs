@@ -5,9 +5,12 @@ AS $$
 DECLARE 
    key_count INTEGER;
 BEGIN
-    -- Count the number of key-value pairs we need to match
+    -- Count the total number of key-value pairs across all objects in the array
     SELECT COUNT(*) INTO key_count 
-    FROM jsonb_object_keys(search_fields);
+    FROM (
+        SELECT jsonb_object_keys(field_obj)
+        FROM jsonb_array_elements(search_fields) AS field_obj
+    ) AS all_keys;
     
     -- Return positions where subject has ALL specified key-value pairs
     RETURN QUERY 
@@ -21,11 +24,12 @@ BEGIN
             po.shares > 0
             AND po.account_id = ANY(addresses)
             AND (predicate_atom."data", object_atom."data") IN (
-                SELECT key, value 
-                FROM jsonb_each_text(search_fields)
+                SELECT kv.key, kv.value 
+                FROM jsonb_array_elements(search_fields) AS field_obj,
+                     jsonb_each_text(field_obj) AS kv(key, value)
             )
         GROUP BY tr.subject_id
-        HAVING COUNT(DISTINCT predicate_atom."data") = key_count
+        HAVING COUNT(DISTINCT (predicate_atom."data", object_atom."data")) = key_count
     )
     SELECT po.* 
     FROM "position" po 
