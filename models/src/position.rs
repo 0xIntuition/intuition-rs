@@ -21,6 +21,10 @@ pub struct Position {
     pub shares: U256Wrapper,
     /// Reference to the curve this position is in
     pub curve_id: U256Wrapper,
+    /// Total deposit assets after total fees
+    pub total_deposit_assets_after_total_fees: U256Wrapper,
+    /// Total redeem assets for receiver
+    pub total_redeem_assets_for_receiver: U256Wrapper,
     /// Block number of the transaction that created the position
     pub block_number: i64,
     /// Log index of the transaction that created the position
@@ -57,14 +61,16 @@ impl SimpleCrud<String> for Position {
         let query = format!(
             r#"
             WITH upsert AS (
-                INSERT INTO {}.position (id, account_id, term_id, shares, curve_id, block_number, log_index, transaction_hash, transaction_index, created_at)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                INSERT INTO {}.position (id, account_id, term_id, shares, curve_id, total_deposit_assets_after_total_fees, total_redeem_assets_for_receiver, block_number, log_index, transaction_hash, transaction_index, created_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
                 ON CONFLICT (id)
                 DO UPDATE SET
                     account_id = EXCLUDED.account_id,
                     term_id = EXCLUDED.term_id,
                     shares = EXCLUDED.shares,
                     curve_id = EXCLUDED.curve_id,
+                    total_deposit_assets_after_total_fees = EXCLUDED.total_deposit_assets_after_total_fees,
+                    total_redeem_assets_for_receiver = EXCLUDED.total_redeem_assets_for_receiver,
                     block_number = EXCLUDED.block_number,
                     log_index = EXCLUDED.log_index,
                     transaction_hash = EXCLUDED.transaction_hash,
@@ -94,6 +100,11 @@ impl SimpleCrud<String> for Position {
             .bind(self.term_id.to_big_decimal()?)
             .bind(self.shares.to_big_decimal()?)
             .bind(self.curve_id.to_big_decimal()?)
+            .bind(
+                self.total_deposit_assets_after_total_fees
+                    .to_big_decimal()?,
+            )
+            .bind(self.total_redeem_assets_for_receiver.to_big_decimal()?)
             .bind(self.block_number)
             .bind(self.log_index)
             .bind(self.transaction_hash.clone())
@@ -120,11 +131,13 @@ impl SimpleCrud<String> for Position {
                 account_id, 
                 term_id, 
                 shares,
+                curve_id,
+                total_deposit_assets_after_total_fees,
+                total_redeem_assets_for_receiver,
                 block_number,
                 log_index,
                 transaction_hash,
                 transaction_index,
-                curve_id,
                 created_at
             FROM {}.position
             WHERE id = $1
@@ -246,6 +259,8 @@ impl Position {
                 term_id, 
                 shares,
                 curve_id,
+                total_deposit_assets_after_total_fees,
+                total_redeem_assets_for_receiver,
                 block_number,
                 log_index,
                 transaction_hash,
