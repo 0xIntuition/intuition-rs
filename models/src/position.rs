@@ -62,7 +62,7 @@ impl SimpleCrud<String> for Position {
             r#"
             WITH upsert AS (
                 INSERT INTO {}.position (id, account_id, term_id, shares, curve_id, total_deposit_assets_after_total_fees, total_redeem_assets_for_receiver, block_number, log_index, transaction_hash, transaction_index, created_at)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
                 ON CONFLICT (id)
                 DO UPDATE SET
                     account_id = EXCLUDED.account_id,
