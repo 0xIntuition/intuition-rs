@@ -112,6 +112,51 @@ array_relationships:
         table:
           name: signal
           schema: public
+  - name: term_total_state_change_daily
+    using:
+      manual_configuration:
+        column_mapping:
+          id: term_id
+        insertion_order: null
+        remote_table:
+          name: term_total_state_change_stats_daily
+          schema: public
+  - name: term_total_state_change_hourly
+    using:
+      manual_configuration:
+        column_mapping:
+          id: term_id
+        insertion_order: null
+        remote_table:
+          name: term_total_state_change_stats_hourly
+          schema: public
+  - name: term_total_state_change_monthly
+    using:
+      manual_configuration:
+        column_mapping:
+          id: term_id
+        insertion_order: null
+        remote_table:
+          name: term_total_state_change_stats_monthly
+          schema: public
+  - name: term_total_state_change_weekly
+    using:
+      manual_configuration:
+        column_mapping:
+          id: term_id
+        insertion_order: null
+        remote_table:
+          name: term_total_state_change_stats_weekly
+          schema: public
+  - name: term_total_state_changes
+    using:
+      manual_configuration:
+        column_mapping:
+          id: term_id
+        insertion_order: null
+        remote_table:
+          name: term_total_state_change
+          schema: public
   - name: vaults
     using:
       foreign_key_constraint_on:

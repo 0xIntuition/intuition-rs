@@ -1,0 +1,20 @@
+table:
+  name: term_total_state_change
+  schema: public
+configuration:
+  column_config: {}
+  custom_column_names: {}
+  custom_name: term_total_state_changes
+  custom_root_fields:
+    select_by_pk: term_total_state_change
+select_permissions:
+  - role: anonymous
+    permission:
+      columns:
+        - term_id
+        - total_assets
+        - total_market_cap
+        - created_at
+      filter: {}
+      limit: 1000
+    comment: ""
