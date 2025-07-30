@@ -401,6 +401,8 @@ pub fn create_test_position(account_id: String, term_id: U256Wrapper) -> Positio
                 ))
                 .unwrap(),
         )
+        .total_deposit_assets_after_total_fees(create_random_u256wrapper())
+        .total_redeem_assets_for_receiver(create_random_u256wrapper())
         .build()
 }
 

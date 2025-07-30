@@ -8,7 +8,6 @@ use crate::{
     },
     schemas::types::DecodedMessage,
 };
-use alloy::primitives::Uint;
 use models::{
     event::{Event, EventType},
     redemption::Redemption,
@@ -18,7 +17,7 @@ use models::{
     vault::Vault,
 };
 use std::fmt::Debug;
-use tracing::{debug, info};
+use tracing::info;
 
 #[derive(Debug)]
 pub struct RedeemedEventHandler<T>(pub T);
@@ -83,29 +82,9 @@ where
             )
             .await?;
 
-        // When the redemption fully depletes the sender's shares:
-        debug!("Checking if the sender's shares are zero");
-        if self.0.sender_total_shares_in_vault()? == Uint::from(0) {
-            // Build the position ID
-            let position_id = format!(
-                "{}-{}-{}",
-                vault.term_id,
-                self.0.curve_id()?,
-                sender_account.id
-            );
-            // Call the handler to remove the position
-            self.0
-                .handle_position_redemption(decoded_consumer_context, &position_id, event)
-                .await?;
-        } else {
-            debug!(
-                "The sender's shares are not zero, currently {} shares remaining",
-                self.0.sender_total_shares_in_vault()?
-            );
-            self.0
-                .handle_remaining_shares(&vault, &sender_account, decoded_consumer_context, event)
-                .await?;
-        }
+        self.0
+            .handle_position_shares(&vault, &sender_account, decoded_consumer_context, event)
+            .await?;
 
         // Update vault values when dealing with v1 redeemed events
         self.0

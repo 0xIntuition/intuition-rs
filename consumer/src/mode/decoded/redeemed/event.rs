@@ -17,7 +17,6 @@ use models::{
     types::U256Wrapper,
     vault::Vault,
 };
-use tracing::info;
 /// This trait represents a redeemed event
 pub trait RedeemedEvent: Clone {
     /// This function returns the sender of the redeemed event
@@ -66,43 +65,9 @@ pub trait RedeemedEvent: Clone {
             .await
             .map_err(ConsumerError::ModelError)
     }
-    /// This function handles the deletion of a position
-    async fn handle_position_redemption(
-        &self,
-        decoded_consumer_context: &DecodedConsumerContext,
-        position_id: &str,
-        event: &DecodedMessage,
-    ) -> Result<(), ConsumerError> {
-        // Fetch the position
-        let position = Position::find_by_id(
-            position_id.to_string(),
-            &decoded_consumer_context.backend_schema,
-            &decoded_consumer_context.pg_pool,
-        )
-        .await?;
 
-        // Only if the position is being closed should we update vault position_count.
-        // For instance, if the redemption fully depletes the position:
-        if let Some(mut position) = position {
-            info!("Position shares are zero, updating position shares to 0.");
-            // Remove the position record..
-            position.shares = U256Wrapper::try_from(0)?;
-            position.block_number = event.block_number;
-            position.log_index = event.log_index;
-            position.transaction_hash = event.transaction_hash.clone();
-            position.transaction_index = event.transaction_index;
-            position
-                .upsert(
-                    &decoded_consumer_context.backend_schema,
-                    &decoded_consumer_context.pg_pool,
-                )
-                .await?;
-        }
-
-        Ok(())
-    }
     /// This function handles the remaining shares
-    async fn handle_remaining_shares(
+    async fn handle_position_shares(
         &self,
         vault: &Vault,
         sender_account: &Account,
@@ -114,8 +79,8 @@ pub trait RedeemedEvent: Clone {
             format!(
                 "{}-{}-{}",
                 vault.term_id,
+                RedeemedEvent::curve_id(self)?,
                 sender_account.id,
-                RedeemedEvent::curve_id(self)?
             ),
             &decoded_consumer_context.backend_schema,
             &decoded_consumer_context.pg_pool,

@@ -215,6 +215,10 @@ pub trait DepositedEvent:
             .transaction_hash(event.transaction_hash.clone())
             .transaction_index(event.transaction_index)
             .created_at(get_block_timestamp(event.block_timestamp)?)
+            .total_deposit_assets_after_total_fees(U256Wrapper::from(
+                self.sender_assets_after_total_fees()?,
+            ))
+            .total_redeem_assets_for_receiver(U256Wrapper::try_from(0)?)
             .build()
             .upsert(
                 &decoded_consumer_context.backend_schema,

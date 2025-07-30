@@ -41,6 +41,8 @@ select_permissions:
         - id
         - created_at
         - updated_at
+        - total_deposit_assets_after_total_fees
+        - total_redeem_assets_for_receiver
       filter: {}
       limit: 100
       allow_aggregations: true

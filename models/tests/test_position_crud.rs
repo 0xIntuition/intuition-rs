@@ -45,6 +45,8 @@ mod tests {
             transaction_hash: position.transaction_hash.clone(),
             transaction_index: position.transaction_index,
             created_at: position.created_at,
+            total_deposit_assets_after_total_fees: U256Wrapper::from_str("100").unwrap(),
+            total_redeem_assets_for_receiver: U256Wrapper::from_str("100").unwrap(),
         };
 
         // Update using upsert
