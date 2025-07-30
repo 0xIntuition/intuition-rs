@@ -79,8 +79,8 @@ pub trait RedeemedEvent: Clone {
             format!(
                 "{}-{}-{}",
                 vault.term_id,
+                RedeemedEvent::curve_id(self)?,
                 sender_account.id,
-                RedeemedEvent::curve_id(self)?
             ),
             &decoded_consumer_context.backend_schema,
             &decoded_consumer_context.pg_pool,
