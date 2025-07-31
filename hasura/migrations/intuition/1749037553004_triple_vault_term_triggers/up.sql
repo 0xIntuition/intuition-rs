@@ -79,7 +79,11 @@ BEGIN
             WHERE v.term_id IN (triple_vault.term_id, triple_vault.counter_term_id)
             AND v.curve_id = triple_vault.curve_id
         ),
-        updated_at = now()
+        updated_at = CASE 
+            WHEN TG_OP = 'INSERT' THEN NEW.created_at
+            WHEN TG_OP = 'UPDATE' THEN NEW.created_at
+            WHEN TG_OP = 'DELETE' THEN OLD.created_at
+        END
     WHERE (triple_vault.term_id = affected_term_id OR triple_vault.counter_term_id = affected_term_id)
     AND triple_vault.curve_id = affected_curve_id;
 
@@ -91,7 +95,11 @@ BEGIN
             FROM vault v 
             WHERE v.term_id IN (triple_term.term_id, triple_term.counter_term_id)
         ), 0),
-        updated_at = now()
+        updated_at = CASE 
+            WHEN TG_OP = 'INSERT' THEN NEW.created_at
+            WHEN TG_OP = 'UPDATE' THEN NEW.created_at
+            WHEN TG_OP = 'DELETE' THEN OLD.created_at
+        END
     WHERE (triple_term.term_id = affected_term_id OR triple_term.counter_term_id = affected_term_id);
 
     RETURN NULL;
