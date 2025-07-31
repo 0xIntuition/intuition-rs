@@ -4,6 +4,7 @@ use crate::{
     types::U256Wrapper,
 };
 use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 use sqlx::{Executor, Postgres, Result};
 
 #[derive(Debug, sqlx::Type, Clone, PartialEq, Eq)]
@@ -28,6 +29,7 @@ pub struct Term {
     pub triple_id: Option<U256Wrapper>,
     pub total_assets: U256Wrapper,
     pub total_market_cap: U256Wrapper,
+    pub updated_at: DateTime<Utc>,
 }
 /// This is a trait that all models must implement.
 impl Model for Term {}
@@ -42,15 +44,16 @@ impl SimpleCrud<U256Wrapper> for Term {
     {
         let query = format!(
             r#"
-            INSERT INTO {}.term (id, type, atom_id, triple_id, total_assets, total_market_cap)
-            VALUES ($1, $2, $3, $4, $5, $6)
+            INSERT INTO {}.term (id, type, atom_id, triple_id, total_assets, total_market_cap, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
             ON CONFLICT (id) DO UPDATE SET
                 type = EXCLUDED.type,
                 atom_id = EXCLUDED.atom_id,
                 triple_id = EXCLUDED.triple_id,
                 total_assets = EXCLUDED.total_assets,
-                total_market_cap = EXCLUDED.total_market_cap
-            RETURNING id, type, atom_id, triple_id, total_assets, total_market_cap
+                total_market_cap = EXCLUDED.total_market_cap,
+                updated_at = EXCLUDED.updated_at
+            RETURNING id, type, atom_id, triple_id, total_assets, total_market_cap, updated_at
             "#,
             schema,
         );
@@ -66,6 +69,7 @@ impl SimpleCrud<U256Wrapper> for Term {
             )
             .bind(self.total_assets.to_big_decimal()?)
             .bind(self.total_market_cap.to_big_decimal()?)
+            .bind(self.updated_at)
             .fetch_one(executor)
             .await
             .map_err(|e| ModelError::InsertError(e.to_string()))
@@ -88,7 +92,8 @@ impl SimpleCrud<U256Wrapper> for Term {
                 atom_id,
                 triple_id,
                 total_assets,
-                total_market_cap
+                total_market_cap,
+                updated_at
             FROM {}.term 
             WHERE id = $1
             "#,

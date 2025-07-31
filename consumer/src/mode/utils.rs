@@ -9,6 +9,7 @@ use crate::{
     traits::{AccountManager, SharePriceEvent, TripleTermManager, TripleVaultManager},
 };
 use alloy::primitives::U256;
+use chrono::DateTime;
 use models::{
     account::{Account, AccountType},
     term::{Term, TermType},
@@ -65,7 +66,14 @@ impl VaultOrigin {
 
         debug!("Creating new term and vault for term_id: {}", term_id);
 
-        get_or_create_term(&event, custom_term_id.clone(), context, term_type.clone()).await?;
+        get_or_create_term(
+            &event,
+            custom_term_id.clone(),
+            context,
+            term_type.clone(),
+            tx.block_timestamp,
+        )
+        .await?;
 
         let new_vault = self
             .build_new_vault(&event, context, tx, custom_term_id)
@@ -94,6 +102,7 @@ impl VaultOrigin {
     pub async fn get_or_create_triple_term(
         &self,
         event: impl SharePriceEvent + TripleTermManager,
+        block_timestamp: i64,
         decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<TripleTerm, ConsumerError> {
         let counter_vault_id =
@@ -117,6 +126,11 @@ impl VaultOrigin {
                 .total_assets(triple_aggregate.total_assets)
                 .total_market_cap(triple_aggregate.total_market_cap)
                 .total_position_count(triple_aggregate.total_position_count)
+                .updated_at(DateTime::from_timestamp(block_timestamp, 0).ok_or(
+                    ConsumerError::BlockTimestampError(
+                        "Failed to convert block timestamp to DateTime".to_string(),
+                    ),
+                )?)
                 .build()
                 .upsert(
                     &decoded_consumer_context.backend_schema,
@@ -133,6 +147,7 @@ impl VaultOrigin {
         event: impl SharePriceEvent + TripleVaultManager,
         decoded_consumer_context: &DecodedConsumerContext,
         tx: &DecodedMessage,
+        block_timestamp: i64,
     ) -> Result<TripleVault, ConsumerError> {
         let counter_vault_id =
             U256Wrapper::from(get_counter_vault_id(event.term_id()?.try_into()?));
@@ -173,6 +188,11 @@ impl VaultOrigin {
                 .market_cap(triple_aggregate.total_market_cap)
                 .block_number(U256Wrapper::try_from(tx.block_number).unwrap_or_default())
                 .log_index(tx.log_index)
+                .updated_at(DateTime::from_timestamp(block_timestamp, 0).ok_or(
+                    ConsumerError::BlockTimestampError(
+                        "Failed to convert block timestamp to DateTime".to_string(),
+                    ),
+                )?)
                 .build()
                 .upsert(
                     &decoded_consumer_context.backend_schema,
@@ -319,6 +339,7 @@ pub async fn get_or_create_term(
     term_id: Option<U256Wrapper>,
     decoded_consumer_context: &DecodedConsumerContext,
     term_type: TermType,
+    block_timestamp: i64,
 ) -> Result<Term, ConsumerError> {
     use std::str::FromStr;
 
@@ -342,7 +363,12 @@ pub async fn get_or_create_term(
             .term_type(term_type.clone())
             // Everytime we create a new term, we need to set the total assets and market cap to 0
             .total_assets(U256Wrapper::from_str("0")?)
-            .total_market_cap(U256Wrapper::from_str("0")?);
+            .total_market_cap(U256Wrapper::from_str("0")?)
+            .updated_at(DateTime::from_timestamp(block_timestamp, 0).ok_or(
+                ConsumerError::BlockTimestampError(
+                    "Failed to convert block timestamp to DateTime".to_string(),
+                ),
+            )?);
 
         if let TermType::Atom = term_type {
             term.atom_id(term_id.clone())

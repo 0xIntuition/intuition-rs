@@ -94,7 +94,11 @@ pub trait DepositedEvent:
             if triple_term.is_none() {
                 // Get or create the triple term
                 VaultOrigin::Deposit
-                    .get_or_create_triple_term(self.clone(), decoded_consumer_context)
+                    .get_or_create_triple_term(
+                        self.clone(),
+                        event.block_timestamp,
+                        decoded_consumer_context,
+                    )
                     .await?;
             }
             // verify if we already have the triple vault
@@ -107,7 +111,12 @@ pub trait DepositedEvent:
             if triple_vault.is_none() {
                 // Get or create the triple vault
                 VaultOrigin::Deposit
-                    .get_or_create_triple_vault(self.clone(), decoded_consumer_context, event)
+                    .get_or_create_triple_vault(
+                        self.clone(),
+                        decoded_consumer_context,
+                        event,
+                        event.block_timestamp,
+                    )
                     .await?;
             }
         }

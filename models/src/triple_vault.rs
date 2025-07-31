@@ -4,6 +4,7 @@ use crate::{
     types::U256Wrapper,
 };
 use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 use sqlx::{Executor, Postgres, Result};
 
 /// This struct defines the triple vault in the database.
@@ -19,6 +20,7 @@ pub struct TripleVault {
     pub market_cap: U256Wrapper,
     pub block_number: U256Wrapper,
     pub log_index: i64,
+    pub updated_at: DateTime<Utc>,
 }
 
 /// This is a trait that all models must implement.
@@ -37,16 +39,17 @@ impl SimpleCrud<U256Wrapper> for TripleVault {
             WITH upsert AS (
                 INSERT INTO {0}.triple_vault (
                     term_id, counter_term_id, curve_id, total_shares, total_assets, position_count,
-                    market_cap, block_number, log_index
+                    market_cap, block_number, log_index, updated_at
                 )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
                 ON CONFLICT (term_id, curve_id) DO UPDATE SET
                     total_shares = EXCLUDED.total_shares,
                     position_count = EXCLUDED.position_count,
                     total_assets = EXCLUDED.total_assets,
                     market_cap = EXCLUDED.market_cap,
                     block_number = EXCLUDED.block_number,
-                    log_index = EXCLUDED.log_index
+                    log_index = EXCLUDED.log_index,
+                    updated_at = EXCLUDED.updated_at
                 WHERE
                 EXCLUDED.block_number > triple_vault.block_number
                 OR (
@@ -54,12 +57,12 @@ impl SimpleCrud<U256Wrapper> for TripleVault {
                     AND EXCLUDED.log_index > triple_vault.log_index
                 )
                 RETURNING term_id, counter_term_id, curve_id, total_shares, total_assets, position_count,
-                          market_cap, block_number, log_index
+                          market_cap, block_number, log_index, updated_at
             )
             SELECT * FROM upsert
             UNION ALL
             SELECT term_id, counter_term_id, curve_id, total_shares, total_assets, position_count,
-                   market_cap, block_number, log_index
+                   market_cap, block_number, log_index, updated_at
             FROM {0}.triple_vault
             WHERE term_id = $1 AND counter_term_id = $2 AND curve_id = $3
             AND NOT EXISTS (SELECT 1 FROM upsert)
@@ -77,6 +80,7 @@ impl SimpleCrud<U256Wrapper> for TripleVault {
             .bind(self.market_cap.to_big_decimal()?)
             .bind(self.block_number.to_big_decimal()?)
             .bind(self.log_index)
+            .bind(self.updated_at)
             .fetch_one(executor)
             .await
             .map_err(|e| ModelError::InsertError(e.to_string()))
