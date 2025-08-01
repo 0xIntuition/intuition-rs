@@ -16,7 +16,12 @@ BEGIN
     UPDATE term
     SET 
         total_assets = COALESCE((SELECT SUM(total_assets) FROM vault WHERE term_id = term_id_val), 0),
-        total_market_cap = COALESCE((SELECT SUM(market_cap) FROM vault WHERE term_id = term_id_val), 0)
+        total_market_cap = COALESCE((SELECT SUM(market_cap) FROM vault WHERE term_id = term_id_val), 0),
+        updated_at = CASE 
+            WHEN TG_OP = 'INSERT' THEN NEW.created_at
+            WHEN TG_OP = 'UPDATE' THEN NEW.created_at
+            WHEN TG_OP = 'DELETE' THEN OLD.created_at
+        END
     WHERE id = term_id_val;
 
     RETURN NULL;

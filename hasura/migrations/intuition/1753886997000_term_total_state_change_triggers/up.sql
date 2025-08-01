@@ -11,7 +11,7 @@ BEGIN
     -- For UPDATE operations only, insert the current values
     IF (TG_OP = 'UPDATE') THEN
         INSERT INTO term_total_state_change (term_id, total_assets, total_market_cap, created_at)
-        VALUES (NEW.term_id, NEW.total_assets, NEW.market_cap, now());
+        VALUES (NEW.term_id, NEW.total_assets, NEW.market_cap, NEW.updated_at);
     END IF;
 
     RETURN NULL;
@@ -26,7 +26,7 @@ BEGIN
     IF (TG_OP = 'UPDATE') AND NEW.type = 'Atom' THEN
         -- Insert the current values from the term table
         INSERT INTO term_total_state_change (term_id, total_assets, total_market_cap, created_at)
-        VALUES (NEW.id, NEW.total_assets, NEW.total_market_cap, now());
+        VALUES (NEW.id, NEW.total_assets, NEW.total_market_cap, NEW.updated_at);
     END IF;
 
     RETURN NULL;

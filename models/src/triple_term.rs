@@ -4,6 +4,7 @@ use crate::{
     types::U256Wrapper,
 };
 use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 use sqlx::{Executor, Postgres, Result};
 
 /// This struct defines the triple term in the database.
@@ -15,6 +16,7 @@ pub struct TripleTerm {
     pub total_assets: U256Wrapper,
     pub total_market_cap: U256Wrapper,
     pub total_position_count: i64,
+    pub updated_at: DateTime<Utc>,
 }
 /// This is a trait that all models must implement.
 impl Model for TripleTerm {}
@@ -29,13 +31,14 @@ impl SimpleCrud<U256Wrapper> for TripleTerm {
     {
         let query = format!(
             r#"
-            INSERT INTO {}.triple_term (term_id, counter_term_id, total_assets, total_market_cap, total_position_count)
-            VALUES ($1, $2, $3, $4, $5)
+            INSERT INTO {}.triple_term (term_id, counter_term_id, total_assets, total_market_cap, total_position_count, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6)
             ON CONFLICT (term_id) DO UPDATE SET
                 total_assets = EXCLUDED.total_assets,
                 total_market_cap = EXCLUDED.total_market_cap,
-                total_position_count = EXCLUDED.total_position_count
-            RETURNING term_id, counter_term_id, total_assets, total_market_cap, total_position_count
+                total_position_count = EXCLUDED.total_position_count,
+                updated_at = EXCLUDED.updated_at
+            RETURNING term_id, counter_term_id, total_assets, total_market_cap, total_position_count, updated_at
             "#,
             schema,
         );
@@ -46,6 +49,7 @@ impl SimpleCrud<U256Wrapper> for TripleTerm {
             .bind(self.total_assets.to_big_decimal()?)
             .bind(self.total_market_cap.to_big_decimal()?)
             .bind(self.total_position_count)
+            .bind(self.updated_at)
             .fetch_one(executor)
             .await
             .map_err(|e| ModelError::InsertError(e.to_string()))
@@ -67,7 +71,8 @@ impl SimpleCrud<U256Wrapper> for TripleTerm {
                 counter_term_id,
                 total_assets,
                 total_market_cap,
-                total_position_count
+                total_position_count,
+                updated_at
             FROM {}.triple_term 
             WHERE term_id = $1
             "#,
@@ -98,7 +103,8 @@ impl TripleTerm {
                 counter_term_id,
                 total_assets,
                 total_market_cap,
-                total_position_count
+                total_position_count,
+                updated_at
             FROM {}.triple_term 
             WHERE term_id = $1 OR counter_term_id = $1
             "#,
