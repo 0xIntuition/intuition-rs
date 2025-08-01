@@ -26,7 +26,11 @@ BEGIN
             FROM vault v 
             WHERE v.term_id IN (term_id_val, counter_term_id_val)
         ), 0),
-        updated_at = now()
+        updated_at = CASE 
+            WHEN TG_OP = 'INSERT' THEN NEW.updated_at
+            WHEN TG_OP = 'UPDATE' THEN NEW.updated_at
+            WHEN TG_OP = 'DELETE' THEN OLD.updated_at
+        END
     WHERE term_id = term_id_val AND counter_term_id = counter_term_id_val;
 
     RETURN NULL;
@@ -125,7 +129,7 @@ SELECT
         FROM vault v 
         WHERE v.term_id IN (tv.term_id, tv.counter_term_id)
     ), 0) as total_position_count,
-    now() as updated_at
+    MAX(tv.updated_at) as updated_at
 FROM triple_vault tv
 GROUP BY term_id, counter_term_id
 ON CONFLICT (term_id) DO UPDATE SET
