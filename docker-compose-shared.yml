@@ -216,6 +216,36 @@ services:
       - ./geth/keystore.json:/data/keystore/UTC--2024-06-03T19-15-34.118131000Z--63e87dc2366dc7f1be110ded239879422e165d96
       - ./geth/password.txt:/root/password.txt
   
+  contract-deployer-2-0:
+    container_name: contract-deployer-2-0
+    image: ghcr.io/0xintuition/contract-deployer-2-0:latest
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_DB: storage
+      POSTGRES_PORT: 5435
+    depends_on:
+      geth:
+        condition: service_healthy 
+    volumes:
+      - ./geth/keystore.json:/data/keystore.json
+      - ./geth/password.txt:/data/password.txt
+      - contract-deployer-2-0-data:/app
+
+  contract-verifier-2-0:
+      container_name: contract-verifier-2-0
+      image: ghcr.io/0xintuition/contract-deployer-2-0:latest
+      entrypoint: /app/verify.sh
+      depends_on:
+        geth:
+          condition: service_healthy 
+        contract-deployer-2-0:
+          condition: service_completed_successfully
+      volumes:
+        - ./geth/keystore.json:/data/keystore.json
+        - ./geth/password.txt:/data/password.txt
+        - contract-deployer-2-0-data:/app
+  
   contract-deployer-1-5:
     container_name: contract-deployer-1-5
     image: ghcr.io/0xintuition/contract-deployer-1-5:latest
@@ -285,5 +315,6 @@ volumes:
   pgadmin-data:
   ipfs_data:
   data_geth:
+  contract-deployer-2-0-data:
   contract-deployer-1-5-data:
   contract-deployer-1-0-data:
