@@ -23,7 +23,7 @@ ENV PATH="/root/.foundry/bin:${PATH}"
 
 WORKDIR /app
 
-RUN git clone --branch deploy-to-geth-2 --depth 1 https://github.com/0xIntuition/intuition-contracts-v2 . 
+RUN git clone --branch deploy-to-geth-3 --depth 1 https://github.com/0xIntuition/intuition-contracts-v2 . 
 RUN npm install
 RUN forge build --via-ir --optimize
 
