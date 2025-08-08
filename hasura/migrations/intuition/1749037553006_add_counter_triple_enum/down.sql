@@ -1,4 +1,0 @@
--- Note: PostgreSQL doesn't support removing enum values directly
--- This would require recreating the enum type, which is complex
--- For now, we'll leave this as a comment indicating the limitation
--- ALTER TYPE term_type REMOVE VALUE 'CounterTriple'; 
