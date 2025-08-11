@@ -39,6 +39,10 @@ command = "docker"
 args = ["build", "-t", "ghcr.io/0xintuition/consumer-api:latest", "-f", "consumer-api/Dockerfile", "."]
 
 [tasks.build-contract-deployer-2-0]
+command = "bash"
+args = ["integration-tests/contract-deployer-2-0/build.sh"]
+
+[tasks.build-contract-deployer-2-0-old]
 command = "docker"
 args = ["build", "-t", "ghcr.io/0xintuition/contract-deployer-2-0:latest", "-f", "integration-tests/contract-deployer-2-0/Dockerfile", "."]
 

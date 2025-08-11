@@ -24,7 +24,7 @@ if [ "$INDEXER_SCHEMA" == "histo_local_2_0" ]; then
     
     # Select contract_address from histocrawler.app_config wait until it changes from 0x63B90A9c109fF8f137916026876171ffeEdEe714 or empty
     while [ "$CONTRACT_ADDRESS" == "0x63B90A9c109fF8f137916026876171ffeEdEe714" ] || [ -z "$CONTRACT_ADDRESS" ]; do
-        CONTRACT_ADDRESS=$(docker compose -f docker-compose-shared.yml exec database psql -U postgres -d storage -c "SELECT contract_address FROM histocrawler.app_config WHERE indexer_schema = 'histo_base_sepolia_2_0'" -tA)
+        CONTRACT_ADDRESS=$(docker compose -f docker-compose-shared.yml exec database psql -U postgres -d storage -c "SELECT contract_address FROM histocrawler.app_config WHERE indexer_schema = 'histo_base_sepolia_1_5'" -tA)
         sleep 1
     done
     
