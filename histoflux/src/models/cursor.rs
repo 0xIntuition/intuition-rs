@@ -9,36 +9,7 @@ use sqlx::PgPool;
 pub struct HistoFluxCursor {
     pub last_processed_id: i64,
     pub environment: String,
-    pub paused: bool,
-    pub queue_url: String,
     pub updated_at: DateTime<Utc>,
-}
-#[derive(Builder)]
-pub struct NewHistoFluxCursor {
-    pub last_processed_id: i64,
-    pub environment: String,
-    pub paused: bool,
-    pub queue_url: String,
-}
-
-impl NewHistoFluxCursor {
-    /// insert the cursor into the DB.
-    pub async fn insert(&self, db: &PgPool) -> Result<HistoFluxCursor, HistoFluxError> {
-        let query = r#"
-        INSERT INTO histocrawler.histoflux_cursor (last_processed_id, environment, paused, queue_url) 
-        VALUES ($1, $2, $3, $4) 
-        RETURNING last_processed_id, environment, paused, queue_url, updated_at::timestamptz as updated_at
-        "#;
-
-        sqlx::query_as::<_, HistoFluxCursor>(query)
-            .bind(self.last_processed_id)
-            .bind(self.environment.clone())
-            .bind(self.paused)
-            .bind(&self.queue_url)
-            .fetch_one(db)
-            .await
-            .map_err(HistoFluxError::SQLXError)
-    }
 }
 
 impl HistoFluxCursor {
@@ -46,16 +17,14 @@ impl HistoFluxCursor {
     /// insert the cursor into the DB.
     pub async fn insert(&self, db: &PgPool) -> Result<Self, HistoFluxError> {
         let query = r#"
-        INSERT INTO histocrawler.histoflux_cursor (last_processed_id, environment, paused, queue_url) 
-        VALUES ($1, $2, $3, $4) 
-        RETURNING last_processed_id, environment, paused, queue_url, updated_at::timestamptz as updated_at
+        INSERT INTO histocrawler.histoflux_cursor (last_processed_id, environment) 
+        VALUES ($1, $2) 
+        RETURNING last_processed_id, environment, updated_at::timestamptz as updated_at
         "#;
 
         sqlx::query_as::<_, HistoFluxCursor>(query)
             .bind(self.last_processed_id)
             .bind(self.environment.clone())
-            .bind(self.paused)
-            .bind(&self.queue_url)
             .fetch_one(db)
             .await
             .map_err(HistoFluxError::SQLXError)
@@ -64,7 +33,7 @@ impl HistoFluxCursor {
     /// Find the cursor in the DB.
     pub async fn find(db: &PgPool, environment: &str) -> Result<Option<Self>, HistoFluxError> {
         let query = r#"
-        SELECT last_processed_id, environment, paused, queue_url, updated_at::timestamptz as updated_at
+        SELECT last_processed_id, environment, updated_at::timestamptz as updated_at
         FROM histocrawler.histoflux_cursor 
         WHERE environment = $1
         "#;
@@ -127,9 +96,7 @@ mod tests {
         let pool = setup_test_db().await;
 
         let cursor = HistoFluxCursor {
-            queue_url: "test_url".to_string(),
             environment: "DevBase".to_string(),
-            paused: false,
             last_processed_id: 100,
             updated_at: Utc::now(),
         };

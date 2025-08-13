@@ -32,17 +32,6 @@ services:
     deploy:
       replicas: 1
 
-  # consumer-api:
-  #   container_name: consumer-api
-  #   image: ghcr.io/0xintuition/apps:latest
-  #   command: ./consumer-api
-  #   ports:
-  #     - 3001:3001
-  #   environment:
-  #     CONSUMER_API_PORT: '3001'
-  #     RESOLVER_QUEUE_URL: 'http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/resolver'
-      # LOCALSTACK_URL: 'http://sqs:4566/'
-  #   restart: always
   
   ipfs_upload_consumer:
     image: ghcr.io/0xintuition/apps:latest
@@ -82,7 +71,7 @@ services:
       CONSUMER_TYPE: 'redis_hybrid'
       INDEXER_DATABASE_URL: "postgres://postgres:postgres@database:5435/storage"
       INDEXER_SCHEMA: $INDEXER_SCHEMA
-      ENVIRONMENT_NAME: "local_v_1_0"
+      ENVIRONMENT_NAME: "local_development"
       THREADS: '5'
       INITIAL_CONTRACT_VERSION: $INITIAL_CONTRACT_VERSION
       CONSUMER_METRICS_API_PORT: '3002'
@@ -102,33 +91,6 @@ services:
       - ./logs:/app/logs
     ports:
       - 3002:3002
-    
-  # raw_consumer:
-  #   container_name: raw_consumer
-  #   image: ghcr.io/0xintuition/apps:latest
-  #   command: ./consumer --mode raw
-  #   environment:
-  #     AWS_ACCESS_KEY_ID: 'example'
-  #     AWS_REGION: 'us-west-2'
-  #     AWS_SECRET_ACCESS_KEY: 'example'
-  #     CONSUMER_TYPE: 'sqs_hybrid'
-  #     INDEXER_DATABASE_URL: "postgres://postgres:postgres@database:5435/storage"
-  #     INDEXER_SCHEMA: $INDEXER_SCHEMA
-  #     ENVIRONMENT_NAME: "local_v_1_5"
-  #     DATABASE_URL: 'postgres://postgres:postgres@database:5435/storage'
-  #     DECODED_LOGS_QUEUE_URL: 'http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/decoded_logs.fifo'
-  #     INDEXING_SOURCE: 'substreams'
-      # LOCALSTACK_URL: 'http://sqs:4566/'
-  #     PG_MIN_CONNECTIONS: '5'
-  #     RAW_CONSUMER_QUEUE_URL: 'http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/raw_logs.fifo'
-  #     RPC_URL_BASE: "http://prod-rpc-proxy:3008/84532/proxy"
-  #     RPC_URL_MAINNET: "http://prod-rpc-proxy:3008/1/proxy"
-  #     RUST_LOG: 'info'
-  #     BACKEND_SCHEMA: 'public'
-  #   restart: always
-  #   volumes:
-  #     - ~/.aws/:/root/.aws:ro
-  #     - ./logs:/app/logs
 
     
   api:

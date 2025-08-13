@@ -1,6 +1,7 @@
 use crate::error::HistoFluxError;
-use crate::models::cursor::{HistoFluxCursor, NewHistoFluxCursor};
+use crate::models::cursor::HistoFluxCursor;
 use aws_sdk_sqs::Client as AWSClient;
+use chrono::Utc;
 use log::info;
 use models::histocrawler::AppConfig;
 use serde::Deserialize;
@@ -62,8 +63,8 @@ impl HistoFlux {
         // Connect to the database
         let pg_pool = connect_to_db(&env.indexer_database_url).await?;
         // Get or create the cursor
-        let cursor = Self::get_or_create_cursor(&pg_pool, &env).await?;
-        let raw_consumer_queue_url = cursor.queue_url.clone();
+        let _cursor = Self::get_or_create_cursor(&pg_pool, &env).await?;
+        let raw_consumer_queue_url = env.raw_consumer_queue_url.clone();
         let histocrawler_config = AppConfig::find_by_indexer_schema(&env.indexer_schema, &pg_pool)
             .await?
             .ok_or(HistoFluxError::AppConfigNotFound)?;
@@ -87,11 +88,10 @@ impl HistoFlux {
         if let Some(cursor) = cursor {
             Ok(cursor)
         } else {
-            NewHistoFluxCursor::builder()
+            HistoFluxCursor::builder()
                 .last_processed_id(0)
                 .environment(env.environment_name.clone())
-                .paused(false)
-                .queue_url(env.raw_consumer_queue_url.clone())
+                .updated_at(Utc::now())
                 .build()
                 .insert(pg_pool)
                 .await

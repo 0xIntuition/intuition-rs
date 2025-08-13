@@ -111,8 +111,6 @@ impl HybridConsumer {
             HistoFluxCursor::builder()
                 .last_processed_id(0)
                 .environment(environment_name)
-                .paused(false)
-                .queue_url("raw_consumer_queue_url")
                 .updated_at(Utc::now())
                 .build()
                 .insert(histoflux_pg_pool)
