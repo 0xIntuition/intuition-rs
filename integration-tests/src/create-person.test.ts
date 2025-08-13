@@ -3,7 +3,7 @@ import { execute, getIntuition, pinJson, SystemAtom, wait } from './setup/utils.
 import { graphql } from './graphql/gql.js'
 
 suite('create person triple', async () => {
-  const alice = await getIntuition(1)
+  const alice = await getIntuition(3)
 
   const person = await alice.getOrCreateAtom(
     SystemAtom.Person,
