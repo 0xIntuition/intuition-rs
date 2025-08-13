@@ -40,28 +40,57 @@ services:
       pgai-installer:
         condition: service_completed_successfully
 
-  sqs:
-    container_name: sqs
-    image: localstack/localstack:latest
+  redis:
+    container_name: redis
+    image: redis:7.2-alpine
     ports:
-      # - "127.0.0.1:53:53"
-      # - "127.0.0.1:53:53/udp"
-      # - "127.0.0.1:443:443"
-      - "127.0.0.1:4566:4566"
-      - "127.0.0.1:4571:4571"
+      - "6379:6379"
     volumes:
-      - ./consumer/devops/localstack-setup.sh:/etc/localstack/init/ready.d/script.sh
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  redis-setup:
+    container_name: redis-setup
+    image: redis:7.2-alpine
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./consumer/devops/redis-setup.sh:/redis-setup.sh
+    entrypoint: ["/bin/sh", "/redis-setup.sh"]
     environment:
-    # Set an env var to use later in the code
-      - ALLOW_NONSTANDARD_REGIONS=1
-      - AWS_DEFAULT_REGION=us-east-1
-      - AWS_ENDPOINT=http://localstack:4566
-      - DEBUG=1
-      - DOCKER_HOST=0.0.0.0
-      - EXTRA_CORS_ALLOWED_ORIGINS=app://.
-      - HOSTNAME_EXTERNAL=localstack
-      - RUST_LOG=info
-      - SERVICES=sqs
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    restart: "no"
+
+  # sqs:
+  #   container_name: sqs
+  #   image: localstack/localstack:latest
+  #   ports:
+  #     # - "127.0.0.1:53:53"
+  #     # - "127.0.0.1:53:53/udp"
+  #     # - "127.0.0.1:443:443"
+  #     - "127.0.0.1:4566:4566"
+  #     - "127.0.0.1:4571:4571"
+  #   volumes:
+  #     - ./consumer/devops/localstack-setup.sh:/etc/localstack/init/ready.d/script.sh
+  #   environment:
+  #   # Set an env var to use later in the code
+  #     - ALLOW_NONSTANDARD_REGIONS=1
+  #     - AWS_DEFAULT_REGION=us-east-1
+  #     - AWS_ENDPOINT=http://localstack:4566
+  #     - DEBUG=1
+  #     - DOCKER_HOST=0.0.0.0
+  #     - EXTRA_CORS_ALLOWED_ORIGINS=app://.
+  #     - HOSTNAME_EXTERNAL=localstack
+  #     - RUST_LOG=info
+  #     - SERVICES=sqs
     
   
   safe-content:
@@ -285,6 +314,7 @@ volumes:
   database-data:
   pgadmin-data:
   ipfs_data:
+  redis_data:
   data_geth:
   contract-deployer-1-5-data:
   contract-deployer-1-0-data:

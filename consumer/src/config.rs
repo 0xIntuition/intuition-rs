@@ -37,6 +37,7 @@ pub struct Env {
     pub indexer_schema: Option<String>,
     pub environment_name: Option<String>,
     pub initial_contract_version: Option<String>,
+    pub redis_url: Option<String>,
     pub threads: Option<usize>,
 }
 
@@ -69,6 +70,8 @@ impl FromStr for IndexerSource {
 pub enum ConsumerType {
     Sqs,
     SqsHybrid,
+    RedisStreams,
+    RedisHybrid,
 }
 /// As we only have one consumer type for now, we can implement the
 /// `FromStr` trait to return the `Sqs` enum.
@@ -80,6 +83,10 @@ impl FromStr for ConsumerType {
             Ok(Self::Sqs)
         } else if s == "sqs_hybrid" || s == "sqs_hibrid" {
             Ok(Self::SqsHybrid)
+        } else if s == "redis_streams" {
+            Ok(Self::RedisStreams)
+        } else if s == "redis_hybrid" {
+            Ok(Self::RedisHybrid)
         } else {
             Err(ConsumerError::ConsumerTypeParse(s.to_string()))
         }

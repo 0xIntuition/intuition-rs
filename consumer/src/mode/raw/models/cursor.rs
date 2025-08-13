@@ -14,33 +14,6 @@ pub struct HistoFluxCursor {
     pub queue_url: String,
     pub updated_at: DateTime<Utc>,
 }
-#[derive(Builder)]
-pub struct NewHistoFluxCursor {
-    pub last_processed_id: i64,
-    pub environment: String,
-    pub paused: bool,
-    pub queue_url: String,
-}
-
-impl NewHistoFluxCursor {
-    /// insert the cursor into the DB.
-    pub async fn insert(&self, db: &PgPool) -> Result<HistoFluxCursor, ConsumerError> {
-        let query = r#"
-        INSERT INTO histocrawler.histoflux_cursor (last_processed_id, environment, paused, queue_url) 
-        VALUES ($1, $2, $3, $4) 
-        RETURNING last_processed_id, environment, paused, queue_url, updated_at::timestamptz as updated_at
-        "#;
-
-        sqlx::query_as::<_, HistoFluxCursor>(query)
-            .bind(self.last_processed_id)
-            .bind(self.environment.clone())
-            .bind(self.paused)
-            .bind(&self.queue_url)
-            .fetch_one(db)
-            .await
-            .map_err(ConsumerError::SqlError)
-    }
-}
 
 impl HistoFluxCursor {
     #[allow(dead_code)]

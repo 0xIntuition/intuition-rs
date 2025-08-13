@@ -1,21 +1,26 @@
 use crate::{
+    app_context::ServerInitialize,
     config::ContractVersion,
-    consumer_type::sqs_hybrid::SqsHybrid,
     error::ConsumerError,
-    mode::types::ConsumerMode,
+    mode::{raw::models::cursor::HistoFluxCursor, types::ConsumerMode},
     schemas::{goldsky::RawMessage, histocrawler::HistoCrawlerRawLog, types::DecodedMessage},
     traits::IntoRawMessage,
 };
-use models::{failed_log::FailedLog, raw_logs::RawLog};
+use chrono::Utc;
+use models::{failed_log::FailedLog, histocrawler::AppConfig, raw_logs::RawLog};
 use serde::Deserialize;
-use sqlx::postgres::{PgListener, PgNotification};
+use shared_utils::postgres::connect_to_db;
+use sqlx::{
+    PgPool,
+    postgres::{PgListener, PgNotification},
+};
 use std::sync::Arc;
 use tokio::{
     sync::{Semaphore, watch},
     task::JoinSet,
     time::{Duration, sleep},
 };
-use tracing::{error, info, warn};
+use tracing::{debug, error, info, warn};
 
 #[derive(Debug, Deserialize)]
 pub struct DbRawLog {
@@ -41,7 +46,250 @@ pub struct NotificationPayload {
 pub const MAX_RETRIES: u32 = 5;
 pub const MAX_BACKOFF_SECS: u64 = 30;
 
-impl SqsHybrid {
+/// Represents the Hybrid consumer that processes both historical and live data
+#[derive(Debug, Clone)]
+/// Represents the Hybrid consumer that processes both historical and live data
+pub struct HybridConsumer {
+    pub histoflux_cursor: HistoFluxCursor,
+    pub histoflux_pg_pool: PgPool,
+    pub hasura_pg_pool: PgPool,
+    pub app_config: AppConfig,
+    pub indexer_database_url: String,
+    pub backend_schema: String,
+}
+
+impl HybridConsumer {
+    pub async fn new(data: ServerInitialize) -> Result<Self, ConsumerError> {
+        let indexer_database_url = data
+            .env
+            .indexer_database_url
+            .clone()
+            .ok_or(ConsumerError::IndexerDatabaseUrlNotFound)?;
+        let histoflux_pg_pool = connect_to_db(&indexer_database_url).await?;
+        let hasura_pg_pool = connect_to_db(&data.env.database_url).await?;
+        // Get or create the cursor
+        let histoflux_cursor = Self::get_or_create_cursor(
+            &histoflux_pg_pool,
+            &data
+                .env
+                .environment_name
+                .ok_or(ConsumerError::EnvironmentNameNotFound)?,
+        )
+        .await?;
+        let app_config = AppConfig::find_by_indexer_schema(
+            &data
+                .env
+                .indexer_schema
+                .ok_or(ConsumerError::IndexerSchemaNotFound)?,
+            &histoflux_pg_pool,
+        )
+        .await?
+        .ok_or(ConsumerError::AppConfigNotFound)?;
+        let backend_schema = data.env.backend_schema;
+
+        Ok(Self {
+            histoflux_cursor,
+            histoflux_pg_pool,
+            hasura_pg_pool,
+            app_config,
+            indexer_database_url,
+            backend_schema,
+        })
+    }
+
+    /// This function returns a [`HistoFluxCursor`] from the database. If the
+    /// cursor does not exist, it creates a new one and returns it.
+    async fn get_or_create_cursor(
+        histoflux_pg_pool: &PgPool,
+        environment_name: &str,
+    ) -> Result<HistoFluxCursor, ConsumerError> {
+        let cursor =
+            HistoFluxCursor::find_by_environment(histoflux_pg_pool, environment_name).await?;
+        if let Some(cursor) = cursor {
+            Ok(cursor)
+        } else {
+            HistoFluxCursor::builder()
+                .last_processed_id(0)
+                .environment(environment_name)
+                .paused(false)
+                .queue_url("raw_consumer_queue_url")
+                .updated_at(Utc::now())
+                .build()
+                .insert(histoflux_pg_pool)
+                .await
+        }
+    }
+
+    /// This function returns the page size based on the amount of logs. If the
+    /// amount of logs is less than 100, it returns the amount of logs. Otherwise,
+    /// it returns 100.
+    pub fn get_page_size(amount_of_logs: i64) -> i64 {
+        if amount_of_logs < 100 {
+            amount_of_logs
+        } else {
+            100
+        }
+    }
+
+    /// This function returns the ceiling division of two numbers.
+    pub fn ceiling_div(a: i64, b: i64) -> i64 {
+        if (a > 0) == (b > 0) {
+            // Same signs: use regular ceiling division
+            let result = (a.abs() + b.abs() - 1) / b.abs();
+            if a < 0 && b < 0 {
+                result // When both negative, result is positive
+            } else {
+                result * if a < 0 { -1 } else { 1 }
+            }
+        } else {
+            // Different signs: use floor division
+            a / b
+        }
+    }
+
+    /// This function updates the last processed id in the database.
+    pub async fn update_last_processed_id(
+        &self,
+        last_processed_id: i64,
+    ) -> Result<(), ConsumerError> {
+        HistoFluxCursor::update_last_processed_id(
+            &self.histoflux_pg_pool,
+            &self.histoflux_cursor.environment,
+            last_processed_id,
+        )
+        .await?;
+        Ok(())
+    }
+    /// This function processes all existing records in the database and sends
+    /// them to the pg_notify channel.
+    pub async fn process_historical_records(
+        &self,
+        semaphore: Arc<Semaphore>,
+        mut shutdown_rx: watch::Receiver<bool>,
+        mode: &ConsumerMode,
+    ) -> Result<(), ConsumerError> {
+        debug!("Getting last processed id from the DB");
+        let mut last_processed_id =
+            HistoFluxCursor::find(&self.histoflux_pg_pool, &self.histoflux_cursor.environment)
+                .await?
+                .ok_or(ConsumerError::NotFound)?
+                .last_processed_id;
+
+        debug!("Last processed id: {}", last_processed_id);
+
+        let amount_of_logs =
+            RawLog::get_total_count(&self.histoflux_pg_pool, &self.app_config.indexer_schema)
+                .await?;
+        if amount_of_logs == 0 {
+            return Ok(());
+        }
+
+        let page_size = Self::get_page_size(amount_of_logs);
+        let pages = Self::ceiling_div(amount_of_logs, page_size);
+        debug!("Processing {} pages with page size {}", pages, page_size);
+
+        let mut processed_logs_counter = 0;
+        let mut join_set = JoinSet::new();
+
+        'outer_loop: for _page in 0..pages {
+            if *shutdown_rx.borrow() {
+                warn!("Shutdown signal received before page fetch. Exiting...");
+                break 'outer_loop;
+            }
+
+            let logs = RawLog::get_paginated_after_id(
+                &self.histoflux_pg_pool,
+                last_processed_id as i32,
+                page_size,
+                &self.app_config.indexer_schema,
+            )
+            .await?;
+
+            if logs.is_empty() {
+                break;
+            }
+
+            debug!("Processing {} logs", logs.len());
+
+            for log in logs {
+                if processed_logs_counter >= amount_of_logs {
+                    break 'outer_loop;
+                }
+
+                if shutdown_rx.has_changed()? && *shutdown_rx.borrow_and_update() {
+                    warn!("Shutdown signal received during processing. Exiting...");
+                    break 'outer_loop;
+                }
+
+                let permit = semaphore.clone().acquire_owned().await?;
+                let mode = mode.clone(); // ensure Clone
+                let log_for_task = log.clone();
+                let ctx = self.clone(); // ensure Clone
+                let log_id = log.id as i64;
+                last_processed_id = log_id;
+
+                join_set.spawn(async move {
+                    let _permit = permit;
+                    let mut retries = 0;
+
+                    let result = loop {
+                        match async {
+                            let version = mode
+                                .contract_version()
+                                .ok_or(ConsumerError::ContractVersionNotFound)?;
+                            let decoded = ctx
+                                .decode_raw_message(log_for_task.clone().into(), &version)
+                                .await?;
+                            mode.process_message(serde_json::to_string(&decoded)?).await
+                        }
+                        .await
+                        {
+                            Ok(_) => break Ok(()),
+                            Err(e) if retries < MAX_RETRIES => {
+                                retries += 1;
+                                let backoff = Duration::from_millis(150 * 2u64.pow(retries));
+                                error!(
+                                    "Retry {}/{} for log {}: {}. Backing off for {:?}",
+                                    retries, MAX_RETRIES, log_id, e, backoff
+                                );
+                                sleep(backoff).await;
+                            }
+                            Err(e) => break Err(e),
+                        }
+                    };
+
+                    // Always update the cursor and optionally store failure
+                    if let Err(err) = &result {
+                        error!("Final failure for log {}: {}", log_id, err);
+                        let failed_log = FailedLog::from(RawLog::from(log_for_task));
+                        failed_log
+                            .insert(&ctx.hasura_pg_pool, &ctx.backend_schema)
+                            .await?;
+                    }
+
+                    // Update last processed ID (monotonic safety)
+                    ctx.update_last_processed_id(log_id).await?;
+                    result
+                });
+
+                processed_logs_counter += 1;
+
+                // Optionally throttle to avoid memory bloat
+                if join_set.len() >= 1000 {
+                    while let Some(res) = join_set.join_next().await {
+                        res??;
+                    }
+                }
+            }
+        }
+
+        // Await remaining tasks
+        while let Some(res) = join_set.join_next().await {
+            res??;
+        }
+
+        Ok(())
+    }
     /// Entry point for event polling lifecycle.
     /// Connects to the listener, processes historical records, and enters the main loop.
     pub async fn start_pooling_events(

@@ -37,8 +37,10 @@ tokio.workspace = true
 tracing = "0.1"
 macon.workspace = true
 chrono.workspace = true
+redis = { version = "0.32.4", features = ["tokio-comp", "connection-manager", "streams"] }
 tracing-appender = "0.2"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+uuid = { version = "1.0", features = ["v4"] }
 warp = "0.3.7"
 
 # We currently support two versions of the contract:

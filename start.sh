@@ -2,7 +2,7 @@
 source .env
 
 # Start shared services
-docker compose -f docker-compose-shared.yml up database pgai-installer vectorizer-worker sqs ipfs safe-content graphql-engine local-migrations indexer-migrations hasura-migrations prometheus -d --wait --force-recreate
+docker compose -f docker-compose-shared.yml up database pgai-installer vectorizer-worker redis redis-setup ipfs safe-content graphql-engine local-migrations indexer-migrations hasura-migrations prometheus -d --wait --force-recreate
 
 export INITIAL_CONTRACT_VERSION="v1"
 # First arg is indexer schema
@@ -86,4 +86,4 @@ if [ "$2" == "test" ]; then
 fi
 
 # Start apps
-docker compose -f docker-compose-apps.yml up resolver_consumer consumer-api ipfs_upload_consumer decoded_consumer api prod-rpc-proxy histocrawler -d --force-recreate
+docker compose -f docker-compose-apps.yml up resolver_consumer ipfs_upload_consumer decoded_consumer api prod-rpc-proxy histocrawler -d --force-recreate

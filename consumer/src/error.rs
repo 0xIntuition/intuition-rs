@@ -153,6 +153,8 @@ pub enum ConsumerError {
     AcquireError(#[from] tokio::sync::AcquireError),
     #[error(transparent)]
     JoinError(#[from] tokio::task::JoinError),
+    #[error(transparent)]
+    RedisError(#[from] redis::RedisError),
     #[error("Term not found")]
     TermNotFound,
 }
