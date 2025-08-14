@@ -34,7 +34,14 @@ pub async fn get_or_create_atoms<P: alloy::providers::Provider>(
         })
         .collect();
 
-    println!("🔮 Creating atoms with {} deposit...", format_tokens(deposit_amount, 18)?);
+    // Calculate total deposit (deposit_amount is per atom)
+    let total_deposit = deposit_amount * U256::from(atom_bytes.len());
+    
+    println!("🔮 Creating {} atoms with {} total deposit ({} per atom)...", 
+        atom_bytes.len(),
+        format_tokens(total_deposit, 18)?,
+        format_tokens(deposit_amount, 18)?
+    );
     for (i, atom) in atom_data_vec.iter().enumerate() {
         println!("  Atom {}: \"{}\" (ID: 0x{})", 
             i, 
@@ -43,7 +50,7 @@ pub async fn get_or_create_atoms<P: alloy::providers::Provider>(
         );
     }
 
-    match multi_vault.createAtoms(atom_bytes.clone(), deposit_amount).send().await {
+    match multi_vault.createAtoms(atom_bytes.clone(), total_deposit).send().await {
         Ok(pending_tx) => {
             let tx_hash = pending_tx.tx_hash();
             println!("  Transaction hash: {}", tx_hash);

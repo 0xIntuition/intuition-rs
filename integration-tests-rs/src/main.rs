@@ -1,6 +1,8 @@
 use alloy::{primitives::U256, providers::Provider};
 use eyre::Result;
-use integration_tests_rs::{user::approve_vault, AtomCreationResult, TripleCreationResult, IntuitionClient};
+use integration_tests_rs::{
+    user::approve_vault, AtomCreationResult, IntuitionClient, TripleCreationResult,
+};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -15,7 +17,7 @@ async fn main() -> Result<()> {
 
     // Step 3: Create and fund Alice (user index 0)
     let eth_amount = U256::from(1_000_000_000_000_000_000u64); // 1 ETH in wei
-    let token_amount = U256::from(100) * U256::from(10).pow(U256::from(18)); // 100 tokens
+    let token_amount = U256::from(10) * U256::from(10).pow(U256::from(18)); // 10 tokens
 
     println!("\n📝 Creating and funding Alice...");
     let alice = client
@@ -23,22 +25,19 @@ async fn main() -> Result<()> {
         .await?;
 
     // Step 4: Alice approves MultiVault to manage tokens
-    let approval_amount = U256::from(100) * U256::from(10).pow(U256::from(18)); // 100 tokens
+    let approval_amount = U256::from(10) * U256::from(10).pow(U256::from(18)); // 10 tokens
     approve_vault(
         &alice.contracts.mock_trust,
         client.config.multi_vault_address,
         approval_amount,
+        alice.user.address,
     )
     .await?;
 
     // Step 5: Alice creates atoms using the refactored function
     println!("\n🔮 Alice creating atoms...");
-    let atom_data = vec![
-        "the ticker".to_string(),
-        "is".to_string(),
-        "trust".to_string(),
-    ];
-    let deposit_per_atom = U256::from(1) * U256::from(10).pow(U256::from(18)); // 1 token per atom
+    let atom_data = vec!["test".to_string()];
+    let deposit_per_atom = U256::from(10).pow(U256::from(17)); // 0.1 token per atom
 
     match client
         .get_or_create_atoms(&alice, atom_data.clone(), deposit_per_atom)
@@ -72,8 +71,13 @@ async fn main() -> Result<()> {
     }
 
     // Step 6: Create triples using the atoms
+    let triple_atom_data = vec![
+        "the ticker".to_string(),
+        "is".to_string(),
+        "trust".to_string(),
+    ];
     let atoms = match client
-        .get_or_create_atoms(&alice, atom_data.clone(), deposit_per_atom)
+        .get_or_create_atoms(&alice, triple_atom_data, deposit_per_atom)
         .await?
     {
         AtomCreationResult::Created(atoms) | AtomCreationResult::AlreadyExists(atoms) => atoms,
@@ -85,7 +89,7 @@ async fn main() -> Result<()> {
 
     if atoms.len() >= 3 {
         println!("\n🔗 Alice creating triples...");
-        let triple_deposit = U256::from(1) * U256::from(10).pow(U256::from(18)); // 1 token per triple
+        let triple_deposit = U256::from(10).pow(U256::from(17)); // 0.1 token per triple
 
         // Create a simple triple: "the ticker" -> "is" -> "trust"
         match client

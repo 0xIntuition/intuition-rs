@@ -168,6 +168,7 @@ pub async fn approve_vault<P: alloy::providers::Provider>(
     mock_trust: &crate::contracts::MockTrustInstance<P>,
     vault_address: Address,
     amount: U256,
+    user_address: Address,
 ) -> Result<()> {
     println!("✅ Approving vault to manage {} tokens...", format_tokens(amount, 18)?);
 
@@ -183,7 +184,7 @@ pub async fn approve_vault<P: alloy::providers::Provider>(
     );
 
     let allowance = mock_trust
-        .allowance(*mock_trust.address(), vault_address)
+        .allowance(user_address, vault_address)
         .call()
         .await?;
     println!("  Allowance set: {} tokens", format_tokens(allowance, 18)?);
