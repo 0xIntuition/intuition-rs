@@ -4,6 +4,10 @@ volume
 .env
 .env.docker
 .env.dump
+.env.local
+.cursorrules
+CLAUDE.md
+.claude/*
 logs/*
 devops/aws/test_postgres.yaml
 **/.terraform/**

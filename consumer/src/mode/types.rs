@@ -6,7 +6,9 @@ use crate::{
     ENSRegistry::{self, ENSRegistryInstance},
     app_context::ServerInitialize,
     config::{ConsumerType, ContractInstance, ContractVersion, IndexerSource},
-    consumer_type::{sqs::Sqs, sqs_hybrid::SqsHybrid},
+    consumer_type::{
+        redis_hybrid::RedisHybrid, redis_streams::RedisStreams, sqs::Sqs, sqs_hybrid::SqsHybrid,
+    },
     error::ConsumerError,
     schemas::types::DecodedMessage,
     traits::{AtomUpdater, BasicConsumer},
@@ -323,7 +325,11 @@ impl ConsumerMode {
     ) -> Result<Arc<dyn BasicConsumer>, ConsumerError> {
         match ConsumerType::from_str(&data.env.consumer_type)? {
             ConsumerType::Sqs => Ok(Arc::new(Sqs::new(input_queue, output_queue, data).await)),
-            ConsumerType::SqsHybrid => Ok(Arc::new(SqsHybrid::new(output_queue, data).await?)),
+            ConsumerType::SqsHybrid => Ok(Arc::new(SqsHybrid::new(data, output_queue).await?)),
+            ConsumerType::RedisStreams => Ok(Arc::new(
+                RedisStreams::new(input_queue, output_queue, data).await?,
+            )),
+            ConsumerType::RedisHybrid => Ok(Arc::new(RedisHybrid::new(output_queue, data).await?)),
         }
     }
 
@@ -374,13 +380,13 @@ impl ConsumerMode {
         let client = Self::build_client(
             data.clone(),
             data.env
-                .decoded_logs_queue_url
+                .decoded_logs_stream
                 .clone()
-                .unwrap_or_else(|| panic!("Decoded logs queue URL is not set")),
+                .unwrap_or_else(|| panic!("Decoded logs stream is not set")),
             data.env
-                .resolver_queue_url
+                .resolver_stream
                 .clone()
-                .unwrap_or_else(|| panic!("Resolver queue URL is not set")),
+                .unwrap_or_else(|| panic!("Resolver stream is not set")),
         )
         .await?;
 
@@ -454,13 +460,13 @@ impl ConsumerMode {
         let client = Self::build_client(
             data.clone(),
             data.env
-                .ipfs_upload_queue_url
+                .ipfs_upload_stream
                 .clone()
-                .unwrap_or_else(|| panic!("IPFS upload queue URL is not set")),
+                .unwrap_or_else(|| panic!("IPFS upload stream is not set")),
             data.env
-                .ipfs_upload_queue_url
+                .ipfs_upload_stream
                 .clone()
-                .unwrap_or_else(|| panic!("IPFS upload queue URL is not set")),
+                .unwrap_or_else(|| panic!("IPFS upload stream is not set")),
         )
         .await?;
 
@@ -494,13 +500,13 @@ impl ConsumerMode {
         let client = Self::build_client(
             data.clone(),
             data.env
-                .raw_consumer_queue_url
+                .raw_consumer_stream
                 .clone()
-                .unwrap_or_else(|| panic!("Raw consumer queue URL is not set")),
+                .unwrap_or_else(|| panic!("Raw consumer stream is not set")),
             data.env
-                .decoded_logs_queue_url
+                .decoded_logs_stream
                 .clone()
-                .unwrap_or_else(|| panic!("Decoded logs queue URL is not set")),
+                .unwrap_or_else(|| panic!("Decoded logs stream is not set")),
         )
         .await?;
 
@@ -536,13 +542,13 @@ impl ConsumerMode {
         let client = Self::build_client(
             data.clone(),
             data.env
-                .resolver_queue_url
+                .resolver_stream
                 .clone()
-                .unwrap_or_else(|| panic!("Resolver queue URL is not set")),
+                .unwrap_or_else(|| panic!("Resolver stream is not set")),
             data.env
-                .ipfs_upload_queue_url
+                .ipfs_upload_stream
                 .clone()
-                .unwrap_or_else(|| panic!("IPFS upload queue URL is not set")),
+                .unwrap_or_else(|| panic!("IPFS upload stream is not set")),
         )
         .await?;
 
@@ -772,8 +778,8 @@ mod tests {
     struct DummyEnv {
         rpc_url_base: Option<String>,
         intuition_contract_address: Option<String>,
-        decoded_logs_queue_url: Option<String>,
-        resolver_queue_url: Option<String>,
+        decoded_logs_stream: Option<String>,
+        resolver_stream: Option<String>,
         backend_schema: String,
         ens_contract_address: Option<String>,
     }
@@ -801,12 +807,12 @@ mod tests {
                     consumer_metrics_api_port: None,
                     consumer_type: "decoded".to_string(),
                     database_url: "postgres://postgres:postgres@database:5435/storage".to_string(),
-                    decoded_logs_queue_url: test.env.decoded_logs_queue_url,
+                    decoded_logs_stream: test.env.decoded_logs_stream,
                     ens_contract_address: test.env.ens_contract_address,
                     image_guard_url: None,
                     rpc_url_base: test.env.rpc_url_base,
                     intuition_contract_address: test.env.intuition_contract_address,
-                    resolver_queue_url: test.env.resolver_queue_url,
+                    resolver_stream: test.env.resolver_stream,
                     backend_schema: test.env.backend_schema,
                     // Other fields not used in decoded consumer are set to None or defaults.
                     ..Default::default()
@@ -823,10 +829,14 @@ mod tests {
         let test_server = TestServerInitialize {
             env: DummyEnv {
                 rpc_url_base: Some("http://rpc-proxy:3008/84532/proxy".to_string()),
-                intuition_contract_address: Some("0x1A6950807E33d5bC9975067e6D6b5Ea4cD661665".to_string()),
-                decoded_logs_queue_url: Some("http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/decoded_logs.fifo".to_string()),
-                ens_contract_address: Some("0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e".to_string()),
-                resolver_queue_url: Some("http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/resolver".to_string()),
+                intuition_contract_address: Some(
+                    "0x1A6950807E33d5bC9975067e6D6b5Ea4cD661665".to_string(),
+                ),
+                decoded_logs_stream: Some("decoded_logs_stream".to_string()),
+                ens_contract_address: Some(
+                    "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e".to_string(),
+                ),
+                resolver_stream: Some("resolver_stream".to_string()),
                 backend_schema: "public".to_string(),
             },
             args: DummyArgs {

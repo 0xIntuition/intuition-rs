@@ -170,21 +170,13 @@ impl VaultOrigin {
                 )
                 .await?;
 
-            let position_count = event
-                .position_aggregate(
-                    decoded_consumer_context,
-                    counter_vault_id.clone(),
-                    event.curve_id()?,
-                )
-                .await?;
-
             TripleVault::builder()
                 .term_id(event.term_id()?)
                 .counter_term_id(counter_vault_id)
                 .curve_id(event.curve_id()?)
                 .total_shares(triple_aggregate.total_shares)
                 .total_assets(triple_aggregate.total_assets)
-                .position_count(position_count)
+                .position_count(triple_aggregate.total_position_count)
                 .market_cap(triple_aggregate.total_market_cap)
                 .block_number(U256Wrapper::try_from(tx.block_number).unwrap_or_default())
                 .log_index(tx.log_index)

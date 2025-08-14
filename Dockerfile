@@ -29,7 +29,6 @@ RUN cargo build --release --bin consumer
 RUN cargo build --release --bin consumer-api
 # RUN cargo build --release --bin cli
 RUN cargo build --release --bin rpc-proxy
-RUN cargo build --release --bin histoflux
 RUN cargo build --release --bin histocrawler
 RUN cargo build --release --bin image-guard
 
@@ -41,7 +40,6 @@ COPY --from=builder --chown=nonroot:nonroot /app/target/release/consumer /app/co
 COPY --from=builder --chown=nonroot:nonroot /app/target/release/consumer-api /app/consumer-api
 # COPY --from=builder --chown=nonroot:nonroot /app/target/release/cli /app/cli
 COPY --from=builder --chown=nonroot:nonroot /app/target/release/rpc-proxy /app/rpc-proxy
-COPY --from=builder --chown=nonroot:nonroot /app/target/release/histoflux /app/histoflux
 COPY --from=builder --chown=nonroot:nonroot /app/target/release/histocrawler /app/histocrawler
 COPY --from=builder --chown=nonroot:nonroot /app/target/release/image-guard /app/image-guard
 

@@ -17,19 +17,19 @@ pub struct Env {
     pub consumer_metrics_api_port: Option<u16>,
     pub consumer_type: String,
     pub database_url: String,
-    pub decoded_logs_queue_url: Option<String>,
+    pub decoded_logs_stream: Option<String>,
     pub ens_contract_address: Option<String>,
     pub image_guard_url: Option<String>,
     pub indexing_source: Option<String>,
     pub intuition_contract_address: Option<String>,
     pub ipfs_gateway_url: Option<String>,
-    pub ipfs_upload_queue_url: Option<String>,
+    pub ipfs_upload_stream: Option<String>,
     pub ipfs_upload_url: Option<String>,
     pub localstack_url: Option<String>,
     pub pinata_api_jwt: Option<String>,
     pub pinata_gateway_token: Option<String>,
-    pub raw_consumer_queue_url: Option<String>,
-    pub resolver_queue_url: Option<String>,
+    pub raw_consumer_stream: Option<String>,
+    pub resolver_stream: Option<String>,
     pub rpc_url_base: Option<String>,
     pub rpc_url_mainnet: Option<String>,
     pub backend_schema: String,
@@ -37,6 +37,7 @@ pub struct Env {
     pub indexer_schema: Option<String>,
     pub environment_name: Option<String>,
     pub initial_contract_version: Option<String>,
+    pub redis_url: Option<String>,
     pub threads: Option<usize>,
 }
 
@@ -69,6 +70,8 @@ impl FromStr for IndexerSource {
 pub enum ConsumerType {
     Sqs,
     SqsHybrid,
+    RedisStreams,
+    RedisHybrid,
 }
 /// As we only have one consumer type for now, we can implement the
 /// `FromStr` trait to return the `Sqs` enum.
@@ -80,6 +83,10 @@ impl FromStr for ConsumerType {
             Ok(Self::Sqs)
         } else if s == "sqs_hybrid" || s == "sqs_hibrid" {
             Ok(Self::SqsHybrid)
+        } else if s == "redis_streams" {
+            Ok(Self::RedisStreams)
+        } else if s == "redis_hybrid" {
+            Ok(Self::RedisHybrid)
         } else {
             Err(ConsumerError::ConsumerTypeParse(s.to_string()))
         }

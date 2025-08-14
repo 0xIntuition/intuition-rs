@@ -117,6 +117,7 @@ pub trait TripleVaultManager {
         curve_id: U256Wrapper,
     ) -> Result<TripleAggregate, ConsumerError>;
 
+    #[allow(dead_code)]
     async fn position_aggregate(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,

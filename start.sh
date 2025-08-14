@@ -2,7 +2,7 @@
 source .env
 
 # Start shared services
-docker compose -f docker-compose-shared.yml up database pgai-installer vectorizer-worker sqs ipfs safe-content graphql-engine local-migrations indexer-migrations hasura-migrations prometheus -d --wait --force-recreate
+docker compose -f docker-compose-shared.yml up database pgai-installer vectorizer-worker redis redis-setup ipfs safe-content graphql-engine local-migrations indexer-migrations hasura-migrations prometheus -d --wait --force-recreate
 
 export INITIAL_CONTRACT_VERSION="v1"
 # First arg is indexer schema
@@ -15,16 +15,16 @@ if [ -n "$CONTRACT_ADDRESS" ]; then
 fi
 
 # If started with arg histo_local_1_5 deploy contract to local geth and get contract address
-if [ "$INDEXER_SCHEMA" == "histo_local_1_5" ]; then
-    docker compose -f docker-compose-shared.yml up contract-deployer-1-5 geth -d --wait 
+if [ "$INDEXER_SCHEMA" == "local" ]; then
+    docker compose -f docker-compose-shared.yml up contract-deployer-2-0 geth -d --wait 
 
     docker compose -f blockscout/docker-compose.yml up -d --wait
 
-    docker compose -f docker-compose-shared.yml up contract-verifier-1-5 -d 
+    docker compose -f docker-compose-shared.yml up contract-verifier-2-0 -d 
     
     # Select contract_address from histocrawler.app_config wait until it changes from 0x63B90A9c109fF8f137916026876171ffeEdEe714 or empty
-    while [ "$CONTRACT_ADDRESS" == "0x63B90A9c109fF8f137916026876171ffeEdEe714" ] || [ -z "$CONTRACT_ADDRESS" ]; do
-        CONTRACT_ADDRESS=$(docker compose -f docker-compose-shared.yml exec database psql -U postgres -d storage -c "SELECT contract_address FROM histocrawler.app_config WHERE indexer_schema = 'histo_base_sepolia_1_5'" -tA)
+    while [ "$CONTRACT_ADDRESS" == "0x1A6950807E33d5bC9975067e6D6b5Ea4cD661665" ] || [ -z "$CONTRACT_ADDRESS" ]; do
+        CONTRACT_ADDRESS=$(docker compose -f docker-compose-shared.yml exec database psql -U postgres -d storage -c "SELECT contract_address FROM histocrawler.app_config WHERE indexer_schema = 'base_sepolia'" -tA)
         sleep 1
     done
     
@@ -39,40 +39,7 @@ if [ "$INDEXER_SCHEMA" == "histo_local_1_5" ]; then
     # Set env vars
     export VITE_INTUITION_CONTRACT_ADDRESS=$CONTRACT_ADDRESS
     export INTUITION_CONTRACT_ADDRESS=$CONTRACT_ADDRESS
-    export INITIAL_CONTRACT_VERSION="v1_5"
-    export INDEXER_SCHEMA="histo_base_sepolia_1_5"
-    export BASE_SEPOLIA_RPC_URL="http://geth:8545"
-    export BASE_MAINNET_RPC_URL="http://geth:8545"
-fi
-
-# If started with arg histo_local_1_0 deploy contract to local geth and get contract address
-if [ "$INDEXER_SCHEMA" == "histo_local_1_0" ]; then
-    docker compose -f docker-compose-shared.yml up contract-deployer-1-0 geth -d --wait 
-
-    docker compose -f blockscout/docker-compose.yml up -d --wait
-
-    docker compose -f docker-compose-shared.yml up contract-verifier-1-0 -d 
-    
-    # Select contract_address from histocrawler.app_config wait until it changes from 0x63B90A9c109fF8f137916026876171ffeEdEe714 or empty
-    while [ "$CONTRACT_ADDRESS" == "0x63B90A9c109fF8f137916026876171ffeEdEe714" ] || [ -z "$CONTRACT_ADDRESS" ]; do
-        echo "Waiting for contract address to be set"
-        CONTRACT_ADDRESS=$(docker compose -f docker-compose-shared.yml exec database psql -U postgres -d storage -c "SELECT contract_address FROM histocrawler.app_config WHERE indexer_schema = 'histo_base_sepolia_1_5'" -tA)
-        sleep 1
-    done
-    
-    echo -e "\nTo run integration tests in a different terminal, run:"
-    echo -e "\n\nexport VITE_INTUITION_CONTRACT_ADDRESS=$CONTRACT_ADDRESS"
-    echo "cd integration-tests"
-    echo "pnpm test src/create-person.test.ts"
-
-    echo -e "\nExplore the contract on blockscout:"
-    echo -e "http://localhost/address/$CONTRACT_ADDRESS?tab=logs\n\n"
-    
-    # Set env vars
-    export VITE_INTUITION_CONTRACT_ADDRESS=$CONTRACT_ADDRESS
-    export INTUITION_CONTRACT_ADDRESS=$CONTRACT_ADDRESS
-    export INITIAL_CONTRACT_VERSION="v1"
-    export INDEXER_SCHEMA="histo_base_sepolia_1_5"
+    export INDEXER_SCHEMA="base_sepolia"
     export BASE_SEPOLIA_RPC_URL="http://geth:8545"
     export BASE_MAINNET_RPC_URL="http://geth:8545"
 fi
@@ -86,4 +53,4 @@ if [ "$2" == "test" ]; then
 fi
 
 # Start apps
-docker compose -f docker-compose-apps.yml up resolver_consumer consumer-api ipfs_upload_consumer decoded_consumer api prod-rpc-proxy histocrawler -d --force-recreate
+docker compose -f docker-compose-apps.yml up resolver_consumer ipfs_upload_consumer decoded_consumer api prod-rpc-proxy histocrawler -d --force-recreate

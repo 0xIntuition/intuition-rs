@@ -8,22 +8,23 @@ services:
       AWS_ACCESS_KEY_ID: 'example'
       AWS_REGION: 'us-west-2'
       AWS_SECRET_ACCESS_KEY: 'example'
-      CONSUMER_TYPE: 'sqs'
+      CONSUMER_TYPE: 'redis_streams'
       DATABASE_URL: 'postgres://postgres:postgres@database:5435/storage'
       ENS_CONTRACT_ADDRESS: '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e'
       IMAGE_GUARD_URL: 'http://api:3000'
       IPFS_GATEWAY_URL: 'http://ipfs:8080'
       IPFS_UPLOAD_URL: 'http://ipfs:5001'
-      IPFS_UPLOAD_QUEUE_URL: 'http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/ipfs_upload'
-      LOCALSTACK_URL: 'http://sqs:4566/'
+      IPFS_UPLOAD_STREAM: 'ipfs_upload_stream'
+      # LOCALSTACK_URL: 'http://sqs:4566/'
       PINATA_API_JWT: $PINATA_API_JWT
       PINATA_GATEWAY_TOKEN: $PINATA_GATEWAY_TOKEN
       PG_MIN_CONNECTIONS: '5'
-      RESOLVER_QUEUE_URL: 'http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/resolver'
+      RESOLVER_STREAM: 'resolver_stream'
       RPC_URL_BASE: "http://prod-rpc-proxy:3008/84532/proxy"
       RPC_URL_MAINNET: "http://prod-rpc-proxy:3008/1/proxy"
       RUST_LOG: 'info'
       BACKEND_SCHEMA: 'public'
+      REDIS_URL: 'redis://redis:6379'
     restart: always
     volumes:
       - ~/.aws/:/root/.aws:ro
@@ -31,17 +32,6 @@ services:
     deploy:
       replicas: 1
 
-  consumer-api:
-    container_name: consumer-api
-    image: ghcr.io/0xintuition/apps:latest
-    command: ./consumer-api
-    ports:
-      - 3001:3001
-    environment:
-      CONSUMER_API_PORT: '3001'
-      RESOLVER_QUEUE_URL: 'http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/resolver'
-      LOCALSTACK_URL: 'http://sqs:4566/'
-    restart: always
   
   ipfs_upload_consumer:
     image: ghcr.io/0xintuition/apps:latest
@@ -50,18 +40,19 @@ services:
       AWS_ACCESS_KEY_ID: 'example'
       AWS_REGION: 'us-west-2'
       AWS_SECRET_ACCESS_KEY: 'example'
-      CONSUMER_TYPE: 'sqs'
+      CONSUMER_TYPE: 'redis_streams'
       DATABASE_URL: 'postgres://postgres:postgres@database:5435/storage'
       IMAGE_GUARD_URL: 'http://api:3000'
       IPFS_GATEWAY_URL: 'http://ipfs:8080'
       IPFS_UPLOAD_URL: 'http://ipfs:5001'
-      LOCALSTACK_URL: 'http://sqs:4566/'
+      # LOCALSTACK_URL: 'http://sqs:4566/'
       PINATA_API_JWT: $PINATA_API_JWT
       PINATA_GATEWAY_TOKEN: $PINATA_GATEWAY_TOKEN
       PG_MIN_CONNECTIONS: '5'
-      IPFS_UPLOAD_QUEUE_URL: 'http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/ipfs_upload'
+      IPFS_UPLOAD_STREAM: 'ipfs_upload_stream'
       RUST_LOG: 'info'
       BACKEND_SCHEMA: 'public'
+      REDIS_URL: 'redis://redis:6379'
     restart: always
     volumes:
       - ~/.aws/:/root/.aws:ro
@@ -77,55 +68,29 @@ services:
       AWS_ACCESS_KEY_ID: 'example'
       AWS_REGION: 'us-west-2'
       AWS_SECRET_ACCESS_KEY: 'example'
-      CONSUMER_TYPE: 'sqs_hybrid'
+      CONSUMER_TYPE: 'redis_hybrid'
       INDEXER_DATABASE_URL: "postgres://postgres:postgres@database:5435/storage"
       INDEXER_SCHEMA: $INDEXER_SCHEMA
-      ENVIRONMENT_NAME: "local_v_1_0"
+      ENVIRONMENT_NAME: "local_development"
       THREADS: '5'
       INITIAL_CONTRACT_VERSION: $INITIAL_CONTRACT_VERSION
       CONSUMER_METRICS_API_PORT: '3002'
       DATABASE_URL: 'postgres://postgres:postgres@database:5435/storage'
-      DECODED_LOGS_QUEUE_URL: 'http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/decoded_logs.fifo'
+      DECODED_LOGS_STREAM: 'decoded_logs_stream'
       INTUITION_CONTRACT_ADDRESS: $INTUITION_CONTRACT_ADDRESS
-      LOCALSTACK_URL: 'http://sqs:4566/'
+      LOCALSTACK_URL: 'http://redis:6379'
       PG_MIN_CONNECTIONS: '20'
-      RESOLVER_QUEUE_URL: 'http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/resolver'
+      RESOLVER_STREAM: 'resolver_stream'
       RPC_URL_BASE: "http://prod-rpc-proxy:3008/84532/proxy"
       RUST_LOG: 'warn'
       BACKEND_SCHEMA: 'public'
+      REDIS_URL: 'redis://redis:6379'
     restart: always
     volumes:
       - ~/.aws/:/root/.aws:ro
       - ./logs:/app/logs
     ports:
       - 3002:3002
-    
-  raw_consumer:
-    container_name: raw_consumer
-    image: ghcr.io/0xintuition/apps:latest
-    command: ./consumer --mode raw
-    environment:
-      AWS_ACCESS_KEY_ID: 'example'
-      AWS_REGION: 'us-west-2'
-      AWS_SECRET_ACCESS_KEY: 'example'
-      CONSUMER_TYPE: 'sqs_hybrid'
-      INDEXER_DATABASE_URL: "postgres://postgres:postgres@database:5435/storage"
-      INDEXER_SCHEMA: $INDEXER_SCHEMA
-      ENVIRONMENT_NAME: "local_v_1_5"
-      DATABASE_URL: 'postgres://postgres:postgres@database:5435/storage'
-      DECODED_LOGS_QUEUE_URL: 'http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/decoded_logs.fifo'
-      INDEXING_SOURCE: 'substreams'
-      LOCALSTACK_URL: 'http://sqs:4566/'
-      PG_MIN_CONNECTIONS: '5'
-      RAW_CONSUMER_QUEUE_URL: 'http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/raw_logs.fifo'
-      RPC_URL_BASE: "http://prod-rpc-proxy:3008/84532/proxy"
-      RPC_URL_MAINNET: "http://prod-rpc-proxy:3008/1/proxy"
-      RUST_LOG: 'info'
-      BACKEND_SCHEMA: 'public'
-    restart: always
-    volumes:
-      - ~/.aws/:/root/.aws:ro
-      - ./logs:/app/logs
 
     
   api:
@@ -177,24 +142,6 @@ services:
     depends_on:
       prod-rpc-proxy:
         condition: service_started
-      
-
-  histoflux:
-    container_name: histoflux
-    image: ghcr.io/0xintuition/apps:latest
-    command: ./histoflux
-    environment:
-      AWS_ACCESS_KEY_ID: 'example'
-      AWS_REGION: 'us-west-2'
-      AWS_SECRET_ACCESS_KEY: 'example' 
-      INDEXER_DATABASE_URL: "postgres://postgres:postgres@database:5435/storage"
-      INDEXER_SCHEMA: $INDEXER_SCHEMA
-      LOCALSTACK_URL: "http://sqs:4566/"
-      ENVIRONMENT_NAME: "local_v_1_5"
-      RAW_CONSUMER_QUEUE_URL: "http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/raw_logs.fifo"
-
-
-
 
   integration-tests:
     container_name: integration-tests
