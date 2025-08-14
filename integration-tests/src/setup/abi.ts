@@ -5,10 +5,6 @@ export const abi = [
     "stateMutability": "nonpayable"
   },
   {
-    "type": "fallback",
-    "stateMutability": "nonpayable"
-  },
-  {
     "type": "function",
     "name": "BURN_ADDRESS",
     "inputs": [],
@@ -17,6 +13,19 @@ export const abi = [
         "name": "",
         "type": "address",
         "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "CONTROLLER_ROLE",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
       }
     ],
     "stateMutability": "view"
@@ -43,6 +52,19 @@ export const abi = [
         "name": "",
         "type": "bytes32",
         "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "MAX_BATCH_SIZE",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "stateMutability": "view"
@@ -100,30 +122,6 @@ export const abi = [
   },
   {
     "type": "function",
-    "name": "approvals",
-    "inputs": [
-      {
-        "name": "receiver",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "sender",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "approvalType",
-        "type": "uint8",
-        "internalType": "uint8"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "approve",
     "inputs": [
       {
@@ -142,42 +140,19 @@ export const abi = [
   },
   {
     "type": "function",
-    "name": "approvePullShares",
+    "name": "atom",
     "inputs": [
       {
-        "name": "account",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "status",
-        "type": "bool",
-        "internalType": "bool"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "approvedToPullShares",
-    "inputs": [
-      {
-        "name": "accountFrom",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "accountTo",
-        "type": "address",
-        "internalType": "address"
+        "name": "atomId",
+        "type": "bytes32",
+        "internalType": "bytes32"
       }
     ],
     "outputs": [
       {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
+        "name": "data",
+        "type": "bytes",
+        "internalType": "bytes"
       }
     ],
     "stateMutability": "view"
@@ -202,36 +177,12 @@ export const abi = [
   },
   {
     "type": "function",
-    "name": "atomData",
-    "inputs": [
-      {
-        "name": "atomId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "data",
-        "type": "bytes",
-        "internalType": "bytes"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "atomDepositFractionAmount",
     "inputs": [
       {
         "name": "assets",
         "type": "uint256",
         "internalType": "uint256"
-      },
-      {
-        "name": "termId",
-        "type": "bytes32",
-        "internalType": "bytes32"
       }
     ],
     "outputs": [
@@ -242,166 +193,6 @@ export const abi = [
       }
     ],
     "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "atomWalletDepositFeeAmount",
-    "inputs": [
-      {
-        "name": "assets",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "termId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "balanceOf",
-    "inputs": [
-      {
-        "name": "account",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "termId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      },
-      {
-        "name": "bondingCurveId",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "balanceOfBatch",
-    "inputs": [
-      {
-        "name": "accounts",
-        "type": "address[]",
-        "internalType": "address[]"
-      },
-      {
-        "name": "termIds",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      },
-      {
-        "name": "bondingCurveId",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256[]",
-        "internalType": "uint256[]"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "batchDeposit",
-    "inputs": [
-      {
-        "name": "receiver",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "termIds",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      },
-      {
-        "name": "bondingCurveIds",
-        "type": "uint256[]",
-        "internalType": "uint256[]"
-      },
-      {
-        "name": "amounts",
-        "type": "uint256[]",
-        "internalType": "uint256[]"
-      },
-      {
-        "name": "minSharesToReceive",
-        "type": "uint256[]",
-        "internalType": "uint256[]"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256[]",
-        "internalType": "uint256[]"
-      }
-    ],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "batchRedeem",
-    "inputs": [
-      {
-        "name": "shares",
-        "type": "uint256[]",
-        "internalType": "uint256[]"
-      },
-      {
-        "name": "receiver",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "termIds",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      },
-      {
-        "name": "bondingCurveIds",
-        "type": "uint256[]",
-        "internalType": "uint256[]"
-      },
-      {
-        "name": "minAssetsToReceive",
-        "type": "uint256[]",
-        "internalType": "uint256[]"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256[]",
-        "internalType": "uint256[]"
-      }
-    ],
-    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
@@ -423,10 +214,87 @@ export const abi = [
   },
   {
     "type": "function",
+    "name": "calculateAtomId",
+    "inputs": [
+      {
+        "name": "data",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "id",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "pure"
+  },
+  {
+    "type": "function",
+    "name": "calculateCounterTripleId",
+    "inputs": [
+      {
+        "name": "subjectId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "predicateId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "objectId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "pure"
+  },
+  {
+    "type": "function",
+    "name": "calculateTripleId",
+    "inputs": [
+      {
+        "name": "subjectId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "predicateId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "objectId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "pure"
+  },
+  {
+    "type": "function",
     "name": "claimAtomWalletDepositFees",
     "inputs": [
       {
-        "name": "atomId",
+        "name": "termId",
         "type": "bytes32",
         "internalType": "bytes32"
       }
@@ -458,17 +326,17 @@ export const abi = [
     "name": "convertToAssets",
     "inputs": [
       {
-        "name": "shares",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
         "name": "termId",
         "type": "bytes32",
         "internalType": "bytes32"
       },
       {
         "name": "bondingCurveId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "shares",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -487,17 +355,17 @@ export const abi = [
     "name": "convertToShares",
     "inputs": [
       {
-        "name": "assets",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
         "name": "termId",
         "type": "bytes32",
         "internalType": "bytes32"
       },
       {
-        "name": "bondingCurveId",
+        "name": "curveId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "assets",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -516,14 +384,14 @@ export const abi = [
     "name": "createAtoms",
     "inputs": [
       {
-        "name": "atomDataArray",
+        "name": "data",
         "type": "bytes[]",
         "internalType": "bytes[]"
       },
       {
-        "name": "value",
-        "type": "uint256",
-        "internalType": "uint256"
+        "name": "assets",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
       }
     ],
     "outputs": [
@@ -533,7 +401,7 @@ export const abi = [
         "internalType": "bytes32[]"
       }
     ],
-    "stateMutability": "nonpayable"
+    "stateMutability": "payable"
   },
   {
     "type": "function",
@@ -555,9 +423,9 @@ export const abi = [
         "internalType": "bytes32[]"
       },
       {
-        "name": "value",
-        "type": "uint256",
-        "internalType": "uint256"
+        "name": "assets",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
       }
     ],
     "outputs": [
@@ -567,36 +435,12 @@ export const abi = [
         "internalType": "bytes32[]"
       }
     ],
-    "stateMutability": "nonpayable"
+    "stateMutability": "payable"
   },
   {
     "type": "function",
     "name": "currentEpoch",
     "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "currentSharePrice",
-    "inputs": [
-      {
-        "name": "termId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      },
-      {
-        "name": "bondingCurveId",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
     "outputs": [
       {
         "name": "",
@@ -621,17 +465,12 @@ export const abi = [
         "internalType": "bytes32"
       },
       {
-        "name": "bondingCurveId",
+        "name": "curveId",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "value",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "minSharesToReceive",
+        "name": "minShares",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -643,7 +482,46 @@ export const abi = [
         "internalType": "uint256"
       }
     ],
-    "stateMutability": "nonpayable"
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "depositBatch",
+    "inputs": [
+      {
+        "name": "receiver",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "termIds",
+        "type": "bytes32[]",
+        "internalType": "bytes32[]"
+      },
+      {
+        "name": "curveIds",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      },
+      {
+        "name": "assets",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      },
+      {
+        "name": "minShares",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "shares",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
+    "stateMutability": "payable"
   },
   {
     "type": "function",
@@ -704,11 +582,6 @@ export const abi = [
         "internalType": "uint256"
       },
       {
-        "name": "trust",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
         "name": "trustBonding",
         "type": "address",
         "internalType": "address"
@@ -734,14 +607,53 @@ export const abi = [
         "internalType": "uint256"
       },
       {
-        "name": "baseURI",
-        "type": "string",
-        "internalType": "string"
-      },
-      {
         "name": "protocolFeeDistributionEnabled",
         "type": "bool",
         "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getAtom",
+    "inputs": [
+      {
+        "name": "atomId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "data",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getAtomConfig",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct AtomConfig",
+        "components": [
+          {
+            "name": "atomCreationProtocolFee",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "atomWalletDepositFee",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
       }
     ],
     "stateMutability": "view"
@@ -761,22 +673,16 @@ export const abi = [
   },
   {
     "type": "function",
-    "name": "getAtomIdFromData",
-    "inputs": [
-      {
-        "name": "data",
-        "type": "bytes",
-        "internalType": "bytes"
-      }
-    ],
+    "name": "getAtomCreationCost",
+    "inputs": [],
     "outputs": [
       {
-        "name": "id",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
-    "stateMutability": "pure"
+    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -793,7 +699,32 @@ export const abi = [
   },
   {
     "type": "function",
-    "name": "getCounterIdFromTriple",
+    "name": "getBondingCurveConfig",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct BondingCurveConfig",
+        "components": [
+          {
+            "name": "registry",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "defaultCurveId",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getCounterIdFromTripleId",
     "inputs": [
       {
         "name": "tripleId",
@@ -812,13 +743,92 @@ export const abi = [
   },
   {
     "type": "function",
-    "name": "getIsProtocolFeeDistributionEnabled",
+    "name": "getDefaultCurveId",
     "inputs": [],
     "outputs": [
       {
         "name": "",
-        "type": "bool",
-        "internalType": "bool"
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getGeneralConfig",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct GeneralConfig",
+        "components": [
+          {
+            "name": "admin",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "protocolMultisig",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "feeDenominator",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "trustBonding",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "minDeposit",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "minShare",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "atomDataMaxLength",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "decimalPrecision",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "protocolFeeDistributionEnabled",
+            "type": "bool",
+            "internalType": "bool"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getRoleAdmin",
+    "inputs": [
+      {
+        "name": "role",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
       }
     ],
     "stateMutability": "view"
@@ -844,7 +854,7 @@ export const abi = [
   },
   {
     "type": "function",
-    "name": "getTripleAtoms",
+    "name": "getTriple",
     "inputs": [
       {
         "name": "tripleId",
@@ -873,6 +883,36 @@ export const abi = [
   },
   {
     "type": "function",
+    "name": "getTripleConfig",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct TripleConfig",
+        "components": [
+          {
+            "name": "tripleCreationProtocolFee",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "totalAtomDepositsOnTripleCreation",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "atomDepositFractionForTriple",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "getTripleCost",
     "inputs": [],
     "outputs": [
@@ -886,7 +926,7 @@ export const abi = [
   },
   {
     "type": "function",
-    "name": "getTripleIdFromCounter",
+    "name": "getTripleIdFromCounterId",
     "inputs": [
       {
         "name": "counterId",
@@ -929,73 +969,85 @@ export const abi = [
   },
   {
     "type": "function",
-    "name": "getVaultStateForUser",
-    "inputs": [
-      {
-        "name": "termId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      },
-      {
-        "name": "bondingCurveId",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "receiver",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
+    "name": "getVaultFees",
+    "inputs": [],
     "outputs": [
       {
         "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
+        "type": "tuple",
+        "internalType": "struct VaultFees",
+        "components": [
+          {
+            "name": "entryFee",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "exitFee",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "protocolFee",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
       }
     ],
     "stateMutability": "view"
   },
   {
     "type": "function",
-    "name": "getVaultTotals",
-    "inputs": [
-      {
-        "name": "termId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      },
-      {
-        "name": "bondingCurveId",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
+    "name": "getWalletConfig",
+    "inputs": [],
     "outputs": [
       {
         "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
+        "type": "tuple",
+        "internalType": "struct WalletConfig",
+        "components": [
+          {
+            "name": "permit2",
+            "type": "address",
+            "internalType": "contract IPermit2"
+          },
+          {
+            "name": "entryPoint",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "atomWarden",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "atomWalletBeacon",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "atomWalletFactory",
+            "type": "address",
+            "internalType": "address"
+          }
+        ]
       }
     ],
     "stateMutability": "view"
   },
   {
     "type": "function",
-    "name": "initialize",
+    "name": "grantRole",
     "inputs": [
       {
-        "name": "_multiVaultConfig",
+        "name": "role",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "account",
         "type": "address",
         "internalType": "address"
       }
@@ -1005,15 +1057,15 @@ export const abi = [
   },
   {
     "type": "function",
-    "name": "isApprovedToDeposit",
+    "name": "hasRole",
     "inputs": [
       {
-        "name": "sender",
-        "type": "address",
-        "internalType": "address"
+        "name": "role",
+        "type": "bytes32",
+        "internalType": "bytes32"
       },
       {
-        "name": "receiver",
+        "name": "account",
         "type": "address",
         "internalType": "address"
       }
@@ -1029,31 +1081,177 @@ export const abi = [
   },
   {
     "type": "function",
-    "name": "isApprovedToRedeem",
+    "name": "initialize",
     "inputs": [
       {
-        "name": "sender",
-        "type": "address",
-        "internalType": "address"
+        "name": "_generalConfig",
+        "type": "tuple",
+        "internalType": "struct GeneralConfig",
+        "components": [
+          {
+            "name": "admin",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "protocolMultisig",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "feeDenominator",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "trustBonding",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "minDeposit",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "minShare",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "atomDataMaxLength",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "decimalPrecision",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "protocolFeeDistributionEnabled",
+            "type": "bool",
+            "internalType": "bool"
+          }
+        ]
       },
       {
-        "name": "receiver",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [
+        "name": "_atomConfig",
+        "type": "tuple",
+        "internalType": "struct AtomConfig",
+        "components": [
+          {
+            "name": "atomCreationProtocolFee",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "atomWalletDepositFee",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      },
       {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
+        "name": "_tripleConfig",
+        "type": "tuple",
+        "internalType": "struct TripleConfig",
+        "components": [
+          {
+            "name": "tripleCreationProtocolFee",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "totalAtomDepositsOnTripleCreation",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "atomDepositFractionForTriple",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      },
+      {
+        "name": "_walletConfig",
+        "type": "tuple",
+        "internalType": "struct WalletConfig",
+        "components": [
+          {
+            "name": "permit2",
+            "type": "address",
+            "internalType": "contract IPermit2"
+          },
+          {
+            "name": "entryPoint",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "atomWarden",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "atomWalletBeacon",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "atomWalletFactory",
+            "type": "address",
+            "internalType": "address"
+          }
+        ]
+      },
+      {
+        "name": "_vaultFees",
+        "type": "tuple",
+        "internalType": "struct VaultFees",
+        "components": [
+          {
+            "name": "entryFee",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "exitFee",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "protocolFee",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      },
+      {
+        "name": "_bondingCurveConfig",
+        "type": "tuple",
+        "internalType": "struct BondingCurveConfig",
+        "components": [
+          {
+            "name": "registry",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "defaultCurveId",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
       }
     ],
-    "stateMutability": "view"
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
-    "name": "isAtomInstantiated",
+    "name": "isAtom",
     "inputs": [
       {
         "name": "atomId",
@@ -1072,26 +1270,7 @@ export const abi = [
   },
   {
     "type": "function",
-    "name": "isBondingCurveIdValid",
-    "inputs": [
-      {
-        "name": "bondingCurveId",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "isCounterTripleId",
+    "name": "isCounterTriple",
     "inputs": [
       {
         "name": "termId",
@@ -1110,7 +1289,7 @@ export const abi = [
   },
   {
     "type": "function",
-    "name": "isTermIdValid",
+    "name": "isTermCreated",
     "inputs": [
       {
         "name": "id",
@@ -1130,25 +1309,6 @@ export const abi = [
   {
     "type": "function",
     "name": "isTriple",
-    "inputs": [
-      {
-        "name": "termId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "isTriple",
-        "type": "bool",
-        "internalType": "bool"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "isTripleId",
     "inputs": [
       {
         "name": "termId",
@@ -1186,19 +1346,6 @@ export const abi = [
   },
   {
     "type": "function",
-    "name": "maxDeposit",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "pure"
-  },
-  {
-    "type": "function",
     "name": "maxRedeem",
     "inputs": [
       {
@@ -1228,16 +1375,10 @@ export const abi = [
   },
   {
     "type": "function",
-    "name": "multiVaultConfig",
+    "name": "pause",
     "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "address",
-        "internalType": "contract IMultiVaultConfig"
-      }
-    ],
-    "stateMutability": "view"
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
@@ -1278,27 +1419,71 @@ export const abi = [
   },
   {
     "type": "function",
-    "name": "previewDeposit",
+    "name": "previewAtomCreate",
     "inputs": [
-      {
-        "name": "assets",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
       {
         "name": "termId",
         "type": "bytes32",
         "internalType": "bytes32"
       },
       {
-        "name": "bondingCurveId",
+        "name": "curveId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "assets",
         "type": "uint256",
         "internalType": "uint256"
       }
     ],
     "outputs": [
       {
-        "name": "",
+        "name": "shares",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "assetsAfterFixedFees",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "assetsAfterFees",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "previewDeposit",
+    "inputs": [
+      {
+        "name": "termId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "curveId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "assets",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "shares",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "assetsAfterFees",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -1310,24 +1495,68 @@ export const abi = [
     "name": "previewRedeem",
     "inputs": [
       {
-        "name": "shares",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
         "name": "termId",
         "type": "bytes32",
         "internalType": "bytes32"
       },
       {
-        "name": "bondingCurveId",
+        "name": "curveId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "assets",
         "type": "uint256",
         "internalType": "uint256"
       }
     ],
     "outputs": [
       {
-        "name": "",
+        "name": "shares",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "assetsAfterFees",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "previewTripleCreate",
+    "inputs": [
+      {
+        "name": "termId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "curveId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "assets",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "shares",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "assetsAfterFixedFees",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "assetsAfterFees",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -1374,54 +1603,8 @@ export const abi = [
   },
   {
     "type": "function",
-    "name": "pullShares",
-    "inputs": [
-      {
-        "name": "accountFrom",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "termId",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      },
-      {
-        "name": "bondingCurveId",
-        "type": "uint256[]",
-        "internalType": "uint256[]"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "recoverTokens",
-    "inputs": [
-      {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "recipient",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
     "name": "redeem",
     "inputs": [
-      {
-        "name": "shares",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
       {
         "name": "receiver",
         "type": "address",
@@ -1433,12 +1616,17 @@ export const abi = [
         "internalType": "bytes32"
       },
       {
-        "name": "bondingCurveId",
+        "name": "curveId",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "minAssetsToReceive",
+        "name": "shares",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "minAssets",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -1454,20 +1642,54 @@ export const abi = [
   },
   {
     "type": "function",
-    "name": "registerWrappedERC20",
+    "name": "redeemBatch",
     "inputs": [
       {
-        "name": "termId",
+        "name": "receiver",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "termIds",
+        "type": "bytes32[]",
+        "internalType": "bytes32[]"
+      },
+      {
+        "name": "curveIds",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      },
+      {
+        "name": "shares",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      },
+      {
+        "name": "minAssets",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "received",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "renounceRole",
+    "inputs": [
+      {
+        "name": "role",
         "type": "bytes32",
         "internalType": "bytes32"
       },
       {
-        "name": "bondingCurveId",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "wrappedERC20",
+        "name": "callerConfirmation",
         "type": "address",
         "internalType": "address"
       }
@@ -1477,90 +1699,254 @@ export const abi = [
   },
   {
     "type": "function",
-    "name": "safeBatchTransferFrom",
+    "name": "revokeRole",
     "inputs": [
       {
-        "name": "",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "",
-        "type": "uint256[]",
-        "internalType": "uint256[]"
-      },
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "",
-        "type": "uint256[]",
-        "internalType": "uint256[]"
-      },
-      {
-        "name": "",
-        "type": "bytes",
-        "internalType": "bytes"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "pure"
-  },
-  {
-    "type": "function",
-    "name": "safeTransferFrom",
-    "inputs": [
-      {
-        "name": "",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "",
+        "name": "role",
         "type": "bytes32",
         "internalType": "bytes32"
       },
       {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "",
-        "type": "bytes",
-        "internalType": "bytes"
+        "name": "account",
+        "type": "address",
+        "internalType": "address"
       }
     ],
-    "outputs": [],
-    "stateMutability": "pure"
-  },
-  {
-    "type": "function",
-    "name": "syncConfig",
-    "inputs": [],
     "outputs": [],
     "stateMutability": "nonpayable"
   },
   {
     "type": "function",
-    "name": "termCount",
+    "name": "setAtomConfig",
+    "inputs": [
+      {
+        "name": "_atomConfig",
+        "type": "tuple",
+        "internalType": "struct AtomConfig",
+        "components": [
+          {
+            "name": "atomCreationProtocolFee",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "atomWalletDepositFee",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setBondingCurveConfig",
+    "inputs": [
+      {
+        "name": "_bondingCurveConfig",
+        "type": "tuple",
+        "internalType": "struct BondingCurveConfig",
+        "components": [
+          {
+            "name": "registry",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "defaultCurveId",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setGeneralConfig",
+    "inputs": [
+      {
+        "name": "_generalConfig",
+        "type": "tuple",
+        "internalType": "struct GeneralConfig",
+        "components": [
+          {
+            "name": "admin",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "protocolMultisig",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "feeDenominator",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "trustBonding",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "minDeposit",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "minShare",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "atomDataMaxLength",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "decimalPrecision",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "protocolFeeDistributionEnabled",
+            "type": "bool",
+            "internalType": "bool"
+          }
+        ]
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setTripleConfig",
+    "inputs": [
+      {
+        "name": "_tripleConfig",
+        "type": "tuple",
+        "internalType": "struct TripleConfig",
+        "components": [
+          {
+            "name": "tripleCreationProtocolFee",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "totalAtomDepositsOnTripleCreation",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "atomDepositFractionForTriple",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setVaultFees",
+    "inputs": [
+      {
+        "name": "_vaultFees",
+        "type": "tuple",
+        "internalType": "struct VaultFees",
+        "components": [
+          {
+            "name": "entryFee",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "exitFee",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "protocolFee",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setWalletConfig",
+    "inputs": [
+      {
+        "name": "_walletConfig",
+        "type": "tuple",
+        "internalType": "struct WalletConfig",
+        "components": [
+          {
+            "name": "permit2",
+            "type": "address",
+            "internalType": "contract IPermit2"
+          },
+          {
+            "name": "entryPoint",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "atomWarden",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "atomWalletBeacon",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "atomWalletFactory",
+            "type": "address",
+            "internalType": "address"
+          }
+        ]
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "supportsInterface",
+    "inputs": [
+      {
+        "name": "interfaceId",
+        "type": "bytes4",
+        "internalType": "bytes4"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "totalTermsCreated",
     "inputs": [],
     "outputs": [
       {
@@ -1592,6 +1978,35 @@ export const abi = [
   },
   {
     "type": "function",
+    "name": "triple",
+    "inputs": [
+      {
+        "name": "tripleId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "tripleConfig",
     "inputs": [],
     "outputs": [
@@ -1615,75 +2030,10 @@ export const abi = [
   },
   {
     "type": "function",
-    "name": "tripleIdFromAtomIds",
-    "inputs": [
-      {
-        "name": "subjectId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      },
-      {
-        "name": "predicateId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      },
-      {
-        "name": "objectId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "stateMutability": "pure"
-  },
-  {
-    "type": "function",
-    "name": "tripleIdFromCounter",
-    "inputs": [
-      {
-        "name": "counterTripleId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "tripleId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "triples",
-    "inputs": [
-      {
-        "name": "tripleId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      },
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "tripleAtomIds",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "stateMutability": "view"
+    "name": "unpause",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
@@ -1718,7 +2068,7 @@ export const abi = [
         "internalType": "bytes32"
       },
       {
-        "name": "bondingCurveId",
+        "name": "curveId",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -1769,81 +2119,6 @@ export const abi = [
       }
     ],
     "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "wrappedERC20Tokens",
-    "inputs": [
-      {
-        "name": "termId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      },
-      {
-        "name": "curveId",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "wrappedERC20",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "wrapperConfig",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "wrappedERC20Beacon",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "wrappedERC20Factory",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "wrapperTransfer",
-    "inputs": [
-      {
-        "name": "from",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "to",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "termId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      },
-      {
-        "name": "bondingCurveId",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "shares",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
   },
   {
     "type": "event",
@@ -2055,7 +2330,7 @@ export const abi = [
         "internalType": "bytes32"
       },
       {
-        "name": "bondingCurveId",
+        "name": "curveId",
         "type": "uint256",
         "indexed": true,
         "internalType": "uint256"
@@ -2086,7 +2361,7 @@ export const abi = [
         "internalType": "bytes32"
       },
       {
-        "name": "bondingCurveId",
+        "name": "curveId",
         "type": "uint256",
         "indexed": true,
         "internalType": "uint256"
@@ -2115,6 +2390,19 @@ export const abi = [
         "type": "uint64",
         "indexed": false,
         "internalType": "uint64"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Paused",
+    "inputs": [
+      {
+        "name": "account",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
       }
     ],
     "anonymous": false
@@ -2282,6 +2570,81 @@ export const abi = [
   },
   {
     "type": "event",
+    "name": "RoleAdminChanged",
+    "inputs": [
+      {
+        "name": "role",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "previousAdminRole",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "newAdminRole",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "RoleGranted",
+    "inputs": [
+      {
+        "name": "role",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "account",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "sender",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "RoleRevoked",
+    "inputs": [
+      {
+        "name": "role",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "account",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "sender",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "SharePriceChanged",
     "inputs": [
       {
@@ -2291,7 +2654,7 @@ export const abi = [
         "internalType": "bytes32"
       },
       {
-        "name": "bondingCurveId",
+        "name": "curveId",
         "type": "uint256",
         "indexed": true,
         "internalType": "uint256"
@@ -2456,6 +2819,19 @@ export const abi = [
   },
   {
     "type": "event",
+    "name": "Unpaused",
+    "inputs": [
+      {
+        "name": "account",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "WalletMigrated",
     "inputs": [
       {
@@ -2465,7 +2841,7 @@ export const abi = [
         "internalType": "bytes32"
       },
       {
-        "name": "bondingCurveId",
+        "name": "curveId",
         "type": "uint256",
         "indexed": true,
         "internalType": "uint256"
@@ -2502,7 +2878,7 @@ export const abi = [
         "internalType": "bytes32"
       },
       {
-        "name": "bondingCurveId",
+        "name": "curveId",
         "type": "uint256",
         "indexed": true,
         "internalType": "uint256"
@@ -2539,7 +2915,7 @@ export const abi = [
         "internalType": "bytes32"
       },
       {
-        "name": "bondingCurveId",
+        "name": "curveId",
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
@@ -2555,8 +2931,66 @@ export const abi = [
   },
   {
     "type": "error",
-    "name": "BondingCurve_ActionExceedsMaxAssets",
+    "name": "AccessControlBadConfirmation",
     "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "AccessControlUnauthorizedAccount",
+    "inputs": [
+      {
+        "name": "account",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "neededRole",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "AtomDoesNotExist",
+    "inputs": [
+      {
+        "name": "termId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "EnforcedPause",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ExpectedPause",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "FailedCall",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InsufficientBalance",
+    "inputs": [
+      {
+        "name": "balance",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "needed",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
   },
   {
     "type": "error",
@@ -2565,19 +2999,8 @@ export const abi = [
   },
   {
     "type": "error",
-    "name": "MultiVault_AccessControlUnauthorizedAccount",
-    "inputs": [
-      {
-        "name": "account",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "role",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ]
+    "name": "MultiVault_ActionExceedsMaxAssets",
+    "inputs": []
   },
   {
     "type": "error",
@@ -2643,6 +3066,11 @@ export const abi = [
   },
   {
     "type": "error",
+    "name": "MultiVault_DeployAccountFailed",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "MultiVault_DepositBelowMinimumDeposit",
     "inputs": []
   },
@@ -2658,12 +3086,12 @@ export const abi = [
   },
   {
     "type": "error",
-    "name": "MultiVault_EmptyArray",
+    "name": "MultiVault_HasCounterStake",
     "inputs": []
   },
   {
     "type": "error",
-    "name": "MultiVault_HasCounterStake",
+    "name": "MultiVault_InsufficientAssets",
     "inputs": []
   },
   {
@@ -2689,7 +3117,17 @@ export const abi = [
   },
   {
     "type": "error",
-    "name": "MultiVault_InvalidBondingCurveId",
+    "name": "MultiVault_InvalidArrayLength",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "MultiVault_InvalidCurveId",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "MultiVault_InvalidReceiver",
     "inputs": []
   },
   {
@@ -2714,16 +3152,6 @@ export const abi = [
   },
   {
     "type": "error",
-    "name": "MultiVault_OnlyAssociatedWrappedERC20",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "MultiVault_OnlyWrappedERC20Factory",
-    "inputs": []
-  },
-  {
-    "type": "error",
     "name": "MultiVault_RedeemerNotApproved",
     "inputs": []
   },
@@ -2744,6 +3172,11 @@ export const abi = [
   },
   {
     "type": "error",
+    "name": "MultiVault_TermNotAtom",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "MultiVault_TermNotTriple",
     "inputs": []
   },
@@ -2756,6 +3189,11 @@ export const abi = [
     "type": "error",
     "name": "MultiVault_TripleExists",
     "inputs": [
+      {
+        "name": "termId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
       {
         "name": "subjectId",
         "type": "bytes32",
@@ -2780,12 +3218,12 @@ export const abi = [
   },
   {
     "type": "error",
-    "name": "MultiVault_WrappedERC20AlreadySet",
+    "name": "MultiVault_ZeroAddress",
     "inputs": []
   },
   {
     "type": "error",
-    "name": "MultiVault_ZeroAddress",
+    "name": "MultiVault_ZeroValue",
     "inputs": []
   },
   {
@@ -2800,100 +3238,13 @@ export const abi = [
   },
   {
     "type": "error",
-    "name": "SafeERC20FailedOperation",
+    "name": "TripleDoesNotExist",
     "inputs": [
       {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
-      }
-    ]
-  },
-  {
-    "type": "error",
-    "name": "ERC20InsufficientAllowance",
-    "inputs": [
-      {
-        "name": "spender",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "allowance",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "needed",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ]
-  },
-  {
-    "type": "error",
-    "name": "ERC20InsufficientBalance",
-    "inputs": [
-      {
-        "name": "sender",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "balance",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "needed",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ]
-  },
-  {
-    "type": "error",
-    "name": "ERC20InvalidApprover",
-    "inputs": [
-      {
-        "name": "approver",
-        "type": "address",
-        "internalType": "address"
-      }
-    ]
-  },
-  {
-    "type": "error",
-    "name": "ERC20InvalidReceiver",
-    "inputs": [
-      {
-        "name": "receiver",
-        "type": "address",
-        "internalType": "address"
-      }
-    ]
-  },
-  {
-    "type": "error",
-    "name": "ERC20InvalidSender",
-    "inputs": [
-      {
-        "name": "sender",
-        "type": "address",
-        "internalType": "address"
-      }
-    ]
-  },
-  {
-    "type": "error",
-    "name": "ERC20InvalidSpender",
-    "inputs": [
-      {
-        "name": "spender",
-        "type": "address",
-        "internalType": "address"
+        "name": "termId",
+        "type": "bytes32",
+        "internalType": "bytes32"
       }
     ]
   }
-
 ] as const
