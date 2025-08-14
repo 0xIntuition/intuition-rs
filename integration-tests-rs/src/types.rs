@@ -30,6 +30,21 @@ pub struct AtomData {
     pub data: Bytes,
 }
 
+#[derive(Debug, Clone)]
+pub struct TripleData {
+    pub id: B256,
+    pub subject_id: B256,
+    pub predicate_id: B256,
+    pub object_id: B256,
+}
+
+#[derive(Debug)]
+pub enum TripleCreationResult {
+    Created(Vec<TripleData>),
+    AlreadyExists(Vec<TripleData>),
+    Error(String),
+}
+
 #[derive(Debug)]
 pub struct Config {
     pub rpc_url: String,

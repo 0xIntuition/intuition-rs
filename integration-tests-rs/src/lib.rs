@@ -1,11 +1,13 @@
 pub mod atoms;
 pub mod contracts;
+pub mod triples;
 pub mod types;
 pub mod user;
 pub mod utils;
 
 pub use atoms::*;
 pub use contracts::*;
+pub use triples::*;
 pub use types::*;
 pub use user::*;
 pub use utils::*;
@@ -72,6 +74,40 @@ impl<P: alloy::providers::Provider + Clone> IntuitionClient<P> {
             deposit_amount,
         ).await
     }
+
+    pub async fn create_triples<Q: alloy::providers::Provider>(
+        &self,
+        user: &FundedUser<Q>,
+        subjects: Vec<&AtomData>,
+        predicates: Vec<&AtomData>,
+        objects: Vec<&AtomData>,
+        deposit_amount: U256,
+    ) -> Result<TripleCreationResult> {
+        create_triples_from_atoms(
+            &user.contracts.multi_vault,
+            subjects,
+            predicates,
+            objects,
+            deposit_amount,
+        ).await
+    }
+
+    pub async fn create_single_triple<Q: alloy::providers::Provider>(
+        &self,
+        user: &FundedUser<Q>,
+        subject: &AtomData,
+        predicate: &AtomData,
+        object: &AtomData,
+        deposit_amount: U256,
+    ) -> Result<TripleCreationResult> {
+        create_single_triple(
+            &user.contracts.multi_vault,
+            subject.id,
+            predicate.id,
+            object.id,
+            deposit_amount,
+        ).await
+    }
 }
 
 #[cfg(test)]
@@ -107,5 +143,24 @@ mod tests {
         let tokens = wei_to_tokens(amount, 18);
         let expected = U256::from(1000000000000000000u64) * U256::from(10).pow(U256::from(18));
         assert_eq!(tokens, expected);
+    }
+
+    #[test]
+    fn test_compute_triple_id() {
+        use alloy::primitives::B256;
+        
+        let subject_id = B256::from([1u8; 32]);
+        let predicate_id = B256::from([2u8; 32]);
+        let object_id = B256::from([3u8; 32]);
+        
+        let id = compute_triple_id(subject_id, predicate_id, object_id);
+        
+        // The ID should be deterministic for the same input
+        let id2 = compute_triple_id(subject_id, predicate_id, object_id);
+        assert_eq!(id, id2);
+        
+        // Different inputs should produce different IDs
+        let different_id = compute_triple_id(object_id, predicate_id, subject_id);
+        assert_ne!(id, different_id);
     }
 }

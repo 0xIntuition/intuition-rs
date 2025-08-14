@@ -1,6 +1,6 @@
 use alloy::{primitives::U256, providers::Provider};
 use eyre::Result;
-use integration_tests_rs::{user::approve_vault, AtomCreationResult, IntuitionClient};
+use integration_tests_rs::{user::approve_vault, AtomCreationResult, TripleCreationResult, IntuitionClient};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -71,7 +71,62 @@ async fn main() -> Result<()> {
         }
     }
 
-    // Step 6: Show final balances
+    // Step 6: Create triples using the atoms
+    let atoms = match client
+        .get_or_create_atoms(&alice, atom_data.clone(), deposit_per_atom)
+        .await?
+    {
+        AtomCreationResult::Created(atoms) | AtomCreationResult::AlreadyExists(atoms) => atoms,
+        AtomCreationResult::Error(error_msg) => {
+            println!("❌ Error getting atoms for triples: {}", error_msg);
+            return Ok(());
+        }
+    };
+
+    if atoms.len() >= 3 {
+        println!("\n🔗 Alice creating triples...");
+        let triple_deposit = U256::from(1) * U256::from(10).pow(U256::from(18)); // 1 token per triple
+
+        // Create a simple triple: "the ticker" -> "is" -> "trust"
+        match client
+            .create_single_triple(&alice, &atoms[0], &atoms[1], &atoms[2], triple_deposit)
+            .await?
+        {
+            TripleCreationResult::Created(triples) => {
+                println!("✅ Triple created successfully!");
+                for (i, triple) in triples.iter().enumerate() {
+                    println!(
+                        "  Triple {}: (0x{}, 0x{}, 0x{}) → ID: 0x{}",
+                        i + 1,
+                        hex::encode(&triple.subject_id[..8]),
+                        hex::encode(&triple.predicate_id[..8]),
+                        hex::encode(&triple.object_id[..8]),
+                        hex::encode(&triple.id[..8])
+                    );
+                }
+            }
+            TripleCreationResult::AlreadyExists(triples) => {
+                println!("✅ Triple already exists!");
+                for (i, triple) in triples.iter().enumerate() {
+                    println!(
+                        "  Triple {}: (0x{}, 0x{}, 0x{}) → ID: 0x{}",
+                        i + 1,
+                        hex::encode(&triple.subject_id[..8]),
+                        hex::encode(&triple.predicate_id[..8]),
+                        hex::encode(&triple.object_id[..8]),
+                        hex::encode(&triple.id[..8])
+                    );
+                }
+            }
+            TripleCreationResult::Error(error_msg) => {
+                println!("❌ Error creating triple: {}", error_msg);
+            }
+        }
+    } else {
+        println!("\n⚠️ Not enough atoms to create triples (need at least 3)");
+    }
+
+    // Step 7: Show final balances
     println!("\n📊 Final balances:");
     let final_eth_balance = alice.user.provider.get_balance(alice.user.address).await?;
     let final_token_balance = alice
