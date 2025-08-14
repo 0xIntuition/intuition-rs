@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["cli", "consumer", "histocrawler", "image-guard", "models", "rpc-proxy", "shared-utils", "consumer-api"]
+members = ["cli", "consumer", "histocrawler", "image-guard", "models", "rpc-proxy", "shared-utils", "consumer-api", "integration-tests-rs"]
 
 
 [workspace.dependencies]
