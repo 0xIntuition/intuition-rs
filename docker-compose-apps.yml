@@ -14,12 +14,12 @@ services:
       IMAGE_GUARD_URL: 'http://api:3000'
       IPFS_GATEWAY_URL: 'http://ipfs:8080'
       IPFS_UPLOAD_URL: 'http://ipfs:5001'
-      IPFS_UPLOAD_QUEUE_URL: 'ipfs_upload_stream'
+      IPFS_UPLOAD_STREAM: 'ipfs_upload_stream'
       # LOCALSTACK_URL: 'http://sqs:4566/'
       PINATA_API_JWT: $PINATA_API_JWT
       PINATA_GATEWAY_TOKEN: $PINATA_GATEWAY_TOKEN
       PG_MIN_CONNECTIONS: '5'
-      RESOLVER_QUEUE_URL: 'resolver_stream'
+      RESOLVER_STREAM: 'resolver_stream'
       RPC_URL_BASE: "http://prod-rpc-proxy:3008/84532/proxy"
       RPC_URL_MAINNET: "http://prod-rpc-proxy:3008/1/proxy"
       RUST_LOG: 'info'
@@ -49,7 +49,7 @@ services:
       PINATA_API_JWT: $PINATA_API_JWT
       PINATA_GATEWAY_TOKEN: $PINATA_GATEWAY_TOKEN
       PG_MIN_CONNECTIONS: '5'
-      IPFS_UPLOAD_QUEUE_URL: 'ipfs_upload_stream'
+      IPFS_UPLOAD_STREAM: 'ipfs_upload_stream'
       RUST_LOG: 'info'
       BACKEND_SCHEMA: 'public'
       REDIS_URL: 'redis://redis:6379'
@@ -76,11 +76,11 @@ services:
       INITIAL_CONTRACT_VERSION: $INITIAL_CONTRACT_VERSION
       CONSUMER_METRICS_API_PORT: '3002'
       DATABASE_URL: 'postgres://postgres:postgres@database:5435/storage'
-      DECODED_LOGS_QUEUE_URL: 'decoded_logs_stream'
+      DECODED_LOGS_STREAM: 'decoded_logs_stream'
       INTUITION_CONTRACT_ADDRESS: $INTUITION_CONTRACT_ADDRESS
       LOCALSTACK_URL: 'http://redis:6379'
       PG_MIN_CONNECTIONS: '20'
-      RESOLVER_QUEUE_URL: 'http://redis:6379/resolver_stream'
+      RESOLVER_STREAM: 'resolver_stream'
       RPC_URL_BASE: "http://prod-rpc-proxy:3008/84532/proxy"
       RUST_LOG: 'warn'
       BACKEND_SCHEMA: 'public'

@@ -49,10 +49,10 @@ CONSUMER_TYPE=redis_streams
 REDIS_URL=redis://redis:6379
 
 # Stream names (these match the streams created by setup script)
-RAW_CONSUMER_QUEUE_URL=raw_logs_stream
-DECODED_LOGS_QUEUE_URL=decoded_logs_stream
-RESOLVER_QUEUE_URL=resolver_stream
-IPFS_UPLOAD_QUEUE_URL=ipfs_upload_stream
+RAW_CONSUMER_STREAM=raw_logs_stream
+DECODED_LOGS_STREAM=decoded_logs_stream
+RESOLVER_STREAM=resolver_stream
+IPFS_UPLOAD_STREAM=ipfs_upload_stream
 ```
 
 ## Manual Setup

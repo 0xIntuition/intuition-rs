@@ -28,12 +28,6 @@ In order to be able to use the convenience commands in the Makefile, you need to
 For Hasura, you need to:
 * Install [hasura-cli](https://hasura.io/docs/2.0/hasura-cli/install-hasura-cli/)
 
-And for SQS queues, you need to have AWS configured in your system, so you need to have a file in `˜./.aws/config` with the following content:
-
-```
-[default]
-aws_access_key_id = YOUR_ACCESS_KEY_ID
-aws_secret_access_key = YOUR_SECRET_ACCESS_KEY
 ```
 
 ## Running the local pipeline
@@ -109,26 +103,6 @@ First you need to copy the `.env.sample` file to `.env` and source it. Make sure
 cp .env.sample .env
 source .env
 ```
-
-If you want to run the local raw consumer connected to the real raw SQS queue you can run
-
-`RUST_LOG=info cargo run --bin consumer --mode raw` ( or simply `cargo make raw-consumer`)
-
-If you want to run the local decoded consumer connected to the real decoded SQS queue you can run
-
-`RUST_LOG=info cargo run --bin consumer --mode decoded` ( or simply `cargo make decoded-consumer`)
-
-If you want to run the local raw consumer connected to the local SQS queue you can run
-
-`RUST_LOG=info cargo run --bin consumer --features local --mode raw --local` (or `cargo make raw-consumer-local`)
-
-If you want to run the local decoded consumer connected to the local SQS queue you can run
-
-`RUST_LOG=info cargo run --bin consumer --features local --mode decoded --local` (or `cargo make decoded-consumer-local`)
-
-We use feature flags to differentiate between the local and the remote execution environment.
-
-Also note that you need to set the right environment variables for the queues (`RAW_CONSUMER_QUEUE_URL` and `DECODED_CONSUMER_QUEUE_URL`) in order to switch between the local and the remote execution environment.
 
 ## Conveniences
 
