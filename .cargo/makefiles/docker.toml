@@ -18,10 +18,6 @@ args = ["build", "-t", "ghcr.io/0xintuition/cli:latest", "-f", "cli/Dockerfile",
 command = "docker"
 args = ["build", "-t", "ghcr.io/0xintuition/indexer-and-cache-migrations:latest", "-f", "indexer-and-cache-migrations/Dockerfile", "."]
 
-[tasks.build-histoflux]
-command = "docker"
-args = ["build", "-t", "ghcr.io/0xintuition/histoflux:latest", "-f", "histoflux/Dockerfile", "."]
-
 [tasks.build-rpc-proxy]
 command = "docker"
 args = ["build", "-t", "ghcr.io/0xintuition/rpc-proxy:latest", "-f", "rpc-proxy/Dockerfile", "."]

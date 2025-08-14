@@ -142,24 +142,6 @@ services:
     depends_on:
       prod-rpc-proxy:
         condition: service_started
-      
-
-  histoflux:
-    container_name: histoflux
-    image: ghcr.io/0xintuition/apps:latest
-    command: ./histoflux
-    environment:
-      AWS_ACCESS_KEY_ID: 'example'
-      AWS_REGION: 'us-west-2'
-      AWS_SECRET_ACCESS_KEY: 'example' 
-      INDEXER_DATABASE_URL: "postgres://postgres:postgres@database:5435/storage"
-      INDEXER_SCHEMA: $INDEXER_SCHEMA
-      # LOCALSTACK_URL: "http://sqs:4566/"
-      ENVIRONMENT_NAME: "local_v_1_5"
-      RAW_CONSUMER_QUEUE_URL: "http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/raw_logs.fifo"
-
-
-
 
   integration-tests:
     container_name: integration-tests
