@@ -10,7 +10,7 @@ use alloy::{
     providers::{DynProvider, Provider},
 };
 use alloy_network::Ethereum;
-use models::types::{FixedBytesWrapper, U256Wrapper};
+use models::types::FixedBytesWrapper;
 use serde::Deserialize;
 
 #[derive(Clone, Deserialize, Debug, Default)]
@@ -218,25 +218,6 @@ impl ContractInstance {
     pub async fn is_triple_id(&self, id: FixedBytesWrapper) -> Result<bool, ConsumerError> {
         match self {
             Self::V2(client) => Ok(client.isTriple(id.0).call().await?),
-        }
-    }
-
-    /// Returns the total shares and assets of the contract instance
-    pub async fn get_total_shares_and_assets(
-        &self,
-        id: FixedBytesWrapper,
-        curve_id: U256Wrapper,
-        block_id: BlockId,
-    ) -> Result<(U256, U256), ConsumerError> {
-        match self {
-            Self::V2(client) => {
-                let totals = client
-                    .vaults(id.0, curve_id.0)
-                    .block(block_id)
-                    .call()
-                    .await?;
-                Ok((totals.totalShares, totals.totalAssets))
-            }
         }
     }
 }

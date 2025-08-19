@@ -26,7 +26,7 @@ async fn handle_image(
         // This is handling the case where we have the `local_with_db` feature
         // flag enabled, but no classification feature flag.
     } else {
-        return Ok((ClassificationScoreParsed::unknown(), false));
+        Ok((ClassificationScoreParsed::unknown(), false))
     }
 }
 

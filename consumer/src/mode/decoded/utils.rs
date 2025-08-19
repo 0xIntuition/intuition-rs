@@ -101,6 +101,7 @@ pub async fn update_vault_from_share_price_changed_events(
     Ok(())
 }
 
+#[allow(dead_code)]
 /// Returns the counter id from the triple ID using the same logic as the Solidity contract
 pub fn get_counter_id_from_triple_id(
     triple_id: FixedBytesWrapper,

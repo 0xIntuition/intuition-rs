@@ -57,7 +57,7 @@ pub fn get_event_processing_histogram() -> &'static HistogramVec {
 pub enum ConsumerMode {
     Decoded(DecodedConsumerContext),
     Raw(RawConsumerContext),
-    Resolver(ResolverConsumerContext),
+    Resolver(Box<ResolverConsumerContext>),
     IpfsUpload(IpfsUploadConsumerContext),
 }
 
@@ -514,13 +514,13 @@ impl ConsumerMode {
 
         let ipfs_resolver = Self::create_ipfs_resolver(data.clone()).await?;
 
-        Ok(ConsumerMode::Resolver(ResolverConsumerContext {
+        Ok(ConsumerMode::Resolver(Box::new(ResolverConsumerContext {
             client,
             ipfs_resolver,
             mainnet_client,
             pg_pool,
             server_initialize: data,
-        }))
+        })))
     }
 
     /// We need to implement this convenience so we can transform
