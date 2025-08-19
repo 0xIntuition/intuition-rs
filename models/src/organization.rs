@@ -1,13 +1,13 @@
 use crate::error::ModelError;
 use crate::traits::{Model, SimpleCrud};
-use crate::types::U256Wrapper;
+use crate::types::FixedBytesWrapper;
 use async_trait::async_trait;
 use sqlx::{Executor, Postgres};
 /// This struct represents an organization.
 #[derive(Debug, sqlx::FromRow, Builder)]
 #[sqlx(type_name = "organization")]
 pub struct Organization {
-    pub id: U256Wrapper,
+    pub id: FixedBytesWrapper,
     pub name: Option<String>,
     pub description: Option<String>,
     pub image: Option<String>,
@@ -19,7 +19,7 @@ pub struct Organization {
 impl Model for Organization {}
 
 #[async_trait]
-impl SimpleCrud<U256Wrapper> for Organization {
+impl SimpleCrud<FixedBytesWrapper> for Organization {
     /// Upserts an organization into the database.
     async fn upsert<'e, E>(&self, schema: &str, executor: E) -> Result<Self, ModelError>
     where
@@ -46,7 +46,7 @@ impl SimpleCrud<U256Wrapper> for Organization {
         );
 
         sqlx::query_as::<_, Organization>(&query)
-            .bind(self.id.to_big_decimal()?)
+            .bind(self.id.0.as_slice())
             .bind(self.name.clone())
             .bind(self.description.clone())
             .bind(self.image.clone())
@@ -59,7 +59,7 @@ impl SimpleCrud<U256Wrapper> for Organization {
 
     /// Finds an organization by its id.
     async fn find_by_id<'e, E>(
-        id: U256Wrapper,
+        id: FixedBytesWrapper,
         schema: &str,
         executor: E,
     ) -> Result<Option<Self>, ModelError>
@@ -81,7 +81,7 @@ impl SimpleCrud<U256Wrapper> for Organization {
         );
 
         sqlx::query_as::<_, Organization>(&query)
-            .bind(id.to_big_decimal()?)
+            .bind(id.0.as_slice())
             .fetch_optional(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))

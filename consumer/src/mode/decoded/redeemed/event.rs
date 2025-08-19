@@ -1,12 +1,9 @@
 use crate::{
     error::ConsumerError,
-    mode::{
-        decoded::utils::{VaultInfo, get_block_timestamp},
-        types::DecodedConsumerContext,
-    },
+    mode::{decoded::utils::get_block_timestamp, types::DecodedConsumerContext},
     schemas::types::DecodedMessage,
 };
-use alloy::primitives::Uint;
+use alloy::primitives::{FixedBytes, Uint};
 use models::{
     account::Account,
     position::Position,
@@ -14,7 +11,7 @@ use models::{
     signal::Signal,
     term::{Term, TermType},
     traits::SimpleCrud,
-    types::U256Wrapper,
+    types::{FixedBytesWrapper, U256Wrapper},
     vault::Vault,
 };
 /// This trait represents a redeemed event
@@ -23,16 +20,12 @@ pub trait RedeemedEvent: Clone {
     fn sender(&self) -> Result<String, ConsumerError>;
     /// This function returns the receiver of the redeemed event
     fn receiver(&self) -> Result<String, ConsumerError>;
-    /// This function returns the total shares in the vault
-    fn sender_total_shares_in_vault(&self) -> Result<Uint<256, 4>, ConsumerError>;
     /// This function returns the vault ID
     fn assets_for_receiver(&self) -> Result<Uint<256, 4>, ConsumerError>;
     /// This function returns the curve ID
     fn shares_redeemed_by_sender(&self) -> Result<Uint<256, 4>, ConsumerError>;
     /// This function returns the vault ID
-    fn vault_id(&self) -> Result<Uint<256, 4>, ConsumerError>;
-    /// This function returns the exit fee
-    fn exit_fee(&self) -> Result<Uint<256, 4>, ConsumerError>;
+    fn vault_id(&self) -> Result<FixedBytes<32>, ConsumerError>;
     /// This function returns the curve ID
     fn curve_id(&self) -> Result<Uint<256, 4>, ConsumerError>;
     // Helper methods to break down the complexity:
@@ -47,11 +40,9 @@ pub trait RedeemedEvent: Clone {
             .id(DecodedMessage::event_id(event))
             .sender_id(sender_account.id.clone())
             .receiver_id(receiver_account.id.clone())
-            .sender_total_shares_in_vault(self.sender_total_shares_in_vault()?)
             .assets_for_receiver(self.assets_for_receiver()?)
             .shares_redeemed_by_sender(self.shares_redeemed_by_sender()?)
-            .exit_fee(self.exit_fee()?)
-            .term_id(U256Wrapper::from(self.vault_id()?))
+            .term_id(FixedBytesWrapper::from(self.vault_id()?))
             .block_number(U256Wrapper::try_from(event.block_number)?)
             .created_at(get_block_timestamp(event.block_timestamp)?)
             .transaction_hash(event.transaction_hash.clone())
@@ -87,7 +78,7 @@ pub trait RedeemedEvent: Clone {
         )
         .await?
         {
-            position.shares = U256Wrapper::from(self.sender_total_shares_in_vault()?);
+            position.shares = self.shares_redeemed_by_sender()?.into();
             position.block_number = event.block_number;
             position.log_index = event.log_index;
             position.transaction_hash = event.transaction_hash.clone();
@@ -152,51 +143,5 @@ pub trait RedeemedEvent: Clone {
             )
             .await?;
         Ok(())
-    }
-    /// This function updates the vault values
-    async fn update_vault_values(
-        &self,
-        decoded_consumer_context: &DecodedConsumerContext,
-        vault_info: Option<VaultInfo>,
-        event: &DecodedMessage,
-    ) -> Result<(), ConsumerError> {
-        if let Some(vault_info) = vault_info {
-            // Update vault values
-            vault_info
-                .update_vault(self.vault_id()?, decoded_consumer_context, event)
-                .await?;
-        }
-        Ok(())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use alloy::primitives::U256;
-    use models::types::U256Wrapper;
-
-    #[test]
-    fn test_negative_delta_calculation() {
-        // Create a test value
-        let test_value = U256::from(100);
-
-        // Calculate negative delta using saturating_sub
-        let negative_delta = U256::ZERO.saturating_sub(test_value);
-
-        // Convert to U256Wrapper
-        let wrapped_delta = U256Wrapper::from(negative_delta);
-
-        // Verify the value is zero (since U256 can't represent negative numbers)
-        assert_eq!(wrapped_delta.0, U256::ZERO);
-
-        // Test with a larger number
-        let large_value = U256::from(1000000);
-        let large_negative = U256Wrapper::from(U256::ZERO.saturating_sub(large_value));
-        assert_eq!(large_negative.0, U256::ZERO);
-
-        // Test that the original value is preserved when subtracting from a larger number
-        let base = U256::from(200);
-        let subtracted = base.saturating_sub(test_value);
-        assert_eq!(subtracted, U256::from(100));
     }
 }

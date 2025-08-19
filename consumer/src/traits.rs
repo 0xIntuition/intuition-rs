@@ -4,9 +4,13 @@ use crate::{
     mode::types::{ConsumerMode, DecodedConsumerContext},
     schemas::{goldsky::RawMessage, types::DecodedMessage},
 };
+use alloy::primitives::FixedBytes;
 use async_trait::async_trait;
 use aws_sdk_sqs::{operation::receive_message::ReceiveMessageOutput, types::Message};
-use models::{account::AccountType, types::U256Wrapper};
+use models::{
+    account::AccountType,
+    types::{FixedBytesWrapper, U256Wrapper},
+};
 use sqlx::PgPool;
 
 pub trait AtomUpdater {
@@ -57,7 +61,7 @@ pub trait SharePriceEvent: VaultManager {
 
 /// This trait is implemented by all vault managers.
 pub trait VaultManager {
-    fn term_id(&self) -> Result<U256Wrapper, ConsumerError>;
+    fn term_id(&self) -> Result<FixedBytes<32>, ConsumerError>;
     fn curve_id(&self) -> Result<U256Wrapper, ConsumerError>;
     async fn total_shares(
         &self,
@@ -104,7 +108,7 @@ pub trait TripleTermManager {
     async fn triple_aggregate(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
-        counter_vault_id: U256Wrapper,
+        counter_vault_id: FixedBytesWrapper,
     ) -> Result<TripleAggregate, ConsumerError>;
 }
 
@@ -113,7 +117,7 @@ pub trait TripleVaultManager {
     async fn triple_vault_aggregate(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
-        counter_vault_id: U256Wrapper,
+        counter_vault_id: FixedBytesWrapper,
         curve_id: U256Wrapper,
     ) -> Result<TripleAggregate, ConsumerError>;
 
@@ -121,7 +125,7 @@ pub trait TripleVaultManager {
     async fn position_aggregate(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
-        counter_vault_id: U256Wrapper,
+        counter_vault_id: FixedBytesWrapper,
         curve_id: U256Wrapper,
     ) -> Result<i64, ConsumerError>;
 }

@@ -15,11 +15,15 @@ use crate::{
 };
 use alloy::{
     eips::BlockId,
-    primitives::{Address, Bytes, U256, Uint},
+    primitives::{Address, Bytes, U256},
     providers::{DynProvider, ProviderBuilder},
 };
 use alloy_network::Ethereum;
-use models::{initialize::Initialize, stats::Stats, types::U256Wrapper};
+use models::{
+    initialize::Initialize,
+    stats::Stats,
+    types::{FixedBytesWrapper, U256Wrapper},
+};
 use once_cell::sync::OnceCell;
 use prometheus::{HistogramVec, register_histogram_vec};
 use reqwest::Client;
@@ -135,32 +139,9 @@ impl DecodedConsumerContext {
     }
 
     /// This function fetches the current share price from the vault
-    pub async fn fetch_current_share_price(
-        &self,
-        id: Uint<256, 4>,
-        block_number: i64,
-    ) -> Result<U256, ConsumerError> {
+    pub async fn is_triple_id(&self, id: FixedBytesWrapper) -> Result<bool, ConsumerError> {
         self.retry_with_backoff(|| async {
-            let current_share_price = self
-                .base_client
-                .current_share_price(id, BlockId::from_str(&block_number.to_string())?)
-                .await;
-            match &current_share_price {
-                Ok(price) => Ok(*price),
-                Err(e) => {
-                    warn!("Response: {:?}", current_share_price);
-                    warn!("Error fetching current share price: {}", e);
-                    Err(ConsumerError::MaxRetriesExceeded)
-                }
-            }
-        })
-        .await
-    }
-
-    /// This function fetches the current share price from the vault
-    pub async fn is_triple_id(&self, id: Uint<256, 4>) -> Result<bool, ConsumerError> {
-        self.retry_with_backoff(|| async {
-            let is_triple_id = self.base_client.is_triple_id(id).await;
+            let is_triple_id = self.base_client.is_triple_id(id.clone()).await;
             match &is_triple_id {
                 Ok(is_triple_id) => {
                     debug!("Is triple id: {:?}", is_triple_id);
@@ -176,33 +157,10 @@ impl DecodedConsumerContext {
         .await
     }
 
-    /// This function fetches the total shares and assets in the vault
-    pub async fn fetch_total_shares_and_assets_in_vault(
-        &self,
-        id: Uint<256, 4>,
-        block_number: i64,
-    ) -> Result<(U256, U256), ConsumerError> {
-        self.retry_with_backoff(|| async {
-            let total_shares = self
-                .base_client
-                .get_total_shares_and_assets(id, BlockId::from_str(&block_number.to_string())?)
-                .await;
-            match &total_shares {
-                Ok(shares) => Ok(*shares),
-                Err(e) => {
-                    warn!("Response: {:?}", total_shares);
-                    warn!("Error fetching total shares in vault: {}", e);
-                    Err(ConsumerError::MaxRetriesExceeded)
-                }
-            }
-        })
-        .await
-    }
-
     /// This function fetches the atom data from the contract
-    pub async fn fetch_atom_data(&self, id: Uint<256, 4>) -> Result<Bytes, ConsumerError> {
+    pub async fn fetch_atom_data(&self, id: FixedBytesWrapper) -> Result<Bytes, ConsumerError> {
         self.retry_with_backoff(|| async {
-            let atom_data = self.base_client.get_atoms(id).await;
+            let atom_data = self.base_client.get_atoms(id.clone()).await;
             match &atom_data {
                 Ok(data) => {
                     debug!("Atom data: {:?}", data);
@@ -221,14 +179,17 @@ impl DecodedConsumerContext {
     /// This function fetches the counter id from the triple
     pub async fn get_counter_id_from_triple(
         &self,
-        vault_id: Uint<256, 4>,
-    ) -> Result<Uint<256, 4>, ConsumerError> {
+        vault_id: FixedBytesWrapper,
+    ) -> Result<FixedBytesWrapper, ConsumerError> {
         self.retry_with_backoff(|| async {
-            let counter_id = self.base_client.get_counter_id_from_triple(vault_id).await;
+            let counter_id = self
+                .base_client
+                .get_counter_id_from_triple(vault_id.clone())
+                .await;
             match &counter_id {
                 Ok(counter_id) => {
                     debug!("Counter id: {:?}", counter_id);
-                    Ok(*counter_id)
+                    Ok(counter_id.clone())
                 }
                 Err(e) => {
                     warn!("Response: {:?}", counter_id);
@@ -361,13 +322,9 @@ impl ConsumerMode {
     ) -> Result<ContractVersion, ConsumerError> {
         let initialize = Initialize::find_latest_version(pg_pool, backend_schema).await?;
         if let Some(initialize) = initialize {
-            if initialize.version == 1 {
-                Ok(ContractVersion::V1)
-            } else {
-                Ok(ContractVersion::V1_5)
-            }
+            Ok(ContractVersion::from(initialize.version))
         } else {
-            Ok(ContractVersion::V1)
+            Ok(ContractVersion::V2)
         }
     }
 
@@ -376,7 +333,10 @@ impl ConsumerMode {
         data: ServerInitialize,
         pg_pool: PgPool,
     ) -> Result<ConsumerMode, ConsumerError> {
-        let base_client = Arc::new(ContractInstance::build_client(ContractVersion::V1, &data)?);
+        let base_client = Arc::new(ContractInstance::build_client(
+            ContractVersion::from(2),
+            &data,
+        )?);
         let client = Self::build_client(
             data.clone(),
             data.env
@@ -725,184 +685,5 @@ impl ConsumerMode {
             .await?;
 
         Ok(())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::EthMultiVault::{self, EthMultiVaultInstance};
-
-    use super::*;
-    use alloy::{
-        eips::BlockId,
-        primitives::{Address, U256},
-        providers::ProviderBuilder,
-    };
-    use std::str::FromStr;
-
-    async fn build_test_client(
-        rpc_url: &str,
-        contract_address: &str,
-    ) -> EthMultiVaultInstance<DynProvider, Ethereum> {
-        let provider = ProviderBuilder::new().connect_http(rpc_url.parse().unwrap());
-        let dyn_provider = DynProvider::new(provider);
-
-        EthMultiVault::new(Address::from_str(contract_address).unwrap(), dyn_provider)
-    }
-
-    #[tokio::test]
-    async fn test_share_price_fetch() {
-        let rpc_url = "http://rpc-proxy:3008/8453/proxy";
-        let contract_address = "430BbF52503Bd4801E51182f4cB9f8F534225DE5";
-        let vault_id = U256::from(20);
-        let block_number = "25000968";
-        // Build the client
-        let web3 = build_test_client(rpc_url, contract_address).await;
-
-        // Make the actual request
-        let share_price = web3
-            .currentSharePrice(vault_id)
-            .block(BlockId::from_str(block_number).unwrap())
-            .call()
-            .await;
-
-        println!("Share price: {:?}", share_price);
-
-        assert!(share_price.is_ok());
-        println!("Share price: {:?}", share_price.unwrap());
-    }
-
-    // -- Dummy configuration types to mimic our real config --
-    // These types only include the fields needed by the decoded consumer.
-    #[derive(Clone)]
-    struct DummyEnv {
-        rpc_url_base: Option<String>,
-        intuition_contract_address: Option<String>,
-        decoded_logs_stream: Option<String>,
-        resolver_stream: Option<String>,
-        backend_schema: String,
-        ens_contract_address: Option<String>,
-    }
-
-    #[derive(Clone)]
-    struct DummyArgs {
-        mode: String,
-    }
-
-    // TestServerInitialize mimics the structure of ServerInitialize.
-    // (Our actual ServerInitialize from app_context has these fields.)
-    #[derive(Clone)]
-    struct TestServerInitialize {
-        env: DummyEnv,
-        args: DummyArgs,
-    }
-
-    // We assume that our actual ServerInitialize structure (from app_context)
-    // looks similar to this and exposes its fields.
-    // Here we convert our dummy into the real expected type.
-    impl From<TestServerInitialize> for ServerInitialize {
-        fn from(test: TestServerInitialize) -> Self {
-            ServerInitialize {
-                env: crate::config::Env {
-                    consumer_metrics_api_port: None,
-                    consumer_type: "decoded".to_string(),
-                    database_url: "postgres://postgres:postgres@database:5435/storage".to_string(),
-                    decoded_logs_stream: test.env.decoded_logs_stream,
-                    ens_contract_address: test.env.ens_contract_address,
-                    image_guard_url: None,
-                    rpc_url_base: test.env.rpc_url_base,
-                    intuition_contract_address: test.env.intuition_contract_address,
-                    resolver_stream: test.env.resolver_stream,
-                    backend_schema: test.env.backend_schema,
-                    // Other fields not used in decoded consumer are set to None or defaults.
-                    ..Default::default()
-                },
-                args: crate::ConsumerArgs {
-                    mode: test.args.mode,
-                },
-            }
-        }
-    }
-
-    pub async fn create_test_decoded_consumer() -> Result<DecodedConsumerContext, ConsumerError> {
-        // Build the test configuration using values from .env.dump.
-        let test_server = TestServerInitialize {
-            env: DummyEnv {
-                rpc_url_base: Some("http://rpc-proxy:3008/84532/proxy".to_string()),
-                intuition_contract_address: Some(
-                    "0x1A6950807E33d5bC9975067e6D6b5Ea4cD661665".to_string(),
-                ),
-                decoded_logs_stream: Some("decoded_logs_stream".to_string()),
-                ens_contract_address: Some(
-                    "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e".to_string(),
-                ),
-                resolver_stream: Some("resolver_stream".to_string()),
-                backend_schema: "public".to_string(),
-            },
-            args: DummyArgs {
-                mode: "decoded".to_string(),
-            },
-        };
-
-        // Convert our dummy config into the actual ServerInitialize expected.
-        let server_initialize: ServerInitialize = test_server.into();
-
-        // Create a lazy PgPool using the DATABASE_URL value from .env.dump.
-        let pg_pool = PgPool::connect_lazy("postgres://postgres:postgres@database:5435/storage")
-            .expect("Failed to create pg pool");
-
-        // Create the decoded consumer.
-        let consumer = ConsumerMode::create_decoded_consumer(server_initialize, pg_pool).await;
-
-        match consumer {
-            Ok(ConsumerMode::Decoded(decoded_context)) => {
-                // Ensure the configuration was passed through correctly.
-                assert_eq!(decoded_context.backend_schema, "public");
-
-                // Verify the base client was built with the expected contract address.
-                let contract_address = decoded_context.base_client.address().unwrap();
-                // Normalize to lowercase (the builder may parse the address in lowercase).
-                assert_eq!(
-                    contract_address.to_string().to_lowercase(),
-                    "0x1a6950807e33d5bc9975067e6d6b5ea4cd661665"
-                );
-                Ok(decoded_context)
-            }
-            Ok(_) => panic!("Expected a Decoded consumer"),
-            Err(e) => panic!("Failed to create decoded consumer: {:?}", e),
-        }
-    }
-
-    // This test needs database and rpc-proxy running to pass
-    #[tokio::test]
-    async fn test_fetch_contract_balance() {
-        let decoded_consumer = create_test_decoded_consumer().await.unwrap();
-        let balance = decoded_consumer.fetch_contract_balance().await.unwrap();
-        println!("Balance: {:?}", balance);
-    }
-
-    #[tokio::test]
-    async fn test_fetch_contract_balance_by_block() {
-        let decoded_consumer = create_test_decoded_consumer().await.unwrap();
-        let balance = decoded_consumer
-            .fetch_contract_balance_at_block("21665089")
-            .await
-            .unwrap();
-        println!("Balance: {:?}", balance);
-    }
-
-    #[tokio::test]
-    async fn test_fetch_total_shares_in_vault() {
-        let decoded_consumer = create_test_decoded_consumer().await.unwrap();
-
-        // Use the vaultID from the inner message
-        let vault_id = Uint::<256, 4>::from_str("0x329b").unwrap();
-
-        let total_shares = decoded_consumer
-            .fetch_total_shares_and_assets_in_vault(vault_id, 21854762)
-            .await
-            .unwrap();
-
-        println!("Total shares in vault: {:?}", total_shares);
     }
 }

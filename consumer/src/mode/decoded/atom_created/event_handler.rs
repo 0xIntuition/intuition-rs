@@ -13,7 +13,7 @@ use models::{
     atom::Atom,
     event::{Event, EventType},
     traits::SimpleCrud,
-    types::U256Wrapper,
+    types::{FixedBytesWrapper, U256Wrapper},
 };
 use std::fmt::Debug;
 use tracing::{debug, info};
@@ -34,7 +34,7 @@ where
 
         // Check if the atom already exists, skip if it does
         match Atom::find_by_id(
-            self.0.term_id()?,
+            FixedBytesWrapper::from(self.0.term_id()?),
             &decoded_consumer_context.backend_schema,
             &decoded_consumer_context.pg_pool,
         )
@@ -91,7 +91,7 @@ where
         Event::builder()
             .id(DecodedMessage::event_id(event))
             .event_type(EventType::AtomCreated)
-            .atom_id(self.0.vault_id()?)
+            .atom_id(FixedBytesWrapper::from(self.0.term_id()?))
             .block_number(U256Wrapper::try_from(event.block_number)?)
             .created_at(get_block_timestamp(event.block_timestamp)?)
             .transaction_hash(event.transaction_hash.clone())

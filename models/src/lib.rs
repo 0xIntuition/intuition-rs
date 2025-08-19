@@ -26,7 +26,6 @@ pub mod stats;
 pub mod stats_hour;
 pub mod substreams_cursor;
 pub mod term;
-pub mod test_helpers;
 pub mod text_object;
 pub mod thing;
 pub mod traits;

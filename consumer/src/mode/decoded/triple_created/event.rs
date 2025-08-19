@@ -1,7 +1,7 @@
 use crate::{
     error::ConsumerError,
     mode::{
-        decoded::utils::{get_block_timestamp, get_counter_vault_id},
+        decoded::utils::get_block_timestamp,
         resolver::types::ResolverConsumerMessage,
         types::DecodedConsumerContext,
         utils::{VaultOrigin, get_or_create_term, short_id},
@@ -9,7 +9,6 @@ use crate::{
     schemas::types::DecodedMessage,
     traits::{SharePriceEvent, TripleTermManager, TripleVaultManager, VaultManager},
 };
-use alloy::primitives::Uint;
 use models::{
     account::{Account, AccountType},
     atom::{Atom, AtomResolvingStatus, AtomType},
@@ -17,7 +16,7 @@ use models::{
     term::TermType,
     traits::SimpleCrud,
     triple::Triple,
-    types::U256Wrapper,
+    types::{FixedBytesWrapper, U256Wrapper},
     vault::Vault,
 };
 use sqlx::{Postgres, Transaction};
@@ -28,16 +27,14 @@ use tracing::warn;
 pub trait TripleCreatedEvent:
     SharePriceEvent + VaultManager + TripleTermManager + TripleVaultManager + Debug + Clone
 {
-    /// This function returns the vault ID
-    fn vault_id(&self) -> Result<Uint<256, 4>, ConsumerError>;
     /// This function returns the creator ID
     fn creator_id(&self) -> Result<String, ConsumerError>;
     /// This function returns the subject ID
-    fn subject_id(&self) -> Result<Uint<256, 4>, ConsumerError>;
+    fn subject_id(&self) -> Result<FixedBytesWrapper, ConsumerError>;
     /// This function returns the predicate ID
-    fn predicate_id(&self) -> Result<Uint<256, 4>, ConsumerError>;
+    fn predicate_id(&self) -> Result<FixedBytesWrapper, ConsumerError>;
     /// This function returns the object ID
-    fn object_id(&self) -> Result<Uint<256, 4>, ConsumerError>;
+    fn object_id(&self) -> Result<FixedBytesWrapper, ConsumerError>;
     /// This function updates the vault and counter vault current share prices
     async fn get_or_create_vaults(
         &self,
@@ -45,7 +42,9 @@ pub trait TripleCreatedEvent:
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
         // Get the counter vault ID
-        let counter_vault_id = get_counter_vault_id(self.vault_id()?);
+        let counter_vault_id = decoded_consumer_context
+            .get_counter_id_from_triple(self.term_id()?.into())
+            .await?;
 
         // Get or update the vault
         VaultOrigin::TripleCreated
@@ -59,12 +58,8 @@ pub trait TripleCreatedEvent:
             .await?;
 
         // Get or update the counter vault
-        self.get_or_create_counter_vault(
-            U256Wrapper::from(counter_vault_id),
-            decoded_consumer_context,
-            event,
-        )
-        .await?;
+        self.get_or_create_counter_vault(counter_vault_id, decoded_consumer_context, event)
+            .await?;
 
         // Get or create the triple term
         VaultOrigin::TripleCreated
@@ -90,7 +85,7 @@ pub trait TripleCreatedEvent:
     /// This function gets or creates a counter vault
     async fn get_or_create_counter_vault(
         &self,
-        counter_vault_id: U256Wrapper,
+        counter_vault_id: FixedBytesWrapper,
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
     ) -> Result<Vault, ConsumerError> {
@@ -172,7 +167,7 @@ pub trait TripleCreatedEvent:
     async fn find_atom(
         &self,
         backend_schema: &str,
-        id: &U256Wrapper,
+        id: &FixedBytesWrapper,
         tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Option<Atom>, ConsumerError> {
         Atom::find_by_id(id.clone(), backend_schema, tx.as_mut())
@@ -236,7 +231,7 @@ pub trait TripleCreatedEvent:
     async fn fetch_or_create_temporary_atom(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
-        id: U256Wrapper,
+        id: FixedBytesWrapper,
         event: &DecodedMessage,
         tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Atom, ConsumerError> {
@@ -247,7 +242,7 @@ pub trait TripleCreatedEvent:
             return Ok(atom);
         }
 
-        let atom_data = decoded_consumer_context.fetch_atom_data(id.0).await?;
+        let atom_data = decoded_consumer_context.fetch_atom_data(id.clone()).await?;
 
         let account = self
             .get_or_create_temporary_account(&decoded_consumer_context.backend_schema, tx)
@@ -273,7 +268,9 @@ pub trait TripleCreatedEvent:
                     &decoded_consumer_context.backend_schema,
                 )
                 .await?
-                .ok_or(ConsumerError::VaultNotFound(self.vault_id()?.to_string()))?
+                .ok_or(ConsumerError::VaultNotFound(
+                    FixedBytesWrapper::from(self.term_id()?).to_string(),
+                ))?
             }
         };
 
@@ -289,7 +286,7 @@ pub trait TripleCreatedEvent:
             .await?;
 
         // Enqueue the atom for resolution
-        let message = ResolverConsumerMessage::new_atom(atom.term_id.to_string());
+        let message = ResolverConsumerMessage::new_atom(atom.term_id.0.to_string());
         decoded_consumer_context
             .client
             .send_message(serde_json::to_string(&message)?, None)
@@ -306,28 +303,18 @@ pub trait TripleCreatedEvent:
         tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(Atom, Atom, Atom), ConsumerError> {
         let subject_atom = self
-            .fetch_or_create_temporary_atom(
-                decoded_consumer_context,
-                U256Wrapper::from(self.subject_id()?),
-                event,
-                tx,
-            )
+            .fetch_or_create_temporary_atom(decoded_consumer_context, self.subject_id()?, event, tx)
             .await?;
         let predicate_atom = self
             .fetch_or_create_temporary_atom(
                 decoded_consumer_context,
-                U256Wrapper::from(self.predicate_id()?),
+                self.predicate_id()?,
                 event,
                 tx,
             )
             .await?;
         let object_atom = self
-            .fetch_or_create_temporary_atom(
-                decoded_consumer_context,
-                U256Wrapper::from(self.object_id()?),
-                event,
-                tx,
-            )
+            .fetch_or_create_temporary_atom(decoded_consumer_context, self.object_id()?, event, tx)
             .await?;
         Ok((subject_atom, predicate_atom, object_atom))
     }
@@ -340,7 +327,7 @@ pub trait TripleCreatedEvent:
     ) -> Result<Triple, ConsumerError> {
         // Get the counter vault ID
         let counter_vault_id = decoded_consumer_context
-            .get_counter_id_from_triple(self.vault_id()?)
+            .get_counter_id_from_triple(FixedBytesWrapper::from(self.term_id()?))
             .await?;
 
         let creator_account = self
@@ -351,10 +338,10 @@ pub trait TripleCreatedEvent:
             .get_subject_predicate_object_atoms(decoded_consumer_context, event, tx)
             .await?;
 
-        let term_id = U256Wrapper::from(self.vault_id()?);
+        let term_id = self.term_id()?;
         let created_at = get_block_timestamp(event.block_timestamp)?;
         Triple::find_by_id(
-            term_id.clone(),
+            term_id.into(),
             &decoded_consumer_context.backend_schema,
             tx.as_mut(),
         )
@@ -366,7 +353,7 @@ pub trait TripleCreatedEvent:
                 .predicate_id(predicate_atom.term_id.clone())
                 .object_id(object_atom.term_id.clone())
                 .term_id(term_id)
-                .counter_term_id(U256Wrapper::from(counter_vault_id))
+                .counter_term_id(counter_vault_id)
                 .block_number(U256Wrapper::try_from(event.block_number).unwrap_or_default())
                 .created_at(created_at)
                 .transaction_hash(event.transaction_hash.clone())
@@ -448,12 +435,8 @@ pub trait TripleCreatedEvent:
         tx: &mut Transaction<'_, Postgres>,
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
-        if let Some(mut atom) = Atom::find_by_id(
-            U256Wrapper::from(self.subject_id()?),
-            backend_schema,
-            tx.as_mut(),
-        )
-        .await?
+        if let Some(mut atom) =
+            Atom::find_by_id(self.subject_id()?, backend_schema, tx.as_mut()).await?
         {
             atom.label = object_atom.label.clone();
             atom.image = object_atom.image.clone();

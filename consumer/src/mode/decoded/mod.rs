@@ -1,6 +1,5 @@
 pub mod atom_created;
 pub mod deposited;
-pub mod fee_transferred;
 pub mod initialized;
 pub mod redeemed;
 pub mod share_price_changed;

@@ -66,12 +66,6 @@ where
         let receiver_account =
             get_or_create_account(self.0.receiver()?, decoded_consumer_context).await?;
 
-        // This is only for V1, we need to fetch the data from the RPC before
-        // starting the transaction
-        let vault_info = self
-            .get_vault_info(decoded_consumer_context, event, self.0.vault_id()?)
-            .await?;
-
         // 3. Create redemption record
         self.0
             .create_redemption_record(
@@ -84,11 +78,6 @@ where
 
         self.0
             .handle_position_shares(&vault, &sender_account, decoded_consumer_context, event)
-            .await?;
-
-        // Update vault values when dealing with v1 redeemed events
-        self.0
-            .update_vault_values(decoded_consumer_context, vault_info, event)
             .await?;
 
         // 4. Create event and signal records

@@ -1,7 +1,7 @@
 use crate::{
     error::ModelError,
     traits::{Model, SimpleCrud},
-    types::U256Wrapper,
+    types::{FixedBytesWrapper, U256Wrapper},
 };
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
@@ -14,7 +14,7 @@ use sqlx::{Executor, PgPool, Postgres, Result};
 #[derive(Debug, sqlx::FromRow, Builder)]
 #[sqlx(type_name = "vault")]
 pub struct Vault {
-    pub term_id: U256Wrapper,
+    pub term_id: FixedBytesWrapper,
     pub curve_id: U256Wrapper,
     pub total_shares: U256Wrapper,
     pub current_share_price: U256Wrapper,
@@ -31,7 +31,7 @@ impl Model for Vault {}
 
 /// This trait works as a contract for all models that need to be upserted into the database.
 #[async_trait]
-impl SimpleCrud<U256Wrapper> for Vault {
+impl SimpleCrud<FixedBytesWrapper> for Vault {
     /// This method upserts a vault into the database.
     async fn upsert<'e, E>(&self, schema: &str, executor: E) -> Result<Self, ModelError>
     where
@@ -79,7 +79,7 @@ impl SimpleCrud<U256Wrapper> for Vault {
         );
 
         sqlx::query_as::<_, Vault>(&query)
-            .bind(self.term_id.to_big_decimal()?)
+            .bind(self.term_id.0.as_slice())
             .bind(self.curve_id.to_big_decimal()?)
             .bind(self.total_shares.to_big_decimal()?)
             .bind(self.current_share_price.to_big_decimal()?)
@@ -97,7 +97,7 @@ impl SimpleCrud<U256Wrapper> for Vault {
 
     /// Finds a vault by its id.
     async fn find_by_id<'e, E>(
-        term_id: U256Wrapper,
+        term_id: FixedBytesWrapper,
         schema: &str,
         executor: E,
     ) -> Result<Option<Self>, ModelError>
@@ -125,7 +125,7 @@ impl SimpleCrud<U256Wrapper> for Vault {
         );
 
         sqlx::query_as::<_, Vault>(&query)
-            .bind(term_id.to_big_decimal()?)
+            .bind(term_id.0.as_slice())
             .fetch_optional(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
@@ -135,7 +135,7 @@ impl SimpleCrud<U256Wrapper> for Vault {
 impl Vault {
     /// Finds all the vaults by its term_id.
     pub async fn find_vaults_by_term_id<'e, E>(
-        term_id: U256Wrapper,
+        term_id: FixedBytesWrapper,
         schema: &str,
         executor: E,
     ) -> Result<Vec<Self>, ModelError>
@@ -163,7 +163,7 @@ impl Vault {
         );
 
         sqlx::query_as::<_, Vault>(&query)
-            .bind(term_id.to_big_decimal()?)
+            .bind(term_id.0.as_slice())
             .fetch_all(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
@@ -200,7 +200,7 @@ impl Vault {
 
     /// This function finds a vault by its term_id and curve_id
     pub async fn find_by_term_id_and_curve_id<'e, E>(
-        term_id: U256Wrapper,
+        term_id: FixedBytesWrapper,
         curve_id: U256Wrapper,
         executor: E,
         schema: &str,
@@ -216,7 +216,7 @@ impl Vault {
         );
 
         sqlx::query_as::<_, Vault>(&query)
-            .bind(term_id.to_big_decimal()?)
+            .bind(term_id.0.as_slice())
             .bind(curve_id.to_big_decimal()?)
             .fetch_optional(executor)
             .await
@@ -259,8 +259,8 @@ impl Vault {
 
     /// This function sums the position count of all the vaults for a given term
     pub async fn sum_position_count(
-        term_id: U256Wrapper,
-        counter_term_id: U256Wrapper,
+        term_id: FixedBytesWrapper,
+        counter_term_id: FixedBytesWrapper,
         pool: &PgPool,
         schema: &str,
     ) -> Result<i64, ModelError> {
@@ -269,8 +269,8 @@ impl Vault {
             schema
         );
         sqlx::query_scalar::<_, i64>(&query)
-            .bind(term_id.to_big_decimal()?)
-            .bind(counter_term_id.to_big_decimal()?)
+            .bind(term_id.0.as_slice())
+            .bind(counter_term_id.0.as_slice())
             .fetch_one(pool)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
@@ -290,7 +290,7 @@ impl Vault {
         );
 
         sqlx::query_as::<_, Vault>(&query)
-            .bind(self.term_id.to_big_decimal()?)
+            .bind(self.term_id.0.as_slice())
             .bind(self.curve_id.to_big_decimal()?)
             .bind(self.total_shares.to_big_decimal()?)
             .bind(self.current_share_price.to_big_decimal()?)
