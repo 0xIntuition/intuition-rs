@@ -1,15 +1,16 @@
 use std::str::FromStr;
 
 use crate::{
-    EthMultiVault::EthMultiVaultInstance, EthMultiVaultV1_5::EthMultiVaultV1_5Instance,
-    app_context::ServerInitialize, error::ConsumerError, traits::ContractClient,
+    app_context::ServerInitialize, error::ConsumerError,
+    supported_contracts::v2_contract::Multivault::MultivaultInstance, traits::ContractClient,
 };
 use alloy::{
     eips::BlockId,
-    primitives::{Address, Bytes, U256, Uint},
+    primitives::{Address, Bytes, U256},
     providers::{DynProvider, Provider},
 };
 use alloy_network::Ethereum;
+use models::types::FixedBytesWrapper;
 use serde::Deserialize;
 
 #[derive(Clone, Deserialize, Debug, Default)]
@@ -96,27 +97,33 @@ impl FromStr for ConsumerType {
 // This enum describes the contract versions
 #[derive(Deserialize, Debug, Clone)]
 pub enum ContractVersion {
-    V1,
-    V1_5,
+    V2,
 }
 
 impl FromStr for ContractVersion {
     type Err = ConsumerError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if s == "v1" {
-            Ok(Self::V1)
-        } else if s == "v1_5" {
-            Ok(Self::V1_5)
+        if s == "v2" {
+            Ok(Self::V2)
         } else {
             Err(ConsumerError::ContractVersionParse(s.to_string()))
         }
     }
 }
+
+impl From<i64> for ContractVersion {
+    fn from(version: i64) -> Self {
+        match version {
+            2 => Self::V2,
+            _ => Self::V2,
+        }
+    }
+}
+
 /// Enum based client switching for the contract instances
 pub enum ContractInstance {
-    V1(EthMultiVaultInstance<DynProvider, Ethereum>),
-    V1_5(EthMultiVaultV1_5Instance<DynProvider, Ethereum>),
+    V2(MultivaultInstance<DynProvider, Ethereum>),
 }
 
 impl ContractInstance {
@@ -126,17 +133,7 @@ impl ContractInstance {
         data: &ServerInitialize,
     ) -> Result<Self, ConsumerError> {
         match version {
-            ContractVersion::V1 => Ok(EthMultiVaultInstance::build_client(
-                data.env
-                    .rpc_url_base
-                    .as_ref()
-                    .unwrap_or_else(|| panic!("RPC URL base mainnet is not set")),
-                data.env
-                    .intuition_contract_address
-                    .as_ref()
-                    .unwrap_or_else(|| panic!("Intuition contract address is not set")),
-            )?),
-            ContractVersion::V1_5 => Ok(EthMultiVaultV1_5Instance::build_client(
+            ContractVersion::V2 => Ok(MultivaultInstance::build_client(
                 data.env
                     .rpc_url_base
                     .as_ref()
@@ -152,8 +149,7 @@ impl ContractInstance {
     /// Returns the address of the contract instance
     pub fn address(&self) -> Result<Address, ConsumerError> {
         match self {
-            Self::V1(client) => Ok(*client.address()),
-            Self::V1_5(client) => Ok(*client.address()),
+            Self::V2(client) => Ok(*client.address()),
         }
     }
 
@@ -161,8 +157,7 @@ impl ContractInstance {
     #[allow(dead_code)]
     pub fn provider(&self) -> Result<DynProvider, ConsumerError> {
         match self {
-            Self::V1(client) => Ok(client.provider().clone()),
-            Self::V1_5(client) => Ok(client.provider().clone()),
+            Self::V2(client) => Ok(client.provider().clone()),
         }
     }
 
@@ -173,12 +168,7 @@ impl ContractInstance {
         block_id: BlockId,
     ) -> Result<U256, ConsumerError> {
         match self {
-            Self::V1(client) => Ok(client
-                .provider()
-                .get_balance(address)
-                .block_id(block_id)
-                .await?),
-            Self::V1_5(client) => Ok(client
+            Self::V2(client) => Ok(client
                 .provider()
                 .get_balance(address)
                 .block_id(block_id)
@@ -189,65 +179,45 @@ impl ContractInstance {
     /// Returns the balance of the contract instance
     pub async fn get_balance(&self, address: Address) -> Result<U256, ConsumerError> {
         match self {
-            Self::V1(client) => Ok(client.provider().get_balance(address).await?),
-            Self::V1_5(client) => Ok(client.provider().get_balance(address).await?),
+            Self::V2(client) => Ok(client.provider().get_balance(address).await?),
         }
     }
 
     /// Returns the counter id from the triple
     pub async fn get_counter_id_from_triple(
         &self,
-        vault_id: Uint<256, 4>,
-    ) -> Result<Uint<256, 4>, ConsumerError> {
+        vault_id: FixedBytesWrapper,
+    ) -> Result<FixedBytesWrapper, ConsumerError> {
         match self {
-            Self::V1(client) => Ok(client.getCounterIdFromTriple(vault_id).call().await?),
-            Self::V1_5(client) => Ok(client.getCounterIdFromTriple(vault_id).call().await?),
+            Self::V2(client) => Ok(FixedBytesWrapper::from(
+                client.getCounterIdFromTripleId(vault_id.0).call().await?,
+            )),
+        }
+    }
+
+    /// Returns the triple id from the counter id using the same logic as the Solidity contract
+    pub async fn get_id_from_counter_id(
+        &self,
+        counter_id: FixedBytesWrapper,
+    ) -> Result<FixedBytesWrapper, ConsumerError> {
+        match self {
+            Self::V2(client) => Ok(FixedBytesWrapper::from(
+                client.getTripleIdFromCounterId(counter_id.0).call().await?,
+            )),
         }
     }
 
     /// Returns the atoms of the contract instance
-    pub async fn get_atoms(&self, id: Uint<256, 4>) -> Result<Bytes, ConsumerError> {
+    pub async fn get_atoms(&self, id: FixedBytesWrapper) -> Result<Bytes, ConsumerError> {
         match self {
-            Self::V1(client) => Ok(client.atoms(id).call().await?),
-            Self::V1_5(client) => Ok(client.atoms(id).call().await?),
+            Self::V2(client) => Ok(client.getAtom(id.0).call().await?),
         }
     }
 
     /// Returns true if the id is a triple id
-    pub async fn is_triple_id(&self, id: Uint<256, 4>) -> Result<bool, ConsumerError> {
+    pub async fn is_triple_id(&self, id: FixedBytesWrapper) -> Result<bool, ConsumerError> {
         match self {
-            Self::V1(client) => Ok(client.isTripleId(id).call().await?),
-            Self::V1_5(client) => Ok(client.isTripleId(id).call().await?),
-        }
-    }
-
-    /// Returns the current share price of the contract instance
-    pub async fn current_share_price(
-        &self,
-        id: Uint<256, 4>,
-        block_id: BlockId,
-    ) -> Result<U256, ConsumerError> {
-        match self {
-            Self::V1(client) => Ok(client.currentSharePrice(id).block(block_id).call().await?),
-            Self::V1_5(client) => Ok(client.currentSharePrice(id).block(block_id).call().await?),
-        }
-    }
-
-    /// Returns the total shares and assets of the contract instance
-    pub async fn get_total_shares_and_assets(
-        &self,
-        id: Uint<256, 4>,
-        block_id: BlockId,
-    ) -> Result<(U256, U256), ConsumerError> {
-        match self {
-            Self::V1(client) => {
-                let totals = client.vaults(id).block(block_id).call().await?;
-                Ok((totals.totalShares, totals.totalAssets))
-            }
-            Self::V1_5(client) => {
-                let totals = client.vaults(id).block(block_id).call().await?;
-                Ok((totals.totalShares, totals.totalAssets))
-            }
+            Self::V2(client) => Ok(client.isTriple(id.0).call().await?),
         }
     }
 }

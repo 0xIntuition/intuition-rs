@@ -2,9 +2,7 @@ use super::event::SharePriceChangedEvent;
 use crate::{
     error::ConsumerError,
     mode::{
-        decoded::utils::{
-            EventHandler, is_counter_vault, update_vault_from_share_price_changed_events,
-        },
+        decoded::utils::{EventHandler, update_vault_from_share_price_changed_events},
         types::DecodedConsumerContext,
     },
     schemas::types::DecodedMessage,
@@ -13,7 +11,7 @@ use crate::{
 use models::{
     share_price_change::{SharePriceChange, SharePriceChangeInternal},
     term::TermType,
-    types::U256Wrapper,
+    types::{FixedBytesWrapper, U256Wrapper},
 };
 use std::fmt::Debug;
 use tracing::{debug, info};
@@ -65,15 +63,14 @@ where
             }
         }
 
+        // TODO: Remove this once we have the enum in place
         let term_type = if decoded_consumer_context
-            .is_triple_id(SharePriceChangedEvent::term_id(&self.0)?.0)
+            .is_triple_id(FixedBytesWrapper::from(SharePriceChangedEvent::term_id(
+                &self.0,
+            )?))
             .await?
         {
-            if is_counter_vault(SharePriceChangedEvent::term_id(&self.0)?.try_into()?) {
-                TermType::CounterTriple
-            } else {
-                TermType::Triple
-            }
+            TermType::Triple
         } else {
             TermType::Atom
         };

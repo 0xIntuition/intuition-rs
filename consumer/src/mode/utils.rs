@@ -4,7 +4,6 @@ use super::{
 };
 use crate::{
     error::ConsumerError,
-    mode::decoded::utils::{get_absolute_triple_id, get_counter_vault_id},
     schemas::types::DecodedMessage,
     traits::{AccountManager, SharePriceEvent, TripleTermManager, TripleVaultManager},
 };
@@ -16,7 +15,7 @@ use models::{
     traits::SimpleCrud,
     triple_term::TripleTerm,
     triple_vault::TripleVault,
-    types::U256Wrapper,
+    types::{FixedBytesWrapper, U256Wrapper},
     vault::Vault,
 };
 use sqlx::PgPool;
@@ -46,11 +45,11 @@ impl VaultOrigin {
         context: &DecodedConsumerContext,
         term_type: TermType,
         tx: &DecodedMessage,
-        custom_term_id: Option<U256Wrapper>,
+        custom_term_id: Option<FixedBytesWrapper>,
     ) -> Result<Vault, ConsumerError> {
         let term_id = match custom_term_id.clone() {
             Some(term_id) => term_id,
-            None => event.term_id()?,
+            None => FixedBytesWrapper::from(event.term_id()?),
         };
 
         if let Some(existing) = Vault::find_by_term_id_and_curve_id(
@@ -64,7 +63,7 @@ impl VaultOrigin {
             return Ok(existing);
         }
 
-        debug!("Creating new term and vault for term_id: {}", term_id);
+        debug!("Creating new term and vault for term_id: {:?}", term_id);
 
         get_or_create_term(
             &event,
@@ -105,10 +104,11 @@ impl VaultOrigin {
         block_timestamp: i64,
         decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<TripleTerm, ConsumerError> {
-        let counter_vault_id =
-            U256Wrapper::from(get_counter_vault_id(event.term_id()?.try_into()?));
+        let counter_vault_id = decoded_consumer_context
+            .get_counter_id_from_triple(event.term_id()?.into())
+            .await?;
         let triple_term = TripleTerm::find_by_id(
-            event.term_id()?,
+            event.term_id()?.into(),
             &decoded_consumer_context.backend_schema,
             &decoded_consumer_context.pg_pool,
         )
@@ -149,11 +149,12 @@ impl VaultOrigin {
         tx: &DecodedMessage,
         block_timestamp: i64,
     ) -> Result<TripleVault, ConsumerError> {
-        let counter_vault_id =
-            U256Wrapper::from(get_counter_vault_id(event.term_id()?.try_into()?));
+        let counter_vault_id = decoded_consumer_context
+            .get_counter_id_from_triple(event.term_id()?.into())
+            .await?;
 
         let triple_vault = TripleVault::find_by_id(
-            event.term_id()?,
+            event.term_id()?.into(),
             &decoded_consumer_context.backend_schema,
             &decoded_consumer_context.pg_pool,
         )
@@ -201,11 +202,11 @@ impl VaultOrigin {
         event: &impl SharePriceEvent,
         context: &DecodedConsumerContext,
         tx: &DecodedMessage,
-        custom_term_id: Option<U256Wrapper>,
+        custom_term_id: Option<FixedBytesWrapper>,
     ) -> Result<Vault, ConsumerError> {
         let term_id = match custom_term_id {
             Some(term_id) => term_id,
-            None => event.term_id()?,
+            None => FixedBytesWrapper::from(event.term_id()?),
         };
         let curve_id = event.curve_id()?;
         let block_number = tx.block_number;
@@ -269,7 +270,7 @@ async fn update_unknown_account_or_create_account_and_enqueue_resolver_message(
 /// This function updates an account with an atom ID and enqueues a resolver message
 pub async fn update_account_with_atom_id(
     account: &mut Account,
-    atom_id: U256Wrapper,
+    atom_id: FixedBytesWrapper,
     decoded_consumer_context: &DecodedConsumerContext,
 ) -> Result<(), ConsumerError> {
     account.atom_id = Some(atom_id);
@@ -328,7 +329,7 @@ pub async fn get_or_create_account(
 /// This function gets or creates a term. We receive the term_id separately to handle counter vaults
 pub async fn get_or_create_term(
     event: &impl SharePriceEvent,
-    term_id: Option<U256Wrapper>,
+    term_id: Option<FixedBytesWrapper>,
     decoded_consumer_context: &DecodedConsumerContext,
     term_type: TermType,
     block_timestamp: i64,
@@ -337,7 +338,7 @@ pub async fn get_or_create_term(
 
     let term_id = match term_id {
         Some(term_id) => term_id,
-        None => event.term_id()?,
+        None => FixedBytesWrapper::from(event.term_id()?),
     };
 
     let term = Term::find_by_id(
@@ -372,7 +373,10 @@ pub async fn get_or_create_term(
                 .await
                 .map_err(ConsumerError::ModelError)
         } else if let TermType::CounterTriple = term_type {
-            let triple_id = U256Wrapper::from(get_absolute_triple_id(term_id.clone().try_into()?));
+            let triple_id = decoded_consumer_context
+                .base_client
+                .get_id_from_counter_id(term_id.clone())
+                .await?;
             term.triple_id(triple_id)
                 .build()
                 .upsert(

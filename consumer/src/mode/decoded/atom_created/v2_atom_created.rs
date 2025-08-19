@@ -1,12 +1,16 @@
+use alloy::primitives::FixedBytes;
+use models::{
+    account::AccountType,
+    position::Position,
+    share_price_change::SharePriceChange,
+    types::{FixedBytesWrapper, U256Wrapper},
+};
 use std::str::FromStr;
 
-use alloy::primitives::Uint;
-use models::{account::AccountType, position::Position, types::U256Wrapper};
-
 use crate::{
-    EthMultiVault::AtomCreated,
     error::ConsumerError,
     mode::{types::DecodedConsumerContext, utils::short_id},
+    supported_contracts::v2_contract::Multivault::AtomCreated,
     traits::{AccountManager, SharePriceEvent, VaultManager},
 };
 
@@ -42,8 +46,8 @@ impl AccountManager for &AtomCreated {
 /// This impl is used to convert the `AtomCreated` event into a `VaultManager`
 /// and we can use the general vault creation logic for this.
 impl VaultManager for &AtomCreated {
-    fn term_id(&self) -> Result<U256Wrapper, ConsumerError> {
-        Ok(U256Wrapper::from(self.vaultID))
+    fn term_id(&self) -> Result<FixedBytes<32>, ConsumerError> {
+        Ok(self.termId)
     }
 
     fn curve_id(&self) -> Result<U256Wrapper, ConsumerError> {
@@ -53,33 +57,39 @@ impl VaultManager for &AtomCreated {
     async fn total_shares(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
-        block_number: i64,
+        _block_number: i64,
     ) -> Result<U256Wrapper, ConsumerError> {
-        Ok(decoded_consumer_context
-            .fetch_total_shares_and_assets_in_vault(self.vaultID, block_number)
-            .await?
-            .0
-            .into())
+        Ok(SharePriceChange::fetch_current_share_price(
+            FixedBytesWrapper::from(self.termId),
+            U256Wrapper::from_str("1")?,
+            &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
+        )
+        .await?
+        .total_shares)
     }
 
     async fn current_share_price(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
-        block_number: i64,
+        _block_number: i64,
     ) -> Result<U256Wrapper, ConsumerError> {
-        Ok(decoded_consumer_context
-            .fetch_current_share_price(self.vaultID, block_number)
-            .await?
-            .into())
+        Ok(SharePriceChange::fetch_current_share_price(
+            FixedBytesWrapper::from(self.termId),
+            U256Wrapper::from_str("1")?,
+            &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
+        )
+        .await?
+        .share_price)
     }
 
     async fn position_count(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<i32, ConsumerError> {
-        Ok(Position::count_by_vault_and_curve(
-            self.vaultID.into(),
-            U256Wrapper::from_str("1")?,
+        Ok(Position::count_by_term_id(
+            FixedBytesWrapper::from(self.termId),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
@@ -94,9 +104,5 @@ impl AtomCreatedEvent for &AtomCreated {
 
     fn creator_id(&self) -> Result<String, ConsumerError> {
         Ok(self.creator.to_string())
-    }
-
-    fn vault_id(&self) -> Result<Uint<256, 4>, ConsumerError> {
-        Ok(self.vaultID)
     }
 }

@@ -1,7 +1,7 @@
 use crate::{
     error::ModelError,
     traits::{Model, SimpleCrud},
-    types::U256Wrapper,
+    types::{FixedBytesWrapper, U256Wrapper},
 };
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
@@ -10,7 +10,7 @@ use sqlx::{Executor, PgPool, Postgres, Result};
 #[derive(Debug, sqlx::FromRow, Builder)]
 pub struct SharePriceChange {
     pub id: i64,
-    pub term_id: U256Wrapper,
+    pub term_id: FixedBytesWrapper,
     pub curve_id: U256Wrapper,
     pub share_price: U256Wrapper,
     pub total_assets: U256Wrapper,
@@ -25,7 +25,7 @@ pub struct SharePriceChange {
 /// This struct is used to create a new share price change.
 #[derive(Debug, Builder)]
 pub struct SharePriceChangeInternal {
-    pub term_id: U256Wrapper,
+    pub term_id: FixedBytesWrapper,
     pub curve_id: U256Wrapper,
     pub share_price: U256Wrapper,
     pub total_assets: U256Wrapper,
@@ -84,7 +84,7 @@ impl SimpleCrud<U256Wrapper> for SharePriceChange {
 
         sqlx::query_as::<_, Self>(&query)
             .bind(self.id)
-            .bind(self.term_id.to_big_decimal()?)
+            .bind(self.term_id.0.as_slice())
             .bind(self.curve_id.to_big_decimal()?)
             .bind(self.share_price.to_big_decimal()?)
             .bind(self.total_assets.to_big_decimal()?)
@@ -160,7 +160,7 @@ impl SharePriceChange {
         );
 
         sqlx::query_as::<_, SharePriceChange>(&query)
-            .bind(share_price_change.term_id.to_big_decimal()?)
+            .bind(share_price_change.term_id.0.as_slice())
             .bind(share_price_change.curve_id.to_big_decimal()?)
             .bind(share_price_change.share_price.to_big_decimal()?)
             .bind(share_price_change.total_assets.to_big_decimal()?)
@@ -175,7 +175,7 @@ impl SharePriceChange {
     }
 
     pub async fn fetch_current_share_price(
-        vault_id: U256Wrapper,
+        term_id: FixedBytesWrapper,
         curve_id: U256Wrapper,
         pool: &PgPool,
         schema: &str,
@@ -191,7 +191,7 @@ impl SharePriceChange {
         );
 
         sqlx::query_as::<_, SharePriceChange>(&query)
-            .bind(vault_id.to_big_decimal()?)
+            .bind(term_id.0.as_slice())
             .bind(curve_id.to_big_decimal()?)
             .fetch_one(pool)
             .await
@@ -201,8 +201,8 @@ impl SharePriceChange {
     /// This function fetches the latest share price change for each curve per term
     /// and counter vault.
     pub async fn fetch_latest_triple_shares_per_terms(
-        vault_id: U256Wrapper,
-        counter_vault_id: U256Wrapper,
+        term_id: FixedBytesWrapper,
+        counter_vault_id: FixedBytesWrapper,
         pool: &PgPool,
         schema: &str,
     ) -> Result<Vec<SharePriceChange>, ModelError> {
@@ -217,8 +217,8 @@ impl SharePriceChange {
         );
 
         sqlx::query_as::<_, SharePriceChange>(&query)
-            .bind(vault_id.to_big_decimal()?)
-            .bind(counter_vault_id.to_big_decimal()?)
+            .bind(term_id.0.as_slice())
+            .bind(counter_vault_id.0.as_slice())
             .fetch_all(pool)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
@@ -227,8 +227,8 @@ impl SharePriceChange {
     /// This function fetches the latest share price change for each curve per term
     /// and counter vault and curve.
     pub async fn fetch_latest_triple_shares_per_terms_and_curve(
-        vault_id: U256Wrapper,
-        counter_vault_id: U256Wrapper,
+        term_id: FixedBytesWrapper,
+        counter_vault_id: FixedBytesWrapper,
         curve_id: U256Wrapper,
         pool: &PgPool,
         schema: &str,
@@ -244,8 +244,8 @@ impl SharePriceChange {
         );
 
         sqlx::query_as::<_, SharePriceChange>(&query)
-            .bind(vault_id.to_big_decimal()?)
-            .bind(counter_vault_id.to_big_decimal()?)
+            .bind(term_id.0.as_slice())
+            .bind(counter_vault_id.0.as_slice())
             .bind(curve_id.to_big_decimal()?)
             .fetch_all(pool)
             .await
@@ -298,7 +298,7 @@ impl SharePriceChange {
         );
 
         sqlx::query_as::<_, SharePriceChange>(&query)
-            .bind(share_price_change.term_id.to_big_decimal()?)
+            .bind(share_price_change.term_id.0.as_slice())
             .bind(share_price_change.curve_id.to_big_decimal()?)
             .bind(share_price_change.share_price.to_big_decimal()?)
             .bind(share_price_change.total_assets.to_big_decimal()?)

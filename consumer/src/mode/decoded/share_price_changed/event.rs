@@ -4,6 +4,7 @@ use crate::{
     schemas::types::DecodedMessage,
     traits::{SharePriceEvent, VaultManager},
 };
+use alloy::primitives::FixedBytes;
 use models::{
     share_price_change::{SharePriceChange, SharePriceChangeInternal},
     types::U256Wrapper,
@@ -13,7 +14,7 @@ use tracing::info;
 /// This trait represents a share price changed event
 pub trait SharePriceChangedEvent: SharePriceEvent + VaultManager + Clone {
     /// This function returns the term ID
-    fn term_id(&self) -> Result<U256Wrapper, ConsumerError>;
+    fn term_id(&self) -> Result<FixedBytes<32>, ConsumerError>;
     /// This function returns the new share price
     fn new_share_price(&self) -> Result<U256Wrapper, ConsumerError>;
     /// This function returns the total assets

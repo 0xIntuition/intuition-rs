@@ -6,7 +6,7 @@ use std::{
 };
 
 use crate::error::ModelError;
-use alloy::primitives::U256;
+use alloy::primitives::{FixedBytes, U256};
 use serde::{Deserialize, Serialize};
 use sqlx::{
     encode::IsNull,
@@ -14,6 +14,39 @@ use sqlx::{
     types::BigDecimal,
     Encode, Postgres, Result, Type,
 };
+
+/// This is a wrapper around the `U256` type to be able to use it with
+/// the `sqlx` library.
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Serialize, Deserialize)]
+pub struct FixedBytesWrapper(pub FixedBytes<32>);
+
+impl From<FixedBytes<32>> for FixedBytesWrapper {
+    fn from(value: FixedBytes<32>) -> Self {
+        FixedBytesWrapper(value)
+    }
+}
+
+impl From<FixedBytesWrapper> for FixedBytes<32> {
+    fn from(value: FixedBytesWrapper) -> Self {
+        value.0
+    }
+}
+
+impl FromStr for FixedBytesWrapper {
+    type Err = ModelError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(FixedBytesWrapper(
+            FixedBytes::from_str(s).map_err(|e| ModelError::ConversionError(e.to_string()))?,
+        ))
+    }
+}
+
+impl Display for FixedBytesWrapper {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 
 /// This is a wrapper around the `U256` type to be able to use it with
 /// the `sqlx` library.
@@ -201,5 +234,44 @@ impl<'r> sqlx::Decode<'r, Postgres> for U256Wrapper {
         let u256 = U256::from_str(&bd.to_string()).map_err(|e| sqlx::Error::Decode(Box::new(e)))?;
         // Wrap the parsed `U256` in `U256Wrapper` and return.
         Ok(U256Wrapper(u256))
+    }
+}
+
+/// This is a method to return the type info for the `FixedBytesWrapper` type.
+/// This is necessary because the `sqlx` library needs to know the type
+/// of the column to be able to convert it to the correct type.
+impl Type<Postgres> for FixedBytesWrapper {
+    fn type_info() -> PgTypeInfo {
+        PgTypeInfo::with_name("bytea")
+    }
+}
+
+/// This is a method to encode the `FixedBytesWrapper` type to a `PgArgumentBuffer`
+/// type. This is necessary because the `sqlx` library needs to be able to
+/// convert the type to the correct one.
+impl Encode<'_, Postgres> for FixedBytesWrapper {
+    fn encode_by_ref(&self, buf: &mut PgArgumentBuffer) -> IsNull {
+        <&[u8] as Encode<Postgres>>::encode(self.0.as_slice(), buf)
+    }
+}
+
+/// This is a method to decode the `FixedBytesWrapper` type from a `PgValueRef`
+/// type. This is necessary because the `sqlx` library needs to be able to
+/// convert the type to the correct one.
+/// Implements the `Decode` trait for `FixedBytesWrapper` to enable decoding from PostgreSQL.
+/// This allows `sqlx` to correctly deserialize `bytea` types into `FixedBytesWrapper`.
+impl<'r> sqlx::Decode<'r, Postgres> for FixedBytesWrapper {
+    fn decode(
+        value: PgValueRef<'r>,
+    ) -> Result<Self, Box<dyn std::error::Error + 'static + Send + Sync>> {
+        // First, decode the value as bytes.
+        let bytes: &[u8] = <&[u8] as sqlx::Decode<Postgres>>::decode(value)?;
+
+        // Convert to FixedBytes<32>
+        let fixed_bytes =
+            FixedBytes::try_from(bytes).map_err(|e| sqlx::Error::Decode(Box::new(e)))?;
+
+        // Wrap the parsed `FixedBytes<32>` in `FixedBytesWrapper` and return.
+        Ok(FixedBytesWrapper(fixed_bytes))
     }
 }

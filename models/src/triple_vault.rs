@@ -1,7 +1,7 @@
 use crate::{
     error::ModelError,
     traits::{Model, SimpleCrud},
-    types::U256Wrapper,
+    types::{FixedBytesWrapper, U256Wrapper},
 };
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
@@ -11,8 +11,8 @@ use sqlx::{Executor, Postgres, Result};
 #[derive(Debug, sqlx::FromRow, Builder)]
 #[sqlx(type_name = "triple_vault")]
 pub struct TripleVault {
-    pub term_id: U256Wrapper,
-    pub counter_term_id: U256Wrapper,
+    pub term_id: FixedBytesWrapper,
+    pub counter_term_id: FixedBytesWrapper,
     pub curve_id: U256Wrapper,
     pub total_shares: U256Wrapper,
     pub total_assets: U256Wrapper,
@@ -28,7 +28,7 @@ impl Model for TripleVault {}
 
 /// This trait works as a contract for all models that need to be upserted into the database.
 #[async_trait]
-impl SimpleCrud<U256Wrapper> for TripleVault {
+impl SimpleCrud<FixedBytesWrapper> for TripleVault {
     /// This method upserts a triple vault into the database.
     async fn upsert<'e, E>(&self, schema: &str, executor: E) -> Result<Self, ModelError>
     where
@@ -71,8 +71,8 @@ impl SimpleCrud<U256Wrapper> for TripleVault {
         );
 
         sqlx::query_as::<_, TripleVault>(&query)
-            .bind(self.term_id.to_big_decimal()?)
-            .bind(self.counter_term_id.to_big_decimal()?)
+            .bind(self.term_id.0.as_slice())
+            .bind(self.counter_term_id.0.as_slice())
             .bind(self.curve_id.to_big_decimal()?)
             .bind(self.total_shares.to_big_decimal()?)
             .bind(self.total_assets.to_big_decimal()?)
@@ -88,7 +88,7 @@ impl SimpleCrud<U256Wrapper> for TripleVault {
 
     /// Finds a vault by its id.
     async fn find_by_id<'e, E>(
-        term_id: U256Wrapper,
+        term_id: FixedBytesWrapper,
         schema: &str,
         executor: E,
     ) -> Result<Option<Self>, ModelError>
@@ -115,7 +115,7 @@ impl SimpleCrud<U256Wrapper> for TripleVault {
         );
 
         sqlx::query_as::<_, TripleVault>(&query)
-            .bind(term_id.to_big_decimal()?)
+            .bind(term_id.0.as_slice())
             .fetch_optional(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
@@ -150,7 +150,7 @@ impl TripleVault {
 
     /// Finds a vault by its id.
     pub async fn find_by_term_id_and_counter_term_id<'e, E>(
-        term_id: U256Wrapper,
+        term_id: FixedBytesWrapper,
         schema: &str,
         executor: E,
     ) -> Result<Option<Self>, ModelError>
@@ -177,7 +177,7 @@ impl TripleVault {
         );
 
         sqlx::query_as::<_, TripleVault>(&query)
-            .bind(term_id.to_big_decimal()?)
+            .bind(term_id.0.as_slice())
             .fetch_optional(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))

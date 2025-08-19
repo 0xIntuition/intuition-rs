@@ -1,7 +1,7 @@
 use crate::{
     error::ModelError,
     traits::{Model, SimpleCrud},
-    types::U256Wrapper,
+    types::{FixedBytesWrapper, U256Wrapper},
 };
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
@@ -11,12 +11,12 @@ use sqlx::{Executor, Postgres, Result};
 #[derive(Debug, sqlx::FromRow, PartialEq, Clone, Builder)]
 #[sqlx(type_name = "triple")]
 pub struct Triple {
-    pub term_id: U256Wrapper,
+    pub term_id: FixedBytesWrapper,
     pub creator_id: String,
-    pub subject_id: U256Wrapper,
-    pub predicate_id: U256Wrapper,
-    pub object_id: U256Wrapper,
-    pub counter_term_id: U256Wrapper,
+    pub subject_id: FixedBytesWrapper,
+    pub predicate_id: FixedBytesWrapper,
+    pub object_id: FixedBytesWrapper,
+    pub counter_term_id: FixedBytesWrapper,
     pub block_number: U256Wrapper,
     pub created_at: DateTime<Utc>,
     pub transaction_hash: String,
@@ -27,7 +27,7 @@ impl Model for Triple {}
 
 /// This trait works as a contract for all models that need to be upserted into the database.
 #[async_trait]
-impl SimpleCrud<U256Wrapper> for Triple {
+impl SimpleCrud<FixedBytesWrapper> for Triple {
     /// Upserts a triple into the database.
     async fn upsert<'e, E>(&self, schema: &str, executor: E) -> Result<Self, ModelError>
     where
@@ -55,11 +55,11 @@ impl SimpleCrud<U256Wrapper> for Triple {
 
         sqlx::query_as::<_, Triple>(&query)
             .bind(self.creator_id.clone())
-            .bind(self.subject_id.to_big_decimal()?)
-            .bind(self.predicate_id.to_big_decimal()?)
-            .bind(self.object_id.to_big_decimal()?)
-            .bind(self.term_id.to_big_decimal()?)
-            .bind(self.counter_term_id.to_big_decimal()?)
+            .bind(self.subject_id.0.as_slice())
+            .bind(self.predicate_id.0.as_slice())
+            .bind(self.object_id.0.as_slice())
+            .bind(self.term_id.0.as_slice())
+            .bind(self.counter_term_id.0.as_slice())
             .bind(self.block_number.to_big_decimal()?)
             .bind(self.created_at)
             .bind(&self.transaction_hash)
@@ -70,7 +70,7 @@ impl SimpleCrud<U256Wrapper> for Triple {
 
     /// Finds a triple by its id.
     async fn find_by_id<'e, E>(
-        term_id: U256Wrapper,
+        term_id: FixedBytesWrapper,
         schema: &str,
         executor: E,
     ) -> Result<Option<Self>, ModelError>
@@ -96,7 +96,7 @@ impl SimpleCrud<U256Wrapper> for Triple {
         );
 
         sqlx::query_as::<_, Triple>(&query)
-            .bind(term_id.to_big_decimal()?)
+            .bind(term_id.0.as_slice())
             .fetch_optional(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))

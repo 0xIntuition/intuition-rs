@@ -22,8 +22,8 @@ pub fn draw(f: &mut Frame, app: &App, area: Rect) {
             )),
         ]));
 
-        if let Some(event) = aggregates.events.first() {
-            if let Ok(timestamp) = event.block_timestamp.parse::<i64>() {
+        if let Some(event) = aggregates.events.first() 
+        && let Ok(timestamp) = event.block_timestamp.parse::<i64>() {
                 let block_time = match Utc.timestamp_opt(timestamp, 0) {
                     chrono::LocalResult::Single(dt) => dt,
                     _ => Utc::now(),
@@ -41,7 +41,6 @@ pub fn draw(f: &mut Frame, app: &App, area: Rect) {
                     Cell::from(Span::raw(format!("{} - {} ago", formatted_time, elapsed))),
                 ]));
             }
-        }
 
         rows.push(Row::new(vec![
             Cell::from(Span::raw("Accounts")),

@@ -1,7 +1,7 @@
 use crate::{
     error::ModelError,
     traits::{Model, SimpleCrud},
-    types::U256Wrapper,
+    types::FixedBytesWrapper,
 };
 
 use async_trait::async_trait;
@@ -13,7 +13,7 @@ use strum_macros::{Display, EnumString};
 #[sqlx(type_name = "account")]
 pub struct Account {
     pub id: String,
-    pub atom_id: Option<U256Wrapper>,
+    pub atom_id: Option<FixedBytesWrapper>,
     pub label: String,
     pub image: Option<String>,
     pub account_type: AccountType,
@@ -60,7 +60,7 @@ impl SimpleCrud<String> for Account {
 
         sqlx::query_as::<_, Account>(&query)
             .bind(self.id.clone())
-            .bind(self.atom_id.as_ref().and_then(|w| w.to_big_decimal().ok()))
+            .bind(self.atom_id.as_ref().map(|w| w.0.as_slice()))
             .bind(&self.label)
             .bind(&self.image)
             .bind(self.account_type.to_string())

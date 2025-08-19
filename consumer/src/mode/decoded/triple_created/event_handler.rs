@@ -32,7 +32,7 @@ where
 
         // Check if the triple already exists, skip if it does
         match Triple::find_by_id(
-            self.0.vault_id()?.into(),
+            self.0.term_id()?.into(),
             &decoded_consumer_context.backend_schema,
             &decoded_consumer_context.pg_pool,
         )
@@ -80,7 +80,7 @@ where
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
-        let triple_id = self.0.vault_id()?;
+        let triple_id = self.0.term_id()?;
         Event::builder()
             .id(DecodedMessage::event_id(event))
             .event_type(EventType::TripleCreated)

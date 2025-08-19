@@ -3,17 +3,15 @@ use std::fmt::Display;
 use models::raw_logs::RawLog;
 use serde::{Deserialize, Serialize};
 
-use crate::EthMultiVault::EthMultiVaultEvents;
-use crate::EthMultiVaultV1_5::EthMultiVaultV1_5Events;
 use crate::error::ConsumerError;
 use crate::mode::types::DecodedConsumerContext;
+use crate::supported_contracts::v2_contract::Multivault::MultivaultEvents;
 use crate::traits::EventProcessor;
 
 /// This enum defines the different types of events that can be processed
 #[derive(Debug, Deserialize, Serialize)]
 pub enum ContractEvent {
-    EthMultiVault(EthMultiVaultEvents),
-    EthMultiVaultV1_5(EthMultiVaultV1_5Events),
+    Multivault(MultivaultEvents),
 }
 
 impl ContractEvent {
@@ -23,10 +21,7 @@ impl ContractEvent {
         message: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
         match self {
-            ContractEvent::EthMultiVault(event) => {
-                event.process(decoded_consumer_context, message).await
-            }
-            ContractEvent::EthMultiVaultV1_5(event) => {
+            ContractEvent::Multivault(event) => {
                 event.process(decoded_consumer_context, message).await
             }
         }

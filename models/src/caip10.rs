@@ -1,7 +1,7 @@
 use crate::{
     error::ModelError,
     traits::{Model, SimpleCrud},
-    types::U256Wrapper,
+    types::FixedBytesWrapper,
 };
 use async_trait::async_trait;
 use sqlx::{Executor, Postgres};
@@ -10,7 +10,7 @@ use sqlx::{Executor, Postgres};
 #[derive(Debug, sqlx::FromRow, Builder)]
 #[sqlx(type_name = "caip10")]
 pub struct Caip10 {
-    pub id: U256Wrapper,
+    pub id: FixedBytesWrapper,
     pub namespace: String,
     pub chain_id: i32,
     pub account_address: String,
@@ -20,7 +20,7 @@ pub struct Caip10 {
 impl Model for Caip10 {}
 
 #[async_trait]
-impl SimpleCrud<U256Wrapper> for Caip10 {
+impl SimpleCrud<FixedBytesWrapper> for Caip10 {
     /// Upserts a thing into the database.
     async fn upsert<'e, E>(&self, schema: &str, executor: E) -> Result<Self, ModelError>
     where
@@ -43,7 +43,7 @@ impl SimpleCrud<U256Wrapper> for Caip10 {
         );
 
         sqlx::query_as::<_, Caip10>(&query)
-            .bind(self.id.to_big_decimal()?)
+            .bind(self.id.0.as_slice())
             .bind(self.namespace.clone())
             .bind(self.chain_id)
             .bind(self.account_address.clone())
@@ -54,7 +54,7 @@ impl SimpleCrud<U256Wrapper> for Caip10 {
 
     /// Finds a thing by its id.
     async fn find_by_id<'e, E>(
-        id: U256Wrapper,
+        id: FixedBytesWrapper,
         schema: &str,
         executor: E,
     ) -> Result<Option<Self>, ModelError>
@@ -74,7 +74,7 @@ impl SimpleCrud<U256Wrapper> for Caip10 {
         );
 
         sqlx::query_as::<_, Caip10>(&query)
-            .bind(id.to_big_decimal()?)
+            .bind(id.0.as_slice())
             .fetch_optional(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))

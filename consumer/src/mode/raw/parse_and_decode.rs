@@ -1,7 +1,6 @@
 use crate::{
-    EthMultiVault::EthMultiVaultEvents, EthMultiVaultV1_5::EthMultiVaultV1_5Events,
     config::ContractVersion, error::ConsumerError, mode::types::ConsumerMode,
-    schemas::types::ContractEvent,
+    schemas::types::ContractEvent, supported_contracts::v2_contract::Multivault::MultivaultEvents,
 };
 use alloy::{primitives::B256, sol_types::SolEventInterface};
 use std::str::FromStr;
@@ -33,12 +32,8 @@ impl ConsumerMode {
         let data = Self::parse_raw_data(data).await?;
 
         Ok(match contract_version {
-            ContractVersion::V1 => ContractEvent::EthMultiVault(
-                EthMultiVaultEvents::decode_raw_log(&topics, &data)
-                    .map_err(|e| ConsumerError::LogDecodingError(e.to_string()))?,
-            ),
-            ContractVersion::V1_5 => ContractEvent::EthMultiVaultV1_5(
-                EthMultiVaultV1_5Events::decode_raw_log(&topics, &data)
+            ContractVersion::V2 => ContractEvent::Multivault(
+                MultivaultEvents::decode_raw_log(&topics, &data)
                     .map_err(|e| ConsumerError::LogDecodingError(e.to_string()))?,
             ),
         })

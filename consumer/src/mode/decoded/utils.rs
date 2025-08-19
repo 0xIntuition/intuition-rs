@@ -1,15 +1,13 @@
 use std::fmt::Debug;
 
 use crate::{
-    config::ContractVersion,
     error::ConsumerError,
     mode::{types::DecodedConsumerContext, utils::VaultOrigin},
     schemas::types::DecodedMessage,
     traits::SharePriceEvent,
 };
-use alloy::primitives::{U256, Uint};
 use chrono::{DateTime, Utc};
-use models::{term::TermType, traits::SimpleCrud, types::U256Wrapper, vault::Vault};
+use models::{term::TermType, traits::SimpleCrud, types::FixedBytesWrapper, vault::Vault};
 use tracing::debug;
 
 /// This function gets the block timestamp from the block number
@@ -17,64 +15,6 @@ pub fn get_block_timestamp(block_timestamp: i64) -> Result<DateTime<Utc>, Consum
     DateTime::<Utc>::from_timestamp(block_timestamp, 0).ok_or(ConsumerError::BlockTimestampError(
         "Invalid block timestamp".to_string(),
     ))
-}
-
-/// This struct represents the vault info, used to update the vault values
-/// in the v1 contracts. The values are fetched from the RPC and used to
-/// update the vault values in the database. For v1.5 contracts we don't
-/// need to fetch the values from the RPC, since we have share price changed
-/// events that update the vault values.
-pub struct VaultInfo {
-    pub current_share_price: U256Wrapper,
-    pub total_shares: U256Wrapper,
-    pub total_assets: U256Wrapper,
-}
-
-impl VaultInfo {
-    pub async fn new(
-        current_share_price: Uint<256, 4>,
-        total_shares: Uint<256, 4>,
-        total_assets: Uint<256, 4>,
-    ) -> Result<Self, ConsumerError> {
-        Ok(Self {
-            current_share_price: current_share_price.into(),
-            total_shares: total_shares.into(),
-            total_assets: total_assets.into(),
-        })
-    }
-    /// This function updates the vault with the new total assets. This function is used
-    /// only for v1 contracts, which means we have a single vault per term.
-    pub async fn update_vault(
-        &self,
-        vault_id: Uint<256, 4>,
-        decoded_consumer_context: &DecodedConsumerContext,
-        event: &DecodedMessage,
-    ) -> Result<(), ConsumerError> {
-        // Update vault
-        let mut vault = Vault::find_by_id(
-            vault_id.into(),
-            &decoded_consumer_context.backend_schema,
-            &decoded_consumer_context.pg_pool,
-        )
-        .await?
-        .ok_or(ConsumerError::VaultNotFound(vault_id.to_string()))?;
-        // Update regular fields
-        vault.current_share_price = self.current_share_price.clone();
-        vault.market_cap = self.total_shares.clone() * self.current_share_price.clone()
-            / U256Wrapper::from(U256::from(10).pow(U256::from(18)));
-        vault.total_shares = self.total_shares.clone();
-        vault.total_assets = self.total_assets.clone();
-        vault.block_number = event.block_number;
-        vault.log_index = event.log_index;
-        vault.transaction_hash = event.transaction_hash.clone();
-        vault
-            .upsert(
-                &decoded_consumer_context.backend_schema,
-                &decoded_consumer_context.pg_pool,
-            )
-            .await?;
-        Ok(())
-    }
 }
 
 /// This trait represents an event processor. We need to implement this trait for each event type
@@ -92,34 +32,6 @@ pub trait EventHandler: Debug + Sync + Send {
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError>;
-    /// This function gets the current share price and total shares based
-    /// on the contract version
-    async fn get_vault_info(
-        &self,
-        decoded_consumer_context: &DecodedConsumerContext,
-        event: &DecodedMessage,
-        vault_id: Uint<256, 4>,
-    ) -> Result<Option<VaultInfo>, ConsumerError> {
-        let contract_version = decoded_consumer_context.contract_version.read()?.clone();
-
-        if let ContractVersion::V1 = contract_version {
-            // Fetch the current share price and total shares
-            let current_share_price = decoded_consumer_context
-                .fetch_current_share_price(vault_id, event.block_number)
-                .await?;
-
-            // Fetch the total shares in the vault
-            let (total_shares, total_assets) = decoded_consumer_context
-                .fetch_total_shares_and_assets_in_vault(vault_id, event.block_number)
-                .await?;
-
-            Ok(Some(
-                VaultInfo::new(current_share_price, total_shares, total_assets).await?,
-            ))
-        } else {
-            Ok(None)
-        }
-    }
 }
 
 /// This function gets or creates a vault from a share price changed event
@@ -135,7 +47,7 @@ pub async fn update_vault_from_share_price_changed_events(
     );
 
     let vault = Vault::find_by_term_id_and_curve_id(
-        share_price_changed.term_id()?,
+        FixedBytesWrapper::from(share_price_changed.term_id()?),
         share_price_changed.curve_id()?,
         &decoded_consumer_context.pg_pool,
         &decoded_consumer_context.backend_schema,
@@ -189,97 +101,25 @@ pub async fn update_vault_from_share_price_changed_events(
     Ok(())
 }
 
-/// This function gets the absolute triple ID
-pub fn get_absolute_triple_id(vault_id: U256) -> U256 {
-    let is_counter_vault = is_counter_vault(vault_id);
-    let mut result = vault_id;
-    if is_counter_vault {
-        result = U256::from(2).pow(U256::from(255)) * U256::from(2) - U256::from(1) - vault_id;
-    }
-    result
-}
+#[allow(dead_code)]
+/// Returns the counter id from the triple ID using the same logic as the Solidity contract
+pub fn get_counter_id_from_triple_id(
+    triple_id: FixedBytesWrapper,
+) -> Result<FixedBytesWrapper, ConsumerError> {
+    // COUNTER_SALT constant from Solidity: keccak256("COUNTER_SALT")
+    const COUNTER_SALT: [u8; 32] = [
+        0x0a, 0xf5, 0x08, 0xc5, 0x3f, 0x22, 0xd5, 0xef, 0xcc, 0x69, 0x1d, 0xe6, 0xa5, 0x7e, 0xa3,
+        0x5f, 0x0a, 0xe2, 0xca, 0x09, 0xf7, 0x18, 0xfb, 0xe3, 0x5c, 0x2f, 0xeb, 0x22, 0x2c, 0x8c,
+        0x7a, 0x8f,
+    ];
 
-pub fn is_counter_vault(vault_id: U256) -> bool {
-    let max = U256::from(2).pow(U256::from(255)) - U256::from(1);
-    max < vault_id
-}
+    // Equivalent to abi.encodePacked(COUNTER_SALT, tripleId) in Solidity
+    let mut encoded = Vec::new();
+    encoded.extend_from_slice(&COUNTER_SALT);
+    encoded.extend_from_slice(triple_id.0.as_slice());
 
-/// This function gets the counter vault ID
-pub fn get_counter_vault_id(vault_id: U256) -> U256 {
-    let max = U256::from(2).pow(U256::from(255)) * U256::from(2) - U256::from(1);
-    max - vault_id
-}
+    // Equivalent to keccak256(abi.encodePacked(COUNTER_SALT, tripleId))
+    let hash = alloy::primitives::keccak256(encoded);
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_get_absolute_triple_id_counter_vault() {
-        // Test vault_id: 115792089237316195423570985008687907853269984665640564039457584007913129639931
-        // Should return term_id: 4
-        let vault_id = U256::from_str_radix(
-            "115792089237316195423570985008687907853269984665640564039457584007913129639931",
-            10,
-        )
-        .unwrap();
-
-        let result = get_absolute_triple_id(vault_id);
-        let expected = U256::from(4);
-
-        assert_eq!(
-            result, expected,
-            "get_absolute_triple_id should return 4 for the given counter vault ID"
-        );
-    }
-
-    #[test]
-    fn test_get_absolute_triple_id_regular_vault() {
-        // Test with a regular vault ID (not a counter vault)
-        let vault_id = U256::from(100);
-        let result = get_absolute_triple_id(vault_id);
-
-        assert_eq!(
-            result, vault_id,
-            "get_absolute_triple_id should return the same ID for regular vaults"
-        );
-    }
-
-    #[test]
-    fn test_get_counter_vault_id() {
-        // Test the counter vault ID calculation
-        let vault_id = U256::from(4);
-        let counter_id = get_counter_vault_id(vault_id);
-
-        // The counter vault ID should be the max value minus the original vault ID
-        let max = U256::from(2).pow(U256::from(255)) * U256::from(2) - U256::from(1);
-        let expected = max - vault_id;
-
-        assert_eq!(
-            counter_id, expected,
-            "get_counter_vault_id should return max - vault_id"
-        );
-    }
-
-    #[test]
-    fn test_is_counter_vault() {
-        // Test with the specific counter vault ID that should return true
-        let vault_id = U256::from_str_radix(
-            "115792089237316195423570985008687907853269984665640564039457584007913129639931",
-            10,
-        )
-        .unwrap();
-
-        assert!(
-            is_counter_vault(vault_id),
-            "is_counter_vault should return true for the given counter vault ID"
-        );
-
-        // Test with a regular vault ID that should return false
-        let regular_vault_id = U256::from(100);
-        assert!(
-            !is_counter_vault(regular_vault_id),
-            "is_counter_vault should return false for regular vault IDs"
-        );
-    }
+    Ok(FixedBytesWrapper::from(hash))
 }

@@ -1,27 +1,33 @@
+use std::str::FromStr;
+
+use super::event::TripleCreatedEvent;
 use crate::{
-    EthMultiVaultV1_5::Deposited,
     error::ConsumerError,
     mode::{types::DecodedConsumerContext, utils::VaultOrigin},
+    supported_contracts::v2_contract::Multivault::TripleCreated,
     traits::{
         SharePriceEvent, TripleAggregate, TripleTermManager, TripleVaultManager, VaultManager,
     },
 };
-use alloy::primitives::Uint;
+use alloy::primitives::FixedBytes;
 use models::{
-    position::Position, share_price_change::SharePriceChange, types::U256Wrapper, vault::Vault,
+    position::Position,
+    share_price_change::SharePriceChange,
+    types::{FixedBytesWrapper, U256Wrapper},
+    vault::Vault,
 };
-use std::str::FromStr;
 
-use super::event::DepositedEvent;
+/// This impl is used to convert the `TripleCreated` event into a `SharePriceEvent`
+impl SharePriceEvent for &TripleCreated {}
 
-impl TripleTermManager for &Deposited {
+impl TripleTermManager for &TripleCreated {
     async fn triple_aggregate(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
-        counter_vault_id: U256Wrapper,
+        counter_vault_id: FixedBytesWrapper,
     ) -> Result<TripleAggregate, ConsumerError> {
         let shares = SharePriceChange::fetch_latest_triple_shares_per_terms(
-            self.vaultId.into(),
+            self.termId.into(),
             counter_vault_id.clone(),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
@@ -35,7 +41,7 @@ impl TripleTermManager for &Deposited {
             .map(|s| VaultOrigin::compute_market_cap(s.total_shares.clone(), s.share_price.clone()))
             .sum();
         let total_position_count = Vault::sum_position_count(
-            self.vaultId.into(),
+            self.termId.into(),
             counter_vault_id,
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
@@ -51,15 +57,15 @@ impl TripleTermManager for &Deposited {
     }
 }
 
-impl TripleVaultManager for &Deposited {
+impl TripleVaultManager for &TripleCreated {
     async fn triple_vault_aggregate(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
-        counter_vault_id: U256Wrapper,
+        counter_vault_id: FixedBytesWrapper,
         curve_id: U256Wrapper,
     ) -> Result<TripleAggregate, ConsumerError> {
         let shares = SharePriceChange::fetch_latest_triple_shares_per_terms_and_curve(
-            self.vaultId.into(),
+            self.termId.into(),
             counter_vault_id.clone(),
             curve_id.clone(),
             &decoded_consumer_context.pg_pool,
@@ -74,7 +80,7 @@ impl TripleVaultManager for &Deposited {
             .map(|s| VaultOrigin::compute_market_cap(s.total_shares.clone(), s.share_price.clone()))
             .sum();
         let positions = Position::count_by_triple(
-            self.vaultId.into(),
+            self.termId.into(),
             counter_vault_id,
             curve_id,
             &decoded_consumer_context.pg_pool,
@@ -95,11 +101,11 @@ impl TripleVaultManager for &Deposited {
     async fn position_aggregate(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
-        counter_vault_id: U256Wrapper,
+        counter_vault_id: FixedBytesWrapper,
         curve_id: U256Wrapper,
     ) -> Result<i64, ConsumerError> {
         let positions = Position::count_by_triple(
-            self.vaultId.into(),
+            self.termId.into(),
             counter_vault_id,
             curve_id,
             &decoded_consumer_context.pg_pool,
@@ -111,13 +117,14 @@ impl TripleVaultManager for &Deposited {
     }
 }
 
-impl VaultManager for &Deposited {
-    fn term_id(&self) -> Result<U256Wrapper, ConsumerError> {
-        Ok(U256Wrapper::from(self.vaultId))
+/// This impl is used to convert the `TripleCreated` event into a `VaultManager`
+impl VaultManager for &TripleCreated {
+    fn term_id(&self) -> Result<FixedBytes<32>, ConsumerError> {
+        Ok(self.termId)
     }
 
     fn curve_id(&self) -> Result<U256Wrapper, ConsumerError> {
-        Ok(U256Wrapper::from_str("1")?)
+        Ok(1.try_into()?)
     }
 
     async fn total_shares(
@@ -126,8 +133,8 @@ impl VaultManager for &Deposited {
         _block_number: i64,
     ) -> Result<U256Wrapper, ConsumerError> {
         Ok(SharePriceChange::fetch_current_share_price(
-            self.vaultId.into(),
-            1.try_into()?,
+            FixedBytesWrapper::from(self.termId),
+            U256Wrapper::from_str("1")?,
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
@@ -141,8 +148,8 @@ impl VaultManager for &Deposited {
         _block_number: i64,
     ) -> Result<U256Wrapper, ConsumerError> {
         Ok(SharePriceChange::fetch_current_share_price(
-            self.vaultId.into(),
-            1.try_into()?,
+            FixedBytesWrapper::from(self.termId),
+            U256Wrapper::from_str("1")?,
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
@@ -154,9 +161,8 @@ impl VaultManager for &Deposited {
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<i32, ConsumerError> {
-        Ok(Position::count_by_vault_and_curve(
-            self.vaultId.into(),
-            "1".try_into()?,
+        Ok(Position::count_by_term_id(
+            self.termId.into(),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
@@ -164,42 +170,20 @@ impl VaultManager for &Deposited {
     }
 }
 
-/// This impl is used to convert the `DepositedV1_5` event into a `SharePriceEvent`
-impl SharePriceEvent for &Deposited {
-    fn total_assets(&self) -> Result<U256Wrapper, ConsumerError> {
-        Ok(self.senderAssetsAfterTotalFees.into())
+impl TripleCreatedEvent for &TripleCreated {
+    fn creator_id(&self) -> Result<String, ConsumerError> {
+        Ok(self.creator.to_string())
     }
-}
 
-impl DepositedEvent for &Deposited {
-    fn sender(&self) -> Result<String, ConsumerError> {
-        Ok(self.sender.to_string())
+    fn subject_id(&self) -> Result<FixedBytesWrapper, ConsumerError> {
+        Ok(FixedBytesWrapper::from(self.subjectId))
     }
-    fn receiver(&self) -> Result<String, ConsumerError> {
-        Ok(self.receiver.to_string())
+
+    fn predicate_id(&self) -> Result<FixedBytesWrapper, ConsumerError> {
+        Ok(FixedBytesWrapper::from(self.predicateId))
     }
-    fn receiver_total_shares_in_vault(&self) -> Result<Uint<256, 4>, ConsumerError> {
-        Ok(self.receiverTotalSharesInVault)
-    }
-    fn vault_id(&self) -> Result<Uint<256, 4>, ConsumerError> {
-        Ok(self.vaultId)
-    }
-    fn is_triple(&self) -> Result<bool, ConsumerError> {
-        Ok(self.isTriple)
-    }
-    fn is_atom_wallet(&self) -> Result<bool, ConsumerError> {
-        Ok(self.isAtomWallet)
-    }
-    fn entry_fee(&self) -> Result<Uint<256, 4>, ConsumerError> {
-        Ok(self.entryFee)
-    }
-    fn sender_assets_after_total_fees(&self) -> Result<Uint<256, 4>, ConsumerError> {
-        Ok(self.senderAssetsAfterTotalFees)
-    }
-    fn shares_for_receiver(&self) -> Result<Uint<256, 4>, ConsumerError> {
-        Ok(self.sharesForReceiver)
-    }
-    fn curve_id(&self) -> Result<Uint<256, 4>, ConsumerError> {
-        Ok(Uint::from(1))
+
+    fn object_id(&self) -> Result<FixedBytesWrapper, ConsumerError> {
+        Ok(FixedBytesWrapper::from(self.objectId))
     }
 }

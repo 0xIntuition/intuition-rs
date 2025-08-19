@@ -17,7 +17,7 @@ use models::{
     account::Account,
     atom::{Atom, AtomType},
     traits::SimpleCrud,
-    types::U256Wrapper,
+    types::FixedBytesWrapper,
 };
 use serde::{Deserialize, Serialize};
 use sqlx::{Postgres, Transaction};
@@ -123,7 +123,7 @@ impl ResolverMessageType {
                     .env
                     .backend_schema,
                 &mut tx,
-                &U256Wrapper::from_str(atom_id)?,
+                &FixedBytesWrapper::from_str(atom_id)?,
             )
             .await?;
         }
@@ -139,7 +139,7 @@ impl ResolverMessageType {
         tx: &mut Transaction<'_, Postgres>,
     ) -> Result<AtomMetadata, ConsumerError> {
         let atom = Atom::find_by_id(
-            U256Wrapper::from_str(atom_id)?,
+            FixedBytesWrapper::from_str(atom_id)?,
             &resolver_consumer_context
                 .server_initialize
                 .env
@@ -234,7 +234,7 @@ impl ResolverMessageType {
         tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Atom, ConsumerError> {
         let atom = Atom::find_by_id(
-            atom_id.try_into()?,
+            FixedBytesWrapper::from_str(atom_id)?,
             &resolver_consumer_context
                 .server_initialize
                 .env
@@ -277,7 +277,7 @@ impl ResolverMessageType {
         &self,
         backend_schema: &str,
         tx: &mut Transaction<'_, Postgres>,
-        atom_id: &U256Wrapper,
+        atom_id: &FixedBytesWrapper,
     ) -> Result<(), ConsumerError> {
         let atom = Atom::find_by_id(atom_id.clone(), backend_schema, tx.as_mut())
             .await?
@@ -317,7 +317,7 @@ impl ResolverMessageType {
     async fn update_atom_metadata(
         &self,
         resolver_consumer_context: &ResolverConsumerContext,
-        atom_id: &U256Wrapper,
+        atom_id: &FixedBytesWrapper,
         ens: Ens,
     ) -> Result<(), ConsumerError> {
         let backend_schema = &resolver_consumer_context

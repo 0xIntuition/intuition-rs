@@ -1,7 +1,7 @@
 use crate::{
     error::ModelError,
     traits::{Model, SimpleCrud},
-    types::U256Wrapper,
+    types::{FixedBytesWrapper, U256Wrapper},
 };
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
@@ -22,11 +22,11 @@ pub enum TermType {
 #[derive(Debug, sqlx::FromRow, Builder)]
 #[sqlx(type_name = "term")]
 pub struct Term {
-    pub id: U256Wrapper,
+    pub id: FixedBytesWrapper,
     #[sqlx(rename = "type")]
     pub term_type: TermType,
-    pub atom_id: Option<U256Wrapper>,
-    pub triple_id: Option<U256Wrapper>,
+    pub atom_id: Option<FixedBytesWrapper>,
+    pub triple_id: Option<FixedBytesWrapper>,
     pub total_assets: U256Wrapper,
     pub total_market_cap: U256Wrapper,
     pub updated_at: DateTime<Utc>,
@@ -36,7 +36,7 @@ impl Model for Term {}
 
 /// This trait works as a contract for all models that need to be upserted into the database.
 #[async_trait]
-impl SimpleCrud<U256Wrapper> for Term {
+impl SimpleCrud<FixedBytesWrapper> for Term {
     /// This method upserts a vault into the database.
     async fn upsert<'e, E>(&self, schema: &str, executor: E) -> Result<Self, ModelError>
     where
@@ -59,14 +59,10 @@ impl SimpleCrud<U256Wrapper> for Term {
         );
 
         sqlx::query_as::<_, Term>(&query)
-            .bind(self.id.to_big_decimal()?)
+            .bind(self.id.0.as_slice())
             .bind(self.term_type.clone())
-            .bind(self.atom_id.as_ref().and_then(|w| w.to_big_decimal().ok()))
-            .bind(
-                self.triple_id
-                    .as_ref()
-                    .and_then(|w| w.to_big_decimal().ok()),
-            )
+            .bind(self.atom_id.as_ref().map(|w| w.0.as_slice()))
+            .bind(self.triple_id.as_ref().map(|w| w.0.as_slice()))
             .bind(self.total_assets.to_big_decimal()?)
             .bind(self.total_market_cap.to_big_decimal()?)
             .bind(self.updated_at)
@@ -77,7 +73,7 @@ impl SimpleCrud<U256Wrapper> for Term {
 
     /// Finds a term by its id.
     async fn find_by_id<'e, E>(
-        term_id: U256Wrapper,
+        term_id: FixedBytesWrapper,
         schema: &str,
         executor: E,
     ) -> Result<Option<Self>, ModelError>
@@ -101,7 +97,7 @@ impl SimpleCrud<U256Wrapper> for Term {
         );
 
         sqlx::query_as::<_, Term>(&query)
-            .bind(term_id.to_big_decimal()?)
+            .bind(term_id.0.as_slice())
             .fetch_optional(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))

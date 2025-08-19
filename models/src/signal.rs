@@ -1,6 +1,6 @@
 use crate::error::ModelError;
 use crate::traits::{Model, SimpleCrud};
-use crate::types::U256Wrapper;
+use crate::types::{FixedBytesWrapper, U256Wrapper};
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use sqlx::{Executor, Postgres};
@@ -14,14 +14,14 @@ pub struct Signal {
     pub id: String,
     pub delta: U256Wrapper,
     pub account_id: String,
-    pub atom_id: Option<U256Wrapper>,
-    pub triple_id: Option<U256Wrapper>,
+    pub atom_id: Option<FixedBytesWrapper>,
+    pub triple_id: Option<FixedBytesWrapper>,
     pub deposit_id: Option<String>,
     pub redemption_id: Option<String>,
     pub block_number: U256Wrapper,
     pub created_at: DateTime<Utc>,
     pub transaction_hash: String,
-    pub term_id: U256Wrapper,
+    pub term_id: FixedBytesWrapper,
     pub curve_id: U256Wrapper,
 }
 
@@ -62,18 +62,14 @@ impl SimpleCrud<String> for Signal {
             .bind(self.id.clone())
             .bind(self.delta.to_big_decimal()?)
             .bind(self.account_id.clone())
-            .bind(self.atom_id.as_ref().and_then(|w| w.to_big_decimal().ok()))
-            .bind(
-                self.triple_id
-                    .as_ref()
-                    .and_then(|w| w.to_big_decimal().ok()),
-            )
+            .bind(self.atom_id.as_ref().map(|w| w.0.as_slice()))
+            .bind(self.triple_id.as_ref().map(|w| w.0.as_slice()))
             .bind(self.deposit_id.clone())
             .bind(self.redemption_id.clone())
             .bind(self.block_number.to_big_decimal()?)
             .bind(self.created_at)
             .bind(self.transaction_hash.clone())
-            .bind(self.term_id.to_big_decimal()?)
+            .bind(self.term_id.0.as_slice())
             .bind(self.curve_id.to_big_decimal()?)
             .fetch_one(executor)
             .await

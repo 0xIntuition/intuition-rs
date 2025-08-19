@@ -1,7 +1,7 @@
 use crate::{
     error::ModelError,
     traits::{Model, SimpleCrud},
-    types::U256Wrapper,
+    types::{FixedBytesWrapper, U256Wrapper},
 };
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
@@ -28,8 +28,8 @@ pub enum EventType {
 pub struct Event {
     pub id: String,
     pub event_type: EventType,
-    pub atom_id: Option<U256Wrapper>,
-    pub triple_id: Option<U256Wrapper>,
+    pub atom_id: Option<FixedBytesWrapper>,
+    pub triple_id: Option<FixedBytesWrapper>,
     pub fee_transfer_id: Option<String>,
     pub deposit_id: Option<String>,
     pub redemption_id: Option<String>,
@@ -74,12 +74,8 @@ impl SimpleCrud<String> for Event {
         sqlx::query_as::<_, Event>(&query)
             .bind(self.id.clone())
             .bind(self.event_type.to_string())
-            .bind(self.atom_id.as_ref().and_then(|w| w.to_big_decimal().ok()))
-            .bind(
-                self.triple_id
-                    .as_ref()
-                    .and_then(|w| w.to_big_decimal().ok()),
-            )
+            .bind(self.atom_id.as_ref().map(|w| w.0.as_slice()))
+            .bind(self.triple_id.as_ref().map(|w| w.0.as_slice()))
             .bind(self.fee_transfer_id.clone())
             .bind(self.deposit_id.clone())
             .bind(self.redemption_id.clone())

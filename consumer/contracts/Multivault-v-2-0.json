@@ -3004,6 +3004,11 @@
   },
   {
     "type": "error",
+    "name": "MultiVault_ActionExceedsMaxAssets",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "MultiVault_ArraysNotSameLength",
     "inputs": []
   },

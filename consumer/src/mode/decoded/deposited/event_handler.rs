@@ -8,10 +8,10 @@ use crate::{
     schemas::types::DecodedMessage,
 };
 use models::{
-    deposit::Deposit,
+    deposit::{Deposit, VaultType},
     event::{Event, EventType},
     traits::SimpleCrud,
-    types::U256Wrapper,
+    types::{FixedBytesWrapper, U256Wrapper},
 };
 use std::fmt::Debug;
 use tracing::info;
@@ -54,16 +54,6 @@ where
             .initialize_accounts_and_vault(decoded_consumer_context, event)
             .await?;
 
-        // This is only for V1, we need to fetch the data from the RPC before
-        // starting the transaction
-        let vault_info = self
-            .get_vault_info(
-                decoded_consumer_context,
-                event,
-                vault.term_id.clone().try_into()?,
-            )
-            .await?;
-
         // Create deposit record
         self.0
             .create_deposit(event, decoded_consumer_context)
@@ -72,11 +62,6 @@ where
         // Handle position and related entities
         self.0
             .handle_positions(decoded_consumer_context, event)
-            .await?;
-
-        // Update vault values when dealing with v1 deposit events
-        self.0
-            .update_vault_values(decoded_consumer_context, vault_info, event)
             .await?;
 
         // Create event
@@ -96,7 +81,7 @@ where
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
         // Create the event
-        let event = if self.0.is_triple()? {
+        let event = if self.0.vault_type()? == VaultType::Triple {
             Event::builder()
                 .id(DecodedMessage::event_id(event))
                 .event_type(EventType::Deposited)
@@ -104,7 +89,7 @@ where
                 .block_number(U256Wrapper::try_from(event.block_number)?)
                 .created_at(get_block_timestamp(event.block_timestamp)?)
                 .transaction_hash(event.transaction_hash.clone())
-                .triple_id(U256Wrapper::from(self.0.vault_id()?))
+                .triple_id(FixedBytesWrapper::from(self.0.vault_id()?))
                 .build()
         } else {
             Event::builder()
@@ -114,7 +99,7 @@ where
                 .block_number(U256Wrapper::try_from(event.block_number)?)
                 .created_at(get_block_timestamp(event.block_timestamp)?)
                 .transaction_hash(event.transaction_hash.clone())
-                .atom_id(U256Wrapper::from(self.0.vault_id()?))
+                .atom_id(FixedBytesWrapper::from(self.0.vault_id()?))
                 .build()
         };
 
