@@ -582,11 +582,6 @@
         "internalType": "uint256"
       },
       {
-        "name": "trust",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
         "name": "trustBonding",
         "type": "address",
         "internalType": "address"
@@ -783,11 +778,6 @@
             "name": "feeDenominator",
             "type": "uint256",
             "internalType": "uint256"
-          },
-          {
-            "name": "trust",
-            "type": "address",
-            "internalType": "address"
           },
           {
             "name": "trustBonding",
@@ -1112,11 +1102,6 @@
             "name": "feeDenominator",
             "type": "uint256",
             "internalType": "uint256"
-          },
-          {
-            "name": "trust",
-            "type": "address",
-            "internalType": "address"
           },
           {
             "name": "trustBonding",
@@ -1803,11 +1788,6 @@
             "name": "feeDenominator",
             "type": "uint256",
             "internalType": "uint256"
-          },
-          {
-            "name": "trust",
-            "type": "address",
-            "internalType": "address"
           },
           {
             "name": "trustBonding",
@@ -3019,19 +2999,8 @@
   },
   {
     "type": "error",
-    "name": "MultiVault_AccessControlUnauthorizedAccount",
-    "inputs": [
-      {
-        "name": "account",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "role",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ]
+    "name": "MultiVault_ActionExceedsMaxAssets",
+    "inputs": []
   },
   {
     "type": "error",
