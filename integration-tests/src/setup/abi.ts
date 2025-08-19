@@ -452,6 +452,30 @@ export const abi = [
   },
   {
     "type": "function",
+    "name": "currentSharePrice",
+    "inputs": [
+      {
+        "name": "termId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "curveId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "deposit",
     "inputs": [
       {
@@ -1359,7 +1383,7 @@ export const abi = [
         "internalType": "bytes32"
       },
       {
-        "name": "bondingCurveId",
+        "name": "curveId",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -2676,6 +2700,12 @@ export const abi = [
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
+      },
+      {
+        "name": "vaultType",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "enum IMultiVault.VaultType"
       }
     ],
     "anonymous": false

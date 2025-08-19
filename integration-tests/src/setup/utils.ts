@@ -168,7 +168,6 @@ export async function getIntuition(accountIndex: number) {
     }
   }
 
-  console.log('aaaaaaasssasasas')
   return { multivault, account, getOrCreateAtom, getCreateOrDepositOnTriple }
 }
 
