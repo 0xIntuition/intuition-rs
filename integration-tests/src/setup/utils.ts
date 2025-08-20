@@ -3,10 +3,25 @@ import { baseSepolia } from 'viem/chains'
 import { ADMIN, MNEMONIC } from './constants.js'
 import { getContractAddress } from './deploy.js'
 import { mnemonicToAccount } from 'viem/accounts'
-import { Multivault } from '@0xintuition/protocol'
 import type { TypedDocumentString } from '../graphql/graphql.js'
 import { graphql } from '../graphql/gql.js'
 import { abi } from './abi'
+
+// Convert from "0x..." format to "\\x..." format
+export function oxToBackslashX(oxString: string) {
+  // Remove the "0x" prefix if present
+  const hex = oxString.startsWith('0x') ? oxString.slice(2) : oxString;
+  // Add "\\x" prefix
+  return '\\x' + hex;
+}
+
+// Convert from "\\x..." format to "0x..." format
+export function backslashXToOx(backslashString: string) {
+  // Remove the "\\x" prefix if present
+  const hex = backslashString.startsWith('\\x') ? backslashString.slice(2) : backslashString;
+  // Add "0x" prefix
+  return '0x' + hex;
+}
 
 const local = defineChain({
   id: 1337,
@@ -50,25 +65,18 @@ export async function getIntuition(accountIndex: number) {
   console.log(`Balance: ${parseFloat(formatEther(balance)).toFixed(6)} ETH, account: ${account.address}`)
 
   if (balance.valueOf() < parseEther('0.1').valueOf()) {
-    console.log(`Sending 1 ETH to ${account.address}...`)
+    console.log(`Sending 10 ETH to ${account.address}...`)
 
     // Faucet
     //@ts-ignore
     const hash = await adminClient.sendTransaction({
       account: ADMIN.address,
-      value: parseEther('1'),
+      value: parseEther('10'),
       to: account.address,
     })
 
     await publicClient.waitForTransactionReceipt({ hash })
   }
-
-  const multivault = new Multivault({
-    //@ts-ignore
-    publicClient: publicClient,
-    //@ts-ignore
-    walletClient: wallet
-  }, address)
 
   const contract = getContract({
     address,
@@ -126,7 +134,7 @@ export async function getIntuition(accountIndex: number) {
     } catch { }
     if (atomData !== '0x') {
       console.log(`Atom already exists: ${uri} ${vaultId}`)
-      return { vaultId, hash: null }
+      return { vaultId: vaultId, hash: null }
     } else {
       console.log(`Creating atom: ${uri} ...`)
       const generalConfig = await contract.read.generalConfig()
@@ -146,18 +154,19 @@ export async function getIntuition(accountIndex: number) {
     const initialDeposit = customInitialDeposit ?? BigInt(generalConfig[4])
 
     const tripleId = await contract.read.calculateTripleId([subjectId, predicateId, objectId])
-    let vaultId;
+    let tripleExits = false;
     try {
-      vaultId = await contract.read.getTriple([tripleId])
+      await contract.read.getTriple([tripleId])
+      tripleExits = true
     } catch { }
 
-    if (vaultId) {
+    if (tripleExits) {
       if (initialDeposit) {
         console.log(`Depositing triple: ${subjectId} ${predicateId} ${objectId} ${initialDeposit} ...`)
-        const hash = await contract.write.deposit([wallet.account.address, tripleId, 1n, initialDeposit], { value: initialDeposit })
+        const hash = await contract.write.deposit([wallet.account.address, tripleId, 1n, 0n], { value: initialDeposit })
         await wait(hash)
       }
-      return { vaultId, hash: null }
+      return { vaultId: tripleId, hash: null }
     } else {
       console.log(`Creating triple: ${subjectId} ${predicateId} ${objectId} ...`)
       const hash = await contract.write.createTriples([[subjectId], [predicateId], [objectId], [initialDeposit]], { value: initialDeposit })
@@ -168,7 +177,7 @@ export async function getIntuition(accountIndex: number) {
     }
   }
 
-  return { multivault, account, getOrCreateAtom, getCreateOrDepositOnTriple }
+  return { contract, account, getOrCreateAtom, getCreateOrDepositOnTriple }
 }
 
 export async function pinJson(json: any) {
@@ -224,8 +233,8 @@ export async function execute<TResult, TVariables>(
 }
 
 export async function wait(hash: string | null) {
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  return true
+  // await new Promise(resolve => setTimeout(resolve, 1000));
+  // return true
   if (hash === null) {
     return
   }

@@ -1,5 +1,5 @@
 import { expect, test, suite } from 'vitest'
-import { execute, getIntuition, pinJson, SystemAtom, wait } from './setup/utils.js'
+import { execute, getIntuition, oxToBackslashX, pinJson, SystemAtom, wait } from './setup/utils.js'
 import { graphql } from './graphql/gql.js'
 
 suite('create person triple', async () => {
@@ -45,7 +45,7 @@ suite('create person triple', async () => {
           label
         }
       }`),
-      { termId: alicePerson.vaultId })
+      { termId: oxToBackslashX(alicePerson.vaultId) })
     expect(result).toBeDefined()
     expect(result.atom?.label).toBe('Alice')
   })

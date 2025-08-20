@@ -1,5 +1,5 @@
 import { expect, test, suite } from 'vitest'
-import { execute, getIntuition, pinJson, SystemAtom, wait } from './setup/utils.js'
+import { execute, getIntuition, oxToBackslashX, pinJson, SystemAtom, wait } from './setup/utils.js'
 import { graphql } from './graphql/gql.js'
 
 suite('create person triple', async () => {
@@ -97,12 +97,12 @@ suite('create person triple', async () => {
         }
       }
       `),
-      { atomId: originalThing.vaultId, address: alice.account.address })
+      { atomId: oxToBackslashX(originalThing.vaultId), address: alice.account.address })
     expect(result).toBeDefined()
-    expect(result.atom.label).toBe('Foo')
+    expect(result.atom?.label).toBe('Foo')
     expect(result.positions.length).toBe(1)
-    expect(result.positions[0].term.triple.predicate.label).toBe('is thing')
-    expect(result.positions[0].term.triple.object.value.thing.name).toBe('Example Domain')
+    expect(result.positions[0].term.triple?.predicate.label).toBe('is thing')
+    expect(result.positions[0].term.triple?.object?.value?.thing?.name).toBe('Example Domain')
   })
 
 })
