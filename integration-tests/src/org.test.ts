@@ -1,5 +1,5 @@
 import { expect, test, suite } from 'vitest'
-import { execute, getIntuition, pinJson, SystemAtom, wait } from './setup/utils.js'
+import { execute, getIntuition, oxToBackslashX, pinJson, SystemAtom, wait } from './setup/utils.js'
 import { graphql } from './graphql/gql.js'
 
 suite('organization, projects, people', async () => {
@@ -297,19 +297,19 @@ suite('organization, projects, people', async () => {
           }
         }
       }`),
-      { term_id: mayaPerson.vaultId }
+      { term_id: oxToBackslashX(mayaPerson.vaultId) }
     )
     expect(result).toBeDefined()
-    expect(result.atom.orgs.length).toBe(2)
-    expect(result.atom.projects.length).toBe(2)
-    expect(result.atom.skills.length).toBe(2)
-    expect(result.atom.label).toBe('Maya')
-    expect(result.atom.orgs.some((org) => org.object.term_id === novaBiotechOrg.vaultId.toString())).toBe(true)
-    expect(result.atom.orgs.some((org) => org.object.term_id === skyChainOrg.vaultId.toString())).toBe(true)
-    expect(result.atom.projects.some((project) => project.object.term_id === helixProject.vaultId.toString())).toBe(true)
-    expect(result.atom.projects.some((project) => project.object.term_id === sentinelProject.vaultId.toString())).toBe(true)
-    expect(result.atom.skills.some((skill) => skill.object.term_id === developerSkill.vaultId.toString())).toBe(true)
-    expect(result.atom.skills.some((skill) => skill.object.term_id === productManagerSkill.vaultId.toString())).toBe(true)
+    expect(result.atom?.orgs.length).toBe(2)
+    expect(result.atom?.projects.length).toBe(2)
+    expect(result.atom?.skills.length).toBe(2)
+    expect(result.atom?.label).toBe('Maya')
+    expect(result.atom?.orgs.some((org) => org.object.term_id === oxToBackslashX(novaBiotechOrg.vaultId))).toBe(true)
+    expect(result.atom?.orgs.some((org) => org.object.term_id === oxToBackslashX(skyChainOrg.vaultId))).toBe(true)
+    expect(result.atom?.projects.some((project) => project.object.term_id === oxToBackslashX(helixProject.vaultId))).toBe(true)
+    expect(result.atom?.projects.some((project) => project.object.term_id === oxToBackslashX(sentinelProject.vaultId))).toBe(true)
+    expect(result.atom?.skills.some((skill) => skill.object.term_id === oxToBackslashX(developerSkill.vaultId))).toBe(true)
+    expect(result.atom?.skills.some((skill) => skill.object.term_id === oxToBackslashX(productManagerSkill.vaultId))).toBe(true)
   })
 
 })

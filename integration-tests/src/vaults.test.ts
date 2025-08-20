@@ -15,10 +15,8 @@ suite('vaults', () => {
       (await user300.getOrCreateAtom('bar')).vaultId,
       (await user300.getOrCreateAtom('baz')).vaultId,
     )
-    console.log({ triple })
 
     counterVault = await user300.contract.read.getCounterIdFromTripleId([triple.vaultId])
-    console.log({ counterVault })
     expect(counterVault).toBeDefined()
 
     const counterVaultState = await user300.contract.read.vaults([counterVault, 1n])
@@ -32,7 +30,7 @@ suite('vaults', () => {
   test('deposit on counter vault should work', async () => {
     const user301 = await getIntuition(301)
 
-    const hash = await user301.contract.write.deposit([user301.account.address, counterVault, 1n, 0n], { value: parseEther('0.01') })
+    const hash = await user301.contract.write.deposit([user301.account.address, counterVault, 1n, 0n], { value: parseEther('0.5') })
     await wait(hash)
 
     const counterVaultState = await user301.contract.read.vaults([counterVault, 1n])
@@ -66,7 +64,7 @@ suite('vaults', () => {
       positionsQuery,
       {
         address: user301.account.address.toString(),
-        term_id: counterVault,
+        term_id: oxToBackslashX(counterVault),
         curve_id: '1'
       })
 
@@ -74,7 +72,7 @@ suite('vaults', () => {
     expect(result.positions.length).toBe(1)
     expect(result.positions[0].shares).toBe(shares.toString())
     expect(result.positions[0].curve_id).toBe('1')
-    expect(result.positions[0].term_id).toBe(counterVault.toString())
+    expect(result.positions[0].term_id).toBe(oxToBackslashX(counterVault))
   })
 
   test('misc signals on a triple', async () => {
@@ -82,12 +80,12 @@ suite('vaults', () => {
 
     const signal1 = await user351.contract.write.deposit(
       [user351.account.address, counterVault, 1n, 0n],
-      { value: parseEther('0.1') }
+      { value: parseEther('0.5') }
     )
     await wait(signal1)
 
     const signal2 = await user351.contract.write.redeem(
-      [user351.account.address, counterVault, 1n, parseEther('0.001'), 0n]
+      [user351.account.address, counterVault, 1n, parseEther('0.1'), 0n]
     )
     await wait(signal2)
 
@@ -95,12 +93,12 @@ suite('vaults', () => {
 
     const signal3 = await user352.contract.write.deposit(
       [user352.account.address, triple.vaultId, 1n, 0n],
-      { value: parseEther('0.1') }
+      { value: parseEther('0.5') }
     )
     await wait(signal3)
 
     const signal4 = await user352.contract.write.redeem(
-      [user352.account.address, triple.vaultId, 1n, parseEther('0.001'), 0n]
+      [user352.account.address, triple.vaultId, 1n, parseEther('0.1'), 0n]
     )
     await wait(signal4)
 
@@ -108,7 +106,7 @@ suite('vaults', () => {
 
     const signal5 = await user353.contract.write.deposit(
       [user353.account.address, counterVault, 1n, 0n],
-      { value: parseEther('0.1') }
+      { value: parseEther('0.5') }
     )
     await wait(signal5)
 
@@ -151,7 +149,7 @@ query triple($term_id: bytea!) {
 
     const result = await execute(
       tripleQuery,
-      { term_id: triple.vaultId })
+      { term_id: oxToBackslashX(triple.vaultId) })
 
     expect(result).toBeDefined()
     expect(BigInt(result.triple?.triple_term?.total_assets)).toEqual(
