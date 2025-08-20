@@ -14,8 +14,8 @@ pub struct Redemption {
     pub id: String,
     pub sender_id: String,
     pub receiver_id: String,
-    pub assets_for_receiver: U256Wrapper,
-    pub shares_redeemed_by_sender: U256Wrapper,
+    pub assets: U256Wrapper,
+    pub shares: U256Wrapper,
     pub term_id: FixedBytesWrapper,
     pub block_number: U256Wrapper,
     pub created_at: DateTime<Utc>,
@@ -40,14 +40,14 @@ impl SimpleCrud<String> for Redemption {
             r#"
         INSERT INTO {}.redemption (
             id, sender_id, receiver_id,
-            assets_for_receiver, shares_redeemed_by_sender, term_id,
+            assets, shares, term_id,
             curve_id, block_number, created_at, transaction_hash, log_index
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
         ON CONFLICT (id) DO UPDATE SET
             sender_id = EXCLUDED.sender_id,
             receiver_id = EXCLUDED.receiver_id,
-            assets_for_receiver = EXCLUDED.assets_for_receiver,
-            shares_redeemed_by_sender = EXCLUDED.shares_redeemed_by_sender,
+            assets = EXCLUDED.assets,
+            shares = EXCLUDED.shares,
             term_id = EXCLUDED.term_id,
             curve_id = EXCLUDED.curve_id,
             block_number = EXCLUDED.block_number,
@@ -56,8 +56,8 @@ impl SimpleCrud<String> for Redemption {
             log_index = EXCLUDED.log_index
         RETURNING 
             id, sender_id, receiver_id,
-            assets_for_receiver,
-            shares_redeemed_by_sender,
+            assets,
+            shares,
             term_id,
             curve_id,
             block_number,
@@ -72,8 +72,8 @@ impl SimpleCrud<String> for Redemption {
             .bind(self.id.clone())
             .bind(self.sender_id.clone())
             .bind(self.receiver_id.clone())
-            .bind(self.assets_for_receiver.to_big_decimal()?)
-            .bind(self.shares_redeemed_by_sender.to_big_decimal()?)
+            .bind(self.assets.to_big_decimal()?)
+            .bind(self.shares.to_big_decimal()?)
             .bind(self.term_id.0.as_slice())
             .bind(self.curve_id.to_big_decimal()?)
             .bind(self.block_number.to_big_decimal()?)
@@ -99,8 +99,8 @@ impl SimpleCrud<String> for Redemption {
             r#"
             SELECT 
                 id, sender_id, receiver_id,
-                assets_for_receiver,
-                shares_redeemed_by_sender,  
+                assets,
+                shares,  
                 term_id,
                 curve_id,
                 block_number,
@@ -123,7 +123,7 @@ impl SimpleCrud<String> for Redemption {
 
 impl Redemption {
     /// Gets the total shares redeemed by a sender in a vault.
-    pub async fn get_total_shares_redeemed_by_sender(
+    pub async fn get_total_shares(
         sender_id: String,
         term_id: FixedBytesWrapper,
         curve_id: U256Wrapper,
@@ -132,7 +132,7 @@ impl Redemption {
     ) -> Result<U256Wrapper, ModelError> {
         let query = format!(
             r#"
-            SELECT COALESCE(SUM(shares_redeemed_by_sender), 0) as total_shares
+            SELECT COALESCE(SUM(shares), 0) as total_shares
             FROM {}.redemption
             WHERE sender_id = $1 AND term_id = $2 AND curve_id = $3
             "#,

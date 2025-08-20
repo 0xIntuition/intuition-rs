@@ -92,7 +92,7 @@ suite('vaults', () => {
 
 
     const positionsQuery = graphql(`
-      query positions2($address: String!, $term_id: numeric!, $curve_id: numeric!) {
+      query positions2($address: String!, $term_id: bytea!, $curve_id: numeric!) {
         positions(where: {account_id: {_eq: $address}, curve_id: {_eq: $curve_id}, term_id: {_eq: $term_id}}) {
           id
           curve_id
@@ -106,7 +106,7 @@ suite('vaults', () => {
       positionsQuery,
       {
         address: user301.account.address.toString(),
-        term_id: counterVault.toString(),
+        term_id: counterVault,
         curve_id: '1'
       })
 
@@ -154,7 +154,7 @@ suite('vaults', () => {
   test('triple vault numbers are correct', async () => {
 
     const tripleQuery = graphql(`
-query triple($term_id: numeric!) {
+query triple($term_id: bytea!) {
   triple(term_id: $term_id) {
     term_id
     term {
@@ -175,7 +175,7 @@ query triple($term_id: numeric!) {
 
     const result = await execute(
       tripleQuery,
-      { term_id: triple.vaultId.toString() })
+      { term_id: triple.vaultId })
 
     expect(result).toBeDefined()
     expect(BigInt(result.triple.triple_term.total_assets)).toEqual(

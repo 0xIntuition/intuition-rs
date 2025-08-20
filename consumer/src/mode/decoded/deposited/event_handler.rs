@@ -89,7 +89,7 @@ where
                 .block_number(U256Wrapper::try_from(event.block_number)?)
                 .created_at(get_block_timestamp(event.block_timestamp)?)
                 .transaction_hash(event.transaction_hash.clone())
-                .triple_id(FixedBytesWrapper::from(self.0.vault_id()?))
+                .triple_id(FixedBytesWrapper::from(self.0.term_id()?))
                 .build()
         } else {
             Event::builder()
@@ -99,7 +99,7 @@ where
                 .block_number(U256Wrapper::try_from(event.block_number)?)
                 .created_at(get_block_timestamp(event.block_timestamp)?)
                 .transaction_hash(event.transaction_hash.clone())
-                .atom_id(FixedBytesWrapper::from(self.0.vault_id()?))
+                .atom_id(FixedBytesWrapper::from(self.0.term_id()?))
                 .build()
         };
 

@@ -2218,9 +2218,9 @@ export type Deposits = {
   receiver_total_shares_in_vault: Scalars['numeric']['output'];
   /** An object relationship */
   sender?: Maybe<Accounts>;
-  sender_assets_after_total_fees: Scalars['numeric']['output'];
+  assets_after_fees: Scalars['numeric']['output'];
   sender_id: Scalars['String']['output'];
-  shares_for_receiver: Scalars['numeric']['output'];
+  shares: Scalars['numeric']['output'];
   /** An object relationship */
   term: Terms;
   term_id: Scalars['numeric']['output'];
@@ -2308,8 +2308,8 @@ export type Deposits_Avg_Fields = {
   curve_id?: Maybe<Scalars['Float']['output']>;
   entry_fee?: Maybe<Scalars['Float']['output']>;
   receiver_total_shares_in_vault?: Maybe<Scalars['Float']['output']>;
-  sender_assets_after_total_fees?: Maybe<Scalars['Float']['output']>;
-  shares_for_receiver?: Maybe<Scalars['Float']['output']>;
+  assets_after_fees?: Maybe<Scalars['Float']['output']>;
+  shares?: Maybe<Scalars['Float']['output']>;
   term_id?: Maybe<Scalars['Float']['output']>;
 };
 
@@ -2319,8 +2319,8 @@ export type Deposits_Avg_Order_By = {
   curve_id?: InputMaybe<Order_By>;
   entry_fee?: InputMaybe<Order_By>;
   receiver_total_shares_in_vault?: InputMaybe<Order_By>;
-  sender_assets_after_total_fees?: InputMaybe<Order_By>;
-  shares_for_receiver?: InputMaybe<Order_By>;
+  assets_after_fees?: InputMaybe<Order_By>;
+  shares?: InputMaybe<Order_By>;
   term_id?: InputMaybe<Order_By>;
 };
 
@@ -2340,9 +2340,9 @@ export type Deposits_Bool_Exp = {
   receiver_id?: InputMaybe<String_Comparison_Exp>;
   receiver_total_shares_in_vault?: InputMaybe<Numeric_Comparison_Exp>;
   sender?: InputMaybe<Accounts_Bool_Exp>;
-  sender_assets_after_total_fees?: InputMaybe<Numeric_Comparison_Exp>;
+  assets_after_fees?: InputMaybe<Numeric_Comparison_Exp>;
   sender_id?: InputMaybe<String_Comparison_Exp>;
-  shares_for_receiver?: InputMaybe<Numeric_Comparison_Exp>;
+  shares?: InputMaybe<Numeric_Comparison_Exp>;
   term?: InputMaybe<Terms_Bool_Exp>;
   term_id?: InputMaybe<Numeric_Comparison_Exp>;
   transaction_hash?: InputMaybe<String_Comparison_Exp>;
@@ -2359,9 +2359,9 @@ export type Deposits_Max_Fields = {
   id?: Maybe<Scalars['String']['output']>;
   receiver_id?: Maybe<Scalars['String']['output']>;
   receiver_total_shares_in_vault?: Maybe<Scalars['numeric']['output']>;
-  sender_assets_after_total_fees?: Maybe<Scalars['numeric']['output']>;
+  assets_after_fees?: Maybe<Scalars['numeric']['output']>;
   sender_id?: Maybe<Scalars['String']['output']>;
-  shares_for_receiver?: Maybe<Scalars['numeric']['output']>;
+  shares?: Maybe<Scalars['numeric']['output']>;
   term_id?: Maybe<Scalars['numeric']['output']>;
   transaction_hash?: Maybe<Scalars['String']['output']>;
 };
@@ -2375,9 +2375,9 @@ export type Deposits_Max_Order_By = {
   id?: InputMaybe<Order_By>;
   receiver_id?: InputMaybe<Order_By>;
   receiver_total_shares_in_vault?: InputMaybe<Order_By>;
-  sender_assets_after_total_fees?: InputMaybe<Order_By>;
+  assets_after_fees?: InputMaybe<Order_By>;
   sender_id?: InputMaybe<Order_By>;
-  shares_for_receiver?: InputMaybe<Order_By>;
+  shares?: InputMaybe<Order_By>;
   term_id?: InputMaybe<Order_By>;
   transaction_hash?: InputMaybe<Order_By>;
 };
@@ -2392,9 +2392,9 @@ export type Deposits_Min_Fields = {
   id?: Maybe<Scalars['String']['output']>;
   receiver_id?: Maybe<Scalars['String']['output']>;
   receiver_total_shares_in_vault?: Maybe<Scalars['numeric']['output']>;
-  sender_assets_after_total_fees?: Maybe<Scalars['numeric']['output']>;
+  assets_after_fees?: Maybe<Scalars['numeric']['output']>;
   sender_id?: Maybe<Scalars['String']['output']>;
-  shares_for_receiver?: Maybe<Scalars['numeric']['output']>;
+  shares?: Maybe<Scalars['numeric']['output']>;
   term_id?: Maybe<Scalars['numeric']['output']>;
   transaction_hash?: Maybe<Scalars['String']['output']>;
 };
@@ -2408,9 +2408,9 @@ export type Deposits_Min_Order_By = {
   id?: InputMaybe<Order_By>;
   receiver_id?: InputMaybe<Order_By>;
   receiver_total_shares_in_vault?: InputMaybe<Order_By>;
-  sender_assets_after_total_fees?: InputMaybe<Order_By>;
+  assets_after_fees?: InputMaybe<Order_By>;
   sender_id?: InputMaybe<Order_By>;
-  shares_for_receiver?: InputMaybe<Order_By>;
+  shares?: InputMaybe<Order_By>;
   term_id?: InputMaybe<Order_By>;
   transaction_hash?: InputMaybe<Order_By>;
 };
@@ -2428,9 +2428,9 @@ export type Deposits_Order_By = {
   receiver_id?: InputMaybe<Order_By>;
   receiver_total_shares_in_vault?: InputMaybe<Order_By>;
   sender?: InputMaybe<Accounts_Order_By>;
-  sender_assets_after_total_fees?: InputMaybe<Order_By>;
+  assets_after_fees?: InputMaybe<Order_By>;
   sender_id?: InputMaybe<Order_By>;
-  shares_for_receiver?: InputMaybe<Order_By>;
+  shares?: InputMaybe<Order_By>;
   term?: InputMaybe<Terms_Order_By>;
   term_id?: InputMaybe<Order_By>;
   transaction_hash?: InputMaybe<Order_By>;
@@ -2458,11 +2458,11 @@ export enum Deposits_Select_Column {
   /** column name */
   ReceiverTotalSharesInVault = 'receiver_total_shares_in_vault',
   /** column name */
-  SenderAssetsAfterTotalFees = 'sender_assets_after_total_fees',
+  SenderAssetsAfterTotalFees = 'assets_after_fees',
   /** column name */
   SenderId = 'sender_id',
   /** column name */
-  SharesForReceiver = 'shares_for_receiver',
+  SharesForReceiver = 'shares',
   /** column name */
   TermId = 'term_id',
   /** column name */
@@ -2492,8 +2492,8 @@ export type Deposits_Stddev_Fields = {
   curve_id?: Maybe<Scalars['Float']['output']>;
   entry_fee?: Maybe<Scalars['Float']['output']>;
   receiver_total_shares_in_vault?: Maybe<Scalars['Float']['output']>;
-  sender_assets_after_total_fees?: Maybe<Scalars['Float']['output']>;
-  shares_for_receiver?: Maybe<Scalars['Float']['output']>;
+  assets_after_fees?: Maybe<Scalars['Float']['output']>;
+  shares?: Maybe<Scalars['Float']['output']>;
   term_id?: Maybe<Scalars['Float']['output']>;
 };
 
@@ -2503,8 +2503,8 @@ export type Deposits_Stddev_Order_By = {
   curve_id?: InputMaybe<Order_By>;
   entry_fee?: InputMaybe<Order_By>;
   receiver_total_shares_in_vault?: InputMaybe<Order_By>;
-  sender_assets_after_total_fees?: InputMaybe<Order_By>;
-  shares_for_receiver?: InputMaybe<Order_By>;
+  assets_after_fees?: InputMaybe<Order_By>;
+  shares?: InputMaybe<Order_By>;
   term_id?: InputMaybe<Order_By>;
 };
 
@@ -2515,8 +2515,8 @@ export type Deposits_Stddev_Pop_Fields = {
   curve_id?: Maybe<Scalars['Float']['output']>;
   entry_fee?: Maybe<Scalars['Float']['output']>;
   receiver_total_shares_in_vault?: Maybe<Scalars['Float']['output']>;
-  sender_assets_after_total_fees?: Maybe<Scalars['Float']['output']>;
-  shares_for_receiver?: Maybe<Scalars['Float']['output']>;
+  assets_after_fees?: Maybe<Scalars['Float']['output']>;
+  shares?: Maybe<Scalars['Float']['output']>;
   term_id?: Maybe<Scalars['Float']['output']>;
 };
 
@@ -2526,8 +2526,8 @@ export type Deposits_Stddev_Pop_Order_By = {
   curve_id?: InputMaybe<Order_By>;
   entry_fee?: InputMaybe<Order_By>;
   receiver_total_shares_in_vault?: InputMaybe<Order_By>;
-  sender_assets_after_total_fees?: InputMaybe<Order_By>;
-  shares_for_receiver?: InputMaybe<Order_By>;
+  assets_after_fees?: InputMaybe<Order_By>;
+  shares?: InputMaybe<Order_By>;
   term_id?: InputMaybe<Order_By>;
 };
 
@@ -2538,8 +2538,8 @@ export type Deposits_Stddev_Samp_Fields = {
   curve_id?: Maybe<Scalars['Float']['output']>;
   entry_fee?: Maybe<Scalars['Float']['output']>;
   receiver_total_shares_in_vault?: Maybe<Scalars['Float']['output']>;
-  sender_assets_after_total_fees?: Maybe<Scalars['Float']['output']>;
-  shares_for_receiver?: Maybe<Scalars['Float']['output']>;
+  assets_after_fees?: Maybe<Scalars['Float']['output']>;
+  shares?: Maybe<Scalars['Float']['output']>;
   term_id?: Maybe<Scalars['Float']['output']>;
 };
 
@@ -2549,8 +2549,8 @@ export type Deposits_Stddev_Samp_Order_By = {
   curve_id?: InputMaybe<Order_By>;
   entry_fee?: InputMaybe<Order_By>;
   receiver_total_shares_in_vault?: InputMaybe<Order_By>;
-  sender_assets_after_total_fees?: InputMaybe<Order_By>;
-  shares_for_receiver?: InputMaybe<Order_By>;
+  assets_after_fees?: InputMaybe<Order_By>;
+  shares?: InputMaybe<Order_By>;
   term_id?: InputMaybe<Order_By>;
 };
 
@@ -2573,9 +2573,9 @@ export type Deposits_Stream_Cursor_Value_Input = {
   is_triple?: InputMaybe<Scalars['Boolean']['input']>;
   receiver_id?: InputMaybe<Scalars['String']['input']>;
   receiver_total_shares_in_vault?: InputMaybe<Scalars['numeric']['input']>;
-  sender_assets_after_total_fees?: InputMaybe<Scalars['numeric']['input']>;
+  assets_after_fees?: InputMaybe<Scalars['numeric']['input']>;
   sender_id?: InputMaybe<Scalars['String']['input']>;
-  shares_for_receiver?: InputMaybe<Scalars['numeric']['input']>;
+  shares?: InputMaybe<Scalars['numeric']['input']>;
   term_id?: InputMaybe<Scalars['numeric']['input']>;
   transaction_hash?: InputMaybe<Scalars['String']['input']>;
 };
@@ -2587,8 +2587,8 @@ export type Deposits_Sum_Fields = {
   curve_id?: Maybe<Scalars['numeric']['output']>;
   entry_fee?: Maybe<Scalars['numeric']['output']>;
   receiver_total_shares_in_vault?: Maybe<Scalars['numeric']['output']>;
-  sender_assets_after_total_fees?: Maybe<Scalars['numeric']['output']>;
-  shares_for_receiver?: Maybe<Scalars['numeric']['output']>;
+  assets_after_fees?: Maybe<Scalars['numeric']['output']>;
+  shares?: Maybe<Scalars['numeric']['output']>;
   term_id?: Maybe<Scalars['numeric']['output']>;
 };
 
@@ -2598,8 +2598,8 @@ export type Deposits_Sum_Order_By = {
   curve_id?: InputMaybe<Order_By>;
   entry_fee?: InputMaybe<Order_By>;
   receiver_total_shares_in_vault?: InputMaybe<Order_By>;
-  sender_assets_after_total_fees?: InputMaybe<Order_By>;
-  shares_for_receiver?: InputMaybe<Order_By>;
+  assets_after_fees?: InputMaybe<Order_By>;
+  shares?: InputMaybe<Order_By>;
   term_id?: InputMaybe<Order_By>;
 };
 
@@ -2610,8 +2610,8 @@ export type Deposits_Var_Pop_Fields = {
   curve_id?: Maybe<Scalars['Float']['output']>;
   entry_fee?: Maybe<Scalars['Float']['output']>;
   receiver_total_shares_in_vault?: Maybe<Scalars['Float']['output']>;
-  sender_assets_after_total_fees?: Maybe<Scalars['Float']['output']>;
-  shares_for_receiver?: Maybe<Scalars['Float']['output']>;
+  assets_after_fees?: Maybe<Scalars['Float']['output']>;
+  shares?: Maybe<Scalars['Float']['output']>;
   term_id?: Maybe<Scalars['Float']['output']>;
 };
 
@@ -2621,8 +2621,8 @@ export type Deposits_Var_Pop_Order_By = {
   curve_id?: InputMaybe<Order_By>;
   entry_fee?: InputMaybe<Order_By>;
   receiver_total_shares_in_vault?: InputMaybe<Order_By>;
-  sender_assets_after_total_fees?: InputMaybe<Order_By>;
-  shares_for_receiver?: InputMaybe<Order_By>;
+  assets_after_fees?: InputMaybe<Order_By>;
+  shares?: InputMaybe<Order_By>;
   term_id?: InputMaybe<Order_By>;
 };
 
@@ -2633,8 +2633,8 @@ export type Deposits_Var_Samp_Fields = {
   curve_id?: Maybe<Scalars['Float']['output']>;
   entry_fee?: Maybe<Scalars['Float']['output']>;
   receiver_total_shares_in_vault?: Maybe<Scalars['Float']['output']>;
-  sender_assets_after_total_fees?: Maybe<Scalars['Float']['output']>;
-  shares_for_receiver?: Maybe<Scalars['Float']['output']>;
+  assets_after_fees?: Maybe<Scalars['Float']['output']>;
+  shares?: Maybe<Scalars['Float']['output']>;
   term_id?: Maybe<Scalars['Float']['output']>;
 };
 
@@ -2644,8 +2644,8 @@ export type Deposits_Var_Samp_Order_By = {
   curve_id?: InputMaybe<Order_By>;
   entry_fee?: InputMaybe<Order_By>;
   receiver_total_shares_in_vault?: InputMaybe<Order_By>;
-  sender_assets_after_total_fees?: InputMaybe<Order_By>;
-  shares_for_receiver?: InputMaybe<Order_By>;
+  assets_after_fees?: InputMaybe<Order_By>;
+  shares?: InputMaybe<Order_By>;
   term_id?: InputMaybe<Order_By>;
 };
 
@@ -2656,8 +2656,8 @@ export type Deposits_Variance_Fields = {
   curve_id?: Maybe<Scalars['Float']['output']>;
   entry_fee?: Maybe<Scalars['Float']['output']>;
   receiver_total_shares_in_vault?: Maybe<Scalars['Float']['output']>;
-  sender_assets_after_total_fees?: Maybe<Scalars['Float']['output']>;
-  shares_for_receiver?: Maybe<Scalars['Float']['output']>;
+  assets_after_fees?: Maybe<Scalars['Float']['output']>;
+  shares?: Maybe<Scalars['Float']['output']>;
   term_id?: Maybe<Scalars['Float']['output']>;
 };
 
@@ -2667,8 +2667,8 @@ export type Deposits_Variance_Order_By = {
   curve_id?: InputMaybe<Order_By>;
   entry_fee?: InputMaybe<Order_By>;
   receiver_total_shares_in_vault?: InputMaybe<Order_By>;
-  sender_assets_after_total_fees?: InputMaybe<Order_By>;
-  shares_for_receiver?: InputMaybe<Order_By>;
+  assets_after_fees?: InputMaybe<Order_By>;
+  shares?: InputMaybe<Order_By>;
   term_id?: InputMaybe<Order_By>;
 };
 
@@ -5379,7 +5379,7 @@ export type Query_RootVaults_AggregateArgs = {
 /** columns and relationships of "redemption" */
 export type Redemptions = {
   __typename?: 'redemptions';
-  assets_for_receiver: Scalars['numeric']['output'];
+  assets: Scalars['numeric']['output'];
   block_number: Scalars['numeric']['output'];
   created_at: Scalars['timestamptz']['output'];
   curve_id: Scalars['numeric']['output'];
@@ -5391,7 +5391,7 @@ export type Redemptions = {
   /** An object relationship */
   sender?: Maybe<Accounts>;
   sender_id: Scalars['String']['output'];
-  sender_total_shares_in_vault: Scalars['numeric']['output'];
+  shares: Scalars['numeric']['output'];
   shares_redeemed_by_sender: Scalars['numeric']['output'];
   /** An object relationship */
   term: Terms;
@@ -5464,7 +5464,7 @@ export type Redemptions_Avg_Fields = {
   block_number?: Maybe<Scalars['Float']['output']>;
   curve_id?: Maybe<Scalars['Float']['output']>;
   exit_fee?: Maybe<Scalars['Float']['output']>;
-  sender_total_shares_in_vault?: Maybe<Scalars['Float']['output']>;
+  shares?: Maybe<Scalars['Float']['output']>;
   shares_redeemed_by_sender?: Maybe<Scalars['Float']['output']>;
   term_id?: Maybe<Scalars['Float']['output']>;
 };
@@ -5475,7 +5475,7 @@ export type Redemptions_Avg_Order_By = {
   block_number?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
   exit_fee?: InputMaybe<Order_By>;
-  sender_total_shares_in_vault?: InputMaybe<Order_By>;
+  shares?: InputMaybe<Order_By>;
   shares_redeemed_by_sender?: InputMaybe<Order_By>;
   term_id?: InputMaybe<Order_By>;
 };
@@ -5495,7 +5495,7 @@ export type Redemptions_Bool_Exp = {
   receiver_id?: InputMaybe<String_Comparison_Exp>;
   sender?: InputMaybe<Accounts_Bool_Exp>;
   sender_id?: InputMaybe<String_Comparison_Exp>;
-  sender_total_shares_in_vault?: InputMaybe<Numeric_Comparison_Exp>;
+  shares?: InputMaybe<Numeric_Comparison_Exp>;
   shares_redeemed_by_sender?: InputMaybe<Numeric_Comparison_Exp>;
   term?: InputMaybe<Terms_Bool_Exp>;
   term_id?: InputMaybe<Numeric_Comparison_Exp>;
@@ -5514,7 +5514,7 @@ export type Redemptions_Max_Fields = {
   id?: Maybe<Scalars['String']['output']>;
   receiver_id?: Maybe<Scalars['String']['output']>;
   sender_id?: Maybe<Scalars['String']['output']>;
-  sender_total_shares_in_vault?: Maybe<Scalars['numeric']['output']>;
+  shares?: Maybe<Scalars['numeric']['output']>;
   shares_redeemed_by_sender?: Maybe<Scalars['numeric']['output']>;
   term_id?: Maybe<Scalars['numeric']['output']>;
   transaction_hash?: Maybe<Scalars['String']['output']>;
@@ -5530,7 +5530,7 @@ export type Redemptions_Max_Order_By = {
   id?: InputMaybe<Order_By>;
   receiver_id?: InputMaybe<Order_By>;
   sender_id?: InputMaybe<Order_By>;
-  sender_total_shares_in_vault?: InputMaybe<Order_By>;
+  shares?: InputMaybe<Order_By>;
   shares_redeemed_by_sender?: InputMaybe<Order_By>;
   term_id?: InputMaybe<Order_By>;
   transaction_hash?: InputMaybe<Order_By>;
@@ -5547,7 +5547,7 @@ export type Redemptions_Min_Fields = {
   id?: Maybe<Scalars['String']['output']>;
   receiver_id?: Maybe<Scalars['String']['output']>;
   sender_id?: Maybe<Scalars['String']['output']>;
-  sender_total_shares_in_vault?: Maybe<Scalars['numeric']['output']>;
+  shares?: Maybe<Scalars['numeric']['output']>;
   shares_redeemed_by_sender?: Maybe<Scalars['numeric']['output']>;
   term_id?: Maybe<Scalars['numeric']['output']>;
   transaction_hash?: Maybe<Scalars['String']['output']>;
@@ -5563,7 +5563,7 @@ export type Redemptions_Min_Order_By = {
   id?: InputMaybe<Order_By>;
   receiver_id?: InputMaybe<Order_By>;
   sender_id?: InputMaybe<Order_By>;
-  sender_total_shares_in_vault?: InputMaybe<Order_By>;
+  shares?: InputMaybe<Order_By>;
   shares_redeemed_by_sender?: InputMaybe<Order_By>;
   term_id?: InputMaybe<Order_By>;
   transaction_hash?: InputMaybe<Order_By>;
@@ -5581,7 +5581,7 @@ export type Redemptions_Order_By = {
   receiver_id?: InputMaybe<Order_By>;
   sender?: InputMaybe<Accounts_Order_By>;
   sender_id?: InputMaybe<Order_By>;
-  sender_total_shares_in_vault?: InputMaybe<Order_By>;
+  shares?: InputMaybe<Order_By>;
   shares_redeemed_by_sender?: InputMaybe<Order_By>;
   term?: InputMaybe<Terms_Order_By>;
   term_id?: InputMaybe<Order_By>;
@@ -5608,7 +5608,7 @@ export enum Redemptions_Select_Column {
   /** column name */
   SenderId = 'sender_id',
   /** column name */
-  SenderTotalSharesInVault = 'sender_total_shares_in_vault',
+  SenderTotalSharesInVault = 'shares',
   /** column name */
   SharesRedeemedBySender = 'shares_redeemed_by_sender',
   /** column name */
@@ -5624,7 +5624,7 @@ export type Redemptions_Stddev_Fields = {
   block_number?: Maybe<Scalars['Float']['output']>;
   curve_id?: Maybe<Scalars['Float']['output']>;
   exit_fee?: Maybe<Scalars['Float']['output']>;
-  sender_total_shares_in_vault?: Maybe<Scalars['Float']['output']>;
+  shares?: Maybe<Scalars['Float']['output']>;
   shares_redeemed_by_sender?: Maybe<Scalars['Float']['output']>;
   term_id?: Maybe<Scalars['Float']['output']>;
 };
@@ -5635,7 +5635,7 @@ export type Redemptions_Stddev_Order_By = {
   block_number?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
   exit_fee?: InputMaybe<Order_By>;
-  sender_total_shares_in_vault?: InputMaybe<Order_By>;
+  shares?: InputMaybe<Order_By>;
   shares_redeemed_by_sender?: InputMaybe<Order_By>;
   term_id?: InputMaybe<Order_By>;
 };
@@ -5647,7 +5647,7 @@ export type Redemptions_Stddev_Pop_Fields = {
   block_number?: Maybe<Scalars['Float']['output']>;
   curve_id?: Maybe<Scalars['Float']['output']>;
   exit_fee?: Maybe<Scalars['Float']['output']>;
-  sender_total_shares_in_vault?: Maybe<Scalars['Float']['output']>;
+  shares?: Maybe<Scalars['Float']['output']>;
   shares_redeemed_by_sender?: Maybe<Scalars['Float']['output']>;
   term_id?: Maybe<Scalars['Float']['output']>;
 };
@@ -5658,7 +5658,7 @@ export type Redemptions_Stddev_Pop_Order_By = {
   block_number?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
   exit_fee?: InputMaybe<Order_By>;
-  sender_total_shares_in_vault?: InputMaybe<Order_By>;
+  shares?: InputMaybe<Order_By>;
   shares_redeemed_by_sender?: InputMaybe<Order_By>;
   term_id?: InputMaybe<Order_By>;
 };
@@ -5670,7 +5670,7 @@ export type Redemptions_Stddev_Samp_Fields = {
   block_number?: Maybe<Scalars['Float']['output']>;
   curve_id?: Maybe<Scalars['Float']['output']>;
   exit_fee?: Maybe<Scalars['Float']['output']>;
-  sender_total_shares_in_vault?: Maybe<Scalars['Float']['output']>;
+  shares?: Maybe<Scalars['Float']['output']>;
   shares_redeemed_by_sender?: Maybe<Scalars['Float']['output']>;
   term_id?: Maybe<Scalars['Float']['output']>;
 };
@@ -5681,7 +5681,7 @@ export type Redemptions_Stddev_Samp_Order_By = {
   block_number?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
   exit_fee?: InputMaybe<Order_By>;
-  sender_total_shares_in_vault?: InputMaybe<Order_By>;
+  shares?: InputMaybe<Order_By>;
   shares_redeemed_by_sender?: InputMaybe<Order_By>;
   term_id?: InputMaybe<Order_By>;
 };
@@ -5704,7 +5704,7 @@ export type Redemptions_Stream_Cursor_Value_Input = {
   id?: InputMaybe<Scalars['String']['input']>;
   receiver_id?: InputMaybe<Scalars['String']['input']>;
   sender_id?: InputMaybe<Scalars['String']['input']>;
-  sender_total_shares_in_vault?: InputMaybe<Scalars['numeric']['input']>;
+  shares?: InputMaybe<Scalars['numeric']['input']>;
   shares_redeemed_by_sender?: InputMaybe<Scalars['numeric']['input']>;
   term_id?: InputMaybe<Scalars['numeric']['input']>;
   transaction_hash?: InputMaybe<Scalars['String']['input']>;
@@ -5717,7 +5717,7 @@ export type Redemptions_Sum_Fields = {
   block_number?: Maybe<Scalars['numeric']['output']>;
   curve_id?: Maybe<Scalars['numeric']['output']>;
   exit_fee?: Maybe<Scalars['numeric']['output']>;
-  sender_total_shares_in_vault?: Maybe<Scalars['numeric']['output']>;
+  shares?: Maybe<Scalars['numeric']['output']>;
   shares_redeemed_by_sender?: Maybe<Scalars['numeric']['output']>;
   term_id?: Maybe<Scalars['numeric']['output']>;
 };
@@ -5728,7 +5728,7 @@ export type Redemptions_Sum_Order_By = {
   block_number?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
   exit_fee?: InputMaybe<Order_By>;
-  sender_total_shares_in_vault?: InputMaybe<Order_By>;
+  shares?: InputMaybe<Order_By>;
   shares_redeemed_by_sender?: InputMaybe<Order_By>;
   term_id?: InputMaybe<Order_By>;
 };
@@ -5740,7 +5740,7 @@ export type Redemptions_Var_Pop_Fields = {
   block_number?: Maybe<Scalars['Float']['output']>;
   curve_id?: Maybe<Scalars['Float']['output']>;
   exit_fee?: Maybe<Scalars['Float']['output']>;
-  sender_total_shares_in_vault?: Maybe<Scalars['Float']['output']>;
+  shares?: Maybe<Scalars['Float']['output']>;
   shares_redeemed_by_sender?: Maybe<Scalars['Float']['output']>;
   term_id?: Maybe<Scalars['Float']['output']>;
 };
@@ -5751,7 +5751,7 @@ export type Redemptions_Var_Pop_Order_By = {
   block_number?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
   exit_fee?: InputMaybe<Order_By>;
-  sender_total_shares_in_vault?: InputMaybe<Order_By>;
+  shares?: InputMaybe<Order_By>;
   shares_redeemed_by_sender?: InputMaybe<Order_By>;
   term_id?: InputMaybe<Order_By>;
 };
@@ -5763,7 +5763,7 @@ export type Redemptions_Var_Samp_Fields = {
   block_number?: Maybe<Scalars['Float']['output']>;
   curve_id?: Maybe<Scalars['Float']['output']>;
   exit_fee?: Maybe<Scalars['Float']['output']>;
-  sender_total_shares_in_vault?: Maybe<Scalars['Float']['output']>;
+  shares?: Maybe<Scalars['Float']['output']>;
   shares_redeemed_by_sender?: Maybe<Scalars['Float']['output']>;
   term_id?: Maybe<Scalars['Float']['output']>;
 };
@@ -5774,7 +5774,7 @@ export type Redemptions_Var_Samp_Order_By = {
   block_number?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
   exit_fee?: InputMaybe<Order_By>;
-  sender_total_shares_in_vault?: InputMaybe<Order_By>;
+  shares?: InputMaybe<Order_By>;
   shares_redeemed_by_sender?: InputMaybe<Order_By>;
   term_id?: InputMaybe<Order_By>;
 };
@@ -5786,7 +5786,7 @@ export type Redemptions_Variance_Fields = {
   block_number?: Maybe<Scalars['Float']['output']>;
   curve_id?: Maybe<Scalars['Float']['output']>;
   exit_fee?: Maybe<Scalars['Float']['output']>;
-  sender_total_shares_in_vault?: Maybe<Scalars['Float']['output']>;
+  shares?: Maybe<Scalars['Float']['output']>;
   shares_redeemed_by_sender?: Maybe<Scalars['Float']['output']>;
   term_id?: Maybe<Scalars['Float']['output']>;
 };
@@ -5797,7 +5797,7 @@ export type Redemptions_Variance_Order_By = {
   block_number?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
   exit_fee?: InputMaybe<Order_By>;
-  sender_total_shares_in_vault?: InputMaybe<Order_By>;
+  shares?: InputMaybe<Order_By>;
   shares_redeemed_by_sender?: InputMaybe<Order_By>;
   term_id?: InputMaybe<Order_By>;
 };

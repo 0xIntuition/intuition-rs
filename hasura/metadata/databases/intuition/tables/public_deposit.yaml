@@ -37,15 +37,11 @@ select_permissions:
   - role: anonymous
     permission:
       columns:
-        - is_atom_wallet
-        - is_triple
         - transaction_hash
         - block_number
         - created_at
-        - entry_fee
-        - receiver_total_shares_in_vault
-        - sender_assets_after_total_fees
-        - shares_for_receiver
+        - assets_after_fees
+        - shares
         - term_id
         - curve_id
         - id

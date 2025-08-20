@@ -180,16 +180,13 @@ impl DepositedEvent for &Deposited {
     fn receiver(&self) -> Result<String, ConsumerError> {
         Ok(self.receiver.to_string())
     }
-    fn vault_id(&self) -> Result<FixedBytes<32>, ConsumerError> {
-        Ok(self.termId)
-    }
     fn vault_type(&self) -> Result<VaultType, ConsumerError> {
         Ok(VaultType::from(self.vaultType))
     }
-    fn sender_assets_after_total_fees(&self) -> Result<Uint<256, 4>, ConsumerError> {
+    fn assets_after_fees(&self) -> Result<Uint<256, 4>, ConsumerError> {
         Ok(self.assetsAfterFees)
     }
-    fn shares_for_receiver(&self) -> Result<Uint<256, 4>, ConsumerError> {
+    fn shares(&self) -> Result<Uint<256, 4>, ConsumerError> {
         Ok(self.shares)
     }
     fn curve_id(&self) -> Result<Uint<256, 4>, ConsumerError> {

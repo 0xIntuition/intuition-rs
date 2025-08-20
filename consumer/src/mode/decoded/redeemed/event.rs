@@ -2,8 +2,9 @@ use crate::{
     error::ConsumerError,
     mode::{decoded::utils::get_block_timestamp, types::DecodedConsumerContext},
     schemas::types::DecodedMessage,
+    traits::SharePriceEvent,
 };
-use alloy::primitives::{FixedBytes, Uint};
+use alloy::primitives::Uint;
 use models::{
     account::Account,
     position::Position,
@@ -15,17 +16,15 @@ use models::{
     vault::Vault,
 };
 /// This trait represents a redeemed event
-pub trait RedeemedEvent: Clone {
+pub trait RedeemedEvent: SharePriceEvent + Clone {
     /// This function returns the sender of the redeemed event
     fn sender(&self) -> Result<String, ConsumerError>;
     /// This function returns the receiver of the redeemed event
     fn receiver(&self) -> Result<String, ConsumerError>;
-    /// This function returns the vault ID
-    fn assets_for_receiver(&self) -> Result<Uint<256, 4>, ConsumerError>;
-    /// This function returns the curve ID
-    fn shares_redeemed_by_sender(&self) -> Result<Uint<256, 4>, ConsumerError>;
-    /// This function returns the vault ID
-    fn vault_id(&self) -> Result<FixedBytes<32>, ConsumerError>;
+    /// This function returns the assets for the receiver
+    fn assets(&self) -> Result<Uint<256, 4>, ConsumerError>;
+    /// This function returns the shares for the redeemed event
+    fn shares(&self) -> Result<Uint<256, 4>, ConsumerError>;
     /// This function returns the curve ID
     fn curve_id(&self) -> Result<Uint<256, 4>, ConsumerError>;
     // Helper methods to break down the complexity:
@@ -40,9 +39,9 @@ pub trait RedeemedEvent: Clone {
             .id(DecodedMessage::event_id(event))
             .sender_id(sender_account.id.clone())
             .receiver_id(receiver_account.id.clone())
-            .assets_for_receiver(self.assets_for_receiver()?)
-            .shares_redeemed_by_sender(self.shares_redeemed_by_sender()?)
-            .term_id(FixedBytesWrapper::from(self.vault_id()?))
+            .assets(self.assets()?)
+            .shares(self.shares()?)
+            .term_id(FixedBytesWrapper::from(self.term_id()?))
             .block_number(U256Wrapper::try_from(event.block_number)?)
             .created_at(get_block_timestamp(event.block_timestamp)?)
             .transaction_hash(event.transaction_hash.clone())
@@ -78,7 +77,7 @@ pub trait RedeemedEvent: Clone {
         )
         .await?
         {
-            position.shares = self.shares_redeemed_by_sender()?.into();
+            position.shares = self.shares()?.into();
             position.block_number = event.block_number;
             position.log_index = event.log_index;
             position.transaction_hash = event.transaction_hash.clone();
@@ -113,7 +112,7 @@ pub trait RedeemedEvent: Clone {
             Signal::builder()
                 .id(DecodedMessage::event_id(event))
                 .account_id(self.sender()?)
-                .delta(U256Wrapper::from(self.assets_for_receiver()?))
+                .delta(U256Wrapper::from(self.assets()?))
                 .triple_id(vault.term_id.clone())
                 .redemption_id(DecodedMessage::event_id(event))
                 .block_number(U256Wrapper::try_from(event.block_number)?)
@@ -126,7 +125,7 @@ pub trait RedeemedEvent: Clone {
             Signal::builder()
                 .id(DecodedMessage::event_id(event))
                 .account_id(self.sender()?)
-                .delta(U256Wrapper::from(self.assets_for_receiver()?))
+                .delta(U256Wrapper::from(self.assets()?))
                 .atom_id(vault.term_id.clone())
                 .redemption_id(DecodedMessage::event_id(event))
                 .block_number(U256Wrapper::try_from(event.block_number)?)

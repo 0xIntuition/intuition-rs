@@ -30,14 +30,12 @@ pub trait DepositedEvent:
     fn sender(&self) -> Result<String, ConsumerError>;
     /// This function returns the receiver of the deposit
     fn receiver(&self) -> Result<String, ConsumerError>;
-    /// This function returns the vault ID
-    fn vault_id(&self) -> Result<FixedBytes<32>, ConsumerError>;
     /// This function returns the vault type
     fn vault_type(&self) -> Result<VaultType, ConsumerError>;
     /// This function returns the sender assets after total fees
-    fn sender_assets_after_total_fees(&self) -> Result<Uint<256, 4>, ConsumerError>;
+    fn assets_after_fees(&self) -> Result<Uint<256, 4>, ConsumerError>;
     /// This function returns the shares for the receiver
-    fn shares_for_receiver(&self) -> Result<Uint<256, 4>, ConsumerError>;
+    fn shares(&self) -> Result<Uint<256, 4>, ConsumerError>;
     /// This function returns the curve ID
     fn curve_id(&self) -> Result<Uint<256, 4>, ConsumerError>;
     /// This function creates a deposit
@@ -50,11 +48,9 @@ pub trait DepositedEvent:
             .id(DecodedMessage::event_id(event))
             .sender_id(self.sender()?)
             .receiver_id(self.receiver()?)
-            .sender_assets_after_total_fees(U256Wrapper::from(
-                self.sender_assets_after_total_fees()?,
-            ))
-            .shares_for_receiver(U256Wrapper::from(self.shares_for_receiver()?))
-            .term_id(self.vault_id()?)
+            .assets_after_fees(U256Wrapper::from(self.assets_after_fees()?))
+            .shares(U256Wrapper::from(self.shares()?))
+            .term_id(FixedBytesWrapper::from(self.term_id()?))
             .curve_id(DepositedEvent::curve_id(self)?)
             .vault_type(self.vault_type()?)
             .block_number(U256Wrapper::try_from(event.block_number)?)
@@ -125,13 +121,13 @@ pub trait DepositedEvent:
         event: &DecodedMessage,
         vault: &Vault,
     ) -> Result<(), ConsumerError> {
-        if self.sender_assets_after_total_fees()? > U256::from(0) {
+        if self.assets_after_fees()? > U256::from(0) {
             let created_at = get_block_timestamp(event.block_timestamp)?;
             let signal = if self.vault_type()? == VaultType::Triple {
                 Signal::builder()
                     .id(DecodedMessage::event_id(event))
                     .account_id(self.sender()?)
-                    .delta(U256Wrapper::from(self.sender_assets_after_total_fees()?))
+                    .delta(U256Wrapper::from(self.assets_after_fees()?))
                     .atom_id(vault.term_id.clone())
                     .deposit_id(DecodedMessage::event_id(event))
                     .block_number(U256Wrapper::try_from(event.block_number)?)
@@ -144,7 +140,7 @@ pub trait DepositedEvent:
                 Signal::builder()
                     .id(DecodedMessage::event_id(event))
                     .account_id(self.sender()?)
-                    .delta(U256Wrapper::from(self.sender_assets_after_total_fees()?))
+                    .delta(U256Wrapper::from(self.assets_after_fees()?))
                     .triple_id(vault.term_id.clone())
                     .deposit_id(DecodedMessage::event_id(event))
                     .block_number(U256Wrapper::try_from(event.block_number)?)
@@ -197,7 +193,7 @@ pub trait DepositedEvent:
     fn format_position_id(&self, curve_id: &str) -> Result<String, ConsumerError> {
         Ok(format!(
             "{}-{}-{}",
-            self.vault_id()?,
+            self.term_id()?,
             curve_id,
             self.receiver()?
         ))
@@ -212,17 +208,15 @@ pub trait DepositedEvent:
         Position::builder()
             .id(position_id.clone())
             .account_id(self.receiver()?)
-            .term_id(FixedBytesWrapper::from(self.vault_id()?))
+            .term_id(FixedBytesWrapper::from(self.term_id()?))
             .curve_id(DepositedEvent::curve_id(self)?)
-            .shares(self.shares_for_receiver()?)
+            .shares(self.shares()?)
             .block_number(event.block_number)
             .log_index(event.log_index)
             .transaction_hash(event.transaction_hash.clone())
             .transaction_index(event.transaction_index)
             .created_at(get_block_timestamp(event.block_timestamp)?)
-            .total_deposit_assets_after_total_fees(U256Wrapper::from(
-                self.sender_assets_after_total_fees()?,
-            ))
+            .total_deposit_assets_after_total_fees(U256Wrapper::from(self.assets_after_fees()?))
             .total_redeem_assets_for_receiver(U256Wrapper::try_from(0)?)
             .build()
             .upsert(
@@ -239,7 +233,7 @@ pub trait DepositedEvent:
         position: &mut Position,
         event: &DecodedMessage,
     ) -> Result<Position, ConsumerError> {
-        position.shares = self.shares_for_receiver()?.into();
+        position.shares = self.shares()?.into();
         position.block_number = event.block_number;
         position.log_index = event.log_index;
         position.transaction_hash = event.transaction_hash.clone();
@@ -267,7 +261,7 @@ pub trait DepositedEvent:
         )
         .await?;
 
-        if self.shares_for_receiver()? > U256::from(0) {
+        if self.shares()? > U256::from(0) {
             if position.is_none() {
                 self.create_new_position(position_id.to_string(), decoded_consumer_context, event)
                     .await?;

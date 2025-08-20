@@ -267,7 +267,7 @@ suite('organization, projects, people', async () => {
   test('Org profile', async () => {
     await wait(leoDeveloper.hash)
     const result = await execute(
-      graphql(`query AtomOrgProfile($term_id: numeric!) {
+      graphql(`query AtomOrgProfile($term_id: bytea!) {
         atom(term_id: $term_id) {
           term_id
           label
@@ -297,7 +297,7 @@ suite('organization, projects, people', async () => {
           }
         }
       }`),
-      { term_id: mayaPerson.vaultId.toString() }
+      { term_id: mayaPerson.vaultId }
     )
     expect(result).toBeDefined()
     expect(result.atom.orgs.length).toBe(2)

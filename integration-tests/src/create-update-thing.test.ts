@@ -40,7 +40,7 @@ suite('create person triple', async () => {
   test('query thing with claims', async () => {
     await wait(triple.hash)
     const result = await execute(
-      graphql(`query AtomWithClaims($atomId: numeric!, $address: String) {
+      graphql(`query AtomWithClaims($atomId: bytea!, $address: String) {
         atom(term_id: $atomId) {
           term_id
           label
@@ -97,7 +97,7 @@ suite('create person triple', async () => {
         }
       }
       `),
-      { atomId: originalThing.vaultId.toString(), address: alice.account.address })
+      { atomId: originalThing.vaultId, address: alice.account.address })
     expect(result).toBeDefined()
     expect(result.atom.label).toBe('Foo')
     expect(result.positions.length).toBe(1)

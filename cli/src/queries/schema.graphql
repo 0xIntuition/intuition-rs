@@ -2627,9 +2627,9 @@ type deposits {
 
   """An object relationship"""
   sender: accounts
-  sender_assets_after_total_fees: numeric!
+  assets_after_fees: numeric!
   sender_id: String!
-  shares_for_receiver: numeric!
+  shares: numeric!
 
   """An object relationship"""
   term: terms!
@@ -2716,8 +2716,8 @@ type deposits_avg_fields {
   curve_id: Float
   entry_fee: Float
   receiver_total_shares_in_vault: Float
-  sender_assets_after_total_fees: Float
-  shares_for_receiver: Float
+  assets_after_fees: Float
+  shares: Float
   term_id: Float
 }
 
@@ -2730,8 +2730,8 @@ input deposits_avg_order_by {
   curve_id: order_by
   entry_fee: order_by
   receiver_total_shares_in_vault: order_by
-  sender_assets_after_total_fees: order_by
-  shares_for_receiver: order_by
+  assets_after_fees: order_by
+  shares: order_by
   term_id: order_by
 }
 
@@ -2753,9 +2753,9 @@ input deposits_bool_exp {
   receiver_id: String_comparison_exp
   receiver_total_shares_in_vault: numeric_comparison_exp
   sender: accounts_bool_exp
-  sender_assets_after_total_fees: numeric_comparison_exp
+  assets_after_fees: numeric_comparison_exp
   sender_id: String_comparison_exp
-  shares_for_receiver: numeric_comparison_exp
+  shares: numeric_comparison_exp
   term: terms_bool_exp
   term_id: numeric_comparison_exp
   transaction_hash: String_comparison_exp
@@ -2771,9 +2771,9 @@ type deposits_max_fields {
   id: String
   receiver_id: String
   receiver_total_shares_in_vault: numeric
-  sender_assets_after_total_fees: numeric
+  assets_after_fees: numeric
   sender_id: String
-  shares_for_receiver: numeric
+  shares: numeric
   term_id: numeric
   transaction_hash: String
 }
@@ -2789,9 +2789,9 @@ input deposits_max_order_by {
   id: order_by
   receiver_id: order_by
   receiver_total_shares_in_vault: order_by
-  sender_assets_after_total_fees: order_by
+  assets_after_fees: order_by
   sender_id: order_by
-  shares_for_receiver: order_by
+  shares: order_by
   term_id: order_by
   transaction_hash: order_by
 }
@@ -2805,9 +2805,9 @@ type deposits_min_fields {
   id: String
   receiver_id: String
   receiver_total_shares_in_vault: numeric
-  sender_assets_after_total_fees: numeric
+  assets_after_fees: numeric
   sender_id: String
-  shares_for_receiver: numeric
+  shares: numeric
   term_id: numeric
   transaction_hash: String
 }
@@ -2823,9 +2823,9 @@ input deposits_min_order_by {
   id: order_by
   receiver_id: order_by
   receiver_total_shares_in_vault: order_by
-  sender_assets_after_total_fees: order_by
+  assets_after_fees: order_by
   sender_id: order_by
-  shares_for_receiver: order_by
+  shares: order_by
   term_id: order_by
   transaction_hash: order_by
 }
@@ -2843,9 +2843,9 @@ input deposits_order_by {
   receiver_id: order_by
   receiver_total_shares_in_vault: order_by
   sender: accounts_order_by
-  sender_assets_after_total_fees: order_by
+  assets_after_fees: order_by
   sender_id: order_by
-  shares_for_receiver: order_by
+  shares: order_by
   term: terms_order_by
   term_id: order_by
   transaction_hash: order_by
@@ -2884,13 +2884,13 @@ enum deposits_select_column {
   receiver_total_shares_in_vault
 
   """column name"""
-  sender_assets_after_total_fees
+  assets_after_fees
 
   """column name"""
   sender_id
 
   """column name"""
-  shares_for_receiver
+  shares
 
   """column name"""
   term_id
@@ -2928,8 +2928,8 @@ type deposits_stddev_fields {
   curve_id: Float
   entry_fee: Float
   receiver_total_shares_in_vault: Float
-  sender_assets_after_total_fees: Float
-  shares_for_receiver: Float
+  assets_after_fees: Float
+  shares: Float
   term_id: Float
 }
 
@@ -2942,8 +2942,8 @@ input deposits_stddev_order_by {
   curve_id: order_by
   entry_fee: order_by
   receiver_total_shares_in_vault: order_by
-  sender_assets_after_total_fees: order_by
-  shares_for_receiver: order_by
+  assets_after_fees: order_by
+  shares: order_by
   term_id: order_by
 }
 
@@ -2954,8 +2954,8 @@ type deposits_stddev_pop_fields {
   curve_id: Float
   entry_fee: Float
   receiver_total_shares_in_vault: Float
-  sender_assets_after_total_fees: Float
-  shares_for_receiver: Float
+  assets_after_fees: Float
+  shares: Float
   term_id: Float
 }
 
@@ -2968,8 +2968,8 @@ input deposits_stddev_pop_order_by {
   curve_id: order_by
   entry_fee: order_by
   receiver_total_shares_in_vault: order_by
-  sender_assets_after_total_fees: order_by
-  shares_for_receiver: order_by
+  assets_after_fees: order_by
+  shares: order_by
   term_id: order_by
 }
 
@@ -2980,8 +2980,8 @@ type deposits_stddev_samp_fields {
   curve_id: Float
   entry_fee: Float
   receiver_total_shares_in_vault: Float
-  sender_assets_after_total_fees: Float
-  shares_for_receiver: Float
+  assets_after_fees: Float
+  shares: Float
   term_id: Float
 }
 
@@ -2994,8 +2994,8 @@ input deposits_stddev_samp_order_by {
   curve_id: order_by
   entry_fee: order_by
   receiver_total_shares_in_vault: order_by
-  sender_assets_after_total_fees: order_by
-  shares_for_receiver: order_by
+  assets_after_fees: order_by
+  shares: order_by
   term_id: order_by
 }
 
@@ -3021,9 +3021,9 @@ input deposits_stream_cursor_value_input {
   is_triple: Boolean
   receiver_id: String
   receiver_total_shares_in_vault: numeric
-  sender_assets_after_total_fees: numeric
+  assets_after_fees: numeric
   sender_id: String
-  shares_for_receiver: numeric
+  shares: numeric
   term_id: numeric
   transaction_hash: String
 }
@@ -3035,8 +3035,8 @@ type deposits_sum_fields {
   curve_id: numeric
   entry_fee: numeric
   receiver_total_shares_in_vault: numeric
-  sender_assets_after_total_fees: numeric
-  shares_for_receiver: numeric
+  assets_after_fees: numeric
+  shares: numeric
   term_id: numeric
 }
 
@@ -3049,8 +3049,8 @@ input deposits_sum_order_by {
   curve_id: order_by
   entry_fee: order_by
   receiver_total_shares_in_vault: order_by
-  sender_assets_after_total_fees: order_by
-  shares_for_receiver: order_by
+  assets_after_fees: order_by
+  shares: order_by
   term_id: order_by
 }
 
@@ -3061,8 +3061,8 @@ type deposits_var_pop_fields {
   curve_id: Float
   entry_fee: Float
   receiver_total_shares_in_vault: Float
-  sender_assets_after_total_fees: Float
-  shares_for_receiver: Float
+  assets_after_fees: Float
+  shares: Float
   term_id: Float
 }
 
@@ -3075,8 +3075,8 @@ input deposits_var_pop_order_by {
   curve_id: order_by
   entry_fee: order_by
   receiver_total_shares_in_vault: order_by
-  sender_assets_after_total_fees: order_by
-  shares_for_receiver: order_by
+  assets_after_fees: order_by
+  shares: order_by
   term_id: order_by
 }
 
@@ -3087,8 +3087,8 @@ type deposits_var_samp_fields {
   curve_id: Float
   entry_fee: Float
   receiver_total_shares_in_vault: Float
-  sender_assets_after_total_fees: Float
-  shares_for_receiver: Float
+  assets_after_fees: Float
+  shares: Float
   term_id: Float
 }
 
@@ -3101,8 +3101,8 @@ input deposits_var_samp_order_by {
   curve_id: order_by
   entry_fee: order_by
   receiver_total_shares_in_vault: order_by
-  sender_assets_after_total_fees: order_by
-  shares_for_receiver: order_by
+  assets_after_fees: order_by
+  shares: order_by
   term_id: order_by
 }
 
@@ -3113,8 +3113,8 @@ type deposits_variance_fields {
   curve_id: Float
   entry_fee: Float
   receiver_total_shares_in_vault: Float
-  sender_assets_after_total_fees: Float
-  shares_for_receiver: Float
+  assets_after_fees: Float
+  shares: Float
   term_id: Float
 }
 
@@ -3127,8 +3127,8 @@ input deposits_variance_order_by {
   curve_id: order_by
   entry_fee: order_by
   receiver_total_shares_in_vault: order_by
-  sender_assets_after_total_fees: order_by
-  shares_for_receiver: order_by
+  assets_after_fees: order_by
+  shares: order_by
   term_id: order_by
 }
 
@@ -6254,7 +6254,7 @@ type query_root {
 columns and relationships of "redemption"
 """
 type redemptions {
-  assets_for_receiver: numeric!
+  assets: numeric!
   block_number: numeric!
   block_timestamp: bigint!
   curve_id: numeric!
@@ -6268,7 +6268,7 @@ type redemptions {
   """An object relationship"""
   sender: accounts
   sender_id: String!
-  sender_total_shares_in_vault: numeric!
+  shares: numeric!
   shares_redeemed_by_sender: numeric!
 
   """An object relationship"""
@@ -6335,12 +6335,12 @@ input redemptions_aggregate_order_by {
 
 """aggregate avg on columns"""
 type redemptions_avg_fields {
-  assets_for_receiver: Float
+  assets: Float
   block_number: Float
   block_timestamp: Float
   curve_id: Float
   exit_fee: Float
-  sender_total_shares_in_vault: Float
+  shares: Float
   shares_redeemed_by_sender: Float
   term_id: Float
 }
@@ -6349,12 +6349,12 @@ type redemptions_avg_fields {
 order by avg() on columns of table "redemption"
 """
 input redemptions_avg_order_by {
-  assets_for_receiver: order_by
+  assets: order_by
   block_number: order_by
   block_timestamp: order_by
   curve_id: order_by
   exit_fee: order_by
-  sender_total_shares_in_vault: order_by
+  shares: order_by
   shares_redeemed_by_sender: order_by
   term_id: order_by
 }
@@ -6366,7 +6366,7 @@ input redemptions_bool_exp {
   _and: [redemptions_bool_exp!]
   _not: redemptions_bool_exp
   _or: [redemptions_bool_exp!]
-  assets_for_receiver: numeric_comparison_exp
+  assets: numeric_comparison_exp
   block_number: numeric_comparison_exp
   block_timestamp: bigint_comparison_exp
   curve_id: numeric_comparison_exp
@@ -6376,7 +6376,7 @@ input redemptions_bool_exp {
   receiver_id: String_comparison_exp
   sender: accounts_bool_exp
   sender_id: String_comparison_exp
-  sender_total_shares_in_vault: numeric_comparison_exp
+  shares: numeric_comparison_exp
   shares_redeemed_by_sender: numeric_comparison_exp
   term: terms_bool_exp
   term_id: numeric_comparison_exp
@@ -6386,7 +6386,7 @@ input redemptions_bool_exp {
 
 """aggregate max on columns"""
 type redemptions_max_fields {
-  assets_for_receiver: numeric
+  assets: numeric
   block_number: numeric
   block_timestamp: bigint
   curve_id: numeric
@@ -6394,7 +6394,7 @@ type redemptions_max_fields {
   id: String
   receiver_id: String
   sender_id: String
-  sender_total_shares_in_vault: numeric
+  shares: numeric
   shares_redeemed_by_sender: numeric
   term_id: numeric
   transaction_hash: String
@@ -6404,7 +6404,7 @@ type redemptions_max_fields {
 order by max() on columns of table "redemption"
 """
 input redemptions_max_order_by {
-  assets_for_receiver: order_by
+  assets: order_by
   block_number: order_by
   block_timestamp: order_by
   curve_id: order_by
@@ -6412,7 +6412,7 @@ input redemptions_max_order_by {
   id: order_by
   receiver_id: order_by
   sender_id: order_by
-  sender_total_shares_in_vault: order_by
+  shares: order_by
   shares_redeemed_by_sender: order_by
   term_id: order_by
   transaction_hash: order_by
@@ -6420,7 +6420,7 @@ input redemptions_max_order_by {
 
 """aggregate min on columns"""
 type redemptions_min_fields {
-  assets_for_receiver: numeric
+  assets: numeric
   block_number: numeric
   block_timestamp: bigint
   curve_id: numeric
@@ -6428,7 +6428,7 @@ type redemptions_min_fields {
   id: String
   receiver_id: String
   sender_id: String
-  sender_total_shares_in_vault: numeric
+  shares: numeric
   shares_redeemed_by_sender: numeric
   term_id: numeric
   transaction_hash: String
@@ -6438,7 +6438,7 @@ type redemptions_min_fields {
 order by min() on columns of table "redemption"
 """
 input redemptions_min_order_by {
-  assets_for_receiver: order_by
+  assets: order_by
   block_number: order_by
   block_timestamp: order_by
   curve_id: order_by
@@ -6446,7 +6446,7 @@ input redemptions_min_order_by {
   id: order_by
   receiver_id: order_by
   sender_id: order_by
-  sender_total_shares_in_vault: order_by
+  shares: order_by
   shares_redeemed_by_sender: order_by
   term_id: order_by
   transaction_hash: order_by
@@ -6454,7 +6454,7 @@ input redemptions_min_order_by {
 
 """Ordering options when selecting data from "redemption"."""
 input redemptions_order_by {
-  assets_for_receiver: order_by
+  assets: order_by
   block_number: order_by
   block_timestamp: order_by
   curve_id: order_by
@@ -6464,7 +6464,7 @@ input redemptions_order_by {
   receiver_id: order_by
   sender: accounts_order_by
   sender_id: order_by
-  sender_total_shares_in_vault: order_by
+  shares: order_by
   shares_redeemed_by_sender: order_by
   term: terms_order_by
   term_id: order_by
@@ -6477,7 +6477,7 @@ select columns of table "redemption"
 """
 enum redemptions_select_column {
   """column name"""
-  assets_for_receiver
+  assets
 
   """column name"""
   block_number
@@ -6489,9 +6489,6 @@ enum redemptions_select_column {
   curve_id
 
   """column name"""
-  exit_fee
-
-  """column name"""
   id
 
   """column name"""
@@ -6500,11 +6497,9 @@ enum redemptions_select_column {
   """column name"""
   sender_id
 
-  """column name"""
-  sender_total_shares_in_vault
 
   """column name"""
-  shares_redeemed_by_sender
+  shares
 
   """column name"""
   term_id
@@ -6515,12 +6510,12 @@ enum redemptions_select_column {
 
 """aggregate stddev on columns"""
 type redemptions_stddev_fields {
-  assets_for_receiver: Float
+  assets: Float
   block_number: Float
   block_timestamp: Float
   curve_id: Float
   exit_fee: Float
-  sender_total_shares_in_vault: Float
+  shares: Float
   shares_redeemed_by_sender: Float
   term_id: Float
 }
@@ -6529,24 +6524,24 @@ type redemptions_stddev_fields {
 order by stddev() on columns of table "redemption"
 """
 input redemptions_stddev_order_by {
-  assets_for_receiver: order_by
+  assets: order_by
   block_number: order_by
   block_timestamp: order_by
   curve_id: order_by
   exit_fee: order_by
-  sender_total_shares_in_vault: order_by
+  shares: order_by
   shares_redeemed_by_sender: order_by
   term_id: order_by
 }
 
 """aggregate stddev_pop on columns"""
 type redemptions_stddev_pop_fields {
-  assets_for_receiver: Float
+  assets: Float
   block_number: Float
   block_timestamp: Float
   curve_id: Float
   exit_fee: Float
-  sender_total_shares_in_vault: Float
+  shares: Float
   shares_redeemed_by_sender: Float
   term_id: Float
 }
@@ -6555,24 +6550,24 @@ type redemptions_stddev_pop_fields {
 order by stddev_pop() on columns of table "redemption"
 """
 input redemptions_stddev_pop_order_by {
-  assets_for_receiver: order_by
+  assets: order_by
   block_number: order_by
   block_timestamp: order_by
   curve_id: order_by
   exit_fee: order_by
-  sender_total_shares_in_vault: order_by
+  shares: order_by
   shares_redeemed_by_sender: order_by
   term_id: order_by
 }
 
 """aggregate stddev_samp on columns"""
 type redemptions_stddev_samp_fields {
-  assets_for_receiver: Float
+  assets: Float
   block_number: Float
   block_timestamp: Float
   curve_id: Float
   exit_fee: Float
-  sender_total_shares_in_vault: Float
+  shares: Float
   shares_redeemed_by_sender: Float
   term_id: Float
 }
@@ -6581,12 +6576,12 @@ type redemptions_stddev_samp_fields {
 order by stddev_samp() on columns of table "redemption"
 """
 input redemptions_stddev_samp_order_by {
-  assets_for_receiver: order_by
+  assets: order_by
   block_number: order_by
   block_timestamp: order_by
   curve_id: order_by
   exit_fee: order_by
-  sender_total_shares_in_vault: order_by
+  shares: order_by
   shares_redeemed_by_sender: order_by
   term_id: order_by
 }
@@ -6604,7 +6599,7 @@ input redemptions_stream_cursor_input {
 
 """Initial value of the column from where the streaming should start"""
 input redemptions_stream_cursor_value_input {
-  assets_for_receiver: numeric
+  assets: numeric
   block_number: numeric
   block_timestamp: bigint
   curve_id: numeric
@@ -6612,7 +6607,7 @@ input redemptions_stream_cursor_value_input {
   id: String
   receiver_id: String
   sender_id: String
-  sender_total_shares_in_vault: numeric
+  shares: numeric
   shares_redeemed_by_sender: numeric
   term_id: numeric
   transaction_hash: String
@@ -6620,12 +6615,12 @@ input redemptions_stream_cursor_value_input {
 
 """aggregate sum on columns"""
 type redemptions_sum_fields {
-  assets_for_receiver: numeric
+  assets: numeric
   block_number: numeric
   block_timestamp: bigint
   curve_id: numeric
   exit_fee: numeric
-  sender_total_shares_in_vault: numeric
+  shares: numeric
   shares_redeemed_by_sender: numeric
   term_id: numeric
 }
@@ -6634,24 +6629,24 @@ type redemptions_sum_fields {
 order by sum() on columns of table "redemption"
 """
 input redemptions_sum_order_by {
-  assets_for_receiver: order_by
+  assets: order_by
   block_number: order_by
   block_timestamp: order_by
   curve_id: order_by
   exit_fee: order_by
-  sender_total_shares_in_vault: order_by
+  shares: order_by
   shares_redeemed_by_sender: order_by
   term_id: order_by
 }
 
 """aggregate var_pop on columns"""
 type redemptions_var_pop_fields {
-  assets_for_receiver: Float
+  assets: Float
   block_number: Float
   block_timestamp: Float
   curve_id: Float
   exit_fee: Float
-  sender_total_shares_in_vault: Float
+  shares: Float
   shares_redeemed_by_sender: Float
   term_id: Float
 }
@@ -6660,24 +6655,24 @@ type redemptions_var_pop_fields {
 order by var_pop() on columns of table "redemption"
 """
 input redemptions_var_pop_order_by {
-  assets_for_receiver: order_by
+  assets: order_by
   block_number: order_by
   block_timestamp: order_by
   curve_id: order_by
   exit_fee: order_by
-  sender_total_shares_in_vault: order_by
+  shares: order_by
   shares_redeemed_by_sender: order_by
   term_id: order_by
 }
 
 """aggregate var_samp on columns"""
 type redemptions_var_samp_fields {
-  assets_for_receiver: Float
+  assets: Float
   block_number: Float
   block_timestamp: Float
   curve_id: Float
   exit_fee: Float
-  sender_total_shares_in_vault: Float
+  shares: Float
   shares_redeemed_by_sender: Float
   term_id: Float
 }
@@ -6686,24 +6681,24 @@ type redemptions_var_samp_fields {
 order by var_samp() on columns of table "redemption"
 """
 input redemptions_var_samp_order_by {
-  assets_for_receiver: order_by
+  assets: order_by
   block_number: order_by
   block_timestamp: order_by
   curve_id: order_by
   exit_fee: order_by
-  sender_total_shares_in_vault: order_by
+  shares: order_by
   shares_redeemed_by_sender: order_by
   term_id: order_by
 }
 
 """aggregate variance on columns"""
 type redemptions_variance_fields {
-  assets_for_receiver: Float
+  assets: Float
   block_number: Float
   block_timestamp: Float
   curve_id: Float
   exit_fee: Float
-  sender_total_shares_in_vault: Float
+  shares: Float
   shares_redeemed_by_sender: Float
   term_id: Float
 }
@@ -6712,12 +6707,12 @@ type redemptions_variance_fields {
 order by variance() on columns of table "redemption"
 """
 input redemptions_variance_order_by {
-  assets_for_receiver: order_by
+  assets: order_by
   block_number: order_by
   block_timestamp: order_by
   curve_id: order_by
   exit_fee: order_by
-  sender_total_shares_in_vault: order_by
+  shares: order_by
   shares_redeemed_by_sender: order_by
   term_id: order_by
 }

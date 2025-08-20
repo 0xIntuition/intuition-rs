@@ -93,11 +93,11 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION update_position_deposit_assets()
 RETURNS TRIGGER AS $$
 BEGIN
-    -- Update position.total_deposit_assets_after_total_fees by adding deposit.sender_assets_after_total_fees
+    -- Update position.total_deposit_assets_after_total_fees by adding deposit.assets_after_fees
     -- PostgreSQL's UPDATE is atomic, so concurrent updates will be serialized
     UPDATE position 
     SET total_deposit_assets_after_total_fees = 
-        COALESCE(total_deposit_assets_after_total_fees, 0) + NEW.sender_assets_after_total_fees
+        COALESCE(total_deposit_assets_after_total_fees, 0) + NEW.assets_after_fees
     WHERE account_id = NEW.receiver_id 
       AND term_id = NEW.term_id 
       AND curve_id = NEW.curve_id;

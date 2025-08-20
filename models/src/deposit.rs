@@ -35,8 +35,8 @@ pub struct Deposit {
     pub id: String,
     pub sender_id: String,
     pub receiver_id: String,
-    pub sender_assets_after_total_fees: U256Wrapper,
-    pub shares_for_receiver: U256Wrapper,
+    pub assets_after_fees: U256Wrapper,
+    pub shares: U256Wrapper,
     pub term_id: FixedBytesWrapper,
     pub vault_type: VaultType,
     pub block_number: U256Wrapper,
@@ -62,14 +62,14 @@ impl SimpleCrud<String> for Deposit {
             r#"
             INSERT INTO {}.deposit (
                 id, sender_id, receiver_id,
-                sender_assets_after_total_fees, shares_for_receiver, term_id,
+                assets_after_fees, shares, term_id,
                 vault_type, curve_id, block_number, created_at, transaction_hash, log_index
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
             ON CONFLICT (id) DO UPDATE SET
                 sender_id = EXCLUDED.sender_id,
                 receiver_id = EXCLUDED.receiver_id,
-                sender_assets_after_total_fees = EXCLUDED.sender_assets_after_total_fees,
-                shares_for_receiver = EXCLUDED.shares_for_receiver,
+                assets_after_fees = EXCLUDED.assets_after_fees,
+                shares = EXCLUDED.shares,
                 term_id = EXCLUDED.term_id,
                 vault_type = EXCLUDED.vault_type,
                 curve_id = EXCLUDED.curve_id,
@@ -79,8 +79,8 @@ impl SimpleCrud<String> for Deposit {
                 log_index = EXCLUDED.log_index
             RETURNING 
                 id, sender_id, receiver_id,
-                sender_assets_after_total_fees,
-                shares_for_receiver,
+                assets_after_fees,
+                shares,
                 term_id,
                 vault_type,
                 curve_id,
@@ -96,8 +96,8 @@ impl SimpleCrud<String> for Deposit {
             .bind(self.id.clone())
             .bind(self.sender_id.clone())
             .bind(self.receiver_id.clone())
-            .bind(self.sender_assets_after_total_fees.to_big_decimal()?)
-            .bind(self.shares_for_receiver.to_big_decimal()?)
+            .bind(self.assets_after_fees.to_big_decimal()?)
+            .bind(self.shares.to_big_decimal()?)
             .bind(self.term_id.0.as_slice())
             .bind(self.vault_type)
             .bind(self.curve_id.to_big_decimal()?)
@@ -124,8 +124,8 @@ impl SimpleCrud<String> for Deposit {
             r#"
             SELECT 
                 id, sender_id, receiver_id,
-                sender_assets_after_total_fees,
-                shares_for_receiver,
+                assets_after_fees,
+                shares,
                 term_id,
                 vault_type,
                 curve_id,
