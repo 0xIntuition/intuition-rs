@@ -137,10 +137,8 @@ export async function getIntuition(accountIndex: number) {
       return { vaultId: vaultId, hash: null }
     } else {
       console.log(`Creating atom: ${uri} ...`)
-      const generalConfig = await contract.read.generalConfig()
-      const minDeposit = BigInt(generalConfig[4])
+      const { minDeposit } = await contract.read.getGeneralConfig()
       console.log(`Min deposit: ${minDeposit} wei (${formatEther(minDeposit)} ETH)`)
-      // const { vaultId, hash } = await multivault.createAtom({ uri, initialDeposit: minDeposit })
       const hash = await contract.write.createAtoms([[toHex(uri)], [minDeposit]], { value: minDeposit })
       const vaultId = await eventParseAtomCreated(hash)
       console.log(`vaultId: ${vaultId}`)
@@ -150,8 +148,8 @@ export async function getIntuition(accountIndex: number) {
   }
 
   async function getCreateOrDepositOnTriple(subjectId: `0x${string}`, predicateId: `0x${string}`, objectId: `0x${string}`, customInitialDeposit?: bigint) {
-    const generalConfig = await contract.read.generalConfig()
-    const initialDeposit = customInitialDeposit ?? BigInt(generalConfig[4])
+    const { minDeposit } = await contract.read.getGeneralConfig()
+    const initialDeposit = customInitialDeposit ?? minDeposit
 
     const tripleId = await contract.read.calculateTripleId([subjectId, predicateId, objectId])
     let tripleExits = false;
