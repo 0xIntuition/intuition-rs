@@ -114,7 +114,7 @@ BEGIN
     -- PostgreSQL's UPDATE is atomic, so concurrent updates will be serialized
     UPDATE position 
     SET total_redeem_assets_for_receiver = 
-        COALESCE(total_redeem_assets_for_receiver, 0) + NEW.assets_for_receiver
+        COALESCE(total_redeem_assets_for_receiver, 0) + NEW.assets
     WHERE account_id = NEW.sender_id 
       AND term_id = NEW.term_id 
       AND curve_id = NEW.curve_id;
