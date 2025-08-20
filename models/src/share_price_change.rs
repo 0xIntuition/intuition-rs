@@ -255,7 +255,7 @@ impl SharePriceChange {
     pub async fn find_last_share_price_event<'e, E>(
         schema: &str,
         executor: E,
-        term_id: U256Wrapper,
+        term_id: FixedBytesWrapper,
         curve_id: U256Wrapper,
     ) -> Result<Option<Self>, ModelError>
     where
@@ -272,7 +272,7 @@ impl SharePriceChange {
         );
 
         sqlx::query_as::<_, SharePriceChange>(&query)
-            .bind(term_id.to_big_decimal()?)
+            .bind(term_id.0.as_slice())
             .bind(curve_id.to_big_decimal()?)
             .fetch_optional(executor)
             .await

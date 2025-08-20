@@ -125,7 +125,7 @@ impl SimpleCrud<FixedBytesWrapper> for TripleVault {
 impl TripleVault {
     /// This function finds a vault by its term_id and curve_id
     pub async fn find_by_term_id_and_curve_id<'e, E>(
-        term_id: U256Wrapper,
+        term_id: FixedBytesWrapper,
         curve_id: U256Wrapper,
         executor: E,
         schema: &str,
@@ -141,7 +141,7 @@ impl TripleVault {
         );
 
         sqlx::query_as::<_, TripleVault>(&query)
-            .bind(term_id.to_big_decimal()?)
+            .bind(term_id.0.as_slice())
             .bind(curve_id.to_big_decimal()?)
             .fetch_optional(executor)
             .await

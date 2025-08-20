@@ -59,7 +59,7 @@ impl SimpleCrud<FixedBytesWrapper> for Term {
         );
 
         sqlx::query_as::<_, Term>(&query)
-            .bind(self.id.0.as_slice())
+            .bind(self.id.clone())
             .bind(self.term_type.clone())
             .bind(self.atom_id.as_ref().map(|w| w.0.as_slice()))
             .bind(self.triple_id.as_ref().map(|w| w.0.as_slice()))

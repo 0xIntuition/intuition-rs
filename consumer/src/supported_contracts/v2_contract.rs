@@ -7,7 +7,7 @@ use alloy::{
 };
 use alloy_network::Ethereum;
 use serde::{Deserialize, Serialize};
-use tracing::{debug, warn};
+use tracing::debug;
 
 use crate::{
     config::ContractInstance,
@@ -86,16 +86,6 @@ impl EventProcessor for &MultivaultEvents {
                     .await?;
                 timer.observe_duration();
             }
-            // MultivaultEvents::FeesTransferred(fees_data) => {
-            //     let timer = get_event_processing_histogram()
-            //         .with_label_values(&["FeesTransferred"])
-            //         .start_timer();
-            //     debug!("Received: {fees_data:#?}");
-            //     FeeTransferredEventHandler(fees_data)
-            //         .process_event(context, message)
-            //         .await?;
-            //     timer.observe_duration();
-            // }
             MultivaultEvents::TripleCreated(triple_data) => {
                 let timer = get_event_processing_histogram()
                     .with_label_values(&["TripleCreated"])
@@ -137,7 +127,7 @@ impl EventProcessor for &MultivaultEvents {
                 timer.observe_duration();
             }
             _ => {
-                warn!("Received unknown event: {:?}", self);
+                debug!("Skipping unknown event: {:?}", self);
             }
         };
         Ok(())

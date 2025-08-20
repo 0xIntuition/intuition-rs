@@ -123,7 +123,7 @@ pub trait AtomCreatedEvent:
         let creator_account =
             get_or_create_account(self.creator_id()?, decoded_consumer_context).await?;
         let atom = Atom::builder()
-            .term_id(self.term_id()?)
+            .term_id(FixedBytesWrapper::from(self.term_id()?))
             .wallet_id(atom_wallet_account.id.clone())
             .creator_id(creator_account.id)
             .value_id(FixedBytesWrapper::from(self.term_id()?))

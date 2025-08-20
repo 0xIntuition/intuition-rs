@@ -79,7 +79,7 @@ impl SimpleCrud<FixedBytesWrapper> for Vault {
         );
 
         sqlx::query_as::<_, Vault>(&query)
-            .bind(self.term_id.0.as_slice())
+            .bind(self.term_id.clone())
             .bind(self.curve_id.to_big_decimal()?)
             .bind(self.total_shares.to_big_decimal()?)
             .bind(self.current_share_price.to_big_decimal()?)
@@ -225,7 +225,7 @@ impl Vault {
 
     /// This function sums the total assets of all the vaults for a given term
     pub async fn sum_total_assets(
-        term_id: U256Wrapper,
+        term_id: FixedBytesWrapper,
         pool: &PgPool,
         schema: &str,
     ) -> Result<U256Wrapper, ModelError> {
@@ -234,7 +234,7 @@ impl Vault {
             schema
         );
         sqlx::query_scalar::<_, U256Wrapper>(&query)
-            .bind(term_id.to_big_decimal()?)
+            .bind(term_id.0.as_slice())
             .fetch_one(pool)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
@@ -242,7 +242,7 @@ impl Vault {
 
     /// This function sums the market cap of all the vaults for a given term
     pub async fn sum_market_cap(
-        term_id: U256Wrapper,
+        term_id: FixedBytesWrapper,
         pool: &PgPool,
         schema: &str,
     ) -> Result<U256Wrapper, ModelError> {
@@ -251,7 +251,7 @@ impl Vault {
             schema
         );
         sqlx::query_scalar::<_, U256Wrapper>(&query)
-            .bind(term_id.to_big_decimal()?)
+            .bind(term_id.0.as_slice())
             .fetch_one(pool)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
@@ -290,7 +290,7 @@ impl Vault {
         );
 
         sqlx::query_as::<_, Vault>(&query)
-            .bind(self.term_id.0.as_slice())
+            .bind(self.term_id.clone())
             .bind(self.curve_id.to_big_decimal()?)
             .bind(self.total_shares.to_big_decimal()?)
             .bind(self.current_share_price.to_big_decimal()?)

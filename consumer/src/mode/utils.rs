@@ -77,6 +77,7 @@ impl VaultOrigin {
         let new_vault = self
             .build_new_vault(&event, context, tx, custom_term_id)
             .await?;
+        debug!("New vault: {:?}", new_vault);
 
         if self.should_insert() {
             new_vault

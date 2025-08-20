@@ -36,7 +36,9 @@ where
         // Check if the share price changed already exists, skip if it does
         match SharePriceChange::fetch_share_price_from_internal(
             &SharePriceChangeInternal::builder()
-                .term_id(SharePriceChangedEvent::term_id(&self.0)?)
+                .term_id(FixedBytesWrapper::from(SharePriceChangedEvent::term_id(
+                    &self.0,
+                )?))
                 .curve_id(SharePriceChangedEvent::curve_id(&self.0)?)
                 .share_price(SharePriceEvent::new_share_price(&self.0)?)
                 .total_assets(SharePriceEvent::total_assets(&self.0)?)

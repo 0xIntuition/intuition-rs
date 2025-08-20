@@ -7,7 +7,7 @@ use crate::{
 use alloy::primitives::FixedBytes;
 use models::{
     share_price_change::{SharePriceChange, SharePriceChangeInternal},
-    types::U256Wrapper,
+    types::{FixedBytesWrapper, U256Wrapper},
 };
 use tracing::info;
 
@@ -30,7 +30,9 @@ pub trait SharePriceChangedEvent: SharePriceEvent + VaultManager + Clone {
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
         let new_share_price = SharePriceChangeInternal::builder()
-            .term_id(SharePriceChangedEvent::term_id(self)?)
+            .term_id(FixedBytesWrapper::from(SharePriceChangedEvent::term_id(
+                self,
+            )?))
             .curve_id(SharePriceChangedEvent::curve_id(self)?)
             .share_price(SharePriceChangedEvent::new_share_price(self)?)
             .total_assets(SharePriceChangedEvent::total_assets(self)?)

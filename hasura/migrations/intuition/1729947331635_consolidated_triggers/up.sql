@@ -130,7 +130,7 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION update_term_totals()
 RETURNS TRIGGER AS $$
 DECLARE
-    term_id_val NUMERIC(78, 0);
+    term_id_val BYTEA;
 BEGIN
     -- For INSERT and UPDATE operations, use the NEW record's term_id
     IF (TG_OP = 'INSERT' OR TG_OP = 'UPDATE') THEN
@@ -164,8 +164,8 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION update_triple_term_totals()
 RETURNS TRIGGER AS $$
 DECLARE
-    term_id_val NUMERIC(78, 0);
-    counter_term_id_val NUMERIC(78, 0);
+    term_id_val BYTEA;
+    counter_term_id_val BYTEA;
 BEGIN
     -- For INSERT and UPDATE operations, use the NEW record's term_id and counter_term_id
     IF (TG_OP = 'INSERT' OR TG_OP = 'UPDATE') THEN
@@ -203,7 +203,7 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION update_triple_vault_from_vault()
 RETURNS TRIGGER AS $$
 DECLARE
-    affected_term_id NUMERIC(78, 0);
+    affected_term_id BYTEA;
     affected_curve_id NUMERIC(78, 0);
 BEGIN
     -- For INSERT and UPDATE operations, use the NEW record's term_id and curve_id
@@ -444,7 +444,7 @@ $$;
 -- ACCOUNTS THAT CLAIM ABOUT ACCOUNT
 -- ========================================
 
-CREATE OR REPLACE FUNCTION accounts_that_claim_about_account(address text, subject numeric, predicate numeric) RETURNS SETOF account
+CREATE OR REPLACE FUNCTION accounts_that_claim_about_account(address text, subject bytea, predicate bytea) RETURNS SETOF account
     LANGUAGE sql STABLE
     AS $$
 SELECT account.*

@@ -39,32 +39,30 @@ impl SimpleCrud<String> for Redemption {
         let query = format!(
             r#"
         INSERT INTO {}.redemption (
-            id, sender_id, receiver_id, sender_total_shares_in_vault,
+            id, sender_id, receiver_id,
             assets_for_receiver, shares_redeemed_by_sender, term_id,
-            block_number, created_at, transaction_hash, curve_id, log_index
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+            curve_id, block_number, created_at, transaction_hash, log_index
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
         ON CONFLICT (id) DO UPDATE SET
             sender_id = EXCLUDED.sender_id,
             receiver_id = EXCLUDED.receiver_id,
-            sender_total_shares_in_vault = EXCLUDED.sender_total_shares_in_vault,
             assets_for_receiver = EXCLUDED.assets_for_receiver,
             shares_redeemed_by_sender = EXCLUDED.shares_redeemed_by_sender,
             term_id = EXCLUDED.term_id,
+            curve_id = EXCLUDED.curve_id,
             block_number = EXCLUDED.block_number,
             created_at = EXCLUDED.created_at,
             transaction_hash = EXCLUDED.transaction_hash,
-            curve_id = EXCLUDED.curve_id,
             log_index = EXCLUDED.log_index
         RETURNING 
             id, sender_id, receiver_id,
-            sender_total_shares_in_vault,
             assets_for_receiver,
             shares_redeemed_by_sender,
             term_id,
+            curve_id,
             block_number,
             created_at,
             transaction_hash,
-            curve_id,
             log_index
         "#,
             schema,
@@ -77,10 +75,10 @@ impl SimpleCrud<String> for Redemption {
             .bind(self.assets_for_receiver.to_big_decimal()?)
             .bind(self.shares_redeemed_by_sender.to_big_decimal()?)
             .bind(self.term_id.0.as_slice())
+            .bind(self.curve_id.to_big_decimal()?)
             .bind(self.block_number.to_big_decimal()?)
             .bind(self.created_at)
             .bind(self.transaction_hash.clone())
-            .bind(self.curve_id.to_big_decimal()?)
             .bind(self.log_index)
             .fetch_one(executor)
             .await
@@ -101,14 +99,13 @@ impl SimpleCrud<String> for Redemption {
             r#"
             SELECT 
                 id, sender_id, receiver_id,
-                sender_total_shares_in_vault,
                 assets_for_receiver,
                 shares_redeemed_by_sender,  
                 term_id,
+                curve_id,
                 block_number,
                 created_at,
                 transaction_hash,
-                curve_id,
                 log_index
             FROM {}.redemption
             WHERE id = $1
@@ -158,7 +155,7 @@ impl Redemption {
     /// and the log index.
     pub async fn find_last_redemption_by_transaction_hash_term_id_and_curve_id<'e, E>(
         transaction_hash: String,
-        term_id: U256Wrapper,
+        term_id: FixedBytesWrapper,
         curve_id: U256Wrapper,
         schema: &str,
         executor: E,
@@ -173,7 +170,7 @@ impl Redemption {
 
         let result: Option<Redemption> = sqlx::query_as(&query)
             .bind(transaction_hash)
-            .bind(term_id.to_big_decimal()?)
+            .bind(term_id.0.as_slice())
             .bind(curve_id.to_big_decimal()?)
             .fetch_optional(executor)
             .await

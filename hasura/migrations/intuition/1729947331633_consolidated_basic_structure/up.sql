@@ -58,7 +58,7 @@ CREATE TABLE account (
 );
 
 CREATE TABLE term (
-  id NUMERIC(78, 0) PRIMARY KEY,
+  id BYTEA PRIMARY KEY,
   type term_type NOT NULL,
   atom_id BYTEA,
   triple_id BYTEA,

@@ -63,8 +63,8 @@ impl SimpleCrud<String> for Deposit {
             INSERT INTO {}.deposit (
                 id, sender_id, receiver_id,
                 sender_assets_after_total_fees, shares_for_receiver, term_id,
-                vault_type, block_number, created_at, transaction_hash, curve_id, log_index
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+                vault_type, curve_id, block_number, created_at, transaction_hash, log_index
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
             ON CONFLICT (id) DO UPDATE SET
                 sender_id = EXCLUDED.sender_id,
                 receiver_id = EXCLUDED.receiver_id,
@@ -72,10 +72,10 @@ impl SimpleCrud<String> for Deposit {
                 shares_for_receiver = EXCLUDED.shares_for_receiver,
                 term_id = EXCLUDED.term_id,
                 vault_type = EXCLUDED.vault_type,
+                curve_id = EXCLUDED.curve_id,
                 block_number = EXCLUDED.block_number,
                 created_at = EXCLUDED.created_at,
                 transaction_hash = EXCLUDED.transaction_hash,
-                curve_id = EXCLUDED.curve_id,
                 log_index = EXCLUDED.log_index
             RETURNING 
                 id, sender_id, receiver_id,
@@ -83,10 +83,10 @@ impl SimpleCrud<String> for Deposit {
                 shares_for_receiver,
                 term_id,
                 vault_type,
+                curve_id,
                 block_number,
                 created_at,
                 transaction_hash,
-                curve_id,
                 log_index
             "#,
             schema,
@@ -100,10 +100,10 @@ impl SimpleCrud<String> for Deposit {
             .bind(self.shares_for_receiver.to_big_decimal()?)
             .bind(self.term_id.0.as_slice())
             .bind(self.vault_type)
+            .bind(self.curve_id.to_big_decimal()?)
             .bind(self.block_number.to_big_decimal()?)
             .bind(self.created_at)
             .bind(self.transaction_hash.clone())
-            .bind(self.curve_id.to_big_decimal()?)
             .bind(self.log_index)
             .fetch_one(executor)
             .await
@@ -128,10 +128,10 @@ impl SimpleCrud<String> for Deposit {
                 shares_for_receiver,
                 term_id,
                 vault_type,
+                curve_id,
                 block_number,
                 created_at,
                 transaction_hash,
-                curve_id,
                 log_index
             FROM {}.deposit
             WHERE id = $1

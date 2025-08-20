@@ -237,8 +237,24 @@ impl HybridConsumer {
                                 .ok_or(ConsumerError::ContractVersionNotFound)?;
                             let decoded = ctx
                                 .decode_raw_message(log_for_task.clone().into(), &version)
-                                .await?;
-                            mode.process_message(serde_json::to_string(&decoded)?).await
+                                .await;
+                            match decoded {
+                                Ok(decoded) => {
+                                    mode.process_message(serde_json::to_string(&decoded)?).await
+                                }
+                                Err(e) => {
+                                    match &e {
+                                        ConsumerError::LogDecodingError(_) => {
+                                            debug!("Skipping log that couldn't be decoded: {}", e);
+                                            Ok(()) // Ignore decoding errors
+                                        }
+                                        _ => {
+                                            warn!("Failed to decode log: {}", e);
+                                            Err(e) // Return other errors
+                                        }
+                                    }
+                                }
+                            }
                         }
                         .await
                         {
@@ -434,6 +450,7 @@ impl HybridConsumer {
                         ConsumerError::LogDecodingError(msg) => {
                             warn!("Failed to decode log: {}", msg);
                         }
+
                         _ => {
                             error!(
                                 "Notification failed after retries: {e}, storing in the failed logs table"
@@ -540,11 +557,26 @@ impl HybridConsumer {
         // Decode the raw message, so that the decoded consumer can process it.
 
         // This needs to know the contract version
-        let decoded_message = self.decode_raw_message(raw_log, contract_version).await?;
-
-        // Process the decoded message
-        mode.process_message(serde_json::to_string(&decoded_message)?)
-            .await?;
+        let decoded_message = self.decode_raw_message(raw_log, contract_version).await;
+        match decoded_message {
+            Ok(decoded_message) => {
+                // Process the decoded message
+                mode.process_message(serde_json::to_string(&decoded_message)?)
+                    .await?;
+            }
+            Err(e) => {
+                match &e {
+                    ConsumerError::LogDecodingError(_) => {
+                        debug!("Skipping log that couldn't be decoded: {}", e);
+                        return Ok(()); // Ignore decoding errors
+                    }
+                    _ => {
+                        warn!("Failed to decode log: {}", e);
+                        return Err(e); // Return other errors
+                    }
+                }
+            }
+        }
 
         // update the last processed id
         self.update_last_processed_id(notification.raw_log.id as i64)
