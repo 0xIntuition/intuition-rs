@@ -1,5 +1,5 @@
 import { expect, test, suite } from 'vitest'
-import { execute, getIntuition, getCounterVaultId, wait, oxToBackslashX } from './setup/utils.js'
+import { execute, getIntuition, wait, oxToBackslashX } from './setup/utils.js'
 import { graphql } from './graphql/gql.js'
 import { Address, parseEther } from 'viem'
 
@@ -19,7 +19,7 @@ suite('vaults', () => {
     counterVault = await user300.contract.read.getCounterIdFromTripleId([triple.vaultId])
     expect(counterVault).toBeDefined()
 
-    const counterVaultState = await user300.contract.read.vaults([counterVault, 1n])
+    const counterVaultState = await user300.contract.read.getVault([counterVault, 1n])
     expect(counterVaultState[0]).toBeDefined()
     // can't check for 1000000 becase this test can run multiple times
     expect(counterVaultState[0]).toBeGreaterThan(BigInt(0))
@@ -33,7 +33,7 @@ suite('vaults', () => {
     const hash = await user301.contract.write.deposit([user301.account.address, counterVault, 1n, 0n], { value: parseEther('0.5') })
     await wait(hash)
 
-    const counterVaultState = await user301.contract.read.vaults([counterVault, 1n])
+    const counterVaultState = await user301.contract.read.getVault([counterVault, 1n])
     expect(counterVaultState[0]).toBeDefined()
     // can't check for 1000000 becase this test can run multiple times
     expect(counterVaultState[0]).toBeGreaterThan(BigInt(0))

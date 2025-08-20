@@ -993,6 +993,35 @@ export const abi = [
   },
   {
     "type": "function",
+    "name": "getVault",
+    "inputs": [
+      {
+        "name": "termId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "curveId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "totalAssets",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "totalShares",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "getVaultFees",
     "inputs": [],
     "outputs": [
@@ -2084,35 +2113,6 @@ export const abi = [
   },
   {
     "type": "function",
-    "name": "vaults",
-    "inputs": [
-      {
-        "name": "termId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      },
-      {
-        "name": "curveId",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "totalAssets",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "totalShares",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "walletConfig",
     "inputs": [],
     "outputs": [
@@ -2567,6 +2567,12 @@ export const abi = [
       },
       {
         "name": "shares",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "sharesRemaining",
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
