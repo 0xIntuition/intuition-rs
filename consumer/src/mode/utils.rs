@@ -4,6 +4,7 @@ use super::{
 };
 use crate::{
     error::ConsumerError,
+    mode::decoded::utils::get_counter_id_from_triple_id,
     schemas::types::DecodedMessage,
     traits::{AccountManager, SharePriceEvent, TripleTermManager, TripleVaultManager},
 };
@@ -105,9 +106,7 @@ impl VaultOrigin {
         block_timestamp: i64,
         decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<TripleTerm, ConsumerError> {
-        let counter_vault_id = decoded_consumer_context
-            .get_counter_id_from_triple(event.term_id()?.into())
-            .await?;
+        let counter_vault_id = get_counter_id_from_triple_id(event.term_id()?.into())?;
         let triple_term = TripleTerm::find_by_id(
             event.term_id()?.into(),
             &decoded_consumer_context.backend_schema,
@@ -150,9 +149,7 @@ impl VaultOrigin {
         tx: &DecodedMessage,
         block_timestamp: i64,
     ) -> Result<TripleVault, ConsumerError> {
-        let counter_vault_id = decoded_consumer_context
-            .get_counter_id_from_triple(event.term_id()?.into())
-            .await?;
+        let counter_vault_id = get_counter_id_from_triple_id(event.term_id()?.into())?;
 
         let triple_vault = TripleVault::find_by_id(
             event.term_id()?.into(),

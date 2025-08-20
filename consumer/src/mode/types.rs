@@ -176,6 +176,7 @@ impl DecodedConsumerContext {
         .await
     }
 
+    #[allow(dead_code)]
     /// This function fetches the counter id from the triple
     pub async fn get_counter_id_from_triple(
         &self,

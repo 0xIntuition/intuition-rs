@@ -8,15 +8,13 @@ use crate::{
     schemas::types::DecodedMessage,
     traits::{SharePriceEvent, TripleTermManager, TripleVaultManager, VaultManager},
 };
-use alloy::primitives::{FixedBytes, U256, Uint};
+use alloy::primitives::{U256, Uint};
 use models::{
     deposit::{Deposit, VaultType},
     position::Position,
     signal::Signal,
     term::TermType,
     traits::SimpleCrud,
-    triple_term::TripleTerm,
-    triple_vault::TripleVault,
     types::{FixedBytesWrapper, U256Wrapper},
     vault::Vault,
 };
@@ -66,54 +64,6 @@ pub trait DepositedEvent:
             .map_err(ConsumerError::ModelError)
     }
 
-    #[allow(dead_code)]
-    /// This function creates a triple term
-    async fn create_triple_term_and_vault(
-        &self,
-        decoded_consumer_context: &DecodedConsumerContext,
-        event: &DecodedMessage,
-        vault_id: FixedBytes<32>,
-    ) -> Result<(), ConsumerError> {
-        if self.vault_type()? == VaultType::Triple {
-            // verify if we already have the triple term and vault
-            let triple_term = TripleTerm::find_by_term_id_and_counter_term_id(
-                // This can be either the vault or the counter vault
-                vault_id.into(),
-                &decoded_consumer_context.backend_schema,
-                &decoded_consumer_context.pg_pool,
-            )
-            .await?;
-            if triple_term.is_none() {
-                // Get or create the triple term
-                VaultOrigin::Deposit
-                    .get_or_create_triple_term(
-                        self.clone(),
-                        event.block_timestamp,
-                        decoded_consumer_context,
-                    )
-                    .await?;
-            }
-            // verify if we already have the triple vault
-            let triple_vault = TripleVault::find_by_term_id_and_counter_term_id(
-                vault_id.into(),
-                &decoded_consumer_context.backend_schema,
-                &decoded_consumer_context.pg_pool,
-            )
-            .await?;
-            if triple_vault.is_none() {
-                // Get or create the triple vault
-                VaultOrigin::Deposit
-                    .get_or_create_triple_vault(
-                        self.clone(),
-                        decoded_consumer_context,
-                        event,
-                        event.block_timestamp,
-                    )
-                    .await?;
-            }
-        }
-        Ok(())
-    }
     /// This function creates a signal
     async fn create_signal(
         &self,
@@ -175,14 +125,10 @@ pub trait DepositedEvent:
             .get_or_create_vault(
                 self.clone(),
                 decoded_consumer_context,
-                if self.vault_type()? == VaultType::Triple {
-                    if self.vault_type()? == VaultType::CounterTriple {
-                        TermType::CounterTriple
-                    } else {
-                        TermType::Triple
-                    }
-                } else {
-                    TermType::Atom
+                match self.vault_type()? {
+                    VaultType::Triple => TermType::Triple,
+                    VaultType::Atom => TermType::Atom,
+                    VaultType::CounterTriple => TermType::CounterTriple,
                 },
                 event,
                 None,

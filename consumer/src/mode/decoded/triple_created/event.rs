@@ -1,7 +1,7 @@
 use crate::{
     error::ConsumerError,
     mode::{
-        decoded::utils::get_block_timestamp,
+        decoded::utils::{get_block_timestamp, get_counter_id_from_triple_id},
         resolver::types::ResolverConsumerMessage,
         types::DecodedConsumerContext,
         utils::{VaultOrigin, get_or_create_term, short_id},
@@ -42,9 +42,7 @@ pub trait TripleCreatedEvent:
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
         // Get the counter vault ID
-        let counter_vault_id = decoded_consumer_context
-            .get_counter_id_from_triple(self.term_id()?.into())
-            .await?;
+        let counter_vault_id = get_counter_id_from_triple_id(self.term_id()?.into())?;
 
         // Get or update the vault
         VaultOrigin::TripleCreated
@@ -326,9 +324,7 @@ pub trait TripleCreatedEvent:
         tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Triple, ConsumerError> {
         // Get the counter vault ID
-        let counter_vault_id = decoded_consumer_context
-            .get_counter_id_from_triple(FixedBytesWrapper::from(self.term_id()?))
-            .await?;
+        let counter_vault_id = get_counter_id_from_triple_id(self.term_id()?.into())?;
 
         let creator_account = self
             .get_or_create_creator_account(&decoded_consumer_context.backend_schema, tx)
