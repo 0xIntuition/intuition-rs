@@ -21,7 +21,7 @@ suite('positions2', () => {
     await wait(depositHash)
 
     // check felix position on-chain
-    const shares = await felix.contract.read.maxRedeem([
+    const shares = await felix.contract.read.getShares([
       felix.account.address,
       fooAtom.vaultId,
       1n
@@ -58,7 +58,7 @@ suite('positions2', () => {
     await wait(redemtionHash)
 
     // check felix position on-chain
-    const shares2 = await felix.contract.read.maxRedeem([
+    const shares2 = await felix.contract.read.getShares([
       felix.account.address,
       fooAtom.vaultId,
       1n

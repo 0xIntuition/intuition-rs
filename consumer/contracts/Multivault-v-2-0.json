@@ -84,6 +84,35 @@
   },
   {
     "type": "function",
+    "name": "_maxRedeem",
+    "inputs": [
+      {
+        "name": "sender",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "termId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "curveId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "accumulatedAtomWalletDepositFees",
     "inputs": [
       {
@@ -859,6 +888,35 @@
   },
   {
     "type": "function",
+    "name": "getShares",
+    "inputs": [
+      {
+        "name": "account",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "termId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "curveId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "getTotalUtilizationForEpoch",
     "inputs": [
       {
@@ -1008,12 +1066,12 @@
     ],
     "outputs": [
       {
-        "name": "totalAssets",
+        "name": "",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "totalShares",
+        "name": "",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -1391,35 +1449,6 @@
     "outputs": [
       {
         "name": "epoch",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "maxRedeem",
-    "inputs": [
-      {
-        "name": "sender",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "termId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      },
-      {
-        "name": "curveId",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -2335,7 +2364,7 @@
         "internalType": "uint256"
       },
       {
-        "name": "sharesTotal",
+        "name": "totalShares",
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
@@ -2578,7 +2607,7 @@
         "internalType": "uint256"
       },
       {
-        "name": "sharesTotal",
+        "name": "totalShares",
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"

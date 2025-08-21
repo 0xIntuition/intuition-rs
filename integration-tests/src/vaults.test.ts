@@ -41,7 +41,7 @@ suite('vaults', () => {
     expect(counterVaultState[1]).toBeGreaterThan(BigInt(0))
 
 
-    const shares = await user301.contract.read.maxRedeem([
+    const shares = await user301.contract.read.getShares([
       user301.account.address,
       counterVault,
       1n
@@ -110,7 +110,7 @@ suite('vaults', () => {
     )
     await wait(signal5)
 
-    const shares = await user353.contract.read.maxRedeem([
+    const shares = await user353.contract.read.getShares([
       user353.account.address,
       counterVault,
       1n
