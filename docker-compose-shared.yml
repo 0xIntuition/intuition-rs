@@ -20,6 +20,16 @@ services:
       retries: 30
       start_period: 30s
 
+  drizzle-studio:
+    container_name: drizzle-studio
+    build: ./drizzle/
+    ports:
+      - "4983:4983"
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@host.docker.internal:5435/storage
+    depends_on:
+      - database
+
   pgai-installer:
     container_name: pgai-installer
     image: ghcr.io/0xintuition/pgai:latest

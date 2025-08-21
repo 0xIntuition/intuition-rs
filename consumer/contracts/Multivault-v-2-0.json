@@ -2335,6 +2335,12 @@
         "internalType": "uint256"
       },
       {
+        "name": "sharesTotal",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
         "name": "vaultType",
         "type": "uint8",
         "indexed": false,
@@ -2572,7 +2578,7 @@
         "internalType": "uint256"
       },
       {
-        "name": "sharesRemaining",
+        "name": "sharesTotal",
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
