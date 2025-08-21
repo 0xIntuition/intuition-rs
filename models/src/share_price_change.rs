@@ -1,4 +1,5 @@
 use crate::{
+    deposit::VaultType,
     error::ModelError,
     traits::{Model, SimpleCrud},
     types::{FixedBytesWrapper, U256Wrapper},
@@ -11,6 +12,7 @@ use sqlx::{Executor, PgPool, Postgres, Result};
 pub struct SharePriceChange {
     pub id: i64,
     pub term_id: FixedBytesWrapper,
+    pub vault_type: VaultType,
     pub curve_id: U256Wrapper,
     pub share_price: U256Wrapper,
     pub total_assets: U256Wrapper,
@@ -26,6 +28,7 @@ pub struct SharePriceChange {
 #[derive(Debug, Builder)]
 pub struct SharePriceChangeInternal {
     pub term_id: FixedBytesWrapper,
+    pub vault_type: VaultType,
     pub curve_id: U256Wrapper,
     pub share_price: U256Wrapper,
     pub total_assets: U256Wrapper,
@@ -47,13 +50,14 @@ impl SimpleCrud<U256Wrapper> for SharePriceChange {
         let query = format!(
             r#"
         INSERT INTO {}.share_price_change (
-            id, term_id, curve_id, share_price, total_assets,
+            id, term_id, vault_type, curve_id, share_price, total_assets,
             total_shares, block_number, block_timestamp,
             transaction_hash, log_index, updated_at
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
         ON CONFLICT (id) DO UPDATE SET
             term_id = EXCLUDED.term_id,
+            vault_type = EXCLUDED.vault_type,
             curve_id = EXCLUDED.curve_id,
             share_price = EXCLUDED.share_price,
             total_assets = EXCLUDED.total_assets,
@@ -65,6 +69,7 @@ impl SimpleCrud<U256Wrapper> for SharePriceChange {
             updated_at = EXCLUDED.updated_at
         WHERE (
             share_price_change.term_id IS DISTINCT FROM EXCLUDED.term_id OR
+            share_price_change.vault_type IS DISTINCT FROM EXCLUDED.vault_type OR
             share_price_change.curve_id IS DISTINCT FROM EXCLUDED.curve_id OR
             share_price_change.share_price IS DISTINCT FROM EXCLUDED.share_price OR
             share_price_change.total_assets IS DISTINCT FROM EXCLUDED.total_assets OR
@@ -85,6 +90,7 @@ impl SimpleCrud<U256Wrapper> for SharePriceChange {
         sqlx::query_as::<_, Self>(&query)
             .bind(self.id)
             .bind(self.term_id.0.as_slice())
+            .bind(self.vault_type)
             .bind(self.curve_id.to_big_decimal()?)
             .bind(self.share_price.to_big_decimal()?)
             .bind(self.total_assets.to_big_decimal()?)
@@ -132,10 +138,10 @@ impl SharePriceChange {
         E: Executor<'e, Database = Postgres>,
     {
         let query = format!(
-            r#"
+            r#" 
             WITH upsert AS (
-                INSERT INTO {0}.share_price_change (term_id, curve_id, share_price, total_assets, total_shares, block_number, block_timestamp, transaction_hash, log_index)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                INSERT INTO {0}.share_price_change (term_id, vault_type, curve_id, share_price, total_assets, total_shares, block_number, block_timestamp, transaction_hash, log_index)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
                 ON CONFLICT (term_id, curve_id, block_number, log_index, updated_at) DO UPDATE SET
                     share_price = EXCLUDED.share_price,
                     total_assets = EXCLUDED.total_assets,
@@ -147,13 +153,13 @@ impl SharePriceChange {
                     EXCLUDED.block_number > share_price_change.block_number OR
                     (EXCLUDED.block_number = share_price_change.block_number AND EXCLUDED.log_index > share_price_change.log_index)
                 )
-                RETURNING id, term_id, curve_id, share_price, total_assets, total_shares, block_number, block_timestamp, transaction_hash, log_index, updated_at
+                RETURNING id, term_id, vault_type, curve_id, share_price, total_assets, total_shares, block_number, block_timestamp, transaction_hash, log_index, updated_at
             )
             SELECT * FROM upsert
             UNION ALL
-            SELECT id, term_id, curve_id, share_price, total_assets, total_shares, block_number, block_timestamp, transaction_hash, log_index, updated_at
+            SELECT id, term_id, vault_type, curve_id, share_price, total_assets, total_shares, block_number, block_timestamp, transaction_hash, log_index, updated_at
             FROM {0}.share_price_change
-            WHERE term_id = $1 AND curve_id = $2 AND block_number = $6 AND log_index = $9
+            WHERE term_id = $1 AND vault_type = $2 AND curve_id = $3 AND block_number = $7 AND log_index = $10
             AND NOT EXISTS (SELECT 1 FROM upsert)
             "#,
             schema,
@@ -161,6 +167,7 @@ impl SharePriceChange {
 
         sqlx::query_as::<_, SharePriceChange>(&query)
             .bind(share_price_change.term_id.0.as_slice())
+            .bind(share_price_change.vault_type)
             .bind(share_price_change.curve_id.to_big_decimal()?)
             .bind(share_price_change.share_price.to_big_decimal()?)
             .bind(share_price_change.total_assets.to_big_decimal()?)

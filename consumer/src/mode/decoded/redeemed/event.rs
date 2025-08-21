@@ -7,6 +7,7 @@ use crate::{
 use alloy::primitives::Uint;
 use models::{
     account::Account,
+    deposit::VaultType,
     position::Position,
     redemption::Redemption,
     signal::Signal,
@@ -23,6 +24,10 @@ pub trait RedeemedEvent: SharePriceEvent + Clone {
     fn receiver(&self) -> Result<String, ConsumerError>;
     /// This function returns the assets for the receiver
     fn assets(&self) -> Result<Uint<256, 4>, ConsumerError>;
+    /// This function returns the fees for the redeemed event
+    fn fees(&self) -> Result<Uint<256, 4>, ConsumerError>;
+    /// This function returns the vault type
+    fn vault_type(&self) -> Result<VaultType, ConsumerError>;
     /// This function returns the shares for the redeemed event
     fn shares(&self) -> Result<Uint<256, 4>, ConsumerError>;
     /// This function returns the curve ID
@@ -40,6 +45,8 @@ pub trait RedeemedEvent: SharePriceEvent + Clone {
             .sender_id(sender_account.id.clone())
             .receiver_id(receiver_account.id.clone())
             .assets(self.assets()?)
+            .vault_type(self.vault_type()?)
+            .fees(self.fees()?)
             .shares(self.shares()?)
             .term_id(FixedBytesWrapper::from(self.term_id()?))
             .block_number(U256Wrapper::try_from(event.block_number)?)

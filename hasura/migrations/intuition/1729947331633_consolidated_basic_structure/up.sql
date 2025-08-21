@@ -168,6 +168,8 @@ CREATE TABLE redemption (
   sender_id TEXT REFERENCES account(id) NOT NULL,
   receiver_id TEXT REFERENCES account(id) NOT NULL,
   assets NUMERIC(78, 0) NOT NULL,
+  vault_type vault_type NOT NULL,
+  fees NUMERIC(78, 0) NOT NULL,
   shares NUMERIC(78, 0) NOT NULL,
   term_id BYTEA NOT NULL,
   curve_id NUMERIC(78, 0) NOT NULL,
@@ -310,6 +312,7 @@ CREATE TABLE atom_value (
 CREATE TABLE share_price_change(
   id BIGSERIAL,
   term_id BYTEA NOT NULL,
+  vault_type vault_type NOT NULL,
   curve_id NUMERIC(78, 0) NOT NULL,
   share_price NUMERIC(78, 0) NOT NULL,
   total_assets NUMERIC(78, 0) NOT NULL,

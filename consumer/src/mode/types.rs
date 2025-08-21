@@ -138,25 +138,6 @@ impl DecodedConsumerContext {
         .await
     }
 
-    /// This function fetches the current share price from the vault
-    pub async fn is_triple_id(&self, id: FixedBytesWrapper) -> Result<bool, ConsumerError> {
-        self.retry_with_backoff(|| async {
-            let is_triple_id = self.base_client.is_triple_id(id.clone()).await;
-            match &is_triple_id {
-                Ok(is_triple_id) => {
-                    debug!("Is triple id: {:?}", is_triple_id);
-                    Ok(*is_triple_id)
-                }
-                Err(e) => {
-                    warn!("Response: {:?}", is_triple_id);
-                    warn!("Error fetching is triple id: {}", e);
-                    Err(ConsumerError::MaxRetriesExceeded)
-                }
-            }
-        })
-        .await
-    }
-
     /// This function fetches the atom data from the contract
     pub async fn fetch_atom_data(&self, id: FixedBytesWrapper) -> Result<Bytes, ConsumerError> {
         self.retry_with_backoff(|| async {

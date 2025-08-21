@@ -54,7 +54,7 @@ where
         // 1. Ensure the vault exists
         let vault = Vault::find_by_term_id_and_curve_id(
             self.0.term_id()?.into(),
-            1.try_into()?,
+            RedeemedEvent::curve_id(&self.0)?.into(),
             &decoded_consumer_context.pg_pool.clone(),
             &decoded_consumer_context.backend_schema,
         )

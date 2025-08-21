@@ -6,6 +6,7 @@ use crate::{
 };
 use alloy::primitives::FixedBytes;
 use models::{
+    deposit::VaultType,
     position::Position,
     types::{FixedBytesWrapper, U256Wrapper},
 };
@@ -63,6 +64,9 @@ impl SharePriceEvent for &SharePriceChanged {
 impl SharePriceChangedEvent for &SharePriceChanged {
     fn term_id(&self) -> Result<FixedBytes<32>, ConsumerError> {
         Ok(self.termId)
+    }
+    fn vault_type(&self) -> Result<VaultType, ConsumerError> {
+        Ok(self.vaultType.into())
     }
     fn new_share_price(&self) -> Result<U256Wrapper, ConsumerError> {
         Ok(U256Wrapper::from(self.sharePrice))

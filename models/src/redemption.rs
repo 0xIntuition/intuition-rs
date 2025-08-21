@@ -1,4 +1,5 @@
 use crate::{
+    deposit::VaultType,
     error::ModelError,
     traits::{Model, SimpleCrud},
     types::{FixedBytesWrapper, U256Wrapper},
@@ -15,6 +16,8 @@ pub struct Redemption {
     pub sender_id: String,
     pub receiver_id: String,
     pub assets: U256Wrapper,
+    pub vault_type: VaultType,
+    pub fees: U256Wrapper,
     pub shares: U256Wrapper,
     pub term_id: FixedBytesWrapper,
     pub block_number: U256Wrapper,
@@ -40,13 +43,15 @@ impl SimpleCrud<String> for Redemption {
             r#"
         INSERT INTO {}.redemption (
             id, sender_id, receiver_id,
-            assets, shares, term_id,
+            assets, vault_type, fees, shares, term_id,
             curve_id, block_number, created_at, transaction_hash, log_index
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
         ON CONFLICT (id) DO UPDATE SET
             sender_id = EXCLUDED.sender_id,
             receiver_id = EXCLUDED.receiver_id,
             assets = EXCLUDED.assets,
+            vault_type = EXCLUDED.vault_type,
+            fees = EXCLUDED.fees,
             shares = EXCLUDED.shares,
             term_id = EXCLUDED.term_id,
             curve_id = EXCLUDED.curve_id,
@@ -57,6 +62,8 @@ impl SimpleCrud<String> for Redemption {
         RETURNING 
             id, sender_id, receiver_id,
             assets,
+            vault_type,
+            fees,
             shares,
             term_id,
             curve_id,
@@ -73,6 +80,8 @@ impl SimpleCrud<String> for Redemption {
             .bind(self.sender_id.clone())
             .bind(self.receiver_id.clone())
             .bind(self.assets.to_big_decimal()?)
+            .bind(self.vault_type)
+            .bind(self.fees.to_big_decimal()?)
             .bind(self.shares.to_big_decimal()?)
             .bind(self.term_id.0.as_slice())
             .bind(self.curve_id.to_big_decimal()?)
@@ -100,6 +109,8 @@ impl SimpleCrud<String> for Redemption {
             SELECT 
                 id, sender_id, receiver_id,
                 assets,
+                vault_type,
+                fees,
                 shares,  
                 term_id,
                 curve_id,

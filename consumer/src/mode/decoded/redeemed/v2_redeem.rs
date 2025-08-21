@@ -1,5 +1,8 @@
 use alloy::primitives::{FixedBytes, Uint};
-use models::{position::Position, share_price_change::SharePriceChange, types::U256Wrapper};
+use models::{
+    deposit::VaultType, position::Position, share_price_change::SharePriceChange,
+    types::U256Wrapper,
+};
 
 use crate::{
     Multivault::Redeemed,
@@ -81,6 +84,14 @@ impl RedeemedEvent for &Redeemed {
     fn assets(&self) -> Result<Uint<256, 4>, ConsumerError> {
         Ok(self.assets)
     }
+    fn vault_type(&self) -> Result<VaultType, ConsumerError> {
+        Ok(self.vaultType.into())
+    }
+
+    fn fees(&self) -> Result<Uint<256, 4>, ConsumerError> {
+        Ok(self.fees)
+    }
+
     fn shares(&self) -> Result<Uint<256, 4>, ConsumerError> {
         Ok(self.shares)
     }

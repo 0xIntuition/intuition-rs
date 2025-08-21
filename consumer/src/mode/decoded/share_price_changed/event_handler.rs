@@ -9,6 +9,7 @@ use crate::{
     traits::SharePriceEvent,
 };
 use models::{
+    deposit::VaultType,
     share_price_change::{SharePriceChange, SharePriceChangeInternal},
     term::TermType,
     types::{FixedBytesWrapper, U256Wrapper},
@@ -39,6 +40,7 @@ where
                 .term_id(FixedBytesWrapper::from(SharePriceChangedEvent::term_id(
                     &self.0,
                 )?))
+                .vault_type(SharePriceChangedEvent::vault_type(&self.0)?)
                 .curve_id(SharePriceChangedEvent::curve_id(&self.0)?)
                 .share_price(SharePriceEvent::new_share_price(&self.0)?)
                 .total_assets(SharePriceEvent::total_assets(&self.0)?)
@@ -65,16 +67,10 @@ where
             }
         }
 
-        // TODO: Remove this once we have the enum in place
-        let term_type = if decoded_consumer_context
-            .is_triple_id(FixedBytesWrapper::from(SharePriceChangedEvent::term_id(
-                &self.0,
-            )?))
-            .await?
-        {
-            TermType::Triple
-        } else {
-            TermType::Atom
+        let term_type = match SharePriceChangedEvent::vault_type(&self.0)? {
+            VaultType::Triple => TermType::Triple,
+            VaultType::Atom => TermType::Atom,
+            VaultType::CounterTriple => TermType::CounterTriple,
         };
 
         debug!("Updating vault from share price changed event");

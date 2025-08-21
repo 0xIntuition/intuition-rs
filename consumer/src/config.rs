@@ -201,11 +201,4 @@ impl ContractInstance {
             Self::V2(client) => Ok(client.getAtom(id.0).call().await?),
         }
     }
-
-    /// Returns true if the id is a triple id
-    pub async fn is_triple_id(&self, id: FixedBytesWrapper) -> Result<bool, ConsumerError> {
-        match self {
-            Self::V2(client) => Ok(client.isTriple(id.0).call().await?),
-        }
-    }
 }

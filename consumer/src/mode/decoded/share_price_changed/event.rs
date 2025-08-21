@@ -6,6 +6,7 @@ use crate::{
 };
 use alloy::primitives::FixedBytes;
 use models::{
+    deposit::VaultType,
     share_price_change::{SharePriceChange, SharePriceChangeInternal},
     types::{FixedBytesWrapper, U256Wrapper},
 };
@@ -15,6 +16,8 @@ use tracing::info;
 pub trait SharePriceChangedEvent: SharePriceEvent + VaultManager + Clone {
     /// This function returns the term ID
     fn term_id(&self) -> Result<FixedBytes<32>, ConsumerError>;
+    /// This function returns the vault type
+    fn vault_type(&self) -> Result<VaultType, ConsumerError>;
     /// This function returns the new share price
     fn new_share_price(&self) -> Result<U256Wrapper, ConsumerError>;
     /// This function returns the total assets
@@ -33,6 +36,7 @@ pub trait SharePriceChangedEvent: SharePriceEvent + VaultManager + Clone {
             .term_id(FixedBytesWrapper::from(SharePriceChangedEvent::term_id(
                 self,
             )?))
+            .vault_type(SharePriceChangedEvent::vault_type(self)?)
             .curve_id(SharePriceChangedEvent::curve_id(self)?)
             .share_price(SharePriceChangedEvent::new_share_price(self)?)
             .total_assets(SharePriceChangedEvent::total_assets(self)?)
