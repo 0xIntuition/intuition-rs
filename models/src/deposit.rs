@@ -10,17 +10,17 @@ use sqlx::{Executor, Postgres};
 #[derive(sqlx::Type, Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash)]
 #[sqlx(type_name = "vault_type")]
 pub enum VaultType {
-    Triple = 0,
-    CounterTriple = 1,
-    Atom = 2,
+    Atom = 0,
+    Triple = 1,
+    CounterTriple = 2,
 }
 
 impl From<u8> for VaultType {
     fn from(value: u8) -> Self {
         match value {
-            0 => VaultType::Triple,
-            1 => VaultType::CounterTriple,
-            2 => VaultType::Atom,
+            0 => VaultType::Atom,
+            1 => VaultType::Triple,
+            2 => VaultType::CounterTriple,
             _ => panic!("Invalid vault type: {}", value),
         }
     }
