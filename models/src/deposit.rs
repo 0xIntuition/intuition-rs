@@ -37,7 +37,7 @@ pub struct Deposit {
     pub receiver_id: String,
     pub assets_after_fees: U256Wrapper,
     pub shares: U256Wrapper,
-    pub shares_total: U256Wrapper,
+    pub total_shares: U256Wrapper,
     pub term_id: FixedBytesWrapper,
     pub vault_type: VaultType,
     pub block_number: U256Wrapper,
@@ -63,7 +63,7 @@ impl SimpleCrud<String> for Deposit {
             r#"
             INSERT INTO {}.deposit (
                 id, sender_id, receiver_id,
-                assets_after_fees, shares, shares_total, term_id,
+                assets_after_fees, shares, total_shares, term_id,
                 vault_type, curve_id, block_number, created_at, transaction_hash, log_index
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
             ON CONFLICT (id) DO UPDATE SET
@@ -71,7 +71,7 @@ impl SimpleCrud<String> for Deposit {
                 receiver_id = EXCLUDED.receiver_id,
                 assets_after_fees = EXCLUDED.assets_after_fees,
                 shares = EXCLUDED.shares,
-                shares_total = EXCLUDED.shares_total,
+                total_shares = EXCLUDED.total_shares,
                 term_id = EXCLUDED.term_id,
                 vault_type = EXCLUDED.vault_type,
                 curve_id = EXCLUDED.curve_id,
@@ -83,7 +83,7 @@ impl SimpleCrud<String> for Deposit {
                 id, sender_id, receiver_id,
                 assets_after_fees,
                 shares,
-                shares_total,
+                total_shares,
                 term_id,
                 vault_type,
                 curve_id,
@@ -101,7 +101,7 @@ impl SimpleCrud<String> for Deposit {
             .bind(self.receiver_id.clone())
             .bind(self.assets_after_fees.to_big_decimal()?)
             .bind(self.shares.to_big_decimal()?)
-            .bind(self.shares_total.to_big_decimal()?)
+            .bind(self.total_shares.to_big_decimal()?)
             .bind(self.term_id.0.as_slice())
             .bind(self.vault_type)
             .bind(self.curve_id.to_big_decimal()?)
@@ -130,7 +130,7 @@ impl SimpleCrud<String> for Deposit {
                 id, sender_id, receiver_id,
                 assets_after_fees,
                 shares,
-                shares_total,
+                total_shares,
                 term_id,
                 vault_type,
                 curve_id,

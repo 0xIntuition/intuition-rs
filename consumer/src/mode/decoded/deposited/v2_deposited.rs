@@ -189,8 +189,8 @@ impl DepositedEvent for &Deposited {
     fn shares(&self) -> Result<Uint<256, 4>, ConsumerError> {
         Ok(self.shares)
     }
-    fn shares_total(&self) -> Result<Uint<256, 4>, ConsumerError> {
-        Ok(self.sharesTotal)
+    fn total_shares(&self) -> Result<Uint<256, 4>, ConsumerError> {
+        Ok(self.totalShares)
     }
     fn curve_id(&self) -> Result<Uint<256, 4>, ConsumerError> {
         Ok(self.curveId)

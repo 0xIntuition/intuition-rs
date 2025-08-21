@@ -31,7 +31,7 @@ pub trait RedeemedEvent: SharePriceEvent + Clone {
     /// This function returns the shares for the redeemed event
     fn shares(&self) -> Result<Uint<256, 4>, ConsumerError>;
     /// This function returns the total shares
-    fn shares_total(&self) -> Result<Uint<256, 4>, ConsumerError>;
+    fn total_shares(&self) -> Result<Uint<256, 4>, ConsumerError>;
     /// This function returns the curve ID
     fn curve_id(&self) -> Result<Uint<256, 4>, ConsumerError>;
     // Helper methods to break down the complexity:
@@ -50,7 +50,7 @@ pub trait RedeemedEvent: SharePriceEvent + Clone {
             .vault_type(self.vault_type()?)
             .fees(self.fees()?)
             .shares(self.shares()?)
-            .shares_total(self.shares_total()?)
+            .total_shares(RedeemedEvent::total_shares(self)?)
             .term_id(FixedBytesWrapper::from(self.term_id()?))
             .block_number(U256Wrapper::try_from(event.block_number)?)
             .created_at(get_block_timestamp(event.block_timestamp)?)
@@ -87,7 +87,7 @@ pub trait RedeemedEvent: SharePriceEvent + Clone {
         )
         .await?
         {
-            position.shares = self.shares_total()?.into();
+            position.shares = RedeemedEvent::total_shares(self)?.into();
             position.block_number = event.block_number;
             position.log_index = event.log_index;
             position.transaction_hash = event.transaction_hash.clone();

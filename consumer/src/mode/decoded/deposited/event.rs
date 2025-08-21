@@ -35,7 +35,7 @@ pub trait DepositedEvent:
     /// This function returns the shares for the receiver
     fn shares(&self) -> Result<Uint<256, 4>, ConsumerError>;
     /// This function returns the total shares
-    fn shares_total(&self) -> Result<Uint<256, 4>, ConsumerError>;
+    fn total_shares(&self) -> Result<Uint<256, 4>, ConsumerError>;
     /// This function returns the curve ID
     fn curve_id(&self) -> Result<Uint<256, 4>, ConsumerError>;
     /// This function creates a deposit
@@ -50,7 +50,7 @@ pub trait DepositedEvent:
             .receiver_id(self.receiver()?)
             .assets_after_fees(U256Wrapper::from(self.assets_after_fees()?))
             .shares(U256Wrapper::from(self.shares()?))
-            .shares_total(U256Wrapper::from(self.shares_total()?))
+            .total_shares(U256Wrapper::from(DepositedEvent::total_shares(self)?))
             .term_id(FixedBytesWrapper::from(self.term_id()?))
             .curve_id(DepositedEvent::curve_id(self)?)
             .vault_type(self.vault_type()?)
@@ -182,7 +182,7 @@ pub trait DepositedEvent:
         position: &mut Position,
         event: &DecodedMessage,
     ) -> Result<Position, ConsumerError> {
-        position.shares = self.shares_total()?.into();
+        position.shares = DepositedEvent::total_shares(self)?.into();
         position.block_number = event.block_number;
         position.log_index = event.log_index;
         position.transaction_hash = event.transaction_hash.clone();
@@ -210,7 +210,7 @@ pub trait DepositedEvent:
         )
         .await?;
 
-        if self.shares_total()? > U256::from(0) {
+        if DepositedEvent::total_shares(self)? > U256::from(0) {
             if position.is_none() {
                 self.create_new_position(position_id.to_string(), decoded_consumer_context, event)
                     .await?;
