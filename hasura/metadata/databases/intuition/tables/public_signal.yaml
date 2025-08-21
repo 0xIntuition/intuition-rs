@@ -40,16 +40,18 @@ select_permissions:
   - role: anonymous
     permission:
       columns:
-        - transaction_hash
         - atom_id
-        - block_number
-        - created_at
-        - delta
+        - term_id
         - triple_id
+        - block_number
+        - curve_id
+        - delta
         - account_id
         - deposit_id
         - id
         - redemption_id
+        - transaction_hash
+        - created_at
       filter: {}
       limit: 250
       allow_aggregations: true

@@ -106,13 +106,16 @@ select_permissions:
   - role: anonymous
     permission:
       columns:
+        - block_number
+        - log_index
+        - term_id
         - position_count
         - current_share_price
         - curve_id
-        - term_id
-        - total_shares
-        - total_assets
         - market_cap
+        - total_assets
+        - total_shares
+        - transaction_hash
         - created_at
         - updated_at
       filter: {}

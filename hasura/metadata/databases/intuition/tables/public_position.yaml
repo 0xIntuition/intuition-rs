@@ -34,15 +34,19 @@ select_permissions:
   - role: anonymous
     permission:
       columns:
+        - block_number
+        - log_index
+        - transaction_index
+        - term_id
         - curve_id
         - shares
-        - term_id
-        - account_id
-        - id
-        - created_at
-        - updated_at
         - total_deposit_assets_after_total_fees
         - total_redeem_assets_for_receiver
+        - account_id
+        - id
+        - transaction_hash
+        - created_at
+        - updated_at
       filter: {}
       limit: 100
       allow_aggregations: true

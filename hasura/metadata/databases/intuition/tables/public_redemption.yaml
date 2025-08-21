@@ -37,16 +37,20 @@ select_permissions:
   - role: anonymous
     permission:
       columns:
-        - transaction_hash
+        - vault_type
+        - log_index
+        - term_id
         - assets
         - block_number
-        - created_at
-        - shares
-        - term_id
         - curve_id
+        - fees
+        - shares
+        - total_shares
         - id
         - receiver_id
         - sender_id
+        - transaction_hash
+        - created_at
       filter: {}
       limit: 250
       allow_aggregations: true

@@ -86,6 +86,7 @@ select_permissions:
       columns:
         - book_id
         - byte_object_id
+        - caip10_id
         - id
         - json_object_id
         - organization_id

@@ -106,18 +106,21 @@ select_permissions:
   - role: anonymous
     permission:
       columns:
-        - transaction_hash
-        - block_number
-        - created_at
+        - resolving_status
+        - type
+        - log_index
         - term_id
         - value_id
+        - block_number
         - creator_id
         - data
         - emoji
         - image
         - label
+        - raw_data
+        - transaction_hash
         - wallet_id
-        - type
+        - created_at
         - updated_at
       filter: {}
       limit: 250
