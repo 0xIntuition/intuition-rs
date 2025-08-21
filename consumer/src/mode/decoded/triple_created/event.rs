@@ -89,7 +89,7 @@ pub trait TripleCreatedEvent:
     ) -> Result<Vault, ConsumerError> {
         let vault = Vault::find_by_term_id_and_curve_id(
             counter_vault_id.clone(),
-            U256Wrapper::from_str("1")?,
+            self.curve_id()?,
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
@@ -110,7 +110,7 @@ pub trait TripleCreatedEvent:
 
             let new_vault = Vault::builder()
                 .term_id(counter_vault_id)
-                .curve_id(U256Wrapper::from_str("1")?)
+                .curve_id(self.curve_id()?)
                 .current_share_price(
                     self.current_share_price(decoded_consumer_context, event.block_number)
                         .await?,
