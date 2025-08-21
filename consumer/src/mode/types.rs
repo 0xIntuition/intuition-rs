@@ -176,32 +176,6 @@ impl DecodedConsumerContext {
         .await
     }
 
-    #[allow(dead_code)]
-    /// This function fetches the counter id from the triple
-    pub async fn get_counter_id_from_triple(
-        &self,
-        vault_id: FixedBytesWrapper,
-    ) -> Result<FixedBytesWrapper, ConsumerError> {
-        self.retry_with_backoff(|| async {
-            let counter_id = self
-                .base_client
-                .get_counter_id_from_triple(vault_id.clone())
-                .await;
-            match &counter_id {
-                Ok(counter_id) => {
-                    debug!("Counter id: {:?}", counter_id);
-                    Ok(counter_id.clone())
-                }
-                Err(e) => {
-                    warn!("Response: {:?}", counter_id);
-                    warn!("Error fetching counter id from triple: {}", e);
-                    Err(ConsumerError::MaxRetriesExceeded)
-                }
-            }
-        })
-        .await
-    }
-
     /// This function fetches the contract balance at a specific block.
     pub async fn fetch_contract_balance_at_block(
         &self,

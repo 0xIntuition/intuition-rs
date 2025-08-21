@@ -183,18 +183,6 @@ impl ContractInstance {
         }
     }
 
-    /// Returns the counter id from the triple
-    pub async fn get_counter_id_from_triple(
-        &self,
-        vault_id: FixedBytesWrapper,
-    ) -> Result<FixedBytesWrapper, ConsumerError> {
-        match self {
-            Self::V2(client) => Ok(FixedBytesWrapper::from(
-                client.getCounterIdFromTripleId(vault_id.0).call().await?,
-            )),
-        }
-    }
-
     /// Returns the triple id from the counter id using the same logic as the Solidity contract
     pub async fn get_id_from_counter_id(
         &self,
