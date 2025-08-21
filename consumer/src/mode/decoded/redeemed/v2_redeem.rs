@@ -87,13 +87,14 @@ impl RedeemedEvent for &Redeemed {
     fn vault_type(&self) -> Result<VaultType, ConsumerError> {
         Ok(self.vaultType.into())
     }
-
     fn fees(&self) -> Result<Uint<256, 4>, ConsumerError> {
         Ok(self.fees)
     }
-
     fn shares(&self) -> Result<Uint<256, 4>, ConsumerError> {
         Ok(self.shares)
+    }
+    fn shares_total(&self) -> Result<Uint<256, 4>, ConsumerError> {
+        Ok(self.sharesTotal)
     }
     fn curve_id(&self) -> Result<Uint<256, 4>, ConsumerError> {
         Ok(self.curveId)
