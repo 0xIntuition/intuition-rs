@@ -182,7 +182,7 @@ pub trait DepositedEvent:
         position: &mut Position,
         event: &DecodedMessage,
     ) -> Result<Position, ConsumerError> {
-        position.shares = self.shares()?.into();
+        position.shares = self.shares_total()?.into();
         position.block_number = event.block_number;
         position.log_index = event.log_index;
         position.transaction_hash = event.transaction_hash.clone();
