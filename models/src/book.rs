@@ -45,7 +45,7 @@ impl SimpleCrud<FixedBytesWrapper> for Book {
         );
 
         sqlx::query_as::<_, Book>(&query)
-            .bind(self.id.0.as_slice())
+            .bind(self.id.clone())
             .bind(self.name.clone())
             .bind(self.description.clone())
             .bind(self.genre.clone())
@@ -78,7 +78,7 @@ impl SimpleCrud<FixedBytesWrapper> for Book {
         );
 
         sqlx::query_as::<_, Book>(&query)
-            .bind(id.0.as_slice())
+            .bind(id)
             .fetch_optional(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))

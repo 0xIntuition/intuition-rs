@@ -44,8 +44,8 @@ impl SimpleCrud<FixedBytesWrapper> for TripleTerm {
         );
 
         sqlx::query_as::<_, TripleTerm>(&query)
-            .bind(self.term_id.0.as_slice())
-            .bind(self.counter_term_id.0.as_slice())
+            .bind(self.term_id.clone())
+            .bind(self.counter_term_id.clone())
             .bind(self.total_assets.to_big_decimal()?)
             .bind(self.total_market_cap.to_big_decimal()?)
             .bind(self.total_position_count)
@@ -80,7 +80,7 @@ impl SimpleCrud<FixedBytesWrapper> for TripleTerm {
         );
 
         sqlx::query_as::<_, TripleTerm>(&query)
-            .bind(term_id.0.as_slice())
+            .bind(term_id)
             .fetch_optional(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
@@ -112,7 +112,7 @@ impl TripleTerm {
         );
 
         sqlx::query_as::<_, TripleTerm>(&query)
-            .bind(term_id.0.as_slice())
+            .bind(term_id)
             .fetch_optional(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))

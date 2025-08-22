@@ -53,7 +53,7 @@ impl SimpleCrud<FixedBytesWrapper> for Person {
         );
 
         sqlx::query_as::<_, Person>(&query)
-            .bind(self.id.0.as_slice())
+            .bind(self.id.clone())
             .bind(self.identifier.clone())
             .bind(self.name.clone())
             .bind(self.description.clone())
@@ -90,7 +90,7 @@ impl SimpleCrud<FixedBytesWrapper> for Person {
         );
 
         sqlx::query_as::<_, Person>(&query)
-            .bind(id.0.as_slice())
+            .bind(id)
             .fetch_optional(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))

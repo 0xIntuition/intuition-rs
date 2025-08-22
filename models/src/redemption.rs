@@ -87,7 +87,7 @@ impl SimpleCrud<String> for Redemption {
             .bind(self.fees.to_big_decimal()?)
             .bind(self.shares.to_big_decimal()?)
             .bind(self.total_shares.to_big_decimal()?)
-            .bind(self.term_id.0.as_slice())
+            .bind(self.term_id.clone())
             .bind(self.curve_id.to_big_decimal()?)
             .bind(self.block_number.to_big_decimal()?)
             .bind(self.created_at)
@@ -157,7 +157,7 @@ impl Redemption {
 
         let result: Option<U256Wrapper> = sqlx::query_scalar(&query)
             .bind(sender_id.clone())
-            .bind(term_id.0.as_slice())
+            .bind(term_id)
             .bind(curve_id.to_big_decimal()?)
             .fetch_optional(pool)
             .await
@@ -186,7 +186,7 @@ impl Redemption {
 
         let result: Option<Redemption> = sqlx::query_as(&query)
             .bind(transaction_hash)
-            .bind(term_id.0.as_slice())
+            .bind(term_id)
             .bind(curve_id.to_big_decimal()?)
             .fetch_optional(executor)
             .await

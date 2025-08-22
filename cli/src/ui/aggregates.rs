@@ -1,4 +1,4 @@
-use chrono::{DateTime, Local, TimeZone, Utc};
+use chrono::{DateTime, Local, Utc};
 use ratatui::{
     Frame,
     layout::{Constraint, Rect},
@@ -22,25 +22,23 @@ pub fn draw(f: &mut Frame, app: &App, area: Rect) {
             )),
         ]));
 
-        if let Some(event) = aggregates.events.first() 
-        && let Ok(timestamp) = event.block_timestamp.parse::<i64>() {
-                let block_time = match Utc.timestamp_opt(timestamp, 0) {
-                    chrono::LocalResult::Single(dt) => dt,
-                    _ => Utc::now(),
-                };
-                let local_time = DateTime::<Local>::from(block_time);
-                let formatted_time = local_time.format("%b %d %Y, %I:%M %p").to_string();
+        if let Some(event) = aggregates.events.first()
+            && let Ok(block_time) = DateTime::parse_from_rfc3339(&event.created_at)
+        {
+            let block_time = block_time.with_timezone(&Utc);
+            let local_time = DateTime::<Local>::from(block_time);
+            let formatted_time = local_time.format("%b %d %Y, %I:%M %p").to_string();
 
-                // Calculate time elapsed
-                let now = Utc::now();
-                let duration = now.signed_duration_since(block_time);
-                let elapsed = format_duration(duration);
+            // Calculate time elapsed
+            let now = Utc::now();
+            let duration = now.signed_duration_since(block_time);
+            let elapsed = format_duration(duration);
 
-                rows.push(Row::new(vec![
-                    Cell::from(Span::raw("Timestamp")),
-                    Cell::from(Span::raw(format!("{} - {} ago", formatted_time, elapsed))),
-                ]));
-            }
+            rows.push(Row::new(vec![
+                Cell::from(Span::raw("Timestamp")),
+                Cell::from(Span::raw(format!("{} - {} ago", formatted_time, elapsed))),
+            ]));
+        }
 
         rows.push(Row::new(vec![
             Cell::from(Span::raw("Accounts")),
@@ -166,18 +164,6 @@ pub fn draw(f: &mut Frame, app: &App, area: Rect) {
             )),
         ]));
 
-        rows.push(Row::new(vec![
-            Cell::from(Span::raw("Claims")),
-            Cell::from(Span::raw(
-                aggregates
-                    .claims_aggregate
-                    .aggregate
-                    .as_ref()
-                    .unwrap()
-                    .count
-                    .to_string(),
-            )),
-        ]));
         rows.push(Row::new(vec![
             Cell::from(Span::raw("Positions")),
             Cell::from(Span::raw(

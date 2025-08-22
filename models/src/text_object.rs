@@ -37,7 +37,7 @@ impl SimpleCrud<FixedBytesWrapper> for TextObject {
         );
 
         sqlx::query_as::<_, TextObject>(&query)
-            .bind(self.id.0.as_slice())
+            .bind(self.id.clone())
             .bind(self.data.clone())
             .fetch_one(executor)
             .await
@@ -64,7 +64,7 @@ impl SimpleCrud<FixedBytesWrapper> for TextObject {
         );
 
         sqlx::query_as::<_, TextObject>(&query)
-            .bind(id.0.as_slice())
+            .bind(id)
             .fetch_optional(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))

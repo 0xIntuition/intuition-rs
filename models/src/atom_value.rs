@@ -58,15 +58,15 @@ impl SimpleCrud<FixedBytesWrapper> for AtomValue {
         );
 
         sqlx::query_as::<_, AtomValue>(&query)
-            .bind(self.id.0.as_slice())
+            .bind(self.id.clone())
             .bind(self.account_id.clone())
-            .bind(self.thing_id.as_ref().map(|w| w.0.as_slice()))
-            .bind(self.person_id.as_ref().map(|w| w.0.as_slice()))
-            .bind(self.organization_id.as_ref().map(|w| w.0.as_slice()))
-            .bind(self.book_id.as_ref().map(|w| w.0.as_slice()))
-            .bind(self.json_object_id.as_ref().map(|w| w.0.as_slice()))
-            .bind(self.text_object_id.as_ref().map(|w| w.0.as_slice()))
-            .bind(self.byte_object_id.as_ref().map(|w| w.0.as_slice()))
+            .bind(self.thing_id.as_ref())
+            .bind(self.person_id.as_ref())
+            .bind(self.organization_id.as_ref())
+            .bind(self.book_id.as_ref())
+            .bind(self.json_object_id.as_ref())
+            .bind(self.text_object_id.as_ref())
+            .bind(self.byte_object_id.as_ref())
             .fetch_one(executor)
             .await
             .map_err(|e| ModelError::AtomValueInsertError(e.to_string()))
@@ -101,7 +101,7 @@ impl SimpleCrud<FixedBytesWrapper> for AtomValue {
         );
 
         sqlx::query_as::<_, AtomValue>(&query)
-            .bind(id.0.as_slice())
+            .bind(id)
             .fetch_optional(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))

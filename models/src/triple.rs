@@ -55,11 +55,11 @@ impl SimpleCrud<FixedBytesWrapper> for Triple {
 
         sqlx::query_as::<_, Triple>(&query)
             .bind(self.creator_id.clone())
-            .bind(self.subject_id.0.as_slice())
-            .bind(self.predicate_id.0.as_slice())
-            .bind(self.object_id.0.as_slice())
-            .bind(self.term_id.0.as_slice())
-            .bind(self.counter_term_id.0.as_slice())
+            .bind(self.subject_id.clone())
+            .bind(self.predicate_id.clone())
+            .bind(self.object_id.clone())
+            .bind(self.term_id.clone())
+            .bind(self.counter_term_id.clone())
             .bind(self.block_number.to_big_decimal()?)
             .bind(self.created_at)
             .bind(&self.transaction_hash)
@@ -96,7 +96,7 @@ impl SimpleCrud<FixedBytesWrapper> for Triple {
         );
 
         sqlx::query_as::<_, Triple>(&query)
-            .bind(term_id.0.as_slice())
+            .bind(term_id)
             .fetch_optional(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))

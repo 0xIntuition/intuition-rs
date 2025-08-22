@@ -1,5 +1,5 @@
 import { expect, test, suite } from 'vitest'
-import { execute, getIntuition, wait, oxToBackslashX } from './setup/utils.js'
+import { execute, getIntuition, wait } from './setup/utils.js'
 import { graphql } from './graphql/gql.js'
 import { Address, parseEther } from 'viem'
 
@@ -50,7 +50,7 @@ suite('vaults', () => {
 
 
     const positionsQuery = graphql(`
-      query positions2($address: String!, $term_id: bytea!, $curve_id: numeric!) {
+      query positions2($address: String!, $term_id: String!, $curve_id: numeric!) {
         positions(where: {account_id: {_eq: $address}, curve_id: {_eq: $curve_id}, term_id: {_eq: $term_id}}) {
           id
           curve_id
@@ -64,7 +64,7 @@ suite('vaults', () => {
       positionsQuery,
       {
         address: user301.account.address.toString(),
-        term_id: oxToBackslashX(counterVault),
+        term_id: counterVault,
         curve_id: '1'
       })
 
@@ -72,7 +72,7 @@ suite('vaults', () => {
     expect(result.positions.length).toBe(1)
     expect(result.positions[0].shares).toBe(shares.toString())
     expect(result.positions[0].curve_id).toBe('1')
-    expect(result.positions[0].term_id).toBe(oxToBackslashX(counterVault))
+    expect(result.positions[0].term_id).toBe(counterVault)
   })
 
   test('misc signals on a triple', async () => {
@@ -128,7 +128,7 @@ suite('vaults', () => {
   test('triple vault numbers are correct', async () => {
 
     const tripleQuery = graphql(`
-query triple($term_id: bytea!) {
+query triple($term_id: String!) {
   triple(term_id: $term_id) {
     term_id
     term {
@@ -149,7 +149,7 @@ query triple($term_id: bytea!) {
 
     const result = await execute(
       tripleQuery,
-      { term_id: oxToBackslashX(triple.vaultId) })
+      { term_id: triple.vaultId })
 
     expect(result).toBeDefined()
     expect(BigInt(result.triple?.triple_term?.total_assets)).toEqual(

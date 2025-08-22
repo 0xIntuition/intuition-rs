@@ -61,8 +61,8 @@ impl SimpleCrud<FixedBytesWrapper> for Term {
         sqlx::query_as::<_, Term>(&query)
             .bind(self.id.clone())
             .bind(self.term_type.clone())
-            .bind(self.atom_id.as_ref().map(|w| w.0.as_slice()))
-            .bind(self.triple_id.as_ref().map(|w| w.0.as_slice()))
+            .bind(self.atom_id.as_ref())
+            .bind(self.triple_id.as_ref())
             .bind(self.total_assets.to_big_decimal()?)
             .bind(self.total_market_cap.to_big_decimal()?)
             .bind(self.updated_at)
@@ -97,7 +97,7 @@ impl SimpleCrud<FixedBytesWrapper> for Term {
         );
 
         sqlx::query_as::<_, Term>(&query)
-            .bind(term_id.0.as_slice())
+            .bind(term_id)
             .fetch_optional(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))

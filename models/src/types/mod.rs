@@ -242,7 +242,7 @@ impl<'r> sqlx::Decode<'r, Postgres> for U256Wrapper {
 /// of the column to be able to convert it to the correct type.
 impl Type<Postgres> for FixedBytesWrapper {
     fn type_info() -> PgTypeInfo {
-        PgTypeInfo::with_name("bytea")
+        PgTypeInfo::with_name("text")
     }
 }
 
@@ -251,7 +251,8 @@ impl Type<Postgres> for FixedBytesWrapper {
 /// convert the type to the correct one.
 impl Encode<'_, Postgres> for FixedBytesWrapper {
     fn encode_by_ref(&self, buf: &mut PgArgumentBuffer) -> IsNull {
-        <&[u8] as Encode<Postgres>>::encode(self.0.as_slice(), buf)
+        let hex_string = self.0.to_string();
+        <&str as Encode<Postgres>>::encode(&hex_string, buf)
     }
 }
 
@@ -259,17 +260,17 @@ impl Encode<'_, Postgres> for FixedBytesWrapper {
 /// type. This is necessary because the `sqlx` library needs to be able to
 /// convert the type to the correct one.
 /// Implements the `Decode` trait for `FixedBytesWrapper` to enable decoding from PostgreSQL.
-/// This allows `sqlx` to correctly deserialize `bytea` types into `FixedBytesWrapper`.
+/// This allows `sqlx` to correctly deserialize `text` types into `FixedBytesWrapper`.
 impl<'r> sqlx::Decode<'r, Postgres> for FixedBytesWrapper {
     fn decode(
         value: PgValueRef<'r>,
     ) -> Result<Self, Box<dyn std::error::Error + 'static + Send + Sync>> {
-        // First, decode the value as bytes.
-        let bytes: &[u8] = <&[u8] as sqlx::Decode<Postgres>>::decode(value)?;
+        // First, decode the value as string.
+        let hex_string: &str = <&str as sqlx::Decode<Postgres>>::decode(value)?;
 
-        // Convert to FixedBytes<32>
-        let fixed_bytes =
-            FixedBytes::try_from(bytes).map_err(|e| sqlx::Error::Decode(Box::new(e)))?;
+        // Parse the "0x..." hex string to FixedBytes<32>
+        let fixed_bytes = FixedBytes::from_str(hex_string)
+            .map_err(|e| sqlx::Error::Decode(Box::new(e)))?;
 
         // Wrap the parsed `FixedBytes<32>` in `FixedBytesWrapper` and return.
         Ok(FixedBytesWrapper(fixed_bytes))

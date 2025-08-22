@@ -60,7 +60,7 @@ impl SimpleCrud<String> for Account {
 
         sqlx::query_as::<_, Account>(&query)
             .bind(self.id.clone())
-            .bind(self.atom_id.as_ref().map(|w| w.0.as_slice()))
+            .bind(self.atom_id.as_ref())
             .bind(&self.label)
             .bind(&self.image)
             .bind(self.account_type.to_string())

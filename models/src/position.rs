@@ -97,7 +97,7 @@ impl SimpleCrud<String> for Position {
         sqlx::query_as::<_, Position>(&query)
             .bind(self.id.clone())
             .bind(self.account_id.clone())
-            .bind(self.term_id.0.as_slice())
+            .bind(self.term_id.clone())
             .bind(self.shares.to_big_decimal()?)
             .bind(self.curve_id.to_big_decimal()?)
             .bind(
@@ -187,7 +187,7 @@ impl Position {
             schema
         );
         let count: i64 = sqlx::query_scalar(&query)
-            .bind(term_id.0.as_slice())
+            .bind(term_id)
             .bind(curve_id.to_big_decimal()?)
             .fetch_one(executor)
             .await
@@ -211,8 +211,8 @@ impl Position {
         );
 
         let count: i64 = sqlx::query_scalar(&query)
-            .bind(term_id.0.as_slice())
-            .bind(counter_term_id.0.as_slice())
+            .bind(term_id)
+            .bind(counter_term_id)
             .bind(curve_id.to_big_decimal()?)
             .fetch_one(executor)
             .await
@@ -235,7 +235,7 @@ impl Position {
             schema
         );
         let count: i64 = sqlx::query_scalar(&query)
-            .bind(term_id.0.as_slice())
+            .bind(term_id)
             .fetch_one(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))?;

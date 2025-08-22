@@ -71,8 +71,8 @@ impl SimpleCrud<FixedBytesWrapper> for TripleVault {
         );
 
         sqlx::query_as::<_, TripleVault>(&query)
-            .bind(self.term_id.0.as_slice())
-            .bind(self.counter_term_id.0.as_slice())
+            .bind(self.term_id.clone())
+            .bind(self.counter_term_id.clone())
             .bind(self.curve_id.to_big_decimal()?)
             .bind(self.total_shares.to_big_decimal()?)
             .bind(self.total_assets.to_big_decimal()?)
@@ -115,7 +115,7 @@ impl SimpleCrud<FixedBytesWrapper> for TripleVault {
         );
 
         sqlx::query_as::<_, TripleVault>(&query)
-            .bind(term_id.0.as_slice())
+            .bind(term_id)
             .fetch_optional(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
@@ -141,7 +141,7 @@ impl TripleVault {
         );
 
         sqlx::query_as::<_, TripleVault>(&query)
-            .bind(term_id.0.as_slice())
+            .bind(term_id)
             .bind(curve_id.to_big_decimal()?)
             .fetch_optional(executor)
             .await
@@ -177,7 +177,7 @@ impl TripleVault {
         );
 
         sqlx::query_as::<_, TripleVault>(&query)
-            .bind(term_id.0.as_slice())
+            .bind(term_id)
             .fetch_optional(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))

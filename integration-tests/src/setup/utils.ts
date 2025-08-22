@@ -1,5 +1,4 @@
-import { createPublicClient, createWalletClient, defineChain, formatEther, getContract, Hex, http, parseEther, parseEventLogs, publicActions, toHex } from 'viem'
-import { baseSepolia } from 'viem/chains'
+import { createPublicClient, createWalletClient, defineChain, formatEther, getContract, Hex, http, parseEther, parseEventLogs, toHex } from 'viem'
 import { ADMIN, MNEMONIC } from './constants.js'
 import { getContractAddress } from './deploy.js'
 import { mnemonicToAccount } from 'viem/accounts'
@@ -7,29 +6,14 @@ import type { TypedDocumentString } from '../graphql/graphql.js'
 import { graphql } from '../graphql/gql.js'
 import { abi } from './abi'
 
-// Convert from "0x..." format to "\\x..." format
-export function oxToBackslashX(oxString: string) {
-  // Remove the "0x" prefix if present
-  const hex = oxString.startsWith('0x') ? oxString.slice(2) : oxString;
-  // Add "\\x" prefix
-  return '\\x' + hex;
-}
-
-// Convert from "\\x..." format to "0x..." format
-export function backslashXToOx(backslashString: string) {
-  // Remove the "\\x" prefix if present
-  const hex = backslashString.startsWith('\\x') ? backslashString.slice(2) : backslashString;
-  // Add "0x" prefix
-  return '0x' + hex;
-}
 
 const local = defineChain({
   id: 1337,
-  name: 'Localhost',
+  name: 'Local intuition',
   nativeCurrency: {
     decimals: 18,
-    name: 'Ether',
-    symbol: 'ETH',
+    name: 'Local Trust',
+    symbol: 'lTRUST',
   },
   rpcUrls: {
     default: { http: ['http://127.0.0.1:8545'] },
@@ -62,16 +46,16 @@ export async function getIntuition(accountIndex: number) {
   })
   // balance
   const balance = await publicClient.getBalance({ address: account.address })
-  console.log(`Balance: ${parseFloat(formatEther(balance)).toFixed(6)} ETH, account: ${account.address}`)
+  console.log(`Balance: ${parseFloat(formatEther(balance)).toFixed(6)} lTRUST, account: ${account.address}`)
 
-  if (balance.valueOf() < parseEther('0.1').valueOf()) {
-    console.log(`Sending 10 ETH to ${account.address}...`)
+  if (balance.valueOf() < parseEther('10').valueOf()) {
+    console.log(`Sending 100 lTRUST to ${account.address}...`)
 
     // Faucet
     //@ts-ignore
     const hash = await adminClient.sendTransaction({
       account: ADMIN.address,
-      value: parseEther('10'),
+      value: parseEther('100'),
       to: account.address,
     })
 
@@ -138,7 +122,7 @@ export async function getIntuition(accountIndex: number) {
     } else {
       console.log(`Creating atom: ${uri} ...`)
       const { minDeposit } = await contract.read.getGeneralConfig()
-      console.log(`Min deposit: ${minDeposit} wei (${formatEther(minDeposit)} ETH)`)
+      console.log(`Min deposit: ${minDeposit} wei (${formatEther(minDeposit)} lTRUST)`)
       const hash = await contract.write.createAtoms([[toHex(uri)], [minDeposit]], { value: minDeposit })
       const vaultId = await eventParseAtomCreated(hash)
       console.log(`vaultId: ${vaultId}`)
@@ -238,9 +222,9 @@ export async function wait(hash: string | null) {
   }
   const promise = new Promise(async (resolve, reject) => {
     let count = 0
+    console.log(`Waiting 1 sec for transaction http://localhost/tx/${hash}`)
     while (true) {
-      console.log(`Waiting for transaction http://localhost/tx/${hash}`)
-      console.log(`Count: ${count}`)
+      await new Promise(resolve => setTimeout(resolve, 1000));
       const data = await execute(graphql(`
         query GetTransactionEvents($hash: String!) {
           events(where: { transaction_hash: { _eq: $hash } }) {
@@ -251,11 +235,11 @@ export async function wait(hash: string | null) {
       if (data?.events.length > 0) {
         return resolve(true);
       }
-      await new Promise(resolve => setTimeout(resolve, 1000));
       count++
       if (count > 10) {
         return reject(new Error('Transaction not found'))
       }
+      console.log(`Retry: ${count}`)
     }
   });
   return promise;

@@ -1,5 +1,5 @@
 import { expect, test, suite } from 'vitest'
-import { execute, getIntuition, oxToBackslashX, pinJson, SystemAtom, wait } from './setup/utils.js'
+import { execute, getIntuition, pinJson, SystemAtom, wait } from './setup/utils.js'
 import { graphql } from './graphql/gql.js'
 
 suite('follow account', async () => {
@@ -41,7 +41,7 @@ suite('follow account', async () => {
     )
     expect(result).toBeDefined()
     expect(result.following.length).toBe(1)
-    expect(result.following[0].atom_id).toBe(oxToBackslashX(bobAtom.vaultId))
+    expect(result.following[0].atom_id).toBe(bobAtom.vaultId)
     expect(result.following[0].id).toBe(bob.account.address)
   })
 

@@ -144,14 +144,14 @@ impl SimpleCrud<FixedBytesWrapper> for Atom {
         sqlx::query_as::<_, Atom>(&query)
             .bind(self.wallet_id.clone())
             .bind(self.creator_id.clone())
-            .bind(self.term_id.0.as_slice())
+            .bind(self.term_id.clone())
             .bind(self.data.clone())
             .bind(self.raw_data.clone())
             .bind(self.atom_type.to_string())
             .bind(self.emoji.clone())
             .bind(self.label.clone())
             .bind(self.image.clone())
-            .bind(self.value_id.as_ref().map(|w| w.0.as_slice()))
+            .bind(self.value_id.as_ref())
             .bind(self.block_number.to_big_decimal()?)
             .bind(self.created_at)
             .bind(self.transaction_hash.clone())
@@ -207,7 +207,7 @@ impl SimpleCrud<FixedBytesWrapper> for Atom {
         );
 
         sqlx::query_as::<_, Atom>(&query)
-            .bind(term_id.0.as_slice())
+            .bind(term_id)
             .fetch_optional(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
@@ -226,7 +226,7 @@ impl Atom {
         );
 
         sqlx::query(&query)
-            .bind(self.term_id.0.as_slice())
+            .bind(self.term_id.clone())
             .execute(executor)
             .await
             .map_err(ModelError::from)
@@ -244,7 +244,7 @@ impl Atom {
         );
 
         sqlx::query(&query)
-            .bind(self.term_id.0.as_slice())
+            .bind(self.term_id.clone())
             .execute(executor)
             .await
             .map_err(ModelError::from)

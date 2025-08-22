@@ -45,8 +45,8 @@ impl SimpleCrud<String> for PredicateObject {
 
         sqlx::query_as::<_, PredicateObject>(&query)
             .bind(self.id.clone())
-            .bind(self.predicate_id.0.as_slice())
-            .bind(self.object_id.0.as_slice())
+            .bind(self.predicate_id.clone())
+            .bind(self.object_id.clone())
             .bind(self.triple_count)
             .fetch_one(executor)
             .await
