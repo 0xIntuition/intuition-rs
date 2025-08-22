@@ -187,10 +187,15 @@ impl ContractInstance {
     pub async fn get_id_from_counter_id(
         &self,
         counter_id: FixedBytesWrapper,
+        block_id: BlockId,
     ) -> Result<FixedBytesWrapper, ConsumerError> {
         match self {
             Self::V2(client) => Ok(FixedBytesWrapper::from(
-                client.getTripleIdFromCounterId(counter_id.0).call().await?,
+                client
+                    .getTripleIdFromCounterId(counter_id.0)
+                    .block(block_id)
+                    .call()
+                    .await?,
             )),
         }
     }

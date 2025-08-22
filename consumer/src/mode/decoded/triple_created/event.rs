@@ -4,7 +4,7 @@ use crate::{
         decoded::utils::{get_block_timestamp, get_counter_id_from_triple_id},
         resolver::types::ResolverConsumerMessage,
         types::DecodedConsumerContext,
-        utils::{VaultOrigin, get_or_create_term, short_id},
+        utils::{BlockInfo, VaultOrigin, get_or_create_term, short_id},
     },
     schemas::types::DecodedMessage,
     traits::{SharePriceEvent, TripleTermManager, TripleVaultManager, VaultManager},
@@ -104,7 +104,10 @@ pub trait TripleCreatedEvent:
                 Some(counter_vault_id.clone()),
                 decoded_consumer_context,
                 TermType::CounterTriple,
-                event.block_timestamp,
+                BlockInfo {
+                    block_number: event.block_number,
+                    block_timestamp: event.block_timestamp,
+                },
             )
             .await?;
 
