@@ -1,5 +1,5 @@
 import { expect, test, suite } from 'vitest'
-import { execute, getIntuition, oxToBackslashX, pinJson, SystemAtom, wait } from './setup/utils.js'
+import { execute, getIntuition, pinJson, SystemAtom, wait } from './setup/utils.js'
 import { graphql } from './graphql/gql.js'
 
 suite('create person triple', async () => {
@@ -40,12 +40,12 @@ suite('create person triple', async () => {
   test('query person', async () => {
     await wait(triple.hash)
     const result = await execute(
-      graphql(`query Term($termId: bytea!) {
+      graphql(`query Term($termId: String!) {
         atom(term_id: $termId) {
           label
         }
       }`),
-      { termId: oxToBackslashX(alicePerson.vaultId) })
+      { termId: alicePerson.vaultId })
     expect(result).toBeDefined()
     expect(result.atom?.label).toBe('Alice')
   })

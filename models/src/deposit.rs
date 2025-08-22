@@ -102,7 +102,7 @@ impl SimpleCrud<String> for Deposit {
             .bind(self.assets_after_fees.to_big_decimal()?)
             .bind(self.shares.to_big_decimal()?)
             .bind(self.total_shares.to_big_decimal()?)
-            .bind(self.term_id.0.as_slice())
+            .bind(self.term_id.clone())
             .bind(self.vault_type)
             .bind(self.curve_id.to_big_decimal()?)
             .bind(self.block_number.to_big_decimal()?)
@@ -173,7 +173,7 @@ impl Deposit {
 
         let result: Option<Deposit> = sqlx::query_as(&query)
             .bind(transaction_hash)
-            .bind(term_id.0.as_slice())
+            .bind(term_id)
             .bind(curve_id.to_big_decimal()?)
             .fetch_optional(executor)
             .await

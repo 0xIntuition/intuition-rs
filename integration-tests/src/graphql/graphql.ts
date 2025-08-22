@@ -16,6 +16,7 @@ export type Scalars = {
   Float: { input: number; output: number; }
   _text: { input: any; output: any; }
   account_type: { input: any; output: any; }
+  atom_resolving_status: { input: any; output: any; }
   atom_type: { input: any; output: any; }
   bigint: { input: any; output: any; }
   bytea: { input: any; output: any; }
@@ -25,6 +26,7 @@ export type Scalars = {
   numeric: { input: any; output: any; }
   term_type: { input: any; output: any; }
   timestamptz: { input: any; output: any; }
+  vault_type: { input: any; output: any; }
 };
 
 /** Boolean expression to compare columns of type "Boolean". All fields are combined with logical 'AND'. */
@@ -133,7 +135,7 @@ export type Accounts = {
   __typename?: 'accounts';
   /** An object relationship */
   atom?: Maybe<Atoms>;
-  atom_id?: Maybe<Scalars['bytea']['output']>;
+  atom_id?: Maybe<Scalars['String']['output']>;
   /** An array relationship */
   atoms: Array<Atoms>;
   /** An aggregate relationship */
@@ -403,7 +405,7 @@ export type Accounts_Bool_Exp = {
   _not?: InputMaybe<Accounts_Bool_Exp>;
   _or?: InputMaybe<Array<Accounts_Bool_Exp>>;
   atom?: InputMaybe<Atoms_Bool_Exp>;
-  atom_id?: InputMaybe<Bytea_Comparison_Exp>;
+  atom_id?: InputMaybe<String_Comparison_Exp>;
   atoms?: InputMaybe<Atoms_Bool_Exp>;
   atoms_aggregate?: InputMaybe<Atoms_Aggregate_Bool_Exp>;
   deposits_received?: InputMaybe<Deposits_Bool_Exp>;
@@ -431,6 +433,7 @@ export type Accounts_Bool_Exp = {
 /** aggregate max on columns */
 export type Accounts_Max_Fields = {
   __typename?: 'accounts_max_fields';
+  atom_id?: Maybe<Scalars['String']['output']>;
   id?: Maybe<Scalars['String']['output']>;
   image?: Maybe<Scalars['String']['output']>;
   label?: Maybe<Scalars['String']['output']>;
@@ -439,6 +442,7 @@ export type Accounts_Max_Fields = {
 
 /** order by max() on columns of table "account" */
 export type Accounts_Max_Order_By = {
+  atom_id?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   image?: InputMaybe<Order_By>;
   label?: InputMaybe<Order_By>;
@@ -448,6 +452,7 @@ export type Accounts_Max_Order_By = {
 /** aggregate min on columns */
 export type Accounts_Min_Fields = {
   __typename?: 'accounts_min_fields';
+  atom_id?: Maybe<Scalars['String']['output']>;
   id?: Maybe<Scalars['String']['output']>;
   image?: Maybe<Scalars['String']['output']>;
   label?: Maybe<Scalars['String']['output']>;
@@ -456,6 +461,7 @@ export type Accounts_Min_Fields = {
 
 /** order by min() on columns of table "account" */
 export type Accounts_Min_Order_By = {
+  atom_id?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   image?: InputMaybe<Order_By>;
   label?: InputMaybe<Order_By>;
@@ -505,11 +511,24 @@ export type Accounts_Stream_Cursor_Input = {
 
 /** Initial value of the column from where the streaming should start */
 export type Accounts_Stream_Cursor_Value_Input = {
-  atom_id?: InputMaybe<Scalars['bytea']['input']>;
+  atom_id?: InputMaybe<Scalars['String']['input']>;
   id?: InputMaybe<Scalars['String']['input']>;
   image?: InputMaybe<Scalars['String']['input']>;
   label?: InputMaybe<Scalars['String']['input']>;
   type?: InputMaybe<Scalars['account_type']['input']>;
+};
+
+/** Boolean expression to compare columns of type "atom_resolving_status". All fields are combined with logical 'AND'. */
+export type Atom_Resolving_Status_Comparison_Exp = {
+  _eq?: InputMaybe<Scalars['atom_resolving_status']['input']>;
+  _gt?: InputMaybe<Scalars['atom_resolving_status']['input']>;
+  _gte?: InputMaybe<Scalars['atom_resolving_status']['input']>;
+  _in?: InputMaybe<Array<Scalars['atom_resolving_status']['input']>>;
+  _is_null?: InputMaybe<Scalars['Boolean']['input']>;
+  _lt?: InputMaybe<Scalars['atom_resolving_status']['input']>;
+  _lte?: InputMaybe<Scalars['atom_resolving_status']['input']>;
+  _neq?: InputMaybe<Scalars['atom_resolving_status']['input']>;
+  _nin?: InputMaybe<Array<Scalars['atom_resolving_status']['input']>>;
 };
 
 /** Boolean expression to compare columns of type "atom_type". All fields are combined with logical 'AND'. */
@@ -535,28 +554,29 @@ export type Atom_Values = {
   atom: Atoms;
   /** An object relationship */
   book?: Maybe<Books>;
-  book_id?: Maybe<Scalars['bytea']['output']>;
+  book_id?: Maybe<Scalars['String']['output']>;
   /** An object relationship */
   byte_object?: Maybe<Byte_Object>;
-  byte_object_id?: Maybe<Scalars['bytea']['output']>;
+  byte_object_id?: Maybe<Scalars['String']['output']>;
   /** An object relationship */
   caip10?: Maybe<Caip10>;
-  id: Scalars['bytea']['output'];
+  caip10_id?: Maybe<Scalars['String']['output']>;
+  id: Scalars['String']['output'];
   /** An object relationship */
   json_object?: Maybe<Json_Objects>;
-  json_object_id?: Maybe<Scalars['bytea']['output']>;
+  json_object_id?: Maybe<Scalars['String']['output']>;
   /** An object relationship */
   organization?: Maybe<Organizations>;
-  organization_id?: Maybe<Scalars['bytea']['output']>;
+  organization_id?: Maybe<Scalars['String']['output']>;
   /** An object relationship */
   person?: Maybe<Persons>;
-  person_id?: Maybe<Scalars['bytea']['output']>;
+  person_id?: Maybe<Scalars['String']['output']>;
   /** An object relationship */
   text_object?: Maybe<Text_Objects>;
-  text_object_id?: Maybe<Scalars['bytea']['output']>;
+  text_object_id?: Maybe<Scalars['String']['output']>;
   /** An object relationship */
   thing?: Maybe<Things>;
-  thing_id?: Maybe<Scalars['bytea']['output']>;
+  thing_id?: Maybe<Scalars['String']['output']>;
 };
 
 /** aggregated selection of "atom_value" */
@@ -590,33 +610,52 @@ export type Atom_Values_Bool_Exp = {
   account_id?: InputMaybe<String_Comparison_Exp>;
   atom?: InputMaybe<Atoms_Bool_Exp>;
   book?: InputMaybe<Books_Bool_Exp>;
-  book_id?: InputMaybe<Bytea_Comparison_Exp>;
+  book_id?: InputMaybe<String_Comparison_Exp>;
   byte_object?: InputMaybe<Byte_Object_Bool_Exp>;
-  byte_object_id?: InputMaybe<Bytea_Comparison_Exp>;
+  byte_object_id?: InputMaybe<String_Comparison_Exp>;
   caip10?: InputMaybe<Caip10_Bool_Exp>;
-  id?: InputMaybe<Bytea_Comparison_Exp>;
+  caip10_id?: InputMaybe<String_Comparison_Exp>;
+  id?: InputMaybe<String_Comparison_Exp>;
   json_object?: InputMaybe<Json_Objects_Bool_Exp>;
-  json_object_id?: InputMaybe<Bytea_Comparison_Exp>;
+  json_object_id?: InputMaybe<String_Comparison_Exp>;
   organization?: InputMaybe<Organizations_Bool_Exp>;
-  organization_id?: InputMaybe<Bytea_Comparison_Exp>;
+  organization_id?: InputMaybe<String_Comparison_Exp>;
   person?: InputMaybe<Persons_Bool_Exp>;
-  person_id?: InputMaybe<Bytea_Comparison_Exp>;
+  person_id?: InputMaybe<String_Comparison_Exp>;
   text_object?: InputMaybe<Text_Objects_Bool_Exp>;
-  text_object_id?: InputMaybe<Bytea_Comparison_Exp>;
+  text_object_id?: InputMaybe<String_Comparison_Exp>;
   thing?: InputMaybe<Things_Bool_Exp>;
-  thing_id?: InputMaybe<Bytea_Comparison_Exp>;
+  thing_id?: InputMaybe<String_Comparison_Exp>;
 };
 
 /** aggregate max on columns */
 export type Atom_Values_Max_Fields = {
   __typename?: 'atom_values_max_fields';
   account_id?: Maybe<Scalars['String']['output']>;
+  book_id?: Maybe<Scalars['String']['output']>;
+  byte_object_id?: Maybe<Scalars['String']['output']>;
+  caip10_id?: Maybe<Scalars['String']['output']>;
+  id?: Maybe<Scalars['String']['output']>;
+  json_object_id?: Maybe<Scalars['String']['output']>;
+  organization_id?: Maybe<Scalars['String']['output']>;
+  person_id?: Maybe<Scalars['String']['output']>;
+  text_object_id?: Maybe<Scalars['String']['output']>;
+  thing_id?: Maybe<Scalars['String']['output']>;
 };
 
 /** aggregate min on columns */
 export type Atom_Values_Min_Fields = {
   __typename?: 'atom_values_min_fields';
   account_id?: Maybe<Scalars['String']['output']>;
+  book_id?: Maybe<Scalars['String']['output']>;
+  byte_object_id?: Maybe<Scalars['String']['output']>;
+  caip10_id?: Maybe<Scalars['String']['output']>;
+  id?: Maybe<Scalars['String']['output']>;
+  json_object_id?: Maybe<Scalars['String']['output']>;
+  organization_id?: Maybe<Scalars['String']['output']>;
+  person_id?: Maybe<Scalars['String']['output']>;
+  text_object_id?: Maybe<Scalars['String']['output']>;
+  thing_id?: Maybe<Scalars['String']['output']>;
 };
 
 /** Ordering options when selecting data from "atom_value". */
@@ -629,6 +668,7 @@ export type Atom_Values_Order_By = {
   byte_object?: InputMaybe<Byte_Object_Order_By>;
   byte_object_id?: InputMaybe<Order_By>;
   caip10?: InputMaybe<Caip10_Order_By>;
+  caip10_id?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   json_object?: InputMaybe<Json_Objects_Order_By>;
   json_object_id?: InputMaybe<Order_By>;
@@ -650,6 +690,8 @@ export enum Atom_Values_Select_Column {
   BookId = 'book_id',
   /** column name */
   ByteObjectId = 'byte_object_id',
+  /** column name */
+  Caip10Id = 'caip10_id',
   /** column name */
   Id = 'id',
   /** column name */
@@ -675,14 +717,15 @@ export type Atom_Values_Stream_Cursor_Input = {
 /** Initial value of the column from where the streaming should start */
 export type Atom_Values_Stream_Cursor_Value_Input = {
   account_id?: InputMaybe<Scalars['String']['input']>;
-  book_id?: InputMaybe<Scalars['bytea']['input']>;
-  byte_object_id?: InputMaybe<Scalars['bytea']['input']>;
-  id?: InputMaybe<Scalars['bytea']['input']>;
-  json_object_id?: InputMaybe<Scalars['bytea']['input']>;
-  organization_id?: InputMaybe<Scalars['bytea']['input']>;
-  person_id?: InputMaybe<Scalars['bytea']['input']>;
-  text_object_id?: InputMaybe<Scalars['bytea']['input']>;
-  thing_id?: InputMaybe<Scalars['bytea']['input']>;
+  book_id?: InputMaybe<Scalars['String']['input']>;
+  byte_object_id?: InputMaybe<Scalars['String']['input']>;
+  caip10_id?: InputMaybe<Scalars['String']['input']>;
+  id?: InputMaybe<Scalars['String']['input']>;
+  json_object_id?: InputMaybe<Scalars['String']['input']>;
+  organization_id?: InputMaybe<Scalars['String']['input']>;
+  person_id?: InputMaybe<Scalars['String']['input']>;
+  text_object_id?: InputMaybe<Scalars['String']['input']>;
+  thing_id?: InputMaybe<Scalars['String']['input']>;
 };
 
 /** columns and relationships of "atom" */
@@ -724,23 +767,26 @@ export type Atoms = {
   emoji?: Maybe<Scalars['String']['output']>;
   image?: Maybe<Scalars['String']['output']>;
   label?: Maybe<Scalars['String']['output']>;
+  log_index: Scalars['bigint']['output'];
   /** An array relationship */
   positions: Array<Positions>;
   /** An aggregate relationship */
   positions_aggregate: Positions_Aggregate;
+  raw_data: Scalars['String']['output'];
+  resolving_status: Scalars['atom_resolving_status']['output'];
   /** An array relationship */
   signals: Array<Signals>;
   /** An aggregate relationship */
   signals_aggregate: Signals_Aggregate;
   /** An object relationship */
   term: Terms;
-  term_id: Scalars['bytea']['output'];
+  term_id: Scalars['String']['output'];
   transaction_hash: Scalars['String']['output'];
   type: Scalars['atom_type']['output'];
   updated_at: Scalars['timestamptz']['output'];
   /** An object relationship */
   value?: Maybe<Atom_Values>;
-  value_id?: Maybe<Scalars['bytea']['output']>;
+  value_id?: Maybe<Scalars['String']['output']>;
   wallet_id: Scalars['String']['output'];
 };
 
@@ -964,11 +1010,13 @@ export type Atoms_Aggregate_Order_By = {
 export type Atoms_Avg_Fields = {
   __typename?: 'atoms_avg_fields';
   block_number?: Maybe<Scalars['Float']['output']>;
+  log_index?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by avg() on columns of table "atom" */
 export type Atoms_Avg_Order_By = {
   block_number?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
 };
 
 /** Boolean expression to filter rows from the table "atom". All fields are combined with a logical 'AND'. */
@@ -997,17 +1045,20 @@ export type Atoms_Bool_Exp = {
   emoji?: InputMaybe<String_Comparison_Exp>;
   image?: InputMaybe<String_Comparison_Exp>;
   label?: InputMaybe<String_Comparison_Exp>;
+  log_index?: InputMaybe<Bigint_Comparison_Exp>;
   positions?: InputMaybe<Positions_Bool_Exp>;
   positions_aggregate?: InputMaybe<Positions_Aggregate_Bool_Exp>;
+  raw_data?: InputMaybe<String_Comparison_Exp>;
+  resolving_status?: InputMaybe<Atom_Resolving_Status_Comparison_Exp>;
   signals?: InputMaybe<Signals_Bool_Exp>;
   signals_aggregate?: InputMaybe<Signals_Aggregate_Bool_Exp>;
   term?: InputMaybe<Terms_Bool_Exp>;
-  term_id?: InputMaybe<Bytea_Comparison_Exp>;
+  term_id?: InputMaybe<String_Comparison_Exp>;
   transaction_hash?: InputMaybe<String_Comparison_Exp>;
   type?: InputMaybe<Atom_Type_Comparison_Exp>;
   updated_at?: InputMaybe<Timestamptz_Comparison_Exp>;
   value?: InputMaybe<Atom_Values_Bool_Exp>;
-  value_id?: InputMaybe<Bytea_Comparison_Exp>;
+  value_id?: InputMaybe<String_Comparison_Exp>;
   wallet_id?: InputMaybe<String_Comparison_Exp>;
 };
 
@@ -1021,9 +1072,14 @@ export type Atoms_Max_Fields = {
   emoji?: Maybe<Scalars['String']['output']>;
   image?: Maybe<Scalars['String']['output']>;
   label?: Maybe<Scalars['String']['output']>;
+  log_index?: Maybe<Scalars['bigint']['output']>;
+  raw_data?: Maybe<Scalars['String']['output']>;
+  resolving_status?: Maybe<Scalars['atom_resolving_status']['output']>;
+  term_id?: Maybe<Scalars['String']['output']>;
   transaction_hash?: Maybe<Scalars['String']['output']>;
   type?: Maybe<Scalars['atom_type']['output']>;
   updated_at?: Maybe<Scalars['timestamptz']['output']>;
+  value_id?: Maybe<Scalars['String']['output']>;
   wallet_id?: Maybe<Scalars['String']['output']>;
 };
 
@@ -1036,9 +1092,14 @@ export type Atoms_Max_Order_By = {
   emoji?: InputMaybe<Order_By>;
   image?: InputMaybe<Order_By>;
   label?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
+  raw_data?: InputMaybe<Order_By>;
+  resolving_status?: InputMaybe<Order_By>;
+  term_id?: InputMaybe<Order_By>;
   transaction_hash?: InputMaybe<Order_By>;
   type?: InputMaybe<Order_By>;
   updated_at?: InputMaybe<Order_By>;
+  value_id?: InputMaybe<Order_By>;
   wallet_id?: InputMaybe<Order_By>;
 };
 
@@ -1052,9 +1113,14 @@ export type Atoms_Min_Fields = {
   emoji?: Maybe<Scalars['String']['output']>;
   image?: Maybe<Scalars['String']['output']>;
   label?: Maybe<Scalars['String']['output']>;
+  log_index?: Maybe<Scalars['bigint']['output']>;
+  raw_data?: Maybe<Scalars['String']['output']>;
+  resolving_status?: Maybe<Scalars['atom_resolving_status']['output']>;
+  term_id?: Maybe<Scalars['String']['output']>;
   transaction_hash?: Maybe<Scalars['String']['output']>;
   type?: Maybe<Scalars['atom_type']['output']>;
   updated_at?: Maybe<Scalars['timestamptz']['output']>;
+  value_id?: Maybe<Scalars['String']['output']>;
   wallet_id?: Maybe<Scalars['String']['output']>;
 };
 
@@ -1067,9 +1133,14 @@ export type Atoms_Min_Order_By = {
   emoji?: InputMaybe<Order_By>;
   image?: InputMaybe<Order_By>;
   label?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
+  raw_data?: InputMaybe<Order_By>;
+  resolving_status?: InputMaybe<Order_By>;
+  term_id?: InputMaybe<Order_By>;
   transaction_hash?: InputMaybe<Order_By>;
   type?: InputMaybe<Order_By>;
   updated_at?: InputMaybe<Order_By>;
+  value_id?: InputMaybe<Order_By>;
   wallet_id?: InputMaybe<Order_By>;
 };
 
@@ -1090,7 +1161,10 @@ export type Atoms_Order_By = {
   emoji?: InputMaybe<Order_By>;
   image?: InputMaybe<Order_By>;
   label?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   positions_aggregate?: InputMaybe<Positions_Aggregate_Order_By>;
+  raw_data?: InputMaybe<Order_By>;
+  resolving_status?: InputMaybe<Order_By>;
   signals_aggregate?: InputMaybe<Signals_Aggregate_Order_By>;
   term?: InputMaybe<Terms_Order_By>;
   term_id?: InputMaybe<Order_By>;
@@ -1119,6 +1193,12 @@ export enum Atoms_Select_Column {
   /** column name */
   Label = 'label',
   /** column name */
+  LogIndex = 'log_index',
+  /** column name */
+  RawData = 'raw_data',
+  /** column name */
+  ResolvingStatus = 'resolving_status',
+  /** column name */
   TermId = 'term_id',
   /** column name */
   TransactionHash = 'transaction_hash',
@@ -1136,33 +1216,39 @@ export enum Atoms_Select_Column {
 export type Atoms_Stddev_Fields = {
   __typename?: 'atoms_stddev_fields';
   block_number?: Maybe<Scalars['Float']['output']>;
+  log_index?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by stddev() on columns of table "atom" */
 export type Atoms_Stddev_Order_By = {
   block_number?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
 };
 
 /** aggregate stddev_pop on columns */
 export type Atoms_Stddev_Pop_Fields = {
   __typename?: 'atoms_stddev_pop_fields';
   block_number?: Maybe<Scalars['Float']['output']>;
+  log_index?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by stddev_pop() on columns of table "atom" */
 export type Atoms_Stddev_Pop_Order_By = {
   block_number?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
 };
 
 /** aggregate stddev_samp on columns */
 export type Atoms_Stddev_Samp_Fields = {
   __typename?: 'atoms_stddev_samp_fields';
   block_number?: Maybe<Scalars['Float']['output']>;
+  log_index?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by stddev_samp() on columns of table "atom" */
 export type Atoms_Stddev_Samp_Order_By = {
   block_number?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
 };
 
 /** Streaming cursor of the table "atoms" */
@@ -1182,11 +1268,14 @@ export type Atoms_Stream_Cursor_Value_Input = {
   emoji?: InputMaybe<Scalars['String']['input']>;
   image?: InputMaybe<Scalars['String']['input']>;
   label?: InputMaybe<Scalars['String']['input']>;
-  term_id?: InputMaybe<Scalars['bytea']['input']>;
+  log_index?: InputMaybe<Scalars['bigint']['input']>;
+  raw_data?: InputMaybe<Scalars['String']['input']>;
+  resolving_status?: InputMaybe<Scalars['atom_resolving_status']['input']>;
+  term_id?: InputMaybe<Scalars['String']['input']>;
   transaction_hash?: InputMaybe<Scalars['String']['input']>;
   type?: InputMaybe<Scalars['atom_type']['input']>;
   updated_at?: InputMaybe<Scalars['timestamptz']['input']>;
-  value_id?: InputMaybe<Scalars['bytea']['input']>;
+  value_id?: InputMaybe<Scalars['String']['input']>;
   wallet_id?: InputMaybe<Scalars['String']['input']>;
 };
 
@@ -1194,44 +1283,52 @@ export type Atoms_Stream_Cursor_Value_Input = {
 export type Atoms_Sum_Fields = {
   __typename?: 'atoms_sum_fields';
   block_number?: Maybe<Scalars['numeric']['output']>;
+  log_index?: Maybe<Scalars['bigint']['output']>;
 };
 
 /** order by sum() on columns of table "atom" */
 export type Atoms_Sum_Order_By = {
   block_number?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
 };
 
 /** aggregate var_pop on columns */
 export type Atoms_Var_Pop_Fields = {
   __typename?: 'atoms_var_pop_fields';
   block_number?: Maybe<Scalars['Float']['output']>;
+  log_index?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by var_pop() on columns of table "atom" */
 export type Atoms_Var_Pop_Order_By = {
   block_number?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
 };
 
 /** aggregate var_samp on columns */
 export type Atoms_Var_Samp_Fields = {
   __typename?: 'atoms_var_samp_fields';
   block_number?: Maybe<Scalars['Float']['output']>;
+  log_index?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by var_samp() on columns of table "atom" */
 export type Atoms_Var_Samp_Order_By = {
   block_number?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
 };
 
 /** aggregate variance on columns */
 export type Atoms_Variance_Fields = {
   __typename?: 'atoms_variance_fields';
   block_number?: Maybe<Scalars['Float']['output']>;
+  log_index?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by variance() on columns of table "atom" */
 export type Atoms_Variance_Order_By = {
   block_number?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
 };
 
 /** Boolean expression to compare columns of type "bigint". All fields are combined with logical 'AND'. */
@@ -1254,7 +1351,7 @@ export type Books = {
   atom?: Maybe<Atoms>;
   description?: Maybe<Scalars['String']['output']>;
   genre?: Maybe<Scalars['String']['output']>;
-  id: Scalars['bytea']['output'];
+  id: Scalars['String']['output'];
   name?: Maybe<Scalars['String']['output']>;
   url?: Maybe<Scalars['String']['output']>;
 };
@@ -1289,7 +1386,7 @@ export type Books_Bool_Exp = {
   atom?: InputMaybe<Atoms_Bool_Exp>;
   description?: InputMaybe<String_Comparison_Exp>;
   genre?: InputMaybe<String_Comparison_Exp>;
-  id?: InputMaybe<Bytea_Comparison_Exp>;
+  id?: InputMaybe<String_Comparison_Exp>;
   name?: InputMaybe<String_Comparison_Exp>;
   url?: InputMaybe<String_Comparison_Exp>;
 };
@@ -1299,6 +1396,7 @@ export type Books_Max_Fields = {
   __typename?: 'books_max_fields';
   description?: Maybe<Scalars['String']['output']>;
   genre?: Maybe<Scalars['String']['output']>;
+  id?: Maybe<Scalars['String']['output']>;
   name?: Maybe<Scalars['String']['output']>;
   url?: Maybe<Scalars['String']['output']>;
 };
@@ -1308,6 +1406,7 @@ export type Books_Min_Fields = {
   __typename?: 'books_min_fields';
   description?: Maybe<Scalars['String']['output']>;
   genre?: Maybe<Scalars['String']['output']>;
+  id?: Maybe<Scalars['String']['output']>;
   name?: Maybe<Scalars['String']['output']>;
   url?: Maybe<Scalars['String']['output']>;
 };
@@ -1348,7 +1447,7 @@ export type Books_Stream_Cursor_Input = {
 export type Books_Stream_Cursor_Value_Input = {
   description?: InputMaybe<Scalars['String']['input']>;
   genre?: InputMaybe<Scalars['String']['input']>;
-  id?: InputMaybe<Scalars['bytea']['input']>;
+  id?: InputMaybe<Scalars['String']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
   url?: InputMaybe<Scalars['String']['input']>;
 };
@@ -1359,7 +1458,7 @@ export type Byte_Object = {
   /** An object relationship */
   atom?: Maybe<Atoms>;
   data: Scalars['bytea']['output'];
-  id: Scalars['bytea']['output'];
+  id: Scalars['String']['output'];
 };
 
 /** aggregated selection of "byte_object" */
@@ -1373,6 +1472,8 @@ export type Byte_Object_Aggregate = {
 export type Byte_Object_Aggregate_Fields = {
   __typename?: 'byte_object_aggregate_fields';
   count: Scalars['Int']['output'];
+  max?: Maybe<Byte_Object_Max_Fields>;
+  min?: Maybe<Byte_Object_Min_Fields>;
 };
 
 
@@ -1389,7 +1490,19 @@ export type Byte_Object_Bool_Exp = {
   _or?: InputMaybe<Array<Byte_Object_Bool_Exp>>;
   atom?: InputMaybe<Atoms_Bool_Exp>;
   data?: InputMaybe<Bytea_Comparison_Exp>;
-  id?: InputMaybe<Bytea_Comparison_Exp>;
+  id?: InputMaybe<String_Comparison_Exp>;
+};
+
+/** aggregate max on columns */
+export type Byte_Object_Max_Fields = {
+  __typename?: 'byte_object_max_fields';
+  id?: Maybe<Scalars['String']['output']>;
+};
+
+/** aggregate min on columns */
+export type Byte_Object_Min_Fields = {
+  __typename?: 'byte_object_min_fields';
+  id?: Maybe<Scalars['String']['output']>;
 };
 
 /** Ordering options when selecting data from "byte_object". */
@@ -1418,7 +1531,7 @@ export type Byte_Object_Stream_Cursor_Input = {
 /** Initial value of the column from where the streaming should start */
 export type Byte_Object_Stream_Cursor_Value_Input = {
   data?: InputMaybe<Scalars['bytea']['input']>;
-  id?: InputMaybe<Scalars['bytea']['input']>;
+  id?: InputMaybe<Scalars['String']['input']>;
 };
 
 /** Boolean expression to compare columns of type "bytea". All fields are combined with logical 'AND'. */
@@ -1589,7 +1702,7 @@ export type Caip10 = {
   /** An object relationship */
   atom?: Maybe<Atoms>;
   chain_id: Scalars['Int']['output'];
-  id: Scalars['bytea']['output'];
+  id: Scalars['String']['output'];
   namespace: Scalars['String']['output'];
 };
 
@@ -1637,7 +1750,7 @@ export type Caip10_Bool_Exp = {
   account_address?: InputMaybe<String_Comparison_Exp>;
   atom?: InputMaybe<Atoms_Bool_Exp>;
   chain_id?: InputMaybe<Int_Comparison_Exp>;
-  id?: InputMaybe<Bytea_Comparison_Exp>;
+  id?: InputMaybe<String_Comparison_Exp>;
   namespace?: InputMaybe<String_Comparison_Exp>;
 };
 
@@ -1646,6 +1759,7 @@ export type Caip10_Max_Fields = {
   __typename?: 'caip10_max_fields';
   account_address?: Maybe<Scalars['String']['output']>;
   chain_id?: Maybe<Scalars['Int']['output']>;
+  id?: Maybe<Scalars['String']['output']>;
   namespace?: Maybe<Scalars['String']['output']>;
 };
 
@@ -1654,6 +1768,7 @@ export type Caip10_Min_Fields = {
   __typename?: 'caip10_min_fields';
   account_address?: Maybe<Scalars['String']['output']>;
   chain_id?: Maybe<Scalars['Int']['output']>;
+  id?: Maybe<Scalars['String']['output']>;
   namespace?: Maybe<Scalars['String']['output']>;
 };
 
@@ -1708,7 +1823,7 @@ export type Caip10_Stream_Cursor_Input = {
 export type Caip10_Stream_Cursor_Value_Input = {
   account_address?: InputMaybe<Scalars['String']['input']>;
   chain_id?: InputMaybe<Scalars['Int']['input']>;
-  id?: InputMaybe<Scalars['bytea']['input']>;
+  id?: InputMaybe<Scalars['String']['input']>;
   namespace?: InputMaybe<Scalars['String']['input']>;
 };
 
@@ -1796,6 +1911,7 @@ export type Deposits = {
   created_at: Scalars['timestamptz']['output'];
   curve_id: Scalars['numeric']['output'];
   id: Scalars['String']['output'];
+  log_index: Scalars['bigint']['output'];
   /** An object relationship */
   receiver: Accounts;
   receiver_id: Scalars['String']['output'];
@@ -1805,10 +1921,12 @@ export type Deposits = {
   shares: Scalars['numeric']['output'];
   /** An object relationship */
   term: Terms;
-  term_id: Scalars['bytea']['output'];
+  term_id: Scalars['String']['output'];
+  total_shares: Scalars['numeric']['output'];
   transaction_hash: Scalars['String']['output'];
   /** An object relationship */
   vault?: Maybe<Vaults>;
+  vault_type: Scalars['vault_type']['output'];
 };
 
 /** aggregated selection of "deposit" */
@@ -1873,7 +1991,9 @@ export type Deposits_Avg_Fields = {
   assets_after_fees?: Maybe<Scalars['Float']['output']>;
   block_number?: Maybe<Scalars['Float']['output']>;
   curve_id?: Maybe<Scalars['Float']['output']>;
+  log_index?: Maybe<Scalars['Float']['output']>;
   shares?: Maybe<Scalars['Float']['output']>;
+  total_shares?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by avg() on columns of table "deposit" */
@@ -1881,7 +2001,9 @@ export type Deposits_Avg_Order_By = {
   assets_after_fees?: InputMaybe<Order_By>;
   block_number?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   shares?: InputMaybe<Order_By>;
+  total_shares?: InputMaybe<Order_By>;
 };
 
 /** Boolean expression to filter rows from the table "deposit". All fields are combined with a logical 'AND'. */
@@ -1894,15 +2016,18 @@ export type Deposits_Bool_Exp = {
   created_at?: InputMaybe<Timestamptz_Comparison_Exp>;
   curve_id?: InputMaybe<Numeric_Comparison_Exp>;
   id?: InputMaybe<String_Comparison_Exp>;
+  log_index?: InputMaybe<Bigint_Comparison_Exp>;
   receiver?: InputMaybe<Accounts_Bool_Exp>;
   receiver_id?: InputMaybe<String_Comparison_Exp>;
   sender?: InputMaybe<Accounts_Bool_Exp>;
   sender_id?: InputMaybe<String_Comparison_Exp>;
   shares?: InputMaybe<Numeric_Comparison_Exp>;
   term?: InputMaybe<Terms_Bool_Exp>;
-  term_id?: InputMaybe<Bytea_Comparison_Exp>;
+  term_id?: InputMaybe<String_Comparison_Exp>;
+  total_shares?: InputMaybe<Numeric_Comparison_Exp>;
   transaction_hash?: InputMaybe<String_Comparison_Exp>;
   vault?: InputMaybe<Vaults_Bool_Exp>;
+  vault_type?: InputMaybe<Vault_Type_Comparison_Exp>;
 };
 
 /** aggregate max on columns */
@@ -1913,10 +2038,14 @@ export type Deposits_Max_Fields = {
   created_at?: Maybe<Scalars['timestamptz']['output']>;
   curve_id?: Maybe<Scalars['numeric']['output']>;
   id?: Maybe<Scalars['String']['output']>;
+  log_index?: Maybe<Scalars['bigint']['output']>;
   receiver_id?: Maybe<Scalars['String']['output']>;
   sender_id?: Maybe<Scalars['String']['output']>;
   shares?: Maybe<Scalars['numeric']['output']>;
+  term_id?: Maybe<Scalars['String']['output']>;
+  total_shares?: Maybe<Scalars['numeric']['output']>;
   transaction_hash?: Maybe<Scalars['String']['output']>;
+  vault_type?: Maybe<Scalars['vault_type']['output']>;
 };
 
 /** order by max() on columns of table "deposit" */
@@ -1926,10 +2055,14 @@ export type Deposits_Max_Order_By = {
   created_at?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   receiver_id?: InputMaybe<Order_By>;
   sender_id?: InputMaybe<Order_By>;
   shares?: InputMaybe<Order_By>;
+  term_id?: InputMaybe<Order_By>;
+  total_shares?: InputMaybe<Order_By>;
   transaction_hash?: InputMaybe<Order_By>;
+  vault_type?: InputMaybe<Order_By>;
 };
 
 /** aggregate min on columns */
@@ -1940,10 +2073,14 @@ export type Deposits_Min_Fields = {
   created_at?: Maybe<Scalars['timestamptz']['output']>;
   curve_id?: Maybe<Scalars['numeric']['output']>;
   id?: Maybe<Scalars['String']['output']>;
+  log_index?: Maybe<Scalars['bigint']['output']>;
   receiver_id?: Maybe<Scalars['String']['output']>;
   sender_id?: Maybe<Scalars['String']['output']>;
   shares?: Maybe<Scalars['numeric']['output']>;
+  term_id?: Maybe<Scalars['String']['output']>;
+  total_shares?: Maybe<Scalars['numeric']['output']>;
   transaction_hash?: Maybe<Scalars['String']['output']>;
+  vault_type?: Maybe<Scalars['vault_type']['output']>;
 };
 
 /** order by min() on columns of table "deposit" */
@@ -1953,10 +2090,14 @@ export type Deposits_Min_Order_By = {
   created_at?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   receiver_id?: InputMaybe<Order_By>;
   sender_id?: InputMaybe<Order_By>;
   shares?: InputMaybe<Order_By>;
+  term_id?: InputMaybe<Order_By>;
+  total_shares?: InputMaybe<Order_By>;
   transaction_hash?: InputMaybe<Order_By>;
+  vault_type?: InputMaybe<Order_By>;
 };
 
 /** Ordering options when selecting data from "deposit". */
@@ -1966,6 +2107,7 @@ export type Deposits_Order_By = {
   created_at?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   receiver?: InputMaybe<Accounts_Order_By>;
   receiver_id?: InputMaybe<Order_By>;
   sender?: InputMaybe<Accounts_Order_By>;
@@ -1973,8 +2115,10 @@ export type Deposits_Order_By = {
   shares?: InputMaybe<Order_By>;
   term?: InputMaybe<Terms_Order_By>;
   term_id?: InputMaybe<Order_By>;
+  total_shares?: InputMaybe<Order_By>;
   transaction_hash?: InputMaybe<Order_By>;
   vault?: InputMaybe<Vaults_Order_By>;
+  vault_type?: InputMaybe<Order_By>;
 };
 
 /** select columns of table "deposit" */
@@ -1990,6 +2134,8 @@ export enum Deposits_Select_Column {
   /** column name */
   Id = 'id',
   /** column name */
+  LogIndex = 'log_index',
+  /** column name */
   ReceiverId = 'receiver_id',
   /** column name */
   SenderId = 'sender_id',
@@ -1998,7 +2144,11 @@ export enum Deposits_Select_Column {
   /** column name */
   TermId = 'term_id',
   /** column name */
-  TransactionHash = 'transaction_hash'
+  TotalShares = 'total_shares',
+  /** column name */
+  TransactionHash = 'transaction_hash',
+  /** column name */
+  VaultType = 'vault_type'
 }
 
 /** aggregate stddev on columns */
@@ -2007,7 +2157,9 @@ export type Deposits_Stddev_Fields = {
   assets_after_fees?: Maybe<Scalars['Float']['output']>;
   block_number?: Maybe<Scalars['Float']['output']>;
   curve_id?: Maybe<Scalars['Float']['output']>;
+  log_index?: Maybe<Scalars['Float']['output']>;
   shares?: Maybe<Scalars['Float']['output']>;
+  total_shares?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by stddev() on columns of table "deposit" */
@@ -2015,7 +2167,9 @@ export type Deposits_Stddev_Order_By = {
   assets_after_fees?: InputMaybe<Order_By>;
   block_number?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   shares?: InputMaybe<Order_By>;
+  total_shares?: InputMaybe<Order_By>;
 };
 
 /** aggregate stddev_pop on columns */
@@ -2024,7 +2178,9 @@ export type Deposits_Stddev_Pop_Fields = {
   assets_after_fees?: Maybe<Scalars['Float']['output']>;
   block_number?: Maybe<Scalars['Float']['output']>;
   curve_id?: Maybe<Scalars['Float']['output']>;
+  log_index?: Maybe<Scalars['Float']['output']>;
   shares?: Maybe<Scalars['Float']['output']>;
+  total_shares?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by stddev_pop() on columns of table "deposit" */
@@ -2032,7 +2188,9 @@ export type Deposits_Stddev_Pop_Order_By = {
   assets_after_fees?: InputMaybe<Order_By>;
   block_number?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   shares?: InputMaybe<Order_By>;
+  total_shares?: InputMaybe<Order_By>;
 };
 
 /** aggregate stddev_samp on columns */
@@ -2041,7 +2199,9 @@ export type Deposits_Stddev_Samp_Fields = {
   assets_after_fees?: Maybe<Scalars['Float']['output']>;
   block_number?: Maybe<Scalars['Float']['output']>;
   curve_id?: Maybe<Scalars['Float']['output']>;
+  log_index?: Maybe<Scalars['Float']['output']>;
   shares?: Maybe<Scalars['Float']['output']>;
+  total_shares?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by stddev_samp() on columns of table "deposit" */
@@ -2049,7 +2209,9 @@ export type Deposits_Stddev_Samp_Order_By = {
   assets_after_fees?: InputMaybe<Order_By>;
   block_number?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   shares?: InputMaybe<Order_By>;
+  total_shares?: InputMaybe<Order_By>;
 };
 
 /** Streaming cursor of the table "deposits" */
@@ -2067,11 +2229,14 @@ export type Deposits_Stream_Cursor_Value_Input = {
   created_at?: InputMaybe<Scalars['timestamptz']['input']>;
   curve_id?: InputMaybe<Scalars['numeric']['input']>;
   id?: InputMaybe<Scalars['String']['input']>;
+  log_index?: InputMaybe<Scalars['bigint']['input']>;
   receiver_id?: InputMaybe<Scalars['String']['input']>;
   sender_id?: InputMaybe<Scalars['String']['input']>;
   shares?: InputMaybe<Scalars['numeric']['input']>;
-  term_id?: InputMaybe<Scalars['bytea']['input']>;
+  term_id?: InputMaybe<Scalars['String']['input']>;
+  total_shares?: InputMaybe<Scalars['numeric']['input']>;
   transaction_hash?: InputMaybe<Scalars['String']['input']>;
+  vault_type?: InputMaybe<Scalars['vault_type']['input']>;
 };
 
 /** aggregate sum on columns */
@@ -2080,7 +2245,9 @@ export type Deposits_Sum_Fields = {
   assets_after_fees?: Maybe<Scalars['numeric']['output']>;
   block_number?: Maybe<Scalars['numeric']['output']>;
   curve_id?: Maybe<Scalars['numeric']['output']>;
+  log_index?: Maybe<Scalars['bigint']['output']>;
   shares?: Maybe<Scalars['numeric']['output']>;
+  total_shares?: Maybe<Scalars['numeric']['output']>;
 };
 
 /** order by sum() on columns of table "deposit" */
@@ -2088,7 +2255,9 @@ export type Deposits_Sum_Order_By = {
   assets_after_fees?: InputMaybe<Order_By>;
   block_number?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   shares?: InputMaybe<Order_By>;
+  total_shares?: InputMaybe<Order_By>;
 };
 
 /** aggregate var_pop on columns */
@@ -2097,7 +2266,9 @@ export type Deposits_Var_Pop_Fields = {
   assets_after_fees?: Maybe<Scalars['Float']['output']>;
   block_number?: Maybe<Scalars['Float']['output']>;
   curve_id?: Maybe<Scalars['Float']['output']>;
+  log_index?: Maybe<Scalars['Float']['output']>;
   shares?: Maybe<Scalars['Float']['output']>;
+  total_shares?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by var_pop() on columns of table "deposit" */
@@ -2105,7 +2276,9 @@ export type Deposits_Var_Pop_Order_By = {
   assets_after_fees?: InputMaybe<Order_By>;
   block_number?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   shares?: InputMaybe<Order_By>;
+  total_shares?: InputMaybe<Order_By>;
 };
 
 /** aggregate var_samp on columns */
@@ -2114,7 +2287,9 @@ export type Deposits_Var_Samp_Fields = {
   assets_after_fees?: Maybe<Scalars['Float']['output']>;
   block_number?: Maybe<Scalars['Float']['output']>;
   curve_id?: Maybe<Scalars['Float']['output']>;
+  log_index?: Maybe<Scalars['Float']['output']>;
   shares?: Maybe<Scalars['Float']['output']>;
+  total_shares?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by var_samp() on columns of table "deposit" */
@@ -2122,7 +2297,9 @@ export type Deposits_Var_Samp_Order_By = {
   assets_after_fees?: InputMaybe<Order_By>;
   block_number?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   shares?: InputMaybe<Order_By>;
+  total_shares?: InputMaybe<Order_By>;
 };
 
 /** aggregate variance on columns */
@@ -2131,7 +2308,9 @@ export type Deposits_Variance_Fields = {
   assets_after_fees?: Maybe<Scalars['Float']['output']>;
   block_number?: Maybe<Scalars['Float']['output']>;
   curve_id?: Maybe<Scalars['Float']['output']>;
+  log_index?: Maybe<Scalars['Float']['output']>;
   shares?: Maybe<Scalars['Float']['output']>;
+  total_shares?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by variance() on columns of table "deposit" */
@@ -2139,7 +2318,9 @@ export type Deposits_Variance_Order_By = {
   assets_after_fees?: InputMaybe<Order_By>;
   block_number?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   shares?: InputMaybe<Order_By>;
+  total_shares?: InputMaybe<Order_By>;
 };
 
 /** Boolean expression to compare columns of type "event_type". All fields are combined with logical 'AND'. */
@@ -2160,7 +2341,7 @@ export type Events = {
   __typename?: 'events';
   /** An object relationship */
   atom?: Maybe<Atoms>;
-  atom_id?: Maybe<Scalars['bytea']['output']>;
+  atom_id?: Maybe<Scalars['String']['output']>;
   block_number: Scalars['numeric']['output'];
   created_at: Scalars['timestamptz']['output'];
   /** An object relationship */
@@ -2176,7 +2357,7 @@ export type Events = {
   transaction_hash: Scalars['String']['output'];
   /** An object relationship */
   triple?: Maybe<Triples>;
-  triple_id?: Maybe<Scalars['bytea']['output']>;
+  triple_id?: Maybe<Scalars['String']['output']>;
   type: Scalars['event_type']['output'];
 };
 
@@ -2222,7 +2403,7 @@ export type Events_Bool_Exp = {
   _not?: InputMaybe<Events_Bool_Exp>;
   _or?: InputMaybe<Array<Events_Bool_Exp>>;
   atom?: InputMaybe<Atoms_Bool_Exp>;
-  atom_id?: InputMaybe<Bytea_Comparison_Exp>;
+  atom_id?: InputMaybe<String_Comparison_Exp>;
   block_number?: InputMaybe<Numeric_Comparison_Exp>;
   created_at?: InputMaybe<Timestamptz_Comparison_Exp>;
   deposit?: InputMaybe<Deposits_Bool_Exp>;
@@ -2234,13 +2415,14 @@ export type Events_Bool_Exp = {
   redemption_id?: InputMaybe<String_Comparison_Exp>;
   transaction_hash?: InputMaybe<String_Comparison_Exp>;
   triple?: InputMaybe<Triples_Bool_Exp>;
-  triple_id?: InputMaybe<Bytea_Comparison_Exp>;
+  triple_id?: InputMaybe<String_Comparison_Exp>;
   type?: InputMaybe<Event_Type_Comparison_Exp>;
 };
 
 /** aggregate max on columns */
 export type Events_Max_Fields = {
   __typename?: 'events_max_fields';
+  atom_id?: Maybe<Scalars['String']['output']>;
   block_number?: Maybe<Scalars['numeric']['output']>;
   created_at?: Maybe<Scalars['timestamptz']['output']>;
   deposit_id?: Maybe<Scalars['String']['output']>;
@@ -2248,12 +2430,14 @@ export type Events_Max_Fields = {
   id?: Maybe<Scalars['String']['output']>;
   redemption_id?: Maybe<Scalars['String']['output']>;
   transaction_hash?: Maybe<Scalars['String']['output']>;
+  triple_id?: Maybe<Scalars['String']['output']>;
   type?: Maybe<Scalars['event_type']['output']>;
 };
 
 /** aggregate min on columns */
 export type Events_Min_Fields = {
   __typename?: 'events_min_fields';
+  atom_id?: Maybe<Scalars['String']['output']>;
   block_number?: Maybe<Scalars['numeric']['output']>;
   created_at?: Maybe<Scalars['timestamptz']['output']>;
   deposit_id?: Maybe<Scalars['String']['output']>;
@@ -2261,6 +2445,7 @@ export type Events_Min_Fields = {
   id?: Maybe<Scalars['String']['output']>;
   redemption_id?: Maybe<Scalars['String']['output']>;
   transaction_hash?: Maybe<Scalars['String']['output']>;
+  triple_id?: Maybe<Scalars['String']['output']>;
   type?: Maybe<Scalars['event_type']['output']>;
 };
 
@@ -2335,7 +2520,7 @@ export type Events_Stream_Cursor_Input = {
 
 /** Initial value of the column from where the streaming should start */
 export type Events_Stream_Cursor_Value_Input = {
-  atom_id?: InputMaybe<Scalars['bytea']['input']>;
+  atom_id?: InputMaybe<Scalars['String']['input']>;
   block_number?: InputMaybe<Scalars['numeric']['input']>;
   created_at?: InputMaybe<Scalars['timestamptz']['input']>;
   deposit_id?: InputMaybe<Scalars['String']['input']>;
@@ -2343,7 +2528,7 @@ export type Events_Stream_Cursor_Value_Input = {
   id?: InputMaybe<Scalars['String']['input']>;
   redemption_id?: InputMaybe<Scalars['String']['input']>;
   transaction_hash?: InputMaybe<Scalars['String']['input']>;
-  triple_id?: InputMaybe<Scalars['bytea']['input']>;
+  triple_id?: InputMaybe<Scalars['String']['input']>;
   type?: InputMaybe<Scalars['event_type']['input']>;
 };
 
@@ -2682,7 +2867,7 @@ export type Json_Objects = {
   /** An object relationship */
   atom?: Maybe<Atoms>;
   data: Scalars['jsonb']['output'];
-  id: Scalars['bytea']['output'];
+  id: Scalars['String']['output'];
 };
 
 
@@ -2702,6 +2887,8 @@ export type Json_Objects_Aggregate = {
 export type Json_Objects_Aggregate_Fields = {
   __typename?: 'json_objects_aggregate_fields';
   count: Scalars['Int']['output'];
+  max?: Maybe<Json_Objects_Max_Fields>;
+  min?: Maybe<Json_Objects_Min_Fields>;
 };
 
 
@@ -2718,7 +2905,19 @@ export type Json_Objects_Bool_Exp = {
   _or?: InputMaybe<Array<Json_Objects_Bool_Exp>>;
   atom?: InputMaybe<Atoms_Bool_Exp>;
   data?: InputMaybe<Jsonb_Comparison_Exp>;
-  id?: InputMaybe<Bytea_Comparison_Exp>;
+  id?: InputMaybe<String_Comparison_Exp>;
+};
+
+/** aggregate max on columns */
+export type Json_Objects_Max_Fields = {
+  __typename?: 'json_objects_max_fields';
+  id?: Maybe<Scalars['String']['output']>;
+};
+
+/** aggregate min on columns */
+export type Json_Objects_Min_Fields = {
+  __typename?: 'json_objects_min_fields';
+  id?: Maybe<Scalars['String']['output']>;
 };
 
 /** Ordering options when selecting data from "json_object". */
@@ -2747,7 +2946,7 @@ export type Json_Objects_Stream_Cursor_Input = {
 /** Initial value of the column from where the streaming should start */
 export type Json_Objects_Stream_Cursor_Value_Input = {
   data?: InputMaybe<Scalars['jsonb']['input']>;
-  id?: InputMaybe<Scalars['bytea']['input']>;
+  id?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type Jsonb_Cast_Exp = {
@@ -2843,7 +3042,7 @@ export type Organizations = {
   atom?: Maybe<Atoms>;
   description?: Maybe<Scalars['String']['output']>;
   email?: Maybe<Scalars['String']['output']>;
-  id: Scalars['bytea']['output'];
+  id: Scalars['String']['output'];
   image?: Maybe<Scalars['String']['output']>;
   name?: Maybe<Scalars['String']['output']>;
   url?: Maybe<Scalars['String']['output']>;
@@ -2879,7 +3078,7 @@ export type Organizations_Bool_Exp = {
   atom?: InputMaybe<Atoms_Bool_Exp>;
   description?: InputMaybe<String_Comparison_Exp>;
   email?: InputMaybe<String_Comparison_Exp>;
-  id?: InputMaybe<Bytea_Comparison_Exp>;
+  id?: InputMaybe<String_Comparison_Exp>;
   image?: InputMaybe<String_Comparison_Exp>;
   name?: InputMaybe<String_Comparison_Exp>;
   url?: InputMaybe<String_Comparison_Exp>;
@@ -2890,6 +3089,7 @@ export type Organizations_Max_Fields = {
   __typename?: 'organizations_max_fields';
   description?: Maybe<Scalars['String']['output']>;
   email?: Maybe<Scalars['String']['output']>;
+  id?: Maybe<Scalars['String']['output']>;
   image?: Maybe<Scalars['String']['output']>;
   name?: Maybe<Scalars['String']['output']>;
   url?: Maybe<Scalars['String']['output']>;
@@ -2900,6 +3100,7 @@ export type Organizations_Min_Fields = {
   __typename?: 'organizations_min_fields';
   description?: Maybe<Scalars['String']['output']>;
   email?: Maybe<Scalars['String']['output']>;
+  id?: Maybe<Scalars['String']['output']>;
   image?: Maybe<Scalars['String']['output']>;
   name?: Maybe<Scalars['String']['output']>;
   url?: Maybe<Scalars['String']['output']>;
@@ -2944,7 +3145,7 @@ export type Organizations_Stream_Cursor_Input = {
 export type Organizations_Stream_Cursor_Value_Input = {
   description?: InputMaybe<Scalars['String']['input']>;
   email?: InputMaybe<Scalars['String']['input']>;
-  id?: InputMaybe<Scalars['bytea']['input']>;
+  id?: InputMaybe<Scalars['String']['input']>;
   image?: InputMaybe<Scalars['String']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
   url?: InputMaybe<Scalars['String']['input']>;
@@ -2958,7 +3159,7 @@ export type Persons = {
   cached_image?: Maybe<Cached_Images_Cached_Image>;
   description?: Maybe<Scalars['String']['output']>;
   email?: Maybe<Scalars['String']['output']>;
-  id: Scalars['bytea']['output'];
+  id: Scalars['String']['output'];
   identifier?: Maybe<Scalars['String']['output']>;
   image?: Maybe<Scalars['String']['output']>;
   name?: Maybe<Scalars['String']['output']>;
@@ -2995,7 +3196,7 @@ export type Persons_Bool_Exp = {
   atom?: InputMaybe<Atoms_Bool_Exp>;
   description?: InputMaybe<String_Comparison_Exp>;
   email?: InputMaybe<String_Comparison_Exp>;
-  id?: InputMaybe<Bytea_Comparison_Exp>;
+  id?: InputMaybe<String_Comparison_Exp>;
   identifier?: InputMaybe<String_Comparison_Exp>;
   image?: InputMaybe<String_Comparison_Exp>;
   name?: InputMaybe<String_Comparison_Exp>;
@@ -3007,6 +3208,7 @@ export type Persons_Max_Fields = {
   __typename?: 'persons_max_fields';
   description?: Maybe<Scalars['String']['output']>;
   email?: Maybe<Scalars['String']['output']>;
+  id?: Maybe<Scalars['String']['output']>;
   identifier?: Maybe<Scalars['String']['output']>;
   image?: Maybe<Scalars['String']['output']>;
   name?: Maybe<Scalars['String']['output']>;
@@ -3018,6 +3220,7 @@ export type Persons_Min_Fields = {
   __typename?: 'persons_min_fields';
   description?: Maybe<Scalars['String']['output']>;
   email?: Maybe<Scalars['String']['output']>;
+  id?: Maybe<Scalars['String']['output']>;
   identifier?: Maybe<Scalars['String']['output']>;
   image?: Maybe<Scalars['String']['output']>;
   name?: Maybe<Scalars['String']['output']>;
@@ -3066,7 +3269,7 @@ export type Persons_Stream_Cursor_Input = {
 export type Persons_Stream_Cursor_Value_Input = {
   description?: InputMaybe<Scalars['String']['input']>;
   email?: InputMaybe<Scalars['String']['input']>;
-  id?: InputMaybe<Scalars['bytea']['input']>;
+  id?: InputMaybe<Scalars['String']['input']>;
   identifier?: InputMaybe<Scalars['String']['input']>;
   image?: InputMaybe<Scalars['String']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
@@ -3079,15 +3282,19 @@ export type Positions = {
   /** An object relationship */
   account?: Maybe<Accounts>;
   account_id: Scalars['String']['output'];
+  block_number: Scalars['bigint']['output'];
   created_at: Scalars['timestamptz']['output'];
   curve_id: Scalars['numeric']['output'];
   id: Scalars['String']['output'];
+  log_index: Scalars['bigint']['output'];
   shares: Scalars['numeric']['output'];
   /** An object relationship */
   term: Terms;
-  term_id: Scalars['bytea']['output'];
+  term_id: Scalars['String']['output'];
   total_deposit_assets_after_total_fees: Scalars['numeric']['output'];
   total_redeem_assets_for_receiver: Scalars['numeric']['output'];
+  transaction_hash: Scalars['String']['output'];
+  transaction_index: Scalars['bigint']['output'];
   updated_at: Scalars['timestamptz']['output'];
   /** An object relationship */
   vault?: Maybe<Vaults>;
@@ -3152,18 +3359,24 @@ export type Positions_Aggregate_Order_By = {
 /** aggregate avg on columns */
 export type Positions_Avg_Fields = {
   __typename?: 'positions_avg_fields';
+  block_number?: Maybe<Scalars['Float']['output']>;
   curve_id?: Maybe<Scalars['Float']['output']>;
+  log_index?: Maybe<Scalars['Float']['output']>;
   shares?: Maybe<Scalars['Float']['output']>;
   total_deposit_assets_after_total_fees?: Maybe<Scalars['Float']['output']>;
   total_redeem_assets_for_receiver?: Maybe<Scalars['Float']['output']>;
+  transaction_index?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by avg() on columns of table "position" */
 export type Positions_Avg_Order_By = {
+  block_number?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   shares?: InputMaybe<Order_By>;
   total_deposit_assets_after_total_fees?: InputMaybe<Order_By>;
   total_redeem_assets_for_receiver?: InputMaybe<Order_By>;
+  transaction_index?: InputMaybe<Order_By>;
 };
 
 /** Boolean expression to filter rows from the table "position". All fields are combined with a logical 'AND'. */
@@ -3173,14 +3386,18 @@ export type Positions_Bool_Exp = {
   _or?: InputMaybe<Array<Positions_Bool_Exp>>;
   account?: InputMaybe<Accounts_Bool_Exp>;
   account_id?: InputMaybe<String_Comparison_Exp>;
+  block_number?: InputMaybe<Bigint_Comparison_Exp>;
   created_at?: InputMaybe<Timestamptz_Comparison_Exp>;
   curve_id?: InputMaybe<Numeric_Comparison_Exp>;
   id?: InputMaybe<String_Comparison_Exp>;
+  log_index?: InputMaybe<Bigint_Comparison_Exp>;
   shares?: InputMaybe<Numeric_Comparison_Exp>;
   term?: InputMaybe<Terms_Bool_Exp>;
-  term_id?: InputMaybe<Bytea_Comparison_Exp>;
+  term_id?: InputMaybe<String_Comparison_Exp>;
   total_deposit_assets_after_total_fees?: InputMaybe<Numeric_Comparison_Exp>;
   total_redeem_assets_for_receiver?: InputMaybe<Numeric_Comparison_Exp>;
+  transaction_hash?: InputMaybe<String_Comparison_Exp>;
+  transaction_index?: InputMaybe<Bigint_Comparison_Exp>;
   updated_at?: InputMaybe<Timestamptz_Comparison_Exp>;
   vault?: InputMaybe<Vaults_Bool_Exp>;
 };
@@ -3193,24 +3410,34 @@ export type Positions_From_Following_Args = {
 export type Positions_Max_Fields = {
   __typename?: 'positions_max_fields';
   account_id?: Maybe<Scalars['String']['output']>;
+  block_number?: Maybe<Scalars['bigint']['output']>;
   created_at?: Maybe<Scalars['timestamptz']['output']>;
   curve_id?: Maybe<Scalars['numeric']['output']>;
   id?: Maybe<Scalars['String']['output']>;
+  log_index?: Maybe<Scalars['bigint']['output']>;
   shares?: Maybe<Scalars['numeric']['output']>;
+  term_id?: Maybe<Scalars['String']['output']>;
   total_deposit_assets_after_total_fees?: Maybe<Scalars['numeric']['output']>;
   total_redeem_assets_for_receiver?: Maybe<Scalars['numeric']['output']>;
+  transaction_hash?: Maybe<Scalars['String']['output']>;
+  transaction_index?: Maybe<Scalars['bigint']['output']>;
   updated_at?: Maybe<Scalars['timestamptz']['output']>;
 };
 
 /** order by max() on columns of table "position" */
 export type Positions_Max_Order_By = {
   account_id?: InputMaybe<Order_By>;
+  block_number?: InputMaybe<Order_By>;
   created_at?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   shares?: InputMaybe<Order_By>;
+  term_id?: InputMaybe<Order_By>;
   total_deposit_assets_after_total_fees?: InputMaybe<Order_By>;
   total_redeem_assets_for_receiver?: InputMaybe<Order_By>;
+  transaction_hash?: InputMaybe<Order_By>;
+  transaction_index?: InputMaybe<Order_By>;
   updated_at?: InputMaybe<Order_By>;
 };
 
@@ -3218,24 +3445,34 @@ export type Positions_Max_Order_By = {
 export type Positions_Min_Fields = {
   __typename?: 'positions_min_fields';
   account_id?: Maybe<Scalars['String']['output']>;
+  block_number?: Maybe<Scalars['bigint']['output']>;
   created_at?: Maybe<Scalars['timestamptz']['output']>;
   curve_id?: Maybe<Scalars['numeric']['output']>;
   id?: Maybe<Scalars['String']['output']>;
+  log_index?: Maybe<Scalars['bigint']['output']>;
   shares?: Maybe<Scalars['numeric']['output']>;
+  term_id?: Maybe<Scalars['String']['output']>;
   total_deposit_assets_after_total_fees?: Maybe<Scalars['numeric']['output']>;
   total_redeem_assets_for_receiver?: Maybe<Scalars['numeric']['output']>;
+  transaction_hash?: Maybe<Scalars['String']['output']>;
+  transaction_index?: Maybe<Scalars['bigint']['output']>;
   updated_at?: Maybe<Scalars['timestamptz']['output']>;
 };
 
 /** order by min() on columns of table "position" */
 export type Positions_Min_Order_By = {
   account_id?: InputMaybe<Order_By>;
+  block_number?: InputMaybe<Order_By>;
   created_at?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   shares?: InputMaybe<Order_By>;
+  term_id?: InputMaybe<Order_By>;
   total_deposit_assets_after_total_fees?: InputMaybe<Order_By>;
   total_redeem_assets_for_receiver?: InputMaybe<Order_By>;
+  transaction_hash?: InputMaybe<Order_By>;
+  transaction_index?: InputMaybe<Order_By>;
   updated_at?: InputMaybe<Order_By>;
 };
 
@@ -3243,14 +3480,18 @@ export type Positions_Min_Order_By = {
 export type Positions_Order_By = {
   account?: InputMaybe<Accounts_Order_By>;
   account_id?: InputMaybe<Order_By>;
+  block_number?: InputMaybe<Order_By>;
   created_at?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   shares?: InputMaybe<Order_By>;
   term?: InputMaybe<Terms_Order_By>;
   term_id?: InputMaybe<Order_By>;
   total_deposit_assets_after_total_fees?: InputMaybe<Order_By>;
   total_redeem_assets_for_receiver?: InputMaybe<Order_By>;
+  transaction_hash?: InputMaybe<Order_By>;
+  transaction_index?: InputMaybe<Order_By>;
   updated_at?: InputMaybe<Order_By>;
   vault?: InputMaybe<Vaults_Order_By>;
 };
@@ -3260,11 +3501,15 @@ export enum Positions_Select_Column {
   /** column name */
   AccountId = 'account_id',
   /** column name */
+  BlockNumber = 'block_number',
+  /** column name */
   CreatedAt = 'created_at',
   /** column name */
   CurveId = 'curve_id',
   /** column name */
   Id = 'id',
+  /** column name */
+  LogIndex = 'log_index',
   /** column name */
   Shares = 'shares',
   /** column name */
@@ -3274,58 +3519,80 @@ export enum Positions_Select_Column {
   /** column name */
   TotalRedeemAssetsForReceiver = 'total_redeem_assets_for_receiver',
   /** column name */
+  TransactionHash = 'transaction_hash',
+  /** column name */
+  TransactionIndex = 'transaction_index',
+  /** column name */
   UpdatedAt = 'updated_at'
 }
 
 /** aggregate stddev on columns */
 export type Positions_Stddev_Fields = {
   __typename?: 'positions_stddev_fields';
+  block_number?: Maybe<Scalars['Float']['output']>;
   curve_id?: Maybe<Scalars['Float']['output']>;
+  log_index?: Maybe<Scalars['Float']['output']>;
   shares?: Maybe<Scalars['Float']['output']>;
   total_deposit_assets_after_total_fees?: Maybe<Scalars['Float']['output']>;
   total_redeem_assets_for_receiver?: Maybe<Scalars['Float']['output']>;
+  transaction_index?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by stddev() on columns of table "position" */
 export type Positions_Stddev_Order_By = {
+  block_number?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   shares?: InputMaybe<Order_By>;
   total_deposit_assets_after_total_fees?: InputMaybe<Order_By>;
   total_redeem_assets_for_receiver?: InputMaybe<Order_By>;
+  transaction_index?: InputMaybe<Order_By>;
 };
 
 /** aggregate stddev_pop on columns */
 export type Positions_Stddev_Pop_Fields = {
   __typename?: 'positions_stddev_pop_fields';
+  block_number?: Maybe<Scalars['Float']['output']>;
   curve_id?: Maybe<Scalars['Float']['output']>;
+  log_index?: Maybe<Scalars['Float']['output']>;
   shares?: Maybe<Scalars['Float']['output']>;
   total_deposit_assets_after_total_fees?: Maybe<Scalars['Float']['output']>;
   total_redeem_assets_for_receiver?: Maybe<Scalars['Float']['output']>;
+  transaction_index?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by stddev_pop() on columns of table "position" */
 export type Positions_Stddev_Pop_Order_By = {
+  block_number?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   shares?: InputMaybe<Order_By>;
   total_deposit_assets_after_total_fees?: InputMaybe<Order_By>;
   total_redeem_assets_for_receiver?: InputMaybe<Order_By>;
+  transaction_index?: InputMaybe<Order_By>;
 };
 
 /** aggregate stddev_samp on columns */
 export type Positions_Stddev_Samp_Fields = {
   __typename?: 'positions_stddev_samp_fields';
+  block_number?: Maybe<Scalars['Float']['output']>;
   curve_id?: Maybe<Scalars['Float']['output']>;
+  log_index?: Maybe<Scalars['Float']['output']>;
   shares?: Maybe<Scalars['Float']['output']>;
   total_deposit_assets_after_total_fees?: Maybe<Scalars['Float']['output']>;
   total_redeem_assets_for_receiver?: Maybe<Scalars['Float']['output']>;
+  transaction_index?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by stddev_samp() on columns of table "position" */
 export type Positions_Stddev_Samp_Order_By = {
+  block_number?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   shares?: InputMaybe<Order_By>;
   total_deposit_assets_after_total_fees?: InputMaybe<Order_By>;
   total_redeem_assets_for_receiver?: InputMaybe<Order_By>;
+  transaction_index?: InputMaybe<Order_By>;
 };
 
 /** Streaming cursor of the table "positions" */
@@ -3339,82 +3606,110 @@ export type Positions_Stream_Cursor_Input = {
 /** Initial value of the column from where the streaming should start */
 export type Positions_Stream_Cursor_Value_Input = {
   account_id?: InputMaybe<Scalars['String']['input']>;
+  block_number?: InputMaybe<Scalars['bigint']['input']>;
   created_at?: InputMaybe<Scalars['timestamptz']['input']>;
   curve_id?: InputMaybe<Scalars['numeric']['input']>;
   id?: InputMaybe<Scalars['String']['input']>;
+  log_index?: InputMaybe<Scalars['bigint']['input']>;
   shares?: InputMaybe<Scalars['numeric']['input']>;
-  term_id?: InputMaybe<Scalars['bytea']['input']>;
+  term_id?: InputMaybe<Scalars['String']['input']>;
   total_deposit_assets_after_total_fees?: InputMaybe<Scalars['numeric']['input']>;
   total_redeem_assets_for_receiver?: InputMaybe<Scalars['numeric']['input']>;
+  transaction_hash?: InputMaybe<Scalars['String']['input']>;
+  transaction_index?: InputMaybe<Scalars['bigint']['input']>;
   updated_at?: InputMaybe<Scalars['timestamptz']['input']>;
 };
 
 /** aggregate sum on columns */
 export type Positions_Sum_Fields = {
   __typename?: 'positions_sum_fields';
+  block_number?: Maybe<Scalars['bigint']['output']>;
   curve_id?: Maybe<Scalars['numeric']['output']>;
+  log_index?: Maybe<Scalars['bigint']['output']>;
   shares?: Maybe<Scalars['numeric']['output']>;
   total_deposit_assets_after_total_fees?: Maybe<Scalars['numeric']['output']>;
   total_redeem_assets_for_receiver?: Maybe<Scalars['numeric']['output']>;
+  transaction_index?: Maybe<Scalars['bigint']['output']>;
 };
 
 /** order by sum() on columns of table "position" */
 export type Positions_Sum_Order_By = {
+  block_number?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   shares?: InputMaybe<Order_By>;
   total_deposit_assets_after_total_fees?: InputMaybe<Order_By>;
   total_redeem_assets_for_receiver?: InputMaybe<Order_By>;
+  transaction_index?: InputMaybe<Order_By>;
 };
 
 /** aggregate var_pop on columns */
 export type Positions_Var_Pop_Fields = {
   __typename?: 'positions_var_pop_fields';
+  block_number?: Maybe<Scalars['Float']['output']>;
   curve_id?: Maybe<Scalars['Float']['output']>;
+  log_index?: Maybe<Scalars['Float']['output']>;
   shares?: Maybe<Scalars['Float']['output']>;
   total_deposit_assets_after_total_fees?: Maybe<Scalars['Float']['output']>;
   total_redeem_assets_for_receiver?: Maybe<Scalars['Float']['output']>;
+  transaction_index?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by var_pop() on columns of table "position" */
 export type Positions_Var_Pop_Order_By = {
+  block_number?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   shares?: InputMaybe<Order_By>;
   total_deposit_assets_after_total_fees?: InputMaybe<Order_By>;
   total_redeem_assets_for_receiver?: InputMaybe<Order_By>;
+  transaction_index?: InputMaybe<Order_By>;
 };
 
 /** aggregate var_samp on columns */
 export type Positions_Var_Samp_Fields = {
   __typename?: 'positions_var_samp_fields';
+  block_number?: Maybe<Scalars['Float']['output']>;
   curve_id?: Maybe<Scalars['Float']['output']>;
+  log_index?: Maybe<Scalars['Float']['output']>;
   shares?: Maybe<Scalars['Float']['output']>;
   total_deposit_assets_after_total_fees?: Maybe<Scalars['Float']['output']>;
   total_redeem_assets_for_receiver?: Maybe<Scalars['Float']['output']>;
+  transaction_index?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by var_samp() on columns of table "position" */
 export type Positions_Var_Samp_Order_By = {
+  block_number?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   shares?: InputMaybe<Order_By>;
   total_deposit_assets_after_total_fees?: InputMaybe<Order_By>;
   total_redeem_assets_for_receiver?: InputMaybe<Order_By>;
+  transaction_index?: InputMaybe<Order_By>;
 };
 
 /** aggregate variance on columns */
 export type Positions_Variance_Fields = {
   __typename?: 'positions_variance_fields';
+  block_number?: Maybe<Scalars['Float']['output']>;
   curve_id?: Maybe<Scalars['Float']['output']>;
+  log_index?: Maybe<Scalars['Float']['output']>;
   shares?: Maybe<Scalars['Float']['output']>;
   total_deposit_assets_after_total_fees?: Maybe<Scalars['Float']['output']>;
   total_redeem_assets_for_receiver?: Maybe<Scalars['Float']['output']>;
+  transaction_index?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by variance() on columns of table "position" */
 export type Positions_Variance_Order_By = {
+  block_number?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   shares?: InputMaybe<Order_By>;
   total_deposit_assets_after_total_fees?: InputMaybe<Order_By>;
   total_redeem_assets_for_receiver?: InputMaybe<Order_By>;
+  transaction_index?: InputMaybe<Order_By>;
 };
 
 /** columns and relationships of "predicate_object" */
@@ -3423,10 +3718,10 @@ export type Predicate_Objects = {
   id: Scalars['String']['output'];
   /** An object relationship */
   object: Atoms;
-  object_id: Scalars['bytea']['output'];
+  object_id: Scalars['String']['output'];
   /** An object relationship */
   predicate: Atoms;
-  predicate_id: Scalars['bytea']['output'];
+  predicate_id: Scalars['String']['output'];
   triple_count: Scalars['Int']['output'];
 };
 
@@ -3504,9 +3799,9 @@ export type Predicate_Objects_Bool_Exp = {
   _or?: InputMaybe<Array<Predicate_Objects_Bool_Exp>>;
   id?: InputMaybe<String_Comparison_Exp>;
   object?: InputMaybe<Atoms_Bool_Exp>;
-  object_id?: InputMaybe<Bytea_Comparison_Exp>;
+  object_id?: InputMaybe<String_Comparison_Exp>;
   predicate?: InputMaybe<Atoms_Bool_Exp>;
-  predicate_id?: InputMaybe<Bytea_Comparison_Exp>;
+  predicate_id?: InputMaybe<String_Comparison_Exp>;
   triple_count?: InputMaybe<Int_Comparison_Exp>;
 };
 
@@ -3514,12 +3809,16 @@ export type Predicate_Objects_Bool_Exp = {
 export type Predicate_Objects_Max_Fields = {
   __typename?: 'predicate_objects_max_fields';
   id?: Maybe<Scalars['String']['output']>;
+  object_id?: Maybe<Scalars['String']['output']>;
+  predicate_id?: Maybe<Scalars['String']['output']>;
   triple_count?: Maybe<Scalars['Int']['output']>;
 };
 
 /** order by max() on columns of table "predicate_object" */
 export type Predicate_Objects_Max_Order_By = {
   id?: InputMaybe<Order_By>;
+  object_id?: InputMaybe<Order_By>;
+  predicate_id?: InputMaybe<Order_By>;
   triple_count?: InputMaybe<Order_By>;
 };
 
@@ -3527,12 +3826,16 @@ export type Predicate_Objects_Max_Order_By = {
 export type Predicate_Objects_Min_Fields = {
   __typename?: 'predicate_objects_min_fields';
   id?: Maybe<Scalars['String']['output']>;
+  object_id?: Maybe<Scalars['String']['output']>;
+  predicate_id?: Maybe<Scalars['String']['output']>;
   triple_count?: Maybe<Scalars['Int']['output']>;
 };
 
 /** order by min() on columns of table "predicate_object" */
 export type Predicate_Objects_Min_Order_By = {
   id?: InputMaybe<Order_By>;
+  object_id?: InputMaybe<Order_By>;
+  predicate_id?: InputMaybe<Order_By>;
   triple_count?: InputMaybe<Order_By>;
 };
 
@@ -3602,8 +3905,8 @@ export type Predicate_Objects_Stream_Cursor_Input = {
 /** Initial value of the column from where the streaming should start */
 export type Predicate_Objects_Stream_Cursor_Value_Input = {
   id?: InputMaybe<Scalars['String']['input']>;
-  object_id?: InputMaybe<Scalars['bytea']['input']>;
-  predicate_id?: InputMaybe<Scalars['bytea']['input']>;
+  object_id?: InputMaybe<Scalars['String']['input']>;
+  predicate_id?: InputMaybe<Scalars['String']['input']>;
   triple_count?: InputMaybe<Scalars['Int']['input']>;
 };
 
@@ -3805,6 +4108,10 @@ export type Query_Root = {
   signals_from_following_aggregate: Signals_Aggregate;
   /** fetch data from the table: "stats" using primary key columns */
   stat?: Maybe<Stats>;
+  /** fetch data from the table: "stats_hour" using primary key columns */
+  statHour?: Maybe<StatHours>;
+  /** fetch data from the table: "stats_hour" */
+  statHours: Array<StatHours>;
   /** fetch data from the table: "stats" */
   stats: Array<Stats>;
   /** fetch aggregated fields from the table: "stats" */
@@ -3884,12 +4191,12 @@ export type Query_RootAccounts_AggregateArgs = {
 
 
 export type Query_RootAtomArgs = {
-  term_id: Scalars['bytea']['input'];
+  term_id: Scalars['String']['input'];
 };
 
 
 export type Query_RootAtom_ValueArgs = {
-  id: Scalars['bytea']['input'];
+  id: Scalars['String']['input'];
 };
 
 
@@ -3930,7 +4237,7 @@ export type Query_RootAtoms_AggregateArgs = {
 
 
 export type Query_RootBookArgs = {
-  id: Scalars['bytea']['input'];
+  id: Scalars['String']['input'];
 };
 
 
@@ -3971,7 +4278,7 @@ export type Query_RootByte_Object_AggregateArgs = {
 
 
 export type Query_RootByte_Object_By_PkArgs = {
-  id: Scalars['bytea']['input'];
+  id: Scalars['String']['input'];
 };
 
 
@@ -4004,7 +4311,7 @@ export type Query_RootCached_Images_Cached_Image_By_PkArgs = {
 
 
 export type Query_RootCaip10Args = {
-  id: Scalars['bytea']['input'];
+  id: Scalars['String']['input'];
 };
 
 
@@ -4130,7 +4437,7 @@ export type Query_RootFollowing_AggregateArgs = {
 
 
 export type Query_RootJson_ObjectArgs = {
-  id: Scalars['bytea']['input'];
+  id: Scalars['String']['input'];
 };
 
 
@@ -4153,7 +4460,7 @@ export type Query_RootJson_Objects_AggregateArgs = {
 
 
 export type Query_RootOrganizationArgs = {
-  id: Scalars['bytea']['input'];
+  id: Scalars['String']['input'];
 };
 
 
@@ -4176,7 +4483,7 @@ export type Query_RootOrganizations_AggregateArgs = {
 
 
 export type Query_RootPersonArgs = {
-  id: Scalars['bytea']['input'];
+  id: Scalars['String']['input'];
 };
 
 
@@ -4480,6 +4787,20 @@ export type Query_RootStatArgs = {
 };
 
 
+export type Query_RootStatHourArgs = {
+  id: Scalars['Int']['input'];
+};
+
+
+export type Query_RootStatHoursArgs = {
+  distinct_on?: InputMaybe<Array<StatHours_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<StatHours_Order_By>>;
+  where?: InputMaybe<StatHours_Bool_Exp>;
+};
+
+
 export type Query_RootStatsArgs = {
   distinct_on?: InputMaybe<Array<Stats_Select_Column>>;
   limit?: InputMaybe<Scalars['Int']['input']>;
@@ -4499,7 +4820,7 @@ export type Query_RootStats_AggregateArgs = {
 
 
 export type Query_RootTermArgs = {
-  id: Scalars['bytea']['input'];
+  id: Scalars['String']['input'];
 };
 
 
@@ -4567,7 +4888,7 @@ export type Query_RootTerms_AggregateArgs = {
 
 
 export type Query_RootText_ObjectArgs = {
-  id: Scalars['bytea']['input'];
+  id: Scalars['String']['input'];
 };
 
 
@@ -4590,7 +4911,7 @@ export type Query_RootText_Objects_AggregateArgs = {
 
 
 export type Query_RootThingArgs = {
-  id: Scalars['bytea']['input'];
+  id: Scalars['String']['input'];
 };
 
 
@@ -4613,12 +4934,12 @@ export type Query_RootThings_AggregateArgs = {
 
 
 export type Query_RootTripleArgs = {
-  term_id: Scalars['bytea']['input'];
+  term_id: Scalars['String']['input'];
 };
 
 
 export type Query_RootTriple_TermArgs = {
-  term_id: Scalars['bytea']['input'];
+  term_id: Scalars['String']['input'];
 };
 
 
@@ -4633,7 +4954,7 @@ export type Query_RootTriple_TermsArgs = {
 
 export type Query_RootTriple_VaultArgs = {
   curve_id: Scalars['numeric']['input'];
-  term_id: Scalars['bytea']['input'];
+  term_id: Scalars['String']['input'];
 };
 
 
@@ -4666,7 +4987,7 @@ export type Query_RootTriples_AggregateArgs = {
 
 export type Query_RootVaultArgs = {
   curve_id: Scalars['numeric']['input'];
-  term_id: Scalars['bytea']['input'];
+  term_id: Scalars['String']['input'];
 };
 
 
@@ -4694,7 +5015,9 @@ export type Redemptions = {
   block_number: Scalars['numeric']['output'];
   created_at: Scalars['timestamptz']['output'];
   curve_id: Scalars['numeric']['output'];
+  fees: Scalars['numeric']['output'];
   id: Scalars['String']['output'];
+  log_index: Scalars['bigint']['output'];
   /** An object relationship */
   receiver: Accounts;
   receiver_id: Scalars['String']['output'];
@@ -4704,10 +5027,12 @@ export type Redemptions = {
   shares: Scalars['numeric']['output'];
   /** An object relationship */
   term: Terms;
-  term_id: Scalars['bytea']['output'];
+  term_id: Scalars['String']['output'];
+  total_shares: Scalars['numeric']['output'];
   transaction_hash: Scalars['String']['output'];
   /** An object relationship */
   vault?: Maybe<Vaults>;
+  vault_type: Scalars['vault_type']['output'];
 };
 
 /** aggregated selection of "redemption" */
@@ -4772,7 +5097,10 @@ export type Redemptions_Avg_Fields = {
   assets?: Maybe<Scalars['Float']['output']>;
   block_number?: Maybe<Scalars['Float']['output']>;
   curve_id?: Maybe<Scalars['Float']['output']>;
+  fees?: Maybe<Scalars['Float']['output']>;
+  log_index?: Maybe<Scalars['Float']['output']>;
   shares?: Maybe<Scalars['Float']['output']>;
+  total_shares?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by avg() on columns of table "redemption" */
@@ -4780,7 +5108,10 @@ export type Redemptions_Avg_Order_By = {
   assets?: InputMaybe<Order_By>;
   block_number?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
+  fees?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   shares?: InputMaybe<Order_By>;
+  total_shares?: InputMaybe<Order_By>;
 };
 
 /** Boolean expression to filter rows from the table "redemption". All fields are combined with a logical 'AND'. */
@@ -4792,16 +5123,20 @@ export type Redemptions_Bool_Exp = {
   block_number?: InputMaybe<Numeric_Comparison_Exp>;
   created_at?: InputMaybe<Timestamptz_Comparison_Exp>;
   curve_id?: InputMaybe<Numeric_Comparison_Exp>;
+  fees?: InputMaybe<Numeric_Comparison_Exp>;
   id?: InputMaybe<String_Comparison_Exp>;
+  log_index?: InputMaybe<Bigint_Comparison_Exp>;
   receiver?: InputMaybe<Accounts_Bool_Exp>;
   receiver_id?: InputMaybe<String_Comparison_Exp>;
   sender?: InputMaybe<Accounts_Bool_Exp>;
   sender_id?: InputMaybe<String_Comparison_Exp>;
   shares?: InputMaybe<Numeric_Comparison_Exp>;
   term?: InputMaybe<Terms_Bool_Exp>;
-  term_id?: InputMaybe<Bytea_Comparison_Exp>;
+  term_id?: InputMaybe<String_Comparison_Exp>;
+  total_shares?: InputMaybe<Numeric_Comparison_Exp>;
   transaction_hash?: InputMaybe<String_Comparison_Exp>;
   vault?: InputMaybe<Vaults_Bool_Exp>;
+  vault_type?: InputMaybe<Vault_Type_Comparison_Exp>;
 };
 
 /** aggregate max on columns */
@@ -4811,11 +5146,16 @@ export type Redemptions_Max_Fields = {
   block_number?: Maybe<Scalars['numeric']['output']>;
   created_at?: Maybe<Scalars['timestamptz']['output']>;
   curve_id?: Maybe<Scalars['numeric']['output']>;
+  fees?: Maybe<Scalars['numeric']['output']>;
   id?: Maybe<Scalars['String']['output']>;
+  log_index?: Maybe<Scalars['bigint']['output']>;
   receiver_id?: Maybe<Scalars['String']['output']>;
   sender_id?: Maybe<Scalars['String']['output']>;
   shares?: Maybe<Scalars['numeric']['output']>;
+  term_id?: Maybe<Scalars['String']['output']>;
+  total_shares?: Maybe<Scalars['numeric']['output']>;
   transaction_hash?: Maybe<Scalars['String']['output']>;
+  vault_type?: Maybe<Scalars['vault_type']['output']>;
 };
 
 /** order by max() on columns of table "redemption" */
@@ -4824,11 +5164,16 @@ export type Redemptions_Max_Order_By = {
   block_number?: InputMaybe<Order_By>;
   created_at?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
+  fees?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   receiver_id?: InputMaybe<Order_By>;
   sender_id?: InputMaybe<Order_By>;
   shares?: InputMaybe<Order_By>;
+  term_id?: InputMaybe<Order_By>;
+  total_shares?: InputMaybe<Order_By>;
   transaction_hash?: InputMaybe<Order_By>;
+  vault_type?: InputMaybe<Order_By>;
 };
 
 /** aggregate min on columns */
@@ -4838,11 +5183,16 @@ export type Redemptions_Min_Fields = {
   block_number?: Maybe<Scalars['numeric']['output']>;
   created_at?: Maybe<Scalars['timestamptz']['output']>;
   curve_id?: Maybe<Scalars['numeric']['output']>;
+  fees?: Maybe<Scalars['numeric']['output']>;
   id?: Maybe<Scalars['String']['output']>;
+  log_index?: Maybe<Scalars['bigint']['output']>;
   receiver_id?: Maybe<Scalars['String']['output']>;
   sender_id?: Maybe<Scalars['String']['output']>;
   shares?: Maybe<Scalars['numeric']['output']>;
+  term_id?: Maybe<Scalars['String']['output']>;
+  total_shares?: Maybe<Scalars['numeric']['output']>;
   transaction_hash?: Maybe<Scalars['String']['output']>;
+  vault_type?: Maybe<Scalars['vault_type']['output']>;
 };
 
 /** order by min() on columns of table "redemption" */
@@ -4851,11 +5201,16 @@ export type Redemptions_Min_Order_By = {
   block_number?: InputMaybe<Order_By>;
   created_at?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
+  fees?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   receiver_id?: InputMaybe<Order_By>;
   sender_id?: InputMaybe<Order_By>;
   shares?: InputMaybe<Order_By>;
+  term_id?: InputMaybe<Order_By>;
+  total_shares?: InputMaybe<Order_By>;
   transaction_hash?: InputMaybe<Order_By>;
+  vault_type?: InputMaybe<Order_By>;
 };
 
 /** Ordering options when selecting data from "redemption". */
@@ -4864,7 +5219,9 @@ export type Redemptions_Order_By = {
   block_number?: InputMaybe<Order_By>;
   created_at?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
+  fees?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   receiver?: InputMaybe<Accounts_Order_By>;
   receiver_id?: InputMaybe<Order_By>;
   sender?: InputMaybe<Accounts_Order_By>;
@@ -4872,8 +5229,10 @@ export type Redemptions_Order_By = {
   shares?: InputMaybe<Order_By>;
   term?: InputMaybe<Terms_Order_By>;
   term_id?: InputMaybe<Order_By>;
+  total_shares?: InputMaybe<Order_By>;
   transaction_hash?: InputMaybe<Order_By>;
   vault?: InputMaybe<Vaults_Order_By>;
+  vault_type?: InputMaybe<Order_By>;
 };
 
 /** select columns of table "redemption" */
@@ -4887,7 +5246,11 @@ export enum Redemptions_Select_Column {
   /** column name */
   CurveId = 'curve_id',
   /** column name */
+  Fees = 'fees',
+  /** column name */
   Id = 'id',
+  /** column name */
+  LogIndex = 'log_index',
   /** column name */
   ReceiverId = 'receiver_id',
   /** column name */
@@ -4897,7 +5260,11 @@ export enum Redemptions_Select_Column {
   /** column name */
   TermId = 'term_id',
   /** column name */
-  TransactionHash = 'transaction_hash'
+  TotalShares = 'total_shares',
+  /** column name */
+  TransactionHash = 'transaction_hash',
+  /** column name */
+  VaultType = 'vault_type'
 }
 
 /** aggregate stddev on columns */
@@ -4906,7 +5273,10 @@ export type Redemptions_Stddev_Fields = {
   assets?: Maybe<Scalars['Float']['output']>;
   block_number?: Maybe<Scalars['Float']['output']>;
   curve_id?: Maybe<Scalars['Float']['output']>;
+  fees?: Maybe<Scalars['Float']['output']>;
+  log_index?: Maybe<Scalars['Float']['output']>;
   shares?: Maybe<Scalars['Float']['output']>;
+  total_shares?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by stddev() on columns of table "redemption" */
@@ -4914,7 +5284,10 @@ export type Redemptions_Stddev_Order_By = {
   assets?: InputMaybe<Order_By>;
   block_number?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
+  fees?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   shares?: InputMaybe<Order_By>;
+  total_shares?: InputMaybe<Order_By>;
 };
 
 /** aggregate stddev_pop on columns */
@@ -4923,7 +5296,10 @@ export type Redemptions_Stddev_Pop_Fields = {
   assets?: Maybe<Scalars['Float']['output']>;
   block_number?: Maybe<Scalars['Float']['output']>;
   curve_id?: Maybe<Scalars['Float']['output']>;
+  fees?: Maybe<Scalars['Float']['output']>;
+  log_index?: Maybe<Scalars['Float']['output']>;
   shares?: Maybe<Scalars['Float']['output']>;
+  total_shares?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by stddev_pop() on columns of table "redemption" */
@@ -4931,7 +5307,10 @@ export type Redemptions_Stddev_Pop_Order_By = {
   assets?: InputMaybe<Order_By>;
   block_number?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
+  fees?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   shares?: InputMaybe<Order_By>;
+  total_shares?: InputMaybe<Order_By>;
 };
 
 /** aggregate stddev_samp on columns */
@@ -4940,7 +5319,10 @@ export type Redemptions_Stddev_Samp_Fields = {
   assets?: Maybe<Scalars['Float']['output']>;
   block_number?: Maybe<Scalars['Float']['output']>;
   curve_id?: Maybe<Scalars['Float']['output']>;
+  fees?: Maybe<Scalars['Float']['output']>;
+  log_index?: Maybe<Scalars['Float']['output']>;
   shares?: Maybe<Scalars['Float']['output']>;
+  total_shares?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by stddev_samp() on columns of table "redemption" */
@@ -4948,7 +5330,10 @@ export type Redemptions_Stddev_Samp_Order_By = {
   assets?: InputMaybe<Order_By>;
   block_number?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
+  fees?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   shares?: InputMaybe<Order_By>;
+  total_shares?: InputMaybe<Order_By>;
 };
 
 /** Streaming cursor of the table "redemptions" */
@@ -4965,12 +5350,16 @@ export type Redemptions_Stream_Cursor_Value_Input = {
   block_number?: InputMaybe<Scalars['numeric']['input']>;
   created_at?: InputMaybe<Scalars['timestamptz']['input']>;
   curve_id?: InputMaybe<Scalars['numeric']['input']>;
+  fees?: InputMaybe<Scalars['numeric']['input']>;
   id?: InputMaybe<Scalars['String']['input']>;
+  log_index?: InputMaybe<Scalars['bigint']['input']>;
   receiver_id?: InputMaybe<Scalars['String']['input']>;
   sender_id?: InputMaybe<Scalars['String']['input']>;
   shares?: InputMaybe<Scalars['numeric']['input']>;
-  term_id?: InputMaybe<Scalars['bytea']['input']>;
+  term_id?: InputMaybe<Scalars['String']['input']>;
+  total_shares?: InputMaybe<Scalars['numeric']['input']>;
   transaction_hash?: InputMaybe<Scalars['String']['input']>;
+  vault_type?: InputMaybe<Scalars['vault_type']['input']>;
 };
 
 /** aggregate sum on columns */
@@ -4979,7 +5368,10 @@ export type Redemptions_Sum_Fields = {
   assets?: Maybe<Scalars['numeric']['output']>;
   block_number?: Maybe<Scalars['numeric']['output']>;
   curve_id?: Maybe<Scalars['numeric']['output']>;
+  fees?: Maybe<Scalars['numeric']['output']>;
+  log_index?: Maybe<Scalars['bigint']['output']>;
   shares?: Maybe<Scalars['numeric']['output']>;
+  total_shares?: Maybe<Scalars['numeric']['output']>;
 };
 
 /** order by sum() on columns of table "redemption" */
@@ -4987,7 +5379,10 @@ export type Redemptions_Sum_Order_By = {
   assets?: InputMaybe<Order_By>;
   block_number?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
+  fees?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   shares?: InputMaybe<Order_By>;
+  total_shares?: InputMaybe<Order_By>;
 };
 
 /** aggregate var_pop on columns */
@@ -4996,7 +5391,10 @@ export type Redemptions_Var_Pop_Fields = {
   assets?: Maybe<Scalars['Float']['output']>;
   block_number?: Maybe<Scalars['Float']['output']>;
   curve_id?: Maybe<Scalars['Float']['output']>;
+  fees?: Maybe<Scalars['Float']['output']>;
+  log_index?: Maybe<Scalars['Float']['output']>;
   shares?: Maybe<Scalars['Float']['output']>;
+  total_shares?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by var_pop() on columns of table "redemption" */
@@ -5004,7 +5402,10 @@ export type Redemptions_Var_Pop_Order_By = {
   assets?: InputMaybe<Order_By>;
   block_number?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
+  fees?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   shares?: InputMaybe<Order_By>;
+  total_shares?: InputMaybe<Order_By>;
 };
 
 /** aggregate var_samp on columns */
@@ -5013,7 +5414,10 @@ export type Redemptions_Var_Samp_Fields = {
   assets?: Maybe<Scalars['Float']['output']>;
   block_number?: Maybe<Scalars['Float']['output']>;
   curve_id?: Maybe<Scalars['Float']['output']>;
+  fees?: Maybe<Scalars['Float']['output']>;
+  log_index?: Maybe<Scalars['Float']['output']>;
   shares?: Maybe<Scalars['Float']['output']>;
+  total_shares?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by var_samp() on columns of table "redemption" */
@@ -5021,7 +5425,10 @@ export type Redemptions_Var_Samp_Order_By = {
   assets?: InputMaybe<Order_By>;
   block_number?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
+  fees?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   shares?: InputMaybe<Order_By>;
+  total_shares?: InputMaybe<Order_By>;
 };
 
 /** aggregate variance on columns */
@@ -5030,7 +5437,10 @@ export type Redemptions_Variance_Fields = {
   assets?: Maybe<Scalars['Float']['output']>;
   block_number?: Maybe<Scalars['Float']['output']>;
   curve_id?: Maybe<Scalars['Float']['output']>;
+  fees?: Maybe<Scalars['Float']['output']>;
+  log_index?: Maybe<Scalars['Float']['output']>;
   shares?: Maybe<Scalars['Float']['output']>;
+  total_shares?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by variance() on columns of table "redemption" */
@@ -5038,7 +5448,10 @@ export type Redemptions_Variance_Order_By = {
   assets?: InputMaybe<Order_By>;
   block_number?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
+  fees?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   shares?: InputMaybe<Order_By>;
+  total_shares?: InputMaybe<Order_By>;
 };
 
 export type Search_Positions_On_Subject_Args = {
@@ -5066,7 +5479,7 @@ export type Share_Price_Change_Stats_Daily = {
   last_share_price?: Maybe<Scalars['numeric']['output']>;
   /** An object relationship */
   term?: Maybe<Terms>;
-  term_id?: Maybe<Scalars['bytea']['output']>;
+  term_id?: Maybe<Scalars['String']['output']>;
 };
 
 /** order by aggregate values of table "share_price_change_stats_daily" */
@@ -5105,7 +5518,7 @@ export type Share_Price_Change_Stats_Daily_Bool_Exp = {
   first_share_price?: InputMaybe<Numeric_Comparison_Exp>;
   last_share_price?: InputMaybe<Numeric_Comparison_Exp>;
   term?: InputMaybe<Terms_Bool_Exp>;
-  term_id?: InputMaybe<Bytea_Comparison_Exp>;
+  term_id?: InputMaybe<String_Comparison_Exp>;
 };
 
 /** order by max() on columns of table "share_price_change_stats_daily" */
@@ -5116,6 +5529,7 @@ export type Share_Price_Change_Stats_Daily_Max_Order_By = {
   difference?: InputMaybe<Order_By>;
   first_share_price?: InputMaybe<Order_By>;
   last_share_price?: InputMaybe<Order_By>;
+  term_id?: InputMaybe<Order_By>;
 };
 
 /** order by min() on columns of table "share_price_change_stats_daily" */
@@ -5126,6 +5540,7 @@ export type Share_Price_Change_Stats_Daily_Min_Order_By = {
   difference?: InputMaybe<Order_By>;
   first_share_price?: InputMaybe<Order_By>;
   last_share_price?: InputMaybe<Order_By>;
+  term_id?: InputMaybe<Order_By>;
 };
 
 /** Ordering options when selecting data from "share_price_change_stats_daily". */
@@ -5201,7 +5616,7 @@ export type Share_Price_Change_Stats_Daily_Stream_Cursor_Value_Input = {
   difference?: InputMaybe<Scalars['numeric']['input']>;
   first_share_price?: InputMaybe<Scalars['numeric']['input']>;
   last_share_price?: InputMaybe<Scalars['numeric']['input']>;
-  term_id?: InputMaybe<Scalars['bytea']['input']>;
+  term_id?: InputMaybe<Scalars['String']['input']>;
 };
 
 /** order by sum() on columns of table "share_price_change_stats_daily" */
@@ -5251,7 +5666,7 @@ export type Share_Price_Change_Stats_Hourly = {
   last_share_price?: Maybe<Scalars['numeric']['output']>;
   /** An object relationship */
   term?: Maybe<Terms>;
-  term_id?: Maybe<Scalars['bytea']['output']>;
+  term_id?: Maybe<Scalars['String']['output']>;
 };
 
 /** order by aggregate values of table "share_price_change_stats_hourly" */
@@ -5290,7 +5705,7 @@ export type Share_Price_Change_Stats_Hourly_Bool_Exp = {
   first_share_price?: InputMaybe<Numeric_Comparison_Exp>;
   last_share_price?: InputMaybe<Numeric_Comparison_Exp>;
   term?: InputMaybe<Terms_Bool_Exp>;
-  term_id?: InputMaybe<Bytea_Comparison_Exp>;
+  term_id?: InputMaybe<String_Comparison_Exp>;
 };
 
 /** order by max() on columns of table "share_price_change_stats_hourly" */
@@ -5301,6 +5716,7 @@ export type Share_Price_Change_Stats_Hourly_Max_Order_By = {
   difference?: InputMaybe<Order_By>;
   first_share_price?: InputMaybe<Order_By>;
   last_share_price?: InputMaybe<Order_By>;
+  term_id?: InputMaybe<Order_By>;
 };
 
 /** order by min() on columns of table "share_price_change_stats_hourly" */
@@ -5311,6 +5727,7 @@ export type Share_Price_Change_Stats_Hourly_Min_Order_By = {
   difference?: InputMaybe<Order_By>;
   first_share_price?: InputMaybe<Order_By>;
   last_share_price?: InputMaybe<Order_By>;
+  term_id?: InputMaybe<Order_By>;
 };
 
 /** Ordering options when selecting data from "share_price_change_stats_hourly". */
@@ -5386,7 +5803,7 @@ export type Share_Price_Change_Stats_Hourly_Stream_Cursor_Value_Input = {
   difference?: InputMaybe<Scalars['numeric']['input']>;
   first_share_price?: InputMaybe<Scalars['numeric']['input']>;
   last_share_price?: InputMaybe<Scalars['numeric']['input']>;
-  term_id?: InputMaybe<Scalars['bytea']['input']>;
+  term_id?: InputMaybe<Scalars['String']['input']>;
 };
 
 /** order by sum() on columns of table "share_price_change_stats_hourly" */
@@ -5436,7 +5853,7 @@ export type Share_Price_Change_Stats_Monthly = {
   last_share_price?: Maybe<Scalars['numeric']['output']>;
   /** An object relationship */
   term?: Maybe<Terms>;
-  term_id?: Maybe<Scalars['bytea']['output']>;
+  term_id?: Maybe<Scalars['String']['output']>;
 };
 
 /** order by aggregate values of table "share_price_change_stats_monthly" */
@@ -5475,7 +5892,7 @@ export type Share_Price_Change_Stats_Monthly_Bool_Exp = {
   first_share_price?: InputMaybe<Numeric_Comparison_Exp>;
   last_share_price?: InputMaybe<Numeric_Comparison_Exp>;
   term?: InputMaybe<Terms_Bool_Exp>;
-  term_id?: InputMaybe<Bytea_Comparison_Exp>;
+  term_id?: InputMaybe<String_Comparison_Exp>;
 };
 
 /** order by max() on columns of table "share_price_change_stats_monthly" */
@@ -5486,6 +5903,7 @@ export type Share_Price_Change_Stats_Monthly_Max_Order_By = {
   difference?: InputMaybe<Order_By>;
   first_share_price?: InputMaybe<Order_By>;
   last_share_price?: InputMaybe<Order_By>;
+  term_id?: InputMaybe<Order_By>;
 };
 
 /** order by min() on columns of table "share_price_change_stats_monthly" */
@@ -5496,6 +5914,7 @@ export type Share_Price_Change_Stats_Monthly_Min_Order_By = {
   difference?: InputMaybe<Order_By>;
   first_share_price?: InputMaybe<Order_By>;
   last_share_price?: InputMaybe<Order_By>;
+  term_id?: InputMaybe<Order_By>;
 };
 
 /** Ordering options when selecting data from "share_price_change_stats_monthly". */
@@ -5571,7 +5990,7 @@ export type Share_Price_Change_Stats_Monthly_Stream_Cursor_Value_Input = {
   difference?: InputMaybe<Scalars['numeric']['input']>;
   first_share_price?: InputMaybe<Scalars['numeric']['input']>;
   last_share_price?: InputMaybe<Scalars['numeric']['input']>;
-  term_id?: InputMaybe<Scalars['bytea']['input']>;
+  term_id?: InputMaybe<Scalars['String']['input']>;
 };
 
 /** order by sum() on columns of table "share_price_change_stats_monthly" */
@@ -5621,7 +6040,7 @@ export type Share_Price_Change_Stats_Weekly = {
   last_share_price?: Maybe<Scalars['numeric']['output']>;
   /** An object relationship */
   term?: Maybe<Terms>;
-  term_id?: Maybe<Scalars['bytea']['output']>;
+  term_id?: Maybe<Scalars['String']['output']>;
 };
 
 /** order by aggregate values of table "share_price_change_stats_weekly" */
@@ -5660,7 +6079,7 @@ export type Share_Price_Change_Stats_Weekly_Bool_Exp = {
   first_share_price?: InputMaybe<Numeric_Comparison_Exp>;
   last_share_price?: InputMaybe<Numeric_Comparison_Exp>;
   term?: InputMaybe<Terms_Bool_Exp>;
-  term_id?: InputMaybe<Bytea_Comparison_Exp>;
+  term_id?: InputMaybe<String_Comparison_Exp>;
 };
 
 /** order by max() on columns of table "share_price_change_stats_weekly" */
@@ -5671,6 +6090,7 @@ export type Share_Price_Change_Stats_Weekly_Max_Order_By = {
   difference?: InputMaybe<Order_By>;
   first_share_price?: InputMaybe<Order_By>;
   last_share_price?: InputMaybe<Order_By>;
+  term_id?: InputMaybe<Order_By>;
 };
 
 /** order by min() on columns of table "share_price_change_stats_weekly" */
@@ -5681,6 +6101,7 @@ export type Share_Price_Change_Stats_Weekly_Min_Order_By = {
   difference?: InputMaybe<Order_By>;
   first_share_price?: InputMaybe<Order_By>;
   last_share_price?: InputMaybe<Order_By>;
+  term_id?: InputMaybe<Order_By>;
 };
 
 /** Ordering options when selecting data from "share_price_change_stats_weekly". */
@@ -5756,7 +6177,7 @@ export type Share_Price_Change_Stats_Weekly_Stream_Cursor_Value_Input = {
   difference?: InputMaybe<Scalars['numeric']['input']>;
   first_share_price?: InputMaybe<Scalars['numeric']['input']>;
   last_share_price?: InputMaybe<Scalars['numeric']['input']>;
-  term_id?: InputMaybe<Scalars['bytea']['input']>;
+  term_id?: InputMaybe<Scalars['String']['input']>;
 };
 
 /** order by sum() on columns of table "share_price_change_stats_weekly" */
@@ -5802,16 +6223,18 @@ export type Share_Price_Changes = {
   block_timestamp: Scalars['bigint']['output'];
   curve_id: Scalars['numeric']['output'];
   id: Scalars['bigint']['output'];
+  log_index: Scalars['bigint']['output'];
   share_price: Scalars['numeric']['output'];
   /** An object relationship */
   term: Terms;
-  term_id: Scalars['bytea']['output'];
+  term_id: Scalars['String']['output'];
   total_assets: Scalars['numeric']['output'];
   total_shares: Scalars['numeric']['output'];
   transaction_hash: Scalars['String']['output'];
   updated_at: Scalars['timestamptz']['output'];
   /** An object relationship */
   vault?: Maybe<Vaults>;
+  vault_type: Scalars['vault_type']['output'];
 };
 
 /** aggregated selection of "share_price_change" */
@@ -5877,6 +6300,7 @@ export type Share_Price_Changes_Avg_Fields = {
   block_timestamp?: Maybe<Scalars['Float']['output']>;
   curve_id?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
+  log_index?: Maybe<Scalars['Float']['output']>;
   share_price?: Maybe<Scalars['Float']['output']>;
   total_assets?: Maybe<Scalars['Float']['output']>;
   total_shares?: Maybe<Scalars['Float']['output']>;
@@ -5888,6 +6312,7 @@ export type Share_Price_Changes_Avg_Order_By = {
   block_timestamp?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   share_price?: InputMaybe<Order_By>;
   total_assets?: InputMaybe<Order_By>;
   total_shares?: InputMaybe<Order_By>;
@@ -5902,14 +6327,16 @@ export type Share_Price_Changes_Bool_Exp = {
   block_timestamp?: InputMaybe<Bigint_Comparison_Exp>;
   curve_id?: InputMaybe<Numeric_Comparison_Exp>;
   id?: InputMaybe<Bigint_Comparison_Exp>;
+  log_index?: InputMaybe<Bigint_Comparison_Exp>;
   share_price?: InputMaybe<Numeric_Comparison_Exp>;
   term?: InputMaybe<Terms_Bool_Exp>;
-  term_id?: InputMaybe<Bytea_Comparison_Exp>;
+  term_id?: InputMaybe<String_Comparison_Exp>;
   total_assets?: InputMaybe<Numeric_Comparison_Exp>;
   total_shares?: InputMaybe<Numeric_Comparison_Exp>;
   transaction_hash?: InputMaybe<String_Comparison_Exp>;
   updated_at?: InputMaybe<Timestamptz_Comparison_Exp>;
   vault?: InputMaybe<Vaults_Bool_Exp>;
+  vault_type?: InputMaybe<Vault_Type_Comparison_Exp>;
 };
 
 /** aggregate max on columns */
@@ -5919,11 +6346,14 @@ export type Share_Price_Changes_Max_Fields = {
   block_timestamp?: Maybe<Scalars['bigint']['output']>;
   curve_id?: Maybe<Scalars['numeric']['output']>;
   id?: Maybe<Scalars['bigint']['output']>;
+  log_index?: Maybe<Scalars['bigint']['output']>;
   share_price?: Maybe<Scalars['numeric']['output']>;
+  term_id?: Maybe<Scalars['String']['output']>;
   total_assets?: Maybe<Scalars['numeric']['output']>;
   total_shares?: Maybe<Scalars['numeric']['output']>;
   transaction_hash?: Maybe<Scalars['String']['output']>;
   updated_at?: Maybe<Scalars['timestamptz']['output']>;
+  vault_type?: Maybe<Scalars['vault_type']['output']>;
 };
 
 /** order by max() on columns of table "share_price_change" */
@@ -5932,11 +6362,14 @@ export type Share_Price_Changes_Max_Order_By = {
   block_timestamp?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   share_price?: InputMaybe<Order_By>;
+  term_id?: InputMaybe<Order_By>;
   total_assets?: InputMaybe<Order_By>;
   total_shares?: InputMaybe<Order_By>;
   transaction_hash?: InputMaybe<Order_By>;
   updated_at?: InputMaybe<Order_By>;
+  vault_type?: InputMaybe<Order_By>;
 };
 
 /** aggregate min on columns */
@@ -5946,11 +6379,14 @@ export type Share_Price_Changes_Min_Fields = {
   block_timestamp?: Maybe<Scalars['bigint']['output']>;
   curve_id?: Maybe<Scalars['numeric']['output']>;
   id?: Maybe<Scalars['bigint']['output']>;
+  log_index?: Maybe<Scalars['bigint']['output']>;
   share_price?: Maybe<Scalars['numeric']['output']>;
+  term_id?: Maybe<Scalars['String']['output']>;
   total_assets?: Maybe<Scalars['numeric']['output']>;
   total_shares?: Maybe<Scalars['numeric']['output']>;
   transaction_hash?: Maybe<Scalars['String']['output']>;
   updated_at?: Maybe<Scalars['timestamptz']['output']>;
+  vault_type?: Maybe<Scalars['vault_type']['output']>;
 };
 
 /** order by min() on columns of table "share_price_change" */
@@ -5959,11 +6395,14 @@ export type Share_Price_Changes_Min_Order_By = {
   block_timestamp?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   share_price?: InputMaybe<Order_By>;
+  term_id?: InputMaybe<Order_By>;
   total_assets?: InputMaybe<Order_By>;
   total_shares?: InputMaybe<Order_By>;
   transaction_hash?: InputMaybe<Order_By>;
   updated_at?: InputMaybe<Order_By>;
+  vault_type?: InputMaybe<Order_By>;
 };
 
 /** Ordering options when selecting data from "share_price_change". */
@@ -5972,6 +6411,7 @@ export type Share_Price_Changes_Order_By = {
   block_timestamp?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   share_price?: InputMaybe<Order_By>;
   term?: InputMaybe<Terms_Order_By>;
   term_id?: InputMaybe<Order_By>;
@@ -5980,6 +6420,7 @@ export type Share_Price_Changes_Order_By = {
   transaction_hash?: InputMaybe<Order_By>;
   updated_at?: InputMaybe<Order_By>;
   vault?: InputMaybe<Vaults_Order_By>;
+  vault_type?: InputMaybe<Order_By>;
 };
 
 /** select columns of table "share_price_change" */
@@ -5993,6 +6434,8 @@ export enum Share_Price_Changes_Select_Column {
   /** column name */
   Id = 'id',
   /** column name */
+  LogIndex = 'log_index',
+  /** column name */
   SharePrice = 'share_price',
   /** column name */
   TermId = 'term_id',
@@ -6003,7 +6446,9 @@ export enum Share_Price_Changes_Select_Column {
   /** column name */
   TransactionHash = 'transaction_hash',
   /** column name */
-  UpdatedAt = 'updated_at'
+  UpdatedAt = 'updated_at',
+  /** column name */
+  VaultType = 'vault_type'
 }
 
 /** aggregate stddev on columns */
@@ -6013,6 +6458,7 @@ export type Share_Price_Changes_Stddev_Fields = {
   block_timestamp?: Maybe<Scalars['Float']['output']>;
   curve_id?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
+  log_index?: Maybe<Scalars['Float']['output']>;
   share_price?: Maybe<Scalars['Float']['output']>;
   total_assets?: Maybe<Scalars['Float']['output']>;
   total_shares?: Maybe<Scalars['Float']['output']>;
@@ -6024,6 +6470,7 @@ export type Share_Price_Changes_Stddev_Order_By = {
   block_timestamp?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   share_price?: InputMaybe<Order_By>;
   total_assets?: InputMaybe<Order_By>;
   total_shares?: InputMaybe<Order_By>;
@@ -6036,6 +6483,7 @@ export type Share_Price_Changes_Stddev_Pop_Fields = {
   block_timestamp?: Maybe<Scalars['Float']['output']>;
   curve_id?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
+  log_index?: Maybe<Scalars['Float']['output']>;
   share_price?: Maybe<Scalars['Float']['output']>;
   total_assets?: Maybe<Scalars['Float']['output']>;
   total_shares?: Maybe<Scalars['Float']['output']>;
@@ -6047,6 +6495,7 @@ export type Share_Price_Changes_Stddev_Pop_Order_By = {
   block_timestamp?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   share_price?: InputMaybe<Order_By>;
   total_assets?: InputMaybe<Order_By>;
   total_shares?: InputMaybe<Order_By>;
@@ -6059,6 +6508,7 @@ export type Share_Price_Changes_Stddev_Samp_Fields = {
   block_timestamp?: Maybe<Scalars['Float']['output']>;
   curve_id?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
+  log_index?: Maybe<Scalars['Float']['output']>;
   share_price?: Maybe<Scalars['Float']['output']>;
   total_assets?: Maybe<Scalars['Float']['output']>;
   total_shares?: Maybe<Scalars['Float']['output']>;
@@ -6070,6 +6520,7 @@ export type Share_Price_Changes_Stddev_Samp_Order_By = {
   block_timestamp?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   share_price?: InputMaybe<Order_By>;
   total_assets?: InputMaybe<Order_By>;
   total_shares?: InputMaybe<Order_By>;
@@ -6089,12 +6540,14 @@ export type Share_Price_Changes_Stream_Cursor_Value_Input = {
   block_timestamp?: InputMaybe<Scalars['bigint']['input']>;
   curve_id?: InputMaybe<Scalars['numeric']['input']>;
   id?: InputMaybe<Scalars['bigint']['input']>;
+  log_index?: InputMaybe<Scalars['bigint']['input']>;
   share_price?: InputMaybe<Scalars['numeric']['input']>;
-  term_id?: InputMaybe<Scalars['bytea']['input']>;
+  term_id?: InputMaybe<Scalars['String']['input']>;
   total_assets?: InputMaybe<Scalars['numeric']['input']>;
   total_shares?: InputMaybe<Scalars['numeric']['input']>;
   transaction_hash?: InputMaybe<Scalars['String']['input']>;
   updated_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  vault_type?: InputMaybe<Scalars['vault_type']['input']>;
 };
 
 /** aggregate sum on columns */
@@ -6104,6 +6557,7 @@ export type Share_Price_Changes_Sum_Fields = {
   block_timestamp?: Maybe<Scalars['bigint']['output']>;
   curve_id?: Maybe<Scalars['numeric']['output']>;
   id?: Maybe<Scalars['bigint']['output']>;
+  log_index?: Maybe<Scalars['bigint']['output']>;
   share_price?: Maybe<Scalars['numeric']['output']>;
   total_assets?: Maybe<Scalars['numeric']['output']>;
   total_shares?: Maybe<Scalars['numeric']['output']>;
@@ -6115,6 +6569,7 @@ export type Share_Price_Changes_Sum_Order_By = {
   block_timestamp?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   share_price?: InputMaybe<Order_By>;
   total_assets?: InputMaybe<Order_By>;
   total_shares?: InputMaybe<Order_By>;
@@ -6127,6 +6582,7 @@ export type Share_Price_Changes_Var_Pop_Fields = {
   block_timestamp?: Maybe<Scalars['Float']['output']>;
   curve_id?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
+  log_index?: Maybe<Scalars['Float']['output']>;
   share_price?: Maybe<Scalars['Float']['output']>;
   total_assets?: Maybe<Scalars['Float']['output']>;
   total_shares?: Maybe<Scalars['Float']['output']>;
@@ -6138,6 +6594,7 @@ export type Share_Price_Changes_Var_Pop_Order_By = {
   block_timestamp?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   share_price?: InputMaybe<Order_By>;
   total_assets?: InputMaybe<Order_By>;
   total_shares?: InputMaybe<Order_By>;
@@ -6150,6 +6607,7 @@ export type Share_Price_Changes_Var_Samp_Fields = {
   block_timestamp?: Maybe<Scalars['Float']['output']>;
   curve_id?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
+  log_index?: Maybe<Scalars['Float']['output']>;
   share_price?: Maybe<Scalars['Float']['output']>;
   total_assets?: Maybe<Scalars['Float']['output']>;
   total_shares?: Maybe<Scalars['Float']['output']>;
@@ -6161,6 +6619,7 @@ export type Share_Price_Changes_Var_Samp_Order_By = {
   block_timestamp?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   share_price?: InputMaybe<Order_By>;
   total_assets?: InputMaybe<Order_By>;
   total_shares?: InputMaybe<Order_By>;
@@ -6173,6 +6632,7 @@ export type Share_Price_Changes_Variance_Fields = {
   block_timestamp?: Maybe<Scalars['Float']['output']>;
   curve_id?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
+  log_index?: Maybe<Scalars['Float']['output']>;
   share_price?: Maybe<Scalars['Float']['output']>;
   total_assets?: Maybe<Scalars['Float']['output']>;
   total_shares?: Maybe<Scalars['Float']['output']>;
@@ -6184,6 +6644,7 @@ export type Share_Price_Changes_Variance_Order_By = {
   block_timestamp?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   share_price?: InputMaybe<Order_By>;
   total_assets?: InputMaybe<Order_By>;
   total_shares?: InputMaybe<Order_By>;
@@ -6197,7 +6658,7 @@ export type Signal_Stats_Daily = {
   curve_id?: Maybe<Scalars['numeric']['output']>;
   /** An object relationship */
   term?: Maybe<Terms>;
-  term_id?: Maybe<Scalars['bytea']['output']>;
+  term_id?: Maybe<Scalars['String']['output']>;
   volume?: Maybe<Scalars['numeric']['output']>;
 };
 
@@ -6210,7 +6671,7 @@ export type Signal_Stats_Daily_Bool_Exp = {
   count?: InputMaybe<Numeric_Comparison_Exp>;
   curve_id?: InputMaybe<Numeric_Comparison_Exp>;
   term?: InputMaybe<Terms_Bool_Exp>;
-  term_id?: InputMaybe<Bytea_Comparison_Exp>;
+  term_id?: InputMaybe<String_Comparison_Exp>;
   volume?: InputMaybe<Numeric_Comparison_Exp>;
 };
 
@@ -6251,7 +6712,7 @@ export type Signal_Stats_Daily_Stream_Cursor_Value_Input = {
   bucket?: InputMaybe<Scalars['timestamptz']['input']>;
   count?: InputMaybe<Scalars['numeric']['input']>;
   curve_id?: InputMaybe<Scalars['numeric']['input']>;
-  term_id?: InputMaybe<Scalars['bytea']['input']>;
+  term_id?: InputMaybe<Scalars['String']['input']>;
   volume?: InputMaybe<Scalars['numeric']['input']>;
 };
 
@@ -6263,7 +6724,7 @@ export type Signal_Stats_Hourly = {
   curve_id?: Maybe<Scalars['numeric']['output']>;
   /** An object relationship */
   term?: Maybe<Terms>;
-  term_id?: Maybe<Scalars['bytea']['output']>;
+  term_id?: Maybe<Scalars['String']['output']>;
   volume?: Maybe<Scalars['numeric']['output']>;
 };
 
@@ -6276,7 +6737,7 @@ export type Signal_Stats_Hourly_Bool_Exp = {
   count?: InputMaybe<Bigint_Comparison_Exp>;
   curve_id?: InputMaybe<Numeric_Comparison_Exp>;
   term?: InputMaybe<Terms_Bool_Exp>;
-  term_id?: InputMaybe<Bytea_Comparison_Exp>;
+  term_id?: InputMaybe<String_Comparison_Exp>;
   volume?: InputMaybe<Numeric_Comparison_Exp>;
 };
 
@@ -6317,7 +6778,7 @@ export type Signal_Stats_Hourly_Stream_Cursor_Value_Input = {
   bucket?: InputMaybe<Scalars['timestamptz']['input']>;
   count?: InputMaybe<Scalars['bigint']['input']>;
   curve_id?: InputMaybe<Scalars['numeric']['input']>;
-  term_id?: InputMaybe<Scalars['bytea']['input']>;
+  term_id?: InputMaybe<Scalars['String']['input']>;
   volume?: InputMaybe<Scalars['numeric']['input']>;
 };
 
@@ -6329,7 +6790,7 @@ export type Signal_Stats_Monthly = {
   curve_id?: Maybe<Scalars['numeric']['output']>;
   /** An object relationship */
   term?: Maybe<Terms>;
-  term_id?: Maybe<Scalars['bytea']['output']>;
+  term_id?: Maybe<Scalars['String']['output']>;
   volume?: Maybe<Scalars['numeric']['output']>;
 };
 
@@ -6342,7 +6803,7 @@ export type Signal_Stats_Monthly_Bool_Exp = {
   count?: InputMaybe<Numeric_Comparison_Exp>;
   curve_id?: InputMaybe<Numeric_Comparison_Exp>;
   term?: InputMaybe<Terms_Bool_Exp>;
-  term_id?: InputMaybe<Bytea_Comparison_Exp>;
+  term_id?: InputMaybe<String_Comparison_Exp>;
   volume?: InputMaybe<Numeric_Comparison_Exp>;
 };
 
@@ -6383,7 +6844,7 @@ export type Signal_Stats_Monthly_Stream_Cursor_Value_Input = {
   bucket?: InputMaybe<Scalars['timestamptz']['input']>;
   count?: InputMaybe<Scalars['numeric']['input']>;
   curve_id?: InputMaybe<Scalars['numeric']['input']>;
-  term_id?: InputMaybe<Scalars['bytea']['input']>;
+  term_id?: InputMaybe<Scalars['String']['input']>;
   volume?: InputMaybe<Scalars['numeric']['input']>;
 };
 
@@ -6395,7 +6856,7 @@ export type Signal_Stats_Weekly = {
   curve_id?: Maybe<Scalars['numeric']['output']>;
   /** An object relationship */
   term?: Maybe<Terms>;
-  term_id?: Maybe<Scalars['bytea']['output']>;
+  term_id?: Maybe<Scalars['String']['output']>;
   volume?: Maybe<Scalars['numeric']['output']>;
 };
 
@@ -6408,7 +6869,7 @@ export type Signal_Stats_Weekly_Bool_Exp = {
   count?: InputMaybe<Numeric_Comparison_Exp>;
   curve_id?: InputMaybe<Numeric_Comparison_Exp>;
   term?: InputMaybe<Terms_Bool_Exp>;
-  term_id?: InputMaybe<Bytea_Comparison_Exp>;
+  term_id?: InputMaybe<String_Comparison_Exp>;
   volume?: InputMaybe<Numeric_Comparison_Exp>;
 };
 
@@ -6449,7 +6910,7 @@ export type Signal_Stats_Weekly_Stream_Cursor_Value_Input = {
   bucket?: InputMaybe<Scalars['timestamptz']['input']>;
   count?: InputMaybe<Scalars['numeric']['input']>;
   curve_id?: InputMaybe<Scalars['numeric']['input']>;
-  term_id?: InputMaybe<Scalars['bytea']['input']>;
+  term_id?: InputMaybe<Scalars['String']['input']>;
   volume?: InputMaybe<Scalars['numeric']['input']>;
 };
 
@@ -6459,9 +6920,10 @@ export type Signals = {
   /** An object relationship */
   account?: Maybe<Accounts>;
   account_id: Scalars['String']['output'];
-  atom_id?: Maybe<Scalars['bytea']['output']>;
+  atom_id?: Maybe<Scalars['String']['output']>;
   block_number: Scalars['numeric']['output'];
   created_at: Scalars['timestamptz']['output'];
+  curve_id: Scalars['numeric']['output'];
   delta: Scalars['numeric']['output'];
   /** An object relationship */
   deposit?: Maybe<Deposits>;
@@ -6472,8 +6934,9 @@ export type Signals = {
   redemption_id?: Maybe<Scalars['String']['output']>;
   /** An object relationship */
   term: Terms;
+  term_id: Scalars['String']['output'];
   transaction_hash: Scalars['String']['output'];
-  triple_id?: Maybe<Scalars['bytea']['output']>;
+  triple_id?: Maybe<Scalars['String']['output']>;
   /** An object relationship */
   vault?: Maybe<Vaults>;
 };
@@ -6538,12 +7001,14 @@ export type Signals_Aggregate_Order_By = {
 export type Signals_Avg_Fields = {
   __typename?: 'signals_avg_fields';
   block_number?: Maybe<Scalars['Float']['output']>;
+  curve_id?: Maybe<Scalars['Float']['output']>;
   delta?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by avg() on columns of table "signal" */
 export type Signals_Avg_Order_By = {
   block_number?: InputMaybe<Order_By>;
+  curve_id?: InputMaybe<Order_By>;
   delta?: InputMaybe<Order_By>;
 };
 
@@ -6554,9 +7019,10 @@ export type Signals_Bool_Exp = {
   _or?: InputMaybe<Array<Signals_Bool_Exp>>;
   account?: InputMaybe<Accounts_Bool_Exp>;
   account_id?: InputMaybe<String_Comparison_Exp>;
-  atom_id?: InputMaybe<Bytea_Comparison_Exp>;
+  atom_id?: InputMaybe<String_Comparison_Exp>;
   block_number?: InputMaybe<Numeric_Comparison_Exp>;
   created_at?: InputMaybe<Timestamptz_Comparison_Exp>;
+  curve_id?: InputMaybe<Numeric_Comparison_Exp>;
   delta?: InputMaybe<Numeric_Comparison_Exp>;
   deposit?: InputMaybe<Deposits_Bool_Exp>;
   deposit_id?: InputMaybe<String_Comparison_Exp>;
@@ -6564,8 +7030,9 @@ export type Signals_Bool_Exp = {
   redemption?: InputMaybe<Redemptions_Bool_Exp>;
   redemption_id?: InputMaybe<String_Comparison_Exp>;
   term?: InputMaybe<Terms_Bool_Exp>;
+  term_id?: InputMaybe<String_Comparison_Exp>;
   transaction_hash?: InputMaybe<String_Comparison_Exp>;
-  triple_id?: InputMaybe<Bytea_Comparison_Exp>;
+  triple_id?: InputMaybe<String_Comparison_Exp>;
   vault?: InputMaybe<Vaults_Bool_Exp>;
 };
 
@@ -6577,50 +7044,66 @@ export type Signals_From_Following_Args = {
 export type Signals_Max_Fields = {
   __typename?: 'signals_max_fields';
   account_id?: Maybe<Scalars['String']['output']>;
+  atom_id?: Maybe<Scalars['String']['output']>;
   block_number?: Maybe<Scalars['numeric']['output']>;
   created_at?: Maybe<Scalars['timestamptz']['output']>;
+  curve_id?: Maybe<Scalars['numeric']['output']>;
   delta?: Maybe<Scalars['numeric']['output']>;
   deposit_id?: Maybe<Scalars['String']['output']>;
   id?: Maybe<Scalars['String']['output']>;
   redemption_id?: Maybe<Scalars['String']['output']>;
+  term_id?: Maybe<Scalars['String']['output']>;
   transaction_hash?: Maybe<Scalars['String']['output']>;
+  triple_id?: Maybe<Scalars['String']['output']>;
 };
 
 /** order by max() on columns of table "signal" */
 export type Signals_Max_Order_By = {
   account_id?: InputMaybe<Order_By>;
+  atom_id?: InputMaybe<Order_By>;
   block_number?: InputMaybe<Order_By>;
   created_at?: InputMaybe<Order_By>;
+  curve_id?: InputMaybe<Order_By>;
   delta?: InputMaybe<Order_By>;
   deposit_id?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   redemption_id?: InputMaybe<Order_By>;
+  term_id?: InputMaybe<Order_By>;
   transaction_hash?: InputMaybe<Order_By>;
+  triple_id?: InputMaybe<Order_By>;
 };
 
 /** aggregate min on columns */
 export type Signals_Min_Fields = {
   __typename?: 'signals_min_fields';
   account_id?: Maybe<Scalars['String']['output']>;
+  atom_id?: Maybe<Scalars['String']['output']>;
   block_number?: Maybe<Scalars['numeric']['output']>;
   created_at?: Maybe<Scalars['timestamptz']['output']>;
+  curve_id?: Maybe<Scalars['numeric']['output']>;
   delta?: Maybe<Scalars['numeric']['output']>;
   deposit_id?: Maybe<Scalars['String']['output']>;
   id?: Maybe<Scalars['String']['output']>;
   redemption_id?: Maybe<Scalars['String']['output']>;
+  term_id?: Maybe<Scalars['String']['output']>;
   transaction_hash?: Maybe<Scalars['String']['output']>;
+  triple_id?: Maybe<Scalars['String']['output']>;
 };
 
 /** order by min() on columns of table "signal" */
 export type Signals_Min_Order_By = {
   account_id?: InputMaybe<Order_By>;
+  atom_id?: InputMaybe<Order_By>;
   block_number?: InputMaybe<Order_By>;
   created_at?: InputMaybe<Order_By>;
+  curve_id?: InputMaybe<Order_By>;
   delta?: InputMaybe<Order_By>;
   deposit_id?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
   redemption_id?: InputMaybe<Order_By>;
+  term_id?: InputMaybe<Order_By>;
   transaction_hash?: InputMaybe<Order_By>;
+  triple_id?: InputMaybe<Order_By>;
 };
 
 /** Ordering options when selecting data from "signal". */
@@ -6630,6 +7113,7 @@ export type Signals_Order_By = {
   atom_id?: InputMaybe<Order_By>;
   block_number?: InputMaybe<Order_By>;
   created_at?: InputMaybe<Order_By>;
+  curve_id?: InputMaybe<Order_By>;
   delta?: InputMaybe<Order_By>;
   deposit?: InputMaybe<Deposits_Order_By>;
   deposit_id?: InputMaybe<Order_By>;
@@ -6637,6 +7121,7 @@ export type Signals_Order_By = {
   redemption?: InputMaybe<Redemptions_Order_By>;
   redemption_id?: InputMaybe<Order_By>;
   term?: InputMaybe<Terms_Order_By>;
+  term_id?: InputMaybe<Order_By>;
   transaction_hash?: InputMaybe<Order_By>;
   triple_id?: InputMaybe<Order_By>;
   vault?: InputMaybe<Vaults_Order_By>;
@@ -6653,6 +7138,8 @@ export enum Signals_Select_Column {
   /** column name */
   CreatedAt = 'created_at',
   /** column name */
+  CurveId = 'curve_id',
+  /** column name */
   Delta = 'delta',
   /** column name */
   DepositId = 'deposit_id',
@@ -6660,6 +7147,8 @@ export enum Signals_Select_Column {
   Id = 'id',
   /** column name */
   RedemptionId = 'redemption_id',
+  /** column name */
+  TermId = 'term_id',
   /** column name */
   TransactionHash = 'transaction_hash',
   /** column name */
@@ -6670,12 +7159,14 @@ export enum Signals_Select_Column {
 export type Signals_Stddev_Fields = {
   __typename?: 'signals_stddev_fields';
   block_number?: Maybe<Scalars['Float']['output']>;
+  curve_id?: Maybe<Scalars['Float']['output']>;
   delta?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by stddev() on columns of table "signal" */
 export type Signals_Stddev_Order_By = {
   block_number?: InputMaybe<Order_By>;
+  curve_id?: InputMaybe<Order_By>;
   delta?: InputMaybe<Order_By>;
 };
 
@@ -6683,12 +7174,14 @@ export type Signals_Stddev_Order_By = {
 export type Signals_Stddev_Pop_Fields = {
   __typename?: 'signals_stddev_pop_fields';
   block_number?: Maybe<Scalars['Float']['output']>;
+  curve_id?: Maybe<Scalars['Float']['output']>;
   delta?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by stddev_pop() on columns of table "signal" */
 export type Signals_Stddev_Pop_Order_By = {
   block_number?: InputMaybe<Order_By>;
+  curve_id?: InputMaybe<Order_By>;
   delta?: InputMaybe<Order_By>;
 };
 
@@ -6696,12 +7189,14 @@ export type Signals_Stddev_Pop_Order_By = {
 export type Signals_Stddev_Samp_Fields = {
   __typename?: 'signals_stddev_samp_fields';
   block_number?: Maybe<Scalars['Float']['output']>;
+  curve_id?: Maybe<Scalars['Float']['output']>;
   delta?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by stddev_samp() on columns of table "signal" */
 export type Signals_Stddev_Samp_Order_By = {
   block_number?: InputMaybe<Order_By>;
+  curve_id?: InputMaybe<Order_By>;
   delta?: InputMaybe<Order_By>;
 };
 
@@ -6716,27 +7211,31 @@ export type Signals_Stream_Cursor_Input = {
 /** Initial value of the column from where the streaming should start */
 export type Signals_Stream_Cursor_Value_Input = {
   account_id?: InputMaybe<Scalars['String']['input']>;
-  atom_id?: InputMaybe<Scalars['bytea']['input']>;
+  atom_id?: InputMaybe<Scalars['String']['input']>;
   block_number?: InputMaybe<Scalars['numeric']['input']>;
   created_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  curve_id?: InputMaybe<Scalars['numeric']['input']>;
   delta?: InputMaybe<Scalars['numeric']['input']>;
   deposit_id?: InputMaybe<Scalars['String']['input']>;
   id?: InputMaybe<Scalars['String']['input']>;
   redemption_id?: InputMaybe<Scalars['String']['input']>;
+  term_id?: InputMaybe<Scalars['String']['input']>;
   transaction_hash?: InputMaybe<Scalars['String']['input']>;
-  triple_id?: InputMaybe<Scalars['bytea']['input']>;
+  triple_id?: InputMaybe<Scalars['String']['input']>;
 };
 
 /** aggregate sum on columns */
 export type Signals_Sum_Fields = {
   __typename?: 'signals_sum_fields';
   block_number?: Maybe<Scalars['numeric']['output']>;
+  curve_id?: Maybe<Scalars['numeric']['output']>;
   delta?: Maybe<Scalars['numeric']['output']>;
 };
 
 /** order by sum() on columns of table "signal" */
 export type Signals_Sum_Order_By = {
   block_number?: InputMaybe<Order_By>;
+  curve_id?: InputMaybe<Order_By>;
   delta?: InputMaybe<Order_By>;
 };
 
@@ -6744,12 +7243,14 @@ export type Signals_Sum_Order_By = {
 export type Signals_Var_Pop_Fields = {
   __typename?: 'signals_var_pop_fields';
   block_number?: Maybe<Scalars['Float']['output']>;
+  curve_id?: Maybe<Scalars['Float']['output']>;
   delta?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by var_pop() on columns of table "signal" */
 export type Signals_Var_Pop_Order_By = {
   block_number?: InputMaybe<Order_By>;
+  curve_id?: InputMaybe<Order_By>;
   delta?: InputMaybe<Order_By>;
 };
 
@@ -6757,12 +7258,14 @@ export type Signals_Var_Pop_Order_By = {
 export type Signals_Var_Samp_Fields = {
   __typename?: 'signals_var_samp_fields';
   block_number?: Maybe<Scalars['Float']['output']>;
+  curve_id?: Maybe<Scalars['Float']['output']>;
   delta?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by var_samp() on columns of table "signal" */
 export type Signals_Var_Samp_Order_By = {
   block_number?: InputMaybe<Order_By>;
+  curve_id?: InputMaybe<Order_By>;
   delta?: InputMaybe<Order_By>;
 };
 
@@ -6770,13 +7273,101 @@ export type Signals_Var_Samp_Order_By = {
 export type Signals_Variance_Fields = {
   __typename?: 'signals_variance_fields';
   block_number?: Maybe<Scalars['Float']['output']>;
+  curve_id?: Maybe<Scalars['Float']['output']>;
   delta?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by variance() on columns of table "signal" */
 export type Signals_Variance_Order_By = {
   block_number?: InputMaybe<Order_By>;
+  curve_id?: InputMaybe<Order_By>;
   delta?: InputMaybe<Order_By>;
+};
+
+/** columns and relationships of "stats_hour" */
+export type StatHours = {
+  __typename?: 'statHours';
+  contract_balance?: Maybe<Scalars['numeric']['output']>;
+  created_at: Scalars['timestamptz']['output'];
+  id: Scalars['Int']['output'];
+  total_accounts?: Maybe<Scalars['Int']['output']>;
+  total_atoms?: Maybe<Scalars['Int']['output']>;
+  total_fees?: Maybe<Scalars['numeric']['output']>;
+  total_positions?: Maybe<Scalars['Int']['output']>;
+  total_signals?: Maybe<Scalars['Int']['output']>;
+  total_triples?: Maybe<Scalars['Int']['output']>;
+};
+
+/** Boolean expression to filter rows from the table "stats_hour". All fields are combined with a logical 'AND'. */
+export type StatHours_Bool_Exp = {
+  _and?: InputMaybe<Array<StatHours_Bool_Exp>>;
+  _not?: InputMaybe<StatHours_Bool_Exp>;
+  _or?: InputMaybe<Array<StatHours_Bool_Exp>>;
+  contract_balance?: InputMaybe<Numeric_Comparison_Exp>;
+  created_at?: InputMaybe<Timestamptz_Comparison_Exp>;
+  id?: InputMaybe<Int_Comparison_Exp>;
+  total_accounts?: InputMaybe<Int_Comparison_Exp>;
+  total_atoms?: InputMaybe<Int_Comparison_Exp>;
+  total_fees?: InputMaybe<Numeric_Comparison_Exp>;
+  total_positions?: InputMaybe<Int_Comparison_Exp>;
+  total_signals?: InputMaybe<Int_Comparison_Exp>;
+  total_triples?: InputMaybe<Int_Comparison_Exp>;
+};
+
+/** Ordering options when selecting data from "stats_hour". */
+export type StatHours_Order_By = {
+  contract_balance?: InputMaybe<Order_By>;
+  created_at?: InputMaybe<Order_By>;
+  id?: InputMaybe<Order_By>;
+  total_accounts?: InputMaybe<Order_By>;
+  total_atoms?: InputMaybe<Order_By>;
+  total_fees?: InputMaybe<Order_By>;
+  total_positions?: InputMaybe<Order_By>;
+  total_signals?: InputMaybe<Order_By>;
+  total_triples?: InputMaybe<Order_By>;
+};
+
+/** select columns of table "stats_hour" */
+export enum StatHours_Select_Column {
+  /** column name */
+  ContractBalance = 'contract_balance',
+  /** column name */
+  CreatedAt = 'created_at',
+  /** column name */
+  Id = 'id',
+  /** column name */
+  TotalAccounts = 'total_accounts',
+  /** column name */
+  TotalAtoms = 'total_atoms',
+  /** column name */
+  TotalFees = 'total_fees',
+  /** column name */
+  TotalPositions = 'total_positions',
+  /** column name */
+  TotalSignals = 'total_signals',
+  /** column name */
+  TotalTriples = 'total_triples'
+}
+
+/** Streaming cursor of the table "statHours" */
+export type StatHours_Stream_Cursor_Input = {
+  /** Stream column input with initial value */
+  initial_value: StatHours_Stream_Cursor_Value_Input;
+  /** cursor ordering */
+  ordering?: InputMaybe<Cursor_Ordering>;
+};
+
+/** Initial value of the column from where the streaming should start */
+export type StatHours_Stream_Cursor_Value_Input = {
+  contract_balance?: InputMaybe<Scalars['numeric']['input']>;
+  created_at?: InputMaybe<Scalars['timestamptz']['input']>;
+  id?: InputMaybe<Scalars['Int']['input']>;
+  total_accounts?: InputMaybe<Scalars['Int']['input']>;
+  total_atoms?: InputMaybe<Scalars['Int']['input']>;
+  total_fees?: InputMaybe<Scalars['numeric']['input']>;
+  total_positions?: InputMaybe<Scalars['Int']['input']>;
+  total_signals?: InputMaybe<Scalars['Int']['input']>;
+  total_triples?: InputMaybe<Scalars['Int']['input']>;
 };
 
 /** columns and relationships of "stats" */
@@ -6784,6 +7375,9 @@ export type Stats = {
   __typename?: 'stats';
   contract_balance?: Maybe<Scalars['numeric']['output']>;
   id: Scalars['Int']['output'];
+  last_processed_block_number?: Maybe<Scalars['numeric']['output']>;
+  last_processed_block_timestamp?: Maybe<Scalars['timestamptz']['output']>;
+  last_updated: Scalars['timestamptz']['output'];
   total_accounts?: Maybe<Scalars['Int']['output']>;
   total_atoms?: Maybe<Scalars['Int']['output']>;
   total_fees?: Maybe<Scalars['numeric']['output']>;
@@ -6827,6 +7421,7 @@ export type Stats_Avg_Fields = {
   __typename?: 'stats_avg_fields';
   contract_balance?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
+  last_processed_block_number?: Maybe<Scalars['Float']['output']>;
   total_accounts?: Maybe<Scalars['Float']['output']>;
   total_atoms?: Maybe<Scalars['Float']['output']>;
   total_fees?: Maybe<Scalars['Float']['output']>;
@@ -6842,6 +7437,9 @@ export type Stats_Bool_Exp = {
   _or?: InputMaybe<Array<Stats_Bool_Exp>>;
   contract_balance?: InputMaybe<Numeric_Comparison_Exp>;
   id?: InputMaybe<Int_Comparison_Exp>;
+  last_processed_block_number?: InputMaybe<Numeric_Comparison_Exp>;
+  last_processed_block_timestamp?: InputMaybe<Timestamptz_Comparison_Exp>;
+  last_updated?: InputMaybe<Timestamptz_Comparison_Exp>;
   total_accounts?: InputMaybe<Int_Comparison_Exp>;
   total_atoms?: InputMaybe<Int_Comparison_Exp>;
   total_fees?: InputMaybe<Numeric_Comparison_Exp>;
@@ -6855,6 +7453,9 @@ export type Stats_Max_Fields = {
   __typename?: 'stats_max_fields';
   contract_balance?: Maybe<Scalars['numeric']['output']>;
   id?: Maybe<Scalars['Int']['output']>;
+  last_processed_block_number?: Maybe<Scalars['numeric']['output']>;
+  last_processed_block_timestamp?: Maybe<Scalars['timestamptz']['output']>;
+  last_updated?: Maybe<Scalars['timestamptz']['output']>;
   total_accounts?: Maybe<Scalars['Int']['output']>;
   total_atoms?: Maybe<Scalars['Int']['output']>;
   total_fees?: Maybe<Scalars['numeric']['output']>;
@@ -6868,6 +7469,9 @@ export type Stats_Min_Fields = {
   __typename?: 'stats_min_fields';
   contract_balance?: Maybe<Scalars['numeric']['output']>;
   id?: Maybe<Scalars['Int']['output']>;
+  last_processed_block_number?: Maybe<Scalars['numeric']['output']>;
+  last_processed_block_timestamp?: Maybe<Scalars['timestamptz']['output']>;
+  last_updated?: Maybe<Scalars['timestamptz']['output']>;
   total_accounts?: Maybe<Scalars['Int']['output']>;
   total_atoms?: Maybe<Scalars['Int']['output']>;
   total_fees?: Maybe<Scalars['numeric']['output']>;
@@ -6880,6 +7484,9 @@ export type Stats_Min_Fields = {
 export type Stats_Order_By = {
   contract_balance?: InputMaybe<Order_By>;
   id?: InputMaybe<Order_By>;
+  last_processed_block_number?: InputMaybe<Order_By>;
+  last_processed_block_timestamp?: InputMaybe<Order_By>;
+  last_updated?: InputMaybe<Order_By>;
   total_accounts?: InputMaybe<Order_By>;
   total_atoms?: InputMaybe<Order_By>;
   total_fees?: InputMaybe<Order_By>;
@@ -6894,6 +7501,12 @@ export enum Stats_Select_Column {
   ContractBalance = 'contract_balance',
   /** column name */
   Id = 'id',
+  /** column name */
+  LastProcessedBlockNumber = 'last_processed_block_number',
+  /** column name */
+  LastProcessedBlockTimestamp = 'last_processed_block_timestamp',
+  /** column name */
+  LastUpdated = 'last_updated',
   /** column name */
   TotalAccounts = 'total_accounts',
   /** column name */
@@ -6913,6 +7526,7 @@ export type Stats_Stddev_Fields = {
   __typename?: 'stats_stddev_fields';
   contract_balance?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
+  last_processed_block_number?: Maybe<Scalars['Float']['output']>;
   total_accounts?: Maybe<Scalars['Float']['output']>;
   total_atoms?: Maybe<Scalars['Float']['output']>;
   total_fees?: Maybe<Scalars['Float']['output']>;
@@ -6926,6 +7540,7 @@ export type Stats_Stddev_Pop_Fields = {
   __typename?: 'stats_stddev_pop_fields';
   contract_balance?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
+  last_processed_block_number?: Maybe<Scalars['Float']['output']>;
   total_accounts?: Maybe<Scalars['Float']['output']>;
   total_atoms?: Maybe<Scalars['Float']['output']>;
   total_fees?: Maybe<Scalars['Float']['output']>;
@@ -6939,6 +7554,7 @@ export type Stats_Stddev_Samp_Fields = {
   __typename?: 'stats_stddev_samp_fields';
   contract_balance?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
+  last_processed_block_number?: Maybe<Scalars['Float']['output']>;
   total_accounts?: Maybe<Scalars['Float']['output']>;
   total_atoms?: Maybe<Scalars['Float']['output']>;
   total_fees?: Maybe<Scalars['Float']['output']>;
@@ -6959,6 +7575,9 @@ export type Stats_Stream_Cursor_Input = {
 export type Stats_Stream_Cursor_Value_Input = {
   contract_balance?: InputMaybe<Scalars['numeric']['input']>;
   id?: InputMaybe<Scalars['Int']['input']>;
+  last_processed_block_number?: InputMaybe<Scalars['numeric']['input']>;
+  last_processed_block_timestamp?: InputMaybe<Scalars['timestamptz']['input']>;
+  last_updated?: InputMaybe<Scalars['timestamptz']['input']>;
   total_accounts?: InputMaybe<Scalars['Int']['input']>;
   total_atoms?: InputMaybe<Scalars['Int']['input']>;
   total_fees?: InputMaybe<Scalars['numeric']['input']>;
@@ -6972,6 +7591,7 @@ export type Stats_Sum_Fields = {
   __typename?: 'stats_sum_fields';
   contract_balance?: Maybe<Scalars['numeric']['output']>;
   id?: Maybe<Scalars['Int']['output']>;
+  last_processed_block_number?: Maybe<Scalars['numeric']['output']>;
   total_accounts?: Maybe<Scalars['Int']['output']>;
   total_atoms?: Maybe<Scalars['Int']['output']>;
   total_fees?: Maybe<Scalars['numeric']['output']>;
@@ -6985,6 +7605,7 @@ export type Stats_Var_Pop_Fields = {
   __typename?: 'stats_var_pop_fields';
   contract_balance?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
+  last_processed_block_number?: Maybe<Scalars['Float']['output']>;
   total_accounts?: Maybe<Scalars['Float']['output']>;
   total_atoms?: Maybe<Scalars['Float']['output']>;
   total_fees?: Maybe<Scalars['Float']['output']>;
@@ -6998,6 +7619,7 @@ export type Stats_Var_Samp_Fields = {
   __typename?: 'stats_var_samp_fields';
   contract_balance?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
+  last_processed_block_number?: Maybe<Scalars['Float']['output']>;
   total_accounts?: Maybe<Scalars['Float']['output']>;
   total_atoms?: Maybe<Scalars['Float']['output']>;
   total_fees?: Maybe<Scalars['Float']['output']>;
@@ -7011,6 +7633,7 @@ export type Stats_Variance_Fields = {
   __typename?: 'stats_variance_fields';
   contract_balance?: Maybe<Scalars['Float']['output']>;
   id?: Maybe<Scalars['Float']['output']>;
+  last_processed_block_number?: Maybe<Scalars['Float']['output']>;
   total_accounts?: Maybe<Scalars['Float']['output']>;
   total_atoms?: Maybe<Scalars['Float']['output']>;
   total_fees?: Maybe<Scalars['Float']['output']>;
@@ -7229,6 +7852,12 @@ export type Subscription_Root = {
   signals_stream: Array<Signals>;
   /** fetch data from the table: "stats" using primary key columns */
   stat?: Maybe<Stats>;
+  /** fetch data from the table: "stats_hour" using primary key columns */
+  statHour?: Maybe<StatHours>;
+  /** fetch data from the table: "stats_hour" */
+  statHours: Array<StatHours>;
+  /** fetch data from the table in a streaming manner: "stats_hour" */
+  statHours_stream: Array<StatHours>;
   /** fetch data from the table: "stats" */
   stats: Array<Stats>;
   /** fetch aggregated fields from the table: "stats" */
@@ -7341,12 +7970,12 @@ export type Subscription_RootAccounts_StreamArgs = {
 
 
 export type Subscription_RootAtomArgs = {
-  term_id: Scalars['bytea']['input'];
+  term_id: Scalars['String']['input'];
 };
 
 
 export type Subscription_RootAtom_ValueArgs = {
-  id: Scalars['bytea']['input'];
+  id: Scalars['String']['input'];
 };
 
 
@@ -7401,7 +8030,7 @@ export type Subscription_RootAtoms_StreamArgs = {
 
 
 export type Subscription_RootBookArgs = {
-  id: Scalars['bytea']['input'];
+  id: Scalars['String']['input'];
 };
 
 
@@ -7449,7 +8078,7 @@ export type Subscription_RootByte_Object_AggregateArgs = {
 
 
 export type Subscription_RootByte_Object_By_PkArgs = {
-  id: Scalars['bytea']['input'];
+  id: Scalars['String']['input'];
 };
 
 
@@ -7503,7 +8132,7 @@ export type Subscription_RootCached_Images_StreamArgs = {
 
 
 export type Subscription_RootCaip10Args = {
-  id: Scalars['bytea']['input'];
+  id: Scalars['String']['input'];
 };
 
 
@@ -7664,7 +8293,7 @@ export type Subscription_RootFollowing_AggregateArgs = {
 
 
 export type Subscription_RootJson_ObjectArgs = {
-  id: Scalars['bytea']['input'];
+  id: Scalars['String']['input'];
 };
 
 
@@ -7694,7 +8323,7 @@ export type Subscription_RootJson_Objects_StreamArgs = {
 
 
 export type Subscription_RootOrganizationArgs = {
-  id: Scalars['bytea']['input'];
+  id: Scalars['String']['input'];
 };
 
 
@@ -7724,7 +8353,7 @@ export type Subscription_RootOrganizations_StreamArgs = {
 
 
 export type Subscription_RootPersonArgs = {
-  id: Scalars['bytea']['input'];
+  id: Scalars['String']['input'];
 };
 
 
@@ -8126,6 +8755,27 @@ export type Subscription_RootStatArgs = {
 };
 
 
+export type Subscription_RootStatHourArgs = {
+  id: Scalars['Int']['input'];
+};
+
+
+export type Subscription_RootStatHoursArgs = {
+  distinct_on?: InputMaybe<Array<StatHours_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<StatHours_Order_By>>;
+  where?: InputMaybe<StatHours_Bool_Exp>;
+};
+
+
+export type Subscription_RootStatHours_StreamArgs = {
+  batch_size: Scalars['Int']['input'];
+  cursor: Array<InputMaybe<StatHours_Stream_Cursor_Input>>;
+  where?: InputMaybe<StatHours_Bool_Exp>;
+};
+
+
 export type Subscription_RootStatsArgs = {
   distinct_on?: InputMaybe<Array<Stats_Select_Column>>;
   limit?: InputMaybe<Scalars['Int']['input']>;
@@ -8152,7 +8802,7 @@ export type Subscription_RootStats_StreamArgs = {
 
 
 export type Subscription_RootTermArgs = {
-  id: Scalars['bytea']['input'];
+  id: Scalars['String']['input'];
 };
 
 
@@ -8262,7 +8912,7 @@ export type Subscription_RootTerms_StreamArgs = {
 
 
 export type Subscription_RootText_ObjectArgs = {
-  id: Scalars['bytea']['input'];
+  id: Scalars['String']['input'];
 };
 
 
@@ -8292,7 +8942,7 @@ export type Subscription_RootText_Objects_StreamArgs = {
 
 
 export type Subscription_RootThingArgs = {
-  id: Scalars['bytea']['input'];
+  id: Scalars['String']['input'];
 };
 
 
@@ -8322,12 +8972,12 @@ export type Subscription_RootThings_StreamArgs = {
 
 
 export type Subscription_RootTripleArgs = {
-  term_id: Scalars['bytea']['input'];
+  term_id: Scalars['String']['input'];
 };
 
 
 export type Subscription_RootTriple_TermArgs = {
-  term_id: Scalars['bytea']['input'];
+  term_id: Scalars['String']['input'];
 };
 
 
@@ -8349,7 +8999,7 @@ export type Subscription_RootTriple_TermsArgs = {
 
 export type Subscription_RootTriple_VaultArgs = {
   curve_id: Scalars['numeric']['input'];
-  term_id: Scalars['bytea']['input'];
+  term_id: Scalars['String']['input'];
 };
 
 
@@ -8396,7 +9046,7 @@ export type Subscription_RootTriples_StreamArgs = {
 
 export type Subscription_RootVaultArgs = {
   curve_id: Scalars['numeric']['input'];
-  term_id: Scalars['bytea']['input'];
+  term_id: Scalars['String']['input'];
 };
 
 
@@ -8431,7 +9081,7 @@ export type Term_Total_State_Change_Stats_Daily = {
   difference?: Maybe<Scalars['numeric']['output']>;
   first_total_market_cap?: Maybe<Scalars['numeric']['output']>;
   last_total_market_cap?: Maybe<Scalars['numeric']['output']>;
-  term_id?: Maybe<Scalars['bytea']['output']>;
+  term_id?: Maybe<Scalars['String']['output']>;
 };
 
 /** order by aggregate values of table "term_total_state_change_stats_daily" */
@@ -8465,7 +9115,7 @@ export type Term_Total_State_Change_Stats_Daily_Bool_Exp = {
   difference?: InputMaybe<Numeric_Comparison_Exp>;
   first_total_market_cap?: InputMaybe<Numeric_Comparison_Exp>;
   last_total_market_cap?: InputMaybe<Numeric_Comparison_Exp>;
-  term_id?: InputMaybe<Bytea_Comparison_Exp>;
+  term_id?: InputMaybe<String_Comparison_Exp>;
 };
 
 /** order by max() on columns of table "term_total_state_change_stats_daily" */
@@ -8474,6 +9124,7 @@ export type Term_Total_State_Change_Stats_Daily_Max_Order_By = {
   difference?: InputMaybe<Order_By>;
   first_total_market_cap?: InputMaybe<Order_By>;
   last_total_market_cap?: InputMaybe<Order_By>;
+  term_id?: InputMaybe<Order_By>;
 };
 
 /** order by min() on columns of table "term_total_state_change_stats_daily" */
@@ -8482,6 +9133,7 @@ export type Term_Total_State_Change_Stats_Daily_Min_Order_By = {
   difference?: InputMaybe<Order_By>;
   first_total_market_cap?: InputMaybe<Order_By>;
   last_total_market_cap?: InputMaybe<Order_By>;
+  term_id?: InputMaybe<Order_By>;
 };
 
 /** Ordering options when selecting data from "term_total_state_change_stats_daily". */
@@ -8542,7 +9194,7 @@ export type Term_Total_State_Change_Stats_Daily_Stream_Cursor_Value_Input = {
   difference?: InputMaybe<Scalars['numeric']['input']>;
   first_total_market_cap?: InputMaybe<Scalars['numeric']['input']>;
   last_total_market_cap?: InputMaybe<Scalars['numeric']['input']>;
-  term_id?: InputMaybe<Scalars['bytea']['input']>;
+  term_id?: InputMaybe<Scalars['String']['input']>;
 };
 
 /** order by sum() on columns of table "term_total_state_change_stats_daily" */
@@ -8580,7 +9232,7 @@ export type Term_Total_State_Change_Stats_Hourly = {
   difference?: Maybe<Scalars['numeric']['output']>;
   first_total_market_cap?: Maybe<Scalars['numeric']['output']>;
   last_total_market_cap?: Maybe<Scalars['numeric']['output']>;
-  term_id?: Maybe<Scalars['bytea']['output']>;
+  term_id?: Maybe<Scalars['String']['output']>;
 };
 
 /** order by aggregate values of table "term_total_state_change_stats_hourly" */
@@ -8614,7 +9266,7 @@ export type Term_Total_State_Change_Stats_Hourly_Bool_Exp = {
   difference?: InputMaybe<Numeric_Comparison_Exp>;
   first_total_market_cap?: InputMaybe<Numeric_Comparison_Exp>;
   last_total_market_cap?: InputMaybe<Numeric_Comparison_Exp>;
-  term_id?: InputMaybe<Bytea_Comparison_Exp>;
+  term_id?: InputMaybe<String_Comparison_Exp>;
 };
 
 /** order by max() on columns of table "term_total_state_change_stats_hourly" */
@@ -8623,6 +9275,7 @@ export type Term_Total_State_Change_Stats_Hourly_Max_Order_By = {
   difference?: InputMaybe<Order_By>;
   first_total_market_cap?: InputMaybe<Order_By>;
   last_total_market_cap?: InputMaybe<Order_By>;
+  term_id?: InputMaybe<Order_By>;
 };
 
 /** order by min() on columns of table "term_total_state_change_stats_hourly" */
@@ -8631,6 +9284,7 @@ export type Term_Total_State_Change_Stats_Hourly_Min_Order_By = {
   difference?: InputMaybe<Order_By>;
   first_total_market_cap?: InputMaybe<Order_By>;
   last_total_market_cap?: InputMaybe<Order_By>;
+  term_id?: InputMaybe<Order_By>;
 };
 
 /** Ordering options when selecting data from "term_total_state_change_stats_hourly". */
@@ -8691,7 +9345,7 @@ export type Term_Total_State_Change_Stats_Hourly_Stream_Cursor_Value_Input = {
   difference?: InputMaybe<Scalars['numeric']['input']>;
   first_total_market_cap?: InputMaybe<Scalars['numeric']['input']>;
   last_total_market_cap?: InputMaybe<Scalars['numeric']['input']>;
-  term_id?: InputMaybe<Scalars['bytea']['input']>;
+  term_id?: InputMaybe<Scalars['String']['input']>;
 };
 
 /** order by sum() on columns of table "term_total_state_change_stats_hourly" */
@@ -8729,7 +9383,7 @@ export type Term_Total_State_Change_Stats_Monthly = {
   difference?: Maybe<Scalars['numeric']['output']>;
   first_total_market_cap?: Maybe<Scalars['numeric']['output']>;
   last_total_market_cap?: Maybe<Scalars['numeric']['output']>;
-  term_id?: Maybe<Scalars['bytea']['output']>;
+  term_id?: Maybe<Scalars['String']['output']>;
 };
 
 /** order by aggregate values of table "term_total_state_change_stats_monthly" */
@@ -8763,7 +9417,7 @@ export type Term_Total_State_Change_Stats_Monthly_Bool_Exp = {
   difference?: InputMaybe<Numeric_Comparison_Exp>;
   first_total_market_cap?: InputMaybe<Numeric_Comparison_Exp>;
   last_total_market_cap?: InputMaybe<Numeric_Comparison_Exp>;
-  term_id?: InputMaybe<Bytea_Comparison_Exp>;
+  term_id?: InputMaybe<String_Comparison_Exp>;
 };
 
 /** order by max() on columns of table "term_total_state_change_stats_monthly" */
@@ -8772,6 +9426,7 @@ export type Term_Total_State_Change_Stats_Monthly_Max_Order_By = {
   difference?: InputMaybe<Order_By>;
   first_total_market_cap?: InputMaybe<Order_By>;
   last_total_market_cap?: InputMaybe<Order_By>;
+  term_id?: InputMaybe<Order_By>;
 };
 
 /** order by min() on columns of table "term_total_state_change_stats_monthly" */
@@ -8780,6 +9435,7 @@ export type Term_Total_State_Change_Stats_Monthly_Min_Order_By = {
   difference?: InputMaybe<Order_By>;
   first_total_market_cap?: InputMaybe<Order_By>;
   last_total_market_cap?: InputMaybe<Order_By>;
+  term_id?: InputMaybe<Order_By>;
 };
 
 /** Ordering options when selecting data from "term_total_state_change_stats_monthly". */
@@ -8840,7 +9496,7 @@ export type Term_Total_State_Change_Stats_Monthly_Stream_Cursor_Value_Input = {
   difference?: InputMaybe<Scalars['numeric']['input']>;
   first_total_market_cap?: InputMaybe<Scalars['numeric']['input']>;
   last_total_market_cap?: InputMaybe<Scalars['numeric']['input']>;
-  term_id?: InputMaybe<Scalars['bytea']['input']>;
+  term_id?: InputMaybe<Scalars['String']['input']>;
 };
 
 /** order by sum() on columns of table "term_total_state_change_stats_monthly" */
@@ -8878,7 +9534,7 @@ export type Term_Total_State_Change_Stats_Weekly = {
   difference?: Maybe<Scalars['numeric']['output']>;
   first_total_market_cap?: Maybe<Scalars['numeric']['output']>;
   last_total_market_cap?: Maybe<Scalars['numeric']['output']>;
-  term_id?: Maybe<Scalars['bytea']['output']>;
+  term_id?: Maybe<Scalars['String']['output']>;
 };
 
 /** order by aggregate values of table "term_total_state_change_stats_weekly" */
@@ -8912,7 +9568,7 @@ export type Term_Total_State_Change_Stats_Weekly_Bool_Exp = {
   difference?: InputMaybe<Numeric_Comparison_Exp>;
   first_total_market_cap?: InputMaybe<Numeric_Comparison_Exp>;
   last_total_market_cap?: InputMaybe<Numeric_Comparison_Exp>;
-  term_id?: InputMaybe<Bytea_Comparison_Exp>;
+  term_id?: InputMaybe<String_Comparison_Exp>;
 };
 
 /** order by max() on columns of table "term_total_state_change_stats_weekly" */
@@ -8921,6 +9577,7 @@ export type Term_Total_State_Change_Stats_Weekly_Max_Order_By = {
   difference?: InputMaybe<Order_By>;
   first_total_market_cap?: InputMaybe<Order_By>;
   last_total_market_cap?: InputMaybe<Order_By>;
+  term_id?: InputMaybe<Order_By>;
 };
 
 /** order by min() on columns of table "term_total_state_change_stats_weekly" */
@@ -8929,6 +9586,7 @@ export type Term_Total_State_Change_Stats_Weekly_Min_Order_By = {
   difference?: InputMaybe<Order_By>;
   first_total_market_cap?: InputMaybe<Order_By>;
   last_total_market_cap?: InputMaybe<Order_By>;
+  term_id?: InputMaybe<Order_By>;
 };
 
 /** Ordering options when selecting data from "term_total_state_change_stats_weekly". */
@@ -8989,7 +9647,7 @@ export type Term_Total_State_Change_Stats_Weekly_Stream_Cursor_Value_Input = {
   difference?: InputMaybe<Scalars['numeric']['input']>;
   first_total_market_cap?: InputMaybe<Scalars['numeric']['input']>;
   last_total_market_cap?: InputMaybe<Scalars['numeric']['input']>;
-  term_id?: InputMaybe<Scalars['bytea']['input']>;
+  term_id?: InputMaybe<Scalars['String']['input']>;
 };
 
 /** order by sum() on columns of table "term_total_state_change_stats_weekly" */
@@ -9024,7 +9682,7 @@ export type Term_Total_State_Change_Stats_Weekly_Variance_Order_By = {
 export type Term_Total_State_Changes = {
   __typename?: 'term_total_state_changes';
   created_at: Scalars['timestamptz']['output'];
-  term_id: Scalars['bytea']['output'];
+  term_id: Scalars['String']['output'];
   total_assets: Scalars['numeric']['output'];
   total_market_cap: Scalars['numeric']['output'];
 };
@@ -9056,7 +9714,7 @@ export type Term_Total_State_Changes_Bool_Exp = {
   _not?: InputMaybe<Term_Total_State_Changes_Bool_Exp>;
   _or?: InputMaybe<Array<Term_Total_State_Changes_Bool_Exp>>;
   created_at?: InputMaybe<Timestamptz_Comparison_Exp>;
-  term_id?: InputMaybe<Bytea_Comparison_Exp>;
+  term_id?: InputMaybe<String_Comparison_Exp>;
   total_assets?: InputMaybe<Numeric_Comparison_Exp>;
   total_market_cap?: InputMaybe<Numeric_Comparison_Exp>;
 };
@@ -9064,6 +9722,7 @@ export type Term_Total_State_Changes_Bool_Exp = {
 /** order by max() on columns of table "term_total_state_change" */
 export type Term_Total_State_Changes_Max_Order_By = {
   created_at?: InputMaybe<Order_By>;
+  term_id?: InputMaybe<Order_By>;
   total_assets?: InputMaybe<Order_By>;
   total_market_cap?: InputMaybe<Order_By>;
 };
@@ -9071,6 +9730,7 @@ export type Term_Total_State_Changes_Max_Order_By = {
 /** order by min() on columns of table "term_total_state_change" */
 export type Term_Total_State_Changes_Min_Order_By = {
   created_at?: InputMaybe<Order_By>;
+  term_id?: InputMaybe<Order_By>;
   total_assets?: InputMaybe<Order_By>;
   total_market_cap?: InputMaybe<Order_By>;
 };
@@ -9124,7 +9784,7 @@ export type Term_Total_State_Changes_Stream_Cursor_Input = {
 /** Initial value of the column from where the streaming should start */
 export type Term_Total_State_Changes_Stream_Cursor_Value_Input = {
   created_at?: InputMaybe<Scalars['timestamptz']['input']>;
-  term_id?: InputMaybe<Scalars['bytea']['input']>;
+  term_id?: InputMaybe<Scalars['String']['input']>;
   total_assets?: InputMaybe<Scalars['numeric']['input']>;
   total_market_cap?: InputMaybe<Scalars['numeric']['input']>;
 };
@@ -9173,12 +9833,12 @@ export type Terms = {
   atom?: Maybe<Atoms>;
   /** An object relationship */
   atomById?: Maybe<Atoms>;
-  atom_id?: Maybe<Scalars['bytea']['output']>;
+  atom_id?: Maybe<Scalars['String']['output']>;
   /** An array relationship */
   deposits: Array<Deposits>;
   /** An aggregate relationship */
   deposits_aggregate: Deposits_Aggregate;
-  id: Scalars['bytea']['output'];
+  id: Scalars['String']['output'];
   /** An array relationship */
   positions: Array<Positions>;
   /** An aggregate relationship */
@@ -9219,8 +9879,9 @@ export type Terms = {
   triple?: Maybe<Triples>;
   /** An object relationship */
   tripleById?: Maybe<Triples>;
-  triple_id?: Maybe<Scalars['bytea']['output']>;
+  triple_id?: Maybe<Scalars['String']['output']>;
   type: Scalars['term_type']['output'];
+  updated_at: Scalars['timestamptz']['output'];
   /** An array relationship */
   vaults: Array<Vaults>;
   /** An aggregate relationship */
@@ -9480,10 +10141,10 @@ export type Terms_Bool_Exp = {
   _or?: InputMaybe<Array<Terms_Bool_Exp>>;
   atom?: InputMaybe<Atoms_Bool_Exp>;
   atomById?: InputMaybe<Atoms_Bool_Exp>;
-  atom_id?: InputMaybe<Bytea_Comparison_Exp>;
+  atom_id?: InputMaybe<String_Comparison_Exp>;
   deposits?: InputMaybe<Deposits_Bool_Exp>;
   deposits_aggregate?: InputMaybe<Deposits_Aggregate_Bool_Exp>;
-  id?: InputMaybe<Bytea_Comparison_Exp>;
+  id?: InputMaybe<String_Comparison_Exp>;
   positions?: InputMaybe<Positions_Bool_Exp>;
   positions_aggregate?: InputMaybe<Positions_Aggregate_Bool_Exp>;
   redemptions?: InputMaybe<Redemptions_Bool_Exp>;
@@ -9505,8 +10166,9 @@ export type Terms_Bool_Exp = {
   total_market_cap?: InputMaybe<Numeric_Comparison_Exp>;
   triple?: InputMaybe<Triples_Bool_Exp>;
   tripleById?: InputMaybe<Triples_Bool_Exp>;
-  triple_id?: InputMaybe<Bytea_Comparison_Exp>;
+  triple_id?: InputMaybe<String_Comparison_Exp>;
   type?: InputMaybe<Term_Type_Comparison_Exp>;
+  updated_at?: InputMaybe<Timestamptz_Comparison_Exp>;
   vaults?: InputMaybe<Vaults_Bool_Exp>;
   vaults_aggregate?: InputMaybe<Vaults_Aggregate_Bool_Exp>;
 };
@@ -9514,17 +10176,25 @@ export type Terms_Bool_Exp = {
 /** aggregate max on columns */
 export type Terms_Max_Fields = {
   __typename?: 'terms_max_fields';
+  atom_id?: Maybe<Scalars['String']['output']>;
+  id?: Maybe<Scalars['String']['output']>;
   total_assets?: Maybe<Scalars['numeric']['output']>;
   total_market_cap?: Maybe<Scalars['numeric']['output']>;
+  triple_id?: Maybe<Scalars['String']['output']>;
   type?: Maybe<Scalars['term_type']['output']>;
+  updated_at?: Maybe<Scalars['timestamptz']['output']>;
 };
 
 /** aggregate min on columns */
 export type Terms_Min_Fields = {
   __typename?: 'terms_min_fields';
+  atom_id?: Maybe<Scalars['String']['output']>;
+  id?: Maybe<Scalars['String']['output']>;
   total_assets?: Maybe<Scalars['numeric']['output']>;
   total_market_cap?: Maybe<Scalars['numeric']['output']>;
+  triple_id?: Maybe<Scalars['String']['output']>;
   type?: Maybe<Scalars['term_type']['output']>;
+  updated_at?: Maybe<Scalars['timestamptz']['output']>;
 };
 
 /** Ordering options when selecting data from "term". */
@@ -9553,6 +10223,7 @@ export type Terms_Order_By = {
   tripleById?: InputMaybe<Triples_Order_By>;
   triple_id?: InputMaybe<Order_By>;
   type?: InputMaybe<Order_By>;
+  updated_at?: InputMaybe<Order_By>;
   vaults_aggregate?: InputMaybe<Vaults_Aggregate_Order_By>;
 };
 
@@ -9569,7 +10240,9 @@ export enum Terms_Select_Column {
   /** column name */
   TripleId = 'triple_id',
   /** column name */
-  Type = 'type'
+  Type = 'type',
+  /** column name */
+  UpdatedAt = 'updated_at'
 }
 
 /** aggregate stddev on columns */
@@ -9603,12 +10276,13 @@ export type Terms_Stream_Cursor_Input = {
 
 /** Initial value of the column from where the streaming should start */
 export type Terms_Stream_Cursor_Value_Input = {
-  atom_id?: InputMaybe<Scalars['bytea']['input']>;
-  id?: InputMaybe<Scalars['bytea']['input']>;
+  atom_id?: InputMaybe<Scalars['String']['input']>;
+  id?: InputMaybe<Scalars['String']['input']>;
   total_assets?: InputMaybe<Scalars['numeric']['input']>;
   total_market_cap?: InputMaybe<Scalars['numeric']['input']>;
-  triple_id?: InputMaybe<Scalars['bytea']['input']>;
+  triple_id?: InputMaybe<Scalars['String']['input']>;
   type?: InputMaybe<Scalars['term_type']['input']>;
+  updated_at?: InputMaybe<Scalars['timestamptz']['input']>;
 };
 
 /** aggregate sum on columns */
@@ -9645,7 +10319,7 @@ export type Text_Objects = {
   /** An object relationship */
   atom?: Maybe<Atoms>;
   data: Scalars['String']['output'];
-  id: Scalars['bytea']['output'];
+  id: Scalars['String']['output'];
 };
 
 /** aggregated selection of "text_object" */
@@ -9677,19 +10351,21 @@ export type Text_Objects_Bool_Exp = {
   _or?: InputMaybe<Array<Text_Objects_Bool_Exp>>;
   atom?: InputMaybe<Atoms_Bool_Exp>;
   data?: InputMaybe<String_Comparison_Exp>;
-  id?: InputMaybe<Bytea_Comparison_Exp>;
+  id?: InputMaybe<String_Comparison_Exp>;
 };
 
 /** aggregate max on columns */
 export type Text_Objects_Max_Fields = {
   __typename?: 'text_objects_max_fields';
   data?: Maybe<Scalars['String']['output']>;
+  id?: Maybe<Scalars['String']['output']>;
 };
 
 /** aggregate min on columns */
 export type Text_Objects_Min_Fields = {
   __typename?: 'text_objects_min_fields';
   data?: Maybe<Scalars['String']['output']>;
+  id?: Maybe<Scalars['String']['output']>;
 };
 
 /** Ordering options when selecting data from "text_object". */
@@ -9718,7 +10394,7 @@ export type Text_Objects_Stream_Cursor_Input = {
 /** Initial value of the column from where the streaming should start */
 export type Text_Objects_Stream_Cursor_Value_Input = {
   data?: InputMaybe<Scalars['String']['input']>;
-  id?: InputMaybe<Scalars['bytea']['input']>;
+  id?: InputMaybe<Scalars['String']['input']>;
 };
 
 /** columns and relationships of "thing" */
@@ -9728,7 +10404,7 @@ export type Things = {
   atom?: Maybe<Atoms>;
   cached_image?: Maybe<Cached_Images_Cached_Image>;
   description?: Maybe<Scalars['String']['output']>;
-  id: Scalars['bytea']['output'];
+  id: Scalars['String']['output'];
   image?: Maybe<Scalars['String']['output']>;
   name?: Maybe<Scalars['String']['output']>;
   url?: Maybe<Scalars['String']['output']>;
@@ -9763,7 +10439,7 @@ export type Things_Bool_Exp = {
   _or?: InputMaybe<Array<Things_Bool_Exp>>;
   atom?: InputMaybe<Atoms_Bool_Exp>;
   description?: InputMaybe<String_Comparison_Exp>;
-  id?: InputMaybe<Bytea_Comparison_Exp>;
+  id?: InputMaybe<String_Comparison_Exp>;
   image?: InputMaybe<String_Comparison_Exp>;
   name?: InputMaybe<String_Comparison_Exp>;
   url?: InputMaybe<String_Comparison_Exp>;
@@ -9773,6 +10449,7 @@ export type Things_Bool_Exp = {
 export type Things_Max_Fields = {
   __typename?: 'things_max_fields';
   description?: Maybe<Scalars['String']['output']>;
+  id?: Maybe<Scalars['String']['output']>;
   image?: Maybe<Scalars['String']['output']>;
   name?: Maybe<Scalars['String']['output']>;
   url?: Maybe<Scalars['String']['output']>;
@@ -9782,6 +10459,7 @@ export type Things_Max_Fields = {
 export type Things_Min_Fields = {
   __typename?: 'things_min_fields';
   description?: Maybe<Scalars['String']['output']>;
+  id?: Maybe<Scalars['String']['output']>;
   image?: Maybe<Scalars['String']['output']>;
   name?: Maybe<Scalars['String']['output']>;
   url?: Maybe<Scalars['String']['output']>;
@@ -9822,7 +10500,7 @@ export type Things_Stream_Cursor_Input = {
 /** Initial value of the column from where the streaming should start */
 export type Things_Stream_Cursor_Value_Input = {
   description?: InputMaybe<Scalars['String']['input']>;
-  id?: InputMaybe<Scalars['bytea']['input']>;
+  id?: InputMaybe<Scalars['String']['input']>;
   image?: InputMaybe<Scalars['String']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
   url?: InputMaybe<Scalars['String']['input']>;
@@ -9846,10 +10524,10 @@ export type Triple_Term = {
   __typename?: 'triple_term';
   /** An object relationship */
   counter_term: Terms;
-  counter_term_id: Scalars['bytea']['output'];
+  counter_term_id: Scalars['String']['output'];
   /** An object relationship */
   term: Terms;
-  term_id: Scalars['bytea']['output'];
+  term_id: Scalars['String']['output'];
   total_assets: Scalars['numeric']['output'];
   total_market_cap: Scalars['numeric']['output'];
   total_position_count: Scalars['bigint']['output'];
@@ -9862,9 +10540,9 @@ export type Triple_Term_Bool_Exp = {
   _not?: InputMaybe<Triple_Term_Bool_Exp>;
   _or?: InputMaybe<Array<Triple_Term_Bool_Exp>>;
   counter_term?: InputMaybe<Terms_Bool_Exp>;
-  counter_term_id?: InputMaybe<Bytea_Comparison_Exp>;
+  counter_term_id?: InputMaybe<String_Comparison_Exp>;
   term?: InputMaybe<Terms_Bool_Exp>;
-  term_id?: InputMaybe<Bytea_Comparison_Exp>;
+  term_id?: InputMaybe<String_Comparison_Exp>;
   total_assets?: InputMaybe<Numeric_Comparison_Exp>;
   total_market_cap?: InputMaybe<Numeric_Comparison_Exp>;
   total_position_count?: InputMaybe<Bigint_Comparison_Exp>;
@@ -9909,8 +10587,8 @@ export type Triple_Term_Stream_Cursor_Input = {
 
 /** Initial value of the column from where the streaming should start */
 export type Triple_Term_Stream_Cursor_Value_Input = {
-  counter_term_id?: InputMaybe<Scalars['bytea']['input']>;
-  term_id?: InputMaybe<Scalars['bytea']['input']>;
+  counter_term_id?: InputMaybe<Scalars['String']['input']>;
+  term_id?: InputMaybe<Scalars['String']['input']>;
   total_assets?: InputMaybe<Scalars['numeric']['input']>;
   total_market_cap?: InputMaybe<Scalars['numeric']['input']>;
   total_position_count?: InputMaybe<Scalars['bigint']['input']>;
@@ -9923,14 +10601,14 @@ export type Triple_Vault = {
   block_number: Scalars['numeric']['output'];
   /** An object relationship */
   counter_term?: Maybe<Terms>;
-  counter_term_id: Scalars['bytea']['output'];
+  counter_term_id: Scalars['String']['output'];
   curve_id: Scalars['numeric']['output'];
   log_index: Scalars['bigint']['output'];
   market_cap: Scalars['numeric']['output'];
   position_count: Scalars['bigint']['output'];
   /** An object relationship */
   term?: Maybe<Terms>;
-  term_id: Scalars['bytea']['output'];
+  term_id: Scalars['String']['output'];
   total_assets: Scalars['numeric']['output'];
   total_shares: Scalars['numeric']['output'];
   updated_at: Scalars['timestamptz']['output'];
@@ -9943,13 +10621,13 @@ export type Triple_Vault_Bool_Exp = {
   _or?: InputMaybe<Array<Triple_Vault_Bool_Exp>>;
   block_number?: InputMaybe<Numeric_Comparison_Exp>;
   counter_term?: InputMaybe<Terms_Bool_Exp>;
-  counter_term_id?: InputMaybe<Bytea_Comparison_Exp>;
+  counter_term_id?: InputMaybe<String_Comparison_Exp>;
   curve_id?: InputMaybe<Numeric_Comparison_Exp>;
   log_index?: InputMaybe<Bigint_Comparison_Exp>;
   market_cap?: InputMaybe<Numeric_Comparison_Exp>;
   position_count?: InputMaybe<Bigint_Comparison_Exp>;
   term?: InputMaybe<Terms_Bool_Exp>;
-  term_id?: InputMaybe<Bytea_Comparison_Exp>;
+  term_id?: InputMaybe<String_Comparison_Exp>;
   total_assets?: InputMaybe<Numeric_Comparison_Exp>;
   total_shares?: InputMaybe<Numeric_Comparison_Exp>;
   updated_at?: InputMaybe<Timestamptz_Comparison_Exp>;
@@ -10006,12 +10684,12 @@ export type Triple_Vault_Stream_Cursor_Input = {
 /** Initial value of the column from where the streaming should start */
 export type Triple_Vault_Stream_Cursor_Value_Input = {
   block_number?: InputMaybe<Scalars['numeric']['input']>;
-  counter_term_id?: InputMaybe<Scalars['bytea']['input']>;
+  counter_term_id?: InputMaybe<Scalars['String']['input']>;
   curve_id?: InputMaybe<Scalars['numeric']['input']>;
   log_index?: InputMaybe<Scalars['bigint']['input']>;
   market_cap?: InputMaybe<Scalars['numeric']['input']>;
   position_count?: InputMaybe<Scalars['bigint']['input']>;
-  term_id?: InputMaybe<Scalars['bytea']['input']>;
+  term_id?: InputMaybe<Scalars['String']['input']>;
   total_assets?: InputMaybe<Scalars['numeric']['input']>;
   total_shares?: InputMaybe<Scalars['numeric']['input']>;
   updated_at?: InputMaybe<Scalars['timestamptz']['input']>;
@@ -10027,27 +10705,27 @@ export type Triples = {
   counter_positions_aggregate: Positions_Aggregate;
   /** An object relationship */
   counter_term?: Maybe<Terms>;
-  counter_term_id: Scalars['bytea']['output'];
+  counter_term_id: Scalars['String']['output'];
   created_at: Scalars['timestamptz']['output'];
   /** An object relationship */
   creator?: Maybe<Accounts>;
   creator_id: Scalars['String']['output'];
   /** An object relationship */
   object: Atoms;
-  object_id: Scalars['bytea']['output'];
+  object_id: Scalars['String']['output'];
   /** An array relationship */
   positions: Array<Positions>;
   /** An aggregate relationship */
   positions_aggregate: Positions_Aggregate;
   /** An object relationship */
   predicate: Atoms;
-  predicate_id: Scalars['bytea']['output'];
+  predicate_id: Scalars['String']['output'];
   /** An object relationship */
   subject: Atoms;
-  subject_id: Scalars['bytea']['output'];
+  subject_id: Scalars['String']['output'];
   /** An object relationship */
   term?: Maybe<Terms>;
-  term_id: Scalars['bytea']['output'];
+  term_id: Scalars['String']['output'];
   transaction_hash: Scalars['String']['output'];
   /** An object relationship */
   triple_term?: Maybe<Triple_Term>;
@@ -10171,20 +10849,20 @@ export type Triples_Bool_Exp = {
   counter_positions?: InputMaybe<Positions_Bool_Exp>;
   counter_positions_aggregate?: InputMaybe<Positions_Aggregate_Bool_Exp>;
   counter_term?: InputMaybe<Terms_Bool_Exp>;
-  counter_term_id?: InputMaybe<Bytea_Comparison_Exp>;
+  counter_term_id?: InputMaybe<String_Comparison_Exp>;
   created_at?: InputMaybe<Timestamptz_Comparison_Exp>;
   creator?: InputMaybe<Accounts_Bool_Exp>;
   creator_id?: InputMaybe<String_Comparison_Exp>;
   object?: InputMaybe<Atoms_Bool_Exp>;
-  object_id?: InputMaybe<Bytea_Comparison_Exp>;
+  object_id?: InputMaybe<String_Comparison_Exp>;
   positions?: InputMaybe<Positions_Bool_Exp>;
   positions_aggregate?: InputMaybe<Positions_Aggregate_Bool_Exp>;
   predicate?: InputMaybe<Atoms_Bool_Exp>;
-  predicate_id?: InputMaybe<Bytea_Comparison_Exp>;
+  predicate_id?: InputMaybe<String_Comparison_Exp>;
   subject?: InputMaybe<Atoms_Bool_Exp>;
-  subject_id?: InputMaybe<Bytea_Comparison_Exp>;
+  subject_id?: InputMaybe<String_Comparison_Exp>;
   term?: InputMaybe<Terms_Bool_Exp>;
-  term_id?: InputMaybe<Bytea_Comparison_Exp>;
+  term_id?: InputMaybe<String_Comparison_Exp>;
   transaction_hash?: InputMaybe<String_Comparison_Exp>;
   triple_term?: InputMaybe<Triple_Term_Bool_Exp>;
   triple_vault?: InputMaybe<Triple_Vault_Bool_Exp>;
@@ -10194,16 +10872,26 @@ export type Triples_Bool_Exp = {
 export type Triples_Max_Fields = {
   __typename?: 'triples_max_fields';
   block_number?: Maybe<Scalars['numeric']['output']>;
+  counter_term_id?: Maybe<Scalars['String']['output']>;
   created_at?: Maybe<Scalars['timestamptz']['output']>;
   creator_id?: Maybe<Scalars['String']['output']>;
+  object_id?: Maybe<Scalars['String']['output']>;
+  predicate_id?: Maybe<Scalars['String']['output']>;
+  subject_id?: Maybe<Scalars['String']['output']>;
+  term_id?: Maybe<Scalars['String']['output']>;
   transaction_hash?: Maybe<Scalars['String']['output']>;
 };
 
 /** order by max() on columns of table "triple" */
 export type Triples_Max_Order_By = {
   block_number?: InputMaybe<Order_By>;
+  counter_term_id?: InputMaybe<Order_By>;
   created_at?: InputMaybe<Order_By>;
   creator_id?: InputMaybe<Order_By>;
+  object_id?: InputMaybe<Order_By>;
+  predicate_id?: InputMaybe<Order_By>;
+  subject_id?: InputMaybe<Order_By>;
+  term_id?: InputMaybe<Order_By>;
   transaction_hash?: InputMaybe<Order_By>;
 };
 
@@ -10211,16 +10899,26 @@ export type Triples_Max_Order_By = {
 export type Triples_Min_Fields = {
   __typename?: 'triples_min_fields';
   block_number?: Maybe<Scalars['numeric']['output']>;
+  counter_term_id?: Maybe<Scalars['String']['output']>;
   created_at?: Maybe<Scalars['timestamptz']['output']>;
   creator_id?: Maybe<Scalars['String']['output']>;
+  object_id?: Maybe<Scalars['String']['output']>;
+  predicate_id?: Maybe<Scalars['String']['output']>;
+  subject_id?: Maybe<Scalars['String']['output']>;
+  term_id?: Maybe<Scalars['String']['output']>;
   transaction_hash?: Maybe<Scalars['String']['output']>;
 };
 
 /** order by min() on columns of table "triple" */
 export type Triples_Min_Order_By = {
   block_number?: InputMaybe<Order_By>;
+  counter_term_id?: InputMaybe<Order_By>;
   created_at?: InputMaybe<Order_By>;
   creator_id?: InputMaybe<Order_By>;
+  object_id?: InputMaybe<Order_By>;
+  predicate_id?: InputMaybe<Order_By>;
+  subject_id?: InputMaybe<Order_By>;
+  term_id?: InputMaybe<Order_By>;
   transaction_hash?: InputMaybe<Order_By>;
 };
 
@@ -10313,13 +11011,13 @@ export type Triples_Stream_Cursor_Input = {
 /** Initial value of the column from where the streaming should start */
 export type Triples_Stream_Cursor_Value_Input = {
   block_number?: InputMaybe<Scalars['numeric']['input']>;
-  counter_term_id?: InputMaybe<Scalars['bytea']['input']>;
+  counter_term_id?: InputMaybe<Scalars['String']['input']>;
   created_at?: InputMaybe<Scalars['timestamptz']['input']>;
   creator_id?: InputMaybe<Scalars['String']['input']>;
-  object_id?: InputMaybe<Scalars['bytea']['input']>;
-  predicate_id?: InputMaybe<Scalars['bytea']['input']>;
-  subject_id?: InputMaybe<Scalars['bytea']['input']>;
-  term_id?: InputMaybe<Scalars['bytea']['input']>;
+  object_id?: InputMaybe<Scalars['String']['input']>;
+  predicate_id?: InputMaybe<Scalars['String']['input']>;
+  subject_id?: InputMaybe<Scalars['String']['input']>;
+  term_id?: InputMaybe<Scalars['String']['input']>;
   transaction_hash?: InputMaybe<Scalars['String']['input']>;
 };
 
@@ -10367,9 +11065,23 @@ export type Triples_Variance_Order_By = {
   block_number?: InputMaybe<Order_By>;
 };
 
+/** Boolean expression to compare columns of type "vault_type". All fields are combined with logical 'AND'. */
+export type Vault_Type_Comparison_Exp = {
+  _eq?: InputMaybe<Scalars['vault_type']['input']>;
+  _gt?: InputMaybe<Scalars['vault_type']['input']>;
+  _gte?: InputMaybe<Scalars['vault_type']['input']>;
+  _in?: InputMaybe<Array<Scalars['vault_type']['input']>>;
+  _is_null?: InputMaybe<Scalars['Boolean']['input']>;
+  _lt?: InputMaybe<Scalars['vault_type']['input']>;
+  _lte?: InputMaybe<Scalars['vault_type']['input']>;
+  _neq?: InputMaybe<Scalars['vault_type']['input']>;
+  _nin?: InputMaybe<Array<Scalars['vault_type']['input']>>;
+};
+
 /** columns and relationships of "vault" */
 export type Vaults = {
   __typename?: 'vaults';
+  block_number: Scalars['bigint']['output'];
   created_at: Scalars['timestamptz']['output'];
   current_share_price: Scalars['numeric']['output'];
   curve_id: Scalars['numeric']['output'];
@@ -10377,6 +11089,7 @@ export type Vaults = {
   deposits: Array<Deposits>;
   /** An aggregate relationship */
   deposits_aggregate: Deposits_Aggregate;
+  log_index: Scalars['bigint']['output'];
   market_cap: Scalars['numeric']['output'];
   position_count: Scalars['Int']['output'];
   /** An array relationship */
@@ -10405,9 +11118,10 @@ export type Vaults = {
   signals_aggregate: Signals_Aggregate;
   /** An object relationship */
   term: Terms;
-  term_id: Scalars['bytea']['output'];
+  term_id: Scalars['String']['output'];
   total_assets: Scalars['numeric']['output'];
   total_shares: Scalars['numeric']['output'];
+  transaction_hash: Scalars['String']['output'];
   updated_at: Scalars['timestamptz']['output'];
 };
 
@@ -10610,8 +11324,10 @@ export type Vaults_Aggregate_Order_By = {
 /** aggregate avg on columns */
 export type Vaults_Avg_Fields = {
   __typename?: 'vaults_avg_fields';
+  block_number?: Maybe<Scalars['Float']['output']>;
   current_share_price?: Maybe<Scalars['Float']['output']>;
   curve_id?: Maybe<Scalars['Float']['output']>;
+  log_index?: Maybe<Scalars['Float']['output']>;
   market_cap?: Maybe<Scalars['Float']['output']>;
   position_count?: Maybe<Scalars['Float']['output']>;
   total_assets?: Maybe<Scalars['Float']['output']>;
@@ -10620,8 +11336,10 @@ export type Vaults_Avg_Fields = {
 
 /** order by avg() on columns of table "vault" */
 export type Vaults_Avg_Order_By = {
+  block_number?: InputMaybe<Order_By>;
   current_share_price?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   market_cap?: InputMaybe<Order_By>;
   position_count?: InputMaybe<Order_By>;
   total_assets?: InputMaybe<Order_By>;
@@ -10633,11 +11351,13 @@ export type Vaults_Bool_Exp = {
   _and?: InputMaybe<Array<Vaults_Bool_Exp>>;
   _not?: InputMaybe<Vaults_Bool_Exp>;
   _or?: InputMaybe<Array<Vaults_Bool_Exp>>;
+  block_number?: InputMaybe<Bigint_Comparison_Exp>;
   created_at?: InputMaybe<Timestamptz_Comparison_Exp>;
   current_share_price?: InputMaybe<Numeric_Comparison_Exp>;
   curve_id?: InputMaybe<Numeric_Comparison_Exp>;
   deposits?: InputMaybe<Deposits_Bool_Exp>;
   deposits_aggregate?: InputMaybe<Deposits_Aggregate_Bool_Exp>;
+  log_index?: InputMaybe<Bigint_Comparison_Exp>;
   market_cap?: InputMaybe<Numeric_Comparison_Exp>;
   position_count?: InputMaybe<Int_Comparison_Exp>;
   positions?: InputMaybe<Positions_Bool_Exp>;
@@ -10653,68 +11373,87 @@ export type Vaults_Bool_Exp = {
   signals?: InputMaybe<Signals_Bool_Exp>;
   signals_aggregate?: InputMaybe<Signals_Aggregate_Bool_Exp>;
   term?: InputMaybe<Terms_Bool_Exp>;
-  term_id?: InputMaybe<Bytea_Comparison_Exp>;
+  term_id?: InputMaybe<String_Comparison_Exp>;
   total_assets?: InputMaybe<Numeric_Comparison_Exp>;
   total_shares?: InputMaybe<Numeric_Comparison_Exp>;
+  transaction_hash?: InputMaybe<String_Comparison_Exp>;
   updated_at?: InputMaybe<Timestamptz_Comparison_Exp>;
 };
 
 /** aggregate max on columns */
 export type Vaults_Max_Fields = {
   __typename?: 'vaults_max_fields';
+  block_number?: Maybe<Scalars['bigint']['output']>;
   created_at?: Maybe<Scalars['timestamptz']['output']>;
   current_share_price?: Maybe<Scalars['numeric']['output']>;
   curve_id?: Maybe<Scalars['numeric']['output']>;
+  log_index?: Maybe<Scalars['bigint']['output']>;
   market_cap?: Maybe<Scalars['numeric']['output']>;
   position_count?: Maybe<Scalars['Int']['output']>;
+  term_id?: Maybe<Scalars['String']['output']>;
   total_assets?: Maybe<Scalars['numeric']['output']>;
   total_shares?: Maybe<Scalars['numeric']['output']>;
+  transaction_hash?: Maybe<Scalars['String']['output']>;
   updated_at?: Maybe<Scalars['timestamptz']['output']>;
 };
 
 /** order by max() on columns of table "vault" */
 export type Vaults_Max_Order_By = {
+  block_number?: InputMaybe<Order_By>;
   created_at?: InputMaybe<Order_By>;
   current_share_price?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   market_cap?: InputMaybe<Order_By>;
   position_count?: InputMaybe<Order_By>;
+  term_id?: InputMaybe<Order_By>;
   total_assets?: InputMaybe<Order_By>;
   total_shares?: InputMaybe<Order_By>;
+  transaction_hash?: InputMaybe<Order_By>;
   updated_at?: InputMaybe<Order_By>;
 };
 
 /** aggregate min on columns */
 export type Vaults_Min_Fields = {
   __typename?: 'vaults_min_fields';
+  block_number?: Maybe<Scalars['bigint']['output']>;
   created_at?: Maybe<Scalars['timestamptz']['output']>;
   current_share_price?: Maybe<Scalars['numeric']['output']>;
   curve_id?: Maybe<Scalars['numeric']['output']>;
+  log_index?: Maybe<Scalars['bigint']['output']>;
   market_cap?: Maybe<Scalars['numeric']['output']>;
   position_count?: Maybe<Scalars['Int']['output']>;
+  term_id?: Maybe<Scalars['String']['output']>;
   total_assets?: Maybe<Scalars['numeric']['output']>;
   total_shares?: Maybe<Scalars['numeric']['output']>;
+  transaction_hash?: Maybe<Scalars['String']['output']>;
   updated_at?: Maybe<Scalars['timestamptz']['output']>;
 };
 
 /** order by min() on columns of table "vault" */
 export type Vaults_Min_Order_By = {
+  block_number?: InputMaybe<Order_By>;
   created_at?: InputMaybe<Order_By>;
   current_share_price?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   market_cap?: InputMaybe<Order_By>;
   position_count?: InputMaybe<Order_By>;
+  term_id?: InputMaybe<Order_By>;
   total_assets?: InputMaybe<Order_By>;
   total_shares?: InputMaybe<Order_By>;
+  transaction_hash?: InputMaybe<Order_By>;
   updated_at?: InputMaybe<Order_By>;
 };
 
 /** Ordering options when selecting data from "vault". */
 export type Vaults_Order_By = {
+  block_number?: InputMaybe<Order_By>;
   created_at?: InputMaybe<Order_By>;
   current_share_price?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
   deposits_aggregate?: InputMaybe<Deposits_Aggregate_Order_By>;
+  log_index?: InputMaybe<Order_By>;
   market_cap?: InputMaybe<Order_By>;
   position_count?: InputMaybe<Order_By>;
   positions_aggregate?: InputMaybe<Positions_Aggregate_Order_By>;
@@ -10729,17 +11468,22 @@ export type Vaults_Order_By = {
   term_id?: InputMaybe<Order_By>;
   total_assets?: InputMaybe<Order_By>;
   total_shares?: InputMaybe<Order_By>;
+  transaction_hash?: InputMaybe<Order_By>;
   updated_at?: InputMaybe<Order_By>;
 };
 
 /** select columns of table "vault" */
 export enum Vaults_Select_Column {
   /** column name */
+  BlockNumber = 'block_number',
+  /** column name */
   CreatedAt = 'created_at',
   /** column name */
   CurrentSharePrice = 'current_share_price',
   /** column name */
   CurveId = 'curve_id',
+  /** column name */
+  LogIndex = 'log_index',
   /** column name */
   MarketCap = 'market_cap',
   /** column name */
@@ -10751,14 +11495,18 @@ export enum Vaults_Select_Column {
   /** column name */
   TotalShares = 'total_shares',
   /** column name */
+  TransactionHash = 'transaction_hash',
+  /** column name */
   UpdatedAt = 'updated_at'
 }
 
 /** aggregate stddev on columns */
 export type Vaults_Stddev_Fields = {
   __typename?: 'vaults_stddev_fields';
+  block_number?: Maybe<Scalars['Float']['output']>;
   current_share_price?: Maybe<Scalars['Float']['output']>;
   curve_id?: Maybe<Scalars['Float']['output']>;
+  log_index?: Maybe<Scalars['Float']['output']>;
   market_cap?: Maybe<Scalars['Float']['output']>;
   position_count?: Maybe<Scalars['Float']['output']>;
   total_assets?: Maybe<Scalars['Float']['output']>;
@@ -10767,8 +11515,10 @@ export type Vaults_Stddev_Fields = {
 
 /** order by stddev() on columns of table "vault" */
 export type Vaults_Stddev_Order_By = {
+  block_number?: InputMaybe<Order_By>;
   current_share_price?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   market_cap?: InputMaybe<Order_By>;
   position_count?: InputMaybe<Order_By>;
   total_assets?: InputMaybe<Order_By>;
@@ -10778,8 +11528,10 @@ export type Vaults_Stddev_Order_By = {
 /** aggregate stddev_pop on columns */
 export type Vaults_Stddev_Pop_Fields = {
   __typename?: 'vaults_stddev_pop_fields';
+  block_number?: Maybe<Scalars['Float']['output']>;
   current_share_price?: Maybe<Scalars['Float']['output']>;
   curve_id?: Maybe<Scalars['Float']['output']>;
+  log_index?: Maybe<Scalars['Float']['output']>;
   market_cap?: Maybe<Scalars['Float']['output']>;
   position_count?: Maybe<Scalars['Float']['output']>;
   total_assets?: Maybe<Scalars['Float']['output']>;
@@ -10788,8 +11540,10 @@ export type Vaults_Stddev_Pop_Fields = {
 
 /** order by stddev_pop() on columns of table "vault" */
 export type Vaults_Stddev_Pop_Order_By = {
+  block_number?: InputMaybe<Order_By>;
   current_share_price?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   market_cap?: InputMaybe<Order_By>;
   position_count?: InputMaybe<Order_By>;
   total_assets?: InputMaybe<Order_By>;
@@ -10799,8 +11553,10 @@ export type Vaults_Stddev_Pop_Order_By = {
 /** aggregate stddev_samp on columns */
 export type Vaults_Stddev_Samp_Fields = {
   __typename?: 'vaults_stddev_samp_fields';
+  block_number?: Maybe<Scalars['Float']['output']>;
   current_share_price?: Maybe<Scalars['Float']['output']>;
   curve_id?: Maybe<Scalars['Float']['output']>;
+  log_index?: Maybe<Scalars['Float']['output']>;
   market_cap?: Maybe<Scalars['Float']['output']>;
   position_count?: Maybe<Scalars['Float']['output']>;
   total_assets?: Maybe<Scalars['Float']['output']>;
@@ -10809,8 +11565,10 @@ export type Vaults_Stddev_Samp_Fields = {
 
 /** order by stddev_samp() on columns of table "vault" */
 export type Vaults_Stddev_Samp_Order_By = {
+  block_number?: InputMaybe<Order_By>;
   current_share_price?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   market_cap?: InputMaybe<Order_By>;
   position_count?: InputMaybe<Order_By>;
   total_assets?: InputMaybe<Order_By>;
@@ -10827,22 +11585,27 @@ export type Vaults_Stream_Cursor_Input = {
 
 /** Initial value of the column from where the streaming should start */
 export type Vaults_Stream_Cursor_Value_Input = {
+  block_number?: InputMaybe<Scalars['bigint']['input']>;
   created_at?: InputMaybe<Scalars['timestamptz']['input']>;
   current_share_price?: InputMaybe<Scalars['numeric']['input']>;
   curve_id?: InputMaybe<Scalars['numeric']['input']>;
+  log_index?: InputMaybe<Scalars['bigint']['input']>;
   market_cap?: InputMaybe<Scalars['numeric']['input']>;
   position_count?: InputMaybe<Scalars['Int']['input']>;
-  term_id?: InputMaybe<Scalars['bytea']['input']>;
+  term_id?: InputMaybe<Scalars['String']['input']>;
   total_assets?: InputMaybe<Scalars['numeric']['input']>;
   total_shares?: InputMaybe<Scalars['numeric']['input']>;
+  transaction_hash?: InputMaybe<Scalars['String']['input']>;
   updated_at?: InputMaybe<Scalars['timestamptz']['input']>;
 };
 
 /** aggregate sum on columns */
 export type Vaults_Sum_Fields = {
   __typename?: 'vaults_sum_fields';
+  block_number?: Maybe<Scalars['bigint']['output']>;
   current_share_price?: Maybe<Scalars['numeric']['output']>;
   curve_id?: Maybe<Scalars['numeric']['output']>;
+  log_index?: Maybe<Scalars['bigint']['output']>;
   market_cap?: Maybe<Scalars['numeric']['output']>;
   position_count?: Maybe<Scalars['Int']['output']>;
   total_assets?: Maybe<Scalars['numeric']['output']>;
@@ -10851,8 +11614,10 @@ export type Vaults_Sum_Fields = {
 
 /** order by sum() on columns of table "vault" */
 export type Vaults_Sum_Order_By = {
+  block_number?: InputMaybe<Order_By>;
   current_share_price?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   market_cap?: InputMaybe<Order_By>;
   position_count?: InputMaybe<Order_By>;
   total_assets?: InputMaybe<Order_By>;
@@ -10862,8 +11627,10 @@ export type Vaults_Sum_Order_By = {
 /** aggregate var_pop on columns */
 export type Vaults_Var_Pop_Fields = {
   __typename?: 'vaults_var_pop_fields';
+  block_number?: Maybe<Scalars['Float']['output']>;
   current_share_price?: Maybe<Scalars['Float']['output']>;
   curve_id?: Maybe<Scalars['Float']['output']>;
+  log_index?: Maybe<Scalars['Float']['output']>;
   market_cap?: Maybe<Scalars['Float']['output']>;
   position_count?: Maybe<Scalars['Float']['output']>;
   total_assets?: Maybe<Scalars['Float']['output']>;
@@ -10872,8 +11639,10 @@ export type Vaults_Var_Pop_Fields = {
 
 /** order by var_pop() on columns of table "vault" */
 export type Vaults_Var_Pop_Order_By = {
+  block_number?: InputMaybe<Order_By>;
   current_share_price?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   market_cap?: InputMaybe<Order_By>;
   position_count?: InputMaybe<Order_By>;
   total_assets?: InputMaybe<Order_By>;
@@ -10883,8 +11652,10 @@ export type Vaults_Var_Pop_Order_By = {
 /** aggregate var_samp on columns */
 export type Vaults_Var_Samp_Fields = {
   __typename?: 'vaults_var_samp_fields';
+  block_number?: Maybe<Scalars['Float']['output']>;
   current_share_price?: Maybe<Scalars['Float']['output']>;
   curve_id?: Maybe<Scalars['Float']['output']>;
+  log_index?: Maybe<Scalars['Float']['output']>;
   market_cap?: Maybe<Scalars['Float']['output']>;
   position_count?: Maybe<Scalars['Float']['output']>;
   total_assets?: Maybe<Scalars['Float']['output']>;
@@ -10893,8 +11664,10 @@ export type Vaults_Var_Samp_Fields = {
 
 /** order by var_samp() on columns of table "vault" */
 export type Vaults_Var_Samp_Order_By = {
+  block_number?: InputMaybe<Order_By>;
   current_share_price?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   market_cap?: InputMaybe<Order_By>;
   position_count?: InputMaybe<Order_By>;
   total_assets?: InputMaybe<Order_By>;
@@ -10904,8 +11677,10 @@ export type Vaults_Var_Samp_Order_By = {
 /** aggregate variance on columns */
 export type Vaults_Variance_Fields = {
   __typename?: 'vaults_variance_fields';
+  block_number?: Maybe<Scalars['Float']['output']>;
   current_share_price?: Maybe<Scalars['Float']['output']>;
   curve_id?: Maybe<Scalars['Float']['output']>;
+  log_index?: Maybe<Scalars['Float']['output']>;
   market_cap?: Maybe<Scalars['Float']['output']>;
   position_count?: Maybe<Scalars['Float']['output']>;
   total_assets?: Maybe<Scalars['Float']['output']>;
@@ -10914,8 +11689,10 @@ export type Vaults_Variance_Fields = {
 
 /** order by variance() on columns of table "vault" */
 export type Vaults_Variance_Order_By = {
+  block_number?: InputMaybe<Order_By>;
   current_share_price?: InputMaybe<Order_By>;
   curve_id?: InputMaybe<Order_By>;
+  log_index?: InputMaybe<Order_By>;
   market_cap?: InputMaybe<Order_By>;
   position_count?: InputMaybe<Order_By>;
   total_assets?: InputMaybe<Order_By>;
@@ -10936,47 +11713,47 @@ export type SearchPositionsQueryVariables = Exact<{
 export type SearchPositionsQuery = { __typename?: 'query_root', positions: Array<{ __typename?: 'positions', term: { __typename?: 'terms', triple?: { __typename?: 'triples', subject: { __typename?: 'atoms', data?: string | null }, predicate: { __typename?: 'atoms', data?: string | null }, object: { __typename?: 'atoms', data?: string | null } } | null } }> };
 
 export type TermQueryVariables = Exact<{
-  termId: Scalars['bytea']['input'];
+  termId: Scalars['String']['input'];
 }>;
 
 
 export type TermQuery = { __typename?: 'query_root', atom?: { __typename?: 'atoms', label?: string | null } | null };
 
 export type AtomWithClaimsQueryVariables = Exact<{
-  atomId: Scalars['bytea']['input'];
+  atomId: Scalars['String']['input'];
   address?: InputMaybe<Scalars['String']['input']>;
 }>;
 
 
-export type AtomWithClaimsQuery = { __typename?: 'query_root', atom?: { __typename?: 'atoms', term_id: any, label?: string | null, value?: { __typename?: 'atom_values', thing?: { __typename?: 'things', name?: string | null, description?: string | null, url?: string | null, image?: string | null } | null } | null } | null, positions: Array<{ __typename?: 'positions', term: { __typename?: 'terms', triple?: { __typename?: 'triples', predicate: { __typename?: 'atoms', term_id: any, type: any, label?: string | null }, object: { __typename?: 'atoms', value?: { __typename?: 'atom_values', thing?: { __typename?: 'things', name?: string | null, description?: string | null, url?: string | null, image?: string | null } | null } | null } } | null } }>, positions_from_following: Array<{ __typename?: 'positions', term: { __typename?: 'terms', triple?: { __typename?: 'triples', predicate: { __typename?: 'atoms', term_id: any, type: any, label?: string | null }, object: { __typename?: 'atoms', value?: { __typename?: 'atom_values', thing?: { __typename?: 'things', name?: string | null, description?: string | null, url?: string | null, image?: string | null } | null } | null } } | null } }> };
+export type AtomWithClaimsQuery = { __typename?: 'query_root', atom?: { __typename?: 'atoms', term_id: string, label?: string | null, value?: { __typename?: 'atom_values', thing?: { __typename?: 'things', name?: string | null, description?: string | null, url?: string | null, image?: string | null } | null } | null } | null, positions: Array<{ __typename?: 'positions', term: { __typename?: 'terms', triple?: { __typename?: 'triples', predicate: { __typename?: 'atoms', term_id: string, type: any, label?: string | null }, object: { __typename?: 'atoms', value?: { __typename?: 'atom_values', thing?: { __typename?: 'things', name?: string | null, description?: string | null, url?: string | null, image?: string | null } | null } | null } } | null } }>, positions_from_following: Array<{ __typename?: 'positions', term: { __typename?: 'terms', triple?: { __typename?: 'triples', predicate: { __typename?: 'atoms', term_id: string, type: any, label?: string | null }, object: { __typename?: 'atoms', value?: { __typename?: 'atom_values', thing?: { __typename?: 'things', name?: string | null, description?: string | null, url?: string | null, image?: string | null } | null } | null } } | null } }> };
 
 export type FollowingQueryVariables = Exact<{
   address: Scalars['String']['input'];
 }>;
 
 
-export type FollowingQuery = { __typename?: 'query_root', following: Array<{ __typename?: 'accounts', id: string, atom_id?: any | null }> };
+export type FollowingQuery = { __typename?: 'query_root', following: Array<{ __typename?: 'accounts', id: string, atom_id?: string | null }> };
 
 export type AtomOrgProfileQueryVariables = Exact<{
-  term_id: Scalars['bytea']['input'];
+  term_id: Scalars['String']['input'];
 }>;
 
 
-export type AtomOrgProfileQuery = { __typename?: 'query_root', atom?: { __typename?: 'atoms', term_id: any, label?: string | null, orgs: Array<{ __typename?: 'triples', object: { __typename?: 'atoms', term_id: any, label?: string | null } }>, projects: Array<{ __typename?: 'triples', object: { __typename?: 'atoms', term_id: any, label?: string | null } }>, skills: Array<{ __typename?: 'triples', object: { __typename?: 'atoms', term_id: any, label?: string | null } }> } | null };
+export type AtomOrgProfileQuery = { __typename?: 'query_root', atom?: { __typename?: 'atoms', term_id: string, label?: string | null, orgs: Array<{ __typename?: 'triples', object: { __typename?: 'atoms', term_id: string, label?: string | null } }>, projects: Array<{ __typename?: 'triples', object: { __typename?: 'atoms', term_id: string, label?: string | null } }>, skills: Array<{ __typename?: 'triples', object: { __typename?: 'atoms', term_id: string, label?: string | null } }> } | null };
 
 export type PositionsQueryVariables = Exact<{
   address: Scalars['String']['input'];
 }>;
 
 
-export type PositionsQuery = { __typename?: 'query_root', account?: { __typename?: 'accounts', positions: Array<{ __typename?: 'positions', id: string, curve_id: any, term_id: any, shares: any }> } | null };
+export type PositionsQuery = { __typename?: 'query_root', account?: { __typename?: 'accounts', positions: Array<{ __typename?: 'positions', id: string, curve_id: any, term_id: string, shares: any }> } | null };
 
 export type SearchTermQueryVariables = Exact<{
   query: Scalars['String']['input'];
 }>;
 
 
-export type SearchTermQuery = { __typename?: 'query_root', search_term: Array<{ __typename?: 'terms', id: any, atom?: { __typename?: 'atoms', label?: string | null } | null }> };
+export type SearchTermQuery = { __typename?: 'query_root', search_term: Array<{ __typename?: 'terms', id: string, atom?: { __typename?: 'atoms', label?: string | null } | null }> };
 
 export type SearchFromFollowingQueryVariables = Exact<{
   address: Scalars['String']['input'];
@@ -10984,7 +11761,7 @@ export type SearchFromFollowingQueryVariables = Exact<{
 }>;
 
 
-export type SearchFromFollowingQuery = { __typename?: 'query_root', search_term_from_following: Array<{ __typename?: 'terms', id: any, atom?: { __typename?: 'atoms', label?: string | null } | null }> };
+export type SearchFromFollowingQuery = { __typename?: 'query_root', search_term_from_following: Array<{ __typename?: 'terms', id: string, atom?: { __typename?: 'atoms', label?: string | null } | null }> };
 
 export type GetTransactionEventsQueryVariables = Exact<{
   hash: Scalars['String']['input'];
@@ -10993,28 +11770,21 @@ export type GetTransactionEventsQueryVariables = Exact<{
 
 export type GetTransactionEventsQuery = { __typename?: 'query_root', events: Array<{ __typename?: 'events', transaction_hash: string }> };
 
-export type AtomQueryVariables = Exact<{
-  id: Scalars['bytea']['input'];
-}>;
-
-
-export type AtomQuery = { __typename?: 'query_root', atom?: { __typename?: 'atoms', wallet_id: string } | null };
-
 export type Positions2QueryVariables = Exact<{
   address: Scalars['String']['input'];
-  term_id: Scalars['bytea']['input'];
+  term_id: Scalars['String']['input'];
   curve_id: Scalars['numeric']['input'];
 }>;
 
 
-export type Positions2Query = { __typename?: 'query_root', positions: Array<{ __typename?: 'positions', id: string, curve_id: any, term_id: any, shares: any }> };
+export type Positions2Query = { __typename?: 'query_root', positions: Array<{ __typename?: 'positions', id: string, curve_id: any, term_id: string, shares: any }> };
 
 export type TripleQueryVariables = Exact<{
-  term_id: Scalars['bytea']['input'];
+  term_id: Scalars['String']['input'];
 }>;
 
 
-export type TripleQuery = { __typename?: 'query_root', triple?: { __typename?: 'triples', term_id: any, term?: { __typename?: 'terms', total_assets?: any | null, total_market_cap?: any | null } | null, counter_term?: { __typename?: 'terms', total_assets?: any | null, total_market_cap?: any | null } | null, triple_term?: { __typename?: 'triple_term', total_assets: any, total_market_cap: any } | null } | null };
+export type TripleQuery = { __typename?: 'query_root', triple?: { __typename?: 'triples', term_id: string, term?: { __typename?: 'terms', total_assets?: any | null, total_market_cap?: any | null } | null, counter_term?: { __typename?: 'terms', total_assets?: any | null, total_market_cap?: any | null } | null, triple_term?: { __typename?: 'triple_term', total_assets: any, total_market_cap: any } | null } | null };
 
 export class TypedDocumentString<TResult, TVariables>
   extends String
@@ -11076,14 +11846,14 @@ export const SearchPositionsDocument = new TypedDocumentString(`
 }
     `) as unknown as TypedDocumentString<SearchPositionsQuery, SearchPositionsQueryVariables>;
 export const TermDocument = new TypedDocumentString(`
-    query Term($termId: bytea!) {
+    query Term($termId: String!) {
   atom(term_id: $termId) {
     label
   }
 }
     `) as unknown as TypedDocumentString<TermQuery, TermQueryVariables>;
 export const AtomWithClaimsDocument = new TypedDocumentString(`
-    query AtomWithClaims($atomId: bytea!, $address: String) {
+    query AtomWithClaims($atomId: String!, $address: String) {
   atom(term_id: $atomId) {
     term_id
     label
@@ -11155,7 +11925,7 @@ export const FollowingDocument = new TypedDocumentString(`
 }
     `) as unknown as TypedDocumentString<FollowingQuery, FollowingQueryVariables>;
 export const AtomOrgProfileDocument = new TypedDocumentString(`
-    query AtomOrgProfile($term_id: bytea!) {
+    query AtomOrgProfile($term_id: String!) {
   atom(term_id: $term_id) {
     term_id
     label
@@ -11225,15 +11995,8 @@ export const GetTransactionEventsDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<GetTransactionEventsQuery, GetTransactionEventsQueryVariables>;
-export const AtomDocument = new TypedDocumentString(`
-    query atom($id: bytea!) {
-  atom(term_id: $id) {
-    wallet_id
-  }
-}
-    `) as unknown as TypedDocumentString<AtomQuery, AtomQueryVariables>;
 export const Positions2Document = new TypedDocumentString(`
-    query positions2($address: String!, $term_id: bytea!, $curve_id: numeric!) {
+    query positions2($address: String!, $term_id: String!, $curve_id: numeric!) {
   positions(
     where: {account_id: {_eq: $address}, curve_id: {_eq: $curve_id}, term_id: {_eq: $term_id}}
   ) {
@@ -11245,7 +12008,7 @@ export const Positions2Document = new TypedDocumentString(`
 }
     `) as unknown as TypedDocumentString<Positions2Query, Positions2QueryVariables>;
 export const TripleDocument = new TypedDocumentString(`
-    query triple($term_id: bytea!) {
+    query triple($term_id: String!) {
   triple(term_id: $term_id) {
     term_id
     term {

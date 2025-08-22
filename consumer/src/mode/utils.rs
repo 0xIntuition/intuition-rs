@@ -8,7 +8,7 @@ use crate::{
     schemas::types::DecodedMessage,
     traits::{AccountManager, SharePriceEvent, TripleTermManager, TripleVaultManager},
 };
-use alloy::primitives::U256;
+use alloy::{eips::BlockId, primitives::U256};
 use chrono::DateTime;
 use models::{
     account::{Account, AccountType},
@@ -23,6 +23,12 @@ use sqlx::PgPool;
 use std::fmt::Debug;
 use tracing::debug;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// This struct contains the block number and timestamp
+pub struct BlockInfo {
+    pub block_number: i64,
+    pub block_timestamp: i64,
+}
 /// This enum represents the origin of a vault
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum VaultOrigin {
@@ -71,7 +77,10 @@ impl VaultOrigin {
             custom_term_id.clone(),
             context,
             term_type.clone(),
-            tx.block_timestamp,
+            BlockInfo {
+                block_number: tx.block_number,
+                block_timestamp: tx.block_timestamp,
+            },
         )
         .await?;
 
@@ -330,7 +339,7 @@ pub async fn get_or_create_term(
     term_id: Option<FixedBytesWrapper>,
     decoded_consumer_context: &DecodedConsumerContext,
     term_type: TermType,
-    block_timestamp: i64,
+    block_info: BlockInfo,
 ) -> Result<Term, ConsumerError> {
     use std::str::FromStr;
 
@@ -355,11 +364,13 @@ pub async fn get_or_create_term(
             // Everytime we create a new term, we need to set the total assets and market cap to 0
             .total_assets(U256Wrapper::from_str("0")?)
             .total_market_cap(U256Wrapper::from_str("0")?)
-            .updated_at(DateTime::from_timestamp(block_timestamp, 0).ok_or(
-                ConsumerError::BlockTimestampError(
-                    "Failed to convert block timestamp to DateTime".to_string(),
-                ),
-            )?);
+            .updated_at(
+                DateTime::from_timestamp(block_info.block_timestamp, 0).ok_or(
+                    ConsumerError::BlockTimestampError(
+                        "Failed to convert block timestamp to DateTime".to_string(),
+                    ),
+                )?,
+            );
 
         if let TermType::Atom = term_type {
             term.atom_id(term_id.clone())
@@ -373,7 +384,10 @@ pub async fn get_or_create_term(
         } else if let TermType::CounterTriple = term_type {
             let triple_id = decoded_consumer_context
                 .base_client
-                .get_id_from_counter_id(term_id.clone())
+                .get_id_from_counter_id(
+                    term_id.clone(),
+                    BlockId::from_str(&block_info.block_number.to_string())?,
+                )
                 .await?;
             term.triple_id(triple_id)
                 .build()

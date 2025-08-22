@@ -89,7 +89,7 @@ impl SimpleCrud<U256Wrapper> for SharePriceChange {
 
         sqlx::query_as::<_, Self>(&query)
             .bind(self.id)
-            .bind(self.term_id.0.as_slice())
+            .bind(self.term_id.clone())
             .bind(self.vault_type)
             .bind(self.curve_id.to_big_decimal()?)
             .bind(self.share_price.to_big_decimal()?)
@@ -166,7 +166,7 @@ impl SharePriceChange {
         );
 
         sqlx::query_as::<_, SharePriceChange>(&query)
-            .bind(share_price_change.term_id.0.as_slice())
+            .bind(share_price_change.term_id.clone())
             .bind(share_price_change.vault_type)
             .bind(share_price_change.curve_id.to_big_decimal()?)
             .bind(share_price_change.share_price.to_big_decimal()?)
@@ -198,7 +198,7 @@ impl SharePriceChange {
         );
 
         sqlx::query_as::<_, SharePriceChange>(&query)
-            .bind(term_id.0.as_slice())
+            .bind(term_id)
             .bind(curve_id.to_big_decimal()?)
             .fetch_one(pool)
             .await
@@ -224,8 +224,8 @@ impl SharePriceChange {
         );
 
         sqlx::query_as::<_, SharePriceChange>(&query)
-            .bind(term_id.0.as_slice())
-            .bind(counter_vault_id.0.as_slice())
+            .bind(term_id)
+            .bind(counter_vault_id)
             .fetch_all(pool)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
@@ -251,8 +251,8 @@ impl SharePriceChange {
         );
 
         sqlx::query_as::<_, SharePriceChange>(&query)
-            .bind(term_id.0.as_slice())
-            .bind(counter_vault_id.0.as_slice())
+            .bind(term_id)
+            .bind(counter_vault_id)
             .bind(curve_id.to_big_decimal()?)
             .fetch_all(pool)
             .await
@@ -279,7 +279,7 @@ impl SharePriceChange {
         );
 
         sqlx::query_as::<_, SharePriceChange>(&query)
-            .bind(term_id.0.as_slice())
+            .bind(term_id)
             .bind(curve_id.to_big_decimal()?)
             .fetch_optional(executor)
             .await
@@ -305,7 +305,7 @@ impl SharePriceChange {
         );
 
         sqlx::query_as::<_, SharePriceChange>(&query)
-            .bind(share_price_change.term_id.0.as_slice())
+            .bind(share_price_change.term_id.clone())
             .bind(share_price_change.curve_id.to_big_decimal()?)
             .bind(share_price_change.share_price.to_big_decimal()?)
             .bind(share_price_change.total_assets.to_big_decimal()?)

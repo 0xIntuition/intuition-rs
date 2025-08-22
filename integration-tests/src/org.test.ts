@@ -1,5 +1,5 @@
 import { expect, test, suite } from 'vitest'
-import { execute, getIntuition, oxToBackslashX, pinJson, SystemAtom, wait } from './setup/utils.js'
+import { execute, getIntuition, pinJson, SystemAtom, wait } from './setup/utils.js'
 import { graphql } from './graphql/gql.js'
 
 suite('organization, projects, people', async () => {
@@ -267,7 +267,7 @@ suite('organization, projects, people', async () => {
   test('Org profile', async () => {
     await wait(leoDeveloper.hash)
     const result = await execute(
-      graphql(`query AtomOrgProfile($term_id: bytea!) {
+      graphql(`query AtomOrgProfile($term_id: String!) {
         atom(term_id: $term_id) {
           term_id
           label
@@ -297,19 +297,19 @@ suite('organization, projects, people', async () => {
           }
         }
       }`),
-      { term_id: oxToBackslashX(mayaPerson.vaultId) }
+      { term_id: mayaPerson.vaultId }
     )
     expect(result).toBeDefined()
     expect(result.atom?.orgs.length).toBe(2)
     expect(result.atom?.projects.length).toBe(2)
     expect(result.atom?.skills.length).toBe(2)
     expect(result.atom?.label).toBe('Maya')
-    expect(result.atom?.orgs.some((org) => org.object.term_id === oxToBackslashX(novaBiotechOrg.vaultId))).toBe(true)
-    expect(result.atom?.orgs.some((org) => org.object.term_id === oxToBackslashX(skyChainOrg.vaultId))).toBe(true)
-    expect(result.atom?.projects.some((project) => project.object.term_id === oxToBackslashX(helixProject.vaultId))).toBe(true)
-    expect(result.atom?.projects.some((project) => project.object.term_id === oxToBackslashX(sentinelProject.vaultId))).toBe(true)
-    expect(result.atom?.skills.some((skill) => skill.object.term_id === oxToBackslashX(developerSkill.vaultId))).toBe(true)
-    expect(result.atom?.skills.some((skill) => skill.object.term_id === oxToBackslashX(productManagerSkill.vaultId))).toBe(true)
+    expect(result.atom?.orgs.some((org) => org.object.term_id === novaBiotechOrg.vaultId)).toBe(true)
+    expect(result.atom?.orgs.some((org) => org.object.term_id === skyChainOrg.vaultId)).toBe(true)
+    expect(result.atom?.projects.some((project) => project.object.term_id === helixProject.vaultId)).toBe(true)
+    expect(result.atom?.projects.some((project) => project.object.term_id === sentinelProject.vaultId)).toBe(true)
+    expect(result.atom?.skills.some((skill) => skill.object.term_id === developerSkill.vaultId)).toBe(true)
+    expect(result.atom?.skills.some((skill) => skill.object.term_id === productManagerSkill.vaultId)).toBe(true)
   })
 
 })

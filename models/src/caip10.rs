@@ -43,7 +43,7 @@ impl SimpleCrud<FixedBytesWrapper> for Caip10 {
         );
 
         sqlx::query_as::<_, Caip10>(&query)
-            .bind(self.id.0.as_slice())
+            .bind(self.id.clone())
             .bind(self.namespace.clone())
             .bind(self.chain_id)
             .bind(self.account_address.clone())
@@ -74,7 +74,7 @@ impl SimpleCrud<FixedBytesWrapper> for Caip10 {
         );
 
         sqlx::query_as::<_, Caip10>(&query)
-            .bind(id.0.as_slice())
+            .bind(id)
             .fetch_optional(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))

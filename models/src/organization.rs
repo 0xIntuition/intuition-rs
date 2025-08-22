@@ -46,7 +46,7 @@ impl SimpleCrud<FixedBytesWrapper> for Organization {
         );
 
         sqlx::query_as::<_, Organization>(&query)
-            .bind(self.id.0.as_slice())
+            .bind(self.id.clone())
             .bind(self.name.clone())
             .bind(self.description.clone())
             .bind(self.image.clone())
@@ -81,7 +81,7 @@ impl SimpleCrud<FixedBytesWrapper> for Organization {
         );
 
         sqlx::query_as::<_, Organization>(&query)
-            .bind(id.0.as_slice())
+            .bind(id)
             .fetch_optional(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))

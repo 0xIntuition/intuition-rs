@@ -125,7 +125,7 @@ impl SimpleCrud<FixedBytesWrapper> for Vault {
         );
 
         sqlx::query_as::<_, Vault>(&query)
-            .bind(term_id.0.as_slice())
+            .bind(term_id)
             .fetch_optional(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
@@ -163,7 +163,7 @@ impl Vault {
         );
 
         sqlx::query_as::<_, Vault>(&query)
-            .bind(term_id.0.as_slice())
+            .bind(term_id)
             .fetch_all(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
@@ -216,7 +216,7 @@ impl Vault {
         );
 
         sqlx::query_as::<_, Vault>(&query)
-            .bind(term_id.0.as_slice())
+            .bind(term_id)
             .bind(curve_id.to_big_decimal()?)
             .fetch_optional(executor)
             .await
@@ -234,7 +234,7 @@ impl Vault {
             schema
         );
         sqlx::query_scalar::<_, U256Wrapper>(&query)
-            .bind(term_id.0.as_slice())
+            .bind(term_id)
             .fetch_one(pool)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
@@ -251,7 +251,7 @@ impl Vault {
             schema
         );
         sqlx::query_scalar::<_, U256Wrapper>(&query)
-            .bind(term_id.0.as_slice())
+            .bind(term_id)
             .fetch_one(pool)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
@@ -269,8 +269,8 @@ impl Vault {
             schema
         );
         sqlx::query_scalar::<_, i64>(&query)
-            .bind(term_id.0.as_slice())
-            .bind(counter_term_id.0.as_slice())
+            .bind(term_id)
+            .bind(counter_term_id)
             .fetch_one(pool)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))

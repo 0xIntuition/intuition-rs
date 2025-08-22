@@ -1,5 +1,5 @@
 import { expect, test, suite } from 'vitest'
-import { execute, getIntuition, oxToBackslashX, pinJson, SystemAtom, wait } from './setup/utils.js'
+import { execute, getIntuition, pinJson, SystemAtom, wait } from './setup/utils.js'
 import { graphql } from './graphql/gql.js'
 import { parseEther } from 'viem'
 
@@ -82,7 +82,7 @@ suite('follow account and semantic search', async () => {
     )
     expect(result).toBeDefined()
     expect(result.search_term.length).toBe(2)
-    expect(result.search_term[0].id).toBe(oxToBackslashX(table.vaultId))
+    expect(result.search_term[0].id).toBe(table.vaultId)
   })
   test('semantic search for cat', async () => {
     await wait(cat.hash)
@@ -99,7 +99,7 @@ suite('follow account and semantic search', async () => {
       { query: 'a small domesticated carnivorous mammal' }
     )
     expect(result).toBeDefined()
-    expect(result.search_term[0].id).toBe(oxToBackslashX(cat.vaultId))
+    expect(result.search_term[0].id).toBe(cat.vaultId)
   })
 
   test('semantic search for dog', async () => {
@@ -118,7 +118,7 @@ suite('follow account and semantic search', async () => {
     )
     expect(result).toBeDefined()
     expect(result.search_term.length).toBe(2)
-    expect(result.search_term[0].id).toBe(oxToBackslashX(beagle.vaultId))
+    expect(result.search_term[0].id).toBe(beagle.vaultId)
   })
 
   test('semantic search from following', async () => {
@@ -137,6 +137,6 @@ suite('follow account and semantic search', async () => {
     )
     expect(result).toBeDefined()
     expect(result.search_term_from_following.length).toBe(2)
-    expect(result.search_term_from_following[0].id).toBe(oxToBackslashX(cat.vaultId))
+    expect(result.search_term_from_following[0].id).toBe(cat.vaultId)
   })
 })

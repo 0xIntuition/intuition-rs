@@ -51,24 +51,24 @@ CREATE TABLE stats_hour (
 
 CREATE TABLE account (
   id TEXT PRIMARY KEY NOT NULL,
-  atom_id BYTEA,
+  atom_id TEXT,
   label TEXT NOT NULL,
   image TEXT,
   type account_type NOT NULL
 );
 
 CREATE TABLE term (
-  id BYTEA PRIMARY KEY,
+  id TEXT PRIMARY KEY,
   type term_type NOT NULL,
-  atom_id BYTEA,
-  triple_id BYTEA,
+  atom_id TEXT,
+  triple_id TEXT,
   total_assets NUMERIC(78, 0),
   total_market_cap NUMERIC(78, 0),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
 
 CREATE TABLE atom (
-  term_id BYTEA PRIMARY KEY NOT NULL,
+  term_id TEXT PRIMARY KEY NOT NULL,
   wallet_id TEXT REFERENCES account(id) NOT NULL,
   creator_id TEXT REFERENCES account(id) NOT NULL,
   data TEXT,
@@ -77,7 +77,7 @@ CREATE TABLE atom (
   emoji TEXT,
   label TEXT,
   image TEXT,
-  value_id BYTEA,
+  value_id TEXT,
   block_number NUMERIC(78, 0) NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL,
   transaction_hash TEXT NOT NULL,
@@ -87,19 +87,19 @@ CREATE TABLE atom (
 );
 
 CREATE TABLE triple (
-  term_id BYTEA PRIMARY KEY NOT NULL,
+  term_id TEXT PRIMARY KEY NOT NULL,
   creator_id TEXT REFERENCES account(id) NOT NULL,
-  subject_id BYTEA NOT NULL,
-  predicate_id BYTEA NOT NULL,
-  object_id BYTEA NOT NULL,
-  counter_term_id BYTEA NOT NULL,
+  subject_id TEXT NOT NULL,
+  predicate_id TEXT NOT NULL,
+  object_id TEXT NOT NULL,
+  counter_term_id TEXT NOT NULL,
   block_number NUMERIC(78, 0) NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL,
   transaction_hash TEXT NOT NULL
 );
 
 CREATE TABLE vault (
-  term_id BYTEA NOT NULL,
+  term_id TEXT NOT NULL,
   curve_id NUMERIC(78, 0) NOT NULL,
   total_shares NUMERIC(78, 0) NOT NULL,
   current_share_price NUMERIC(78, 0) NOT NULL,
@@ -115,8 +115,8 @@ CREATE TABLE vault (
 );
 
 CREATE TABLE triple_vault (
-  term_id BYTEA REFERENCES term(id) NOT NULL,
-  counter_term_id BYTEA REFERENCES term(id) NOT NULL,
+  term_id TEXT REFERENCES term(id) NOT NULL,
+  counter_term_id TEXT REFERENCES term(id) NOT NULL,
   curve_id NUMERIC(78, 0) NOT NULL,
   total_shares NUMERIC(78, 0) NOT NULL,
   total_assets NUMERIC(78, 0) NOT NULL,
@@ -129,8 +129,8 @@ CREATE TABLE triple_vault (
 );
 
 CREATE TABLE triple_term (
-  term_id BYTEA REFERENCES term(id) NOT NULL,
-  counter_term_id BYTEA REFERENCES term(id) NOT NULL,
+  term_id TEXT REFERENCES term(id) NOT NULL,
+  counter_term_id TEXT REFERENCES term(id) NOT NULL,
   total_assets NUMERIC(78, 0) NOT NULL,
   total_market_cap NUMERIC(78, 0) NOT NULL,
   total_position_count BIGINT NOT NULL,
@@ -155,7 +155,7 @@ CREATE TABLE deposit (
   assets_after_fees NUMERIC(78, 0) NOT NULL,
   shares NUMERIC(78, 0) NOT NULL,
   total_shares NUMERIC(78, 0) NOT NULL,
-  term_id BYTEA NOT NULL,
+  term_id TEXT NOT NULL,
   vault_type vault_type NOT NULL,
   curve_id NUMERIC(78, 0) NOT NULL,
   block_number NUMERIC(78, 0) NOT NULL,
@@ -173,7 +173,7 @@ CREATE TABLE redemption (
   fees NUMERIC(78, 0) NOT NULL,
   shares NUMERIC(78, 0) NOT NULL,
   total_shares NUMERIC(78, 0) NOT NULL,
-  term_id BYTEA NOT NULL,
+  term_id TEXT NOT NULL,
   curve_id NUMERIC(78, 0) NOT NULL,
   block_number NUMERIC(78, 0) NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL,
@@ -184,8 +184,8 @@ CREATE TABLE redemption (
 CREATE TABLE event (
   id TEXT PRIMARY KEY NOT NULL,
   type event_type NOT NULL,
-  atom_id BYTEA, 
-  triple_id BYTEA,
+  atom_id TEXT, 
+  triple_id TEXT,
   fee_transfer_id TEXT REFERENCES fee_transfer(id),
   deposit_id TEXT REFERENCES deposit(id),
   redemption_id TEXT REFERENCES redemption(id),
@@ -197,7 +197,7 @@ CREATE TABLE event (
 CREATE TABLE position (
   id TEXT PRIMARY KEY NOT NULL,
   account_id TEXT REFERENCES account(id) NOT NULL,
-  term_id BYTEA NOT NULL,
+  term_id TEXT NOT NULL,
   curve_id NUMERIC(78, 0) NOT NULL,
   shares NUMERIC(78, 0) NOT NULL,
   total_deposit_assets_after_total_fees NUMERIC(78, 0) NOT NULL DEFAULT 0,
@@ -212,8 +212,8 @@ CREATE TABLE position (
 
 CREATE TABLE predicate_object (
   id TEXT PRIMARY KEY NOT NULL,
-  predicate_id BYTEA NOT NULL,
-  object_id BYTEA NOT NULL,
+  predicate_id TEXT NOT NULL,
+  object_id TEXT NOT NULL,
   triple_count INTEGER NOT NULL
 );
 
@@ -221,9 +221,9 @@ CREATE TABLE signal (
   id TEXT NOT NULL,
   delta NUMERIC(78, 0) NOT NULL,
   account_id TEXT REFERENCES account(id) NOT NULL,
-  atom_id BYTEA, 
-  triple_id BYTEA,
-  term_id BYTEA NOT NULL,
+  atom_id TEXT, 
+  triple_id TEXT,
+  term_id TEXT NOT NULL,
   curve_id NUMERIC(78, 0) NOT NULL,
   deposit_id TEXT REFERENCES deposit(id),
   redemption_id TEXT REFERENCES redemption(id),
@@ -242,7 +242,7 @@ CREATE TABLE signal (
 );
 
 CREATE TABLE thing (
-  id BYTEA PRIMARY KEY NOT NULL,
+  id TEXT PRIMARY KEY NOT NULL,
   name TEXT,
   description TEXT,
   image TEXT,
@@ -250,7 +250,7 @@ CREATE TABLE thing (
 );
 
 CREATE TABLE person (
-  id BYTEA PRIMARY KEY NOT NULL,
+  id TEXT PRIMARY KEY NOT NULL,
   identifier TEXT,
   name TEXT,
   description TEXT,
@@ -260,7 +260,7 @@ CREATE TABLE person (
 );
 
 CREATE TABLE organization (
-  id BYTEA PRIMARY KEY NOT NULL,
+  id TEXT PRIMARY KEY NOT NULL,
   name TEXT,
   description TEXT,
   image TEXT,
@@ -269,7 +269,7 @@ CREATE TABLE organization (
 );
 
 CREATE TABLE book (
-  id BYTEA PRIMARY KEY NOT NULL,
+  id TEXT PRIMARY KEY NOT NULL,
   name TEXT,
   description TEXT,
   genre TEXT,
@@ -277,43 +277,43 @@ CREATE TABLE book (
 );
 
 CREATE TABLE caip10 (
-  id BYTEA PRIMARY KEY NOT NULL,
+  id TEXT PRIMARY KEY NOT NULL,
   namespace TEXT NOT NULL,
   chain_id INTEGER NOT NULL,
   account_address TEXT NOT NULL
 );
 
 CREATE TABLE json_object (
-  id BYTEA PRIMARY KEY NOT NULL,
+  id TEXT PRIMARY KEY NOT NULL,
   data JSONB NOT NULL
 );
 
 CREATE TABLE text_object (
-  id BYTEA PRIMARY KEY NOT NULL,
+  id TEXT PRIMARY KEY NOT NULL,
   data TEXT NOT NULL
 );
 
 CREATE TABLE byte_object (
-  id BYTEA PRIMARY KEY NOT NULL,
+  id TEXT PRIMARY KEY NOT NULL,
   data BYTEA NOT NULL
 );
 
 CREATE TABLE atom_value (
-  id BYTEA PRIMARY KEY NOT NULL,
+  id TEXT PRIMARY KEY NOT NULL,
   account_id TEXT REFERENCES account(id),
-  thing_id BYTEA REFERENCES thing(id),
-  person_id BYTEA REFERENCES person(id),
-  organization_id BYTEA REFERENCES organization(id),
-  book_id BYTEA REFERENCES book(id),
-  caip10_id BYTEA REFERENCES caip10(id),
-  json_object_id BYTEA REFERENCES json_object(id),
-  text_object_id BYTEA REFERENCES text_object(id),
-  byte_object_id BYTEA REFERENCES byte_object(id)
+  thing_id TEXT REFERENCES thing(id),
+  person_id TEXT REFERENCES person(id),
+  organization_id TEXT REFERENCES organization(id),
+  book_id TEXT REFERENCES book(id),
+  caip10_id TEXT REFERENCES caip10(id),
+  json_object_id TEXT REFERENCES json_object(id),
+  text_object_id TEXT REFERENCES text_object(id),
+  byte_object_id TEXT REFERENCES byte_object(id)
 );
 
 CREATE TABLE share_price_change(
   id BIGSERIAL,
-  term_id BYTEA NOT NULL,
+  term_id TEXT NOT NULL,
   vault_type vault_type NOT NULL,
   curve_id NUMERIC(78, 0) NOT NULL,
   share_price NUMERIC(78, 0) NOT NULL,
@@ -352,13 +352,13 @@ CREATE TABLE failed_logs (
 );
 
 CREATE TABLE term_text (
-  id BYTEA PRIMARY KEY NOT NULL,
+  id TEXT PRIMARY KEY NOT NULL,
   title TEXT,
   description TEXT
 );
 
 CREATE TABLE term_total_state_change (
-  term_id BYTEA NOT NULL,
+  term_id TEXT NOT NULL,
   total_assets NUMERIC(78, 0) NOT NULL,
   total_market_cap NUMERIC(78, 0) NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL 
