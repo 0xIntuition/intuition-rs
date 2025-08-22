@@ -2,18 +2,17 @@ use super::event::SharePriceChangedEvent;
 use crate::{
     error::ConsumerError,
     mode::{
-        decoded::utils::{
-            EventHandler, is_counter_vault, update_vault_from_share_price_changed_events,
-        },
+        decoded::utils::{EventHandler, update_vault_from_share_price_changed_events},
         types::DecodedConsumerContext,
     },
     schemas::types::DecodedMessage,
     traits::SharePriceEvent,
 };
 use models::{
+    deposit::VaultType,
     share_price_change::{SharePriceChange, SharePriceChangeInternal},
     term::TermType,
-    types::U256Wrapper,
+    types::{FixedBytesWrapper, U256Wrapper},
 };
 use std::fmt::Debug;
 use tracing::{debug, info};
@@ -38,7 +37,10 @@ where
         // Check if the share price changed already exists, skip if it does
         match SharePriceChange::fetch_share_price_from_internal(
             &SharePriceChangeInternal::builder()
-                .term_id(SharePriceChangedEvent::term_id(&self.0)?)
+                .term_id(FixedBytesWrapper::from(SharePriceChangedEvent::term_id(
+                    &self.0,
+                )?))
+                .vault_type(SharePriceChangedEvent::vault_type(&self.0)?)
                 .curve_id(SharePriceChangedEvent::curve_id(&self.0)?)
                 .share_price(SharePriceEvent::new_share_price(&self.0)?)
                 .total_assets(SharePriceEvent::total_assets(&self.0)?)
@@ -65,17 +67,10 @@ where
             }
         }
 
-        let term_type = if decoded_consumer_context
-            .is_triple_id(SharePriceChangedEvent::term_id(&self.0)?.0)
-            .await?
-        {
-            if is_counter_vault(SharePriceChangedEvent::term_id(&self.0)?.try_into()?) {
-                TermType::CounterTriple
-            } else {
-                TermType::Triple
-            }
-        } else {
-            TermType::Atom
+        let term_type = match SharePriceChangedEvent::vault_type(&self.0)? {
+            VaultType::Triple => TermType::Triple,
+            VaultType::Atom => TermType::Atom,
+            VaultType::CounterTriple => TermType::CounterTriple,
         };
 
         debug!("Updating vault from share price changed event");

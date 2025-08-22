@@ -1,7 +1,7 @@
 use crate::{
     error::ModelError,
     traits::{Deletable, Model, SimpleCrud},
-    types::U256Wrapper,
+    types::{FixedBytesWrapper, U256Wrapper},
 };
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
@@ -16,7 +16,7 @@ pub struct Position {
     /// Reference to the account that owns this position
     pub account_id: String,
     /// Reference to the vault this position is in
-    pub term_id: U256Wrapper,
+    pub term_id: FixedBytesWrapper,
     /// Number of shares held in this position
     pub shares: U256Wrapper,
     /// Reference to the curve this position is in
@@ -97,7 +97,7 @@ impl SimpleCrud<String> for Position {
         sqlx::query_as::<_, Position>(&query)
             .bind(self.id.clone())
             .bind(self.account_id.clone())
-            .bind(self.term_id.to_big_decimal()?)
+            .bind(self.term_id.clone())
             .bind(self.shares.to_big_decimal()?)
             .bind(self.curve_id.to_big_decimal()?)
             .bind(
@@ -174,7 +174,7 @@ impl Deletable for Position {
 impl Position {
     /// Returns the number of positions in the given vault.
     pub async fn count_by_vault_and_curve<'e, E>(
-        term_id: U256Wrapper,
+        term_id: FixedBytesWrapper,
         curve_id: U256Wrapper,
         executor: E,
         schema: &str,
@@ -187,7 +187,7 @@ impl Position {
             schema
         );
         let count: i64 = sqlx::query_scalar(&query)
-            .bind(term_id.to_big_decimal()?)
+            .bind(term_id)
             .bind(curve_id.to_big_decimal()?)
             .fetch_one(executor)
             .await
@@ -196,8 +196,8 @@ impl Position {
     }
 
     pub async fn count_by_triple<'e, E>(
-        term_id: U256Wrapper,
-        counter_term_id: U256Wrapper,
+        term_id: FixedBytesWrapper,
+        counter_term_id: FixedBytesWrapper,
         curve_id: U256Wrapper,
         executor: E,
         schema: &str,
@@ -211,8 +211,8 @@ impl Position {
         );
 
         let count: i64 = sqlx::query_scalar(&query)
-            .bind(term_id.to_big_decimal()?)
-            .bind(counter_term_id.to_big_decimal()?)
+            .bind(term_id)
+            .bind(counter_term_id)
             .bind(curve_id.to_big_decimal()?)
             .fetch_one(executor)
             .await
@@ -223,7 +223,7 @@ impl Position {
 
     /// Returns the number of positions in the given term.
     pub async fn count_by_term_id<'e, E>(
-        term_id: U256Wrapper,
+        term_id: FixedBytesWrapper,
         executor: E,
         schema: &str,
     ) -> Result<i64, ModelError>
@@ -235,7 +235,7 @@ impl Position {
             schema
         );
         let count: i64 = sqlx::query_scalar(&query)
-            .bind(term_id.to_big_decimal()?)
+            .bind(term_id)
             .fetch_one(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))?;

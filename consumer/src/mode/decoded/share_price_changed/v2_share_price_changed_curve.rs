@@ -1,22 +1,25 @@
-use std::str::FromStr;
-
 use crate::{
     ConsumerError,
-    EthMultiVaultV1_5::SharePriceChanged,
     mode::types::DecodedConsumerContext,
+    supported_contracts::v2_contract::Multivault::SharePriceChanged,
     traits::{SharePriceEvent, VaultManager},
 };
-use models::{position::Position, types::U256Wrapper};
+use alloy::primitives::FixedBytes;
+use models::{
+    deposit::VaultType,
+    position::Position,
+    types::{FixedBytesWrapper, U256Wrapper},
+};
 
 use super::event::SharePriceChangedEvent;
 
 impl VaultManager for &SharePriceChanged {
-    fn term_id(&self) -> Result<U256Wrapper, ConsumerError> {
-        Ok(U256Wrapper::from(self.termId))
+    fn term_id(&self) -> Result<FixedBytes<32>, ConsumerError> {
+        Ok(self.termId)
     }
 
     fn curve_id(&self) -> Result<U256Wrapper, ConsumerError> {
-        Ok(U256Wrapper::from_str("1")?)
+        Ok(U256Wrapper::from(self.curveId))
     }
 
     async fn total_shares(
@@ -32,7 +35,7 @@ impl VaultManager for &SharePriceChanged {
         _decoded_consumer_context: &DecodedConsumerContext,
         _block_number: i64,
     ) -> Result<U256Wrapper, ConsumerError> {
-        Ok(U256Wrapper::from(self.newSharePrice))
+        Ok(U256Wrapper::from(self.sharePrice))
     }
 
     async fn position_count(
@@ -40,7 +43,7 @@ impl VaultManager for &SharePriceChanged {
         decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<i32, ConsumerError> {
         Ok(Position::count_by_vault_and_curve(
-            SharePriceChangedEvent::term_id(self)?,
+            FixedBytesWrapper::from(SharePriceChangedEvent::term_id(self)?),
             SharePriceChangedEvent::curve_id(self)?,
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
@@ -51,7 +54,7 @@ impl VaultManager for &SharePriceChanged {
 
 impl SharePriceEvent for &SharePriceChanged {
     fn new_share_price(&self) -> Result<U256Wrapper, ConsumerError> {
-        Ok(U256Wrapper::from(self.newSharePrice))
+        Ok(U256Wrapper::from(self.sharePrice))
     }
     fn total_assets(&self) -> Result<U256Wrapper, ConsumerError> {
         Ok(U256Wrapper::from(self.totalAssets))
@@ -59,11 +62,14 @@ impl SharePriceEvent for &SharePriceChanged {
 }
 
 impl SharePriceChangedEvent for &SharePriceChanged {
-    fn term_id(&self) -> Result<U256Wrapper, ConsumerError> {
-        Ok(U256Wrapper::from(self.termId))
+    fn term_id(&self) -> Result<FixedBytes<32>, ConsumerError> {
+        Ok(self.termId)
+    }
+    fn vault_type(&self) -> Result<VaultType, ConsumerError> {
+        Ok(self.vaultType.into())
     }
     fn new_share_price(&self) -> Result<U256Wrapper, ConsumerError> {
-        Ok(U256Wrapper::from(self.newSharePrice))
+        Ok(U256Wrapper::from(self.sharePrice))
     }
     fn total_assets(&self) -> Result<U256Wrapper, ConsumerError> {
         Ok(U256Wrapper::from(self.totalAssets))
@@ -72,6 +78,6 @@ impl SharePriceChangedEvent for &SharePriceChanged {
         Ok(U256Wrapper::from(self.totalShares))
     }
     fn curve_id(&self) -> Result<U256Wrapper, ConsumerError> {
-        Ok(U256Wrapper::from_str("1")?)
+        Ok(U256Wrapper::from(self.curveId))
     }
 }

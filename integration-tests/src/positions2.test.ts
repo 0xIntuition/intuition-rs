@@ -14,12 +14,19 @@ suite('positions2', () => {
     const felix = await getIntuition(201)
     console.log(felix.account.address.toString())
 
-    const deposit = await felix.multivault.depositAtom(fooAtom.vaultId, parseEther('0.05'))
-    await wait(deposit.hash)
+    const depositHash = await felix.contract.write.deposit(
+      [felix.account.address, fooAtom.vaultId, 1n, 0n],
+      { value: parseEther('0.5') }
+    )
+    await wait(depositHash)
 
     // check felix position on-chain
-    const res = await felix.multivault.getVaultStateForUser(fooAtom.vaultId, felix.account.address)
-    expect(res.shares).toBeDefined()
+    const shares = await felix.contract.read.getShares([
+      felix.account.address,
+      fooAtom.vaultId,
+      1n
+    ])
+    expect(shares).toBeDefined()
 
     const positionsQuery = graphql(`
       query positions($address: String!) {
@@ -39,26 +46,32 @@ suite('positions2', () => {
       { address: felix.account.address.toString() })
 
     expect(result).toBeDefined()
-    expect(result.account.positions.length).toBe(1)
-    expect(result.account.positions[0].shares).toBe(res.shares.toString())
+    expect(result.account?.positions.length).toBe(1)
+    expect(result.account?.positions[0].shares).toBe(shares.toString())
 
     // fully redeem the position
 
-    const redemtion = await felix.multivault.redeemAtom(fooAtom.vaultId, BigInt(result.account.positions[0].shares))
-    expect(redemtion).toBeDefined()
-    await wait(redemtion.hash)
+    const redemtionHash = await felix.contract.write.redeem(
+      [felix.account.address, fooAtom.vaultId, 1n, BigInt(result.account?.positions[0].shares), 0n]
+    )
+    expect(redemtionHash).toBeDefined()
+    await wait(redemtionHash)
 
     // check felix position on-chain
-    const res2 = await felix.multivault.getVaultStateForUser(fooAtom.vaultId, felix.account.address)
-    expect(res2.shares).toBe(BigInt(0))
+    const shares2 = await felix.contract.read.getShares([
+      felix.account.address,
+      fooAtom.vaultId,
+      1n
+    ])
+    expect(shares2).toBe(BigInt(0))
 
     const result2 = await execute(
       positionsQuery,
       { address: felix.account.address.toString() })
 
     expect(result2).toBeDefined()
-    expect(result2.account.positions.length).toBe(1)
-    expect(result2.account.positions[0].shares).toBe(res2.shares.toString())
+    expect(result2.account?.positions.length).toBe(1)
+    expect(result2.account?.positions[0].shares).toBe(shares2.toString())
 
 
   })

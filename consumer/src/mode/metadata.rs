@@ -15,7 +15,7 @@ use models::{
     atom_value::AtomValue,
     caip10::Caip10,
     traits::SimpleCrud,
-    types::U256Wrapper,
+    types::FixedBytesWrapper,
 };
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
@@ -73,7 +73,7 @@ impl AtomMetadata {
 
     /// Creates a new caip10
     pub async fn create_caip10(
-        atom_id: U256Wrapper,
+        atom_id: FixedBytesWrapper,
         caip10: String,
         decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<Caip10, ConsumerError> {
@@ -431,7 +431,7 @@ pub async fn get_supported_atom_metadata(
     } else {
         debug!("Atom data is not an address, verifying if it's an IPFS URI...");
         // 4. Now we need to enqueue the message to be processed by the resolver
-        let message = ResolverConsumerMessage::new_atom(atom.term_id.to_string());
+        let message = ResolverConsumerMessage::new_atom(atom.term_id.0.to_string());
         decoded_consumer_context
             .client
             .send_message(serde_json::to_string(&message)?, None)

@@ -37,18 +37,20 @@ select_permissions:
   - role: anonymous
     permission:
       columns:
-        - transaction_hash
-        - assets_for_receiver
-        - block_number
-        - created_at
-        - exit_fee
-        - sender_total_shares_in_vault
-        - shares_redeemed_by_sender
+        - vault_type
+        - log_index
         - term_id
+        - assets
+        - block_number
         - curve_id
+        - fees
+        - shares
+        - total_shares
         - id
         - receiver_id
         - sender_id
+        - transaction_hash
+        - created_at
       filter: {}
       limit: 250
       allow_aggregations: true

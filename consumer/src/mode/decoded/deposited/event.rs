@@ -1,7 +1,7 @@
 use crate::{
     error::ConsumerError,
     mode::{
-        decoded::utils::{VaultInfo, get_block_timestamp, is_counter_vault},
+        decoded::utils::get_block_timestamp,
         types::DecodedConsumerContext,
         utils::{VaultOrigin, get_or_create_account},
     },
@@ -10,8 +10,13 @@ use crate::{
 };
 use alloy::primitives::{U256, Uint};
 use models::{
-    deposit::Deposit, position::Position, signal::Signal, term::TermType, traits::SimpleCrud,
-    triple_term::TripleTerm, triple_vault::TripleVault, types::U256Wrapper, vault::Vault,
+    deposit::{Deposit, VaultType},
+    position::Position,
+    signal::Signal,
+    term::TermType,
+    traits::SimpleCrud,
+    types::{FixedBytesWrapper, U256Wrapper},
+    vault::Vault,
 };
 use tracing::debug;
 
@@ -23,20 +28,14 @@ pub trait DepositedEvent:
     fn sender(&self) -> Result<String, ConsumerError>;
     /// This function returns the receiver of the deposit
     fn receiver(&self) -> Result<String, ConsumerError>;
-    /// This function returns the total shares in the vault
-    fn receiver_total_shares_in_vault(&self) -> Result<Uint<256, 4>, ConsumerError>;
-    /// This function returns the vault ID
-    fn vault_id(&self) -> Result<Uint<256, 4>, ConsumerError>;
-    /// This function returns whether the deposit is a triple
-    fn is_triple(&self) -> Result<bool, ConsumerError>;
-    /// This function returns whether the deposit is an atom wallet
-    fn is_atom_wallet(&self) -> Result<bool, ConsumerError>;
-    /// This function returns the entry fee
-    fn entry_fee(&self) -> Result<Uint<256, 4>, ConsumerError>;
+    /// This function returns the vault type
+    fn vault_type(&self) -> Result<VaultType, ConsumerError>;
     /// This function returns the sender assets after total fees
-    fn sender_assets_after_total_fees(&self) -> Result<Uint<256, 4>, ConsumerError>;
+    fn assets_after_fees(&self) -> Result<Uint<256, 4>, ConsumerError>;
     /// This function returns the shares for the receiver
-    fn shares_for_receiver(&self) -> Result<Uint<256, 4>, ConsumerError>;
+    fn shares(&self) -> Result<Uint<256, 4>, ConsumerError>;
+    /// This function returns the total shares
+    fn total_shares(&self) -> Result<Uint<256, 4>, ConsumerError>;
     /// This function returns the curve ID
     fn curve_id(&self) -> Result<Uint<256, 4>, ConsumerError>;
     /// This function creates a deposit
@@ -49,18 +48,12 @@ pub trait DepositedEvent:
             .id(DecodedMessage::event_id(event))
             .sender_id(self.sender()?)
             .receiver_id(self.receiver()?)
-            .receiver_total_shares_in_vault(U256Wrapper::from(
-                self.receiver_total_shares_in_vault()?,
-            ))
-            .sender_assets_after_total_fees(U256Wrapper::from(
-                self.sender_assets_after_total_fees()?,
-            ))
-            .shares_for_receiver(U256Wrapper::from(self.shares_for_receiver()?))
-            .entry_fee(U256Wrapper::from(self.entry_fee()?))
-            .term_id(U256Wrapper::from(self.vault_id()?))
+            .assets_after_fees(U256Wrapper::from(self.assets_after_fees()?))
+            .shares(U256Wrapper::from(self.shares()?))
+            .total_shares(U256Wrapper::from(DepositedEvent::total_shares(self)?))
+            .term_id(FixedBytesWrapper::from(self.term_id()?))
             .curve_id(DepositedEvent::curve_id(self)?)
-            .is_triple(self.is_triple()?)
-            .is_atom_wallet(self.is_atom_wallet()?)
+            .vault_type(self.vault_type()?)
             .block_number(U256Wrapper::try_from(event.block_number)?)
             .created_at(get_block_timestamp(event.block_timestamp)?)
             .transaction_hash(event.transaction_hash.clone())
@@ -74,54 +67,6 @@ pub trait DepositedEvent:
             .map_err(ConsumerError::ModelError)
     }
 
-    #[allow(dead_code)]
-    /// This function creates a triple term
-    async fn create_triple_term_and_vault(
-        &self,
-        decoded_consumer_context: &DecodedConsumerContext,
-        event: &DecodedMessage,
-        vault_id: U256Wrapper,
-    ) -> Result<(), ConsumerError> {
-        if self.is_triple()? {
-            // verify if we already have the triple term and vault
-            let triple_term = TripleTerm::find_by_term_id_and_counter_term_id(
-                // This can be either the vault or the counter vault
-                vault_id.clone(),
-                &decoded_consumer_context.backend_schema,
-                &decoded_consumer_context.pg_pool,
-            )
-            .await?;
-            if triple_term.is_none() {
-                // Get or create the triple term
-                VaultOrigin::Deposit
-                    .get_or_create_triple_term(
-                        self.clone(),
-                        event.block_timestamp,
-                        decoded_consumer_context,
-                    )
-                    .await?;
-            }
-            // verify if we already have the triple vault
-            let triple_vault = TripleVault::find_by_term_id_and_counter_term_id(
-                vault_id.clone(),
-                &decoded_consumer_context.backend_schema,
-                &decoded_consumer_context.pg_pool,
-            )
-            .await?;
-            if triple_vault.is_none() {
-                // Get or create the triple vault
-                VaultOrigin::Deposit
-                    .get_or_create_triple_vault(
-                        self.clone(),
-                        decoded_consumer_context,
-                        event,
-                        event.block_timestamp,
-                    )
-                    .await?;
-            }
-        }
-        Ok(())
-    }
     /// This function creates a signal
     async fn create_signal(
         &self,
@@ -129,13 +74,13 @@ pub trait DepositedEvent:
         event: &DecodedMessage,
         vault: &Vault,
     ) -> Result<(), ConsumerError> {
-        if self.sender_assets_after_total_fees()? > U256::from(0) {
+        if self.assets_after_fees()? > U256::from(0) {
             let created_at = get_block_timestamp(event.block_timestamp)?;
-            let signal = if !self.is_triple()? {
+            let signal = if self.vault_type()? == VaultType::Triple {
                 Signal::builder()
                     .id(DecodedMessage::event_id(event))
                     .account_id(self.sender()?)
-                    .delta(U256Wrapper::from(self.sender_assets_after_total_fees()?))
+                    .delta(U256Wrapper::from(self.assets_after_fees()?))
                     .atom_id(vault.term_id.clone())
                     .deposit_id(DecodedMessage::event_id(event))
                     .block_number(U256Wrapper::try_from(event.block_number)?)
@@ -148,7 +93,7 @@ pub trait DepositedEvent:
                 Signal::builder()
                     .id(DecodedMessage::event_id(event))
                     .account_id(self.sender()?)
-                    .delta(U256Wrapper::from(self.sender_assets_after_total_fees()?))
+                    .delta(U256Wrapper::from(self.assets_after_fees()?))
                     .triple_id(vault.term_id.clone())
                     .deposit_id(DecodedMessage::event_id(event))
                     .block_number(U256Wrapper::try_from(event.block_number)?)
@@ -183,14 +128,10 @@ pub trait DepositedEvent:
             .get_or_create_vault(
                 self.clone(),
                 decoded_consumer_context,
-                if self.is_triple()? {
-                    if is_counter_vault(self.vault_id()?) {
-                        TermType::CounterTriple
-                    } else {
-                        TermType::Triple
-                    }
-                } else {
-                    TermType::Atom
+                match self.vault_type()? {
+                    VaultType::Triple => TermType::Triple,
+                    VaultType::Atom => TermType::Atom,
+                    VaultType::CounterTriple => TermType::CounterTriple,
                 },
                 event,
                 None,
@@ -201,7 +142,7 @@ pub trait DepositedEvent:
     fn format_position_id(&self, curve_id: &str) -> Result<String, ConsumerError> {
         Ok(format!(
             "{}-{}-{}",
-            self.vault_id()?,
+            self.term_id()?,
             curve_id,
             self.receiver()?
         ))
@@ -216,17 +157,15 @@ pub trait DepositedEvent:
         Position::builder()
             .id(position_id.clone())
             .account_id(self.receiver()?)
-            .term_id(U256Wrapper::from(self.vault_id()?))
+            .term_id(FixedBytesWrapper::from(self.term_id()?))
             .curve_id(DepositedEvent::curve_id(self)?)
-            .shares(self.receiver_total_shares_in_vault()?)
+            .shares(self.shares()?)
             .block_number(event.block_number)
             .log_index(event.log_index)
             .transaction_hash(event.transaction_hash.clone())
             .transaction_index(event.transaction_index)
             .created_at(get_block_timestamp(event.block_timestamp)?)
-            .total_deposit_assets_after_total_fees(U256Wrapper::from(
-                self.sender_assets_after_total_fees()?,
-            ))
+            .total_deposit_assets_after_total_fees(U256Wrapper::from(self.assets_after_fees()?))
             .total_redeem_assets_for_receiver(U256Wrapper::try_from(0)?)
             .build()
             .upsert(
@@ -243,7 +182,7 @@ pub trait DepositedEvent:
         position: &mut Position,
         event: &DecodedMessage,
     ) -> Result<Position, ConsumerError> {
-        position.shares = U256Wrapper::from(self.receiver_total_shares_in_vault()?);
+        position.shares = DepositedEvent::total_shares(self)?.into();
         position.block_number = event.block_number;
         position.log_index = event.log_index;
         position.transaction_hash = event.transaction_hash.clone();
@@ -271,32 +210,16 @@ pub trait DepositedEvent:
         )
         .await?;
 
-        if position.is_none() && self.receiver_total_shares_in_vault()? > U256::from(0) {
-            self.create_new_position(position_id.to_string(), decoded_consumer_context, event)
-                .await?;
-        } else if let Some(mut position) = position {
-            if self.receiver_total_shares_in_vault()? > U256::from(0) {
+        if DepositedEvent::total_shares(self)? > U256::from(0) {
+            if position.is_none() {
+                self.create_new_position(position_id.to_string(), decoded_consumer_context, event)
+                    .await?;
+            } else if let Some(mut position) = position {
                 self.update_position(decoded_consumer_context, &mut position, event)
                     .await?;
             }
         }
 
-        Ok(())
-    }
-
-    /// This function updates the vault values
-    async fn update_vault_values(
-        &self,
-        decoded_consumer_context: &DecodedConsumerContext,
-        vault_info: Option<VaultInfo>,
-        event: &DecodedMessage,
-    ) -> Result<(), ConsumerError> {
-        if let Some(vault_info) = vault_info {
-            // Update vault values
-            vault_info
-                .update_vault(self.vault_id()?, decoded_consumer_context, event)
-                .await?;
-        }
         Ok(())
     }
 }

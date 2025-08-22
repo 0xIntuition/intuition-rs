@@ -93,11 +93,11 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION update_position_deposit_assets()
 RETURNS TRIGGER AS $$
 BEGIN
-    -- Update position.total_deposit_assets_after_total_fees by adding deposit.sender_assets_after_total_fees
+    -- Update position.total_deposit_assets_after_total_fees by adding deposit.assets_after_fees
     -- PostgreSQL's UPDATE is atomic, so concurrent updates will be serialized
     UPDATE position 
     SET total_deposit_assets_after_total_fees = 
-        COALESCE(total_deposit_assets_after_total_fees, 0) + NEW.sender_assets_after_total_fees
+        COALESCE(total_deposit_assets_after_total_fees, 0) + NEW.assets_after_fees
     WHERE account_id = NEW.receiver_id 
       AND term_id = NEW.term_id 
       AND curve_id = NEW.curve_id;
@@ -114,7 +114,7 @@ BEGIN
     -- PostgreSQL's UPDATE is atomic, so concurrent updates will be serialized
     UPDATE position 
     SET total_redeem_assets_for_receiver = 
-        COALESCE(total_redeem_assets_for_receiver, 0) + NEW.assets_for_receiver
+        COALESCE(total_redeem_assets_for_receiver, 0) + NEW.assets
     WHERE account_id = NEW.sender_id 
       AND term_id = NEW.term_id 
       AND curve_id = NEW.curve_id;
@@ -130,7 +130,7 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION update_term_totals()
 RETURNS TRIGGER AS $$
 DECLARE
-    term_id_val NUMERIC(78, 0);
+    term_id_val TEXT;
 BEGIN
     -- For INSERT and UPDATE operations, use the NEW record's term_id
     IF (TG_OP = 'INSERT' OR TG_OP = 'UPDATE') THEN
@@ -164,8 +164,8 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION update_triple_term_totals()
 RETURNS TRIGGER AS $$
 DECLARE
-    term_id_val NUMERIC(78, 0);
-    counter_term_id_val NUMERIC(78, 0);
+    term_id_val TEXT;
+    counter_term_id_val TEXT;
 BEGIN
     -- For INSERT and UPDATE operations, use the NEW record's term_id and counter_term_id
     IF (TG_OP = 'INSERT' OR TG_OP = 'UPDATE') THEN
@@ -203,7 +203,7 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION update_triple_vault_from_vault()
 RETURNS TRIGGER AS $$
 DECLARE
-    affected_term_id NUMERIC(78, 0);
+    affected_term_id TEXT;
     affected_curve_id NUMERIC(78, 0);
 BEGIN
     -- For INSERT and UPDATE operations, use the NEW record's term_id and curve_id
@@ -444,7 +444,7 @@ $$;
 -- ACCOUNTS THAT CLAIM ABOUT ACCOUNT
 -- ========================================
 
-CREATE OR REPLACE FUNCTION accounts_that_claim_about_account(address text, subject numeric, predicate numeric) RETURNS SETOF account
+CREATE OR REPLACE FUNCTION accounts_that_claim_about_account(address text, subject text, predicate text) RETURNS SETOF account
     LANGUAGE sql STABLE
     AS $$
 SELECT account.*

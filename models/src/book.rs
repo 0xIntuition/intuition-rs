@@ -1,14 +1,14 @@
 use crate::{
     error::ModelError,
     traits::{Model, SimpleCrud},
-    types::U256Wrapper,
+    types::FixedBytesWrapper,
 };
 use async_trait::async_trait;
 use sqlx::{Executor, Postgres};
 /// This struct represents a book in the database.
 #[derive(Debug, sqlx::FromRow, Builder)]
 pub struct Book {
-    pub id: U256Wrapper,
+    pub id: FixedBytesWrapper,
     pub name: Option<String>,
     pub description: Option<String>,
     pub genre: Option<String>,
@@ -19,7 +19,7 @@ pub struct Book {
 impl Model for Book {}
 
 #[async_trait]
-impl SimpleCrud<U256Wrapper> for Book {
+impl SimpleCrud<FixedBytesWrapper> for Book {
     /// This method upserts a book into the database.
     async fn upsert<'e, E>(&self, schema: &str, executor: E) -> Result<Self, ModelError>
     where
@@ -45,7 +45,7 @@ impl SimpleCrud<U256Wrapper> for Book {
         );
 
         sqlx::query_as::<_, Book>(&query)
-            .bind(self.id.to_big_decimal()?)
+            .bind(self.id.clone())
             .bind(self.name.clone())
             .bind(self.description.clone())
             .bind(self.genre.clone())
@@ -57,7 +57,7 @@ impl SimpleCrud<U256Wrapper> for Book {
 
     /// This method finds a book by its ID in the database.
     async fn find_by_id<'e, E>(
-        id: U256Wrapper,
+        id: FixedBytesWrapper,
         schema: &str,
         executor: E,
     ) -> Result<Option<Self>, ModelError>
@@ -78,7 +78,7 @@ impl SimpleCrud<U256Wrapper> for Book {
         );
 
         sqlx::query_as::<_, Book>(&query)
-            .bind(id.to_big_decimal()?)
+            .bind(id)
             .fetch_optional(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))

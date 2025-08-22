@@ -83,17 +83,16 @@ impl Image {
 
     /// Extracts the name and extension from a URL
     pub fn extract_name_and_extension(&self) -> Option<ImageOutput> {
-        if let Ok(parsed_url) = Url::parse(&self.url) {
-            if let Some(path) = parsed_url.path_segments() {
-                if let Some(filename) = path.last() {
-                    let parts: Vec<&str> = filename.rsplitn(2, '.').collect();
-                    if parts.len() == 2 {
-                        return Some(ImageOutput {
-                            name: parts[1].to_string(),
-                            extension: parts[0].to_string(),
-                        });
-                    }
-                }
+        if let Ok(parsed_url) = Url::parse(&self.url)
+            && let Some(mut path) = parsed_url.path_segments()
+            && let Some(filename) = path.next_back()
+        {
+            let parts: Vec<&str> = filename.rsplitn(2, '.').collect();
+            if parts.len() == 2 {
+                return Some(ImageOutput {
+                    name: parts[1].to_string(),
+                    extension: parts[0].to_string(),
+                });
             }
         }
         None

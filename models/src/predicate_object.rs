@@ -1,7 +1,7 @@
 use crate::{
     error::ModelError,
     traits::{Model, SimpleCrud},
-    types::U256Wrapper,
+    types::FixedBytesWrapper,
 };
 use async_trait::async_trait;
 use sqlx::{Executor, Postgres};
@@ -11,8 +11,8 @@ use sqlx::{Executor, Postgres};
 #[sqlx(type_name = "predicate_object")]
 pub struct PredicateObject {
     pub id: String,
-    pub predicate_id: U256Wrapper,
-    pub object_id: U256Wrapper,
+    pub predicate_id: FixedBytesWrapper,
+    pub object_id: FixedBytesWrapper,
     pub triple_count: i32,
 }
 
@@ -45,8 +45,8 @@ impl SimpleCrud<String> for PredicateObject {
 
         sqlx::query_as::<_, PredicateObject>(&query)
             .bind(self.id.clone())
-            .bind(self.predicate_id.to_big_decimal()?)
-            .bind(self.object_id.to_big_decimal()?)
+            .bind(self.predicate_id.clone())
+            .bind(self.object_id.clone())
             .bind(self.triple_count)
             .fetch_one(executor)
             .await

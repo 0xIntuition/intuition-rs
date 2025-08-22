@@ -1,21 +1,19 @@
-import { createPublicClient, createWalletClient, defineChain, formatEther, getContract, Hex, http, parseEther, parseEventLogs, publicActions, toHex } from 'viem'
-import { baseSepolia } from 'viem/chains'
+import { createPublicClient, createWalletClient, defineChain, formatEther, getContract, Hex, http, parseEther, parseEventLogs, toHex } from 'viem'
 import { ADMIN, MNEMONIC } from './constants.js'
 import { getContractAddress } from './deploy.js'
 import { mnemonicToAccount } from 'viem/accounts'
-import { Multivault } from '@0xintuition/protocol'
 import type { TypedDocumentString } from '../graphql/graphql.js'
 import { graphql } from '../graphql/gql.js'
 import { abi } from './abi'
-import { tokenAbi } from './tokenAbi'
+
 
 const local = defineChain({
   id: 1337,
-  name: 'Localhost',
+  name: 'Local intuition',
   nativeCurrency: {
     decimals: 18,
-    name: 'Ether',
-    symbol: 'ETH',
+    name: 'Local Trust',
+    symbol: 'lTRUST',
   },
   rpcUrls: {
     default: { http: ['http://127.0.0.1:8545'] },
@@ -48,50 +46,21 @@ export async function getIntuition(accountIndex: number) {
   })
   // balance
   const balance = await publicClient.getBalance({ address: account.address })
-  console.log(`Balance: ${parseFloat(formatEther(balance)).toFixed(6)} ETH, account: ${account.address}`)
+  console.log(`Balance: ${parseFloat(formatEther(balance)).toFixed(6)} lTRUST, account: ${account.address}`)
 
-  if (balance.valueOf() < parseEther('0.1').valueOf()) {
-    console.log(`Sending 1 ETH to ${account.address}...`)
+  if (balance.valueOf() < parseEther('10').valueOf()) {
+    console.log(`Sending 100 lTRUST to ${account.address}...`)
 
     // Faucet
     //@ts-ignore
     const hash = await adminClient.sendTransaction({
       account: ADMIN.address,
-      value: parseEther('1'),
+      value: parseEther('100'),
       to: account.address,
     })
 
     await publicClient.waitForTransactionReceipt({ hash })
-    console.log('Transfering mocktokens')
-
-    await adminClient.writeContract({
-      account: ADMIN.address,
-      address: '0x70AC54941671aa51008e4224264187A779aa672e',
-      abi: tokenAbi,
-      functionName: 'transfer',
-      args: [account.address, parseEther('10000')]
-    })
-
-
-    console.log('approving')
-
-    await wallet.writeContract({
-      address: '0x1707083E145074fB85cB75dA75A457814A091192',
-      abi: tokenAbi,
-      functionName: 'approve',
-      args: [address, parseEther('1000')],
-    })
   }
-
-
-
-
-  const multivault = new Multivault({
-    //@ts-ignore
-    publicClient: publicClient,
-    //@ts-ignore
-    walletClient: wallet
-  }, address)
 
   const contract = getContract({
     address,
@@ -142,19 +111,19 @@ export async function getIntuition(accountIndex: number) {
   */
   async function getOrCreateAtom(uri: string) {
 
-    const vaultId = await contract.read.getAtomIdFromData([toHex(uri)])
-    const atomData = await contract.read.atomData([vaultId])
-    console.log('aaaaaaaaa', atomData)
+    const vaultId = await contract.read.calculateAtomId([toHex(uri)])
+    let atomData = '0x'
+    try {
+      atomData = await contract.read.getAtom([vaultId])
+    } catch { }
     if (atomData !== '0x') {
       console.log(`Atom already exists: ${uri} ${vaultId}`)
-      return { vaultId, hash: null }
+      return { vaultId: vaultId, hash: null }
     } else {
       console.log(`Creating atom: ${uri} ...`)
-      const generalConfig = await contract.read.generalConfig()
-      // const { vaultId, hash } = await multivault.createAtom({ uri, initialDeposit: BigInt(generalConfig[3]) })
-      const res = await contract.simulate.createAtoms([[], BigInt(generalConfig[3])])
-      // const res = await contract.simulate.createAtoms([[toHex(uri)], BigInt(generalConfig[3])])
-      const hash = await contract.write.createAtoms([[toHex(uri)], BigInt(generalConfig[3])])
+      const { minDeposit } = await contract.read.getGeneralConfig()
+      console.log(`Min deposit: ${minDeposit} wei (${formatEther(minDeposit)} lTRUST)`)
+      const hash = await contract.write.createAtoms([[toHex(uri)], [minDeposit]], { value: minDeposit })
       const vaultId = await eventParseAtomCreated(hash)
       console.log(`vaultId: ${vaultId}`)
       await wait(hash)
@@ -163,21 +132,26 @@ export async function getIntuition(accountIndex: number) {
   }
 
   async function getCreateOrDepositOnTriple(subjectId: `0x${string}`, predicateId: `0x${string}`, objectId: `0x${string}`, customInitialDeposit?: bigint) {
-    const generalConfig = await contract.read.generalConfig()
-    const initialDeposit = customInitialDeposit ?? BigInt(generalConfig[3])
+    const { minDeposit } = await contract.read.getGeneralConfig()
+    const initialDeposit = customInitialDeposit ?? minDeposit
 
-    const vaultId = await contract.read.tripleIdFromAtomIds([subjectId, predicateId, objectId])
+    const tripleId = await contract.read.calculateTripleId([subjectId, predicateId, objectId])
+    let tripleExits = false;
+    try {
+      await contract.read.getTriple([tripleId])
+      tripleExits = true
+    } catch { }
 
-    if (vaultId) {
+    if (tripleExits) {
       if (initialDeposit) {
         console.log(`Depositing triple: ${subjectId} ${predicateId} ${objectId} ${initialDeposit} ...`)
-        const hash = await contract.write.deposit([wallet.account.address, vaultId, 1n, initialDeposit, 0n])
+        const hash = await contract.write.deposit([wallet.account.address, tripleId, 1n, 0n], { value: initialDeposit })
         await wait(hash)
       }
-      return { vaultId, hash: null }
+      return { vaultId: tripleId, hash: null }
     } else {
       console.log(`Creating triple: ${subjectId} ${predicateId} ${objectId} ...`)
-      const hash = await contract.write.createTriples([[subjectId], [predicateId], [objectId], initialDeposit])
+      const hash = await contract.write.createTriples([[subjectId], [predicateId], [objectId], [initialDeposit]], { value: initialDeposit })
       const vaultId = await eventParseTripleCreated(hash)
       console.log(`vaultId: ${vaultId}`)
       await wait(hash)
@@ -185,15 +159,8 @@ export async function getIntuition(accountIndex: number) {
     }
   }
 
-  return { multivault, account, getOrCreateAtom, getCreateOrDepositOnTriple }
+  return { contract, account, getOrCreateAtom, getCreateOrDepositOnTriple }
 }
-
-
-// export async function getOrCreateAtomWithJson(multivault: Multivault, json: any) {
-//   // TODO: Check if the JSON is already pinned
-//   const cid = await pinataPinJSON(json)
-//   return getOrCreateAtom(multivault, `ipfs://${cid}`)
-// }
 
 export async function pinJson(json: any) {
   const apiEndpoint = "http://localhost:3000/upload_json_to_ipfs"
@@ -248,14 +215,16 @@ export async function execute<TResult, TVariables>(
 }
 
 export async function wait(hash: string | null) {
+  // await new Promise(resolve => setTimeout(resolve, 1000));
+  // return true
   if (hash === null) {
     return
   }
   const promise = new Promise(async (resolve, reject) => {
     let count = 0
+    console.log(`Waiting 1 sec for transaction http://localhost/tx/${hash}`)
     while (true) {
-      console.log(`Waiting for transaction http://localhost/tx/${hash}`)
-      console.log(`Count: ${count}`)
+      await new Promise(resolve => setTimeout(resolve, 1000));
       const data = await execute(graphql(`
         query GetTransactionEvents($hash: String!) {
           events(where: { transaction_hash: { _eq: $hash } }) {
@@ -266,11 +235,11 @@ export async function wait(hash: string | null) {
       if (data?.events.length > 0) {
         return resolve(true);
       }
-      await new Promise(resolve => setTimeout(resolve, 1000));
       count++
-      if (count > 3600) {
+      if (count > 10) {
         return reject(new Error('Transaction not found'))
       }
+      console.log(`Retry: ${count}`)
     }
   });
   return promise;

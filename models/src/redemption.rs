@@ -1,7 +1,8 @@
 use crate::{
+    deposit::VaultType,
     error::ModelError,
     traits::{Model, SimpleCrud},
-    types::U256Wrapper,
+    types::{FixedBytesWrapper, U256Wrapper},
 };
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
@@ -14,11 +15,12 @@ pub struct Redemption {
     pub id: String,
     pub sender_id: String,
     pub receiver_id: String,
-    pub sender_total_shares_in_vault: U256Wrapper,
-    pub assets_for_receiver: U256Wrapper,
-    pub shares_redeemed_by_sender: U256Wrapper,
-    pub exit_fee: U256Wrapper,
-    pub term_id: U256Wrapper,
+    pub assets: U256Wrapper,
+    pub vault_type: VaultType,
+    pub fees: U256Wrapper,
+    pub shares: U256Wrapper,
+    pub total_shares: U256Wrapper,
+    pub term_id: FixedBytesWrapper,
     pub block_number: U256Wrapper,
     pub created_at: DateTime<Utc>,
     pub transaction_hash: String,
@@ -41,34 +43,36 @@ impl SimpleCrud<String> for Redemption {
         let query = format!(
             r#"
         INSERT INTO {}.redemption (
-            id, sender_id, receiver_id, sender_total_shares_in_vault,
-            assets_for_receiver, shares_redeemed_by_sender, exit_fee, term_id,
-            block_number, created_at, transaction_hash, curve_id, log_index
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+            id, sender_id, receiver_id,
+            assets, vault_type, fees, shares, total_shares, term_id,
+            curve_id, block_number, created_at, transaction_hash, log_index
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
         ON CONFLICT (id) DO UPDATE SET
             sender_id = EXCLUDED.sender_id,
             receiver_id = EXCLUDED.receiver_id,
-            sender_total_shares_in_vault = EXCLUDED.sender_total_shares_in_vault,
-            assets_for_receiver = EXCLUDED.assets_for_receiver,
-            shares_redeemed_by_sender = EXCLUDED.shares_redeemed_by_sender,
-            exit_fee = EXCLUDED.exit_fee,
+            assets = EXCLUDED.assets,
+            vault_type = EXCLUDED.vault_type,
+            fees = EXCLUDED.fees,
+            shares = EXCLUDED.shares,
+            total_shares = EXCLUDED.total_shares,
             term_id = EXCLUDED.term_id,
+            curve_id = EXCLUDED.curve_id,
             block_number = EXCLUDED.block_number,
             created_at = EXCLUDED.created_at,
             transaction_hash = EXCLUDED.transaction_hash,
-            curve_id = EXCLUDED.curve_id,
             log_index = EXCLUDED.log_index
         RETURNING 
             id, sender_id, receiver_id,
-            sender_total_shares_in_vault,
-            assets_for_receiver,
-            shares_redeemed_by_sender,
-            exit_fee,
+            assets,
+            vault_type,
+            fees,
+            shares,
+            total_shares,
             term_id,
+            curve_id,
             block_number,
             created_at,
             transaction_hash,
-            curve_id,
             log_index
         "#,
             schema,
@@ -78,15 +82,16 @@ impl SimpleCrud<String> for Redemption {
             .bind(self.id.clone())
             .bind(self.sender_id.clone())
             .bind(self.receiver_id.clone())
-            .bind(self.sender_total_shares_in_vault.to_big_decimal()?)
-            .bind(self.assets_for_receiver.to_big_decimal()?)
-            .bind(self.shares_redeemed_by_sender.to_big_decimal()?)
-            .bind(self.exit_fee.to_big_decimal()?)
-            .bind(self.term_id.to_big_decimal()?)
+            .bind(self.assets.to_big_decimal()?)
+            .bind(self.vault_type)
+            .bind(self.fees.to_big_decimal()?)
+            .bind(self.shares.to_big_decimal()?)
+            .bind(self.total_shares.to_big_decimal()?)
+            .bind(self.term_id.clone())
+            .bind(self.curve_id.to_big_decimal()?)
             .bind(self.block_number.to_big_decimal()?)
             .bind(self.created_at)
             .bind(self.transaction_hash.clone())
-            .bind(self.curve_id.to_big_decimal()?)
             .bind(self.log_index)
             .fetch_one(executor)
             .await
@@ -107,15 +112,16 @@ impl SimpleCrud<String> for Redemption {
             r#"
             SELECT 
                 id, sender_id, receiver_id,
-                sender_total_shares_in_vault,
-                assets_for_receiver,
-                shares_redeemed_by_sender,
-                exit_fee,
+                assets,
+                vault_type,
+                fees,
+                shares,  
+                total_shares,
                 term_id,
+                curve_id,
                 block_number,
                 created_at,
                 transaction_hash,
-                curve_id,
                 log_index
             FROM {}.redemption
             WHERE id = $1
@@ -133,16 +139,16 @@ impl SimpleCrud<String> for Redemption {
 
 impl Redemption {
     /// Gets the total shares redeemed by a sender in a vault.
-    pub async fn get_total_shares_redeemed_by_sender(
+    pub async fn get_total_shares(
         sender_id: String,
-        term_id: U256Wrapper,
+        term_id: FixedBytesWrapper,
         curve_id: U256Wrapper,
         pool: &sqlx::PgPool,
         schema: &str,
     ) -> Result<U256Wrapper, ModelError> {
         let query = format!(
             r#"
-            SELECT COALESCE(SUM(shares_redeemed_by_sender), 0) as total_shares
+            SELECT COALESCE(SUM(shares), 0) as total_shares
             FROM {}.redemption
             WHERE sender_id = $1 AND term_id = $2 AND curve_id = $3
             "#,
@@ -151,7 +157,7 @@ impl Redemption {
 
         let result: Option<U256Wrapper> = sqlx::query_scalar(&query)
             .bind(sender_id.clone())
-            .bind(term_id.to_big_decimal()?)
+            .bind(term_id)
             .bind(curve_id.to_big_decimal()?)
             .fetch_optional(pool)
             .await
@@ -165,7 +171,7 @@ impl Redemption {
     /// and the log index.
     pub async fn find_last_redemption_by_transaction_hash_term_id_and_curve_id<'e, E>(
         transaction_hash: String,
-        term_id: U256Wrapper,
+        term_id: FixedBytesWrapper,
         curve_id: U256Wrapper,
         schema: &str,
         executor: E,
@@ -180,7 +186,7 @@ impl Redemption {
 
         let result: Option<Redemption> = sqlx::query_as(&query)
             .bind(transaction_hash)
-            .bind(term_id.to_big_decimal()?)
+            .bind(term_id)
             .bind(curve_id.to_big_decimal()?)
             .fetch_optional(executor)
             .await

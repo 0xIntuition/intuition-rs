@@ -1,7 +1,7 @@
 use crate::{
     error::ModelError,
     traits::{Model, SimpleCrud},
-    types::U256Wrapper,
+    types::{FixedBytesWrapper, U256Wrapper},
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -13,7 +13,7 @@ use async_trait::async_trait;
 #[derive(sqlx::FromRow, Debug, PartialEq, Clone, Builder, Serialize, Deserialize)]
 #[sqlx(type_name = "atom")]
 pub struct Atom {
-    pub term_id: U256Wrapper,
+    pub term_id: FixedBytesWrapper,
     pub wallet_id: String,
     pub creator_id: String,
     pub data: Option<String>,
@@ -22,7 +22,7 @@ pub struct Atom {
     pub emoji: Option<String>,
     pub label: Option<String>,
     pub image: Option<String>,
-    pub value_id: Option<U256Wrapper>,
+    pub value_id: Option<FixedBytesWrapper>,
     pub block_number: U256Wrapper,
     pub created_at: DateTime<Utc>,
     pub transaction_hash: String,
@@ -65,7 +65,7 @@ impl Model for Atom {}
 
 /// This trait works as a contract for all models that need to be upserted into the database.
 #[async_trait]
-impl SimpleCrud<U256Wrapper> for Atom {
+impl SimpleCrud<FixedBytesWrapper> for Atom {
     /// Upserts the current Atom instance into the database.
     ///
     /// Inserts a new record or updates an existing one based on the Atom's ID.
@@ -144,14 +144,14 @@ impl SimpleCrud<U256Wrapper> for Atom {
         sqlx::query_as::<_, Atom>(&query)
             .bind(self.wallet_id.clone())
             .bind(self.creator_id.clone())
-            .bind(self.term_id.to_big_decimal()?)
+            .bind(self.term_id.clone())
             .bind(self.data.clone())
             .bind(self.raw_data.clone())
             .bind(self.atom_type.to_string())
             .bind(self.emoji.clone())
             .bind(self.label.clone())
             .bind(self.image.clone())
-            .bind(self.value_id.as_ref().and_then(|w| w.to_big_decimal().ok()))
+            .bind(self.value_id.as_ref())
             .bind(self.block_number.to_big_decimal()?)
             .bind(self.created_at)
             .bind(self.transaction_hash.clone())
@@ -176,7 +176,7 @@ impl SimpleCrud<U256Wrapper> for Atom {
     ///
     /// Returns a Result containing an Option<Atom>. The Result is Err if there's a database error.
     async fn find_by_id<'e, E>(
-        term_id: U256Wrapper,
+        term_id: FixedBytesWrapper,
         schema: &str,
         executor: E,
     ) -> Result<Option<Self>, ModelError>
@@ -207,7 +207,7 @@ impl SimpleCrud<U256Wrapper> for Atom {
         );
 
         sqlx::query_as::<_, Atom>(&query)
-            .bind(term_id.to_big_decimal()?)
+            .bind(term_id)
             .fetch_optional(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
@@ -226,7 +226,7 @@ impl Atom {
         );
 
         sqlx::query(&query)
-            .bind(self.term_id.to_big_decimal()?)
+            .bind(self.term_id.clone())
             .execute(executor)
             .await
             .map_err(ModelError::from)
@@ -244,7 +244,7 @@ impl Atom {
         );
 
         sqlx::query(&query)
-            .bind(self.term_id.to_big_decimal()?)
+            .bind(self.term_id.clone())
             .execute(executor)
             .await
             .map_err(ModelError::from)

@@ -168,12 +168,13 @@ select_permissions:
   - role: anonymous
     permission:
       columns:
-        - id
         - type
         - atom_id
+        - id
         - triple_id
         - total_assets
         - total_market_cap
+        - updated_at
       filter: {}
       limit: 100
       allow_aggregations: true

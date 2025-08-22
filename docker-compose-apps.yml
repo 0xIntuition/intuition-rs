@@ -20,7 +20,7 @@ services:
       PINATA_GATEWAY_TOKEN: $PINATA_GATEWAY_TOKEN
       PG_MIN_CONNECTIONS: '5'
       RESOLVER_STREAM: 'resolver_stream'
-      RPC_URL_BASE: "http://prod-rpc-proxy:3008/84532/proxy"
+      RPC_URL_BASE: "http://prod-rpc-proxy:3008/8545/proxy"
       RPC_URL_MAINNET: "http://prod-rpc-proxy:3008/1/proxy"
       RUST_LOG: 'info'
       BACKEND_SCHEMA: 'public'
@@ -81,7 +81,7 @@ services:
       LOCALSTACK_URL: 'http://redis:6379'
       PG_MIN_CONNECTIONS: '20'
       RESOLVER_STREAM: 'resolver_stream'
-      RPC_URL_BASE: "http://prod-rpc-proxy:3008/84532/proxy"
+      RPC_URL_BASE: "http://prod-rpc-proxy:3008/8545/proxy"
       RUST_LOG: 'warn'
       BACKEND_SCHEMA: 'public'
       REDIS_URL: 'redis://redis:6379'
@@ -127,6 +127,8 @@ services:
       ETHEREUM_MAINNET_RPC_URL: $ETHEREUM_MAINNET_RPC_URL
       LINEA_MAINNET_RPC_URL: $LINEA_MAINNET_RPC_URL
       LINEA_SEPOLIA_RPC_URL: $LINEA_SEPOLIA_RPC_URL
+      TRUST_TESTNET_RPC_URL: $TRUST_TESTNET_RPC_URL
+      TRUST_MAINNET_RPC_URL: $TRUST_MAINNET_RPC_URL
       RUST_LOG: 'info'
     restart: always
     ports:
@@ -149,7 +151,7 @@ services:
       context: ./integration-tests
       dockerfile: Dockerfile
     environment:
-      - ETHEREUM_RPC_URL=http://geth:8545
+      - ETHEREUM_RPC_URL=http://prod-rpc-proxy:3008/1/proxy
       - GRAPHQL_API_URL=http://graphql-engine:8080/v1/graphql
       - IPFS_API_URL=http://api:3000/upload_json_to_ipfs 
       - VITE_INTUITION_CONTRACT_ADDRESS=$INTUITION_CONTRACT_ADDRESS

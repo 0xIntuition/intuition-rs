@@ -1,7 +1,7 @@
 use crate::{
     error::ModelError,
     traits::{Model, SimpleCrud},
-    types::U256Wrapper,
+    types::FixedBytesWrapper,
 };
 use async_trait::async_trait;
 use sqlx::{Executor, Postgres};
@@ -9,22 +9,22 @@ use sqlx::{Executor, Postgres};
 /// This is the `AtomValue` struct that represents an atom value in the database.
 #[derive(sqlx::FromRow, Debug, Builder)]
 pub struct AtomValue {
-    pub id: U256Wrapper,
+    pub id: FixedBytesWrapper,
     pub account_id: Option<String>,
-    pub thing_id: Option<U256Wrapper>,
-    pub person_id: Option<U256Wrapper>,
-    pub organization_id: Option<U256Wrapper>,
-    pub book_id: Option<U256Wrapper>,
-    pub json_object_id: Option<U256Wrapper>,
-    pub text_object_id: Option<U256Wrapper>,
-    pub byte_object_id: Option<U256Wrapper>,
+    pub thing_id: Option<FixedBytesWrapper>,
+    pub person_id: Option<FixedBytesWrapper>,
+    pub organization_id: Option<FixedBytesWrapper>,
+    pub book_id: Option<FixedBytesWrapper>,
+    pub json_object_id: Option<FixedBytesWrapper>,
+    pub text_object_id: Option<FixedBytesWrapper>,
+    pub byte_object_id: Option<FixedBytesWrapper>,
 }
 
 /// This is the implementation of the `Model` trait for the `AtomValue` struct.
 impl Model for AtomValue {}
 
 #[async_trait]
-impl SimpleCrud<U256Wrapper> for AtomValue {
+impl SimpleCrud<FixedBytesWrapper> for AtomValue {
     /// This is a method to upsert an atom value into the database.
     async fn upsert<'e, E>(&self, schema: &str, executor: E) -> Result<Self, ModelError>
     where
@@ -58,35 +58,15 @@ impl SimpleCrud<U256Wrapper> for AtomValue {
         );
 
         sqlx::query_as::<_, AtomValue>(&query)
-            .bind(self.id.to_big_decimal()?)
+            .bind(self.id.clone())
             .bind(self.account_id.clone())
-            .bind(self.thing_id.as_ref().and_then(|w| w.to_big_decimal().ok()))
-            .bind(
-                self.person_id
-                    .as_ref()
-                    .and_then(|w| w.to_big_decimal().ok()),
-            )
-            .bind(
-                self.organization_id
-                    .as_ref()
-                    .and_then(|w| w.to_big_decimal().ok()),
-            )
-            .bind(self.book_id.as_ref().and_then(|w| w.to_big_decimal().ok()))
-            .bind(
-                self.json_object_id
-                    .as_ref()
-                    .and_then(|w| w.to_big_decimal().ok()),
-            )
-            .bind(
-                self.text_object_id
-                    .as_ref()
-                    .and_then(|w| w.to_big_decimal().ok()),
-            )
-            .bind(
-                self.byte_object_id
-                    .as_ref()
-                    .and_then(|w| w.to_big_decimal().ok()),
-            )
+            .bind(self.thing_id.as_ref())
+            .bind(self.person_id.as_ref())
+            .bind(self.organization_id.as_ref())
+            .bind(self.book_id.as_ref())
+            .bind(self.json_object_id.as_ref())
+            .bind(self.text_object_id.as_ref())
+            .bind(self.byte_object_id.as_ref())
             .fetch_one(executor)
             .await
             .map_err(|e| ModelError::AtomValueInsertError(e.to_string()))
@@ -94,7 +74,7 @@ impl SimpleCrud<U256Wrapper> for AtomValue {
 
     /// This is a method to find an atom value by its id.
     async fn find_by_id<'e, E>(
-        id: U256Wrapper,
+        id: FixedBytesWrapper,
         schema: &str,
         executor: E,
     ) -> Result<Option<Self>, ModelError>
@@ -121,7 +101,7 @@ impl SimpleCrud<U256Wrapper> for AtomValue {
         );
 
         sqlx::query_as::<_, AtomValue>(&query)
-            .bind(id.to_big_decimal()?)
+            .bind(id)
             .fetch_optional(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))

@@ -9,24 +9,22 @@ use crate::{
     schemas::types::DecodedMessage,
     traits::{AccountManager, SharePriceEvent, VaultManager},
 };
-use alloy::primitives::Uint;
 use models::{
     account::{Account, AccountType},
     atom::{Atom, AtomResolvingStatus, AtomType},
     term::TermType,
     traits::SimpleCrud,
-    types::U256Wrapper,
+    types::{FixedBytesWrapper, U256Wrapper},
     vault::Vault,
 };
 use sqlx::PgPool;
-use std::{fmt::Debug, str::FromStr};
+use std::fmt::Debug;
 use tracing::{debug, warn};
 
 /// This trait represents a fee transferred event
 pub trait AtomCreatedEvent:
     SharePriceEvent + VaultManager + AccountManager + Debug + Clone
 {
-    fn vault_id(&self) -> Result<Uint<256, 4>, ConsumerError>;
     fn creator_id(&self) -> Result<String, ConsumerError>;
     fn atom_data(&self) -> Result<String, ConsumerError>;
     /// This function updates the vault current share price and it returns the vault and atom
@@ -50,13 +48,13 @@ pub trait AtomCreatedEvent:
             Err(e) => {
                 warn!("Error inserting vault: {:?}, returning existing vault", e);
                 Vault::find_by_term_id_and_curve_id(
-                    self.vault_id()?.into(),
+                    self.term_id()?.into(),
                     self.curve_id()?,
                     &decoded_consumer_context.pg_pool,
                     &decoded_consumer_context.backend_schema,
                 )
                 .await?
-                .ok_or(ConsumerError::VaultNotFound(self.vault_id()?.to_string()))?
+                .ok_or(ConsumerError::VaultNotFound(self.term_id()?.to_string()))?
             }
         };
 
@@ -79,7 +77,7 @@ pub trait AtomCreatedEvent:
         event: &DecodedMessage,
     ) -> Result<Atom, ConsumerError> {
         if let Some(atom) = Atom::find_by_id(
-            self.vault_id()?.into(),
+            self.term_id()?.into(),
             &decoded_consumer_context.backend_schema,
             &decoded_consumer_context.pg_pool,
         )
@@ -125,10 +123,10 @@ pub trait AtomCreatedEvent:
         let creator_account =
             get_or_create_account(self.creator_id()?, decoded_consumer_context).await?;
         let atom = Atom::builder()
-            .term_id(self.vault_id()?)
+            .term_id(FixedBytesWrapper::from(self.term_id()?))
             .wallet_id(atom_wallet_account.id.clone())
             .creator_id(creator_account.id)
-            .value_id(U256Wrapper::from_str(&self.vault_id()?.to_string())?)
+            .value_id(FixedBytesWrapper::from(self.term_id()?))
             .raw_data(self.atom_data()?)
             .atom_type(AtomType::Unknown)
             .block_number(U256Wrapper::try_from(event.block_number)?)
@@ -171,7 +169,7 @@ pub trait AtomCreatedEvent:
     /// This function updates an account with an atom ID and enqueues a resolver message
     async fn update_account_with_atom_id(
         account: &mut Account,
-        atom_id: U256Wrapper,
+        atom_id: FixedBytesWrapper,
         decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<(), ConsumerError> {
         account.atom_id = Some(atom_id);

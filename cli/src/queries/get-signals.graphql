@@ -1,8 +1,8 @@
 query GetSignals {
-  signals(limit: 250, order_by: {block_timestamp: desc}) {
+  signals(limit: 250, order_by: {created_at: desc}) {
     id
+    created_at
     delta
-    block_timestamp
     account {
       label
       type
@@ -26,7 +26,7 @@ query GetSignals {
       }
     }
     deposit {
-      shares_for_receiver
+      shares
     }
     redemption {
       receiver {
@@ -35,3 +35,4 @@ query GetSignals {
     }
   }
 }
+

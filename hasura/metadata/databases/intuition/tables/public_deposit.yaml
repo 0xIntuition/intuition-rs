@@ -37,20 +37,19 @@ select_permissions:
   - role: anonymous
     permission:
       columns:
-        - is_atom_wallet
-        - is_triple
-        - transaction_hash
-        - block_number
-        - created_at
-        - entry_fee
-        - receiver_total_shares_in_vault
-        - sender_assets_after_total_fees
-        - shares_for_receiver
+        - vault_type
+        - log_index
         - term_id
+        - assets_after_fees
+        - block_number
         - curve_id
+        - shares
+        - total_shares
         - id
         - receiver_id
         - sender_id
+        - transaction_hash
+        - created_at
       filter: {}
       limit: 250
       allow_aggregations: true

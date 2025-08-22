@@ -1,7 +1,7 @@
 use crate::{
     error::ModelError,
     traits::{Model, SimpleCrud},
-    types::U256Wrapper,
+    types::FixedBytesWrapper,
 };
 use async_trait::async_trait;
 use sqlx::{Executor, Postgres};
@@ -10,7 +10,7 @@ use sqlx::{Executor, Postgres};
 #[derive(Debug, sqlx::FromRow, Builder)]
 #[sqlx(type_name = "thing")]
 pub struct Thing {
-    pub id: U256Wrapper,
+    pub id: FixedBytesWrapper,
     pub name: Option<String>,
     pub description: Option<String>,
     pub image: Option<String>,
@@ -21,7 +21,7 @@ pub struct Thing {
 impl Model for Thing {}
 
 #[async_trait]
-impl SimpleCrud<U256Wrapper> for Thing {
+impl SimpleCrud<FixedBytesWrapper> for Thing {
     /// Upserts a thing into the database.
     async fn upsert<'e, E>(&self, schema: &str, executor: E) -> Result<Self, ModelError>
     where
@@ -58,7 +58,7 @@ impl SimpleCrud<U256Wrapper> for Thing {
         );
 
         sqlx::query_as::<_, Thing>(&query)
-            .bind(self.id.to_big_decimal()?)
+            .bind(self.id.clone())
             .bind(self.name.clone())
             .bind(self.description.clone())
             .bind(self.image.clone())
@@ -70,7 +70,7 @@ impl SimpleCrud<U256Wrapper> for Thing {
 
     /// Finds a thing by its id.
     async fn find_by_id<'e, E>(
-        id: U256Wrapper,
+        id: FixedBytesWrapper,
         schema: &str,
         executor: E,
     ) -> Result<Option<Self>, ModelError>
@@ -91,7 +91,7 @@ impl SimpleCrud<U256Wrapper> for Thing {
         );
 
         sqlx::query_as::<_, Thing>(&query)
-            .bind(id.to_big_decimal()?)
+            .bind(id)
             .fetch_optional(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))

@@ -87,8 +87,6 @@ pub enum ConsumerError {
     ByteObjectError(String),
     #[error("Contract version parse: {0}")]
     ContractVersionParse(String),
-    #[error("Counter vault not found: {0}")]
-    CounterVaultNotFound(String),
     #[error(transparent)]
     Envy(#[from] envy::Error),
     #[error("Environment name not found")]

@@ -40,7 +40,10 @@ suite('follow account and semantic search', async () => {
   }))
 
   await wait(cat.hash)
-  await bob.multivault.depositAtom(cat.vaultId, parseEther('0.001'))
+  await bob.contract.write.deposit(
+    [bob.account.address, cat.vaultId, 1n, 0n],
+    { value: parseEther('0.1') }
+  )
 
   const table = await bob.getOrCreateAtom(await pinJson({
     '@context': 'https://schema.org',
@@ -79,7 +82,7 @@ suite('follow account and semantic search', async () => {
     )
     expect(result).toBeDefined()
     expect(result.search_term.length).toBe(2)
-    expect(result.search_term[0].id).toBe(table.vaultId.toString())
+    expect(result.search_term[0].id).toBe(table.vaultId)
   })
   test('semantic search for cat', async () => {
     await wait(cat.hash)
@@ -96,7 +99,7 @@ suite('follow account and semantic search', async () => {
       { query: 'a small domesticated carnivorous mammal' }
     )
     expect(result).toBeDefined()
-    expect(result.search_term[0].id).toBe(cat.vaultId.toString())
+    expect(result.search_term[0].id).toBe(cat.vaultId)
   })
 
   test('semantic search for dog', async () => {
@@ -115,7 +118,7 @@ suite('follow account and semantic search', async () => {
     )
     expect(result).toBeDefined()
     expect(result.search_term.length).toBe(2)
-    expect(result.search_term[0].id).toBe(beagle.vaultId.toString())
+    expect(result.search_term[0].id).toBe(beagle.vaultId)
   })
 
   test('semantic search from following', async () => {
@@ -134,6 +137,6 @@ suite('follow account and semantic search', async () => {
     )
     expect(result).toBeDefined()
     expect(result.search_term_from_following.length).toBe(2)
-    expect(result.search_term_from_following[0].id).toBe(cat.vaultId.toString())
+    expect(result.search_term_from_following[0].id).toBe(cat.vaultId)
   })
 })

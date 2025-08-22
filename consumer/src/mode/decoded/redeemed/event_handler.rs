@@ -7,6 +7,7 @@ use crate::{
         utils::get_or_create_account,
     },
     schemas::types::DecodedMessage,
+    traits::SharePriceEvent,
 };
 use models::{
     event::{Event, EventType},
@@ -24,7 +25,7 @@ pub struct RedeemedEventHandler<T>(pub T);
 
 impl<T> EventHandler for RedeemedEventHandler<T>
 where
-    T: RedeemedEvent + Debug + Sync + Send,
+    T: RedeemedEvent + SharePriceEvent + Debug + Sync + Send,
 {
     async fn process_event(
         &self,
@@ -52,25 +53,19 @@ where
 
         // 1. Ensure the vault exists
         let vault = Vault::find_by_term_id_and_curve_id(
-            self.0.vault_id()?.into(),
-            1.try_into()?,
+            self.0.term_id()?.into(),
+            RedeemedEvent::curve_id(&self.0)?.into(),
             &decoded_consumer_context.pg_pool.clone(),
             &decoded_consumer_context.backend_schema,
         )
         .await?
-        .ok_or(ConsumerError::VaultNotFound(self.0.vault_id()?.to_string()))?;
+        .ok_or(ConsumerError::VaultNotFound(self.0.term_id()?.to_string()))?;
 
         // 2. Set up accounts
         let sender_account =
             get_or_create_account(self.0.sender()?, decoded_consumer_context).await?;
         let receiver_account =
             get_or_create_account(self.0.receiver()?, decoded_consumer_context).await?;
-
-        // This is only for V1, we need to fetch the data from the RPC before
-        // starting the transaction
-        let vault_info = self
-            .get_vault_info(decoded_consumer_context, event, self.0.vault_id()?)
-            .await?;
 
         // 3. Create redemption record
         self.0
@@ -84,11 +79,6 @@ where
 
         self.0
             .handle_position_shares(&vault, &sender_account, decoded_consumer_context, event)
-            .await?;
-
-        // Update vault values when dealing with v1 redeemed events
-        self.0
-            .update_vault_values(decoded_consumer_context, vault_info, event)
             .await?;
 
         // 4. Create event and signal records
@@ -106,13 +96,13 @@ where
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
         let vault = Vault::find_by_term_id_and_curve_id(
-            self.0.vault_id()?.into(),
+            self.0.term_id()?.into(),
             U256Wrapper::try_from(1)?,
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
         .await?
-        .ok_or(ConsumerError::VaultNotFound(self.0.vault_id()?.to_string()))?;
+        .ok_or(ConsumerError::VaultNotFound(self.0.term_id()?.to_string()))?;
 
         let term_type = Term::find_by_id(
             vault.term_id.clone(),

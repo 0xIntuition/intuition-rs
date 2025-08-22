@@ -1,7 +1,7 @@
 use crate::{
     error::ModelError,
     traits::{Model, SimpleCrud},
-    types::U256Wrapper,
+    types::{FixedBytesWrapper, U256Wrapper},
 };
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
@@ -11,8 +11,8 @@ use sqlx::{Executor, Postgres, Result};
 #[derive(Debug, sqlx::FromRow, Builder)]
 #[sqlx(type_name = "triple_term")]
 pub struct TripleTerm {
-    pub term_id: U256Wrapper,
-    pub counter_term_id: U256Wrapper,
+    pub term_id: FixedBytesWrapper,
+    pub counter_term_id: FixedBytesWrapper,
     pub total_assets: U256Wrapper,
     pub total_market_cap: U256Wrapper,
     pub total_position_count: i64,
@@ -23,7 +23,7 @@ impl Model for TripleTerm {}
 
 /// This trait works as a contract for all models that need to be upserted into the database.
 #[async_trait]
-impl SimpleCrud<U256Wrapper> for TripleTerm {
+impl SimpleCrud<FixedBytesWrapper> for TripleTerm {
     /// This method upserts a triple term into the database.
     async fn upsert<'e, E>(&self, schema: &str, executor: E) -> Result<Self, ModelError>
     where
@@ -44,8 +44,8 @@ impl SimpleCrud<U256Wrapper> for TripleTerm {
         );
 
         sqlx::query_as::<_, TripleTerm>(&query)
-            .bind(self.term_id.to_big_decimal()?)
-            .bind(self.counter_term_id.to_big_decimal()?)
+            .bind(self.term_id.clone())
+            .bind(self.counter_term_id.clone())
             .bind(self.total_assets.to_big_decimal()?)
             .bind(self.total_market_cap.to_big_decimal()?)
             .bind(self.total_position_count)
@@ -57,7 +57,7 @@ impl SimpleCrud<U256Wrapper> for TripleTerm {
 
     /// Finds a term by its id.
     async fn find_by_id<'e, E>(
-        term_id: U256Wrapper,
+        term_id: FixedBytesWrapper,
         schema: &str,
         executor: E,
     ) -> Result<Option<Self>, ModelError>
@@ -80,7 +80,7 @@ impl SimpleCrud<U256Wrapper> for TripleTerm {
         );
 
         sqlx::query_as::<_, TripleTerm>(&query)
-            .bind(term_id.to_big_decimal()?)
+            .bind(term_id)
             .fetch_optional(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
@@ -89,7 +89,7 @@ impl SimpleCrud<U256Wrapper> for TripleTerm {
 
 impl TripleTerm {
     pub async fn find_by_term_id_and_counter_term_id<'e, E>(
-        term_id: U256Wrapper,
+        term_id: FixedBytesWrapper,
         schema: &str,
         executor: E,
     ) -> Result<Option<Self>, ModelError>
@@ -112,7 +112,7 @@ impl TripleTerm {
         );
 
         sqlx::query_as::<_, TripleTerm>(&query)
-            .bind(term_id.to_big_decimal()?)
+            .bind(term_id)
             .fetch_optional(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))

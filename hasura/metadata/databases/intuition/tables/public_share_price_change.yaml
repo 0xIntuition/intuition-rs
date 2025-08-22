@@ -25,14 +25,16 @@ select_permissions:
   - role: anonymous
     permission:
       columns:
+        - vault_type
+        - block_timestamp
         - id
+        - log_index
         - term_id
+        - block_number
         - curve_id
         - share_price
         - total_assets
         - total_shares
-        - block_number
-        - block_timestamp
         - transaction_hash
         - updated_at
       filter: {}
