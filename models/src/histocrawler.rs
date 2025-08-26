@@ -12,6 +12,7 @@ pub struct AppConfig {
     pub end_block: Option<i64>,
     pub contract_address: String,
     pub raw_logs_channel: String,
+    pub last_processed_block: Option<i64>,
 }
 
 impl AppConfig {
@@ -19,9 +20,9 @@ impl AppConfig {
     /// Insert the app config into the database
     pub async fn insert(&self, db: &PgPool) -> Result<Self, ModelError> {
         let query = r#"
-        INSERT INTO histocrawler.app_config (indexer_schema, rpc_url, start_block, end_block, contract_address, raw_logs_channel) 
-        VALUES ($1, $2, $3, $4, $5, $6) 
-        RETURNING indexer_schema, rpc_url, start_block, end_block, contract_address, raw_logs_channel, updated_at::timestamptz as updated_at
+        INSERT INTO histocrawler.app_config (indexer_schema, rpc_url, start_block, end_block, contract_address, raw_logs_channel, last_processed_block) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7) 
+        RETURNING *
         "#;
 
         sqlx::query_as::<_, AppConfig>(query)
@@ -31,6 +32,7 @@ impl AppConfig {
             .bind(self.end_block)
             .bind(self.contract_address.clone())
             .bind(self.raw_logs_channel.clone())
+            .bind(self.last_processed_block)
             .fetch_one(db)
             .await
             .map_err(|e| ModelError::InsertError(e.to_string()))
@@ -50,5 +52,29 @@ impl AppConfig {
             .fetch_optional(db)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
+    }
+
+    /// Update the last processed block for this app config
+    pub async fn update_last_processed_block(
+        &mut self,
+        last_processed_block: i64,
+        db: &PgPool,
+    ) -> Result<(), ModelError> {
+        let query = r#"
+        UPDATE histocrawler.app_config 
+        SET last_processed_block = $1, modified_at = CURRENT_TIMESTAMP 
+        WHERE indexer_schema = $2
+        "#;
+
+        sqlx::query(query)
+            .bind(last_processed_block)
+            .bind(&self.indexer_schema)
+            .execute(db)
+            .await
+            .map_err(|e| ModelError::UpdateError(e.to_string()))?;
+
+        // Update the local instance
+        self.last_processed_block = Some(last_processed_block);
+        Ok(())
     }
 }

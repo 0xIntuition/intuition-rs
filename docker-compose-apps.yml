@@ -168,6 +168,7 @@ services:
 networks:
   intuition-be:
     driver: bridge
+    external: true
     
 volumes:
   raw_consumer:

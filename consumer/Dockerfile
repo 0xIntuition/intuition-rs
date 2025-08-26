@@ -1,5 +1,5 @@
 # Stage 1 - Generate recipe file
-FROM rust:1.85-slim AS chef
+FROM rust:1.89.0-slim-bookworm AS chef
 RUN cargo install cargo-chef
 WORKDIR /app
 
@@ -8,7 +8,9 @@ COPY . .
 RUN cargo chef prepare --recipe-path recipe.json
 
 # Stage 2 - Build dependencies and application
-FROM chef AS builder
+FROM rust:1.89.0-slim-bookworm AS builder
+RUN cargo install cargo-chef
+WORKDIR /app
 COPY --from=planner /app/recipe.json recipe.json
 
 RUN apt-get update && \
@@ -40,17 +42,16 @@ RUN apt-get update && \
     libssl3 \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy binary from builder
-COPY --from=builder /app/target/release/consumer /app/consumer
+# Workdir
+WORKDIR /app
 
-# Set ownership
-RUN chown appuser:appuser /app/consumer
+# Copy binary from builder (with ownership set at copy time)
+COPY --from=builder --chown=appuser:appuser /app/target/release/consumer /app/consumer
 
 # Use non-root user
 USER appuser
 
 # Set runtime configs
 ENV RUST_LOG=info
-WORKDIR /app
 
 CMD ["/app/consumer"]

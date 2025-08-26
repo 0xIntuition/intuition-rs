@@ -1,9 +1,9 @@
 use ratatui::{
+    Frame,
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Cell, List, ListItem, Paragraph, Row, Table},
-    Frame,
 };
 
 use crate::app::App;
@@ -81,18 +81,29 @@ fn draw_account_details(f: &mut Frame, app: &App, area: Rect) {
             .iter()
             .map(|pos| {
                 // Extract the label, defaulting to "N/A" if none exists
-                let label = 
-                    if let Some(atom) = pos.term.atom.as_ref() {
-                        atom.label.as_deref().unwrap_or("N/A").to_string()
-                    } else if let Some(triple) = &pos.term.triple {
-                        let subject_str = triple.subject.label.clone().unwrap_or_else(|| "N/A".to_string());
-                        let predicate_str = triple.predicate.label.clone().unwrap_or_else(|| "N/A".to_string());
-                        let object_str = triple.object.label.clone().unwrap_or_else(|| "N/A".to_string());
-                        
-                        format!("{} {} {}", subject_str, predicate_str, object_str)
-                    } else {
-                        "N/A".to_string()
-                    };
+                let label = if let Some(atom) = pos.term.atom.as_ref() {
+                    atom.label.as_deref().unwrap_or("N/A").to_string()
+                } else if let Some(triple) = &pos.term.triple {
+                    let subject_str = triple
+                        .subject
+                        .label
+                        .clone()
+                        .unwrap_or_else(|| "N/A".to_string());
+                    let predicate_str = triple
+                        .predicate
+                        .label
+                        .clone()
+                        .unwrap_or_else(|| "N/A".to_string());
+                    let object_str = triple
+                        .object
+                        .label
+                        .clone()
+                        .unwrap_or_else(|| "N/A".to_string());
+
+                    format!("{} {} {}", subject_str, predicate_str, object_str)
+                } else {
+                    "N/A".to_string()
+                };
 
                 ListItem::new(Line::from(format!("{}, {}", label, pos.shares)))
             })
@@ -102,9 +113,6 @@ fn draw_account_details(f: &mut Frame, app: &App, area: Rect) {
             List::new(positions).block(Block::default().title("Positions").borders(Borders::ALL));
 
         f.render_widget(positions_list, chunks[0]);
-
-
-
     } else {
         let text = vec![Line::from(Span::raw("No account details"))];
         let paragraph = Paragraph::new(text).block(block);

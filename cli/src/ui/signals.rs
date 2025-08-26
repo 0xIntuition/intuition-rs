@@ -1,11 +1,11 @@
 use crate::app::App;
 use alloy::primitives::utils::{format_units, parse_units};
 use ratatui::{
+    Frame,
     layout::Constraint,
     layout::Rect,
     style::{Color, Style},
     widgets::{Block, Borders, Cell, Row, Table},
-    Frame,
 };
 
 pub fn draw(f: &mut Frame, app: &App, area: Rect) {
@@ -13,7 +13,7 @@ pub fn draw(f: &mut Frame, app: &App, area: Rect) {
         .signals
         .iter()
         .map(|signal| {
-            // use signal.term.atom.label or `signal.term.triple.subject.label signal.term.triple.predicate.label signal.term.triple.object.label`  
+            // use signal.term.atom.label or `signal.term.triple.subject.label signal.term.triple.predicate.label signal.term.triple.object.label`
             // both atom and triple are optional
             let label = match &signal.term.atom {
                 Some(atom) => atom.label.clone().unwrap_or_else(|| "N/A".to_string()),
@@ -22,10 +22,22 @@ pub fn draw(f: &mut Frame, app: &App, area: Rect) {
                     if let Some(triple) = &signal.term.triple {
                         // Both triple.subject, triple.predicate, and triple.object exist
                         // But their label properties might be Option<String>
-                        let subject_str = triple.subject.label.clone().unwrap_or_else(|| "N/A".to_string());
-                        let predicate_str = triple.predicate.label.clone().unwrap_or_else(|| "N/A".to_string());
-                        let object_str = triple.object.label.clone().unwrap_or_else(|| "N/A".to_string());
-                        
+                        let subject_str = triple
+                            .subject
+                            .label
+                            .clone()
+                            .unwrap_or_else(|| "N/A".to_string());
+                        let predicate_str = triple
+                            .predicate
+                            .label
+                            .clone()
+                            .unwrap_or_else(|| "N/A".to_string());
+                        let object_str = triple
+                            .object
+                            .label
+                            .clone()
+                            .unwrap_or_else(|| "N/A".to_string());
+
                         format!("{} {} {}", subject_str, predicate_str, object_str)
                     } else {
                         "N/A".to_string()

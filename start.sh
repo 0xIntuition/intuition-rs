@@ -2,7 +2,7 @@
 source .env
 
 # Start shared services
-docker compose -f docker-compose-shared.yml up database drizzle-studio pgai-installer vectorizer-worker redis redis-setup ipfs safe-content graphql-engine local-migrations indexer-migrations hasura-migrations prometheus -d --wait --force-recreate
+docker compose -f docker-compose-shared.yml up database drizzle-studio pgai-installer vectorizer-worker redis redis-setup ipfs safe-content graphql-engine local-migrations indexer-migrations hasura-migrations prometheus elasticsearch logstash kibana filebeat -d --wait --force-recreate
 
 export INITIAL_CONTRACT_VERSION="v2"
 # First arg is indexer schema
@@ -52,4 +52,7 @@ fi
 docker compose -f docker-compose-apps.yml up resolver_consumer ipfs_upload_consumer decoded_consumer api prod-rpc-proxy histocrawler -d --force-recreate
 
 echo -e "\nGraphQL: http://localhost:8080/console"
-echo -e "Database: https://local.drizzle.studio/\n"
+echo -e "Database: https://local.drizzle.studio/"
+echo -e "Kibana: http://localhost:5601"
+echo -e "Elasticsearch: http://localhost:9200"
+echo -e "\nTo set up Kibana with pre-configured searches, run: ./setup-kibana.sh\n"

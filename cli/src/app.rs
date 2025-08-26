@@ -1,6 +1,6 @@
 use crate::queries::{
-    get_account_info, get_accounts, get_aggregates, get_atoms, get_predicate_objects, get_signals,
     GetAccountInfo, GetAccounts, GetAggregates, GetAtoms, GetPredicateObjects, GetSignals,
+    get_account_info, get_accounts, get_aggregates, get_atoms, get_predicate_objects, get_signals,
 };
 use graphql_client::GraphQLQuery;
 use lazy_static::lazy_static;
@@ -159,10 +159,8 @@ async fn fetch_aggregates() -> Option<get_aggregates::ResponseData> {
         .await
         .expect("Failed to send request");
 
-    let data: graphql_client::Response<get_aggregates::ResponseData> = res
-        .json()
-        .await
-        .expect("Failed to parse response");
+    let data: graphql_client::Response<get_aggregates::ResponseData> =
+        res.json().await.expect("Failed to parse response");
 
     data.data
 }
@@ -179,10 +177,8 @@ async fn fetch_accounts() -> Option<Vec<get_accounts::GetAccountsAccounts>> {
         .await
         .expect("Failed to send request");
 
-    let data: graphql_client::Response<get_accounts::ResponseData> = res
-        .json()
-        .await
-        .expect("Failed to parse response");
+    let data: graphql_client::Response<get_accounts::ResponseData> =
+        res.json().await.expect("Failed to parse response");
 
     data.data.map(|d| d.accounts)
 }
@@ -199,10 +195,8 @@ async fn fetch_atoms() -> Option<Vec<get_atoms::GetAtomsAtoms>> {
         .await
         .expect("Failed to send request");
 
-    let data: graphql_client::Response<get_atoms::ResponseData> = res
-        .json()
-        .await
-        .expect("Failed to parse response");
+    let data: graphql_client::Response<get_atoms::ResponseData> =
+        res.json().await.expect("Failed to parse response");
 
     data.data.map(|d| d.atoms)
 }
@@ -219,15 +213,14 @@ async fn fetch_signals() -> Option<Vec<get_signals::GetSignalsSignals>> {
         .await
         .expect("Failed to send request");
 
-    let data: graphql_client::Response<get_signals::ResponseData> = res
-        .json()
-        .await
-        .expect("Failed to parse response");
+    let data: graphql_client::Response<get_signals::ResponseData> =
+        res.json().await.expect("Failed to parse response");
 
     data.data.map(|d| d.signals)
 }
 
-async fn fetch_predicate_objects() -> Option<Vec<get_predicate_objects::GetPredicateObjectsPredicateObjects>> {
+async fn fetch_predicate_objects()
+-> Option<Vec<get_predicate_objects::GetPredicateObjectsPredicateObjects>> {
     let client = reqwest::Client::new();
     let variables = get_predicate_objects::Variables {};
     let request_body = GetPredicateObjects::build_query(variables);
@@ -239,10 +232,8 @@ async fn fetch_predicate_objects() -> Option<Vec<get_predicate_objects::GetPredi
         .await
         .expect("Failed to send request");
 
-    let data: graphql_client::Response<get_predicate_objects::ResponseData> = res
-        .json()
-        .await
-        .expect("Failed to parse response");
+    let data: graphql_client::Response<get_predicate_objects::ResponseData> =
+        res.json().await.expect("Failed to parse response");
 
     data.data.map(|d| d.predicate_objects)
 }
@@ -261,10 +252,8 @@ async fn fetch_account_info(address: &str) -> Option<get_account_info::GetAccoun
         .await
         .expect("Failed to send request");
 
-    let data: graphql_client::Response<get_account_info::ResponseData> = res
-        .json()
-        .await
-        .expect("Failed to parse response");
+    let data: graphql_client::Response<get_account_info::ResponseData> =
+        res.json().await.expect("Failed to parse response");
 
     data.data.and_then(|d| d.account)
 }

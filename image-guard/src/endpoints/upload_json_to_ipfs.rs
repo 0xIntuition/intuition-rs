@@ -1,7 +1,7 @@
 use crate::{
     endpoints::upload_json_to_ipfs, error::ApiError, state::AppState, types::MultipartRequest,
 };
-use axum::{extract::State, Json};
+use axum::{Json, extract::State};
 use axum_macros::debug_handler;
 use log::info;
 use serde::{Deserialize, Serialize};
