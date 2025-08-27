@@ -21,7 +21,6 @@ use models::{
 };
 use sqlx::{Postgres, Transaction};
 use std::{fmt::Debug, str::FromStr};
-use tracing::warn;
 
 /// This trait represents a fee transferred event
 pub trait TripleCreatedEvent:
@@ -261,17 +260,13 @@ pub trait TripleCreatedEvent:
         {
             Ok(vault) => vault,
             Err(e) => {
-                warn!("Error inserting vault: {:?}, returning existing vault", e);
-                Vault::find_by_term_id_and_curve_id(
-                    id,
+                VaultOrigin::handle_vault_insert_error(
+                    e,
+                    id.clone(),
                     self.curve_id()?,
-                    &decoded_consumer_context.pg_pool,
-                    &decoded_consumer_context.backend_schema,
+                    decoded_consumer_context,
                 )
                 .await?
-                .ok_or(ConsumerError::VaultNotFound(
-                    FixedBytesWrapper::from(self.term_id()?).to_string(),
-                ))?
             }
         };
 

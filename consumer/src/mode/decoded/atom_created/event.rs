@@ -28,11 +28,12 @@ pub trait AtomCreatedEvent:
     fn creator_id(&self) -> Result<String, ConsumerError>;
     fn atom_data(&self) -> Result<String, ConsumerError>;
     /// This function updates the vault current share price and it returns the vault and atom
-    async fn update_vault_current_share_price(
+    async fn get_or_create_vault_and_atom(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
     ) -> Result<(Vault, Atom), ConsumerError> {
+        debug!("Creating vault for atom {}", self.term_id()?);
         // Get or create the vault
         let vault = match VaultOrigin::AtomCreated
             .get_or_create_vault(
@@ -46,15 +47,13 @@ pub trait AtomCreatedEvent:
         {
             Ok(vault) => vault,
             Err(e) => {
-                warn!("Error inserting vault: {:?}, returning existing vault", e);
-                Vault::find_by_term_id_and_curve_id(
+                VaultOrigin::handle_vault_insert_error(
+                    e,
                     self.term_id()?.into(),
                     self.curve_id()?,
-                    &decoded_consumer_context.pg_pool,
-                    &decoded_consumer_context.backend_schema,
+                    decoded_consumer_context,
                 )
                 .await?
-                .ok_or(ConsumerError::VaultNotFound(self.term_id()?.to_string()))?
             }
         };
 
