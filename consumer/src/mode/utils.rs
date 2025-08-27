@@ -21,7 +21,7 @@ use models::{
 };
 use sqlx::PgPool;
 use std::fmt::Debug;
-use tracing::debug;
+use tracing::{debug, warn};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 /// This struct contains the block number and timestamp
@@ -238,6 +238,32 @@ impl VaultOrigin {
             .transaction_hash(tx.transaction_hash.clone())
             .created_at(created_at)
             .build())
+    }
+
+    /// This function handles a vault insert error
+    pub async fn handle_vault_insert_error(
+        e: ConsumerError,
+        term_id: FixedBytesWrapper,
+        curve_id: U256Wrapper,
+        decoded_consumer_context: &DecodedConsumerContext,
+    ) -> Result<Vault, ConsumerError> {
+        let error_msg = e.to_string();
+        if error_msg.contains("duplicate key")
+            || error_msg.contains("unique constraint")
+            || error_msg.contains("already exists")
+        {
+            warn!("Vault already exists in DB for term_id: {}", term_id);
+            Ok(Vault::find_by_term_id_and_curve_id(
+                term_id.clone(),
+                curve_id,
+                &decoded_consumer_context.pg_pool,
+                &decoded_consumer_context.backend_schema,
+            )
+            .await?
+            .ok_or(ConsumerError::VaultNotFound(term_id.to_string()))?)
+        } else {
+            Err(e)
+        }
     }
 }
 

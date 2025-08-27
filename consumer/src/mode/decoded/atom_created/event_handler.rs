@@ -41,17 +41,18 @@ where
         .await?
         {
             Some(atom) => {
-                info!("Atom already exists: {:?}", atom);
+                debug!("Atom already exists: {:?}", atom);
                 return Ok(());
             }
             None => {
-                info!("Atom does not exist, creating it");
+                debug!("Atom does not exist, creating it");
             }
         }
-        // Update the vault current share price
+
+        // Get or create the vault and atom
         let (_vault, mut atom) = self
             .0
-            .update_vault_current_share_price(decoded_consumer_context, event)
+            .get_or_create_vault_and_atom(decoded_consumer_context, event)
             .await?;
 
         // decode the hex data from the atomData.
@@ -71,12 +72,14 @@ where
                     &decoded_consumer_context.pg_pool,
                 )
                 .await?;
+        debug!("Updated atom metadata: {:?}", supported_atom_metadata);
 
         // Handle the account or caip10 type
         let resolved_atom = ResolveAtom { atom: atom.clone() };
         supported_atom_metadata
             .handle_account_or_caip10_type(&resolved_atom, decoded_consumer_context)
             .await?;
+        debug!("Handled account or caip10 type");
 
         // Create the event
         self.create_event(decoded_consumer_context, event).await?;
