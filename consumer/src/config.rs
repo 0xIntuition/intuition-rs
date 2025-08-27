@@ -40,6 +40,7 @@ pub struct Env {
     pub initial_contract_version: Option<String>,
     pub redis_url: Option<String>,
     pub threads: Option<usize>,
+    pub log_level: Option<String>,
 }
 
 #[derive(Deserialize, Debug, Clone)]

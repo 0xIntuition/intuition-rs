@@ -99,6 +99,8 @@ pub enum ConsumerError {
     IndexerDatabaseUrlNotFound,
     #[error("Indexer schema not found")]
     IndexerSchemaNotFound,
+    #[error("Failed to parse log level: {0}")]
+    LogLevelParse(String),
     #[error("Invalid CAIP10")]
     InvalidCaip10,
     #[error("Failed to parse indexer source: {0}")]
