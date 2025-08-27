@@ -117,11 +117,17 @@ impl BasicConsumer for RedisHybrid {
 
         match result {
             Ok(message_id) => {
-                info!("Successfully sent message to stream '{}' with ID: {}", self.output_stream, message_id);
+                info!(
+                    "Successfully sent message to stream '{}' with ID: {}",
+                    self.output_stream, message_id
+                );
                 Ok(())
             }
             Err(e) => {
-                error!("Failed to send message to Redis stream '{}': {}", self.output_stream, e);
+                error!(
+                    "Failed to send message to Redis stream '{}': {}",
+                    self.output_stream, e
+                );
                 Err(ConsumerError::RedisError(e))
             }
         }

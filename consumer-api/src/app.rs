@@ -3,13 +3,13 @@ use crate::{
     types::Env,
 };
 use axum::{
-    routing::{get, post},
     Router,
+    routing::{get, post},
 };
 use axum_prometheus::PrometheusMetricLayer;
 use http::{
-    header::{AUTHORIZATION, CONTENT_TYPE},
     Method,
+    header::{AUTHORIZATION, CONTENT_TYPE},
 };
 use log::info;
 use std::time::Duration;

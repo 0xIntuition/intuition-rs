@@ -33,7 +33,9 @@ pub enum ApiError {
     IO(#[from] std::io::Error),
     #[error(transparent)]
     Serde(#[from] serde_json::Error),
-    #[error("flag_local_with_classification, flag_local_with_db_only, and flag_hf_classification cannot be set at the same time")]
+    #[error(
+        "flag_local_with_classification, flag_local_with_db_only, and flag_hf_classification cannot be set at the same time"
+    )]
     LocalWithClassificationAndDbOnly,
 }
 

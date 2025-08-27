@@ -89,9 +89,8 @@ impl App {
             59141 => Ok(self.env.linea_sepolia_rpc_url.clone()),
             8453 => Ok(self.env.base_mainnet_rpc_url.clone()),
             84532 => Ok(self.env.base_sepolia_rpc_url.clone()),
-            // TODO: Add the correct RPC URL for the Trust network
-            8545 => Ok(self.env.trust_testnet_rpc_url.clone()),
-            85452 => Ok(self.env.trust_mainnet_rpc_url.clone()),
+            13579 => Ok(self.env.trust_testnet_rpc_url.clone()),
+            8545 => Ok(self.env.trust_mainnet_rpc_url.clone()),
             1 => Ok(self.env.ethereum_mainnet_rpc_url.clone()),
             _ => Err(ApiError::UnsupportedChainId(chain_id)),
         }

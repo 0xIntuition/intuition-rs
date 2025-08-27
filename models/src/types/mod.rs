@@ -269,8 +269,8 @@ impl<'r> sqlx::Decode<'r, Postgres> for FixedBytesWrapper {
         let hex_string: &str = <&str as sqlx::Decode<Postgres>>::decode(value)?;
 
         // Parse the "0x..." hex string to FixedBytes<32>
-        let fixed_bytes = FixedBytes::from_str(hex_string)
-            .map_err(|e| sqlx::Error::Decode(Box::new(e)))?;
+        let fixed_bytes =
+            FixedBytes::from_str(hex_string).map_err(|e| sqlx::Error::Decode(Box::new(e)))?;
 
         // Wrap the parsed `FixedBytes<32>` in `FixedBytesWrapper` and return.
         Ok(FixedBytesWrapper(fixed_bytes))
