@@ -2,7 +2,7 @@
 source .env
 
 # Start shared services
-docker compose -f docker-compose-shared.yml up database drizzle-studio pgai-installer vectorizer-worker redis redis-setup ipfs safe-content graphql-engine local-migrations indexer-migrations hasura-migrations prometheus elasticsearch logstash kibana filebeat -d --wait --force-recreate
+docker compose -f docker-compose-shared.yml up database drizzle-studio pgai-installer vectorizer-worker redis redis-setup ipfs safe-content graphql-engine local-migrations indexer-migrations hasura-migrations prometheus  -d --wait --force-recreate
 
 export INITIAL_CONTRACT_VERSION="v2"
 # First arg is indexer schema

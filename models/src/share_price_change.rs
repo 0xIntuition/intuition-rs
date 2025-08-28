@@ -186,7 +186,7 @@ impl SharePriceChange {
         curve_id: U256Wrapper,
         pool: &PgPool,
         schema: &str,
-    ) -> Result<Self, ModelError> {
+    ) -> Result<Option<Self>, ModelError> {
         let query = format!(
             r#"
             SELECT * FROM {}.share_price_change 
@@ -200,7 +200,7 @@ impl SharePriceChange {
         sqlx::query_as::<_, SharePriceChange>(&query)
             .bind(term_id)
             .bind(curve_id.to_big_decimal()?)
-            .fetch_one(pool)
+            .fetch_optional(pool)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
     }

@@ -1,10 +1,5 @@
 export const abi = [
   {
-    "type": "constructor",
-    "inputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
     "type": "function",
     "name": "BURN_ADDRESS",
     "inputs": [],
@@ -65,6 +60,19 @@ export const abi = [
         "name": "",
         "type": "uint256",
         "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "MIGRATOR_ROLE",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
       }
     ],
     "stateMutability": "view"
@@ -222,6 +230,112 @@ export const abi = [
       }
     ],
     "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "batchSetAtomData",
+    "inputs": [
+      {
+        "name": "creators",
+        "type": "address[]",
+        "internalType": "address[]"
+      },
+      {
+        "name": "atomDataArray",
+        "type": "bytes[]",
+        "internalType": "bytes[]"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "batchSetTripleData",
+    "inputs": [
+      {
+        "name": "creators",
+        "type": "address[]",
+        "internalType": "address[]"
+      },
+      {
+        "name": "tripleAtomIds",
+        "type": "bytes32[3][]",
+        "internalType": "bytes32[3][]"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "batchSetUserBalances",
+    "inputs": [
+      {
+        "name": "params",
+        "type": "tuple",
+        "internalType": "struct MultiVaultMigrationMode.BatchSetUserBalancesParams",
+        "components": [
+          {
+            "name": "termIds",
+            "type": "bytes32[]",
+            "internalType": "bytes32[]"
+          },
+          {
+            "name": "bondingCurveId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "user",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "userBalances",
+            "type": "uint256[]",
+            "internalType": "uint256[]"
+          }
+        ]
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "batchSetVaultTotals",
+    "inputs": [
+      {
+        "name": "termIds",
+        "type": "bytes32[]",
+        "internalType": "bytes32[]"
+      },
+      {
+        "name": "bondingCurveId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "vaultTotals",
+        "type": "tuple[]",
+        "internalType": "struct MultiVaultMigrationMode.VaultTotals[]",
+        "components": [
+          {
+            "name": "totalAssets",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "totalShares",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
@@ -658,11 +772,6 @@ export const abi = [
         "name": "decimalPrecision",
         "type": "uint256",
         "internalType": "uint256"
-      },
-      {
-        "name": "protocolFeeDistributionEnabled",
-        "type": "bool",
-        "internalType": "bool"
       }
     ],
     "stateMutability": "view"
@@ -856,11 +965,6 @@ export const abi = [
             "name": "decimalPrecision",
             "type": "uint256",
             "internalType": "uint256"
-          },
-          {
-            "name": "protocolFeeDistributionEnabled",
-            "type": "bool",
-            "internalType": "bool"
           }
         ]
       }
@@ -1110,6 +1214,25 @@ export const abi = [
   },
   {
     "type": "function",
+    "name": "getVaultType",
+    "inputs": [
+      {
+        "name": "termId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint8",
+        "internalType": "enum IMultiVault.VaultType"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "getWalletConfig",
     "inputs": [],
     "outputs": [
@@ -1238,11 +1361,6 @@ export const abi = [
             "name": "decimalPrecision",
             "type": "uint256",
             "internalType": "uint256"
-          },
-          {
-            "name": "protocolFeeDistributionEnabled",
-            "type": "bool",
-            "internalType": "bool"
           }
         ]
       },
@@ -1666,25 +1784,6 @@ export const abi = [
   },
   {
     "type": "function",
-    "name": "protocolFeeDistributionEnabledAtEpoch",
-    "inputs": [
-      {
-        "name": "epoch",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "isProtocolFeeDistributionEnabled",
-        "type": "bool",
-        "internalType": "bool"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "redeem",
     "inputs": [
       {
@@ -1895,13 +1994,21 @@ export const abi = [
             "name": "decimalPrecision",
             "type": "uint256",
             "internalType": "uint256"
-          },
-          {
-            "name": "protocolFeeDistributionEnabled",
-            "type": "bool",
-            "internalType": "bool"
           }
         ]
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setTermCount",
+    "inputs": [
+      {
+        "name": "_termCount",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "outputs": [],
@@ -2778,6 +2885,19 @@ export const abi = [
   },
   {
     "type": "event",
+    "name": "TermCountSet",
+    "inputs": [
+      {
+        "name": "termCount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "TokensRecovered",
     "inputs": [
       {
@@ -3122,26 +3242,6 @@ export const abi = [
   },
   {
     "type": "error",
-    "name": "MultiVault_CannotDirectlyInitializeCounterTripleVault",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "MultiVault_CannotRecoverTrust",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "MultiVault_ContractPaused",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "MultiVault_DeployAccountFailed",
-    "inputs": []
-  },
-  {
-    "type": "error",
     "name": "MultiVault_DepositBelowMinimumDeposit",
     "inputs": []
   },
@@ -3152,12 +3252,7 @@ export const abi = [
   },
   {
     "type": "error",
-    "name": "MultiVault_DepositTooSmallToCoverGhostShares",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "MultiVault_HasCounterStake",
+    "name": "MultiVault_EmptyArray",
     "inputs": []
   },
   {
@@ -3193,27 +3288,12 @@ export const abi = [
   },
   {
     "type": "error",
-    "name": "MultiVault_InvalidCurveId",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "MultiVault_InvalidReceiver",
+    "name": "MultiVault_InvalidBondingCurveId",
     "inputs": []
   },
   {
     "type": "error",
     "name": "MultiVault_NoAtomDataProvided",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "MultiVault_NoSharesToMigrate",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "MultiVault_NoTriplesProvided",
     "inputs": []
   },
   {
@@ -3239,21 +3319,6 @@ export const abi = [
   {
     "type": "error",
     "name": "MultiVault_TermDoesNotExist",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "MultiVault_TermNotAtom",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "MultiVault_TermNotTriple",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "MultiVault_TransfersNotEnabled",
     "inputs": []
   },
   {
@@ -3284,11 +3349,6 @@ export const abi = [
   },
   {
     "type": "error",
-    "name": "MultiVault_WalletsAreTheSame",
-    "inputs": []
-  },
-  {
-    "type": "error",
     "name": "MultiVault_ZeroAddress",
     "inputs": []
   },
@@ -3306,6 +3366,17 @@ export const abi = [
     "type": "error",
     "name": "ReentrancyGuardReentrantCall",
     "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "TermDoesNotExist",
+    "inputs": [
+      {
+        "name": "termId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ]
   },
   {
     "type": "error",
