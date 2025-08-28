@@ -59,14 +59,17 @@ impl VaultManager for &AtomCreated {
         decoded_consumer_context: &DecodedConsumerContext,
         _block_number: i64,
     ) -> Result<U256Wrapper, ConsumerError> {
-        Ok(SharePriceChange::fetch_current_share_price(
+        let share_price_change = SharePriceChange::fetch_current_share_price(
             FixedBytesWrapper::from(self.termId),
             U256Wrapper::from_str("1")?,
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
-        .await?
-        .total_shares)
+        .await?;
+        if let Some(share_price_change) = share_price_change {
+            return Ok(share_price_change.total_shares);
+        }
+        Ok(U256Wrapper::from_str("0")?)
     }
 
     async fn current_share_price(
@@ -74,14 +77,17 @@ impl VaultManager for &AtomCreated {
         decoded_consumer_context: &DecodedConsumerContext,
         _block_number: i64,
     ) -> Result<U256Wrapper, ConsumerError> {
-        Ok(SharePriceChange::fetch_current_share_price(
+        let share_price_change = SharePriceChange::fetch_current_share_price(
             FixedBytesWrapper::from(self.termId),
             U256Wrapper::from_str("1")?,
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
-        .await?
-        .share_price)
+        .await?;
+        if let Some(share_price_change) = share_price_change {
+            return Ok(share_price_change.share_price);
+        }
+        Ok(U256Wrapper::from_str("0")?)
     }
 
     async fn position_count(
