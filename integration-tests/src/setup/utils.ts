@@ -122,8 +122,12 @@ export async function getIntuition(accountIndex: number) {
     } else {
       console.log(`Creating atom: ${uri} ...`)
       const { minDeposit } = await contract.read.getGeneralConfig()
-      console.log(`Min deposit: ${minDeposit} wei (${formatEther(minDeposit)} lTRUST)`)
-      const hash = await contract.write.createAtoms([[toHex(uri)], [minDeposit]], { value: minDeposit })
+      const atomCost = await contract.read.getAtomCost()
+      const assets = minDeposit + atomCost
+      console.log(`Min deposit: ${minDeposit} wei (${formatEther(minDeposit)} lTRUST),`,
+        `atom cost: ${atomCost} wei (${formatEther(atomCost)} lTRUST),`,
+        `sending assets: ${assets} wei (${formatEther(assets)} lTRUST)`)
+      const hash = await contract.write.createAtoms([[toHex(uri)], [assets]], { value: assets })
       const vaultId = await eventParseAtomCreated(hash)
       console.log(`vaultId: ${vaultId}`)
       await wait(hash)
@@ -133,6 +137,7 @@ export async function getIntuition(accountIndex: number) {
 
   async function getCreateOrDepositOnTriple(subjectId: `0x${string}`, predicateId: `0x${string}`, objectId: `0x${string}`, customInitialDeposit?: bigint) {
     const { minDeposit } = await contract.read.getGeneralConfig()
+    const tripleCost = await contract.read.getTripleCost()
     const initialDeposit = customInitialDeposit ?? minDeposit
 
     const tripleId = await contract.read.calculateTripleId([subjectId, predicateId, objectId])
@@ -151,7 +156,10 @@ export async function getIntuition(accountIndex: number) {
       return { vaultId: tripleId, hash: null }
     } else {
       console.log(`Creating triple: ${subjectId} ${predicateId} ${objectId} ...`)
-      const hash = await contract.write.createTriples([[subjectId], [predicateId], [objectId], [initialDeposit]], { value: initialDeposit })
+      const hash = await contract.write.createTriples([
+        [subjectId], [predicateId], [objectId], [tripleCost + initialDeposit]],
+        { value: tripleCost + initialDeposit }
+      )
       const vaultId = await eventParseTripleCreated(hash)
       console.log(`vaultId: ${vaultId}`)
       await wait(hash)
