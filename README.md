@@ -1,3 +1,5 @@
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/0xIntuition/intuition-rs)
+
 # intuition-rust
 
 This workspace contains the following crates:
