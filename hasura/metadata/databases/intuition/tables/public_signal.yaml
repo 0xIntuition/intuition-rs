@@ -7,9 +7,6 @@ configuration:
   custom_name: signals
   custom_root_fields:
     select_by_pk: signal
-  query_configuration:
-    default_limit: 250
-    max_limit: 250
 object_relationships:
   - name: account
     using:
@@ -20,44 +17,41 @@ object_relationships:
         remote_table:
           name: account
           schema: public
-  - name: atom
-    using:
-      manual_configuration:
-        column_mapping:
-          atom_id: id
-        insertion_order: null
-        remote_table:
-          name: atom
-          schema: public
   - name: deposit
     using:
       foreign_key_constraint_on: deposit_id
   - name: redemption
     using:
       foreign_key_constraint_on: redemption_id
-  - name: triple
+  - name: term
+    using:
+      foreign_key_constraint_on: term_id
+  - name: vault
     using:
       manual_configuration:
         column_mapping:
-          triple_id: id
+          curve_id: curve_id
+          term_id: term_id
         insertion_order: null
         remote_table:
-          name: triple
+          name: vault
           schema: public
 select_permissions:
   - role: anonymous
     permission:
       columns:
-        - transaction_hash
         - atom_id
-        - block_number
-        - block_timestamp
-        - delta
+        - term_id
         - triple_id
+        - block_number
+        - curve_id
+        - delta
         - account_id
         - deposit_id
         - id
         - redemption_id
+        - transaction_hash
+        - created_at
       filter: {}
       limit: 250
       allow_aggregations: true

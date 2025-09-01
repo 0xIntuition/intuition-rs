@@ -1,2 +1,2 @@
-DROP TABLE cursors.histoflux_cursor;
-DROP TYPE cursors.environment;
+DROP TABLE histocrawler.histoflux_cursor;
+DROP TYPE histocrawler.environment;

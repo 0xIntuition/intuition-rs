@@ -11,16 +11,10 @@ mod consumer_type;
 mod error;
 mod mode;
 mod schemas;
+mod supported_contracts;
 mod traits;
 
-// Codegen from ABI file to interact with the Intuition contract.
-sol!(
-    #[derive(Debug, Deserialize, Serialize)]
-    #[allow(missing_docs)]
-    #[sol(rpc)]
-    EthMultiVault,
-    "contracts/EthMultiVault.json"
-);
+pub use supported_contracts::v2_contract::Multivault;
 
 // Codegen to interact with the ENS contract.
 sol!(

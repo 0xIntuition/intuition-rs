@@ -1,10 +1,10 @@
 use crate::{
-    endpoints::proxy::{rpc_proxy, JsonRpcRequest},
+    endpoints::proxy::{JsonRpcRequest, rpc_proxy},
     error::ApiError,
     models::json_rpc_cache::{JsonRpcCache, Method},
     openapi::ApiDoc,
 };
-use axum::{routing::post, Router};
+use axum::{Router, routing::post};
 use http::header::{AUTHORIZATION, CONTENT_TYPE};
 use log::info;
 use reqwest::{Client, Response};
@@ -28,6 +28,8 @@ pub struct Env {
     pub ethereum_mainnet_rpc_url: String,
     pub linea_mainnet_rpc_url: String,
     pub linea_sepolia_rpc_url: String,
+    pub trust_testnet_rpc_url: String,
+    pub trust_mainnet_rpc_url: String,
 }
 
 #[derive(Clone)]
@@ -87,6 +89,8 @@ impl App {
             59141 => Ok(self.env.linea_sepolia_rpc_url.clone()),
             8453 => Ok(self.env.base_mainnet_rpc_url.clone()),
             84532 => Ok(self.env.base_sepolia_rpc_url.clone()),
+            13579 => Ok(self.env.trust_testnet_rpc_url.clone()),
+            8545 => Ok(self.env.trust_mainnet_rpc_url.clone()),
             1 => Ok(self.env.ethereum_mainnet_rpc_url.clone()),
             _ => Err(ApiError::UnsupportedChainId(chain_id)),
         }

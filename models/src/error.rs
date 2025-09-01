@@ -2,10 +2,18 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum ModelError {
+    #[error("Failed to insert data for account: {0}")]
+    AccountInsertError(String),
+    #[error("Failed to insert data for atom value: {0}")]
+    AtomValueInsertError(String),
     #[error("Conversion error: {0}")]
     ConversionError(String),
     #[error("Database connection error: {0}")]
     DatabaseConnectionError(String),
+    #[error("Failed to insert data for deposit: {0}")]
+    DepositInsertError(String),
+    #[error("Failed to insert data for event: {0}")]
+    EventInsertError(String),
     #[error("Decoding error: {0}")]
     DecodingError(String),
     #[error("Failed to delete data: {0}")]
@@ -14,6 +22,10 @@ pub enum ModelError {
     FromUtf8Error(#[from] std::string::FromUtf8Error),
     #[error("Failed to insert data: {0}")]
     InsertError(String),
+    #[error("Failed to insert data for fee transfer: {0}")]
+    FeeTransferInsertError(String),
+    #[error("Failed to insert data for position: {0}")]
+    PositionInsertError(String),
     #[error("Invalid atom type: {0}")]
     InvalidAtomType(String),
     #[error("Missing field: {0}")]

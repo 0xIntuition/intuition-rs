@@ -7,9 +7,6 @@ configuration:
   custom_name: positions
   custom_root_fields:
     select_by_pk: position
-  query_configuration:
-    default_limit: 250
-    max_limit: 250
 object_relationships:
   - name: account
     using:
@@ -20,18 +17,37 @@ object_relationships:
         remote_table:
           name: account
           schema: public
+  - name: term
+    using:
+      foreign_key_constraint_on: term_id
   - name: vault
     using:
-      foreign_key_constraint_on: vault_id
+      manual_configuration:
+        column_mapping:
+          curve_id: curve_id
+          term_id: term_id
+        insertion_order: null
+        remote_table:
+          name: vault
+          schema: public
 select_permissions:
   - role: anonymous
     permission:
       columns:
+        - block_number
+        - log_index
+        - transaction_index
+        - term_id
+        - curve_id
         - shares
-        - vault_id
+        - total_deposit_assets_after_total_fees
+        - total_redeem_assets_for_receiver
         - account_id
         - id
+        - transaction_hash
+        - created_at
+        - updated_at
       filter: {}
-      limit: 250
+      limit: 100
       allow_aggregations: true
     comment: ""

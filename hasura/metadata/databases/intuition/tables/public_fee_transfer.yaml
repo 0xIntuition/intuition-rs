@@ -7,9 +7,6 @@ configuration:
   custom_name: fee_transfers
   custom_root_fields:
     select_by_pk: fee_transfer
-  query_configuration:
-    default_limit: 250
-    max_limit: 250
 object_relationships:
   - name: receiver
     using:
@@ -23,14 +20,6 @@ object_relationships:
         remote_table:
           name: account
           schema: public
-array_relationships:
-  - name: events
-    using:
-      foreign_key_constraint_on:
-        column: fee_transfer_id
-        table:
-          name: event
-          schema: public
 select_permissions:
   - role: anonymous
     permission:
@@ -38,7 +27,7 @@ select_permissions:
         - transaction_hash
         - amount
         - block_number
-        - block_timestamp
+        - created_at
         - id
         - receiver_id
         - sender_id

@@ -7,9 +7,6 @@ configuration:
   custom_name: accounts
   custom_root_fields:
     select_by_pk: account
-  query_configuration:
-    default_limit: 250
-    max_limit: 250
 object_relationships:
   - name: atom
     using:
@@ -21,13 +18,6 @@ array_relationships:
         column: creator_id
         table:
           name: atom
-          schema: public
-  - name: claims
-    using:
-      foreign_key_constraint_on:
-        column: account_id
-        table:
-          name: claim
           schema: public
   - name: deposits_received
     using:

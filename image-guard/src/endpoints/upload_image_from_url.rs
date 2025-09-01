@@ -4,7 +4,7 @@ use crate::{
     state::AppState,
     types::MultipartRequest,
 };
-use axum::{body::Bytes, extract::State, Json};
+use axum::{Json, body::Bytes, extract::State};
 use axum_macros::debug_handler;
 use chrono::Utc;
 use log::{debug, info};
@@ -102,7 +102,7 @@ pub async fn upload_image_from_url(
         responses.push(image_guard.clone());
         // And upsert the image guard to the database
         image_guard
-            .upsert(&state.pg_pool, &state.image_api_schema)
+            .upsert(&state.image_api_schema, &state.pg_pool)
             .await?;
     }
 

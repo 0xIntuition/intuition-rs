@@ -1,12 +1,12 @@
 import { expect, test, suite } from 'vitest'
-import { execute, getIntuition, pinJson, PredicateType, wait } from './setup/utils.js'
+import { execute, getIntuition, pinJson, SystemAtom, wait } from './setup/utils.js'
 import { graphql } from './graphql/gql.js'
 
 suite('create person triple', async () => {
   const alice = await getIntuition(1)
 
-  const thingPredicate = await alice.getOrCreateAtom(
-    PredicateType.Thing,
+  const thing = await alice.getOrCreateAtom(
+    SystemAtom.Thing,
   )
 
   const originalThing = await alice.getOrCreateAtom(await pinJson({
@@ -25,16 +25,14 @@ suite('create person triple', async () => {
     description: 'This domain is for use in illustrative examples in documents',
   }))
 
-  const generalConfig = await alice.multivault.getGeneralConfig()
 
   const triple = await alice.getCreateOrDepositOnTriple(
     originalThing.vaultId,
-    thingPredicate.vaultId,
+    thing.vaultId,
     updatedThing.vaultId,
-    generalConfig.minDeposit,
   )
 
-  expect(thingPredicate).toBeDefined()
+  expect(thing).toBeDefined()
   expect(originalThing).toBeDefined()
   expect(updatedThing).toBeDefined()
   expect(triple.vaultId).toBeDefined()
@@ -42,9 +40,9 @@ suite('create person triple', async () => {
   test('query thing with claims', async () => {
     await wait(triple.hash)
     const result = await execute(
-      graphql(`query AtomWithClaims($atomId: numeric!, $address: String) {
-        atom(id: $atomId) {
-          id
+      graphql(`query AtomWithClaims($atomId: String!, $address: String) {
+        atom(term_id: $atomId) {
+          term_id
           label
           value {
             thing {
@@ -55,53 +53,56 @@ suite('create person triple', async () => {
             }
           }
         }
-        claims(
-          where: { account_id: { _eq: $address }, subject_id: { _eq: $atomId } }
-          order_by: [{ shares: desc }]
-        ) {
-          predicate {
-            id
-            type
-            label
-          }
-          object {
-            value {
-              thing {
-                name
-                description
-                url
-                image
+        positions(where: {account_id: {_eq: $address}, term: {triple: {subject_id: {_eq: $atomId}}}}, order_by: {term: {total_market_cap: desc}}) {
+          term {
+            triple {
+              predicate {
+                term_id
+                type
+                label
+              }
+              object {
+                value {
+                  thing {
+                    name
+                    description
+                    url
+                    image
+                  }
+                }
               }
             }
           }
         }
-        claims_from_following(
-          args: { address: $address }
-          where: { subject_id: { _eq: $atomId } }
-        ) {
-          predicate {
-            id
-            type
-            label
-          }
-          object {
-            value {
-              thing {
-                name
-                description
-                url
-                image
+        positions_from_following(args: {address: $address}, where: {term: {triple: {subject_id: {_eq: $atomId}}}}) {
+          term {
+            triple {
+              predicate {
+                term_id
+                type
+                label
+              }
+              object {
+                value {
+                  thing {
+                    name
+                    description
+                    url
+                    image
+                  }
+                }
               }
             }
           }
         }
-      }`),
-      { atomId: originalThing.vaultId.toString(), address: alice.account.address.toLowerCase() })
+      }
+      `),
+      { atomId: originalThing.vaultId, address: alice.account.address })
     expect(result).toBeDefined()
-    expect(result.atom.label).toBe('Foo')
-    expect(result.claims.length).toBe(1)
-    expect(result.claims[0].predicate.label).toBe('is thing')
-    expect(result.claims[0].object.value.thing.name).toBe('Example Domain')
+    expect(result.atom?.label).toBe('Foo')
+    expect(result.positions.length).toBe(1)
+    expect(result.positions[0].term.triple?.predicate.label).toBe('is thing')
+    expect(result.positions[0].term.triple?.object?.value?.thing?.name).toBe('Example Domain')
   })
 
 })

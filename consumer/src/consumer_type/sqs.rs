@@ -4,7 +4,7 @@ use crate::{
 };
 use async_trait::async_trait;
 use aws_sdk_sqs::{
-    operation::receive_message::ReceiveMessageOutput, types::Message, Client as AWSClient,
+    Client as AWSClient, operation::receive_message::ReceiveMessageOutput, types::Message,
 };
 use std::sync::Arc;
 use tracing::{debug, info};

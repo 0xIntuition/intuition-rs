@@ -9,4 +9,6 @@ export const PROTOCOL_MULTISIG = '0xEcAc3Da134C2e5f492B702546c8aaeD2793965BB'
 
 export const ADMIN = privateKeyToAccount(
   '0x3c0afbd619ed4a8a11cfbd8c5794e08dc324b6809144a90c58bc0ff24219103b',
-)
+) //0x07baA707F61c89F6eB33c8Cb948c483c9b387084
+
+console.log(`ADMIN: ${ADMIN.address}`)

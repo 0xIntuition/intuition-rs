@@ -1,199 +1,341 @@
+# Intuition Rust
+
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/0xIntuition/intuition-rs)
 
-# intuition-rust
+A comprehensive Rust workspace for blockchain data indexing and processing, featuring a modular architecture with multiple specialized services.
 
-This workspace contains the following crates:
+## 🏗️ Architecture
 
+This workspace contains the following core services:
 
-* `cli`: contains the code to run the intuition TUI client.
-* `consumer`: contains the code to RAW, DECODED and RESOLVER consumers.
-* `consumer-api`: An API to re-fetch Atoms
-* `envio-indexer`: contains the code to index the base-sepolia events of our contract using envio.
-* `hasura`: contains the migrations and hasura config.
-* `histoflux`: streams historical/live events from the database to an SQS queue.`
-* `image-guard`: contains the code to guard the images.
-* `models`: contains the domain models for the intuition data as basic traits for the data.
-* `rpc-proxy`: contains the code to proxy the RPC calls to their respective networks, caching the results of the `eth_call` method for the `currentSharePrice` function of the `EthMultiVault` contract.
-* `substreams-sink`: contains the code to consume the Substreams events.
+### Core Services
+- **`cli`** - Terminal UI client for interacting with the Intuition system
+- **`consumer`** - Event processing pipeline (RAW, DECODED, and RESOLVER consumers)
+- **`consumer-api`** - REST API for re-fetching and managing Atoms
+- **`models`** - Domain models and data structures for the Intuition system
 
+### Infrastructure Services
+- **`hasura`** - GraphQL API with database migrations and configuration
+- **`image-guard`** - Image processing and validation service
+- **`rpc-proxy`** - RPC call proxy with caching for `eth_call` methods
 
-Besides that, we have a `docker-compose.yml` file to run the full pipeline locally, a `Makefile` to run some commands using `cargo make` and the `LICENSE` file.
+### Supporting Services
+- **`histocrawler`** - Historical data crawler
+- **`shared-utils`** - Common utilities and shared code
+- **`migration-scripts`** - Database migration utilities
 
-Note that all of the crates are under intensive development, so the code is subject to change. Also, notice that if you want to index base events you need to 
-uncomment the `substreams-sink` crate in the `docker-compose.yml` file and comment the `envio-indexer` crate. We are figuring out the best process to handle this.
+## 🚀 Quick Start
 
+### Prerequisites
 
-## First steps
+1. **Install Rust toolchain**
+   ```bash
+   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+   ```
 
-In order to be able to use the convenience commands in the Makefile, you need to install `cargo make`: 
-* Install cargo make (`cargo install --force cargo-make`)
+2. **Install required tools**
+   ```bash
+   # Install cargo-make for build automation
+   cargo install --force cargo-make
+   
+   # Install Hasura CLI
+   curl -L https://github.com/hasura/graphql-engine/raw/stable/cli/get.sh | bash
+   ```
 
-For Hasura, you need to:
-* Install [hasura-cli](https://hasura.io/docs/2.0/hasura-cli/install-hasura-cli/)
+3. **Install Node.js dependencies** (for integration tests)
+   ```bash
+   cd integration-tests
+   pnpm install
+   ```
 
-And for SQS queues, you need to have AWS configured in your system, so you need to have a file in `˜./.aws/config` with the following content:
+### Environment Setup
 
-```
-[default]
-aws_access_key_id = YOUR_ACCESS_KEY_ID
-aws_secret_access_key = YOUR_SECRET_ACCESS_KEY
-```
+1. **Copy environment template**
+   ```bash
+   cp .env.sample .env
+   ```
 
-## Running the local pipeline
+2. **Configure required environment variables**
 
-There is a `.env.sample` file that you need to use as a template to create the `.env` file. First, you need to set the values for following variables:
+   | Variable | Description | Source |
+   |----------|-------------|---------|
+   | `OPENAI_API_KEY` | OpenAI API key for AI features | [OpenAI Platform](https://platform.openai.com/api-keys) |
+   | `PINATA_GATEWAY_TOKEN` | Pinata gateway token for IPFS | [Pinata Dashboard](https://app.pinata.cloud/developers/gateway-settings) |
+   | `PINATA_API_JWT` | Pinata API JWT for IPFS uploads | [Pinata Dashboard](https://app.pinata.cloud/developers/api-keys) |
+   | `RPC_URL_MAINNET` | Ethereum mainnet RPC endpoint | [Alchemy Dashboard](https://dashboard.alchemy.com/) |
+   | `RPC_URL_BASE` | Base network RPC endpoint | [Alchemy Dashboard](https://dashboard.alchemy.com/apps) |
+   | `RPC_URL_LINEA` | Linea network RPC endpoint | [Alchemy Dashboard](https://dashboard.alchemy.com/apps) |
 
-* `PINATA_GATEWAY_TOKEN`: You can get the token from [Pinata](https://app.pinata.cloud/developers/gateway-settings)
-* `PINATA_API_JWT`: You can get the token from [Pinata](https://app.pinata.cloud/developers/api-keys)
-* `RPC_URL_MAINNET`: We are currently using Alchemy. You can create new ones using the [Alchemy dashboard](https://dashboard.alchemy.com/)
-* `RPC_URL_BASE`: We are currently using Alchemy. You can create new ones using the [Alchemy dashboard](https://dashboard.alchemy.com/apps)
-* `AWS_ACCESS_KEY_ID`: You can get the values from your [AWS account](https://us-east-1.console.aws.amazon.com/iam/home?region=us-east-1#/users)
-* `AWS_SECRET_ACCESS_KEY`: You can get the values from your [AWS account](https://us-east-1.console.aws.amazon.com/iam/home?region=us-east-1#/users)
-* `HF_TOKEN`: You can get the token from [Hugging Face](https://huggingface.co/settings/tokens)
-* `SUBSTREAMS_API_TOKEN`: You can get the token from [Substreams](https://thegraph.market/auth/substreams-devenv)  
-* `HYPERSYNC_TOKEN`: You can get the token from [Envio](https://envio.dev/app/api-tokens)
+## 🏃‍♂️ Running the System
 
-After filling all of the variables, you can run the following commands:
+### Option 1: Using Published Docker Images (Recommended)
 
-### Using published docker images
+```bash
+# Start with Base Sepolia network
+./start.sh histo_base_sepolia_1_5
 
-```
-./start.sh
-```
-
-#### Runing cli tool to verify latest data
-
-```
-./cli.sh
-```
-
-Later, you can use `./stop.sh` to stop all services or `./restart.sh` to restart all services and clear attached volumes
-
-### Building docker images from source code
-
-```
-cp .env.sample .env
-source .env
-cargo make start-docker-and-migrate
-
+# Start with local Ethereum node
+./start.sh histo_local_1_5
 ```
 
-## If you need to re-run migrations
+### Option 2: Building from Source
 
-```
-docker compose down -v
-docker compose up -d --force-recreate
-cargo make migrate-database
+```bash
+# Build all Docker images from source
+cargo make build-docker-images
+
+# Start the system
+./start.sh histo_base_sepolia_1_5
 ```
 
-## Run tests
+### Option 3: Running with Integration Tests
 
+```bash
+# Start with tests enabled
+./start.sh histo_local_1_5 test
 ```
+
+### Option 4: Running with ELK Stack Logging
+
+The system includes an ELK (Elasticsearch, Logstash, Kibana) stack for centralized logging and monitoring.
+
+```bash
+# Start the system (includes ELK stack)
+./start.sh histo_local_1_5
+
+# Set up Kibana with pre-configured searches
+./setup-kibana.sh
+```
+
+**ELK Stack Features:**
+- **Elasticsearch**: Log storage and indexing
+- **Logstash**: Log processing and parsing
+- **Kibana**: Log visualization and search interface
+- **Filebeat**: Container log collection
+
+**Available Services:**
+- Elasticsearch: http://localhost:9200
+- Kibana: http://localhost:5601
+- Logstash: http://localhost:9600
+
+**Pre-configured Kibana Searches:**
+- Decoded Consumer INFO Logs
+- Resolver Consumer INFO Logs
+- IPFS Upload Consumer INFO Logs
+- Histocrawler INFO Logs
+- All Consumers INFO Logs (combined view)
+
+**Manual Log Queries:**
+```bash
+# View logs from specific service
+curl "http://localhost:9200/docker-logs-*/_search?pretty" \
+  -H 'Content-Type: application/json' \
+  -d'{"query":{"bool":{"must":[{"match":{"service":"decoded_consumer"}},{"match":{"level":"INFO"}}]}},"size":10}'
+
+# View container logs directly
+docker logs decoded_consumer | grep '"level":"INFO"'
+```
+
+## 🧪 Testing
+
+### Run All Tests
+```bash
 cargo nextest run
 ```
 
-## Known issues
-
-None so far.
-
-### Running manually
-
-First you need to copy the `.env.sample` file to `.env` and source it. Make sure you set the correct values for the environment variables.
+### Run Integration Tests
+```bash
+cd integration-tests
+export VITE_INTUITION_CONTRACT_ADDRESS=0x....
+pnpm test src/follow.test.ts
 ```
+
+### Run Specific Test Suites
+```bash
+# Test account operations
+pnpm test src/create-person.test.ts
+
+# Test vault operations
+pnpm test src/vaults.test.ts
+
+# Test AI agents
+pnpm test src/ai-agents.test.ts
+```
+
+## 🛠️ Development
+
+### CLI Tool
+```bash
+# Run the CLI to verify latest data
+./cli.sh
+```
+
+### Code Quality
+```bash
+# Format code
+cargo make fmt
+
+# Run linter
+cargo make clippy
+
+# Run all checks
+cargo make check
+```
+
+### Database Operations
+```bash
+# Start services and run migrations
+cargo make start-docker-and-migrate
+
+# Manual migration (if needed)
 cp .env.sample .env
 source .env
 ```
 
-If you want to run the local raw consumer connected to the real raw SQS queue you can run
+## 🔧 Local Development Setup
 
-`RUST_LOG=info cargo run --bin consumer --mode raw` ( or simply `cargo make raw-consumer`)
+### Using Local Ethereum Node
 
-If you want to run the local decoded consumer connected to the real decoded SQS queue you can run
-
-`RUST_LOG=info cargo run --bin consumer --mode decoded` ( or simply `cargo make decoded-consumer`)
-
-If you want to run the local raw consumer connected to the local SQS queue you can run
-
-`RUST_LOG=info cargo run --bin consumer --features local --mode raw --local` (or `cargo make raw-consumer-local`)
-
-If you want to run the local decoded consumer connected to the local SQS queue you can run
-
-`RUST_LOG=info cargo run --bin consumer --features local --mode decoded --local` (or `cargo make decoded-consumer-local`)
-
-We use feature flags to differentiate between the local and the remote execution environment.
-
-Also note that you need to set the right environment variables for the queues (`RAW_CONSUMER_QUEUE_URL` and `DECODED_CONSUMER_QUEUE_URL`) in order to switch between the local and the remote execution environment.
-
-## Conveniences
-
-* `cargo make start-docker-and-migrate` to start the docker compose and run the migrations.
-* `cargo make clippy` to run clippy
-* `cargo make fmt` to run rustfmt
-
-You can check all of the available commands in `.cargo/makefiles`. 
-
-## Running with kubernetes (on macos)
-
-First you need to install `minikube`:
-
-```
-brew install minikube
-```
-
-Install k9s
-
-```
-brew install k9s
-```
-
-Then we need to create the secrets. At this step it's expected that you have a `.env` file with the correct values set. The only thing you need to keep in mind is that we need to remove the `"` from the values, e.g., `DATABASE_URL="postgres://testuser:test@database:5435/storage"` should be `DATABASE_URL=postgres://testuser:test@database:5435/storage`.
-
-```
-kubectl create secret generic secrets --from-env-file=.env
-```
-
-Then you can start the minikube cluster:
-
-```
-minikube start
-```
-
-Then you can apply the kubernetes manifests:
-
-```
-kubectl apply -k kube_files/
-```
-
-To restart the services you can run:
-
-```
-kubectl rollout restart deployment
-```
-
-or 
-
-```
-kubectl delete deployment --all 
-```
-
-There is a `devops` folder that contains yaml files to deploy our stack to both Minikube and AWS EKS.
-
-
-## Using local ethereum node
-
-Add the following to your `.env` file:
-
-```
+Add to your `.env` file:
+```bash
 BASE_MAINNET_RPC_URL=http://geth:8545
 BASE_SEPOLIA_RPC_URL=http://geth:8545
 INTUITION_CONTRACT_ADDRESS=0x04056c43d0498b22f7a0c60d4c3584fb5fa881cc
 START_BLOCK=0
 ```
 
-Then you can create local data by running the following command:
-
-```
+Create local test data:
+```bash
 cd integration-tests
 npm install
 npm run create-predicates
 ```
+
+### Manual Service Management
+
+```bash
+# Start all services
+docker-compose -f docker-compose-apps.yml up -d
+
+# Stop all services
+./stop.sh
+
+# View logs
+docker-compose -f docker-compose-apps.yml logs -f
+```
+
+### Logging and Monitoring
+
+**JSON Logging:**
+All consumer services output structured JSON logs with the following fields:
+- `timestamp`: ISO 8601 timestamp
+- `level`: Log level (INFO, WARN, ERROR, DEBUG)
+- `fields.message`: Log message content
+- `target`: Module path
+- `filename`: Source file name
+- `line_number`: Line number in source file
+- `threadId`: Thread identifier
+
+**ELK Stack Setup:**
+```bash
+# Start ELK services
+docker-compose -f docker-compose-shared.yml up elasticsearch logstash kibana filebeat -d
+
+# Set up Kibana searches
+./setup-kibana.sh
+
+# Access Kibana
+open http://localhost:5601
+```
+
+**Useful Log Filters:**
+```bash
+# Service-specific logs
+service:decoded_consumer AND level:INFO
+service:resolver_consumer AND level:ERROR
+service:ipfs_upload_consumer AND level:WARN
+
+# All consumer logs
+level:INFO AND (service:decoded_consumer OR service:resolver_consumer OR service:ipfs_upload_consumer OR service:histocrawler)
+
+# Error logs across all services
+level:ERROR
+```
+
+## 📁 Project Structure
+
+```
+intuition-rs/
+├── cli/                    # Terminal UI client
+├── consumer/              # Event processing pipeline
+├── consumer-api/          # REST API service
+├── hasura/               # GraphQL API & migrations
+├── image-guard/          # Image processing service
+├── models/               # Domain models & data structures
+├── rpc-proxy/            # RPC proxy with caching
+├── integration-tests/    # End-to-end tests
+├── shared-utils/         # Common utilities
+├── elk/                  # ELK stack configuration
+│   ├── kibana/          # Kibana config and saved objects
+│   ├── logstash/        # Logstash pipeline config
+│   └── filebeat/        # Filebeat config
+├── docker-compose-*.yml  # Service orchestration
+├── setup-kibana.sh      # Kibana setup script
+└── start.sh             # System startup script
+```
+
+## 🔄 Event Processing Pipeline
+
+The system processes blockchain events through multiple stages:
+
+1. **RAW** - Raw event ingestion from blockchain
+2. **DECODED** - Event decoding and parsing
+3. **RESOLVER** - Data resolution and enrichment
+
+### Supported Contract Versions
+- EthMultiVault v1.0
+- EthMultiVault v1.5
+- Multivault v2.0
+
+## 🚨 Known Issues
+
+- **Base Events Indexing**: To index Base events, uncomment `substreams-sink` and comment `envio-indexer` in `docker-compose.yml`. The optimal process is under investigation.
+
+## 📊 Monitoring and Observability
+
+### ELK Stack Integration
+
+The system includes comprehensive logging and monitoring capabilities:
+
+**Features:**
+- **Structured JSON Logging**: All services output machine-readable logs
+- **Centralized Log Collection**: Filebeat collects logs from all containers
+- **Real-time Processing**: Logstash processes and enriches log data
+- **Search and Visualization**: Kibana provides powerful search and dashboard capabilities
+- **Pre-configured Searches**: Ready-to-use filters for common monitoring scenarios
+
+**Benefits:**
+- **Debugging**: Quickly find and analyze issues across services
+- **Performance Monitoring**: Track service performance and bottlenecks
+- **Audit Trail**: Complete visibility into system operations
+- **Alerting**: Set up alerts for critical errors or performance issues
+
+**Getting Started:**
+1. Start the system: `./start.sh histo_local_1_5`
+2. Set up Kibana: `./setup-kibana.sh`
+3. Access Kibana: http://localhost:5601
+4. Use pre-configured searches or create custom dashboards
+
+## 📚 Additional Resources
+
+- [Hasura Documentation](https://hasura.io/docs/)
+- [Alchemy Dashboard](https://dashboard.alchemy.com/)
+- [Pinata Documentation](https://docs.pinata.cloud/)
+
+## 📄 License
+
+See [LICENSE](LICENSE) file for details.
+
+---
+
+**Note**: This project is under active development. Code and APIs are subject to change.

@@ -1,9 +1,8 @@
 use graphql_client::GraphQLQuery;
 type Numeric = String;
-type Bigint = String;
-type Float8 = f64;
 type AtomType = String;
 type AccountType = String;
+type Timestamptz = String;
 
 #[derive(GraphQLQuery, Debug)]
 #[graphql(

@@ -1,7 +1,8 @@
 {
   "compilerOptions": {
-    "target": "ES6",
+    "target": "ESNext",
     "moduleResolution": "bundler",
+    "strictNullChecks": true,
     "module": "Preserve"
   }
 }

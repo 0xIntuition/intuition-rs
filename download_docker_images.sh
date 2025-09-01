@@ -6,10 +6,7 @@ IMAGES=(
     "ghcr.io/0xintuition/hasura-migrations:latest"
     "ghcr.io/0xintuition/consumer:latest"
     "ghcr.io/0xintuition/image-guard:latest"
-    "ghcr.io/0xintuition/substreams-sink:latest"
     "ghcr.io/0xintuition/cli:latest"
-    "ghcr.io/0xintuition/histoflux:latest"
-    "ghcr.io/0xintuition/envio-indexer:latest"
     "ghcr.io/0xintuition/rpc-proxy:latest"
 )
 

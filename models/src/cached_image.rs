@@ -6,7 +6,7 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use sqlx::PgPool;
+use sqlx::{Executor, PgPool, Postgres};
 use utoipa::ToSchema;
 
 /// This struct represents a fee transfer in the database.
@@ -27,7 +27,10 @@ impl Model for CachedImage {}
 
 #[async_trait]
 impl SimpleCrud<String> for CachedImage {
-    async fn upsert(&self, pool: &PgPool, schema: &str) -> Result<Self, ModelError> {
+    async fn upsert<'e, E>(&self, schema: &str, executor: E) -> Result<Self, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"
             INSERT INTO {}.cached_image (url, original_url, score, model, safe, created_at)
@@ -50,16 +53,19 @@ impl SimpleCrud<String> for CachedImage {
             .bind(self.model.clone())
             .bind(self.safe)
             .bind(self.created_at)
-            .fetch_one(pool)
+            .fetch_one(executor)
             .await
             .map_err(|e| ModelError::InsertError(e.to_string()))
     }
 
-    async fn find_by_id(
+    async fn find_by_id<'e, E>(
         id: String,
-        pool: &PgPool,
         schema: &str,
-    ) -> Result<Option<Self>, ModelError> {
+        executor: E,
+    ) -> Result<Option<Self>, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"SELECT url, original_url, score, model, safe, created_at FROM {}.cached_image WHERE url = $1"#,
             schema
@@ -67,7 +73,7 @@ impl SimpleCrud<String> for CachedImage {
 
         sqlx::query_as::<_, CachedImage>(&query)
             .bind(id)
-            .fetch_optional(pool)
+            .fetch_optional(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
     }

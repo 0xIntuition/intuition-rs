@@ -1,19 +1,19 @@
 use crate::{
     error::ModelError,
     traits::{Model, SimpleCrud},
-    types::U256Wrapper,
+    types::FixedBytesWrapper,
 };
 
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
+use sqlx::{Executor, Postgres};
 use strum_macros::{Display, EnumString};
 /// This is the `Account` struct that represents an account in the database.
 #[derive(sqlx::FromRow, Debug, Builder, Serialize, Deserialize, Clone)]
 #[sqlx(type_name = "account")]
 pub struct Account {
     pub id: String,
-    pub atom_id: Option<U256Wrapper>,
+    pub atom_id: Option<FixedBytesWrapper>,
     pub label: String,
     pub image: Option<String>,
     pub account_type: AccountType,
@@ -35,7 +35,10 @@ impl Model for Account {}
 #[async_trait]
 impl SimpleCrud<String> for Account {
     /// This is a method to upsert an account into the database.
-    async fn upsert(&self, pool: &PgPool, schema: &str) -> Result<Self, ModelError> {
+    async fn upsert<'e, E>(&self, schema: &str, executor: E) -> Result<Self, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"
             INSERT INTO {}.account (id, atom_id, label, image, type)
@@ -56,22 +59,25 @@ impl SimpleCrud<String> for Account {
         );
 
         sqlx::query_as::<_, Account>(&query)
-            .bind(self.id.to_lowercase())
-            .bind(self.atom_id.as_ref().and_then(|w| w.to_big_decimal().ok()))
+            .bind(self.id.clone())
+            .bind(self.atom_id.as_ref())
             .bind(&self.label)
             .bind(&self.image)
             .bind(self.account_type.to_string())
-            .fetch_one(pool)
+            .fetch_one(executor)
             .await
-            .map_err(|e| ModelError::InsertError(e.to_string()))
+            .map_err(|e| ModelError::AccountInsertError(e.to_string()))
     }
 
     /// This is a method to find an account by its id.
-    async fn find_by_id(
+    async fn find_by_id<'e, E>(
         id: String,
-        pool: &PgPool,
         schema: &str,
-    ) -> Result<Option<Self>, ModelError> {
+        executor: E,
+    ) -> Result<Option<Self>, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"
             SELECT 
@@ -87,8 +93,8 @@ impl SimpleCrud<String> for Account {
         );
 
         sqlx::query_as::<_, Account>(&query)
-            .bind(id.to_lowercase())
-            .fetch_optional(pool)
+            .bind(id)
+            .fetch_optional(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
     }

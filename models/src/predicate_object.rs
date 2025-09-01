@@ -1,20 +1,19 @@
 use crate::{
     error::ModelError,
     traits::{Model, SimpleCrud},
-    types::U256Wrapper,
+    types::FixedBytesWrapper,
 };
 use async_trait::async_trait;
-use sqlx::PgPool;
+use sqlx::{Executor, Postgres};
 
 /// This is a struct that represents the predicate_object table.
 #[derive(Debug, sqlx::FromRow, Builder)]
 #[sqlx(type_name = "predicate_object")]
 pub struct PredicateObject {
     pub id: String,
-    pub predicate_id: U256Wrapper,
-    pub object_id: U256Wrapper,
+    pub predicate_id: FixedBytesWrapper,
+    pub object_id: FixedBytesWrapper,
     pub triple_count: i32,
-    pub claim_count: i32,
 }
 
 /// This is a trait that all models must implement.
@@ -23,51 +22,53 @@ impl Model for PredicateObject {}
 #[async_trait]
 impl SimpleCrud<String> for PredicateObject {
     /// This is a method to upsert a predicate object into the database.
-    async fn upsert(&self, pool: &PgPool, schema: &str) -> Result<Self, ModelError> {
+    async fn upsert<'e, E>(&self, schema: &str, executor: E) -> Result<Self, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"
-            INSERT INTO {}.predicate_object (id, predicate_id, object_id, triple_count, claim_count)
-            VALUES ($1, $2, $3, $4, $5)
+            INSERT INTO {}.predicate_object (id, predicate_id, object_id, triple_count)
+            VALUES ($1, $2, $3, $4)
             ON CONFLICT (id) DO UPDATE SET
                 predicate_id = EXCLUDED.predicate_id,
                 object_id = EXCLUDED.object_id,
-                triple_count = EXCLUDED.triple_count,
-                claim_count = EXCLUDED.claim_count
+                triple_count = EXCLUDED.triple_count
             RETURNING 
                 id, 
                 predicate_id, 
                 object_id, 
-                triple_count, 
-                claim_count
+                triple_count
             "#,
             schema,
         );
 
         sqlx::query_as::<_, PredicateObject>(&query)
             .bind(self.id.clone())
-            .bind(self.predicate_id.to_big_decimal()?)
-            .bind(self.object_id.to_big_decimal()?)
+            .bind(self.predicate_id.clone())
+            .bind(self.object_id.clone())
             .bind(self.triple_count)
-            .bind(self.claim_count)
-            .fetch_one(pool)
+            .fetch_one(executor)
             .await
             .map_err(|e| ModelError::InsertError(e.to_string()))
     }
 
     /// This is a method to find a predicate object by its id.
-    async fn find_by_id(
+    async fn find_by_id<'e, E>(
         id: String,
-        pool: &PgPool,
         schema: &str,
-    ) -> Result<Option<Self>, ModelError> {
+        executor: E,
+    ) -> Result<Option<Self>, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"
             SELECT 
                 id, 
                 predicate_id, 
                 object_id, 
-                triple_count, 
-                claim_count
+                triple_count
             FROM {}.predicate_object
             WHERE id = $1
             "#,
@@ -76,7 +77,7 @@ impl SimpleCrud<String> for PredicateObject {
 
         sqlx::query_as::<_, PredicateObject>(&query)
             .bind(id.clone())
-            .fetch_optional(pool)
+            .fetch_optional(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
     }

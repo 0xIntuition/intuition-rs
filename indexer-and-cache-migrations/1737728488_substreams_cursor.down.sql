@@ -1,1 +1,0 @@
-DROP TABLE IF EXISTS base_sepolia_indexer.substreams_cursor;

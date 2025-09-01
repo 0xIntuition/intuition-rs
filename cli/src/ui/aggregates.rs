@@ -1,8 +1,9 @@
+use chrono::{DateTime, Local, Utc};
 use ratatui::{
+    Frame,
     layout::{Constraint, Rect},
     text::Span,
     widgets::{Block, Borders, Cell, Row, Table},
-    Frame,
 };
 
 use crate::app::App;
@@ -17,9 +18,27 @@ pub fn draw(f: &mut Frame, app: &App, area: Rect) {
                     .events
                     .first()
                     .map(|e| e.block_number.to_string())
-                    .unwrap_or_default()
+                    .unwrap_or_default(),
             )),
         ]));
+
+        if let Some(event) = aggregates.events.first()
+            && let Ok(block_time) = DateTime::parse_from_rfc3339(&event.created_at)
+        {
+            let block_time = block_time.with_timezone(&Utc);
+            let local_time = DateTime::<Local>::from(block_time);
+            let formatted_time = local_time.format("%b %d %Y, %I:%M %p").to_string();
+
+            // Calculate time elapsed
+            let now = Utc::now();
+            let duration = now.signed_duration_since(block_time);
+            let elapsed = format_duration(duration);
+
+            rows.push(Row::new(vec![
+                Cell::from(Span::raw("Timestamp")),
+                Cell::from(Span::raw(format!("{} - {} ago", formatted_time, elapsed))),
+            ]));
+        }
 
         rows.push(Row::new(vec![
             Cell::from(Span::raw("Accounts")),
@@ -146,18 +165,6 @@ pub fn draw(f: &mut Frame, app: &App, area: Rect) {
         ]));
 
         rows.push(Row::new(vec![
-            Cell::from(Span::raw("Claims")),
-            Cell::from(Span::raw(
-                aggregates
-                    .claims_aggregate
-                    .aggregate
-                    .as_ref()
-                    .unwrap()
-                    .count
-                    .to_string(),
-            )),
-        ]));
-        rows.push(Row::new(vec![
             Cell::from(Span::raw("Positions")),
             Cell::from(Span::raw(
                 aggregates
@@ -226,4 +233,40 @@ pub fn draw(f: &mut Frame, app: &App, area: Rect) {
         .widths([Constraint::Max(18), Constraint::Fill(50)]);
 
     f.render_widget(table, area);
+}
+
+// Helper function to format duration in a human-readable way
+fn format_duration(duration: chrono::Duration) -> String {
+    let seconds = duration.num_seconds();
+    if seconds < 60 {
+        return format!("{} sec", seconds);
+    }
+
+    let minutes = duration.num_minutes();
+    if minutes < 60 {
+        let remaining_seconds = seconds - (minutes * 60);
+        return format!("{} min {} sec", minutes, remaining_seconds);
+    }
+
+    let hours = duration.num_hours();
+    if hours < 24 {
+        let remaining_minutes = minutes - (hours * 60);
+        return format!("{} hr {} min", hours, remaining_minutes);
+    }
+
+    let days = duration.num_days();
+    if days < 30 {
+        let remaining_hours = hours - (days * 24);
+        return format!("{} days {} hr", days, remaining_hours);
+    }
+
+    let months = days / 30; // Approximate months
+    if months < 12 {
+        let remaining_days = days % 30;
+        return format!("{} months {} days", months, remaining_days);
+    }
+
+    let years = months / 12; // Years
+    let remaining_months = months % 12;
+    format!("{} years {} months", years, remaining_months)
 }

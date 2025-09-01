@@ -1,5 +1,5 @@
 use crate::{error::ApiError, state::AppState};
-use axum::{extract::State, Json};
+use axum::{Json, extract::State};
 use axum_macros::debug_handler;
 use log::info;
 use serde::{Deserialize, Serialize};
@@ -54,7 +54,7 @@ pub async fn refetch_atoms(
             .message_body(serde_json::to_string(&message).map_err(ApiError::from)?)
             .send()
             .await
-            .map_err(ApiError::from)?;
+            .map_err(|e| ApiError::from(Box::new(e)))?;
         info!("Message sent to SQS");
     }
 

@@ -4,6 +4,8 @@ use thiserror::Error;
 pub enum HistoCrawlerError {
     #[error(transparent)]
     Address(#[from] alloy::hex::FromHexError),
+    #[error("App config not found")]
+    AppConfigNotFound,
     #[error("Block number not found {0}")]
     BlockNotFound(u64),
     #[error("Block number not found")]
@@ -22,4 +24,6 @@ pub enum HistoCrawlerError {
     Sqlx(#[from] sqlx::Error),
     #[error(transparent)]
     SharedUtils(#[from] shared_utils::error::LibError),
+    #[error("Invalid block range: start_block ({start}) > end_block ({end})")]
+    InvalidBlockRange { start: i64, end: i64 },
 }

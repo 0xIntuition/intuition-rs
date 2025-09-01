@@ -1,8 +1,8 @@
 use crate::{
     error::ConsumerError,
     mode::{
-        decoded::atom::atom_supported_types::AtomMetadata,
         ipfs_upload::types::IpfsUploadMessage,
+        metadata::AtomMetadata,
         resolver::{
             atom_resolver::{
                 handle_binary_data, try_to_parse_json_or_text, try_to_resolve_ipfs_uri,
@@ -17,11 +17,12 @@ use models::{
     account::Account,
     atom::{Atom, AtomType},
     traits::SimpleCrud,
-    types::U256Wrapper,
+    types::FixedBytesWrapper,
 };
 use serde::{Deserialize, Serialize};
+use sqlx::{Postgres, Transaction};
 use std::str::FromStr;
-use tracing::info;
+use tracing::debug;
 
 /// This struct represents a message that is sent to the resolver
 /// consumer to be processed.
@@ -53,12 +54,12 @@ impl ResolverMessageType {
     ) -> Result<(), ConsumerError> {
         match self {
             ResolverMessageType::Atom(resolver_message) => {
-                info!("Processing a resolved message: {resolver_message:?}");
+                debug!("Processing a resolved message: {resolver_message:?}");
                 self.process_atom(resolver_consumer_context, resolver_message)
                     .await
             }
             ResolverMessageType::Account(account) => {
-                info!("Processing a resolved account: {account:?}");
+                debug!("Processing a resolved account: {account:?}");
                 self.process_account(resolver_consumer_context, &mut account.clone())
                     .await
             }
@@ -73,7 +74,7 @@ impl ResolverMessageType {
     ) -> Result<(), ConsumerError> {
         let ens = Ens::get_ens(Address::from_str(&account.id)?, resolver_consumer_context).await?;
         if let Some(_name) = ens.name.clone() {
-            info!("ENS for account: {:?}", ens);
+            debug!("ENS for account: {:?}", ens);
             // We need to update the account metadata
             self.update_account_metadata(
                 resolver_consumer_context,
@@ -89,29 +90,10 @@ impl ResolverMessageType {
                 // We deal with the case where the account atom_id was not set
                 // when the account was created. In this case, we need to query the DB
                 // to find the atom_id, as this update happens in another consumer
-                info!(
-                    "No atom found for account: {:?}, querying the DB...",
-                    account
-                );
-                let account = Account::find_by_id(
-                    account.id.clone(),
-                    &resolver_consumer_context.pg_pool,
-                    &resolver_consumer_context
-                        .server_initialize
-                        .env
-                        .backend_schema,
-                )
-                .await?
-                .ok_or(ConsumerError::AccountNotFound)?;
-                if let Some(atom_id) = account.atom_id {
-                    self.update_atom_metadata(resolver_consumer_context, &atom_id, ens)
-                        .await?;
-                } else {
-                    info!("No atom found for account: {:?}", account);
-                }
+                debug!("No atom found for account: {:?}", account)
             }
         } else {
-            info!("No ENS found for account: {:?}", account);
+            debug!("No ENS found for account: {:?}", account);
         }
         Ok(())
     }
@@ -122,18 +104,30 @@ impl ResolverMessageType {
         resolver_consumer_context: &ResolverConsumerContext,
         atom_id: &str,
     ) -> Result<(), ConsumerError> {
+        let mut tx = resolver_consumer_context.pg_pool.begin().await?;
+
         let metadata = self
-            .resolve_and_parse_atom_data(resolver_consumer_context, atom_id)
+            .resolve_and_parse_atom_data(resolver_consumer_context, atom_id, &mut tx)
             .await?;
+        debug!("Metadata: {:?}", metadata);
 
         // If the atom type is not unknown, we handle the new atom type that was resolved
         if AtomType::from_str(&metadata.atom_type)? != AtomType::Unknown {
-            self.handle_known_atom_type(resolver_consumer_context, atom_id, metadata)
+            debug!("Handling known atom type: {:?}", metadata);
+            self.handle_known_atom_type(resolver_consumer_context, atom_id, metadata, &mut tx)
                 .await?;
         } else {
-            self.mark_atom_as_failed(resolver_consumer_context, &U256Wrapper::from_str(atom_id)?)
-                .await?;
+            self.mark_atom_as_failed(
+                &resolver_consumer_context
+                    .server_initialize
+                    .env
+                    .backend_schema,
+                &mut tx,
+                &FixedBytesWrapper::from_str(atom_id)?,
+            )
+            .await?;
         }
+        tx.commit().await?;
         Ok(())
     }
 
@@ -142,14 +136,15 @@ impl ResolverMessageType {
         &self,
         resolver_consumer_context: &ResolverConsumerContext,
         atom_id: &str,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<AtomMetadata, ConsumerError> {
         let atom = Atom::find_by_id(
-            U256Wrapper::from_str(atom_id)?,
-            &resolver_consumer_context.pg_pool,
+            FixedBytesWrapper::from_str(atom_id)?,
             &resolver_consumer_context
                 .server_initialize
                 .env
                 .backend_schema,
+            tx.as_mut(),
         )
         .await?
         .ok_or(ConsumerError::AtomDataNotFound)?;
@@ -160,37 +155,35 @@ impl ResolverMessageType {
             resolver_consumer_context,
         )
         .await?;
-        // let text = data.text().await;
-        // let bytes = data.bytes().await;
 
         // This is the case where we receive a response from the IPFS node, but we dont know yet
         // if the response is a JSON or a binary file.
         if let Some(data) = data {
-            info!("Atom data is an IPFS URI and we have a response from the IPFS node");
+            debug!("Atom data is an IPFS URI and we have a response from the IPFS node");
             // First we try to decode the response as bytes
             match data.bytes().await {
                 Ok(bytes) => {
                     // Try to convert bytes to text
                     match String::from_utf8(bytes.to_vec()) {
                         Ok(text) => {
-                            info!("Trying to get text from {}", text);
+                            debug!("Trying to get text from {}", text);
                             let data = text.replace('\u{feff}', "");
                             try_to_parse_json_or_text(&data, &atom, resolver_consumer_context).await
                         }
                         Err(_) => {
-                            info!("Failed to parse as text, trying to parse atom data as Binary");
+                            debug!("Failed to parse as text, trying to parse atom data as Binary");
                             handle_binary_data(resolver_consumer_context, &atom, bytes).await
                         }
                     }
                 }
                 Err(e) => {
-                    info!("Failed to get bytes from IPFS response: {e}");
+                    debug!("Failed to get bytes from IPFS response: {e}");
                     Err(ConsumerError::FailedToGetBytes)
                 }
             }
         // This is the case where the atom data is not an IPFS URI, so we try to parse it as JSON
         } else {
-            info!(
+            debug!(
                 "No IPFS URI found or IPFS URI is not valid, trying to parse atom data as JSON or text..."
             );
             try_to_parse_json_or_text(
@@ -208,9 +201,10 @@ impl ResolverMessageType {
         resolver_consumer_context: &ResolverConsumerContext,
         atom_id: &str,
         metadata: AtomMetadata,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
         let atom = self
-            .find_and_update_atom(resolver_consumer_context, atom_id, metadata)
+            .find_and_update_atom(resolver_consumer_context, atom_id, metadata, tx)
             .await?;
 
         if let Some(image) = atom.image.clone() {
@@ -219,15 +213,15 @@ impl ResolverMessageType {
         }
 
         atom.mark_as_resolved(
-            &resolver_consumer_context.pg_pool,
             &resolver_consumer_context
                 .server_initialize
                 .env
                 .backend_schema,
+            tx.as_mut(),
         )
         .await?;
 
-        info!("Updated atom metadata: {atom:?}");
+        debug!("Updated atom metadata: {atom:?}");
         Ok(())
     }
 
@@ -237,14 +231,15 @@ impl ResolverMessageType {
         resolver_consumer_context: &ResolverConsumerContext,
         atom_id: &str,
         metadata: AtomMetadata,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Atom, ConsumerError> {
         let atom = Atom::find_by_id(
-            U256Wrapper::from_str(atom_id)?,
-            &resolver_consumer_context.pg_pool,
+            FixedBytesWrapper::from_str(atom_id)?,
             &resolver_consumer_context
                 .server_initialize
                 .env
                 .backend_schema,
+            tx.as_mut(),
         )
         .await?
         .ok_or(ConsumerError::AtomNotFound)?;
@@ -253,11 +248,11 @@ impl ResolverMessageType {
         metadata
             .update_atom_metadata(
                 &mut atom,
-                &resolver_consumer_context.pg_pool,
                 &resolver_consumer_context
                     .server_initialize
                     .env
                     .backend_schema,
+                &resolver_consumer_context.pg_pool,
             )
             .await?;
 
@@ -270,7 +265,7 @@ impl ResolverMessageType {
         resolver_consumer_context: &ResolverConsumerContext,
         image: String,
     ) -> Result<(), ConsumerError> {
-        info!("Sending image to IPFS upload consumer: {}", image);
+        debug!("Sending image to IPFS upload consumer: {}", image);
         resolver_consumer_context
             .client
             .send_message(serde_json::to_string(&IpfsUploadMessage { image })?, None)
@@ -280,28 +275,16 @@ impl ResolverMessageType {
     /// This function marks the atom as failed
     async fn mark_atom_as_failed(
         &self,
-        resolver_consumer_context: &ResolverConsumerContext,
-        atom_id: &U256Wrapper,
+        backend_schema: &str,
+        tx: &mut Transaction<'_, Postgres>,
+        atom_id: &FixedBytesWrapper,
     ) -> Result<(), ConsumerError> {
-        let atom = Atom::find_by_id(
-            atom_id.clone(),
-            &resolver_consumer_context.pg_pool,
-            &resolver_consumer_context
-                .server_initialize
-                .env
-                .backend_schema,
-        )
-        .await?
-        .ok_or(ConsumerError::AtomNotFound)?;
-        atom.mark_as_failed(
-            &resolver_consumer_context.pg_pool,
-            &resolver_consumer_context
-                .server_initialize
-                .env
-                .backend_schema,
-        )
-        .await
-        .map_err(ConsumerError::from)
+        let atom = Atom::find_by_id(atom_id.clone(), backend_schema, tx.as_mut())
+            .await?
+            .ok_or(ConsumerError::AtomNotFound)?;
+        atom.mark_as_failed(backend_schema, tx.as_mut())
+            .await
+            .map_err(ConsumerError::from)
     }
 
     /// This function updates the account metadata
@@ -311,26 +294,21 @@ impl ResolverMessageType {
         account_id: String,
         ens: Ens,
     ) -> Result<(), ConsumerError> {
+        let backend_schema = &resolver_consumer_context
+            .server_initialize
+            .env
+            .backend_schema;
         let mut account = Account::find_by_id(
             account_id,
+            backend_schema,
             &resolver_consumer_context.pg_pool,
-            &resolver_consumer_context
-                .server_initialize
-                .env
-                .backend_schema,
         )
         .await?
         .ok_or(ConsumerError::AccountNotFound)?;
         account.label = ens.name.ok_or(ConsumerError::LabelNotFound)?;
         account.image = ens.image;
         account
-            .upsert(
-                &resolver_consumer_context.pg_pool,
-                &resolver_consumer_context
-                    .server_initialize
-                    .env
-                    .backend_schema,
-            )
+            .upsert(backend_schema, &resolver_consumer_context.pg_pool)
             .await?;
         Ok(())
     }
@@ -339,29 +317,24 @@ impl ResolverMessageType {
     async fn update_atom_metadata(
         &self,
         resolver_consumer_context: &ResolverConsumerContext,
-        atom_id: &U256Wrapper,
+        atom_id: &FixedBytesWrapper,
         ens: Ens,
     ) -> Result<(), ConsumerError> {
+        let backend_schema = &resolver_consumer_context
+            .server_initialize
+            .env
+            .backend_schema;
         let mut atom = Atom::find_by_id(
             atom_id.clone(),
+            backend_schema,
             &resolver_consumer_context.pg_pool,
-            &resolver_consumer_context
-                .server_initialize
-                .env
-                .backend_schema,
         )
         .await?
         .ok_or(ConsumerError::AtomNotFound)?;
         atom.label = ens.name;
         atom.image = ens.image;
-        atom.upsert(
-            &resolver_consumer_context.pg_pool,
-            &resolver_consumer_context
-                .server_initialize
-                .env
-                .backend_schema,
-        )
-        .await?;
+        atom.upsert(backend_schema, &resolver_consumer_context.pg_pool)
+            .await?;
         Ok(())
     }
 }

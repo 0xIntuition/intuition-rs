@@ -21,7 +21,7 @@ All the environment variables are stored in the `.env.sample` file. Here is the 
 * `CONTRACT_ADDRESS`: the address of the contract that we want to consume the messages from.
 * `DATABASE_URL`: the URL of the database.
 * `DATA_SOURCE`: the source of the data. Currently we support `goldsky` and `substreams`.
-* `DECODED_LOGS_QUEUE_URL`: the URL of the decoded SQS queue.
+* `DECODED_LOGS_STREAM`: the URL of the decoded SQS queue.
 * `HASURA_GRAPHQL_ADMIN_SECRET`: the admin secret key to access the Hasura GraphQL engine.
 * `HASURA_GRAPHQL_ENDPOINT`: the endpoint of the Hasura GraphQL engine.
 * `INDEXING_SOURCE`: the source of the indexing. Currently we support `substreams`.
@@ -35,6 +35,6 @@ All the environment variables are stored in the `.env.sample` file. Here is the 
 * `PG_PORT`: the port of the database.
 * `PG_USER`: the user of the database.
 * `PINATA_GATEWAY_TOKEN`: the token to access the Pinata gateway.
-* `RAW_CONSUMER_QUEUE_URL`: the URL of the raw SQS queue.
+* `RAW_CONSUMER_STREAM`: the URL of the raw SQS queue.
 * `RPC_URL`: the URL of the RPC service.
 * `RUST_LOG`: the log level.

@@ -1,6 +1,6 @@
 use crate::error::ModelError;
 use async_trait::async_trait;
-use sqlx::PgPool;
+use sqlx::{Executor, Postgres};
 
 /// This is a trait that all models must implement.
 pub trait Model: Sized {}
@@ -13,12 +13,22 @@ pub trait SimpleCrud<ID>: Model
 where
     ID: Send + Sync,
 {
-    async fn upsert(&self, pool: &PgPool, schema: &str) -> Result<Self, ModelError>;
-    async fn find_by_id(id: ID, pool: &PgPool, schema: &str) -> Result<Option<Self>, ModelError>;
+    async fn upsert<'e, E>(&self, schema: &str, executor: E) -> Result<Self, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>;
+    async fn find_by_id<'e, E>(
+        id: ID,
+        schema: &str,
+        executor: E,
+    ) -> Result<Option<Self>, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>;
 }
 
 /// This trait works as a contract for all models that need to be deleted from the database.
 #[async_trait]
 pub trait Deletable: Model {
-    async fn delete(id: String, pool: &PgPool, schema: &str) -> Result<(), ModelError>;
+    async fn delete<'e, E>(id: String, schema: &str, executor: E) -> Result<(), ModelError>
+    where
+        E: Executor<'e, Database = Postgres>;
 }

@@ -1,9 +1,7 @@
 use crate::{
     error::ConsumerError,
-    mode::{
-        decoded::atom::atom_supported_types::AtomMetadata,
-        types::{AtomUpdater, ResolverConsumerContext},
-    },
+    mode::{metadata::AtomMetadata, types::ResolverConsumerContext},
+    traits::AtomUpdater,
 };
 use bytes::Bytes;
 use models::{
@@ -21,7 +19,7 @@ use models::{
 use reqwest::Response;
 use serde_json::Value;
 use std::str::FromStr;
-use tracing::{info, warn};
+use tracing::{debug, warn};
 
 /// Supported schema.org contexts
 pub const SCHEMA_ORG_CONTEXTS: [&str; 4] = [
@@ -86,7 +84,7 @@ async fn try_to_resolve_schema_org_properties(
             match atom_type {
                 AtomType::Thing => {
                     let thing = create_thing_from_obj(atom, obj)
-                        .upsert(consumer_context.pool(), consumer_context.backend_schema())
+                        .upsert(consumer_context.backend_schema(), consumer_context.pool())
                         .await?;
                     create_thing_atom_value(atom, &thing, consumer_context).await?;
                     Ok(AtomMetadata::thing(
@@ -96,7 +94,7 @@ async fn try_to_resolve_schema_org_properties(
                 }
                 AtomType::Person => {
                     let person = create_person_from_obj(atom, obj)
-                        .upsert(consumer_context.pool(), consumer_context.backend_schema())
+                        .upsert(consumer_context.backend_schema(), consumer_context.pool())
                         .await?;
                     create_person_atom_value(atom, &person, consumer_context).await?;
                     Ok(AtomMetadata::person(
@@ -106,7 +104,7 @@ async fn try_to_resolve_schema_org_properties(
                 }
                 AtomType::Organization => {
                     let organization = create_organization_from_obj(atom, obj)
-                        .upsert(consumer_context.pool(), consumer_context.backend_schema())
+                        .upsert(consumer_context.backend_schema(), consumer_context.pool())
                         .await?;
                     create_organization_atom_value(atom, &organization, consumer_context).await?;
                     Ok(AtomMetadata::organization(
@@ -116,7 +114,7 @@ async fn try_to_resolve_schema_org_properties(
                 }
                 AtomType::Book => {
                     let book = create_book_from_obj(atom, obj)
-                        .upsert(consumer_context.pool(), consumer_context.backend_schema())
+                        .upsert(consumer_context.backend_schema(), consumer_context.pool())
                         .await?;
                     create_book_atom_value(atom, &book, consumer_context).await?;
                     Ok(AtomMetadata::book(book.name.unwrap_or_default()))
@@ -137,7 +135,10 @@ async fn try_to_resolve_schema_org_properties(
 
 /// Creates a ByteObject from a schema.org object
 pub fn create_byte_object_from_obj(atom: &Atom, obj: Vec<u8>) -> Result<ByteObject, ConsumerError> {
-    let byte_object = ByteObject::builder().id(atom.id.clone()).data(obj).build();
+    let byte_object = ByteObject::builder()
+        .id(atom.term_id.clone())
+        .data(obj)
+        .build();
     if !byte_object.data.is_empty() && byte_object.data.len() <= 1_000_000 {
         Ok(byte_object)
     } else {
@@ -150,20 +151,23 @@ pub fn create_byte_object_from_obj(atom: &Atom, obj: Vec<u8>) -> Result<ByteObje
 /// Creates a JsonObject from a schema.org object
 pub fn create_json_object_from_obj(atom: &Atom, obj: &Value) -> JsonObject {
     JsonObject::builder()
-        .id(atom.id.clone())
+        .id(atom.term_id.clone())
         .data(obj.clone())
         .build()
 }
 
 /// Creates a TextObject from a schema.org object
 pub fn create_text_object_from_obj(atom: &Atom, obj: &str) -> TextObject {
-    TextObject::builder().id(atom.id.clone()).data(obj).build()
+    TextObject::builder()
+        .id(atom.term_id.clone())
+        .data(obj)
+        .build()
 }
 
 /// Creates a Thing from a schema.org object
 pub fn create_thing_from_obj(atom: &Atom, obj: &Value) -> Thing {
     Thing::builder()
-        .id(atom.id.clone())
+        .id(atom.term_id.clone())
         .name(
             obj.get("name")
                 .and_then(|name| name.as_str())
@@ -194,7 +198,7 @@ pub fn create_thing_from_obj(atom: &Atom, obj: &Value) -> Thing {
 /// Creates a Person from a schema.org object
 pub fn create_person_from_obj(atom: &Atom, obj: &Value) -> Person {
     Person::builder()
-        .id(atom.id.clone())
+        .id(atom.term_id.clone())
         .identifier(
             obj.get("identifier")
                 .and_then(|identifier| identifier.as_str())
@@ -237,7 +241,7 @@ pub fn create_person_from_obj(atom: &Atom, obj: &Value) -> Person {
 /// Creates an Organization from a schema.org object
 pub fn create_organization_from_obj(atom: &Atom, obj: &Value) -> Organization {
     Organization::builder()
-        .id(atom.id.clone())
+        .id(atom.term_id.clone())
         .name(
             obj.get("name")
                 .and_then(|name| name.as_str())
@@ -268,7 +272,7 @@ pub fn create_organization_from_obj(atom: &Atom, obj: &Value) -> Organization {
 /// Creates a Book from a schema.org object
 pub fn create_book_from_obj(atom: &Atom, obj: &Value) -> Book {
     Book::builder()
-        .id(atom.id.clone())
+        .id(atom.term_id.clone())
         .name(
             obj.get("name")
                 .and_then(|name| name.as_str())
@@ -312,12 +316,12 @@ async fn handle_regular_json(
     atom: &Atom,
     json: &Value,
 ) -> Result<AtomMetadata, ConsumerError> {
-    info!(
+    debug!(
         "No @context found in JSON: {:?}, returning it as JsonObject",
         json
     );
     let json_object = create_json_object_from_obj(atom, json)
-        .upsert(consumer_context.pool(), consumer_context.backend_schema())
+        .upsert(consumer_context.backend_schema(), consumer_context.pool())
         .await?;
     create_json_object_atom_value(atom, &json_object, consumer_context).await?;
     Ok(AtomMetadata::json_object(None))
@@ -329,12 +333,12 @@ pub async fn handle_binary_data(
     atom: &Atom,
     atom_data: Bytes,
 ) -> Result<AtomMetadata, ConsumerError> {
-    info!("Data is likely binary, returning it as ByteObject");
+    debug!("Data is likely binary, returning it as ByteObject");
     let byte_object = create_byte_object_from_obj(atom, atom_data.to_vec());
     match byte_object {
         Ok(byte_object) => {
             byte_object
-                .upsert(consumer_context.pool(), consumer_context.backend_schema())
+                .upsert(consumer_context.backend_schema(), consumer_context.pool())
                 .await?;
             create_byte_object_atom_value(atom, &byte_object, consumer_context).await?;
             Ok(AtomMetadata::byte_object(None))
@@ -358,9 +362,9 @@ async fn handle_text_data(
         return Ok(AtomMetadata::unknown());
     }
 
-    info!("Data is likely text, returning it as TextObject");
+    debug!("Data is likely text, returning it as TextObject");
     let text_object = create_text_object_from_obj(atom, atom_data)
-        .upsert(consumer_context.pool(), consumer_context.backend_schema())
+        .upsert(consumer_context.backend_schema(), consumer_context.pool())
         .await?;
     create_text_object_atom_value(atom, &text_object, consumer_context).await?;
     Ok(AtomMetadata::text_object(Some(text_object.data)))
@@ -375,6 +379,10 @@ pub async fn try_to_parse_json_or_text(
     if let Ok(json) = serde_json::from_str::<Value>(atom_data) {
         match json.get("@context").and_then(|c| c.as_str()) {
             Some(ctx_str) if SCHEMA_ORG_CONTEXTS.contains(&ctx_str) => {
+                // We need to store the regular JSON as a JsonObject
+                let _ = handle_regular_json(consumer_context, atom, &json).await?;
+                // We need to store the schema.org as the interpretation of the atom data
+                // as well, so we need to return the metadata for the schema.org JSON
                 handle_schema_org_json(consumer_context, atom, &json).await
             }
             _ => handle_regular_json(consumer_context, atom, &json).await,
@@ -390,12 +398,27 @@ pub async fn create_byte_object_atom_value(
     byte_object: &ByteObject,
     consumer_context: &impl AtomUpdater,
 ) -> Result<(), ConsumerError> {
-    AtomValue::builder()
-        .id(atom.id.clone())
-        .byte_object_id(byte_object.id.clone())
-        .build()
-        .upsert(consumer_context.pool(), consumer_context.backend_schema())
-        .await?;
+    // We need to check if the atom value already exists
+    if let Some(mut atom_value) = AtomValue::find_by_id(
+        atom.term_id.clone(),
+        consumer_context.backend_schema(),
+        consumer_context.pool(),
+    )
+    .await?
+    {
+        // If the atom value already exists, we need to update it
+        atom_value.byte_object_id = Some(byte_object.id.clone());
+        atom_value
+            .upsert(consumer_context.backend_schema(), consumer_context.pool())
+            .await?;
+    } else {
+        AtomValue::builder()
+            .id(atom.term_id.clone())
+            .byte_object_id(byte_object.id.clone())
+            .build()
+            .upsert(consumer_context.backend_schema(), consumer_context.pool())
+            .await?;
+    }
     Ok(())
 }
 
@@ -405,12 +428,28 @@ pub async fn create_text_object_atom_value(
     text_object: &TextObject,
     consumer_context: &impl AtomUpdater,
 ) -> Result<(), ConsumerError> {
-    AtomValue::builder()
-        .id(atom.id.clone())
-        .text_object_id(text_object.id.clone())
-        .build()
-        .upsert(consumer_context.pool(), consumer_context.backend_schema())
-        .await?;
+    // We need to check if the atom value already exists
+    if let Some(mut atom_value) = AtomValue::find_by_id(
+        atom.term_id.clone(),
+        consumer_context.backend_schema(),
+        consumer_context.pool(),
+    )
+    .await?
+    {
+        // If the atom value already exists, we need to update it
+        atom_value.text_object_id = Some(text_object.id.clone());
+        atom_value
+            .upsert(consumer_context.backend_schema(), consumer_context.pool())
+            .await?;
+    } else {
+        // If the atom value does not exist, we need to create it
+        AtomValue::builder()
+            .id(atom.term_id.clone())
+            .text_object_id(text_object.id.clone())
+            .build()
+            .upsert(consumer_context.backend_schema(), consumer_context.pool())
+            .await?;
+    }
     Ok(())
 }
 
@@ -421,10 +460,10 @@ pub async fn create_json_object_atom_value(
     consumer_context: &impl AtomUpdater,
 ) -> Result<(), ConsumerError> {
     AtomValue::builder()
-        .id(atom.id.clone())
+        .id(atom.term_id.clone())
         .json_object_id(json_object.id.clone())
         .build()
-        .upsert(consumer_context.pool(), consumer_context.backend_schema())
+        .upsert(consumer_context.backend_schema(), consumer_context.pool())
         .await?;
     Ok(())
 }
@@ -435,12 +474,28 @@ pub async fn create_thing_atom_value(
     thing: &Thing,
     consumer_context: &impl AtomUpdater,
 ) -> Result<(), ConsumerError> {
-    AtomValue::builder()
-        .id(atom.id.clone())
-        .thing_id(thing.id.clone())
-        .build()
-        .upsert(consumer_context.pool(), consumer_context.backend_schema())
-        .await?;
+    // We need to check if the atom value already exists
+    if let Some(mut atom_value) = AtomValue::find_by_id(
+        atom.term_id.clone(),
+        consumer_context.backend_schema(),
+        consumer_context.pool(),
+    )
+    .await?
+    {
+        // If the atom value already exists, we need to update it
+        atom_value.thing_id = Some(thing.id.clone());
+        atom_value
+            .upsert(consumer_context.backend_schema(), consumer_context.pool())
+            .await?;
+    } else {
+        // If the atom value does not exist, we need to create it
+        AtomValue::builder()
+            .id(atom.term_id.clone())
+            .thing_id(thing.id.clone())
+            .build()
+            .upsert(consumer_context.backend_schema(), consumer_context.pool())
+            .await?;
+    }
     Ok(())
 }
 
@@ -450,12 +505,28 @@ pub async fn create_person_atom_value(
     person: &Person,
     consumer_context: &impl AtomUpdater,
 ) -> Result<(), ConsumerError> {
-    AtomValue::builder()
-        .id(atom.id.clone())
-        .person_id(person.id.clone())
-        .build()
-        .upsert(consumer_context.pool(), consumer_context.backend_schema())
-        .await?;
+    // We need to check if the atom value already exists
+    if let Some(mut atom_value) = AtomValue::find_by_id(
+        atom.term_id.clone(),
+        consumer_context.backend_schema(),
+        consumer_context.pool(),
+    )
+    .await?
+    {
+        // If the atom value already exists, we need to update it
+        atom_value.person_id = Some(person.id.clone());
+        atom_value
+            .upsert(consumer_context.backend_schema(), consumer_context.pool())
+            .await?;
+    } else {
+        // If the atom value does not exist, we need to create it
+        AtomValue::builder()
+            .id(atom.term_id.clone())
+            .person_id(person.id.clone())
+            .build()
+            .upsert(consumer_context.backend_schema(), consumer_context.pool())
+            .await?;
+    }
     Ok(())
 }
 
@@ -465,12 +536,28 @@ pub async fn create_organization_atom_value(
     organization: &Organization,
     consumer_context: &impl AtomUpdater,
 ) -> Result<(), ConsumerError> {
-    AtomValue::builder()
-        .id(atom.id.clone())
-        .organization_id(organization.id.clone())
-        .build()
-        .upsert(consumer_context.pool(), consumer_context.backend_schema())
-        .await?;
+    // We need to check if the atom value already exists
+    if let Some(mut atom_value) = AtomValue::find_by_id(
+        atom.term_id.clone(),
+        consumer_context.backend_schema(),
+        consumer_context.pool(),
+    )
+    .await?
+    {
+        // If the atom value already exists, we need to update it
+        atom_value.organization_id = Some(organization.id.clone());
+        atom_value
+            .upsert(consumer_context.backend_schema(), consumer_context.pool())
+            .await?;
+    } else {
+        // If the atom value does not exist, we need to create it
+        AtomValue::builder()
+            .id(atom.term_id.clone())
+            .organization_id(organization.id.clone())
+            .build()
+            .upsert(consumer_context.backend_schema(), consumer_context.pool())
+            .await?;
+    }
     Ok(())
 }
 
@@ -480,11 +567,27 @@ pub async fn create_book_atom_value(
     book: &Book,
     consumer_context: &impl AtomUpdater,
 ) -> Result<(), ConsumerError> {
-    AtomValue::builder()
-        .id(atom.id.clone())
-        .book_id(book.id.clone())
-        .build()
-        .upsert(consumer_context.pool(), consumer_context.backend_schema())
-        .await?;
+    // We need to check if the atom value already exists
+    if let Some(mut atom_value) = AtomValue::find_by_id(
+        atom.term_id.clone(),
+        consumer_context.backend_schema(),
+        consumer_context.pool(),
+    )
+    .await?
+    {
+        // If the atom value already exists, we need to update it
+        atom_value.book_id = Some(book.id.clone());
+        atom_value
+            .upsert(consumer_context.backend_schema(), consumer_context.pool())
+            .await?;
+    } else {
+        // If the atom value does not exist, we need to create it
+        AtomValue::builder()
+            .id(atom.term_id.clone())
+            .book_id(book.id.clone())
+            .build()
+            .upsert(consumer_context.backend_schema(), consumer_context.pool())
+            .await?;
+    }
     Ok(())
 }

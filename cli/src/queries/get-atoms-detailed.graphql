@@ -1,0 +1,52 @@
+query GetAtomsDetailed($limit: Int, $offset: Int, $order_by: [atoms_order_by!], $where: atoms_bool_exp) {
+  atoms(limit: $limit, offset: $offset, order_by: $order_by, where: $where) {
+    term_id
+    wallet_id
+    creator_id
+    data
+    emoji
+    label
+    image
+    type
+    value_id
+    block_number
+    block_timestamp
+    transaction_hash
+    
+    # Core relationships
+    controller {
+      id
+      address
+      type
+      created_at
+    }
+    
+    creator {
+      id
+      address
+      type
+      created_at
+    }
+    
+    term {
+      term_id
+      name
+      description
+      created_at
+    }
+    
+    atom_value {
+      id
+      data
+      type
+      created_at
+    }
+    
+    cached_image {
+      id
+      original_url
+      cached_url
+      created_at
+    }
+  }
+} 

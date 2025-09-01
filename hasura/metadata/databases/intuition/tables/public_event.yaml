@@ -7,15 +7,12 @@ configuration:
   custom_name: events
   custom_root_fields:
     select_by_pk: event
-  query_configuration:
-    default_limit: 250
-    max_limit: 250
 object_relationships:
   - name: atom
     using:
       manual_configuration:
         column_mapping:
-          atom_id: id
+          atom_id: term_id
         insertion_order: null
         remote_table:
           name: atom
@@ -33,7 +30,7 @@ object_relationships:
     using:
       manual_configuration:
         column_mapping:
-          triple_id: id
+          triple_id: term_id
         insertion_order: null
         remote_table:
           name: triple
@@ -45,7 +42,7 @@ select_permissions:
         - transaction_hash
         - atom_id
         - block_number
-        - block_timestamp
+        - created_at
         - triple_id
         - deposit_id
         - fee_transfer_id

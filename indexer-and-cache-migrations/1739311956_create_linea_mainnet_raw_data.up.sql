@@ -1,9 +1,6 @@
--- prod-linea-mainnet
-INSERT INTO cursors.histoflux_cursor (id, last_processed_id, environment, queue_url) VALUES (4, 0, 'ProdLineaMainnet', 'https://sqs.us-west-2.amazonaws.com/064662847354/prod-linea-mainnet-raw-logs.fifo');
+CREATE SCHEMA IF NOT EXISTS linea_mainnet;
 
-CREATE SCHEMA IF NOT EXISTS linea_mainnet_indexer;
-
-CREATE TABLE IF NOT EXISTS linea_mainnet_indexer.raw_data (
+CREATE TABLE IF NOT EXISTS linea_mainnet.raw_data (
     id SERIAL PRIMARY KEY NOT NULL,
     gs_id VARCHAR(200),
     block_number BIGINT,
@@ -18,7 +15,7 @@ CREATE TABLE IF NOT EXISTS linea_mainnet_indexer.raw_data (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE OR REPLACE FUNCTION linea_mainnet_indexer.notify_raw_logs()
+CREATE OR REPLACE FUNCTION linea_mainnet.notify_raw_logs()
 RETURNS trigger AS $$
 BEGIN
     PERFORM pg_notify('linea_mainnet_raw_logs_channel', row_to_json(NEW)::text);
@@ -27,12 +24,15 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER linea_mainnet_raw_logs_notify_trigger
-    AFTER INSERT ON linea_mainnet_indexer.raw_data
+    AFTER INSERT ON linea_mainnet.raw_data
     FOR EACH ROW
-    EXECUTE FUNCTION linea_mainnet_indexer.notify_raw_logs();
+    EXECUTE FUNCTION linea_mainnet.notify_raw_logs();
     
-CREATE INDEX idx_raw_data_block_number ON linea_mainnet_indexer.raw_data(block_number);
-CREATE INDEX idx_raw_data_block_timestamp ON linea_mainnet_indexer.raw_data(block_timestamp);
-CREATE INDEX idx_raw_data_transaction_hash ON linea_mainnet_indexer.raw_data(transaction_hash);
-CREATE INDEX idx_raw_data_address ON linea_mainnet_indexer.raw_data(address);
-CREATE INDEX idx_raw_data_topics ON linea_mainnet_indexer.raw_data(topics);
+CREATE INDEX idx_raw_data_block_number ON linea_mainnet.raw_data(block_number);
+CREATE INDEX idx_raw_data_block_timestamp ON linea_mainnet.raw_data(block_timestamp);
+CREATE INDEX idx_raw_data_transaction_hash ON linea_mainnet.raw_data(transaction_hash);
+CREATE INDEX idx_raw_data_address ON linea_mainnet.raw_data(address);
+CREATE INDEX idx_raw_data_topics ON linea_mainnet.raw_data(topics);
+
+-- now we need to insert the reference for histocrawler
+INSERT INTO histocrawler.app_config (indexer_schema, rpc_url, start_block, end_block, contract_address, raw_logs_channel) VALUES ('linea_mainnet', 'http://prod-rpc-proxy:3008/59144/proxy', 16021721, NULL, '0xB4375293a13017BCe71a034bB588786A3D3C7295', 'linea_mainnet_raw_logs_channel');

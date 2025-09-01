@@ -1,9 +1,12 @@
 use crate::{
+    deposit::VaultType,
     error::ModelError,
     traits::{Model, SimpleCrud},
-    types::U256Wrapper,
+    types::{FixedBytesWrapper, U256Wrapper},
 };
 use async_trait::async_trait;
+use chrono::{DateTime, Utc};
+use sqlx::{Executor, Postgres};
 
 /// This is the `Redemption` struct that represents a redemption in the database.
 #[derive(sqlx::FromRow, Debug, Clone, PartialEq, Builder)]
@@ -12,14 +15,17 @@ pub struct Redemption {
     pub id: String,
     pub sender_id: String,
     pub receiver_id: String,
-    pub sender_total_shares_in_vault: U256Wrapper,
-    pub assets_for_receiver: U256Wrapper,
-    pub shares_redeemed_by_sender: U256Wrapper,
-    pub exit_fee: U256Wrapper,
-    pub vault_id: U256Wrapper,
+    pub assets: U256Wrapper,
+    pub vault_type: VaultType,
+    pub fees: U256Wrapper,
+    pub shares: U256Wrapper,
+    pub total_shares: U256Wrapper,
+    pub term_id: FixedBytesWrapper,
     pub block_number: U256Wrapper,
-    pub block_timestamp: i64,
+    pub created_at: DateTime<Utc>,
     pub transaction_hash: String,
+    pub curve_id: U256Wrapper,
+    pub log_index: i64,
 }
 
 /// This is a trait that all models must implement.
@@ -30,36 +36,45 @@ impl Model for Redemption {}
 impl SimpleCrud<String> for Redemption {
     /// Upserts a redemption record in the database.
     /// If a record with the same ID exists, it will be updated, otherwise a new record will be created.
-    async fn upsert(&self, pool: &sqlx::PgPool, schema: &str) -> Result<Self, ModelError> {
+    async fn upsert<'e, E>(&self, schema: &str, executor: E) -> Result<Self, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"
-            INSERT INTO {}.redemption (
-                id, sender_id, receiver_id, sender_total_shares_in_vault,
-                assets_for_receiver, shares_redeemed_by_sender, exit_fee, vault_id,
-                block_number, block_timestamp, transaction_hash
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-            ON CONFLICT (id) DO UPDATE SET
-                sender_id = EXCLUDED.sender_id,
-                receiver_id = EXCLUDED.receiver_id,
-                sender_total_shares_in_vault = EXCLUDED.sender_total_shares_in_vault,
-                assets_for_receiver = EXCLUDED.assets_for_receiver,
-                shares_redeemed_by_sender = EXCLUDED.shares_redeemed_by_sender,
-                exit_fee = EXCLUDED.exit_fee,
-                vault_id = EXCLUDED.vault_id,
-                block_number = EXCLUDED.block_number,
-                block_timestamp = EXCLUDED.block_timestamp,
-                transaction_hash = EXCLUDED.transaction_hash
-            RETURNING 
-                id, sender_id, receiver_id,
-                sender_total_shares_in_vault,
-                assets_for_receiver,
-                shares_redeemed_by_sender,
-                exit_fee,
-                vault_id,
-                block_number,
-                block_timestamp,
-                transaction_hash
-                    "#,
+        INSERT INTO {}.redemption (
+            id, sender_id, receiver_id,
+            assets, vault_type, fees, shares, total_shares, term_id,
+            curve_id, block_number, created_at, transaction_hash, log_index
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+        ON CONFLICT (id) DO UPDATE SET
+            sender_id = EXCLUDED.sender_id,
+            receiver_id = EXCLUDED.receiver_id,
+            assets = EXCLUDED.assets,
+            vault_type = EXCLUDED.vault_type,
+            fees = EXCLUDED.fees,
+            shares = EXCLUDED.shares,
+            total_shares = EXCLUDED.total_shares,
+            term_id = EXCLUDED.term_id,
+            curve_id = EXCLUDED.curve_id,
+            block_number = EXCLUDED.block_number,
+            created_at = EXCLUDED.created_at,
+            transaction_hash = EXCLUDED.transaction_hash,
+            log_index = EXCLUDED.log_index
+        RETURNING 
+            id, sender_id, receiver_id,
+            assets,
+            vault_type,
+            fees,
+            shares,
+            total_shares,
+            term_id,
+            curve_id,
+            block_number,
+            created_at,
+            transaction_hash,
+            log_index
+        "#,
             schema,
         );
 
@@ -67,38 +82,47 @@ impl SimpleCrud<String> for Redemption {
             .bind(self.id.clone())
             .bind(self.sender_id.clone())
             .bind(self.receiver_id.clone())
-            .bind(self.sender_total_shares_in_vault.to_big_decimal()?)
-            .bind(self.assets_for_receiver.to_big_decimal()?)
-            .bind(self.shares_redeemed_by_sender.to_big_decimal()?)
-            .bind(self.exit_fee.to_big_decimal()?)
-            .bind(self.vault_id.to_big_decimal()?)
+            .bind(self.assets.to_big_decimal()?)
+            .bind(self.vault_type)
+            .bind(self.fees.to_big_decimal()?)
+            .bind(self.shares.to_big_decimal()?)
+            .bind(self.total_shares.to_big_decimal()?)
+            .bind(self.term_id.clone())
+            .bind(self.curve_id.to_big_decimal()?)
             .bind(self.block_number.to_big_decimal()?)
-            .bind(self.block_timestamp)
+            .bind(self.created_at)
             .bind(self.transaction_hash.clone())
-            .fetch_one(pool)
+            .bind(self.log_index)
+            .fetch_one(executor)
             .await
             .map_err(|e| crate::error::ModelError::InsertError(e.to_string()))
     }
 
     /// Finds a redemption record by its ID.
     /// Returns None if no record is found.
-    async fn find_by_id(
+    async fn find_by_id<'e, E>(
         id: String,
-        pool: &sqlx::PgPool,
         schema: &str,
-    ) -> Result<Option<Self>, ModelError> {
+        executor: E,
+    ) -> Result<Option<Self>, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"
             SELECT 
                 id, sender_id, receiver_id,
-                sender_total_shares_in_vault,
-                assets_for_receiver,
-                shares_redeemed_by_sender,
-                exit_fee,
-                vault_id,
+                assets,
+                vault_type,
+                fees,
+                shares,  
+                total_shares,
+                term_id,
+                curve_id,
                 block_number,
-                block_timestamp,
-                transaction_hash
+                created_at,
+                transaction_hash,
+                log_index
             FROM {}.redemption
             WHERE id = $1
             "#,
@@ -107,8 +131,67 @@ impl SimpleCrud<String> for Redemption {
 
         sqlx::query_as::<_, Redemption>(&query)
             .bind(id.clone())
-            .fetch_optional(pool)
+            .fetch_optional(executor)
             .await
             .map_err(|e| crate::error::ModelError::QueryError(e.to_string()))
+    }
+}
+
+impl Redemption {
+    /// Gets the total shares redeemed by a sender in a vault.
+    pub async fn get_total_shares(
+        sender_id: String,
+        term_id: FixedBytesWrapper,
+        curve_id: U256Wrapper,
+        pool: &sqlx::PgPool,
+        schema: &str,
+    ) -> Result<U256Wrapper, ModelError> {
+        let query = format!(
+            r#"
+            SELECT COALESCE(SUM(shares), 0) as total_shares
+            FROM {}.redemption
+            WHERE sender_id = $1 AND term_id = $2 AND curve_id = $3
+            "#,
+            schema,
+        );
+
+        let result: Option<U256Wrapper> = sqlx::query_scalar(&query)
+            .bind(sender_id.clone())
+            .bind(term_id)
+            .bind(curve_id.to_big_decimal()?)
+            .fetch_optional(pool)
+            .await
+            .map_err(|e| ModelError::QueryError(e.to_string()))?;
+
+        Ok(result.unwrap_or_default())
+    }
+
+    /// Finds the last redemption record for a given transaction hash
+    /// The Redemption id is made out of the concatenation of the transaction hash
+    /// and the log index.
+    pub async fn find_last_redemption_by_transaction_hash_term_id_and_curve_id<'e, E>(
+        transaction_hash: String,
+        term_id: FixedBytesWrapper,
+        curve_id: U256Wrapper,
+        schema: &str,
+        executor: E,
+    ) -> Result<Option<Self>, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
+        let query = format!(
+            "SELECT * FROM {}.redemption WHERE transaction_hash = $1 AND term_id = $2 AND curve_id = $3 ORDER BY log_index DESC LIMIT 1",
+        schema
+    );
+
+        let result: Option<Redemption> = sqlx::query_as(&query)
+            .bind(transaction_hash)
+            .bind(term_id)
+            .bind(curve_id.to_big_decimal()?)
+            .fetch_optional(executor)
+            .await
+            .map_err(|e| ModelError::QueryError(e.to_string()))?;
+
+        Ok(result)
     }
 }

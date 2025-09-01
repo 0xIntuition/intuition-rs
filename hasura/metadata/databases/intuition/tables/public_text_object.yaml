@@ -7,9 +7,16 @@ configuration:
   custom_name: text_objects
   custom_root_fields:
     select_by_pk: text_object
-  query_configuration:
-    default_limit: 250
-    max_limit: 250
+object_relationships:
+  - name: atom
+    using:
+      manual_configuration:
+        column_mapping:
+          id: term_id
+        insertion_order: null
+        remote_table:
+          name: atom
+          schema: public
 select_permissions:
   - role: anonymous
     permission:

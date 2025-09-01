@@ -1,10 +1,11 @@
 use crate::{
     error::ModelError,
     traits::{Model, SimpleCrud},
-    types::U256Wrapper,
+    types::{FixedBytesWrapper, U256Wrapper},
 };
 use async_trait::async_trait;
-use sqlx::{PgPool, Result};
+use chrono::{DateTime, Utc};
+use sqlx::{Executor, PgPool, Postgres, Result};
 
 /// This struct defines the vault in the database. Note that both `atom_id` and
 /// `triple_id` are optional. This is because a vault can either be created by
@@ -13,94 +14,177 @@ use sqlx::{PgPool, Result};
 #[derive(Debug, sqlx::FromRow, Builder)]
 #[sqlx(type_name = "vault")]
 pub struct Vault {
-    pub id: U256Wrapper,
-    pub atom_id: Option<U256Wrapper>,
-    pub triple_id: Option<U256Wrapper>,
+    pub term_id: FixedBytesWrapper,
+    pub curve_id: U256Wrapper,
     pub total_shares: U256Wrapper,
     pub current_share_price: U256Wrapper,
     pub position_count: i32,
+    pub total_assets: U256Wrapper,
+    pub market_cap: U256Wrapper,
+    pub block_number: i64,
+    pub log_index: i64,
+    pub transaction_hash: String,
+    pub created_at: DateTime<Utc>,
 }
 /// This is a trait that all models must implement.
 impl Model for Vault {}
 
 /// This trait works as a contract for all models that need to be upserted into the database.
 #[async_trait]
-impl SimpleCrud<U256Wrapper> for Vault {
+impl SimpleCrud<FixedBytesWrapper> for Vault {
     /// This method upserts a vault into the database.
-    async fn upsert(&self, pool: &PgPool, schema: &str) -> Result<Self, ModelError> {
+    async fn upsert<'e, E>(&self, schema: &str, executor: E) -> Result<Self, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"
-            INSERT INTO {}.vault (id, atom_id, triple_id, total_shares, current_share_price, position_count)
-            VALUES ($1, $2, $3, $4, $5, $6)
-            ON CONFLICT (id) DO UPDATE SET
-                atom_id = EXCLUDED.atom_id,
-                triple_id = EXCLUDED.triple_id,
-                total_shares = EXCLUDED.total_shares,
-                current_share_price = EXCLUDED.current_share_price,
-                position_count = EXCLUDED.position_count
-                RETURNING id, atom_id, triple_id, total_shares, current_share_price, position_count
+            WITH upsert AS (
+                INSERT INTO {0}.vault (
+                    term_id, curve_id, total_shares, current_share_price, position_count,
+                    total_assets, market_cap, block_number, log_index, transaction_hash,
+                    created_at
+                )
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                ON CONFLICT (term_id, curve_id) DO UPDATE SET
+                    total_shares = EXCLUDED.total_shares,
+                    current_share_price = EXCLUDED.current_share_price,
+                    position_count = EXCLUDED.position_count,
+                    total_assets = EXCLUDED.total_assets,
+                    market_cap = EXCLUDED.market_cap,
+                    block_number = EXCLUDED.block_number,
+                    log_index = EXCLUDED.log_index,
+                    transaction_hash = EXCLUDED.transaction_hash,
+                    created_at = EXCLUDED.created_at
+                WHERE
+                EXCLUDED.block_number > vault.block_number
+                OR (
+                    EXCLUDED.block_number = vault.block_number
+                    AND EXCLUDED.log_index > vault.log_index
+                )
+                RETURNING term_id, curve_id, total_shares, current_share_price, position_count,
+                          total_assets, market_cap, block_number, log_index, transaction_hash,
+                          created_at
+            )
+            SELECT * FROM upsert
+            UNION ALL
+            SELECT term_id, curve_id, total_shares, current_share_price, position_count,
+                   total_assets, market_cap, block_number, log_index, transaction_hash,
+                   created_at
+            FROM {0}.vault
+            WHERE term_id = $1 AND curve_id = $2
+            AND NOT EXISTS (SELECT 1 FROM upsert)
             "#,
             schema,
         );
 
         sqlx::query_as::<_, Vault>(&query)
-            .bind(self.id.to_big_decimal()?)
-            .bind(self.atom_id.as_ref().and_then(|w| w.to_big_decimal().ok()))
-            .bind(
-                self.triple_id
-                    .as_ref()
-                    .and_then(|w| w.to_big_decimal().ok()),
-            )
+            .bind(self.term_id.clone())
+            .bind(self.curve_id.to_big_decimal()?)
             .bind(self.total_shares.to_big_decimal()?)
             .bind(self.current_share_price.to_big_decimal()?)
             .bind(self.position_count)
-            .fetch_one(pool)
+            .bind(self.total_assets.to_big_decimal()?)
+            .bind(self.market_cap.to_big_decimal()?)
+            .bind(self.block_number)
+            .bind(self.log_index)
+            .bind(self.transaction_hash.clone())
+            .bind(self.created_at)
+            .fetch_one(executor)
             .await
             .map_err(|e| ModelError::InsertError(e.to_string()))
     }
 
     /// Finds a vault by its id.
-    async fn find_by_id(
-        id: U256Wrapper,
-        pool: &PgPool,
+    async fn find_by_id<'e, E>(
+        term_id: FixedBytesWrapper,
         schema: &str,
-    ) -> Result<Option<Self>, ModelError> {
+        executor: E,
+    ) -> Result<Option<Self>, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"
             SELECT 
-                id, 
-                atom_id, 
-                triple_id,
+                term_id, 
+                curve_id,
                 total_shares, 
                 current_share_price,
-                position_count
+                position_count,
+                total_assets,
+                market_cap,
+                block_number,
+                log_index,
+                transaction_hash,
+                created_at
             FROM {}.vault 
-            WHERE id = $1
+            WHERE term_id = $1
             "#,
             schema,
         );
 
         sqlx::query_as::<_, Vault>(&query)
-            .bind(id.to_big_decimal()?)
-            .fetch_optional(pool)
+            .bind(term_id)
+            .fetch_optional(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
     }
 }
 
 impl Vault {
-    pub async fn update_current_share_price(
+    /// Finds all the vaults by its term_id.
+    pub async fn find_vaults_by_term_id<'e, E>(
+        term_id: FixedBytesWrapper,
+        schema: &str,
+        executor: E,
+    ) -> Result<Vec<Self>, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
+        let query = format!(
+            r#"
+            SELECT 
+                term_id, 
+                curve_id,
+                total_shares, 
+                current_share_price,
+                position_count,
+                total_assets,
+                market_cap,
+                block_number,
+                log_index,
+                transaction_hash,
+                created_at
+            FROM {}.vault 
+            WHERE term_id = $1
+            "#,
+            schema,
+        );
+
+        sqlx::query_as::<_, Vault>(&query)
+            .bind(term_id)
+            .fetch_all(executor)
+            .await
+            .map_err(|e| ModelError::QueryError(e.to_string()))
+    }
+
+    /// This function updates the current share price of a vault
+    pub async fn update_current_share_price<'e, E>(
         id: U256Wrapper,
         current_share_price: U256Wrapper,
-        pool: &PgPool,
+        executor: E,
         schema: &str,
-    ) -> Result<Self, ModelError> {
+    ) -> Result<Self, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"
             UPDATE {}.vault 
             SET current_share_price = $1 
-            WHERE id = $2
-            RETURNING id, atom_id, triple_id, total_shares, current_share_price, position_count
+            WHERE term_id = $2 AND curve_id = $3
+            RETURNING term_id, curve_id, total_shares, current_share_price, position_count, total_assets, market_cap, block_number, log_index, transaction_hash, created_at
             "#,
             schema,
         );
@@ -108,8 +192,120 @@ impl Vault {
         sqlx::query_as::<_, Vault>(&query)
             .bind(current_share_price.to_big_decimal()?)
             .bind(id.to_big_decimal()?)
-            .fetch_one(pool)
+            .bind(<&str as TryInto<U256Wrapper>>::try_into("1")?.to_big_decimal()?)
+            .fetch_one(executor)
             .await
             .map_err(|e| ModelError::UpdateError(e.to_string()))
+    }
+
+    /// This function finds a vault by its term_id and curve_id
+    pub async fn find_by_term_id_and_curve_id<'e, E>(
+        term_id: FixedBytesWrapper,
+        curve_id: U256Wrapper,
+        executor: E,
+        schema: &str,
+    ) -> Result<Option<Self>, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
+        let query = format!(
+            r#"
+            SELECT * FROM {}.vault WHERE term_id = $1 AND curve_id = $2
+            "#,
+            schema,
+        );
+
+        sqlx::query_as::<_, Vault>(&query)
+            .bind(term_id)
+            .bind(curve_id.to_big_decimal()?)
+            .fetch_optional(executor)
+            .await
+            .map_err(|e| ModelError::QueryError(e.to_string()))
+    }
+
+    /// This function sums the total assets of all the vaults for a given term
+    pub async fn sum_total_assets(
+        term_id: FixedBytesWrapper,
+        pool: &PgPool,
+        schema: &str,
+    ) -> Result<U256Wrapper, ModelError> {
+        let query = format!(
+            r#"SELECT SUM(total_assets) FROM {}.vault WHERE term_id = $1"#,
+            schema
+        );
+        sqlx::query_scalar::<_, U256Wrapper>(&query)
+            .bind(term_id)
+            .fetch_one(pool)
+            .await
+            .map_err(|e| ModelError::QueryError(e.to_string()))
+    }
+
+    /// This function sums the market cap of all the vaults for a given term
+    pub async fn sum_market_cap(
+        term_id: FixedBytesWrapper,
+        pool: &PgPool,
+        schema: &str,
+    ) -> Result<U256Wrapper, ModelError> {
+        let query = format!(
+            r#"SELECT SUM(market_cap) FROM {}.vault WHERE term_id = $1"#,
+            schema
+        );
+        sqlx::query_scalar::<_, U256Wrapper>(&query)
+            .bind(term_id)
+            .fetch_one(pool)
+            .await
+            .map_err(|e| ModelError::QueryError(e.to_string()))
+    }
+
+    /// This function sums the position count of all the vaults for a given term
+    pub async fn sum_position_count(
+        term_id: FixedBytesWrapper,
+        counter_term_id: FixedBytesWrapper,
+        pool: &PgPool,
+        schema: &str,
+    ) -> Result<i64, ModelError> {
+        let query = format!(
+            r#"SELECT SUM(position_count) FROM {}.vault WHERE term_id = $1 OR term_id = $2"#,
+            schema
+        );
+        sqlx::query_scalar::<_, i64>(&query)
+            .bind(term_id)
+            .bind(counter_term_id)
+            .fetch_one(pool)
+            .await
+            .map_err(|e| ModelError::QueryError(e.to_string()))
+    }
+
+    /// This function inserts a vault into the database
+    pub async fn insert<'e, E>(&self, executor: E, schema: &str) -> Result<Self, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
+        let query = format!(
+            r#"
+            INSERT INTO {}.vault (term_id, curve_id, total_shares, current_share_price, position_count, total_assets, market_cap, block_number, log_index, transaction_hash, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            "#,
+            schema,
+        );
+
+        sqlx::query_as::<_, Vault>(&query)
+            .bind(self.term_id.clone())
+            .bind(self.curve_id.to_big_decimal()?)
+            .bind(self.total_shares.to_big_decimal()?)
+            .bind(self.current_share_price.to_big_decimal()?)
+            .bind(self.position_count)
+            .bind(self.total_assets.to_big_decimal()?)
+            .bind(self.market_cap.to_big_decimal()?)
+            .bind(self.block_number)
+            // this is to avoid race conditions with deposit events. AtomCreate and TripleCreate
+            // events are using the insert, but we need to make sure that deposits are going to be
+            // able to override the total_assets properly, thus we set the log_index to 0.
+            .bind(0)
+            .bind(self.transaction_hash.clone())
+            .bind(self.created_at)
+            .fetch_one(executor)
+            .await
+            .map_err(|e| ModelError::InsertError(e.to_string()))
     }
 }

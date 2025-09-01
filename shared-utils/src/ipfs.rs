@@ -4,8 +4,8 @@ use crate::{
 };
 use macon::Builder;
 use reqwest::{
-    multipart::{Form, Part},
     Client, Response, StatusCode,
+    multipart::{Form, Part},
 };
 use serde::Deserialize;
 use std::time::Duration;

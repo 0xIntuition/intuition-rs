@@ -1,1 +1,0 @@
-DROP TABLE IF EXISTS base_indexer.raw_data;

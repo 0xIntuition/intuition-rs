@@ -6,7 +6,6 @@ edition = "2024"
 [dependencies]
 clap = { version = "4.4.7", features = ["derive"] }
 hex = "0.4.3"
-rustc-hex = "2.1.0"
 sqlx-core = "0.8.0"
 
 # Local dependencies
@@ -15,6 +14,7 @@ shared-utils = { path = "../shared-utils" }
 
 # Workspace dependencies
 alloy.workspace = true
+alloy-network.workspace = true
 async-trait.workspace = true
 aws-config.workspace = true
 aws-sdk-s3 = "1.20.0"
@@ -35,6 +35,18 @@ strum.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
 tracing = "0.1"
+macon.workspace = true
+chrono.workspace = true
+redis = { version = "0.32.4", features = ["tokio-comp", "connection-manager", "streams"] }
 tracing-appender = "0.2"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+uuid = { version = "1.0", features = ["v4"] }
 warp = "0.3.7"
+
+# We currently support two versions of the contract:
+# - v1_5_contract: The latest version of the contract
+# - v1_0_contract: The previous version of the contract
+[features]
+v1_5_contract = []
+v1_0_contract = []
+default = ["v1_0_contract"]

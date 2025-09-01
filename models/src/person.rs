@@ -1,16 +1,16 @@
 use crate::{
     error::ModelError,
     traits::{Model, SimpleCrud},
-    types::U256Wrapper,
+    types::FixedBytesWrapper,
 };
 use async_trait::async_trait;
-use sqlx::PgPool;
+use sqlx::{Executor, Postgres};
 
 /// This struct represents a person.
 #[derive(Debug, sqlx::FromRow, Builder)]
 #[sqlx(type_name = "person")]
 pub struct Person {
-    pub id: U256Wrapper,
+    pub id: FixedBytesWrapper,
     pub identifier: Option<String>,
     pub name: Option<String>,
     pub description: Option<String>,
@@ -23,9 +23,12 @@ pub struct Person {
 impl Model for Person {}
 
 #[async_trait]
-impl SimpleCrud<U256Wrapper> for Person {
+impl SimpleCrud<FixedBytesWrapper> for Person {
     /// Inserts a person into the database.
-    async fn upsert(&self, pool: &PgPool, schema: &str) -> Result<Self, ModelError> {
+    async fn upsert<'e, E>(&self, schema: &str, executor: E) -> Result<Self, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"
             INSERT INTO {}.person (id, identifier, name, description, image, url, email) 
@@ -50,24 +53,27 @@ impl SimpleCrud<U256Wrapper> for Person {
         );
 
         sqlx::query_as::<_, Person>(&query)
-            .bind(self.id.to_big_decimal()?)
+            .bind(self.id.clone())
             .bind(self.identifier.clone())
             .bind(self.name.clone())
             .bind(self.description.clone())
             .bind(self.image.clone())
             .bind(self.url.clone())
             .bind(self.email.clone())
-            .fetch_one(pool)
+            .fetch_one(executor)
             .await
             .map_err(|e| ModelError::InsertError(e.to_string()))
     }
 
     /// Finds a person by its id.
-    async fn find_by_id(
-        id: U256Wrapper,
-        pool: &PgPool,
+    async fn find_by_id<'e, E>(
+        id: FixedBytesWrapper,
         schema: &str,
-    ) -> Result<Option<Self>, ModelError> {
+        executor: E,
+    ) -> Result<Option<Self>, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"
             SELECT id, 
@@ -84,8 +90,8 @@ impl SimpleCrud<U256Wrapper> for Person {
         );
 
         sqlx::query_as::<_, Person>(&query)
-            .bind(id.to_big_decimal()?)
-            .fetch_optional(pool)
+            .bind(id)
+            .fetch_optional(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
     }

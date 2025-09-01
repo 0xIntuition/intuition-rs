@@ -1,6 +1,8 @@
 query GetAggregates {
   events(limit: 1, order_by: {block_number: desc}) {
     block_number
+    created_at
+    
   }
   accounts_aggregate {
     aggregate {
@@ -13,11 +15,6 @@ query GetAggregates {
     }
   }
   atoms_aggregate {
-    aggregate {
-      count
-    }
-  }
-  claims_aggregate {
     aggregate {
       count
     }

@@ -1,0 +1,14 @@
+table:
+  name: term_total_state_change_stats_daily
+  schema: public
+select_permissions:
+  - role: anonymous
+    permission:
+      columns:
+        - difference
+        - first_total_market_cap
+        - last_total_market_cap
+        - term_id
+        - bucket
+      filter: {}
+    comment: ""

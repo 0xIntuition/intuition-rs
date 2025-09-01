@@ -1,0 +1,54 @@
+FROM ubuntu:latest
+
+# Install build essentials and git
+RUN apt-get update && apt-get install -y \
+    postgresql-client \
+    jq \
+    build-essential \
+    git \
+    curl \
+    software-properties-common \
+    libc6 \
+    libstdc++6 \
+    nodejs \
+    npm \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Foundry
+RUN curl -L https://foundry.paradigm.xyz | bash && \
+    /root/.foundry/bin/foundryup
+
+# Add Foundry to PATH
+ENV PATH="/root/.foundry/bin:${PATH}"
+
+WORKDIR /app
+
+# Copy the pre-cloned repository
+COPY intuition-contracts-v2 .
+RUN npm install
+RUN forge build
+
+# Create a script to run the forge command
+RUN echo '#!/bin/sh\n\
+export DEPLOYER_LOCAL=0x3c0afbd619ed4a8a11cfbd8c5794e08dc324b6809144a90c58bc0ff24219103b\n\
+export BROADCASTING=1\n\
+export ANVIL_ADMIN_ADDRESS=0x07baA707F61c89F6eB33c8Cb948c483c9b387084\n\
+export ANVIL_MULTI_VAULT_ROLE_MIGRATOR=0x07baA707F61c89F6eB33c8Cb948c483c9b387084\n\
+export ANVIL_CHAIN_ID=1337\n\
+export TARGET_CHAIN_ID=1337\n\
+OUTPUT0=$(forge script script/base/BaseEmissionsControllerDeploy.s.sol --slow --private-key 0x3c0afbd619ed4a8a11cfbd8c5794e08dc324b6809144a90c58bc0ff24219103b --rpc-url http://geth:8545 --broadcast --optimizer-runs 400 2>&1)\n\
+echo "$OUTPUT0"\n\
+export ANVIL_BASE_EMISSIONS_CONTROLLER=$(echo "$OUTPUT0" | grep "BaseEmissionsController Proxy: " | sed -E "s/.*BaseEmissionsController Proxy: //")\n\
+OUTPUT1=$(forge script script/intuition/MultiVaultMigrationDeploy.s.sol --slow --private-key 0x3c0afbd619ed4a8a11cfbd8c5794e08dc324b6809144a90c58bc0ff24219103b --rpc-url http://geth:8545 --broadcast --optimizer-runs 400 2>&1)\n\
+echo "$OUTPUT1"\n\
+export ANVIL_MULTI_VAULT_MIGRATION_MODE=$(echo "$OUTPUT1" | grep "MultiVaultMigrationMode Proxy: " | sed -E "s/.*MultiVaultMigrationMode Proxy: //")\n\
+OUTPUT2=$(forge script script/intuition/IntuitionDeployAndSetup.s.sol --slow --private-key 0x3c0afbd619ed4a8a11cfbd8c5794e08dc324b6809144a90c58bc0ff24219103b --rpc-url http://geth:8545 --broadcast --optimizer-runs 400 2>&1)\n\
+echo "$OUTPUT2"\n\
+PGPASSWORD=$POSTGRES_PASSWORD psql -h database -U $POSTGRES_USER -d $POSTGRES_DB -p $POSTGRES_PORT -c "UPDATE histocrawler.app_config SET contract_address = '\''$ANVIL_MULTI_VAULT_MIGRATION_MODE'\'', start_block = 0 WHERE indexer_schema = '\''local'\''"' > /app/deploy.sh && chmod +x /app/deploy.sh
+
+RUN echo '#!/bin/sh\n\
+forge script script/intuition/MultiVaultMigrationDeploy.s.sol --slow --rpc-url http://geth:8545 --private-key 0x3c0afbd619ed4a8a11cfbd8c5794e08dc324b6809144a90c58bc0ff24219103b --broadcast --optimizer-runs 400 --resume --verify --verifier blockscout --verifier-url http://host.docker.internal/api/\n\
+forge script script/intuition/IntuitionDeployAndSetup.s.sol --slow --rpc-url http://geth:8545 --private-key 0x3c0afbd619ed4a8a11cfbd8c5794e08dc324b6809144a90c58bc0ff24219103b --broadcast --optimizer-runs 400 --resume --verify --verifier blockscout --verifier-url http://host.docker.internal/api/\n\' > /app/verify.sh && chmod +x /app/verify.sh
+
+# Set the entrypoint to the script
+ENTRYPOINT ["/app/deploy.sh"]

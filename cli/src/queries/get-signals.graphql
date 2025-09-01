@@ -1,26 +1,19 @@
 query GetSignals {
-  signals(limit: 250, order_by: {block_timestamp: desc}) {
+  signals(limit: 250, order_by: {created_at: desc}) {
     id
+    created_at
     delta
-    block_timestamp
     account {
       label
       type
     }
-    atom {
-      emoji
+    term {
       id
-      label
-    }
-    deposit {
-      shares_for_receiver
-    }
-    redemption {
-      receiver {
+      atom {
+        emoji
         label
       }
-    }
-    triple {
+      triple {
         subject {
           label
         }
@@ -30,6 +23,15 @@ query GetSignals {
         object {
           label
         }
+      }
+    }
+    deposit {
+      shares
+    }
+    redemption {
+      receiver {
+        label
+      }
     }
   }
 }

@@ -1,15 +1,15 @@
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
-use ratatui::{backend::CrosstermBackend, Terminal};
+use ratatui::backend::Backend;
+use ratatui::{Terminal, backend::CrosstermBackend};
 use std::{error::Error, io};
 use std::{
     io::stdout,
-    panic::{set_hook, take_hook}
+    panic::{set_hook, take_hook},
 };
-use ratatui::backend::Backend;
 mod app;
 mod queries;
 mod ui;
@@ -80,30 +80,30 @@ async fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Re
             .checked_sub(last_tick.elapsed())
             .unwrap_or_else(|| std::time::Duration::from_secs(0));
 
-        if event::poll(timeout)? {
-            if let Event::Key(key) = event::read()? {
-                match key.code {
-                    KeyCode::Char('q') => return Ok(()),
-                    KeyCode::Char('r') => app.fetch_data().await,
-                    KeyCode::Tab => app.next_tab(),
-                    KeyCode::Right => app.next_tab(),
-                    KeyCode::Left => app.previous_tab(),
-                    KeyCode::Down => {
-                        app.next_account();
-                        app.fetch_account_details().await;
-                    }
-                    KeyCode::Up => {
-                        app.previous_account();
-                        app.fetch_account_details().await;
-                    }
-                    KeyCode::Enter => {
-                        if let Some(selected) = app.selected_account() {
-                            app.select_account(selected);
-                            app.fetch_account_details().await;
-                        }
-                    }
-                    _ => {}
+        if event::poll(timeout)?
+            && let Event::Key(key) = event::read()?
+        {
+            match key.code {
+                KeyCode::Char('q') => return Ok(()),
+                KeyCode::Char('r') => app.fetch_data().await,
+                KeyCode::Tab => app.next_tab(),
+                KeyCode::Right => app.next_tab(),
+                KeyCode::Left => app.previous_tab(),
+                KeyCode::Down => {
+                    app.next_account();
+                    app.fetch_account_details().await;
                 }
+                KeyCode::Up => {
+                    app.previous_account();
+                    app.fetch_account_details().await;
+                }
+                KeyCode::Enter => {
+                    if let Some(selected) = app.selected_account() {
+                        app.select_account(selected);
+                        app.fetch_account_details().await;
+                    }
+                }
+                _ => {}
             }
         }
 

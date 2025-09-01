@@ -7,9 +7,6 @@ configuration:
   custom_name: stats
   custom_root_fields:
     select_by_pk: stat
-  query_configuration:
-    default_limit: 250
-    max_limit: 250
 select_permissions:
   - role: anonymous
     permission:
@@ -21,7 +18,10 @@ select_permissions:
         - total_signals
         - total_triples
         - contract_balance
+        - last_processed_block_number
         - total_fees
+        - last_processed_block_timestamp
+        - last_updated
       filter: {}
       limit: 98
       allow_aggregations: true

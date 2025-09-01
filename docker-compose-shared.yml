@@ -1,0 +1,379 @@
+services:
+  database:
+    container_name: database
+    image: timescale/timescaledb-ha:pg17.5-ts2.20.1
+    environment:
+      OPENAI_API_KEY: $OPENAI_API_KEY
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: storage
+      PGPORT: 5435
+    volumes:
+      - database-data:/var/lib/postgresql/data/
+      # - ./init-dbs.sh:/docker-entrypoint-initdb.d/init-dbs.sh
+    ports:
+      - 5435:5435
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d storage"]
+      interval: 2s
+      timeout: 10s
+      retries: 30
+      start_period: 30s
+
+  drizzle-studio:
+    container_name: drizzle-studio
+    build: ./drizzle/
+    ports:
+      - "4983:4983"
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@host.docker.internal:5435/storage
+    depends_on:
+      - database
+
+  pgai-installer:
+    container_name: pgai-installer
+    image: ghcr.io/0xintuition/pgai:latest
+    environment:
+      POSTGRES_URL: postgres://postgres:postgres@database:5435/storage
+    depends_on:
+      database:
+        condition: service_healthy
+
+  vectorizer-worker:
+    container_name: vectorizer-worker
+    image: timescale/pgai-vectorizer-worker:v0.10.5
+    environment:
+      PGAI_VECTORIZER_WORKER_DB_URL: postgres://postgres:postgres@database:5435/storage
+      OPENAI_API_KEY: $OPENAI_API_KEY
+    command: [ "--poll-interval", "5s", "--log-level", "DEBUG" ]
+    depends_on:
+      pgai-installer:
+        condition: service_completed_successfully
+
+  redis:
+    container_name: redis
+    image: redis:7.2-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  redis-setup:
+    container_name: redis-setup
+    image: redis:7.2-alpine
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./consumer/devops/redis-setup.sh:/redis-setup.sh
+    entrypoint: ["/bin/sh", "/redis-setup.sh"]
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    restart: "no"
+
+  # sqs:
+  #   container_name: sqs
+  #   image: localstack/localstack:latest
+  #   ports:
+  #     # - "127.0.0.1:53:53"
+  #     # - "127.0.0.1:53:53/udp"
+  #     # - "127.0.0.1:443:443"
+  #     - "127.0.0.1:4566:4566"
+  #     - "127.0.0.1:4571:4571"
+  #   volumes:
+  #     - ./consumer/devops/localstack-setup.sh:/etc/localstack/init/ready.d/script.sh
+  #   environment:
+  #   # Set an env var to use later in the code
+  #     - ALLOW_NONSTANDARD_REGIONS=1
+  #     - AWS_DEFAULT_REGION=us-east-1
+  #     - AWS_ENDPOINT=http://localstack:4566
+  #     - DEBUG=1
+  #     - DOCKER_HOST=0.0.0.0
+  #     - EXTRA_CORS_ALLOWED_ORIGINS=app://.
+  #     - HOSTNAME_EXTERNAL=localstack
+  #     - RUST_LOG=info
+  #     - SERVICES=sqs
+    
+  
+  safe-content:
+    container_name: safe-content
+    image: steelcityamir/safe-content-ai:latest
+    ports:
+      - 8000:8000
+    
+  graphql-engine:
+    container_name: graphql-engine
+    image: hasura/graphql-engine:v2.48.0
+    ports:
+      - '8080:8080'
+    restart: always
+    environment:
+      HASURA_GRAPHQL_METADATA_DATABASE_URL: postgres://postgres:postgres@database:5435/storage
+      HASURA_GRAPHQL_CACHE_DATABASE_URL: postgres://postgres:postgres@database:5435/storage
+      HASURA_GRAPHQL_ENABLE_CONSOLE: 'true'
+      HASURA_GRAPHQL_UNAUTHORIZED_ROLE: 'anonymous'
+      HASURA_GRAPHQL_DEV_MODE: 'true'
+      HASURA_GRAPHQL_ENABLED_LOG_TYPES: startup, http-log, webhook-log, websocket-log, query-log
+      HASURA_GRAPHQL_ADMIN_SECRET: 'myadminsecretkey'
+      HASURA_GRAPHQL_STRINGIFY_NUMERIC_TYPES: 'true'
+      PINATA_AUTH: Bearer $PINATA_API_JWT
+    depends_on:
+      database:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    
+  ipfs:
+    container_name: ipfs
+    image: ipfs/kubo:latest
+    restart: always
+    ports:
+      - 4001:4001
+      - 4002:4002/udp
+      - 4003:4003
+      - 5001:5001
+      - 8081:8080
+    environment:
+      IPFS_PATH: /data/ipfs
+      PINATA_API_JWT: $PINATA_API_JWT
+      QUIC_GO_DISABLE_RECEIVE_BUFFER_WARNING: "true"
+      QUIC_GO_SET_RECEIVE_BUFFER: "false"
+    volumes:
+      - ipfs_data:/data/ipfs
+    entrypoint: /bin/sh
+    command: >
+      -c "
+        # Initialize IPFS if not initialized
+        if [ ! -f /data/ipfs/config ]; then
+          ipfs init;
+        fi;
+
+        # Configure IPFS to listen on all interfaces for API and Gateway
+        ipfs config Addresses.API /ip4/0.0.0.0/tcp/5001;
+        ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/8080;
+
+        # Add Pinata as a remote pinning service with proper JSON format
+        ipfs config --json Services.RemotePinning.Pinata '{
+          \"api\": {
+            \"endpoint\": \"https://api.pinata.cloud/psa\",
+            \"key\": \"'\"$PINATA_API_JWT\"'\"
+          }
+        }';
+
+      ipfs config --json Peering.Peers '[{\"ID\": \"Qma8ddFEQWEU8ijWvdxXm3nxU7oHsRtCykAaVz8WUYhiKn\", \"Addrs\": [\"/dnsaddr/bitswap.pinata.cloud\"]}]';
+      
+        # Start the IPFS daemon
+        exec ipfs daemon --migrate=true --agent-version-suffix=docker
+      "
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+
+
+
+  local-migrations:
+    container_name: local-migrations
+    image: ghcr.io/0xintuition/local-migrations:latest
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_DB: storage
+      POSTGRES_PORT: 5435
+      INDEXER_DATABASE_URL: postgres://postgres:postgres@database:5435/storage
+    depends_on:
+      database:
+        condition: service_healthy
+      indexer-migrations:
+        condition: service_completed_successfully
+    restart: "no"
+
+  indexer-migrations:
+    container_name: indexer-migrations
+    image: ghcr.io/0xintuition/indexer-and-cache-migrations:latest
+    environment:
+      INDEXER_DATABASE_URL: postgres://postgres:postgres@database:5435/storage
+    depends_on:
+      database:
+        condition: service_healthy
+    restart: "no"
+  
+  hasura-migrations:
+    container_name: hasura-migrations
+    image: ghcr.io/0xintuition/hasura-migrations:latest
+    environment:
+      HASURA_GRAPHQL_ENDPOINT: 'http://graphql-engine:8080'
+      HASURA_GRAPHQL_ADMIN_SECRET: 'myadminsecretkey'
+    depends_on:
+      database:
+        condition: service_healthy
+      pgai-installer:
+        condition: service_completed_successfully
+      graphql-engine:
+        condition: service_healthy
+    restart: "no"
+
+  prometheus:
+    container_name: prometheus
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus/alert.rules:/etc/prometheus/alert.rules
+      - ./prometheus/recording.rules:/etc/prometheus/recording.rules
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+
+
+  geth:
+    container_name: geth
+    image: ethereum/client-go:latest
+    ports:
+      - '8545:8545'
+    healthcheck:
+      test: ["CMD", "geth", "attach", "--exec", "eth.blockNumber", "http://localhost:8545"]
+      interval: 2s
+      timeout: 2s
+      retries: 10
+    entrypoint: sh /root/init-script.sh
+    command: '--dev --dev.period=1 --cache=8192 --gcmode=full --history.state=0 --history.transactions=0 --syncmode=full --cache.gc=0 --http --http.api=eth,web3,net,debug,txpool --mine  --http.port=8545 --http.vhosts=* --http.addr=0.0.0.0 --http.corsdomain="http://localhost" --datadir=/data --password=/root/password.txt'
+    volumes:
+      - data_geth:/data
+      - ./geth/genesis.json:/config/genesis.json
+      - ./geth/init-script.sh:/root/init-script.sh
+      - ./geth/keystore.json:/data/keystore/UTC--2024-06-03T19-15-34.118131000Z--63e87dc2366dc7f1be110ded239879422e165d96
+      - ./geth/password.txt:/root/password.txt
+  
+  contract-deployer-2-0:
+    container_name: contract-deployer-2-0
+    image: ghcr.io/0xintuition/contract-deployer-2-0:latest
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_DB: storage
+      POSTGRES_PORT: 5435
+    depends_on:
+      geth:
+        condition: service_healthy 
+    volumes:
+      - ./geth/keystore.json:/data/keystore.json
+      - ./geth/password.txt:/data/password.txt
+      - contract-deployer-2-0-data:/app
+
+  contract-verifier-2-0:
+      container_name: contract-verifier-2-0
+      image: ghcr.io/0xintuition/contract-deployer-2-0:latest
+      entrypoint: /app/verify.sh
+      depends_on:
+        geth:
+          condition: service_healthy 
+        contract-deployer-2-0:
+          condition: service_completed_successfully
+      volumes:
+        - ./geth/keystore.json:/data/keystore.json
+        - ./geth/password.txt:/data/password.txt
+        - contract-deployer-2-0-data:/app
+
+  # ELK Stack
+  elasticsearch:
+    container_name: elasticsearch
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  logstash:
+    container_name: logstash
+    image: docker.elastic.co/logstash/logstash:8.12.0
+    ports:
+      - "5044:5044"
+      - "9600:9600"
+    environment:
+      LS_JAVA_OPTS: "-Xmx1g -Xms512m"
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
+    volumes:
+      - ./elk/logstash/pipeline:/usr/share/logstash/pipeline
+      - ./elk/logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9600 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  kibana:
+    container_name: kibana
+    image: docker.elastic.co/kibana/kibana:8.12.0
+    ports:
+      - "5601:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    volumes:
+      - ./elk/kibana/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5601/api/status || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  filebeat:
+    container_name: filebeat
+    image: docker.elastic.co/beats/filebeat:8.12.0
+    user: root
+    volumes:
+      - ./elk/filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      logstash:
+        condition: service_healthy
+    restart: always
+
+networks:
+  intuition-be:
+    driver: bridge
+    external: true
+    
+volumes:
+  database-data:
+  pgadmin-data:
+  ipfs_data:
+  redis_data:
+  data_geth:
+  contract-deployer-2-0-data:
+  elasticsearch_data:

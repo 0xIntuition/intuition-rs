@@ -28,7 +28,7 @@ pub struct RawLog {
 
 /// This struct is used to present the raw log data to the user
 /// when we query the database
-#[derive(Debug, Deserialize, Serialize, sqlx::FromRow)]
+#[derive(Debug, Clone, Deserialize, Serialize, sqlx::FromRow)]
 pub struct RawLogPresenter {
     pub id: i32,
     pub gs_id: String,
@@ -43,6 +43,22 @@ pub struct RawLogPresenter {
     pub topics: Vec<String>,
     pub block_timestamp: i64,
     pub created_at: DateTime<Utc>,
+}
+
+impl From<RawLogPresenter> for RawLog {
+    fn from(raw_log_presenter: RawLogPresenter) -> Self {
+        RawLog::builder()
+            .block_number(raw_log_presenter.block_number)
+            .block_hash(raw_log_presenter.block_hash)
+            .block_timestamp(raw_log_presenter.block_timestamp)
+            .transaction_hash(raw_log_presenter.transaction_hash)
+            .transaction_index(raw_log_presenter.transaction_index)
+            .log_index(raw_log_presenter.log_index)
+            .address(raw_log_presenter.address)
+            .data(raw_log_presenter.data)
+            .topics(raw_log_presenter.topics)
+            .build()
+    }
 }
 
 /// This is a helper function to deserialize the `topics` field from a

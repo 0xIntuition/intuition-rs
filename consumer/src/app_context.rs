@@ -1,18 +1,20 @@
 use std::convert::Infallible;
+use std::str::FromStr;
 
 use crate::{
+    ConsumerArgs,
     config::Env,
     error::ConsumerError,
     mode::types::{ConsumerMode, ResolverConsumerContext},
-    ConsumerArgs,
 };
 use clap::Parser;
-use prometheus::{gather, Encoder, TextEncoder};
+use prometheus::{Encoder, TextEncoder, gather};
 use tracing::info;
-use tracing_subscriber::{layer::SubscriberExt, EnvFilter};
+use tracing_subscriber::{EnvFilter, layer::SubscriberExt};
 use warp::Filter;
 
 impl ConsumerMode {
+    #[allow(dead_code)]
     // Assuming you have a field that holds the ResolverConsumerContext
     pub fn resolver_consumer_context(&self) -> Option<&ResolverConsumerContext> {
         // Return the context from the appropriate field
@@ -46,13 +48,19 @@ impl Server {
         // because the logging depends on the consumer mode.
         info!("Parsing the CLI arguments");
         let args = ConsumerArgs::parse();
-        // Set up the logging
-        Self::set_up_logging().await?;
+
         // Read the .env file from the current directory or parents
         dotenvy::dotenv().ok();
         // Parse the env vars
         info!("Parsing the environment variables");
         let env = envy::from_env::<Env>()?;
+
+        // Set up the logging with custom level if specified
+        if let Some(ref log_level) = env.log_level {
+            Self::set_up_logging_with_level(log_level).await?;
+        } else {
+            Self::set_up_logging().await?;
+        }
 
         info!("Starting the activity consumer with the following args: {args:?}");
 
@@ -69,7 +77,7 @@ impl Server {
             .with(
                 EnvFilter::from_default_env()
                     .add_directive(tracing::Level::INFO.into())
-                    .add_directive("consumer=debug".parse().unwrap()),
+                    .add_directive("consumer=info".parse().unwrap()),
             )
             .with(
                 tracing_subscriber::fmt::layer()
@@ -83,6 +91,37 @@ impl Server {
             );
 
         // Initialize the subscriber
+        tracing::subscriber::set_global_default(subscriber)
+            .expect("Failed to set tracing subscriber");
+
+        Ok(())
+    }
+
+    /// Set up the logging with custom log level
+    async fn set_up_logging_with_level(log_level: &str) -> Result<(), ConsumerError> {
+        let level = tracing::Level::from_str(log_level)
+            .map_err(|_| ConsumerError::LogLevelParse(log_level.to_string()))?;
+
+        let subscriber = tracing_subscriber::registry()
+            .with(
+                EnvFilter::from_default_env()
+                    .add_directive(level.into())
+                    .add_directive(
+                        format!("consumer={}", log_level.to_lowercase())
+                            .parse()
+                            .unwrap(),
+                    ),
+            )
+            .with(
+                tracing_subscriber::fmt::layer()
+                    .json()
+                    .with_file(true)
+                    .with_line_number(true)
+                    .with_thread_ids(true)
+                    .with_target(true)
+                    .with_writer(std::io::stdout),
+            );
+
         tracing::subscriber::set_global_default(subscriber)
             .expect("Failed to set tracing subscriber");
 
