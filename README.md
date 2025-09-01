@@ -1,5 +1,7 @@
 # Intuition Rust
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/0xIntuition/intuition-rs)
+
 A comprehensive Rust workspace for blockchain data indexing and processing, featuring a modular architecture with multiple specialized services.
 
 ## 🏗️ Architecture
