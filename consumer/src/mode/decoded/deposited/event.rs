@@ -274,11 +274,11 @@ pub trait DepositedEvent:
         if position.is_none() && self.receiver_total_shares_in_vault()? > U256::from(0) {
             self.create_new_position(position_id.to_string(), decoded_consumer_context, event)
                 .await?;
-        } else if let Some(mut position) = position {
-            if self.receiver_total_shares_in_vault()? > U256::from(0) {
-                self.update_position(decoded_consumer_context, &mut position, event)
-                    .await?;
-            }
+        } else if let Some(mut position) = position
+            && self.receiver_total_shares_in_vault()? > U256::from(0)
+        {
+            self.update_position(decoded_consumer_context, &mut position, event)
+                .await?;
         }
 
         Ok(())

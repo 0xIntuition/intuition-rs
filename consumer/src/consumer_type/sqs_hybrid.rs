@@ -2,16 +2,14 @@ use crate::{
     app_context::ServerInitialize,
     consumer_type::events_processing::new_records::MAX_RETRIES,
     error::ConsumerError,
-    mode::{
-        raw::models::cursor::{HistoFluxCursor, NewHistoFluxCursor},
-        types::ConsumerMode,
-    },
+    mode::{raw::models::cursor::HistoFluxCursor, types::ConsumerMode},
     traits::BasicConsumer,
 };
 use async_trait::async_trait;
 use aws_sdk_sqs::{
     Client as AWSClient, operation::receive_message::ReceiveMessageOutput, types::Message,
 };
+use chrono::Utc;
 use models::{failed_log::FailedLog, histocrawler::AppConfig, raw_logs::RawLog};
 use serde_json;
 use shared_utils::postgres::connect_to_db;
@@ -35,6 +33,7 @@ pub struct SqsHybrid {
     pub indexer_database_url: String,
     pub backend_schema: String,
     pub threads: usize,
+    pub output_queue: String,
 }
 
 impl SqsHybrid {
@@ -58,7 +57,6 @@ impl SqsHybrid {
                 .env
                 .environment_name
                 .ok_or(ConsumerError::EnvironmentNameNotFound)?,
-            &output_queue,
         )
         .await?;
         let app_config = AppConfig::find_by_indexer_schema(
@@ -82,6 +80,7 @@ impl SqsHybrid {
             indexer_database_url,
             backend_schema,
             threads,
+            output_queue,
         })
     }
 
@@ -90,18 +89,16 @@ impl SqsHybrid {
     async fn get_or_create_cursor(
         histoflux_pg_pool: &PgPool,
         environment_name: &str,
-        raw_consumer_queue_url: &str,
     ) -> Result<HistoFluxCursor, ConsumerError> {
         let cursor =
             HistoFluxCursor::find_by_environment(histoflux_pg_pool, environment_name).await?;
         if let Some(cursor) = cursor {
             Ok(cursor)
         } else {
-            NewHistoFluxCursor::builder()
+            HistoFluxCursor::builder()
                 .last_processed_id(0)
                 .environment(environment_name)
-                .paused(false)
-                .queue_url(raw_consumer_queue_url)
+                .updated_at(Utc::now())
                 .build()
                 .insert(histoflux_pg_pool)
                 .await
@@ -131,7 +128,7 @@ impl SqsHybrid {
 
     /// Get the output queue
     pub fn get_output_queue(&self) -> String {
-        self.histoflux_cursor.queue_url.clone()
+        self.output_queue.clone()
     }
 
     /// This function processes all existing records in the database and sends

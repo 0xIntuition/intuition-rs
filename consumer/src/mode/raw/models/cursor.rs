@@ -10,36 +10,7 @@ use crate::error::ConsumerError;
 pub struct HistoFluxCursor {
     pub last_processed_id: i64,
     pub environment: String,
-    pub paused: bool,
-    pub queue_url: String,
     pub updated_at: DateTime<Utc>,
-}
-#[derive(Builder)]
-pub struct NewHistoFluxCursor {
-    pub last_processed_id: i64,
-    pub environment: String,
-    pub paused: bool,
-    pub queue_url: String,
-}
-
-impl NewHistoFluxCursor {
-    /// insert the cursor into the DB.
-    pub async fn insert(&self, db: &PgPool) -> Result<HistoFluxCursor, ConsumerError> {
-        let query = r#"
-        INSERT INTO histocrawler.histoflux_cursor (last_processed_id, environment, paused, queue_url) 
-        VALUES ($1, $2, $3, $4) 
-        RETURNING last_processed_id, environment, paused, queue_url, updated_at::timestamptz as updated_at
-        "#;
-
-        sqlx::query_as::<_, HistoFluxCursor>(query)
-            .bind(self.last_processed_id)
-            .bind(self.environment.clone())
-            .bind(self.paused)
-            .bind(&self.queue_url)
-            .fetch_one(db)
-            .await
-            .map_err(ConsumerError::SqlError)
-    }
 }
 
 impl HistoFluxCursor {
@@ -47,16 +18,14 @@ impl HistoFluxCursor {
     /// insert the cursor into the DB.
     pub async fn insert(&self, db: &PgPool) -> Result<Self, ConsumerError> {
         let query = r#"
-        INSERT INTO histocrawler.histoflux_cursor (last_processed_id, environment, paused, queue_url) 
-        VALUES ($1, $2, $3, $4) 
-        RETURNING last_processed_id, environment, paused, queue_url, updated_at::timestamptz as updated_at
+        INSERT INTO histocrawler.histoflux_cursor (last_processed_id, environment) 
+        VALUES ($1, $2) 
+        RETURNING last_processed_id, environment, updated_at::timestamptz as updated_at
         "#;
 
         sqlx::query_as::<_, HistoFluxCursor>(query)
             .bind(self.last_processed_id)
             .bind(self.environment.clone())
-            .bind(self.paused)
-            .bind(&self.queue_url)
             .fetch_one(db)
             .await
             .map_err(ConsumerError::SqlError)
@@ -65,7 +34,7 @@ impl HistoFluxCursor {
     /// Find the cursor in the DB.
     pub async fn find(db: &PgPool, environment: &str) -> Result<Option<Self>, ConsumerError> {
         let query = r#"
-        SELECT last_processed_id, environment, paused, queue_url, updated_at::timestamptz as updated_at
+        SELECT last_processed_id, environment, updated_at::timestamptz as updated_at
         FROM histocrawler.histoflux_cursor 
         WHERE environment = $1
         "#;
@@ -83,7 +52,7 @@ impl HistoFluxCursor {
         environment: &str,
     ) -> Result<Option<Self>, ConsumerError> {
         let query = r#"
-        SELECT last_processed_id, environment, paused, queue_url, updated_at::timestamptz as updated_at
+        SELECT last_processed_id, environment, updated_at::timestamptz as updated_at
         FROM histocrawler.histoflux_cursor 
         WHERE environment = $1
         "#;
@@ -109,10 +78,10 @@ impl HistoFluxCursor {
                   AND (last_processed_id IS NULL OR last_processed_id < $1)
                 RETURNING *
             )
-            SELECT last_processed_id, environment, paused, queue_url, updated_at::timestamptz AS updated_at
+            SELECT last_processed_id, environment, updated_at::timestamptz AS updated_at
             FROM updated
             UNION ALL
-            SELECT last_processed_id, environment, paused, queue_url, updated_at::timestamptz AS updated_at
+            SELECT last_processed_id, environment, updated_at::timestamptz AS updated_at
             FROM histocrawler.histoflux_cursor
             WHERE environment = $2 AND NOT EXISTS (SELECT 1 FROM updated)
         "#;
@@ -123,56 +92,5 @@ impl HistoFluxCursor {
             .fetch_one(executor)
             .await
             .map_err(ConsumerError::SqlError)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use chrono::Duration;
-    use models::test_helpers::setup_test_db;
-
-    #[sqlx::test]
-    async fn test_cursor_upsert_and_find() {
-        let pool = setup_test_db().await;
-
-        let cursor = HistoFluxCursor {
-            queue_url: "test_url".to_string(),
-            environment: "DevBase".to_string(),
-            paused: false,
-            last_processed_id: 100,
-            updated_at: Utc::now(),
-        };
-
-        // First upsert
-        let saved = cursor.insert(&pool).await.unwrap();
-
-        // Find and verify first insert
-        let found = HistoFluxCursor::find(&pool, &saved.environment)
-            .await
-            .unwrap()
-            .unwrap();
-        assert_eq!(found.last_processed_id, 100);
-        assert_eq!(found.updated_at, saved.updated_at);
-
-        // Wait a bit to ensure timestamp changes
-        tokio::time::sleep(Duration::milliseconds(100).to_std().unwrap()).await;
-
-        // Second update with new block number
-        let saved2 =
-            HistoFluxCursor::update_last_processed_id(&pool, &found.environment.clone(), 200)
-                .await
-                .unwrap();
-
-        // Find and verify update
-        let found2 = HistoFluxCursor::find(&pool, &saved2.environment)
-            .await
-            .unwrap()
-            .unwrap();
-        assert_eq!(found2.last_processed_id, 200);
-        assert_eq!(found2.updated_at, saved2.updated_at);
-
-        // Verify updated_at changed
-        assert!(found2.updated_at > found.updated_at);
     }
 }
