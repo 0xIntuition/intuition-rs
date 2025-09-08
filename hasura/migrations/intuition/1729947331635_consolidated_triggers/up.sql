@@ -178,11 +178,11 @@ BEGIN
     END IF;
 
     -- Update the triple_term table with the sum of total_assets, market_cap, and position_count
-    -- for the specific term_id and counter_term_id combination
+    -- for the specific term_id and counter_term_id combination from vault table
     UPDATE triple_term
     SET 
-        total_assets = COALESCE((SELECT SUM(total_assets) FROM triple_vault WHERE term_id = term_id_val AND counter_term_id = counter_term_id_val), 0),
-        total_market_cap = COALESCE((SELECT SUM(market_cap) FROM triple_vault WHERE term_id = term_id_val AND counter_term_id = counter_term_id_val), 0),
+        total_assets = COALESCE((SELECT SUM(total_assets) FROM vault WHERE term_id IN (term_id_val, counter_term_id_val)), 0),
+        total_market_cap = COALESCE((SELECT SUM(market_cap) FROM vault WHERE term_id IN (term_id_val, counter_term_id_val)), 0),
         total_position_count = COALESCE((
             SELECT SUM(v.position_count) 
             FROM vault v 
@@ -220,6 +220,12 @@ BEGIN
     -- AND the curve_id matches
     UPDATE triple_vault
     SET 
+        total_shares = (
+            SELECT COALESCE(SUM(v.total_shares), 0)
+            FROM vault v
+            WHERE v.term_id IN (triple_vault.term_id, triple_vault.counter_term_id)
+            AND v.curve_id = triple_vault.curve_id
+        ),
         total_assets = (
             SELECT COALESCE(SUM(v.total_assets), 0)
             FROM vault v
@@ -249,6 +255,8 @@ BEGIN
     -- Also update triple_term totals when vault changes
     UPDATE triple_term
     SET 
+        total_assets = COALESCE((SELECT SUM(total_assets) FROM vault WHERE term_id IN (triple_term.term_id, triple_term.counter_term_id)), 0),
+        total_market_cap = COALESCE((SELECT SUM(market_cap) FROM vault WHERE term_id IN (triple_term.term_id, triple_term.counter_term_id)), 0),
         total_position_count = COALESCE((
             SELECT SUM(v.position_count) 
             FROM vault v 

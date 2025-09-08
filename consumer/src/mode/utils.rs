@@ -94,6 +94,11 @@ impl VaultOrigin {
                 .insert(&context.pg_pool, &context.backend_schema)
                 .await
                 .map_err(ConsumerError::ModelError)?;
+        } else if self == &VaultOrigin::SharePriceChanged {
+            new_vault
+                .insert_from_share_price(&context.backend_schema, &context.pg_pool)
+                .await
+                .map_err(ConsumerError::ModelError)?;
         } else {
             new_vault
                 .upsert(&context.backend_schema, &context.pg_pool)

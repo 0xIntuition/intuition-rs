@@ -3,7 +3,7 @@ use std::str::FromStr;
 use super::event::DepositedEvent;
 use crate::{
     error::ConsumerError,
-    mode::{types::DecodedConsumerContext, utils::VaultOrigin},
+    mode::types::DecodedConsumerContext,
     supported_contracts::v2_contract::Multivault::Deposited,
     traits::{
         SharePriceEvent, TripleAggregate, TripleTermManager, TripleVaultManager, VaultManager,
@@ -24,7 +24,7 @@ impl TripleTermManager for &Deposited {
         decoded_consumer_context: &DecodedConsumerContext,
         counter_vault_id: FixedBytesWrapper,
     ) -> Result<TripleAggregate, ConsumerError> {
-        let shares = SharePriceChange::fetch_latest_triple_shares_per_terms(
+        let vaults = Vault::fetch_triple_term_aggregates(
             self.termId.into(),
             counter_vault_id.clone(),
             &decoded_consumer_context.pg_pool,
@@ -32,19 +32,10 @@ impl TripleTermManager for &Deposited {
         )
         .await?;
 
-        let total_shares = shares.iter().map(|s| s.total_shares.clone()).sum();
-        let total_assets = shares.iter().map(|s| s.total_assets.clone()).sum();
-        let total_market_cap = shares
-            .iter()
-            .map(|s| VaultOrigin::compute_market_cap(s.total_shares.clone(), s.share_price.clone()))
-            .sum();
-        let total_position_count = Vault::sum_position_count(
-            self.termId.into(),
-            counter_vault_id,
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
-        )
-        .await?;
+        let total_shares = vaults.iter().map(|v| v.total_shares.clone()).sum();
+        let total_assets = vaults.iter().map(|v| v.total_assets.clone()).sum();
+        let total_market_cap = vaults.iter().map(|v| v.market_cap.clone()).sum();
+        let total_position_count = vaults.iter().map(|v| v.position_count as i64).sum();
 
         Ok(TripleAggregate::new(
             total_shares,
@@ -62,7 +53,7 @@ impl TripleVaultManager for &Deposited {
         counter_vault_id: FixedBytesWrapper,
         curve_id: U256Wrapper,
     ) -> Result<TripleAggregate, ConsumerError> {
-        let shares = SharePriceChange::fetch_latest_triple_shares_per_terms_and_curve(
+        let vaults = Vault::fetch_triple_vault_aggregates(
             self.termId.into(),
             counter_vault_id.clone(),
             curve_id.clone(),
@@ -71,20 +62,10 @@ impl TripleVaultManager for &Deposited {
         )
         .await?;
 
-        let total_shares = shares.iter().map(|s| s.total_shares.clone()).sum();
-        let total_assets = shares.iter().map(|s| s.total_assets.clone()).sum();
-        let total_market_cap = shares
-            .iter()
-            .map(|s| VaultOrigin::compute_market_cap(s.total_shares.clone(), s.share_price.clone()))
-            .sum();
-        let positions = Position::count_by_triple(
-            self.termId.into(),
-            counter_vault_id,
-            curve_id,
-            &decoded_consumer_context.pg_pool,
-            &decoded_consumer_context.backend_schema,
-        )
-        .await?;
+        let total_shares = vaults.iter().map(|v| v.total_shares.clone()).sum();
+        let total_assets = vaults.iter().map(|v| v.total_assets.clone()).sum();
+        let total_market_cap = vaults.iter().map(|v| v.market_cap.clone()).sum();
+        let positions = vaults.iter().map(|v| v.position_count as i64).sum();
 
         Ok(TripleAggregate::new(
             total_shares,

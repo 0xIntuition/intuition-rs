@@ -276,6 +276,52 @@ impl Vault {
             .map_err(|e| ModelError::QueryError(e.to_string()))
     }
 
+    /// This function fetches triple vault aggregates from the vault table for a specific curve
+    pub async fn fetch_triple_vault_aggregates(
+        term_id: FixedBytesWrapper,
+        counter_term_id: FixedBytesWrapper,
+        curve_id: U256Wrapper,
+        pool: &PgPool,
+        schema: &str,
+    ) -> Result<Vec<Vault>, ModelError> {
+        let query = format!(
+            r#"
+            SELECT * FROM {}.vault 
+            WHERE (term_id = $1 OR term_id = $2) AND curve_id = $3
+            "#,
+            schema
+        );
+        sqlx::query_as::<_, Vault>(&query)
+            .bind(term_id)
+            .bind(counter_term_id)
+            .bind(curve_id.to_big_decimal()?)
+            .fetch_all(pool)
+            .await
+            .map_err(|e| ModelError::QueryError(e.to_string()))
+    }
+
+    /// This function fetches triple term aggregates from the vault table for all curves
+    pub async fn fetch_triple_term_aggregates(
+        term_id: FixedBytesWrapper,
+        counter_term_id: FixedBytesWrapper,
+        pool: &PgPool,
+        schema: &str,
+    ) -> Result<Vec<Vault>, ModelError> {
+        let query = format!(
+            r#"
+            SELECT * FROM {}.vault 
+            WHERE term_id = $1 OR term_id = $2
+            "#,
+            schema
+        );
+        sqlx::query_as::<_, Vault>(&query)
+            .bind(term_id)
+            .bind(counter_term_id)
+            .fetch_all(pool)
+            .await
+            .map_err(|e| ModelError::QueryError(e.to_string()))
+    }
+
     /// This function inserts a vault into the database
     pub async fn insert<'e, E>(&self, executor: E, schema: &str) -> Result<Self, ModelError>
     where
@@ -302,6 +348,75 @@ impl Vault {
             // events are using the insert, but we need to make sure that deposits are going to be
             // able to override the total_assets properly, thus we set the log_index to 0.
             .bind(0)
+            .bind(self.transaction_hash.clone())
+            .bind(self.created_at)
+            .fetch_one(executor)
+            .await
+            .map_err(|e| ModelError::InsertError(e.to_string()))
+    }
+
+    /// This method upserts a vault from share price events with special handling for zero total_shares.
+    /// It updates even when block_number/log_index is lower, but only if the current vault has zero total_shares.
+    pub async fn insert_from_share_price<'e, E>(
+        &self,
+        schema: &str,
+        executor: E,
+    ) -> Result<Self, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
+        let query = format!(
+            r#"
+            WITH upsert AS (
+                INSERT INTO {0}.vault (
+                    term_id, curve_id, total_shares, current_share_price, position_count,
+                    total_assets, market_cap, block_number, log_index, transaction_hash,
+                    created_at
+                )
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                ON CONFLICT (term_id, curve_id) DO UPDATE SET
+                    total_shares = EXCLUDED.total_shares,
+                    current_share_price = EXCLUDED.current_share_price,
+                    position_count = EXCLUDED.position_count,
+                    total_assets = EXCLUDED.total_assets,
+                    market_cap = EXCLUDED.market_cap,
+                    block_number = EXCLUDED.block_number,
+                    log_index = EXCLUDED.log_index,
+                    transaction_hash = EXCLUDED.transaction_hash,
+                    created_at = EXCLUDED.created_at
+                WHERE
+                EXCLUDED.block_number > vault.block_number
+                OR (
+                    EXCLUDED.block_number = vault.block_number
+                    AND EXCLUDED.log_index > vault.log_index
+                )
+                OR vault.total_shares = 0
+                RETURNING term_id, curve_id, total_shares, current_share_price, position_count,
+                          total_assets, market_cap, block_number, log_index, transaction_hash,
+                          created_at
+            )
+            SELECT * FROM upsert
+            UNION ALL
+            SELECT term_id, curve_id, total_shares, current_share_price, position_count,
+                   total_assets, market_cap, block_number, log_index, transaction_hash,
+                   created_at
+            FROM {0}.vault
+            WHERE term_id = $1 AND curve_id = $2
+            AND NOT EXISTS (SELECT 1 FROM upsert)
+            "#,
+            schema,
+        );
+
+        sqlx::query_as::<_, Vault>(&query)
+            .bind(self.term_id.clone())
+            .bind(self.curve_id.to_big_decimal()?)
+            .bind(self.total_shares.to_big_decimal()?)
+            .bind(self.current_share_price.to_big_decimal()?)
+            .bind(self.position_count)
+            .bind(self.total_assets.to_big_decimal()?)
+            .bind(self.market_cap.to_big_decimal()?)
+            .bind(self.block_number)
+            .bind(self.log_index)
             .bind(self.transaction_hash.clone())
             .bind(self.created_at)
             .fetch_one(executor)
