@@ -5,8 +5,8 @@ The consumer API can be used to re-fetch atoms, either to conform to a new schem
 ## Environment Variables
 
 - `CONSUMER_API_PORT`: The port for the consumer API
-- `RESOLVER_STREAM`: The URL of the resolver queue
-- `LOCALSTACK_URL`: Option string representing the localstack URL, used for local development
+- `RESOLVER_STREAM`: The name of the resolver Redis stream
+- `REDIS_URL`: The URL of the Redis server
 
 ## Endpoints
 

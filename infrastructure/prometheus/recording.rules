@@ -1,0 +1,5 @@
+groups:
+  - name: intuition-recording
+    rules:
+      - record: http_requests_per_second
+        expr: rate(http_requests_total[5m])

@@ -2,17 +2,15 @@ filebeat.inputs:
 - type: container
   paths:
     - '/var/lib/docker/containers/*/*.log'
-
-processors:
+  processors:
   - add_docker_metadata:
       host: "unix:///var/run/docker.sock"
-  - decode_json_fields:
-      fields: ["message"]
-      target: "json"
-      overwrite_keys: true
-      add_error_key: true
+  - add_fields:
+      fields:
+        service: ${data.docker.container.name}
+        level: INFO
 
 output.logstash:
   hosts: ["logstash:5044"]
 
-logging.json: true
+logging.level: info

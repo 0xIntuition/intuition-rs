@@ -72,7 +72,7 @@ services:
       redis:
         condition: service_healthy
     volumes:
-      - ./consumer/devops/redis-setup.sh:/redis-setup.sh
+      - ../apps/consumer/devops/redis-setup.sh:/redis-setup.sh
     entrypoint: ["/bin/sh", "/redis-setup.sh"]
     environment:
       - REDIS_HOST=redis
@@ -230,9 +230,9 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-      - ./prometheus/alert.rules:/etc/prometheus/alert.rules
-      - ./prometheus/recording.rules:/etc/prometheus/recording.rules
+      - ../infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ../infrastructure/prometheus/alert.rules:/etc/prometheus/alert.rules
+      - ../infrastructure/prometheus/recording.rules:/etc/prometheus/recording.rules
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
 
@@ -251,10 +251,10 @@ services:
     command: '--dev --dev.period=1 --cache=8192 --gcmode=full --history.state=0 --history.transactions=0 --syncmode=full --cache.gc=0 --http --http.api=eth,web3,net,debug,txpool --mine  --http.port=8545 --http.vhosts=* --http.addr=0.0.0.0 --http.corsdomain="http://localhost" --datadir=/data --password=/root/password.txt'
     volumes:
       - data_geth:/data
-      - ./geth/genesis.json:/config/genesis.json
-      - ./geth/init-script.sh:/root/init-script.sh
-      - ./geth/keystore.json:/data/keystore/UTC--2024-06-03T19-15-34.118131000Z--63e87dc2366dc7f1be110ded239879422e165d96
-      - ./geth/password.txt:/root/password.txt
+      - ../infrastructure/geth/genesis.json:/config/genesis.json
+      - ../infrastructure/geth/init-script.sh:/root/init-script.sh
+      - ../infrastructure/geth/keystore.json:/data/keystore/UTC--2024-06-03T19-15-34.118131000Z--63e87dc2366dc7f1be110ded239879422e165d96
+      - ../infrastructure/geth/password.txt:/root/password.txt
   
   contract-deployer-2-0:
     container_name: contract-deployer-2-0
@@ -268,8 +268,8 @@ services:
       geth:
         condition: service_healthy 
     volumes:
-      - ./geth/keystore.json:/data/keystore.json
-      - ./geth/password.txt:/data/password.txt
+      - ../infrastructure/geth/keystore.json:/data/keystore.json
+      - ../infrastructure/geth/password.txt:/data/password.txt
       - contract-deployer-2-0-data:/app
 
   contract-verifier-2-0:
@@ -320,8 +320,8 @@ services:
         reservations:
           memory: 1G
     volumes:
-      - ./elk/logstash/pipeline:/usr/share/logstash/pipeline
-      - ./elk/logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml
+      - ../infrastructure/elk/logstash/pipeline:/usr/share/logstash/pipeline
+      - ../infrastructure/elk/logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml
     depends_on:
       elasticsearch:
         condition: service_healthy
@@ -340,7 +340,7 @@ services:
     environment:
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
     volumes:
-      - ./elk/kibana/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
+      - ../infrastructure/elk/kibana/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
     depends_on:
       elasticsearch:
         condition: service_healthy
@@ -356,7 +356,7 @@ services:
     image: docker.elastic.co/beats/filebeat:8.12.0
     user: root
     volumes:
-      - ./elk/filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - ../infrastructure/elk/filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
     depends_on:

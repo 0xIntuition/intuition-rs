@@ -5,9 +5,6 @@ services:
     image: ghcr.io/0xintuition/apps:latest
     command: ./consumer --mode resolver
     environment:
-      AWS_ACCESS_KEY_ID: 'example'
-      AWS_REGION: 'us-west-2'
-      AWS_SECRET_ACCESS_KEY: 'example'
       CONSUMER_TYPE: 'redis_streams'
       DATABASE_URL: 'postgres://postgres:postgres@database:5435/storage'
       ENS_CONTRACT_ADDRESS: '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e'
@@ -27,7 +24,6 @@ services:
       REDIS_URL: 'redis://redis:6379'
     restart: always
     volumes:
-      - ~/.aws/:/root/.aws:ro
       - ./logs:/app/logs
     deploy:
       replicas: 1
@@ -37,9 +33,6 @@ services:
     image: ghcr.io/0xintuition/apps:latest
     command: ./consumer --mode ipfs-upload
     environment:
-      AWS_ACCESS_KEY_ID: 'example'
-      AWS_REGION: 'us-west-2'
-      AWS_SECRET_ACCESS_KEY: 'example'
       CONSUMER_TYPE: 'redis_streams'
       DATABASE_URL: 'postgres://postgres:postgres@database:5435/storage'
       IMAGE_GUARD_URL: 'http://api:3000'
@@ -55,7 +48,6 @@ services:
       REDIS_URL: 'redis://redis:6379'
     restart: always
     volumes:
-      - ~/.aws/:/root/.aws:ro
       - ./logs:/app/logs
     deploy:
       replicas: 2
@@ -65,9 +57,6 @@ services:
     image: ghcr.io/0xintuition/apps:latest
     command: ./consumer --mode decoded
     environment:
-      AWS_ACCESS_KEY_ID: 'example'
-      AWS_REGION: 'us-west-2'
-      AWS_SECRET_ACCESS_KEY: 'example'
       CONSUMER_TYPE: 'redis_hybrid'
       INDEXER_DATABASE_URL: "postgres://postgres:postgres@database:5435/storage"
       INDEXER_SCHEMA: $INDEXER_SCHEMA
@@ -88,7 +77,6 @@ services:
       LOG_LEVEL: 'debug'
     restart: always
     volumes:
-      - ~/.aws/:/root/.aws:ro
       - ./logs:/app/logs
     ports:
       - 3002:3002
@@ -149,7 +137,7 @@ services:
   integration-tests:
     container_name: integration-tests
     build:
-      context: ./integration-tests
+      context: ../integration-tests
       dockerfile: Dockerfile
     environment:
       - ETHEREUM_RPC_URL=http://prod-rpc-proxy:3008/1/proxy

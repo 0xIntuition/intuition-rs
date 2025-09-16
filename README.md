@@ -9,20 +9,20 @@ A comprehensive Rust workspace for blockchain data indexing and processing, feat
 This workspace contains the following core services:
 
 ### Core Services
-- **`cli`** - Terminal UI client for interacting with the Intuition system
-- **`consumer`** - Event processing pipeline (RAW, DECODED, and RESOLVER consumers)
-- **`consumer-api`** - REST API for re-fetching and managing Atoms
-- **`models`** - Domain models and data structures for the Intuition system
+- **`apps/cli`** - Terminal UI client for interacting with the Intuition system
+- **`apps/consumer`** - Event processing pipeline using Redis Streams (RAW, DECODED, and RESOLVER consumers)
+- **`apps/consumer-api`** - REST API for re-fetching and managing Atoms
+- **`apps/models`** - Domain models and data structures for the Intuition system
 
 ### Infrastructure Services
-- **`hasura`** - GraphQL API with database migrations and configuration
-- **`image-guard`** - Image processing and validation service
-- **`rpc-proxy`** - RPC call proxy with caching for `eth_call` methods
+- **`infrastructure/hasura`** - GraphQL API with database migrations and configuration
+- **`apps/image-guard`** - Image processing and validation service
+- **`apps/rpc-proxy`** - RPC call proxy with caching for `eth_call` methods
 
 ### Supporting Services
-- **`histocrawler`** - Historical data crawler
-- **`shared-utils`** - Common utilities and shared code
-- **`migration-scripts`** - Database migration utilities
+- **`apps/histocrawler`** - Historical data crawler
+- **`apps/shared-utils`** - Common utilities and shared code
+- **`infrastructure/migration-scripts`** - Database migration utilities
 
 ## 🚀 Quick Start
 
@@ -72,10 +72,10 @@ This workspace contains the following core services:
 
 ```bash
 # Start with Base Sepolia network
-./start.sh histo_base_sepolia_1_5
+./scripts/start.sh histo_base_sepolia_1_5
 
 # Start with local Ethereum node
-./start.sh histo_local_1_5
+./scripts/start.sh histo_local_1_5
 ```
 
 ### Option 2: Building from Source
@@ -85,14 +85,14 @@ This workspace contains the following core services:
 cargo make build-docker-images
 
 # Start the system
-./start.sh histo_base_sepolia_1_5
+./scripts/start.sh histo_base_sepolia_1_5
 ```
 
 ### Option 3: Running with Integration Tests
 
 ```bash
 # Start with tests enabled
-./start.sh histo_local_1_5 test
+./scripts/start.sh histo_local_1_5 test
 ```
 
 ### Option 4: Running with ELK Stack Logging
@@ -101,10 +101,10 @@ The system includes an ELK (Elasticsearch, Logstash, Kibana) stack for centraliz
 
 ```bash
 # Start the system (includes ELK stack)
-./start.sh histo_local_1_5
+./scripts/start.sh histo_local_1_5
 
 # Set up Kibana with pre-configured searches
-./setup-kibana.sh
+./scripts/setup-kibana.sh
 ```
 
 **ELK Stack Features:**
@@ -167,7 +167,7 @@ pnpm test src/ai-agents.test.ts
 ### CLI Tool
 ```bash
 # Run the CLI to verify latest data
-./cli.sh
+./scripts/cli.sh
 ```
 
 ### Code Quality
@@ -215,13 +215,13 @@ npm run create-predicates
 
 ```bash
 # Start all services
-docker-compose -f docker-compose-apps.yml up -d
+docker-compose -f docker/docker-compose-apps.yml up -d
 
 # Stop all services
-./stop.sh
+./scripts/stop.sh
 
 # View logs
-docker-compose -f docker-compose-apps.yml logs -f
+docker-compose -f docker/docker-compose-apps.yml logs -f
 ```
 
 ### Logging and Monitoring
@@ -239,10 +239,10 @@ All consumer services output structured JSON logs with the following fields:
 **ELK Stack Setup:**
 ```bash
 # Start ELK services
-docker-compose -f docker-compose-shared.yml up elasticsearch logstash kibana filebeat -d
+docker-compose -f docker/docker-compose-shared.yml up elasticsearch logstash kibana filebeat -d
 
 # Set up Kibana searches
-./setup-kibana.sh
+./scripts/setup-kibana.sh
 
 # Access Kibana
 open http://localhost:5601
@@ -266,22 +266,33 @@ level:ERROR
 
 ```
 intuition-rs/
-├── cli/                    # Terminal UI client
-├── consumer/              # Event processing pipeline
-├── consumer-api/          # REST API service
-├── hasura/               # GraphQL API & migrations
-├── image-guard/          # Image processing service
-├── models/               # Domain models & data structures
-├── rpc-proxy/            # RPC proxy with caching
-├── integration-tests/    # End-to-end tests
-├── shared-utils/         # Common utilities
-├── elk/                  # ELK stack configuration
-│   ├── kibana/          # Kibana config and saved objects
-│   ├── logstash/        # Logstash pipeline config
-│   └── filebeat/        # Filebeat config
-├── docker-compose-*.yml  # Service orchestration
-├── setup-kibana.sh      # Kibana setup script
-└── start.sh             # System startup script
+├── apps/                 # Custom Rust applications
+│   ├── cli/             # Terminal UI client
+│   ├── consumer/        # Event processing pipeline (Redis Streams)
+│   ├── consumer-api/    # REST API service
+│   ├── histocrawler/    # Historical data crawler
+│   ├── image-guard/     # Image processing service
+│   ├── models/          # Domain models & data structures
+│   ├── rpc-proxy/       # RPC proxy with caching
+│   └── shared-utils/    # Common utilities
+├── infrastructure/      # Infrastructure components
+│   ├── hasura/         # GraphQL API & migrations
+│   ├── blockscout/     # Blockchain explorer
+│   ├── drizzle/        # Database schema management
+│   ├── geth/           # Local Ethereum node config
+│   ├── indexer-and-cache-migrations/  # Database migrations
+│   └── migration-scripts/  # Migration utilities
+├── docker/             # Docker configuration
+│   ├── docker-compose-apps.yml   # Application services
+│   ├── docker-compose-shared.yml # Shared infrastructure
+│   └── Dockerfile      # Multi-stage build
+├── scripts/            # Shell scripts
+│   ├── start.sh        # System startup
+│   ├── stop.sh         # System shutdown
+│   ├── cli.sh          # CLI runner
+│   └── init-dbs.sh     # Database initialization
+├── integration-tests/  # End-to-end tests
+└── README.md          # This file
 ```
 
 ## 🔄 Event Processing Pipeline
@@ -321,8 +332,8 @@ The system includes comprehensive logging and monitoring capabilities:
 - **Alerting**: Set up alerts for critical errors or performance issues
 
 **Getting Started:**
-1. Start the system: `./start.sh histo_local_1_5`
-2. Set up Kibana: `./setup-kibana.sh`
+1. Start the system: `./scripts/start.sh histo_local_1_5`
+2. Set up Kibana: `./scripts/setup-kibana.sh`
 3. Access Kibana: http://localhost:5601
 4. Use pre-configured searches or create custom dashboards
 
