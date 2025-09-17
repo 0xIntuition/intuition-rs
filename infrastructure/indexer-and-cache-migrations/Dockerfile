@@ -4,7 +4,7 @@ FROM rust:1.85-slim
 WORKDIR /app
 
 # Copy migrations from workspace
-COPY indexer-and-cache-migrations ./migrations
+COPY infrastructure/indexer-and-cache-migrations ./migrations
 
 # Install build and runtime dependencies
 RUN apt-get update && \
