@@ -1,5 +1,36 @@
 #!/bin/bash
-source .env
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Get the project root (parent directory of scripts)
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+# Source .env from project root if it exists
+if [ -f "$PROJECT_ROOT/.env" ]; then
+    source "$PROJECT_ROOT/.env"
+    # Export all variables so they're available to docker-compose
+    export OPENAI_API_KEY
+    export PINATA_API_JWT
+    export PINATA_GATEWAY_TOKEN
+    export BASE_MAINNET_RPC_URL
+    export BASE_SEPOLIA_RPC_URL
+    export ETHEREUM_MAINNET_RPC_URL
+    export LINEA_MAINNET_RPC_URL
+    export LINEA_SEPOLIA_RPC_URL
+    export TRUST_TESTNET_RPC_URL
+    export TRUST_MAINNET_RPC_URL
+else
+    echo "Warning: .env file not found at $PROJECT_ROOT/.env"
+    echo "Some environment variables may not be set. Create a .env file with required variables:"
+    echo "  OPENAI_API_KEY=your_openai_key"
+    echo "  PINATA_API_JWT=your_pinata_jwt"
+    echo "  PINATA_GATEWAY_TOKEN=your_pinata_gateway_token"
+    echo "  BASE_MAINNET_RPC_URL=your_base_mainnet_rpc"
+    echo "  BASE_SEPOLIA_RPC_URL=your_base_sepolia_rpc"
+    echo "  ETHEREUM_MAINNET_RPC_URL=your_ethereum_mainnet_rpc"
+    echo "  LINEA_MAINNET_RPC_URL=your_linea_mainnet_rpc"
+    echo "  LINEA_SEPOLIA_RPC_URL=your_linea_sepolia_rpc"
+    echo "  TRUST_TESTNET_RPC_URL=your_trust_testnet_rpc"
+    echo "  TRUST_MAINNET_RPC_URL=your_trust_mainnet_rpc"
+fi
 
 # Start shared services
 docker compose -f docker/docker-compose-shared.yml up database drizzle-studio pgai-installer vectorizer-worker redis redis-setup ipfs safe-content graphql-engine local-migrations indexer-migrations hasura-migrations prometheus  -d --wait --force-recreate
@@ -53,6 +84,4 @@ docker compose -f docker/docker-compose-apps.yml up resolver_consumer ipfs_uploa
 
 echo -e "\nGraphQL: http://localhost:8080/console"
 echo -e "Database: https://local.drizzle.studio/"
-echo -e "Kibana: http://localhost:5601"
-echo -e "Elasticsearch: http://localhost:9200"
-echo -e "\nTo set up Kibana with pre-configured searches, run: ./setup-kibana.sh\n"
+echo -e "\n"
