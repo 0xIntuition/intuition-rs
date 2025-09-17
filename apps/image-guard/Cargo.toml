@@ -4,7 +4,7 @@ version = "2.0.2"
 edition = "2024"
 
 [dependencies]
-axum = { version = "0.8.1", features = ["multipart", "tokio"] }
+axum = { version = "0.8.4", features = ["multipart", "tokio"] }
 axum-macros = "0.5.0"
 axum-prometheus = "0.8.0"
 chrono.workspace = true
@@ -22,5 +22,5 @@ sqlx.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
 tower-http = { version = "0.6.2", features = ["cors"] }
-utoipa = { version = "5.3.1" }
-utoipa-swagger-ui = { version = "8.0.3", features = ["axum"] }
+utoipa = { version = "5.4.0" }
+utoipa-swagger-ui = { version = "9.0.2", features = ["axum"] }

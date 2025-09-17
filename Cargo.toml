@@ -4,8 +4,8 @@ members = ["apps/cli", "apps/consumer", "apps/histocrawler", "apps/image-guard",
 
 
 [workspace.dependencies]
-alloy = { version = "0.15.6", features = ["full"] }
-alloy-network = "0.15.6"
+alloy = { version = "1.0.32", features = ["full"] }
+alloy-network = "1.0.32"
 anyhow = "1.0.82"
 async-trait = "0.1.83"
 bytes = "1.8.0"

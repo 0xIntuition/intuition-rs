@@ -27,7 +27,6 @@ RUN cargo chef cook --release --recipe-path recipe.json
 COPY . .
 ENV SQLX_OFFLINE=true
 RUN cargo build --release --bin consumer \
- && cargo build --release --bin consumer-api \
  && cargo build --release --bin rpc-proxy \
  && cargo build --release --bin histocrawler \
  && cargo build --release --bin image-guard
