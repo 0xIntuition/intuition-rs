@@ -73,7 +73,7 @@ pub async fn update_vault_from_share_price_changed_events(
         vault.log_index = transaction_data.log_index;
         vault.transaction_hash = transaction_data.transaction_hash.clone();
         vault
-            .upsert(
+            .insert_from_share_price(
                 &decoded_consumer_context.backend_schema,
                 &decoded_consumer_context.pg_pool,
             )

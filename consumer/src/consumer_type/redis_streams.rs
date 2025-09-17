@@ -1,3 +1,5 @@
+extern crate hostname;
+
 use crate::{
     app_context::ServerInitialize, error::ConsumerError, mode::types::ConsumerMode,
     traits::BasicConsumer,
@@ -5,7 +7,9 @@ use crate::{
 use async_trait::async_trait;
 use aws_sdk_sqs::{operation::receive_message::ReceiveMessageOutput, types::Message};
 use redis::{Client as RedisClient, aio::ConnectionManager};
+use std::process;
 use std::sync::Arc;
+use std::time::{SystemTime, UNIX_EPOCH};
 use tracing::{debug, info};
 
 /// Represents the Redis Streams consumer
@@ -29,7 +33,7 @@ impl RedisStreams {
 
         // Create consumer group if it doesn't exist
         let consumer_group = "intuition-consumer-group".to_string();
-        let consumer_name = format!("intuition-consumer-{}", data.args.mode.clone());
+        let consumer_name = Self::generate_unique_consumer_name(&data);
 
         let _: Result<(), redis::RedisError> = redis::cmd("XGROUP")
             .arg("CREATE")
@@ -40,6 +44,8 @@ impl RedisStreams {
             .query_async(&mut connection_manager.clone())
             .await;
 
+        info!("Starting Redis consumer with name: {}", consumer_name);
+
         Ok(Self {
             // client,
             connection_manager,
@@ -48,6 +54,36 @@ impl RedisStreams {
             consumer_group: Arc::new(consumer_group),
             consumer_name: Arc::new(consumer_name),
         })
+    }
+
+    /// Generates a unique consumer name for horizontal scaling
+    fn generate_unique_consumer_name(data: &ServerInitialize) -> String {
+        // Get hostname, fallback to "unknown" if it fails
+        let hostname = hostname::get()
+            .unwrap_or_else(|_| "unknown".into())
+            .to_string_lossy()
+            .to_string();
+
+        // Get process ID
+        let pid = process::id();
+
+        // Get current timestamp in milliseconds
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_millis();
+
+        // Use custom prefix if provided via environment variable, otherwise use default
+        let prefix = data
+            .env
+            .consumer_name_prefix
+            .as_deref()
+            .unwrap_or("intuition-consumer");
+
+        format!(
+            "{}-{}-{}-{}-{}",
+            prefix, data.args.mode, hostname, pid, timestamp
+        )
     }
 
     /// This function returns a [`RedisClient`] based on the environment variables
@@ -75,6 +111,26 @@ impl RedisStreams {
     /// Get the consumer name
     pub fn get_consumer_name(&self) -> Arc<String> {
         self.consumer_name.clone()
+    }
+
+    /// Removes this consumer from the consumer group (cleanup on shutdown)
+    /// This method should be called when the consumer is shutting down to properly
+    /// remove it from the Redis consumer group.
+    #[allow(dead_code)]
+    pub async fn cleanup(&self) -> Result<(), ConsumerError> {
+        let mut connection = self.connection_manager.clone();
+
+        // Remove this consumer from the consumer group
+        let _: Result<i32, redis::RedisError> = redis::cmd("XGROUP")
+            .arg("DELCONSUMER")
+            .arg(&*self.get_input_stream())
+            .arg(&*self.get_consumer_group())
+            .arg(&*self.get_consumer_name())
+            .query_async(&mut connection)
+            .await;
+
+        info!("Cleaned up consumer: {}", self.get_consumer_name());
+        Ok(())
     }
 }
 

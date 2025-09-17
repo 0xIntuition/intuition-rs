@@ -53,7 +53,31 @@ RAW_CONSUMER_STREAM=raw_logs_stream
 DECODED_LOGS_STREAM=decoded_logs_stream
 RESOLVER_STREAM=resolver_stream
 IPFS_UPLOAD_STREAM=ipfs_upload_stream
+
+# Optional: Custom consumer name prefix for horizontal scaling
+# If not set, defaults to "intuition-consumer"
+CONSUMER_NAME_PREFIX=my-app-consumer
 ```
+
+## Horizontal Scaling
+
+Redis Streams consumers support horizontal scaling by running multiple consumer instances. Each consumer gets a unique name based on:
+- Custom prefix (via `CONSUMER_NAME_PREFIX` env var)
+- Consumer mode
+- Hostname 
+- Process ID
+- Timestamp
+
+This ensures multiple consumers can work together in the same consumer group without conflicts.
+
+Example consumer names:
+- `intuition-consumer-decoded-worker-1-12345-1679123456789`
+- `my-app-consumer-resolver-worker-2-12346-1679123456790`
+
+To scale horizontally:
+1. Deploy multiple instances with the same configuration
+2. Optionally set different `CONSUMER_NAME_PREFIX` values per deployment
+3. All instances will automatically join the same consumer group and share the workload
 
 ## Manual Setup
 

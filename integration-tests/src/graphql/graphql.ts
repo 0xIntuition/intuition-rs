@@ -11770,6 +11770,13 @@ export type GetTransactionEventsQueryVariables = Exact<{
 
 export type GetTransactionEventsQuery = { __typename?: 'query_root', events: Array<{ __typename?: 'events', transaction_hash: string }> };
 
+export type TripleNumbersQueryVariables = Exact<{
+  termId: Scalars['String']['input'];
+}>;
+
+
+export type TripleNumbersQuery = { __typename?: 'query_root', triple?: { __typename?: 'triples', term?: { __typename?: 'terms', vaults: Array<{ __typename?: 'vaults', curve_id: any, position_count: number, total_assets: any, total_shares: any, current_share_price: any, market_cap: any }> } | null, counter_term?: { __typename?: 'terms', vaults: Array<{ __typename?: 'vaults', curve_id: any, position_count: number, total_assets: any, total_shares: any, current_share_price: any, market_cap: any }> } | null, triple_term?: { __typename?: 'triple_term', total_position_count: any, total_assets: any, total_market_cap: any } | null, triple_vault?: { __typename?: 'triple_vault', position_count: any, market_cap: any, total_assets: any, total_shares: any, curve_id: any } | null } | null, triple_vaults: Array<{ __typename?: 'triple_vault', curve_id: any, term_id: string, position_count: any, market_cap: any, total_assets: any, total_shares: any, counter_term_id: string }> };
+
 export type Positions2QueryVariables = Exact<{
   address: Scalars['String']['input'];
   term_id: Scalars['String']['input'];
@@ -11995,6 +12002,54 @@ export const GetTransactionEventsDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<GetTransactionEventsQuery, GetTransactionEventsQueryVariables>;
+export const TripleNumbersDocument = new TypedDocumentString(`
+    query TripleNumbers($termId: String!) {
+  triple(term_id: $termId) {
+    term {
+      vaults {
+        curve_id
+        position_count
+        total_assets
+        total_shares
+        current_share_price
+        market_cap
+      }
+    }
+    counter_term {
+      vaults {
+        curve_id
+        position_count
+        total_assets
+        total_shares
+        current_share_price
+        market_cap
+      }
+    }
+    triple_term {
+      total_position_count
+      total_assets
+      total_market_cap
+      total_market_cap
+    }
+    triple_vault {
+      position_count
+      market_cap
+      total_assets
+      total_shares
+      curve_id
+    }
+  }
+  triple_vaults(where: {term_id: {_eq: $termId}}) {
+    curve_id
+    term_id
+    position_count
+    market_cap
+    total_assets
+    total_shares
+    counter_term_id
+  }
+}
+    `) as unknown as TypedDocumentString<TripleNumbersQuery, TripleNumbersQueryVariables>;
 export const Positions2Document = new TypedDocumentString(`
     query positions2($address: String!, $term_id: String!, $curve_id: numeric!) {
   positions(
