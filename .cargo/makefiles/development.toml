@@ -50,23 +50,32 @@ args = [
     "ipfs-upload"
 ]
 
+# Start the full system using the start script
+[tasks.start-local]
+command = "./scripts/start.sh"
+args = ["local"]
+
+# Stop the full system using the stop script
+[tasks.stop]
+command = "./scripts/stop.sh"
+
 # Remove docker volumes
 [tasks.remove-docker-volumes-shared]
 command = "docker"
-args = ["compose", "-f", "docker-compose-shared.yml", "down", "-v"]
+args = ["compose", "-p", "intuition", "-f", "docker/docker-compose-shared.yml", "down", "-v"]
 
 [tasks.remove-docker-volumes-apps]
 command = "docker"
-args = ["compose", "-f", "docker-compose-apps.yml", "down", "-v"]
+args = ["compose", "-p", "intuition", "-f", "docker/docker-compose-apps.yml", "down", "-v"]
 
 # Start the docker compose stack
 [tasks.start-docker-shared]
 command = "docker"
-args = ["compose", "-f", "docker-compose-shared.yml", "up", "-d", "--force-recreate"]
+args = ["compose", "-p", "intuition", "-f", "docker/docker-compose-shared.yml", "up", "-d", "--force-recreate"]
 
 [tasks.start-docker-apps]
 command = "docker"
-args = ["compose", "-f", "docker-compose-apps.yml", "up", "-d", "--force-recreate"]
+args = ["compose", "-p", "intuition", "-f", "docker/docker-compose-apps.yml", "up", "-d", "--force-recreate"]
 
 # Migrate the database
 [tasks.migrate-database]
@@ -84,6 +93,10 @@ dependencies = [ "build-apps", "build-pgai", "build-image-hasura-migrations", "b
 # This task remove the docker volumes, start the docker compose stack
 [tasks.restart]
 dependencies = ["remove-docker-volumes-apps", "remove-docker-volumes-shared", "start-docker-shared", "migrate-database", "start-docker-apps"]
+
+# Quick restart - stop and start the system
+[tasks.quick-restart]
+dependencies = ["stop", "start-local"]
 
 # Simply format and lint checking with `cargo clippy` for all targets
 # in the workspace, promoting `warnings` to `errors`
