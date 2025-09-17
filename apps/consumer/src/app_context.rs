@@ -81,12 +81,14 @@ impl Server {
             )
             .with(
                 tracing_subscriber::fmt::layer()
-                    .json()
+                    .compact()
                     .with_file(true)
                     .with_line_number(true)
                     .with_thread_ids(true)
                     .with_target(true)
-                    // Write to STDOUT instead of a file
+                    .with_ansi(true)
+                    .with_level(true)
+                    .with_timer(tracing_subscriber::fmt::time::SystemTime)
                     .with_writer(std::io::stdout),
             );
 
@@ -114,7 +116,7 @@ impl Server {
             )
             .with(
                 tracing_subscriber::fmt::layer()
-                    .json()
+                    .compact()
                     .with_file(true)
                     .with_line_number(true)
                     .with_thread_ids(true)

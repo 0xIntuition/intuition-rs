@@ -92,7 +92,7 @@ dependencies = [ "build-apps", "build-pgai", "build-image-hasura-migrations", "b
 
 # This task remove the docker volumes, start the docker compose stack
 [tasks.restart]
-dependencies = ["remove-docker-volumes-apps", "remove-docker-volumes-shared", "start-docker-shared", "migrate-database", "start-docker-apps"]
+dependencies = ["stop", "start-local"]
 
 # Quick restart - stop and start the system
 [tasks.quick-restart]

@@ -12,7 +12,6 @@ services:
       IPFS_GATEWAY_URL: 'http://ipfs:8080'
       IPFS_UPLOAD_URL: 'http://ipfs:5001'
       IPFS_UPLOAD_STREAM: 'ipfs_upload_stream'
-      # LOCALSTACK_URL: 'http://sqs:4566/'
       PINATA_API_JWT: $PINATA_API_JWT
       PINATA_GATEWAY_TOKEN: $PINATA_GATEWAY_TOKEN
       PG_MIN_CONNECTIONS: '5'
@@ -38,7 +37,6 @@ services:
       IMAGE_GUARD_URL: 'http://api:3000'
       IPFS_GATEWAY_URL: 'http://ipfs:8080'
       IPFS_UPLOAD_URL: 'http://ipfs:5001'
-      # LOCALSTACK_URL: 'http://sqs:4566/'
       PINATA_API_JWT: $PINATA_API_JWT
       PINATA_GATEWAY_TOKEN: $PINATA_GATEWAY_TOKEN
       PG_MIN_CONNECTIONS: '5'
@@ -71,10 +69,10 @@ services:
       PG_MIN_CONNECTIONS: '20'
       RESOLVER_STREAM: 'resolver_stream'
       RPC_URL_BASE: "http://prod-rpc-proxy:3008/8545/proxy"
-      RUST_LOG: 'warn'
+      RUST_LOG: 'info'
       BACKEND_SCHEMA: 'public'
       REDIS_URL: 'redis://redis:6379'
-      LOG_LEVEL: 'debug'
+      LOG_LEVEL: 'info'
     restart: always
     volumes:
       - ./logs:/app/logs
