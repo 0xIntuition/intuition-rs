@@ -6,7 +6,6 @@ use crate::{
 };
 use alloy::primitives::FixedBytes;
 use async_trait::async_trait;
-use aws_sdk_sqs::{operation::receive_message::ReceiveMessageOutput, types::Message};
 use models::{
     account::AccountType,
     types::{FixedBytesWrapper, U256Wrapper},
@@ -18,6 +17,18 @@ pub trait AtomUpdater {
     fn backend_schema(&self) -> &str;
 }
 
+#[derive(Debug, Clone)]
+pub struct Message {
+    pub message_id: String,
+    pub body: String,
+}
+
+impl Message {
+    pub fn new(message_id: String, body: String) -> Self {
+        Self { message_id, body }
+    }
+}
+
 /// This is a generic trait for Consumers. It contains all of the
 /// basic methods to provide basic functionality.
 #[async_trait]
@@ -27,7 +38,7 @@ pub trait BasicConsumer: Send + Sync {
     /// and the web3 client. This allows us to use the same consume method for
     /// different modes, different data sources and different consumer types.
     async fn process_messages(&self, mode: ConsumerMode) -> Result<(), ConsumerError>;
-    async fn receive_message(&self) -> Result<ReceiveMessageOutput, ConsumerError>;
+    async fn receive_message(&self) -> Result<Vec<Message>, ConsumerError>;
     async fn send_message(
         &self,
         message: String,

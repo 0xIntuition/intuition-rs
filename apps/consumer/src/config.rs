@@ -26,7 +26,6 @@ pub struct Env {
     pub ipfs_gateway_url: Option<String>,
     pub ipfs_upload_stream: Option<String>,
     pub ipfs_upload_url: Option<String>,
-    pub localstack_url: Option<String>,
     pub pinata_api_jwt: Option<String>,
     pub pinata_gateway_token: Option<String>,
     pub raw_consumer_stream: Option<String>,
@@ -70,8 +69,6 @@ impl FromStr for IndexerSource {
 
 #[derive(Deserialize, Debug)]
 pub enum ConsumerType {
-    Sqs,
-    SqsHybrid,
     RedisStreams,
     RedisHybrid,
 }
@@ -81,11 +78,7 @@ impl FromStr for ConsumerType {
     type Err = ConsumerError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if s == "sqs" {
-            Ok(Self::Sqs)
-        } else if s == "sqs_hybrid" || s == "sqs_hibrid" {
-            Ok(Self::SqsHybrid)
-        } else if s == "redis_streams" {
+        if s == "redis_streams" {
             Ok(Self::RedisStreams)
         } else if s == "redis_hybrid" {
             Ok(Self::RedisHybrid)

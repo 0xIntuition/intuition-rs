@@ -1,9 +1,11 @@
 use crate::{
-    app_context::ServerInitialize, consumer_type::hybrid::HybridConsumer, error::ConsumerError,
-    mode::types::ConsumerMode, traits::BasicConsumer,
+    app_context::ServerInitialize,
+    consumer_type::hybrid::HybridConsumer,
+    error::ConsumerError,
+    mode::types::ConsumerMode,
+    traits::{BasicConsumer, Message},
 };
 use async_trait::async_trait;
-use aws_sdk_sqs::{operation::receive_message::ReceiveMessageOutput, types::Message};
 use redis::{Client as RedisClient, aio::ConnectionManager};
 use std::sync::Arc;
 use tokio::sync::{Semaphore, watch};
@@ -93,8 +95,8 @@ impl BasicConsumer for RedisHybrid {
 
     /// This function returns an empty message output since Redis Hybrid
     /// processes messages differently than traditional queue consumers.
-    async fn receive_message(&self) -> Result<ReceiveMessageOutput, ConsumerError> {
-        let received_message = ReceiveMessageOutput::builder().build();
+    async fn receive_message(&self) -> Result<Vec<Message>, ConsumerError> {
+        let received_message = Vec::<Message>::new();
         Ok(received_message)
     }
 

@@ -27,56 +27,6 @@ pub enum ConsumerError {
     AlloyRpc(#[from] RpcError<TransportErrorKind>),
     #[error("App config not found")]
     AppConfigNotFound,
-    #[error(transparent)]
-    AWSCreateBucket(
-        #[from]
-        aws_smithy_runtime_api::client::result::SdkError<
-            aws_sdk_s3::operation::create_bucket::CreateBucketError,
-            aws_smithy_runtime_api::http::Response,
-        >,
-    ),
-    #[error(transparent)]
-    AWSDeleteMessage(
-        #[from]
-        aws_smithy_runtime_api::client::result::SdkError<
-            aws_sdk_sqs::operation::delete_message::DeleteMessageError,
-            aws_smithy_runtime_api::http::Response,
-        >,
-    ),
-    #[error(transparent)]
-    AWSS3(
-        #[from]
-        aws_smithy_runtime_api::client::result::SdkError<
-            aws_sdk_s3::operation::head_bucket::HeadBucketError,
-            aws_smithy_runtime_api::http::Response,
-        >,
-    ),
-    #[error(transparent)]
-    AWSSdK(#[from] aws_sdk_sqs::Error),
-    #[error(transparent)]
-    AWSListQueues(
-        #[from]
-        aws_smithy_runtime_api::client::result::SdkError<
-            aws_sdk_sqs::operation::list_queues::ListQueuesError,
-            aws_smithy_runtime_api::http::Response,
-        >,
-    ),
-    #[error(transparent)]
-    AWSReceiveMessage(
-        #[from]
-        aws_smithy_runtime_api::client::result::SdkError<
-            aws_sdk_sqs::operation::receive_message::ReceiveMessageError,
-            aws_smithy_runtime_api::http::Response,
-        >,
-    ),
-    #[error(transparent)]
-    AWSSendMessage(
-        #[from]
-        aws_smithy_runtime_api::client::result::SdkError<
-            aws_sdk_sqs::operation::send_message::SendMessageError,
-            aws_smithy_runtime_api::http::Response,
-        >,
-    ),
     #[error("Block timestamp error: {0}")]
     BlockTimestampError(String),
     #[error("Failed to parse consumer type: {0}")]

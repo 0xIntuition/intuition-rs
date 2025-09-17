@@ -1,9 +1,10 @@
 use crate::{
-    app_context::ServerInitialize, error::ConsumerError, mode::types::ConsumerMode,
-    traits::BasicConsumer,
+    app_context::ServerInitialize,
+    error::ConsumerError,
+    mode::types::ConsumerMode,
+    traits::{BasicConsumer, Message},
 };
 use async_trait::async_trait;
-use aws_sdk_sqs::{operation::receive_message::ReceiveMessageOutput, types::Message};
 use redis::{Client as RedisClient, aio::ConnectionManager};
 use std::sync::Arc;
 use tracing::{debug, info};
@@ -83,17 +84,15 @@ impl BasicConsumer for RedisStreams {
     /// This function acknowledges a message by marking it as processed in the consumer group
     async fn consume_message(&self, message: Message) -> Result<(), ConsumerError> {
         // For Redis streams, we need to acknowledge the message using XACK
-        // The message ID is stored in the receipt_handle field
-        if let Some(receipt_handle) = message.receipt_handle() {
-            let mut connection = self.connection_manager.clone();
-            let _: Result<i32, redis::RedisError> = redis::cmd("XACK")
-                .arg(&*self.get_input_stream())
-                .arg(&*self.get_consumer_group())
-                .arg(receipt_handle)
-                .query_async(&mut connection)
-                .await;
-            debug!("Message {receipt_handle} acknowledged!");
-        }
+        let mut connection = self.connection_manager.clone();
+        let _: Result<i32, redis::RedisError> = redis::cmd("XACK")
+            .arg(&*self.get_input_stream())
+            .arg(&*self.get_consumer_group())
+            .arg(message.message_id.clone())
+            .query_async(&mut connection)
+            .await;
+        debug!("Message {} acknowledged!", message.message_id);
+
         Ok(())
     }
 
@@ -107,15 +106,13 @@ impl BasicConsumer for RedisStreams {
             info!("awaiting for new messages from Redis stream...");
             let messages = self.receive_message().await?;
 
-            if let Some(messages) = messages.messages {
+            if !messages.is_empty() {
                 // Reset backoff when messages are found
                 backoff_ms = 0;
 
                 for message in messages {
-                    if let Some(message_body) = message.clone().body {
-                        mode.process_message(message_body).await?;
-                        self.consume_message(message).await?
-                    }
+                    mode.process_message(message.body.clone()).await?;
+                    self.consume_message(message).await?
                 }
             } else {
                 // Implement exponential backoff with max limit
@@ -126,7 +123,7 @@ impl BasicConsumer for RedisStreams {
     }
 
     /// This function reads messages from the Redis stream using XREADGROUP
-    async fn receive_message(&self) -> Result<ReceiveMessageOutput, ConsumerError> {
+    async fn receive_message(&self) -> Result<Vec<Message>, ConsumerError> {
         let mut connection = self.connection_manager.clone();
 
         // Use XREADGROUP to read messages from the stream
@@ -147,7 +144,7 @@ impl BasicConsumer for RedisStreams {
 
         match result {
             Ok(stream_data) => {
-                let mut messages = Vec::new();
+                let mut messages = Vec::<Message>::new();
 
                 for (_, entries) in stream_data {
                     for (message_id, fields) in entries {
@@ -159,24 +156,16 @@ impl BasicConsumer for RedisStreams {
                                 break;
                             }
                         }
-
-                        let message = Message::builder()
-                            .receipt_handle(message_id)
-                            .body(message_body)
-                            .build();
-
-                        messages.push(message);
+                        messages.push(Message::new(message_id, message_body));
                     }
                 }
 
-                Ok(ReceiveMessageOutput::builder()
-                    .set_messages(Some(messages))
-                    .build())
+                Ok(messages)
             }
             Err(e) => {
                 if e.to_string().contains("timeout") {
                     // No messages available, return empty result
-                    Ok(ReceiveMessageOutput::builder().build())
+                    Ok(Vec::<Message>::new())
                 } else {
                     Err(ConsumerError::RedisError(e))
                 }
