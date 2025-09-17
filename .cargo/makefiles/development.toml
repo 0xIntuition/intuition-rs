@@ -87,7 +87,7 @@ args =["deploy", "--project", "hasura"]
 dependencies = ["remove-docker-volumes-apps", "remove-docker-volumes-shared", "build-docker-images", "start-docker-shared", "migrate-database", "start-docker-apps"]
 
 [tasks.build-docker-images]
-dependencies = [ "build-apps", "build-pgai", "build-image-hasura-migrations", "build-indexer-and-cache-migrations", "build-contract-deployer-2-0"]
+dependencies = [ "build-apps", "build-pgai", "build-hasura-migrations", "build-indexer-and-cache-migrations", "build-contract-deployer-2-0"]
 
 
 # This task remove the docker volumes, start the docker compose stack

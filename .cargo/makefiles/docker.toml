@@ -6,7 +6,7 @@ args = ["build", "-t", "ghcr.io/0xintuition/consumer:latest", "-f", "apps/consum
 command = "docker"
 args = ["build", "-t", "ghcr.io/0xintuition/image-guard:latest", "-f", "apps/image-guard/Dockerfile", "."]
 
-[tasks.build-image-hasura-migrations]
+[tasks.build-hasura-migrations]
 command = "docker"
 args = ["build", "-t", "ghcr.io/0xintuition/hasura-migrations:latest", "-f", "infrastructure/hasura/Dockerfile", "."]
 
