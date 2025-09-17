@@ -29,10 +29,7 @@ where
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
-        info!(
-            "Handling SharePriceChanged / SharePriceChangedCurve event: {:?}",
-            self
-        );
+        info!("Handling SharePriceChanged / SharePriceChangedCurve event: {self:#?}",);
 
         // Check if the share price changed already exists, skip if it does
         match SharePriceChange::fetch_share_price_from_internal(

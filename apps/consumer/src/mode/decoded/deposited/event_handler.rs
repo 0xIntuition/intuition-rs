@@ -28,7 +28,7 @@ where
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
-        info!("Handling Deposited / DepositedCurve event: {:?}", self.0);
+        info!("Handling Deposited / DepositedCurve event: {self:#?}",);
 
         // Check if the deposit already exists, skip if it does
         match Deposit::find_by_id(
