@@ -85,13 +85,18 @@ impl VaultOrigin {
         .await?;
 
         let new_vault = self
-            .build_new_vault(&event, context, tx, custom_term_id)
+            .build_new_vault(&event, context, tx, custom_term_id.clone())
             .await?;
         debug!("New vault: {:?}", new_vault);
 
         if self.should_insert() {
             new_vault
                 .insert(&context.pg_pool, &context.backend_schema)
+                .await
+                .map_err(ConsumerError::ModelError)?;
+        } else if self == &VaultOrigin::SharePriceChanged {
+            new_vault
+                .insert_from_share_price(&context.backend_schema, &context.pg_pool)
                 .await
                 .map_err(ConsumerError::ModelError)?;
         } else {
@@ -101,11 +106,89 @@ impl VaultOrigin {
                 .map_err(ConsumerError::ModelError)?;
         }
 
+        // If this is a triple vault, also create/update the triple_vault record
+        if matches!(term_type, TermType::Triple | TermType::CounterTriple) {
+            self.ensure_triple_vault_exists(&event, context, tx, custom_term_id.clone())
+                .await?;
+        }
+
         Ok(new_vault)
     }
     /// This function computes the market cap of a vault
     pub fn compute_market_cap(total_shares: U256Wrapper, share_price: U256Wrapper) -> U256Wrapper {
         (total_shares * share_price) / U256Wrapper::from(U256::from(10).pow(U256::from(18)))
+    }
+
+    /// This function ensures that a triple_vault record exists for the given vault
+    async fn ensure_triple_vault_exists(
+        &self,
+        event: &impl SharePriceEvent,
+        context: &DecodedConsumerContext,
+        tx: &DecodedMessage,
+        custom_term_id: Option<FixedBytesWrapper>,
+    ) -> Result<(), ConsumerError> {
+        let term_id = match custom_term_id {
+            Some(term_id) => term_id,
+            None => FixedBytesWrapper::from(event.term_id()?),
+        };
+        let curve_id = event.curve_id()?;
+
+        // Check if triple_vault already exists for this term_id and curve_id
+        if let Some(_existing) = TripleVault::find_by_term_id_and_curve_id(
+            term_id.clone(),
+            curve_id.clone(),
+            &context.pg_pool,
+            &context.backend_schema,
+        )
+        .await?
+        {
+            // Triple vault already exists, the triggers will update it
+            return Ok(());
+        }
+
+        // Get the counter vault ID
+        let counter_vault_id = get_counter_id_from_triple_id(term_id.clone())?;
+
+        // Get all vaults for this triple (both term_id and counter_term_id) and this curve
+        let vaults = Vault::fetch_triple_vault_aggregates(
+            term_id.clone(),
+            counter_vault_id.clone(),
+            curve_id.clone(),
+            &context.pg_pool,
+            &context.backend_schema,
+        )
+        .await?;
+
+        // Calculate aggregates from vault data
+        let total_shares: U256Wrapper = vaults.iter().map(|v| v.total_shares.clone()).sum();
+        let total_assets: U256Wrapper = vaults.iter().map(|v| v.total_assets.clone()).sum();
+        let market_cap: U256Wrapper = vaults.iter().map(|v| v.market_cap.clone()).sum();
+        let position_count: i64 = vaults.iter().map(|v| v.position_count as i64).sum();
+
+        // Create the triple_vault record
+        let triple_vault = TripleVault::builder()
+            .term_id(term_id)
+            .counter_term_id(counter_vault_id)
+            .curve_id(curve_id)
+            .total_shares(total_shares)
+            .total_assets(total_assets)
+            .position_count(position_count)
+            .market_cap(market_cap)
+            .block_number(U256Wrapper::try_from(tx.block_number).unwrap_or_default())
+            .log_index(tx.log_index)
+            .updated_at(DateTime::from_timestamp(tx.block_timestamp, 0).ok_or(
+                ConsumerError::BlockTimestampError(
+                    "Failed to convert block timestamp to DateTime".to_string(),
+                ),
+            )?)
+            .build();
+
+        triple_vault
+            .upsert(&context.backend_schema, &context.pg_pool)
+            .await
+            .map_err(ConsumerError::ModelError)?;
+
+        Ok(())
     }
 
     /// This function gets or creates a triple term

@@ -36,6 +36,7 @@ export ANVIL_ADMIN_ADDRESS=0x07baA707F61c89F6eB33c8Cb948c483c9b387084\n\
 export ANVIL_MULTI_VAULT_ROLE_MIGRATOR=0x07baA707F61c89F6eB33c8Cb948c483c9b387084\n\
 export ANVIL_CHAIN_ID=1337\n\
 export TARGET_CHAIN_ID=1337\n\
+export ANVIL_TRUST_TOKEN=0x000000000000000000000000000000000000dEaD\n\
 OUTPUT0=$(forge script script/base/BaseEmissionsControllerDeploy.s.sol --slow --private-key 0x3c0afbd619ed4a8a11cfbd8c5794e08dc324b6809144a90c58bc0ff24219103b --rpc-url http://geth:8545 --broadcast --optimizer-runs 200 2>&1)\n\
 echo "$OUTPUT0"\n\
 export ANVIL_BASE_EMISSIONS_CONTROLLER=$(echo "$OUTPUT0" | grep "BaseEmissionsController Proxy: " | sed -E "s/.*BaseEmissionsController Proxy: //")\n\
