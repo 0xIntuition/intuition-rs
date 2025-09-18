@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy the hasura folder into the container
-COPY hasura /app/hasura
+COPY infrastructure/hasura /app/hasura
 
 # Set the working directory
 WORKDIR /app

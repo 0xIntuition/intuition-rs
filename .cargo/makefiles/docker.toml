@@ -40,4 +40,4 @@ args = ["build", "-t", "ghcr.io/0xintuition/apps:latest", "-f", "docker/Dockerfi
 
 [tasks.build-pgai]
 command = "docker"
-args = ["build", "-t", "ghcr.io/0xintuition/pgai:latest", "-f", "apps/models/Dockerfile", "."]
+args = ["build", "-t", "ghcr.io/0xintuition/pgai:latest", "-f", "apps/models/Dockerfile", "apps/models"]

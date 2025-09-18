@@ -3,9 +3,15 @@ FROM python:3.11-slim AS builder
 
 WORKDIR /app
 
-# Install pgai in venv
+# Install system dependencies first (better caching)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install pgai in venv with optimizations
 RUN python -m venv /opt/venv && \
     . /opt/venv/bin/activate && \
+    pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir pgai==0.10.5
 
 # Stage 2: Final runtime image

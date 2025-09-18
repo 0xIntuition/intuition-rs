@@ -1,3 +1,12 @@
 target
 .git
 Dockerfile
+node_modules
+integration-tests
+docker
+scripts
+*.md
+*.env
+*.sh
+*.ts
+*.js

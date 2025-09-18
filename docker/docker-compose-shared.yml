@@ -182,23 +182,6 @@ services:
         hard: 65536
 
 
-
-  local-migrations:
-    container_name: local-migrations
-    image: ghcr.io/0xintuition/local-migrations:latest
-    environment:
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_USER: postgres
-      POSTGRES_DB: storage
-      POSTGRES_PORT: 5435
-      INDEXER_DATABASE_URL: postgres://postgres:postgres@database:5435/storage
-    depends_on:
-      database:
-        condition: service_healthy
-      indexer-migrations:
-        condition: service_completed_successfully
-    restart: "no"
-
   indexer-migrations:
     container_name: indexer-migrations
     image: ghcr.io/0xintuition/indexer-and-cache-migrations:latest
