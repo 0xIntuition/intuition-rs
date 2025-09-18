@@ -72,11 +72,9 @@ This workspace contains the following core services:
 ### Option 1: Using Published Docker Images (Recommended)
 
 ```bash
-# Start with Base Sepolia network
-./scripts/start.sh histo_base_sepolia_1_5
 
 # Start with local Ethereum node
-./scripts/start.sh local
+cargo make start-local
 ```
 
 ### Option 2: Building from Source
@@ -86,14 +84,14 @@ This workspace contains the following core services:
 cargo make build-docker-images
 
 # Start the system
-./scripts/start.sh local
+cargo make start-local
 ```
 
 ### Option 3: Running with Integration Tests
 
 ```bash
 # Start with tests enabled
-./scripts/start.sh local test
+cargo make start-local test
 ```
 
 
@@ -159,8 +157,6 @@ source .env
 
 Add to your `.env` file:
 ```bash
-BASE_MAINNET_RPC_URL=http://geth:8545
-BASE_SEPOLIA_RPC_URL=http://geth:8545
 INTUITION_CONTRACT_ADDRESS=0x04056c43d0498b22f7a0c60d4c3584fb5fa881cc
 START_BLOCK=0
 ```
@@ -272,7 +268,7 @@ The system includes comprehensive logging capabilities:
 - **Audit Trail**: Complete visibility into system operations
 
 **Getting Started:**
-1. Start the system: `./scripts/start.sh local`
+1. Start the system: `cargo make start-local`
 2. View logs: `docker logs <service_name>`
 3. Filter logs: `docker logs <service_name> | grep '"level":"INFO"'`
 
