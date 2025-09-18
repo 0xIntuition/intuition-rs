@@ -59,6 +59,11 @@ where
             .create_deposit(event, decoded_consumer_context)
             .await?;
 
+        // Handle atom re-resolution logic
+        self.0
+            .handle_atom_resolution(decoded_consumer_context)
+            .await?;
+
         // Handle position and related entities
         self.0
             .handle_positions(decoded_consumer_context, event)

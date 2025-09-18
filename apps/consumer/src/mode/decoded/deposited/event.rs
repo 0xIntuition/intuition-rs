@@ -2,6 +2,7 @@ use crate::{
     error::ConsumerError,
     mode::{
         decoded::utils::get_block_timestamp,
+        resolver::types::ResolverConsumerMessage,
         types::DecodedConsumerContext,
         utils::{VaultOrigin, get_or_create_account},
     },
@@ -9,7 +10,9 @@ use crate::{
     traits::{SharePriceEvent, TripleTermManager, TripleVaultManager, VaultManager},
 };
 use alloy::primitives::{U256, Uint};
+use chrono::{Duration, Utc};
 use models::{
+    atom::{Atom, AtomResolvingStatus, AtomType},
     deposit::{Deposit, VaultType},
     position::Position,
     signal::Signal,
@@ -217,6 +220,93 @@ pub trait DepositedEvent:
             } else if let Some(mut position) = position {
                 self.update_position(decoded_consumer_context, &mut position, event)
                     .await?;
+            }
+        }
+
+        Ok(())
+    }
+
+    /// This function checks if the vault type is Atom
+    fn is_atom_vault(&self) -> Result<bool, ConsumerError> {
+        Ok(self.vault_type()? == VaultType::Atom)
+    }
+
+    /// This function fetches an atom by term ID
+    async fn fetch_atom(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+    ) -> Result<Option<Atom>, ConsumerError> {
+        Atom::find_by_id(
+            self.term_id()?.into(),
+            &decoded_consumer_context.backend_schema,
+            &decoded_consumer_context.pg_pool,
+        )
+        .await
+        .map_err(ConsumerError::ModelError)
+    }
+
+    /// This function checks if an atom was updated within the last 5 minutes
+    fn is_atom_recently_updated(atom: &Atom) -> bool {
+        atom.created_at > Utc::now() - Duration::minutes(5)
+    }
+
+    /// This function checks if an atom needs to be re-resolved
+    fn atom_needs_resolution(atom: &Atom) -> bool {
+        atom.atom_type == AtomType::Account
+            || atom.resolving_status == AtomResolvingStatus::Pending
+            || atom.resolving_status == AtomResolvingStatus::Failed
+    }
+
+    /// This function enqueues an atom for resolution
+    async fn enqueue_atom_resolution(
+        &self,
+        atom: &Atom,
+        decoded_consumer_context: &DecodedConsumerContext,
+    ) -> Result<(), ConsumerError> {
+        debug!("Atom needs to be re-resolved");
+        let message = ResolverConsumerMessage::new_atom(atom.term_id.0.to_string());
+        decoded_consumer_context
+            .client
+            .send_message(serde_json::to_string(&message)?, None)
+            .await?;
+        Ok(())
+    }
+
+    /// This function handles atom re-resolution logic
+    async fn handle_atom_resolution(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+    ) -> Result<(), ConsumerError> {
+        if !self.is_atom_vault()? {
+            return Ok(());
+        }
+
+        let atom = self.fetch_atom(decoded_consumer_context).await?;
+
+        match atom {
+            Some(atom) => {
+                if Self::is_atom_recently_updated(&atom) {
+                    debug!(
+                        "Atom was updated in the last 5 minutes, skipping atom re-resolution logic"
+                    );
+                    return Ok(());
+                }
+
+                debug!(
+                    "Atom was not updated in the last 5 minutes, proceeding with atom re-resolution logic"
+                );
+
+                if Self::atom_needs_resolution(&atom) {
+                    self.enqueue_atom_resolution(&atom, decoded_consumer_context)
+                        .await?;
+                } else {
+                    debug!(
+                        "Atom is not in a state that needs to be re-resolved, skipping atom re-resolution logic"
+                    );
+                }
+            }
+            None => {
+                debug!("Atom does not exist, skipping atom re-resolution logic");
             }
         }
 
