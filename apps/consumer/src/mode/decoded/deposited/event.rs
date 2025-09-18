@@ -245,9 +245,12 @@ pub trait DepositedEvent:
         .map_err(ConsumerError::ModelError)
     }
 
+    /// Threshold (in minutes) for considering an atom as recently updated.
+    const ATOM_RECENT_UPDATE_THRESHOLD_MINUTES: i64 = 5;
+
     /// This function checks if an atom was updated within the last 5 minutes
     fn is_atom_recently_updated(atom: &Atom) -> bool {
-        atom.created_at > Utc::now() - Duration::minutes(5)
+        atom.created_at > Utc::now() - Duration::minutes(Self::ATOM_RECENT_UPDATE_THRESHOLD_MINUTES)
     }
 
     /// This function checks if an atom needs to be re-resolved
