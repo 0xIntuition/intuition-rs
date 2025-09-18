@@ -1,38 +1,34 @@
 [tasks.build-consumer]
 command = "docker"
-args = ["build", "-t", "ghcr.io/0xintuition/consumer:latest", "-f", "consumer/Dockerfile", "."]
+args = ["build", "-t", "ghcr.io/0xintuition/consumer:latest", "-f", "apps/consumer/Dockerfile", "."]
 
 [tasks.build-image-guard]
 command = "docker"
-args = ["build", "-t", "ghcr.io/0xintuition/image-guard:latest", "-f", "image-guard/Dockerfile", "."]
+args = ["build", "-t", "ghcr.io/0xintuition/image-guard:latest", "-f", "apps/image-guard/Dockerfile", "."]
 
-[tasks.build-image-hasura-migrations]
+[tasks.build-hasura-migrations]
 command = "docker"
-args = ["build", "-t", "ghcr.io/0xintuition/hasura-migrations:latest", "-f", "hasura/Dockerfile", "."]
+args = ["build", "-t", "ghcr.io/0xintuition/hasura-migrations:latest", "-f", "infrastructure/hasura/Dockerfile", "."]
 
 [tasks.build-cli]
 command = "docker"
-args = ["build", "-t", "ghcr.io/0xintuition/cli:latest", "-f", "cli/Dockerfile", "."]
+args = ["build", "-t", "ghcr.io/0xintuition/cli:latest", "-f", "apps/cli/Dockerfile", "."]
 
 [tasks.build-indexer-and-cache-migrations]
 command = "docker"
-args = ["build", "-t", "ghcr.io/0xintuition/indexer-and-cache-migrations:latest", "-f", "indexer-and-cache-migrations/Dockerfile", "."]
+args = ["build", "-t", "ghcr.io/0xintuition/indexer-and-cache-migrations:latest", "-f", "infrastructure/indexer-and-cache-migrations/Dockerfile", "."]
 
 [tasks.build-rpc-proxy]
 command = "docker"
-args = ["build", "-t", "ghcr.io/0xintuition/rpc-proxy:latest", "-f", "rpc-proxy/Dockerfile", "."]
+args = ["build", "-t", "ghcr.io/0xintuition/rpc-proxy:latest", "-f", "apps/rpc-proxy/Dockerfile", "."]
 
 [tasks.build-histocrawler]
 command = "docker"
-args = ["build", "-t", "ghcr.io/0xintuition/histocrawler:latest", "-f", "histocrawler/Dockerfile", "."]
-
-[tasks.build-local-migrations]
-command = "docker"
-args = ["build", "-t", "ghcr.io/0xintuition/local-migrations:latest", "-f", "local/Dockerfile", "."]
+args = ["build", "-t", "ghcr.io/0xintuition/histocrawler:latest", "-f", "apps/histocrawler/Dockerfile", "."]
 
 [tasks.build-consumer-api]
 command = "docker"
-args = ["build", "-t", "ghcr.io/0xintuition/consumer-api:latest", "-f", "consumer-api/Dockerfile", "."]
+args = ["build", "-t", "ghcr.io/0xintuition/consumer-api:latest", "-f", "apps/consumer-api/Dockerfile", "."]
 
 [tasks.build-contract-deployer-2-0]
 command = "bash"
@@ -40,8 +36,8 @@ args = ["integration-tests/contract-deployer-2-0/build.sh"]
 
 [tasks.build-apps]
 command = "docker"
-args = ["build", "-t", "ghcr.io/0xintuition/apps:latest", "-f", "Dockerfile", "."]
+args = ["build", "-t", "ghcr.io/0xintuition/apps:latest", "-f", "docker/Dockerfile", "."]
 
 [tasks.build-pgai]
 command = "docker"
-args = ["build", "-t", "ghcr.io/0xintuition/pgai:latest", "-f", "models/Dockerfile", "."]
+args = ["build", "-t", "ghcr.io/0xintuition/pgai:latest", "-f", "apps/models/Dockerfile", "apps/models"]

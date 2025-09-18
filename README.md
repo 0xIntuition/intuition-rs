@@ -9,20 +9,19 @@ A comprehensive Rust workspace for blockchain data indexing and processing, feat
 This workspace contains the following core services:
 
 ### Core Services
-- **`cli`** - Terminal UI client for interacting with the Intuition system
-- **`consumer`** - Event processing pipeline (RAW, DECODED, and RESOLVER consumers)
-- **`consumer-api`** - REST API for re-fetching and managing Atoms
-- **`models`** - Domain models and data structures for the Intuition system
+- **`apps/cli`** - Terminal UI client for interacting with the Intuition system
+- **`apps/consumer`** - Event processing pipeline using Redis Streams (RAW, DECODED, and RESOLVER consumers)
+- **`apps/models`** - Domain models and data structures for the Intuition system
 
 ### Infrastructure Services
-- **`hasura`** - GraphQL API with database migrations and configuration
-- **`image-guard`** - Image processing and validation service
-- **`rpc-proxy`** - RPC call proxy with caching for `eth_call` methods
+- **`infrastructure/hasura`** - GraphQL API with database migrations and configuration
+- **`apps/image-guard`** - Image processing and validation service
+- **`apps/rpc-proxy`** - RPC call proxy with caching for `eth_call` methods
 
 ### Supporting Services
-- **`histocrawler`** - Historical data crawler
-- **`shared-utils`** - Common utilities and shared code
-- **`migration-scripts`** - Database migration utilities
+- **`apps/histocrawler`** - Historical data crawler
+- **`apps/shared-utils`** - Common utilities and shared code
+- **`infrastructure/migration-scripts`** - Database migration utilities
 
 ## 🚀 Quick Start
 
@@ -68,14 +67,14 @@ This workspace contains the following core services:
 
 ## 🏃‍♂️ Running the System
 
+**Note**: All scripts are located in the `scripts/` directory and should be run from the project root.
+
 ### Option 1: Using Published Docker Images (Recommended)
 
 ```bash
-# Start with Base Sepolia network
-./start.sh histo_base_sepolia_1_5
 
 # Start with local Ethereum node
-./start.sh histo_local_1_5
+cargo make start-local
 ```
 
 ### Option 2: Building from Source
@@ -85,56 +84,16 @@ This workspace contains the following core services:
 cargo make build-docker-images
 
 # Start the system
-./start.sh histo_base_sepolia_1_5
+cargo make start-local
 ```
 
 ### Option 3: Running with Integration Tests
 
 ```bash
 # Start with tests enabled
-./start.sh histo_local_1_5 test
+cargo make start-local test
 ```
 
-### Option 4: Running with ELK Stack Logging
-
-The system includes an ELK (Elasticsearch, Logstash, Kibana) stack for centralized logging and monitoring.
-
-```bash
-# Start the system (includes ELK stack)
-./start.sh histo_local_1_5
-
-# Set up Kibana with pre-configured searches
-./setup-kibana.sh
-```
-
-**ELK Stack Features:**
-- **Elasticsearch**: Log storage and indexing
-- **Logstash**: Log processing and parsing
-- **Kibana**: Log visualization and search interface
-- **Filebeat**: Container log collection
-
-**Available Services:**
-- Elasticsearch: http://localhost:9200
-- Kibana: http://localhost:5601
-- Logstash: http://localhost:9600
-
-**Pre-configured Kibana Searches:**
-- Decoded Consumer INFO Logs
-- Resolver Consumer INFO Logs
-- IPFS Upload Consumer INFO Logs
-- Histocrawler INFO Logs
-- All Consumers INFO Logs (combined view)
-
-**Manual Log Queries:**
-```bash
-# View logs from specific service
-curl "http://localhost:9200/docker-logs-*/_search?pretty" \
-  -H 'Content-Type: application/json' \
-  -d'{"query":{"bool":{"must":[{"match":{"service":"decoded_consumer"}},{"match":{"level":"INFO"}}]}},"size":10}'
-
-# View container logs directly
-docker logs decoded_consumer | grep '"level":"INFO"'
-```
 
 ## 🧪 Testing
 
@@ -167,7 +126,7 @@ pnpm test src/ai-agents.test.ts
 ### CLI Tool
 ```bash
 # Run the CLI to verify latest data
-./cli.sh
+./scripts/cli.sh
 ```
 
 ### Code Quality
@@ -198,8 +157,6 @@ source .env
 
 Add to your `.env` file:
 ```bash
-BASE_MAINNET_RPC_URL=http://geth:8545
-BASE_SEPOLIA_RPC_URL=http://geth:8545
 INTUITION_CONTRACT_ADDRESS=0x04056c43d0498b22f7a0c60d4c3584fb5fa881cc
 START_BLOCK=0
 ```
@@ -215,13 +172,13 @@ npm run create-predicates
 
 ```bash
 # Start all services
-docker-compose -f docker-compose-apps.yml up -d
+docker-compose -f docker/docker-compose-apps.yml up -d
 
 # Stop all services
-./stop.sh
+./scripts/stop.sh
 
 # View logs
-docker-compose -f docker-compose-apps.yml logs -f
+docker-compose -f docker/docker-compose-apps.yml logs -f
 ```
 
 ### Logging and Monitoring
@@ -236,52 +193,45 @@ All consumer services output structured JSON logs with the following fields:
 - `line_number`: Line number in source file
 - `threadId`: Thread identifier
 
-**ELK Stack Setup:**
+**Viewing Logs:**
 ```bash
-# Start ELK services
-docker-compose -f docker-compose-shared.yml up elasticsearch logstash kibana filebeat -d
-
-# Set up Kibana searches
-./setup-kibana.sh
-
-# Access Kibana
-open http://localhost:5601
-```
-
-**Useful Log Filters:**
-```bash
-# Service-specific logs
-service:decoded_consumer AND level:INFO
-service:resolver_consumer AND level:ERROR
-service:ipfs_upload_consumer AND level:WARN
-
-# All consumer logs
-level:INFO AND (service:decoded_consumer OR service:resolver_consumer OR service:ipfs_upload_consumer OR service:histocrawler)
-
-# Error logs across all services
-level:ERROR
+# View container logs directly
+docker logs decoded_consumer | grep '"level":"INFO"'
+docker logs resolver_consumer | grep '"level":"ERROR"'
+docker logs ipfs_upload_consumer | grep '"level":"WARN"'
 ```
 
 ## 📁 Project Structure
 
 ```
 intuition-rs/
-├── cli/                    # Terminal UI client
-├── consumer/              # Event processing pipeline
-├── consumer-api/          # REST API service
-├── hasura/               # GraphQL API & migrations
-├── image-guard/          # Image processing service
-├── models/               # Domain models & data structures
-├── rpc-proxy/            # RPC proxy with caching
-├── integration-tests/    # End-to-end tests
-├── shared-utils/         # Common utilities
-├── elk/                  # ELK stack configuration
-│   ├── kibana/          # Kibana config and saved objects
-│   ├── logstash/        # Logstash pipeline config
-│   └── filebeat/        # Filebeat config
-├── docker-compose-*.yml  # Service orchestration
-├── setup-kibana.sh      # Kibana setup script
-└── start.sh             # System startup script
+├── apps/                 # Custom Rust applications
+│   ├── cli/             # Terminal UI client
+│   ├── consumer/        # Event processing pipeline (Redis Streams)
+│   ├── histocrawler/    # Historical data crawler
+│   ├── image-guard/     # Image processing service
+│   ├── models/          # Domain models & data structures
+│   ├── rpc-proxy/       # RPC proxy with caching
+│   └── shared-utils/    # Common utilities
+├── infrastructure/      # Infrastructure components
+│   ├── hasura/         # GraphQL API & migrations
+│   ├── blockscout/     # Blockchain explorer
+│   ├── drizzle/        # Database schema management
+│   ├── geth/           # Local Ethereum node config
+│   ├── indexer-and-cache-migrations/  # Database migrations
+│   ├── migration-scripts/  # Migration utilities
+│   └── prometheus/     # Monitoring configuration
+├── docker/             # Docker configuration
+│   ├── docker-compose-apps.yml   # Application services
+│   ├── docker-compose-shared.yml # Shared infrastructure
+│   └── Dockerfile      # Multi-stage build
+├── scripts/            # Shell scripts
+│   ├── start.sh        # System startup
+│   ├── stop.sh         # System shutdown
+│   ├── cli.sh          # CLI runner
+│   ├── init-dbs.sh     # Database initialization
+├── integration-tests/  # End-to-end tests
+└── README.md          # This file
 ```
 
 ## 🔄 Event Processing Pipeline
@@ -303,28 +253,24 @@ The system processes blockchain events through multiple stages:
 
 ## 📊 Monitoring and Observability
 
-### ELK Stack Integration
+### Logging
 
-The system includes comprehensive logging and monitoring capabilities:
+The system includes comprehensive logging capabilities:
 
 **Features:**
 - **Structured JSON Logging**: All services output machine-readable logs
-- **Centralized Log Collection**: Filebeat collects logs from all containers
-- **Real-time Processing**: Logstash processes and enriches log data
-- **Search and Visualization**: Kibana provides powerful search and dashboard capabilities
-- **Pre-configured Searches**: Ready-to-use filters for common monitoring scenarios
+- **Container Logs**: Direct access to service logs via Docker
+- **Log Filtering**: Easy filtering by log level and service
 
 **Benefits:**
 - **Debugging**: Quickly find and analyze issues across services
 - **Performance Monitoring**: Track service performance and bottlenecks
 - **Audit Trail**: Complete visibility into system operations
-- **Alerting**: Set up alerts for critical errors or performance issues
 
 **Getting Started:**
-1. Start the system: `./start.sh histo_local_1_5`
-2. Set up Kibana: `./setup-kibana.sh`
-3. Access Kibana: http://localhost:5601
-4. Use pre-configured searches or create custom dashboards
+1. Start the system: `cargo make start-local`
+2. View logs: `docker logs <service_name>`
+3. Filter logs: `docker logs <service_name> | grep '"level":"INFO"'`
 
 ## 📚 Additional Resources
 
