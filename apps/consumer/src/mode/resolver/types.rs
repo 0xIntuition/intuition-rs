@@ -54,6 +54,32 @@ impl ResolverMessageType {
     ) -> Result<(), ConsumerError> {
         match self {
             ResolverMessageType::Atom(resolver_message) => {
+                // Before we actually start the resolution process, we need to check if the atom represents an account for resolution, because if it does,
+                // we need to also try to update ENS for the account.
+                let atom = Atom::find_by_id(
+                    FixedBytesWrapper::from_str(resolver_message)?,
+                    &resolver_consumer_context
+                        .server_initialize
+                        .env
+                        .backend_schema,
+                    &resolver_consumer_context.pg_pool,
+                )
+                .await?
+                .ok_or(ConsumerError::AtomNotFound)?;
+                if atom.atom_type == AtomType::Account {
+                    let mut account = Account::find_by_id(
+                        atom.creator_id.clone(),
+                        &resolver_consumer_context
+                            .server_initialize
+                            .env
+                            .backend_schema,
+                        &resolver_consumer_context.pg_pool,
+                    )
+                    .await?
+                    .ok_or(ConsumerError::AccountNotFound)?;
+                    self.process_account(resolver_consumer_context, &mut account)
+                        .await?;
+                }
                 debug!("Processing a resolved message: {resolver_message:?}");
                 self.process_atom(resolver_consumer_context, resolver_message)
                     .await
