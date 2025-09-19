@@ -246,7 +246,7 @@ pub trait DepositedEvent:
     }
 
     /// Threshold (in minutes) for considering an atom as recently updated.
-    const ATOM_RECENT_UPDATE_THRESHOLD_MINUTES: i64 = 5;
+    const ATOM_RECENT_UPDATE_THRESHOLD_MINUTES: i64 = 1;
 
     /// This function checks if an atom was updated within the last 5 minutes
     async fn is_atom_recently_updated(

@@ -22,7 +22,7 @@ use models::{
 use serde::{Deserialize, Serialize};
 use sqlx::{Postgres, Transaction};
 use std::str::FromStr;
-use tracing::debug;
+use tracing::{debug, warn};
 
 /// This struct represents a message that is sent to the resolver
 /// consumer to be processed.
@@ -67,6 +67,7 @@ impl ResolverMessageType {
                 .await?
                 .ok_or(ConsumerError::AtomNotFound)?;
                 if atom.atom_type == AtomType::Account {
+                    warn!("Atom is an account, updating ENS for the account");
                     let mut account = Account::find_by_id(
                         atom.creator_id.clone(),
                         &resolver_consumer_context
@@ -77,13 +78,16 @@ impl ResolverMessageType {
                     )
                     .await?
                     .ok_or(ConsumerError::AccountNotFound)?;
+                    warn!("Account found for atom: {:?}", account);
                     self.process_account(resolver_consumer_context, &mut account)
-                        .await?;
+                        .await
+                } else {
+                    warn!("Atom is not an account, processing as atom");
+                    self.process_atom(resolver_consumer_context, resolver_message)
+                        .await
                 }
-                debug!("Processing a resolved message: {resolver_message:?}");
-                self.process_atom(resolver_consumer_context, resolver_message)
-                    .await
             }
+
             ResolverMessageType::Account(account) => {
                 debug!("Processing a resolved account: {account:?}");
                 self.process_account(resolver_consumer_context, &mut account.clone())
@@ -102,6 +106,7 @@ impl ResolverMessageType {
         if let Some(_name) = ens.name.clone() {
             debug!("ENS for account: {:?}", ens);
             // We need to update the account metadata
+            debug!("Updating account metadata for account: {:?}", account);
             self.update_account_metadata(
                 resolver_consumer_context,
                 account.id.clone(),
@@ -110,6 +115,7 @@ impl ResolverMessageType {
             .await?;
             // We also need to update the atom
             if let Some(atom_id) = account.atom_id.clone() {
+                debug!("Updating atom metadata for account: {:?}", account);
                 self.update_atom_metadata(resolver_consumer_context, &atom_id, ens)
                     .await?;
             } else {
