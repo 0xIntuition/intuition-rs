@@ -249,8 +249,21 @@ pub trait DepositedEvent:
     const ATOM_RECENT_UPDATE_THRESHOLD_MINUTES: i64 = 5;
 
     /// This function checks if an atom was updated within the last 5 minutes
-    fn is_atom_recently_updated(atom: &Atom) -> bool {
-        atom.created_at > Utc::now() - Duration::minutes(Self::ATOM_RECENT_UPDATE_THRESHOLD_MINUTES)
+    async fn is_atom_recently_updated(
+        atom: &Atom,
+        decoded_consumer_context: &DecodedConsumerContext,
+    ) -> Result<bool, ConsumerError> {
+        let updated_at = Atom::get_updated_at(
+            atom.term_id.clone(),
+            &decoded_consumer_context.backend_schema,
+            &decoded_consumer_context.pg_pool,
+        )
+        .await?;
+        match updated_at {
+            Some(updated_at) => Ok(updated_at
+                > Utc::now() - Duration::minutes(Self::ATOM_RECENT_UPDATE_THRESHOLD_MINUTES)),
+            None => Ok(false),
+        }
     }
 
     /// This function checks if an atom needs to be re-resolved
@@ -288,7 +301,7 @@ pub trait DepositedEvent:
 
         match atom {
             Some(atom) => {
-                if Self::is_atom_recently_updated(&atom) {
+                if Self::is_atom_recently_updated(&atom, decoded_consumer_context).await? {
                     debug!(
                         "Atom was updated in the last 5 minutes, skipping atom re-resolution logic"
                     );

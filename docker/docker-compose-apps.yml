@@ -72,7 +72,7 @@ services:
       RUST_LOG: 'info'
       BACKEND_SCHEMA: 'public'
       REDIS_URL: 'redis://redis:6379'
-      LOG_LEVEL: 'info'
+      LOG_LEVEL: 'debug'
     restart: always
     volumes:
       - ./logs:/app/logs
