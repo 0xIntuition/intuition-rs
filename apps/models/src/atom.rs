@@ -67,8 +67,6 @@ impl Model for Atom {}
 #[async_trait]
 impl SimpleCrud<FixedBytesWrapper> for Atom {
     /// Upserts the current Atom instance into the database.
-    ///
-    /// Inserts a new record or updates an existing one based on the Atom's ID.
     /// Utilizes proper serialization for complex types to ensure type safety and consistency.
     async fn upsert<'e, E>(&self, schema: &str, executor: E) -> Result<Self, ModelError>
     where
@@ -249,6 +247,27 @@ impl Atom {
             .await
             .map_err(ModelError::from)
             .map(|_| ())
+    }
+
+    /// Returns the updated_at field for an atom given its term_id
+    pub async fn get_updated_at<'e, E>(
+        term_id: FixedBytesWrapper,
+        schema: &str,
+        executor: E,
+    ) -> Result<Option<DateTime<Utc>>, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
+        let query = format!(
+            r#"SELECT updated_at FROM {}.atom WHERE term_id = $1"#,
+            schema
+        );
+
+        sqlx::query_scalar::<_, DateTime<Utc>>(&query)
+            .bind(term_id)
+            .fetch_optional(executor)
+            .await
+            .map_err(ModelError::from)
     }
 
     /// This function decodes the atom data

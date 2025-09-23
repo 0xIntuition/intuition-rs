@@ -337,17 +337,29 @@ impl AtomMetadata {
     }
 }
 
-/// Validates if a string is a valid Ethereum address
+/// Validates if a string is a valid Ethereum address with proper EIP-55 checksum
 ///
 /// # Arguments
 /// * `address` - The address string to validate
 ///
 /// # Returns
-/// * `bool` - True if valid address, false otherwise
+/// * `bool` - True if valid address with proper checksum, false otherwise
 pub fn is_valid_address(address: &str) -> Result<bool, ConsumerError> {
-    // Try to parse the address as an alloy Address type
+    // First check if it can be parsed as an address
     match Address::from_str(address) {
-        Ok(_) => Ok(true),
+        Ok(_) => {
+            // For addresses that contain mixed case, validate EIP-55 checksum
+            if address.chars().any(|c| c.is_ascii_uppercase()) {
+                // Parse with checksum validation
+                match Address::parse_checksummed(address, None) {
+                    Ok(_) => Ok(true),
+                    Err(_) => Ok(false),
+                }
+            } else {
+                // All lowercase addresses are valid (but not checksummed)
+                Ok(true)
+            }
+        }
         Err(_) => Ok(false),
     }
 }
@@ -479,6 +491,75 @@ mod tests {
         assert!(!is_valid_caip10("caip10:eip155:1")?); // Missing address
         assert!(!is_valid_caip10("caip10:eip155:1:not_an_address")?);
         assert!(!is_valid_caip10("")?);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_is_valid_address_eip55_checksum() -> Result<(), ConsumerError> {
+        // Test with a known valid EIP-55 checksummed address
+        let valid_checksummed = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"; // Vitalik's address
+        assert!(
+            is_valid_address(valid_checksummed)?,
+            "Valid EIP-55 checksummed address should be valid"
+        );
+
+        // Test with invalid checksum (wrong capitalization)
+        let invalid_checksummed = "0xd8da6BF26964aF9D7eEd9e03E53415D37aA96045"; // Wrong checksum
+        let invalid_result = is_valid_address(invalid_checksummed)?;
+        println!(
+            "Invalid checksum '{}' is valid: {}",
+            invalid_checksummed, invalid_result
+        );
+        assert!(
+            !invalid_result,
+            "Invalid EIP-55 checksum should be rejected"
+        );
+
+        // Test with all uppercase (should be invalid unless it's the correct checksum)
+        let all_uppercase = "0xD8DA6BF26964AF9D7EED9E03E53415D37AA96045"; // Wrong checksum
+        let all_upper_result = is_valid_address(all_uppercase)?;
+        println!(
+            "All uppercase '{}' is valid: {}",
+            all_uppercase, all_upper_result
+        );
+        assert!(
+            !all_upper_result,
+            "All uppercase with wrong checksum should be rejected"
+        );
+
+        // Test the original addresses from your question
+        let uppercase_address = "0xD5b879093c35B6D9F99e63B1EDB3d8164F70c9CC";
+        let lowercase_address = "0xd5b879093c35b6d9f99e63b1edb3d8164f70c9cc";
+
+        // Check if the uppercase version has valid EIP-55 checksum
+        let uppercase_result = is_valid_address(uppercase_address)?;
+        println!(
+            "Uppercase address '{}' is valid: {}",
+            uppercase_address, uppercase_result
+        );
+
+        // Lowercase should always be valid (no checksum validation needed)
+        let lowercase_result = is_valid_address(lowercase_address)?;
+        println!(
+            "Lowercase address '{}' is valid: {}",
+            lowercase_address, lowercase_result
+        );
+        assert!(lowercase_result, "Lowercase address should always be valid");
+
+        // Test some other valid cases
+        assert!(is_valid_address(
+            "0x1234567890123456789012345678901234567890"
+        )?);
+        assert!(is_valid_address(
+            "0x0000000000000000000000000000000000000000"
+        )?);
+
+        // Test some invalid cases
+        assert!(!is_valid_address("not_an_address")?);
+        assert!(!is_valid_address("0x")?);
+        assert!(!is_valid_address("")?);
+        assert!(!is_valid_address("0x123")?); // Too short
 
         Ok(())
     }
