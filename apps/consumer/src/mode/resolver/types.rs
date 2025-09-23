@@ -22,7 +22,7 @@ use models::{
 use serde::{Deserialize, Serialize};
 use sqlx::{Postgres, Transaction};
 use std::str::FromStr;
-use tracing::{debug, warn};
+use tracing::{debug, info};
 
 /// This struct represents a message that is sent to the resolver
 /// consumer to be processed.
@@ -53,47 +53,94 @@ impl ResolverMessageType {
         resolver_consumer_context: &ResolverConsumerContext,
     ) -> Result<(), ConsumerError> {
         match self {
-            ResolverMessageType::Atom(resolver_message) => {
-                // Before we actually start the resolution process, we need to check if the atom represents an account for resolution, because if it does,
-                // we need to also try to update ENS for the account.
-                let atom = Atom::find_by_id(
-                    FixedBytesWrapper::from_str(resolver_message)?,
-                    &resolver_consumer_context
-                        .server_initialize
-                        .env
-                        .backend_schema,
-                    &resolver_consumer_context.pg_pool,
-                )
-                .await?
-                .ok_or(ConsumerError::AtomNotFound)?;
-                if atom.atom_type == AtomType::Account {
-                    warn!("Atom is an account, updating ENS for the account");
-                    let mut account = Account::find_by_id(
-                        atom.creator_id.clone(),
-                        &resolver_consumer_context
-                            .server_initialize
-                            .env
-                            .backend_schema,
-                        &resolver_consumer_context.pg_pool,
-                    )
-                    .await?
-                    .ok_or(ConsumerError::AccountNotFound)?;
-                    warn!("Account found for atom: {:?}", account);
-                    self.process_account(resolver_consumer_context, &mut account)
-                        .await
-                } else {
-                    warn!("Atom is not an account, processing as atom");
-                    self.process_atom(resolver_consumer_context, resolver_message)
-                        .await
-                }
+            ResolverMessageType::Atom(atom_id) => {
+                debug!("Processing a resolved atom: {atom_id}");
+                self.process_atom_message(resolver_consumer_context, atom_id)
+                    .await
             }
-
             ResolverMessageType::Account(account) => {
                 debug!("Processing a resolved account: {account:?}");
                 self.process_account(resolver_consumer_context, &mut account.clone())
                     .await
             }
         }
+    }
+
+    /// Processes an atom message by determining if it's an account or regular atom
+    async fn process_atom_message(
+        &self,
+        resolver_consumer_context: &ResolverConsumerContext,
+        atom_id: &str,
+    ) -> Result<(), ConsumerError> {
+        let atom = self
+            .fetch_atom_by_id(resolver_consumer_context, atom_id)
+            .await?;
+
+        if atom.atom_type == AtomType::Account {
+            self.process_account_atom(resolver_consumer_context, &atom)
+                .await
+        } else {
+            debug!("Atom is not an account, processing as atom");
+            self.process_atom(resolver_consumer_context, atom_id).await
+        }
+    }
+
+    /// Fetches an atom by its ID from the database
+    async fn fetch_atom_by_id(
+        &self,
+        resolver_consumer_context: &ResolverConsumerContext,
+        atom_id: &str,
+    ) -> Result<Atom, ConsumerError> {
+        Atom::find_by_id(
+            FixedBytesWrapper::from_str(atom_id)?,
+            &resolver_consumer_context
+                .server_initialize
+                .env
+                .backend_schema,
+            &resolver_consumer_context.pg_pool,
+        )
+        .await?
+        .ok_or(ConsumerError::AtomNotFound)
+    }
+
+    /// Processes an atom that represents an account (updates ENS)
+    async fn process_account_atom(
+        &self,
+        resolver_consumer_context: &ResolverConsumerContext,
+        atom: &Atom,
+    ) -> Result<(), ConsumerError> {
+        info!("Atom is an account, updating ENS for the account");
+
+        let account_data = atom.data.clone().ok_or_else(|| {
+            debug!("No data found for atom: {:?}", atom);
+            ConsumerError::AtomDataNotFound
+        })?;
+
+        let mut account = self
+            .fetch_account_by_atom_data(resolver_consumer_context, &account_data)
+            .await?;
+        debug!("Account found for atom: {:?}", account);
+
+        self.process_account(resolver_consumer_context, &mut account)
+            .await
+    }
+
+    /// Fetches an account by its atom data from the database
+    async fn fetch_account_by_atom_data(
+        &self,
+        resolver_consumer_context: &ResolverConsumerContext,
+        account_data: &str,
+    ) -> Result<Account, ConsumerError> {
+        Account::find_by_id(
+            account_data.to_string(),
+            &resolver_consumer_context
+                .server_initialize
+                .env
+                .backend_schema,
+            &resolver_consumer_context.pg_pool,
+        )
+        .await?
+        .ok_or(ConsumerError::AccountNotFound)
     }
 
     /// This function processes an account message type

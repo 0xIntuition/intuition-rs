@@ -248,7 +248,7 @@ pub trait DepositedEvent:
     /// Threshold (in minutes) for considering an atom as recently updated.
     const ATOM_RECENT_UPDATE_THRESHOLD_MINUTES: i64 = 1;
 
-    /// This function checks if an atom was updated within the last 5 minutes
+    /// This function checks if an atom was updated within the last minute
     async fn is_atom_recently_updated(
         atom: &Atom,
         decoded_consumer_context: &DecodedConsumerContext,
@@ -303,13 +303,13 @@ pub trait DepositedEvent:
             Some(atom) => {
                 if Self::is_atom_recently_updated(&atom, decoded_consumer_context).await? {
                     debug!(
-                        "Atom was updated in the last 5 minutes, skipping atom re-resolution logic"
+                        "Atom was updated in the last minute, skipping atom re-resolution logic"
                     );
                     return Ok(());
                 }
 
                 debug!(
-                    "Atom was not updated in the last 5 minutes, proceeding with atom re-resolution logic"
+                    "Atom was not updated in the last minute, proceeding with atom re-resolution logic"
                 );
 
                 if Self::atom_needs_resolution(&atom) {
