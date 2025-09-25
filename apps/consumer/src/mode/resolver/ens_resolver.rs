@@ -16,6 +16,15 @@ use tracing::debug;
 pub struct Ens {
     pub name: Option<String>,
     pub image: Option<String>,
+    pub twitter: Option<String>,
+    pub discord: Option<String>,
+    pub github: Option<String>,
+    pub telegram: Option<String>,
+    pub email: Option<String>,
+    pub description: Option<String>,
+    pub url: Option<String>,
+    pub location: Option<String>,
+    pub real_name: Option<String>,
 }
 
 impl Ens {
@@ -42,7 +51,70 @@ impl Ens {
         if let Some(name_str) = &name {
             image = Self::get_ens_avatar(name_str, consumer_context).await?;
         }
-        Ok(Ens { name, image })
+
+        // Get social fields if we have an ENS name
+        let mut twitter = None;
+        let mut discord = None;
+        let mut github = None;
+        let mut telegram = None;
+        let mut email = None;
+        let mut description = None;
+        let mut url = None;
+        let mut location = None;
+        let mut real_name = None;
+
+        if name.is_some() {
+            // Fetch all social fields in parallel for better performance
+            let (
+                twitter_result,
+                discord_result,
+                github_result,
+                telegram_result,
+                email_result,
+                description_result,
+                url_result,
+                location_result,
+                name_result,
+            ) = tokio::try_join!(
+                Self::get_ens_description(address, "com.twitter", &consumer_context.mainnet_client),
+                Self::get_ens_description(address, "com.discord", &consumer_context.mainnet_client),
+                Self::get_ens_description(address, "com.github", &consumer_context.mainnet_client),
+                Self::get_ens_description(
+                    address,
+                    "org.telegram",
+                    &consumer_context.mainnet_client
+                ),
+                Self::get_ens_description(address, "email", &consumer_context.mainnet_client),
+                Self::get_ens_description(address, "description", &consumer_context.mainnet_client),
+                Self::get_ens_description(address, "url", &consumer_context.mainnet_client),
+                Self::get_ens_description(address, "location", &consumer_context.mainnet_client),
+                Self::get_ens_description(address, "name", &consumer_context.mainnet_client)
+            )?;
+
+            twitter = twitter_result;
+            discord = discord_result;
+            github = github_result;
+            telegram = telegram_result;
+            email = email_result;
+            description = description_result;
+            url = url_result;
+            location = location_result;
+            real_name = name_result;
+        }
+
+        Ok(Ens {
+            name,
+            image,
+            twitter,
+            discord,
+            github,
+            telegram,
+            email,
+            description,
+            url,
+            location,
+            real_name,
+        })
     }
 
     /// Gets the ENS avatar URL for a given name
@@ -94,6 +166,53 @@ impl Ens {
         }
     }
 
+    /// This function gets the ENS description for an address.
+    pub async fn get_ens_description(
+        address: Address,
+        key: &str,
+        mainnet_client: &ENSRegistryInstance<DynProvider, Ethereum>,
+    ) -> Result<Option<String>, ConsumerError> {
+        debug!("Getting ENS description {} for {}", key, address);
+
+        // First, get the ENS name for this address using reverse resolution
+        let ens_name = Self::get_ens_name(address, mainnet_client).await?;
+
+        if let Some(name) = ens_name {
+            debug!("Found ENS name: {} for address: {}", name, address);
+
+            // Now get the social fields using forward resolution on the ENS name
+            let name_hash = Self::namehash(&name);
+            let resolver_address = mainnet_client
+                .resolver(FixedBytes::from_slice(name_hash.as_slice()))
+                .call()
+                .await?;
+
+            if resolver_address != Address::ZERO {
+                debug!(
+                    "Found resolver: {} for ENS name: {}",
+                    resolver_address, name
+                );
+                let alloy_contract =
+                    ENSNameInstance::new(resolver_address, mainnet_client.provider());
+                let value = alloy_contract
+                    .text(
+                        FixedBytes::from_slice(name_hash.as_slice()),
+                        key.to_string(),
+                    )
+                    .call()
+                    .await?;
+                debug!("Resolved ENS {} for {}: {:?}", key, name, value);
+                Ok(Some(value))
+            } else {
+                debug!("No resolver found for ENS name: {}", name);
+                Ok(None)
+            }
+        } else {
+            debug!("No ENS name found for address: {}", address);
+            Ok(None)
+        }
+    }
+
     /// This function gets the resolver address for an address hash.
     async fn get_resolver_address(
         address: Address,
@@ -124,6 +243,7 @@ impl Ens {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloy::providers::ProviderBuilder;
 
     #[test]
     fn test_namehash() {
@@ -141,5 +261,113 @@ mod tests {
         // Test "alice.eth"
         let alice_eth_hash = "787192fc5378cc32aa956ddfdedbf26b24e8d78e40109add0eea2c1a012c3dec";
         assert_eq!(hex::encode(Ens::namehash("alice.eth")), alice_eth_hash);
+    }
+
+    #[tokio::test]
+    async fn test_get_ens_name() {
+        // Load environment variables from .env file
+        dotenvy::dotenv().ok();
+
+        // Test addresses with known ENS names
+        let test_addresses = vec![
+            "0xB95ca3D3144e9d1DAFF0EE3d35a4488A4A5C9Fc5", // Example address
+            "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045", // vitalik.eth
+            "0x983110309620D911731Ac0932219af06091b6744", // ens.eth
+        ];
+
+        // Create a provider
+        // BASE_MAINNET_RPC_PROVIDER: The RPC endpoint URL for Ethereum mainnet blockchain access
+        let rpc_url = std::env::var("BASE_MAINNET_RPC_PROVIDER").unwrap();
+        let provider = ProviderBuilder::new().connect_http(rpc_url.parse().unwrap());
+        let dyn_provider = DynProvider::new(provider);
+        let mainnet_client = ENSRegistryInstance::new(
+            "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e"
+                .parse()
+                .unwrap(),
+            dyn_provider,
+        );
+
+        println!("Testing ENS name resolution for addresses:");
+
+        for addr_str in test_addresses {
+            let test_address: Address = addr_str.parse().unwrap();
+
+            match Ens::get_ens_name(test_address, &mainnet_client).await {
+                Ok(Some(name)) => {
+                    if name.is_empty() {
+                        println!("⚠️  {}: Empty ENS name", test_address);
+                    } else {
+                        println!("✅ {}: {}", test_address, name);
+                    }
+                }
+                Ok(None) => {
+                    println!("❌ {}: No ENS name found", test_address);
+                }
+                Err(e) => {
+                    println!("⚠️  {}: Error - {}", test_address, e);
+                }
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn test_get_ens_social_fields() {
+        // Load environment variables from .env file
+        dotenvy::dotenv().ok();
+
+        // Test addresses with ENS social fields
+        let test_addresses = vec![
+            "0xB95ca3D3144e9d1DAFF0EE3d35a4488A4A5C9Fc5", // 0xvital.eth
+            "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045", // vitalik.eth
+        ];
+
+        // Create a provider (you may need to adjust this based on your test setup)
+        // BASE_MAINNET_RPC_PROVIDER: The RPC endpoint URL for Ethereum mainnet blockchain access
+        let rpc_url = std::env::var("BASE_MAINNET_RPC_PROVIDER").unwrap();
+        let provider = ProviderBuilder::new().connect_http(rpc_url.parse().unwrap());
+        let dyn_provider = DynProvider::new(provider);
+        let mainnet_client = ENSRegistryInstance::new(
+            "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e"
+                .parse()
+                .unwrap(),
+            dyn_provider,
+        );
+
+        // Define the fields we want to test
+        let fields = vec![
+            "description",
+            "com.twitter",
+            "com.discord",
+            "com.github",
+            "org.telegram",
+            "email",
+            "url",
+            "location",
+            "name",
+        ];
+
+        for addr_str in test_addresses {
+            let test_address: Address = addr_str.parse().unwrap();
+            println!("Testing ENS social fields for address: {}", test_address);
+
+            for field in &fields {
+                match Ens::get_ens_description(test_address, field, &mainnet_client).await {
+                    Ok(Some(value)) => {
+                        if value.is_empty() {
+                            println!("⚠️  {}: Empty value", field);
+                        } else {
+                            println!("✅ {}: {}", field, value);
+                        }
+                    }
+                    Ok(None) => {
+                        println!("❌ {}: No value found", field);
+                    }
+                    Err(e) => {
+                        println!("⚠️  {}: Error - {}", field, e);
+                    }
+                }
+            }
+            println!(); // Add spacing between addresses
+        }
     }
 }

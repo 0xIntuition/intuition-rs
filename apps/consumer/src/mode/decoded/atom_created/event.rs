@@ -183,7 +183,7 @@ pub trait AtomCreatedEvent:
         // Now we need to enqueue the message to be processed by the resolver. In this
         // process we check if the account has ENS data associated, and if it does, we
         // update the account with the ENS data (name [label] and image)
-        let message = ResolverConsumerMessage::new_account(account.clone());
+        let message = ResolverConsumerMessage::new_account(account.id.clone());
         decoded_consumer_context
             .client
             .send_message(serde_json::to_string(&message)?, None)

@@ -43,7 +43,7 @@ pub struct ResolveAtom {
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ResolverMessageType {
     Atom(String),
-    Account(Account),
+    Account(String),
 }
 
 impl ResolverMessageType {
@@ -60,7 +60,7 @@ impl ResolverMessageType {
             }
             ResolverMessageType::Account(account) => {
                 debug!("Processing a resolved account: {account:?}");
-                self.process_account(resolver_consumer_context, &mut account.clone())
+                self.process_account(resolver_consumer_context, account.clone())
                     .await
             }
         }
@@ -116,12 +116,12 @@ impl ResolverMessageType {
             ConsumerError::AtomDataNotFound
         })?;
 
-        let mut account = self
+        let account = self
             .fetch_account_by_atom_data(resolver_consumer_context, &account_data)
             .await?;
         debug!("Account found for atom: {:?}", account);
 
-        self.process_account(resolver_consumer_context, &mut account)
+        self.process_account(resolver_consumer_context, account.id.clone())
             .await
     }
 
@@ -147,20 +147,26 @@ impl ResolverMessageType {
     async fn process_account(
         &self,
         resolver_consumer_context: &ResolverConsumerContext,
-        account: &mut Account,
+        account: String,
     ) -> Result<(), ConsumerError> {
-        let ens = Ens::get_ens(Address::from_str(&account.id)?, resolver_consumer_context).await?;
+        let ens = Ens::get_ens(Address::from_str(&account)?, resolver_consumer_context).await?;
         if let Some(_name) = ens.name.clone() {
             debug!("ENS for account: {:?}", ens);
             // We need to update the account metadata
             debug!("Updating account metadata for account: {:?}", account);
-            self.update_account_metadata(
-                resolver_consumer_context,
-                account.id.clone(),
-                ens.clone(),
-            )
-            .await?;
+            self.update_account_metadata(resolver_consumer_context, account.clone(), ens.clone())
+                .await?;
             // We also need to update the atom
+            let account = Account::find_by_id(
+                account.clone(),
+                &resolver_consumer_context
+                    .server_initialize
+                    .env
+                    .backend_schema,
+                &resolver_consumer_context.pg_pool,
+            )
+            .await?
+            .ok_or(ConsumerError::AccountNotFound)?;
             if let Some(atom_id) = account.atom_id.clone() {
                 debug!("Updating atom metadata for account: {:?}", account);
                 self.update_atom_metadata(resolver_consumer_context, &atom_id, ens)
@@ -386,6 +392,15 @@ impl ResolverMessageType {
         .ok_or(ConsumerError::AccountNotFound)?;
         account.label = ens.name.ok_or(ConsumerError::LabelNotFound)?;
         account.image = ens.image;
+        account.real_name = ens.real_name;
+        account.twitter = ens.twitter;
+        account.discord = ens.discord;
+        account.github = ens.github;
+        account.telegram = ens.telegram;
+        account.email = ens.email;
+        account.description = ens.description;
+        account.url = ens.url;
+        account.location = ens.location;
         account
             .upsert(backend_schema, &resolver_consumer_context.pg_pool)
             .await?;
@@ -427,7 +442,7 @@ impl ResolverConsumerMessage {
     }
 
     /// This function creates a new account message
-    pub fn new_account(account: Account) -> Self {
+    pub fn new_account(account: String) -> Self {
         Self {
             message: ResolverMessageType::Account(account),
         }

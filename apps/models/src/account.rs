@@ -17,6 +17,15 @@ pub struct Account {
     pub label: String,
     pub image: Option<String>,
     pub account_type: AccountType,
+    pub real_name: Option<String>,
+    pub twitter: Option<String>,
+    pub discord: Option<String>,
+    pub github: Option<String>,
+    pub telegram: Option<String>,
+    pub email: Option<String>,
+    pub description: Option<String>,
+    pub url: Option<String>,
+    pub location: Option<String>,
 }
 
 /// This is the `AccountType` enum that represents the type of an account.
@@ -41,19 +50,37 @@ impl SimpleCrud<String> for Account {
     {
         let query = format!(
             r#"
-            INSERT INTO {}.account (id, atom_id, label, image, type)
-            VALUES ($1, $2, $3, $4, $5::text::{}.account_type)
+            INSERT INTO {}.account (id, atom_id, label, image, type, real_name, twitter, discord, github, telegram, email, description, url, location)
+            VALUES ($1, $2, $3, $4, $5::text::{}.account_type, $6, $7, $8, $9, $10, $11, $12, $13, $14)
             ON CONFLICT (id) DO UPDATE SET
                 atom_id = EXCLUDED.atom_id,
                 label = EXCLUDED.label,
                 image = EXCLUDED.image,
-                type = EXCLUDED.type
+                type = EXCLUDED.type,
+                real_name = EXCLUDED.real_name,
+                twitter = EXCLUDED.twitter,
+                discord = EXCLUDED.discord,
+                github = EXCLUDED.github,
+                telegram = EXCLUDED.telegram,
+                email = EXCLUDED.email,
+                description = EXCLUDED.description,
+                url = EXCLUDED.url,
+                location = EXCLUDED.location
             RETURNING 
                 id, 
                 atom_id, 
                 label, 
                 image, 
-                type as account_type
+                type as account_type,
+                real_name,
+                twitter,
+                discord,
+                github,
+                telegram,
+                email,
+                description,
+                url,
+                location
             "#,
             schema, schema
         );
@@ -64,6 +91,15 @@ impl SimpleCrud<String> for Account {
             .bind(&self.label)
             .bind(&self.image)
             .bind(self.account_type.to_string())
+            .bind(&self.real_name)
+            .bind(&self.twitter)
+            .bind(&self.discord)
+            .bind(&self.github)
+            .bind(&self.telegram)
+            .bind(&self.email)
+            .bind(&self.description)
+            .bind(&self.url)
+            .bind(&self.location)
             .fetch_one(executor)
             .await
             .map_err(|e| ModelError::AccountInsertError(e.to_string()))
@@ -85,7 +121,16 @@ impl SimpleCrud<String> for Account {
                 atom_id, 
                 label, 
                 image, 
-                type as account_type
+                type as account_type,
+                real_name,
+                twitter,
+                discord,
+                github,
+                telegram,
+                email,
+                description,
+                url,
+                location
             FROM {}.account
             WHERE id = $1
             "#,

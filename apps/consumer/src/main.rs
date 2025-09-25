@@ -32,7 +32,9 @@ sol! {
     #[sol(rpc)]
     interface ENSName {
         function name(bytes32 node) external view returns (string);
+        function text(bytes32 node, string key) external view returns (string);
     }
+
 }
 
 /// The current supported CLI parameters are listed below.
