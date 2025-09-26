@@ -5,12 +5,12 @@ use alloy::{
     providers::{Provider, ProviderBuilder},
     rpc::types::{Block, Filter, Log},
 };
-use log::info;
 use models::{histocrawler::AppConfig, raw_logs::RawLog};
 use shared_utils::postgres::connect_to_db;
 use sqlx::PgPool;
 use std::{ops::Add, str::FromStr, time::Duration};
 use tokio::time::sleep;
+use tracing::{debug, info, warn};
 use url::Url;
 
 /// This is the main struct for the HistoCrawler application
@@ -83,7 +83,7 @@ impl HistoCrawler {
             .insert(&self.pg_pool, &self.app_config.indexer_schema)
             .await?;
 
-        info!("Inserted log: {:#?}", raw_log);
+        debug!("Inserted log: {:#?}", raw_log);
         Ok(())
     }
 
@@ -113,8 +113,6 @@ impl HistoCrawler {
 
     /// Initialize the environment variables
     pub async fn init() -> Result<Env, HistoCrawlerError> {
-        // Initialize the logger
-        env_logger::init();
         // Read the .env file from the current directory or parents
         dotenvy::dotenv().ok();
         // Parse the .env file
@@ -199,7 +197,7 @@ impl HistoCrawler {
                     if attempts > max_attempts {
                         return Err(e.into());
                     }
-                    info!(
+                    warn!(
                         "RPC call failed, attempt {}/{}. Error: {}. Retrying in {:?}...",
                         attempts, max_attempts, e, delay
                     );
@@ -243,7 +241,7 @@ impl HistoCrawler {
         loop {
             // Validate block range before creating filter
             if start_block > end_block {
-                info!(
+                warn!(
                     "Invalid block range detected: start_block ({}) > end_block ({}), updating...",
                     start_block, end_block
                 );
@@ -260,7 +258,7 @@ impl HistoCrawler {
             let mut encountered_error = false;
             for log in logs {
                 if let Err(e) = self.decode_raw_log_and_insert(log.clone()).await {
-                    info!(
+                    warn!(
                         "Error processing log in block {}: {}. Reducing batch size.",
                         log.block_number.unwrap_or(start_block as u64),
                         e
@@ -281,7 +279,10 @@ impl HistoCrawler {
                 continue;
             }
 
-            info!("Successfully scanned blocks {} to {}", start_block, end_block);
+            debug!(
+                "Successfully scanned blocks {} to {}",
+                start_block, end_block
+            );
 
             // Update the last processed block in the database after successful processing
             self.app_config

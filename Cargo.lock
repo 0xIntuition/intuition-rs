@@ -2803,9 +2803,7 @@ version = "0.1.0"
 dependencies = [
  "alloy",
  "dotenvy",
- "env_logger",
  "envy",
- "log",
  "models",
  "serde",
  "serde_json",
@@ -2813,6 +2811,8 @@ dependencies = [
  "sqlx",
  "thiserror 2.0.16",
  "tokio",
+ "tracing",
+ "tracing-subscriber",
  "url",
 ]
 
