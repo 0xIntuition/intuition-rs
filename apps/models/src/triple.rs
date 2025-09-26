@@ -20,7 +20,7 @@ pub struct Triple {
     pub block_number: U256Wrapper,
     pub created_at: DateTime<Utc>,
     pub transaction_hash: String,
-    pub signature: Option<String>,
+    pub platform: Option<String>,
 }
 
 /// This is a trait that all models must implement.
@@ -36,7 +36,7 @@ impl SimpleCrud<FixedBytesWrapper> for Triple {
     {
         let query = format!(
             r#"
-            INSERT INTO {}.triple (creator_id, subject_id, predicate_id, object_id, term_id, counter_term_id, block_number, created_at, transaction_hash, signature)
+            INSERT INTO {}.triple (creator_id, subject_id, predicate_id, object_id, term_id, counter_term_id, block_number, created_at, transaction_hash, platform)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             ON CONFLICT (term_id) DO UPDATE SET
                 creator_id = EXCLUDED.creator_id,
@@ -48,9 +48,9 @@ impl SimpleCrud<FixedBytesWrapper> for Triple {
                 block_number = EXCLUDED.block_number,
                 created_at = EXCLUDED.created_at,
                 transaction_hash = EXCLUDED.transaction_hash,
-                signature = EXCLUDED.signature
+                platform = EXCLUDED.platform
             RETURNING creator_id, subject_id, predicate_id, object_id, 
-                      term_id, counter_term_id, block_number, created_at, transaction_hash, signature
+                      term_id, counter_term_id, block_number, created_at, transaction_hash, platform
             "#,
             schema,
         );
@@ -65,7 +65,7 @@ impl SimpleCrud<FixedBytesWrapper> for Triple {
             .bind(self.block_number.to_big_decimal()?)
             .bind(self.created_at)
             .bind(&self.transaction_hash)
-            .bind(self.signature.clone())
+            .bind(self.platform.clone())
             .fetch_one(executor)
             .await
             .map_err(ModelError::from)
@@ -92,7 +92,7 @@ impl SimpleCrud<FixedBytesWrapper> for Triple {
                 block_number, 
                 created_at, 
                 transaction_hash, 
-                signature
+                platform
             FROM {}.triple
             WHERE term_id = $1 OR counter_term_id = $1
             "#,

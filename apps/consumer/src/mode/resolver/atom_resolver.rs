@@ -83,7 +83,7 @@ async fn try_to_resolve_schema_org_properties(
         if let Ok(atom_type) = AtomType::from_str(obj_type) {
             match atom_type {
                 AtomType::Thing => {
-                    let signature = obj.get("signature").and_then(|s| s.as_str()).map(|s| s.to_string());
+                    let platform = obj.get("platform").and_then(|s| s.as_str()).map(|s| s.to_string());
                     let thing = create_thing_from_obj(atom, obj)
                         .upsert(consumer_context.backend_schema(), consumer_context.pool())
                         .await?;
@@ -91,11 +91,11 @@ async fn try_to_resolve_schema_org_properties(
                     Ok(AtomMetadata::thing(
                         thing.name.unwrap_or_default(),
                         thing.image.clone(),
-                        signature,
+                        platform,
                     ))
                 }
                 AtomType::Person => {
-                    let signature = obj.get("signature").and_then(|s| s.as_str()).map(|s| s.to_string());
+                    let platform = obj.get("platform").and_then(|s| s.as_str()).map(|s| s.to_string());
                     let person = create_person_from_obj(atom, obj)
                         .upsert(consumer_context.backend_schema(), consumer_context.pool())
                         .await?;
@@ -103,11 +103,11 @@ async fn try_to_resolve_schema_org_properties(
                     Ok(AtomMetadata::person(
                         person.name.unwrap_or_default(),
                         person.image.clone(),
-                        signature,
+                        platform,
                     ))
                 }
                 AtomType::Organization => {
-                    let signature = obj.get("signature").and_then(|s| s.as_str()).map(|s| s.to_string());
+                    let platform = obj.get("platform").and_then(|s| s.as_str()).map(|s| s.to_string());
                     let organization = create_organization_from_obj(atom, obj)
                         .upsert(consumer_context.backend_schema(), consumer_context.pool())
                         .await?;
@@ -115,16 +115,16 @@ async fn try_to_resolve_schema_org_properties(
                     Ok(AtomMetadata::organization(
                         organization.name.unwrap_or_default(),
                         organization.image.clone(),
-                        signature,
+                        platform,
                     ))
                 }
                 AtomType::Book => {
-                    let signature = obj.get("signature").and_then(|s| s.as_str()).map(|s| s.to_string());
+                    let platform = obj.get("platform").and_then(|s| s.as_str()).map(|s| s.to_string());
                     let book = create_book_from_obj(atom, obj)
                         .upsert(consumer_context.backend_schema(), consumer_context.pool())
                         .await?;
                     create_book_atom_value(atom, &book, consumer_context).await?;
-                    Ok(AtomMetadata::book(book.name.unwrap_or_default(), signature))
+                    Ok(AtomMetadata::book(book.name.unwrap_or_default(), platform))
                 }
                 _ => {
                     warn!("Unsupported schema.org type: {}", obj_type);
@@ -327,12 +327,12 @@ async fn handle_regular_json(
         "No @context found in JSON: {:?}, returning it as JsonObject",
         json
     );
-    let signature = json.get("signature").and_then(|s| s.as_str()).map(|s| s.to_string());
+    let platform = json.get("platform").and_then(|s| s.as_str()).map(|s| s.to_string());
     let json_object = create_json_object_from_obj(atom, json)
         .upsert(consumer_context.backend_schema(), consumer_context.pool())
         .await?;
     create_json_object_atom_value(atom, &json_object, consumer_context).await?;
-    Ok(AtomMetadata::json_object(None, signature))
+    Ok(AtomMetadata::json_object(None, platform))
 }
 
 /// Handles binary data
