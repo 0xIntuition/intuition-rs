@@ -20,6 +20,7 @@ pub struct Triple {
     pub block_number: U256Wrapper,
     pub created_at: DateTime<Utc>,
     pub transaction_hash: String,
+    pub signature: Option<String>,
 }
 
 /// This is a trait that all models must implement.
@@ -35,8 +36,8 @@ impl SimpleCrud<FixedBytesWrapper> for Triple {
     {
         let query = format!(
             r#"
-            INSERT INTO {}.triple (creator_id, subject_id, predicate_id, object_id, term_id, counter_term_id, block_number, created_at, transaction_hash)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            INSERT INTO {}.triple (creator_id, subject_id, predicate_id, object_id, term_id, counter_term_id, block_number, created_at, transaction_hash, signature)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             ON CONFLICT (term_id) DO UPDATE SET
                 creator_id = EXCLUDED.creator_id,
                 subject_id = EXCLUDED.subject_id,
@@ -46,9 +47,10 @@ impl SimpleCrud<FixedBytesWrapper> for Triple {
                 counter_term_id = EXCLUDED.counter_term_id,
                 block_number = EXCLUDED.block_number,
                 created_at = EXCLUDED.created_at,
-                transaction_hash = EXCLUDED.transaction_hash
+                transaction_hash = EXCLUDED.transaction_hash,
+                signature = EXCLUDED.signature
             RETURNING creator_id, subject_id, predicate_id, object_id, 
-                      term_id, counter_term_id, block_number, created_at, transaction_hash
+                      term_id, counter_term_id, block_number, created_at, transaction_hash, signature
             "#,
             schema,
         );
@@ -63,6 +65,7 @@ impl SimpleCrud<FixedBytesWrapper> for Triple {
             .bind(self.block_number.to_big_decimal()?)
             .bind(self.created_at)
             .bind(&self.transaction_hash)
+            .bind(self.signature.clone())
             .fetch_one(executor)
             .await
             .map_err(ModelError::from)
@@ -88,7 +91,8 @@ impl SimpleCrud<FixedBytesWrapper> for Triple {
                 counter_term_id, 
                 block_number, 
                 created_at, 
-                transaction_hash
+                transaction_hash, 
+                signature
             FROM {}.triple
             WHERE term_id = $1 OR counter_term_id = $1
             "#,

@@ -28,6 +28,7 @@ pub struct AtomMetadata {
     pub emoji: String,
     pub atom_type: String,
     pub image: Option<String>,
+    pub signature: Option<String>,
 }
 
 impl AtomMetadata {
@@ -38,16 +39,18 @@ impl AtomMetadata {
             emoji: "⛓️".to_string(),
             atom_type: "Account".to_string(),
             image,
+            signature: None,
         }
     }
 
     /// Creates a new atom metadata for a book
-    pub fn book(name: String) -> Self {
+    pub fn book(name: String, signature: Option<String>) -> Self {
         Self {
             label: name,
             emoji: "📚".to_string(),
             atom_type: "Book".to_string(),
             image: None,
+            signature,
         }
     }
 
@@ -58,6 +61,7 @@ impl AtomMetadata {
             emoji: "🔢".to_string(),
             atom_type: "ByteObject".to_string(),
             image,
+            signature: None,
         }
     }
 
@@ -68,6 +72,7 @@ impl AtomMetadata {
             emoji: "🔗".to_string(),
             atom_type: "Caip10".to_string(),
             image: None,
+            signature: None,
         }
     }
 
@@ -107,6 +112,7 @@ impl AtomMetadata {
             emoji: "🔔".to_string(),
             atom_type: "FollowAction".to_string(),
             image,
+            signature: None,
         }
     }
 
@@ -149,12 +155,13 @@ impl AtomMetadata {
     }
 
     /// Creates a new atom metadata for a json object
-    pub fn json_object(image: Option<String>) -> Self {
+    pub fn json_object(image: Option<String>, signature: Option<String>) -> Self {
         Self {
             label: "json object".to_string(),
             emoji: "📦".to_string(),
             atom_type: "JsonObject".to_string(),
             image,
+            signature,
         }
     }
 
@@ -165,6 +172,7 @@ impl AtomMetadata {
             emoji: "🏷️".to_string(),
             atom_type: "Keywords".to_string(),
             image,
+            signature: None,
         }
     }
 
@@ -175,16 +183,18 @@ impl AtomMetadata {
             emoji: "👍".to_string(),
             atom_type: "LikeAction".to_string(),
             image,
+            signature: None,
         }
     }
 
     /// Creates a new atom metadata for an organization
-    pub fn organization(name: String, image: Option<String>) -> Self {
+    pub fn organization(name: String, image: Option<String>, signature: Option<String>) -> Self {
         Self {
             label: name,
             emoji: "🏢".to_string(),
             atom_type: "Organization".to_string(),
             image,
+            signature,
         }
     }
 
@@ -195,16 +205,18 @@ impl AtomMetadata {
             emoji: "🏢".to_string(),
             atom_type: "OrganizationPredicate".to_string(),
             image,
+            signature: None,
         }
     }
 
     /// Creates a new atom metadata for a person
-    pub fn person(name: String, image: Option<String>) -> Self {
+    pub fn person(name: String, image: Option<String>, signature: Option<String>) -> Self {
         Self {
             label: name,
             emoji: "👤".to_string(),
             atom_type: "Person".to_string(),
             image,
+            signature,
         }
     }
 
@@ -215,6 +227,7 @@ impl AtomMetadata {
             emoji: "👤".to_string(),
             atom_type: "PersonPredicate".to_string(),
             image,
+            signature: None,
         }
     }
 
@@ -229,16 +242,18 @@ impl AtomMetadata {
             emoji: "📝".to_string(),
             atom_type: "TextObject".to_string(),
             image: None,
+            signature: None,
         }
     }
 
     /// Creates a new atom metadata for a thing
-    pub fn thing(name: String, image: Option<String>) -> Self {
+    pub fn thing(name: String, image: Option<String>, signature: Option<String>) -> Self {
         Self {
             label: name,
             emoji: "🧩".to_string(),
             atom_type: "Thing".to_string(),
             image,
+            signature,
         }
     }
 
@@ -249,6 +264,7 @@ impl AtomMetadata {
             emoji: "🧩".to_string(),
             atom_type: "ThingPredicate".to_string(),
             image,
+            signature: None,
         }
     }
 
@@ -259,6 +275,7 @@ impl AtomMetadata {
             emoji: "❓".to_string(),
             atom_type: "Unknown".to_string(),
             image: None,
+            signature: None,
         }
     }
 
@@ -327,12 +344,14 @@ impl AtomMetadata {
         atom.atom_type = AtomType::from_str(&self.atom_type)?;
         atom.label = Some(self.label.clone());
         atom.image = self.image.clone();
+        atom.signature = self.signature.clone();
         atom.upsert(backend_schema, pg_pool).await?;
         Ok(AtomMetadata {
             label: self.label.clone(),
             emoji: self.emoji.clone(),
             atom_type: self.atom_type.clone(),
             image: self.image.clone(),
+            signature: self.signature.clone(),
         })
     }
 }
