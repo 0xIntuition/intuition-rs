@@ -71,7 +71,7 @@ pub fn restore_tui() -> io::Result<()> {
 
 async fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<()> {
     let mut last_tick = std::time::Instant::now();
-    let tick_rate = std::time::Duration::from_secs(1);
+    let tick_rate = std::time::Duration::from_millis(100);  // Faster tick for spinner animation
 
     loop {
         terminal.draw(|f| ui::draw(f, &app))?;
@@ -85,10 +85,28 @@ async fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Re
         {
             match key.code {
                 KeyCode::Char('q') => return Ok(()),
-                KeyCode::Char('r') => app.fetch_data().await,
-                KeyCode::Tab => app.next_tab(),
-                KeyCode::Right => app.next_tab(),
-                KeyCode::Left => app.previous_tab(),
+                KeyCode::Char('r') => {
+                    // Refresh current tab data
+                    app.fetch_current_tab_data().await;
+                }
+                KeyCode::Char('R') => {
+                    // Refresh all tabs data (Shift+R)
+                    app.fetch_all_data().await;
+                }
+                KeyCode::Tab | KeyCode::Right => {
+                    app.next_tab();
+                    // Check if we need to load data for the new tab
+                    if app.should_load_tab() {
+                        app.fetch_current_tab_data().await;
+                    }
+                }
+                KeyCode::Left => {
+                    app.previous_tab();
+                    // Check if we need to load data for the new tab
+                    if app.should_load_tab() {
+                        app.fetch_current_tab_data().await;
+                    }
+                }
                 KeyCode::Down => {
                     app.next_account();
                     app.fetch_account_details().await;
@@ -108,7 +126,6 @@ async fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Re
         }
 
         if last_tick.elapsed() >= tick_rate {
-            app.fetch_data().await;
             last_tick = std::time::Instant::now();
         }
     }
