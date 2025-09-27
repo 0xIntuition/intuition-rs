@@ -27,13 +27,7 @@ pub fn draw(f: &mut Frame, app: &App) {
     ];
     let tabs = Tabs::new(titles)
         .block(Block::default().borders(Borders::NONE))
-        .select(match app.current_tab {
-            Tab::Aggregates => 0,
-            Tab::Accounts => 1,
-            Tab::PredicateObjects => 2,
-            Tab::Atoms => 3,
-            Tab::Signals => 4,
-        })
+        .select(app.current_tab.index())
         .style(Style::default().fg(Color::White))
         .highlight_style(Style::default().fg(Color::Yellow));
 

@@ -20,4 +20,5 @@ lazy_static = "1.4.0"
 ratatui = "0.29"
 reqwest = { version = "0.12.8", features = ["json", "blocking"] }
 serde.workspace = true
+serde_json = "1.0"
 tokio.workspace = true
