@@ -1,3 +1,4 @@
+use clap::Parser;
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
@@ -16,9 +17,30 @@ mod ui;
 
 use app::{App, LoadingState};
 
+#[derive(Parser)]
+#[command(name = "intuition-cli")]
+#[command(about = "Terminal UI for Intuition GraphQL API", long_about = None)]
+struct Cli {
+    /// Use localhost API instead of testnet
+    #[arg(long)]
+    local: bool,
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     init_panic_hook();
+
+    // Parse CLI arguments
+    let cli = Cli::parse();
+
+    // Determine endpoint based on environment variable, CLI flag, or default
+    let endpoint = if let Ok(url) = std::env::var("INTUITION_URL") {
+        url
+    } else if cli.local {
+        "http://localhost:8080/v1/graphql".to_string()
+    } else {
+        "https://testnet.intuition.sh/v1/graphql".to_string()
+    };
 
     // Setup terminal
     enable_raw_mode()?;
@@ -28,7 +50,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut terminal = Terminal::new(backend)?;
 
     // Create app and run it
-    let mut app = App::new();
+    let mut app = App::new(endpoint);
     app.initialize().await;
     let res = run_app(&mut terminal, app).await;
 

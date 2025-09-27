@@ -3,9 +3,7 @@ use crate::queries::{
     get_account_info, get_accounts, get_aggregates, get_atoms, get_predicate_objects, get_signals,
 };
 use graphql_client::GraphQLQuery;
-use lazy_static::lazy_static;
 use std::collections::HashMap;
-use std::env;
 use std::error::Error;
 use std::fmt;
 
@@ -28,10 +26,6 @@ impl fmt::Display for LoadingState {
     }
 }
 
-lazy_static! {
-    static ref GRAPHQL_ENDPOINT: String = env::var("INTUITION_URL")
-        .unwrap_or_else(|_| "http://localhost:8080/v1/graphql".to_string());
-}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Tab {
@@ -77,10 +71,12 @@ pub struct App {
     pub account_details: Option<get_account_info::GetAccountInfoAccount>,
     // Unified loading states
     loading_states: HashMap<Tab, LoadingState>,
+    // GraphQL endpoint
+    endpoint: String,
 }
 
 impl App {
-    pub fn new() -> Self {
+    pub fn new(endpoint: String) -> Self {
         let mut loading_states = HashMap::new();
         for tab in Tab::ALL {
             loading_states.insert(tab, LoadingState::NotLoaded);
@@ -96,6 +92,7 @@ impl App {
             selected_account: None,
             account_details: None,
             loading_states,
+            endpoint,
         }
     }
 
@@ -110,20 +107,21 @@ impl App {
     pub async fn fetch_current_tab_data(&mut self) {
         self.set_loading_state(self.current_tab, LoadingState::Loading);
 
+        let endpoint = self.endpoint.clone();
         let result = match self.current_tab {
-            Tab::Aggregates => fetch_aggregates().await.map(|data| {
+            Tab::Aggregates => fetch_aggregates(&endpoint).await.map(|data| {
                 self.aggregates = Some(data);
             }),
-            Tab::Accounts => fetch_accounts().await.map(|data| {
+            Tab::Accounts => fetch_accounts(&endpoint).await.map(|data| {
                 self.accounts = data;
             }),
-            Tab::Atoms => fetch_atoms().await.map(|data| {
+            Tab::Atoms => fetch_atoms(&endpoint).await.map(|data| {
                 self.atoms = data;
             }),
-            Tab::Signals => fetch_signals().await.map(|data| {
+            Tab::Signals => fetch_signals(&endpoint).await.map(|data| {
                 self.signals = data;
             }),
-            Tab::PredicateObjects => fetch_predicate_objects().await.map(|data| {
+            Tab::PredicateObjects => fetch_predicate_objects(&endpoint).await.map(|data| {
                 self.predicate_objects = data;
             }),
         };
@@ -136,23 +134,24 @@ impl App {
     }
 
     pub async fn fetch_all_data(&mut self) {
+        let endpoint = self.endpoint.clone();
         for tab in Tab::ALL {
             self.set_loading_state(tab, LoadingState::Loading);
 
             let result = match tab {
-                Tab::Aggregates => fetch_aggregates().await.map(|data| {
+                Tab::Aggregates => fetch_aggregates(&endpoint).await.map(|data| {
                     self.aggregates = Some(data);
                 }),
-                Tab::Accounts => fetch_accounts().await.map(|data| {
+                Tab::Accounts => fetch_accounts(&endpoint).await.map(|data| {
                     self.accounts = data;
                 }),
-                Tab::Atoms => fetch_atoms().await.map(|data| {
+                Tab::Atoms => fetch_atoms(&endpoint).await.map(|data| {
                     self.atoms = data;
                 }),
-                Tab::Signals => fetch_signals().await.map(|data| {
+                Tab::Signals => fetch_signals(&endpoint).await.map(|data| {
                     self.signals = data;
                 }),
-                Tab::PredicateObjects => fetch_predicate_objects().await.map(|data| {
+                Tab::PredicateObjects => fetch_predicate_objects(&endpoint).await.map(|data| {
                     self.predicate_objects = data;
                 }),
             };
@@ -194,7 +193,7 @@ impl App {
 
     pub async fn fetch_account_details(&mut self) {
         if let Some(id) = &self.selected_account {
-            let details = fetch_account_info(id).await;
+            let details = fetch_account_info(&self.endpoint, id).await;
             self.account_details = details;
         }
     }
@@ -235,14 +234,14 @@ impl App {
 }
 
 // Generic GraphQL execution function
-async fn execute_graphql<T, B>(request_body: B) -> Result<T, Box<dyn Error>>
+async fn execute_graphql<T, B>(endpoint: &str, request_body: B) -> Result<T, Box<dyn Error>>
 where
     T: for<'de> serde::Deserialize<'de>,
     B: serde::Serialize,
 {
     let client = reqwest::Client::new();
     let res = client
-        .post(&*GRAPHQL_ENDPOINT)
+        .post(endpoint)
         .json(&request_body)
         .send()
         .await?;
@@ -251,72 +250,72 @@ where
     Ok(response)
 }
 
-async fn fetch_aggregates() -> Result<get_aggregates::ResponseData, Box<dyn Error>> {
+async fn fetch_aggregates(endpoint: &str) -> Result<get_aggregates::ResponseData, Box<dyn Error>> {
     let variables = get_aggregates::Variables {};
     let request_body = GetAggregates::build_query(variables);
 
     let response: graphql_client::Response<get_aggregates::ResponseData> =
-        execute_graphql(request_body).await?;
+        execute_graphql(endpoint, request_body).await?;
 
     response.data.ok_or_else(|| "No data returned from aggregates query".into())
 }
 
-async fn fetch_accounts() -> Result<Vec<get_accounts::GetAccountsAccounts>, Box<dyn Error>> {
+async fn fetch_accounts(endpoint: &str) -> Result<Vec<get_accounts::GetAccountsAccounts>, Box<dyn Error>> {
     let variables = get_accounts::Variables {};
     let request_body = GetAccounts::build_query(variables);
 
     let response: graphql_client::Response<get_accounts::ResponseData> =
-        execute_graphql(request_body).await?;
+        execute_graphql(endpoint, request_body).await?;
 
     response.data
         .map(|d| d.accounts)
         .ok_or_else(|| "No data returned from accounts query".into())
 }
 
-async fn fetch_atoms() -> Result<Vec<get_atoms::GetAtomsAtoms>, Box<dyn Error>> {
+async fn fetch_atoms(endpoint: &str) -> Result<Vec<get_atoms::GetAtomsAtoms>, Box<dyn Error>> {
     let variables = get_atoms::Variables {};
     let request_body = GetAtoms::build_query(variables);
 
     let response: graphql_client::Response<get_atoms::ResponseData> =
-        execute_graphql(request_body).await?;
+        execute_graphql(endpoint, request_body).await?;
 
     response.data
         .map(|d| d.atoms)
         .ok_or_else(|| "No data returned from atoms query".into())
 }
 
-async fn fetch_signals() -> Result<Vec<get_signals::GetSignalsSignals>, Box<dyn Error>> {
+async fn fetch_signals(endpoint: &str) -> Result<Vec<get_signals::GetSignalsSignals>, Box<dyn Error>> {
     let variables = get_signals::Variables {};
     let request_body = GetSignals::build_query(variables);
 
     let response: graphql_client::Response<get_signals::ResponseData> =
-        execute_graphql(request_body).await?;
+        execute_graphql(endpoint, request_body).await?;
 
     response.data
         .map(|d| d.signals)
         .ok_or_else(|| "No data returned from signals query".into())
 }
 
-async fn fetch_predicate_objects() -> Result<Vec<get_predicate_objects::GetPredicateObjectsPredicateObjects>, Box<dyn Error>> {
+async fn fetch_predicate_objects(endpoint: &str) -> Result<Vec<get_predicate_objects::GetPredicateObjectsPredicateObjects>, Box<dyn Error>> {
     let variables = get_predicate_objects::Variables {};
     let request_body = GetPredicateObjects::build_query(variables);
 
     let response: graphql_client::Response<get_predicate_objects::ResponseData> =
-        execute_graphql(request_body).await?;
+        execute_graphql(endpoint, request_body).await?;
 
     response.data
         .map(|d| d.predicate_objects)
         .ok_or_else(|| "No data returned from predicate objects query".into())
 }
 
-async fn fetch_account_info(address: &str) -> Option<get_account_info::GetAccountInfoAccount> {
+async fn fetch_account_info(endpoint: &str, address: &str) -> Option<get_account_info::GetAccountInfoAccount> {
     let variables = get_account_info::Variables {
         address: address.to_string(),
     };
     let request_body = GetAccountInfo::build_query(variables);
 
     let response: Result<graphql_client::Response<get_account_info::ResponseData>, _> =
-        execute_graphql(request_body).await;
+        execute_graphql(endpoint, request_body).await;
 
     response.ok().and_then(|r| r.data).and_then(|d| d.account)
 }

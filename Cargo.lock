@@ -1617,6 +1617,7 @@ version = "0.1.0"
 dependencies = [
  "alloy",
  "chrono",
+ "clap",
  "crossterm",
  "graphql_client",
  "lazy_static",
