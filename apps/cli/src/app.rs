@@ -4,8 +4,37 @@ use crate::queries::{
 };
 use graphql_client::GraphQLQuery;
 use std::collections::HashMap;
-use std::error::Error;
 use std::fmt;
+use thiserror::Error;
+use tokio::sync::mpsc;
+
+#[derive(Debug, Error)]
+pub enum AppError {
+    #[error("Network error: {0}")]
+    Network(#[from] reqwest::Error),
+    #[error("GraphQL error: {0}")]
+    GraphQL(String),
+    #[error("No data returned from {0} query")]
+    NoData(String),
+    #[error("JSON parsing error: {0}")]
+    Json(#[from] serde_json::Error),
+}
+
+// Channel message types for async communication
+#[derive(Debug)]
+pub enum AppMessage {
+    DataLoaded { tab: Tab, result: DataResult },
+    AccountInfoLoaded { account: Option<get_account_info::GetAccountInfoAccount> },
+}
+
+#[derive(Debug)]
+pub enum DataResult {
+    Aggregates(Result<get_aggregates::ResponseData, AppError>),
+    Accounts(Result<Vec<get_accounts::GetAccountsAccounts>, AppError>),
+    Atoms(Result<Vec<get_atoms::GetAtomsAtoms>, AppError>),
+    Signals(Result<Vec<get_signals::GetSignalsSignals>, AppError>),
+    PredicateObjects(Result<Vec<get_predicate_objects::GetPredicateObjectsPredicateObjects>, AppError>),
+}
 
 #[derive(Clone, Debug)]
 pub enum LoadingState {
@@ -73,6 +102,9 @@ pub struct App {
     loading_states: HashMap<Tab, LoadingState>,
     // GraphQL endpoint
     endpoint: String,
+    // Channel for async communication
+    pub sender: mpsc::UnboundedSender<AppMessage>,
+    receiver: mpsc::UnboundedReceiver<AppMessage>,
 }
 
 impl App {
@@ -81,6 +113,8 @@ impl App {
         for tab in Tab::ALL {
             loading_states.insert(tab, LoadingState::NotLoaded);
         }
+
+        let (sender, receiver) = mpsc::unbounded_channel();
 
         Self {
             current_tab: Tab::Aggregates,
@@ -93,6 +127,8 @@ impl App {
             account_details: None,
             loading_states,
             endpoint,
+            sender,
+            receiver,
         }
     }
 
@@ -231,10 +267,105 @@ impl App {
     pub fn selected_account(&self) -> Option<String> {
         self.selected_account.clone()
     }
+
+    // Check for messages from background tasks and update state
+    pub fn try_recv_message(&mut self) -> bool {
+        match self.receiver.try_recv() {
+            Ok(message) => {
+                self.handle_message(message);
+                true
+            }
+            Err(_) => false,
+        }
+    }
+
+    // Handle incoming messages from background tasks
+    fn handle_message(&mut self, message: AppMessage) {
+        match message {
+            AppMessage::DataLoaded { tab, result } => {
+                self.set_loading_state(tab, LoadingState::Loaded);
+                match result {
+                    DataResult::Aggregates(Ok(data)) => {
+                        self.aggregates = Some(data);
+                    }
+                    DataResult::Accounts(Ok(data)) => {
+                        self.accounts = data;
+                    }
+                    DataResult::Atoms(Ok(data)) => {
+                        self.atoms = data;
+                    }
+                    DataResult::Signals(Ok(data)) => {
+                        self.signals = data;
+                    }
+                    DataResult::PredicateObjects(Ok(data)) => {
+                        self.predicate_objects = data;
+                    }
+                    DataResult::Aggregates(Err(e)) => {
+                        self.set_loading_state(tab, LoadingState::Error(e.to_string()));
+                    }
+                    DataResult::Accounts(Err(e)) => {
+                        self.set_loading_state(tab, LoadingState::Error(e.to_string()));
+                    }
+                    DataResult::Atoms(Err(e)) => {
+                        self.set_loading_state(tab, LoadingState::Error(e.to_string()));
+                    }
+                    DataResult::Signals(Err(e)) => {
+                        self.set_loading_state(tab, LoadingState::Error(e.to_string()));
+                    }
+                    DataResult::PredicateObjects(Err(e)) => {
+                        self.set_loading_state(tab, LoadingState::Error(e.to_string()));
+                    }
+                }
+            }
+            AppMessage::AccountInfoLoaded { account } => {
+                self.account_details = account;
+            }
+        }
+    }
+
+    // Spawn background task to fetch current tab data
+    pub fn fetch_current_tab_data_async(&self) {
+        let tab = self.current_tab;
+        let endpoint = self.endpoint.clone();
+        let sender = self.sender.clone();
+
+        tokio::spawn(async move {
+            let result = match tab {
+                Tab::Aggregates => {
+                    DataResult::Aggregates(fetch_aggregates(&endpoint).await)
+                }
+                Tab::Accounts => {
+                    DataResult::Accounts(fetch_accounts(&endpoint).await)
+                }
+                Tab::Atoms => {
+                    DataResult::Atoms(fetch_atoms(&endpoint).await)
+                }
+                Tab::Signals => {
+                    DataResult::Signals(fetch_signals(&endpoint).await)
+                }
+                Tab::PredicateObjects => {
+                    DataResult::PredicateObjects(fetch_predicate_objects(&endpoint).await)
+                }
+            };
+
+            let _ = sender.send(AppMessage::DataLoaded { tab, result });
+        });
+    }
+
+    // Spawn background task to fetch account info
+    pub fn fetch_account_details_async(&self, address: String) {
+        let endpoint = self.endpoint.clone();
+        let sender = self.sender.clone();
+
+        tokio::spawn(async move {
+            let account = fetch_account_info(&endpoint, &address).await;
+            let _ = sender.send(AppMessage::AccountInfoLoaded { account });
+        });
+    }
 }
 
 // Generic GraphQL execution function
-async fn execute_graphql<T, B>(endpoint: &str, request_body: B) -> Result<T, Box<dyn Error>>
+async fn execute_graphql<T, B>(endpoint: &str, request_body: B) -> Result<T, AppError>
 where
     T: for<'de> serde::Deserialize<'de>,
     B: serde::Serialize,
@@ -250,17 +381,17 @@ where
     Ok(response)
 }
 
-async fn fetch_aggregates(endpoint: &str) -> Result<get_aggregates::ResponseData, Box<dyn Error>> {
+async fn fetch_aggregates(endpoint: &str) -> Result<get_aggregates::ResponseData, AppError> {
     let variables = get_aggregates::Variables {};
     let request_body = GetAggregates::build_query(variables);
 
     let response: graphql_client::Response<get_aggregates::ResponseData> =
         execute_graphql(endpoint, request_body).await?;
 
-    response.data.ok_or_else(|| "No data returned from aggregates query".into())
+    response.data.ok_or_else(|| AppError::NoData("aggregates".to_string()))
 }
 
-async fn fetch_accounts(endpoint: &str) -> Result<Vec<get_accounts::GetAccountsAccounts>, Box<dyn Error>> {
+async fn fetch_accounts(endpoint: &str) -> Result<Vec<get_accounts::GetAccountsAccounts>, AppError> {
     let variables = get_accounts::Variables {};
     let request_body = GetAccounts::build_query(variables);
 
@@ -269,10 +400,10 @@ async fn fetch_accounts(endpoint: &str) -> Result<Vec<get_accounts::GetAccountsA
 
     response.data
         .map(|d| d.accounts)
-        .ok_or_else(|| "No data returned from accounts query".into())
+        .ok_or_else(|| AppError::NoData("accounts".to_string()))
 }
 
-async fn fetch_atoms(endpoint: &str) -> Result<Vec<get_atoms::GetAtomsAtoms>, Box<dyn Error>> {
+async fn fetch_atoms(endpoint: &str) -> Result<Vec<get_atoms::GetAtomsAtoms>, AppError> {
     let variables = get_atoms::Variables {};
     let request_body = GetAtoms::build_query(variables);
 
@@ -281,10 +412,10 @@ async fn fetch_atoms(endpoint: &str) -> Result<Vec<get_atoms::GetAtomsAtoms>, Bo
 
     response.data
         .map(|d| d.atoms)
-        .ok_or_else(|| "No data returned from atoms query".into())
+        .ok_or_else(|| AppError::NoData("atoms".to_string()))
 }
 
-async fn fetch_signals(endpoint: &str) -> Result<Vec<get_signals::GetSignalsSignals>, Box<dyn Error>> {
+async fn fetch_signals(endpoint: &str) -> Result<Vec<get_signals::GetSignalsSignals>, AppError> {
     let variables = get_signals::Variables {};
     let request_body = GetSignals::build_query(variables);
 
@@ -293,10 +424,10 @@ async fn fetch_signals(endpoint: &str) -> Result<Vec<get_signals::GetSignalsSign
 
     response.data
         .map(|d| d.signals)
-        .ok_or_else(|| "No data returned from signals query".into())
+        .ok_or_else(|| AppError::NoData("signals".to_string()))
 }
 
-async fn fetch_predicate_objects(endpoint: &str) -> Result<Vec<get_predicate_objects::GetPredicateObjectsPredicateObjects>, Box<dyn Error>> {
+async fn fetch_predicate_objects(endpoint: &str) -> Result<Vec<get_predicate_objects::GetPredicateObjectsPredicateObjects>, AppError> {
     let variables = get_predicate_objects::Variables {};
     let request_body = GetPredicateObjects::build_query(variables);
 
@@ -305,7 +436,7 @@ async fn fetch_predicate_objects(endpoint: &str) -> Result<Vec<get_predicate_obj
 
     response.data
         .map(|d| d.predicate_objects)
-        .ok_or_else(|| "No data returned from predicate objects query".into())
+        .ok_or_else(|| AppError::NoData("predicate objects".to_string()))
 }
 
 async fn fetch_account_info(endpoint: &str, address: &str) -> Option<get_account_info::GetAccountInfoAccount> {

@@ -15,7 +15,7 @@ mod app;
 mod queries;
 mod ui;
 
-use app::{App, LoadingState};
+use app::{App, LoadingState, Tab};
 
 #[derive(Parser)]
 #[command(name = "intuition-cli")]
@@ -91,10 +91,9 @@ pub fn restore_tui() -> io::Result<()> {
     Ok(())
 }
 
-async fn handle_key_event<B: Backend>(
+fn handle_key_event(
     key: KeyCode,
     app: &mut App,
-    terminal: &mut Terminal<B>,
 ) -> io::Result<bool> {
     match key {
         KeyCode::Char('q') => return Ok(true), // Signal to quit
@@ -102,13 +101,21 @@ async fn handle_key_event<B: Backend>(
         KeyCode::Char('r') => {
             // Refresh current tab data
             app.set_loading_state(app.current_tab, LoadingState::Loading);
-            terminal.draw(|f| ui::draw(f, app))?;
-            app.fetch_current_tab_data().await;
+            app.fetch_current_tab_data_async();
         }
 
         KeyCode::Char('R') => {
             // Refresh all tabs data (Shift+R)
-            app.fetch_all_data().await;
+            for tab in [Tab::Aggregates, Tab::Accounts, Tab::Atoms, Tab::Signals, Tab::PredicateObjects] {
+                app.set_loading_state(tab, LoadingState::Loading);
+            }
+            // Spawn all fetch tasks
+            for tab in [Tab::Aggregates, Tab::Accounts, Tab::Atoms, Tab::Signals, Tab::PredicateObjects] {
+                let old_tab = app.current_tab;
+                app.current_tab = tab;
+                app.fetch_current_tab_data_async();
+                app.current_tab = old_tab;
+            }
         }
 
         KeyCode::Tab | KeyCode::Right => {
@@ -116,8 +123,7 @@ async fn handle_key_event<B: Backend>(
             // Check if we need to load data for the new tab
             if app.should_load_tab() {
                 app.set_loading_state(app.current_tab, LoadingState::Loading);
-                terminal.draw(|f| ui::draw(f, app))?;
-                app.fetch_current_tab_data().await;
+                app.fetch_current_tab_data_async();
             }
         }
 
@@ -126,25 +132,28 @@ async fn handle_key_event<B: Backend>(
             // Check if we need to load data for the new tab
             if app.should_load_tab() {
                 app.set_loading_state(app.current_tab, LoadingState::Loading);
-                terminal.draw(|f| ui::draw(f, app))?;
-                app.fetch_current_tab_data().await;
+                app.fetch_current_tab_data_async();
             }
         }
 
         KeyCode::Down => {
             app.next_account();
-            app.fetch_account_details().await;
+            if let Some(account_id) = app.selected_account() {
+                app.fetch_account_details_async(account_id);
+            }
         }
 
         KeyCode::Up => {
             app.previous_account();
-            app.fetch_account_details().await;
+            if let Some(account_id) = app.selected_account() {
+                app.fetch_account_details_async(account_id);
+            }
         }
 
         KeyCode::Enter => {
             if let Some(selected) = app.selected_account() {
-                app.select_account(selected);
-                app.fetch_account_details().await;
+                app.select_account(selected.clone());
+                app.fetch_account_details_async(selected);
             }
         }
 
@@ -159,6 +168,9 @@ async fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Re
     let tick_rate = std::time::Duration::from_millis(100);  // Faster tick for spinner animation
 
     loop {
+        // Check for messages from background tasks
+        app.try_recv_message();
+
         terminal.draw(|f| ui::draw(f, &app))?;
 
         let timeout = tick_rate
@@ -167,7 +179,7 @@ async fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Re
 
         if event::poll(timeout)? {
             if let Event::Key(key) = event::read()? {
-                if handle_key_event(key.code, &mut app, terminal).await? {
+                if handle_key_event(key.code, &mut app)? {
                     return Ok(()); // Quit requested
                 }
             }

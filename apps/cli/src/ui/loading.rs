@@ -5,36 +5,9 @@ use ratatui::{
     text::{Line, Span},
     widgets::{Block, Borders, Paragraph},
 };
-use std::time::{Duration, SystemTime};
+use std::time::SystemTime;
 
 const SPINNER_FRAMES: [&str; 8] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧"];
-
-pub struct LoadingSpinner {
-    frame: usize,
-    last_update: SystemTime,
-}
-
-impl LoadingSpinner {
-    pub fn new() -> Self {
-        Self {
-            frame: 0,
-            last_update: SystemTime::now(),
-        }
-    }
-
-    pub fn tick(&mut self) {
-        if let Ok(elapsed) = self.last_update.elapsed() {
-            if elapsed > Duration::from_millis(100) {
-                self.frame = (self.frame + 1) % SPINNER_FRAMES.len();
-                self.last_update = SystemTime::now();
-            }
-        }
-    }
-
-    pub fn current_frame(&self) -> &str {
-        SPINNER_FRAMES[self.frame]
-    }
-}
 
 pub fn draw_loading(f: &mut Frame, area: Rect, message: &str) {
     let chunks = Layout::default()
