@@ -115,6 +115,7 @@ services:
     ports:
       - '8080:8080'
     restart: always
+    command: /bin/sh -c "graphql-engine serve | tee /tmp/hasura-logs/stdout.log"
     environment:
       HASURA_GRAPHQL_METADATA_DATABASE_URL: postgres://postgres:postgres@database:5435/storage
       HASURA_GRAPHQL_CACHE_DATABASE_URL: postgres://postgres:postgres@database:5435/storage
@@ -133,6 +134,26 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
+    volumes:
+      - hasura-logs:/tmp/hasura-logs
+
+  hasura-metric-adapter:
+    container_name: hasura-metric-adapter
+    image: ghcr.io/afitzek/hasura-metric-adapter:latest
+    ports:
+      - '9091:9090'
+    environment:
+      LISTEN_ADDR: '0.0.0.0:9090'
+      LOG_FILE: '/tmp/hasura-logs/stdout.log'
+      HASURA_GRAPHQL_ENDPOINT: 'http://graphql-engine:8080'
+      HASURA_GRAPHQL_ADMIN_SECRET: 'myadminsecretkey'
+      LOG_LEVEL: 'info'
+    depends_on:
+      graphql-engine:
+        condition: service_healthy
+    restart: always
+    volumes:
+      - hasura-logs:/tmp/hasura-logs
     
   ipfs:
     container_name: ipfs
@@ -216,8 +237,26 @@ services:
       - ../infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
       - ../infrastructure/prometheus/alert.rules:/etc/prometheus/alert.rules
       - ../infrastructure/prometheus/recording.rules:/etc/prometheus/recording.rules
+      - prometheus-data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
+
+  grafana:
+    container_name: grafana
+    image: grafana/grafana:latest
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_PATHS_PROVISIONING: /etc/grafana/provisioning
+      GF_INSTALL_PLUGINS: ""
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ../infrastructure/grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+    restart: always
 
 
   geth:
@@ -282,3 +321,6 @@ volumes:
   redis_data:
   data_geth:
   contract-deployer-2-0-data:
+  prometheus-data:
+  grafana-data:
+  hasura-logs:
