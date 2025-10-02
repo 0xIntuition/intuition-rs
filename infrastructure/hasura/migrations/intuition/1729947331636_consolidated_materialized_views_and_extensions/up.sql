@@ -113,7 +113,7 @@ GROUP BY 1, 2, 3;
 ALTER MATERIALIZED VIEW signal_stats_weekly set (timescaledb.materialized_only = false);
 
 SELECT add_continuous_aggregate_policy('signal_stats_weekly',
-  start_offset => INTERVAL '14 days',
+  start_offset => INTERVAL '3 weeks',
   end_offset => INTERVAL '1 week',
   schedule_interval => INTERVAL '1 week');
 
@@ -131,9 +131,9 @@ GROUP BY 1, 2, 3;
 ALTER MATERIALIZED VIEW signal_stats_monthly set (timescaledb.materialized_only = false);
 
 SELECT add_continuous_aggregate_policy('signal_stats_monthly',
-  start_offset => INTERVAL '60 days',
-  end_offset => INTERVAL '1 month',
-  schedule_interval => INTERVAL '1 week');
+start_offset => INTERVAL '3 months',
+end_offset => INTERVAL '1 month',
+schedule_interval => INTERVAL '1 week');
 
 -- ========================================
 -- SHARE PRICE CHANGE STATS MATERIALIZED VIEWS
@@ -195,7 +195,7 @@ GROUP BY 1, 2, 3;
 ALTER MATERIALIZED VIEW share_price_change_stats_weekly set (timescaledb.materialized_only = false);
 
 SELECT add_continuous_aggregate_policy('share_price_change_stats_weekly',
-  start_offset => INTERVAL '14 days',
+  start_offset => INTERVAL '3 weeks',
   end_offset => INTERVAL '1 week',
   schedule_interval => INTERVAL '1 week');
 
@@ -215,9 +215,9 @@ GROUP BY 1, 2, 3;
 ALTER MATERIALIZED VIEW share_price_change_stats_monthly set (timescaledb.materialized_only = false);
 
 SELECT add_continuous_aggregate_policy('share_price_change_stats_monthly',
-  start_offset => INTERVAL '60 days',
-  end_offset => INTERVAL '1 month',
-  schedule_interval => INTERVAL '1 week');
+start_offset => INTERVAL '3 months',
+end_offset => INTERVAL '1 month',
+schedule_interval => INTERVAL '1 week');
 
 -- ========================================
 -- TERM TOTAL STATE CHANGE STATS MATERIALIZED VIEWS
@@ -273,7 +273,7 @@ GROUP BY 1, 2;
 ALTER MATERIALIZED VIEW term_total_state_change_stats_weekly set (timescaledb.materialized_only = false);
 
 SELECT add_continuous_aggregate_policy('term_total_state_change_stats_weekly',
-  start_offset => INTERVAL '14 days',
+  start_offset => INTERVAL '3 weeks',
   end_offset => INTERVAL '1 week',
   schedule_interval => INTERVAL '1 week');
 
@@ -291,9 +291,9 @@ GROUP BY 1, 2;
 ALTER MATERIALIZED VIEW term_total_state_change_stats_monthly set (timescaledb.materialized_only = false);
 
 SELECT add_continuous_aggregate_policy('term_total_state_change_stats_monthly',
-  start_offset => INTERVAL '60 days',
-  end_offset => INTERVAL '1 month',
-  schedule_interval => INTERVAL '1 week');
+start_offset => INTERVAL '3 months',
+end_offset => INTERVAL '1 month',
+schedule_interval => INTERVAL '1 week');
 
 -- ========================================
 -- COMPRESSION POLICIES
