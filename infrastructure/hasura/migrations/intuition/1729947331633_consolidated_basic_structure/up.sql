@@ -367,6 +367,20 @@ CREATE TABLE term_total_state_change (
    tsdb.partition_column='created_at'
 );
 
+-- ========================================
+-- HYPERTABLE CHUNK INTERVAL OPTIMIZATION
+-- ========================================
+-- Set optimal chunk intervals for hypertables
+-- Default is 7 days, but 1 day is better for:
+-- 1. More efficient compression (smaller chunks compress better)
+-- 2. Better query pruning (TimescaleDB can skip irrelevant chunks)
+-- 3. Faster DROP of old data (can drop entire chunks)
+-- 4. Aligns with continuous aggregate time buckets (1 hour/1 day)
+
+SELECT set_chunk_time_interval('signal', INTERVAL '1 day');
+SELECT set_chunk_time_interval('share_price_change', INTERVAL '1 day');
+SELECT set_chunk_time_interval('term_total_state_change', INTERVAL '1 day');
+
 -- Add foreign key constraints
 ALTER TABLE account
   ADD CONSTRAINT fk_account_atom

@@ -154,3 +154,43 @@ CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_atom_value_id ON atom_value(id);
 
 -- Index for account lookups
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_account_id ON account(id);
+
+-- ========================================
+-- CRITICAL INDEXES FOR CONTINUOUS AGGREGATES
+-- ========================================
+-- These indexes are essential for efficient continuous aggregate refreshes
+-- Without these, continuous aggregates perform full table scans on every refresh
+-- All continuous aggregates GROUP BY (term_id, curve_id, time) or (term_id, time)
+
+-- Signal table indexes for continuous aggregates
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_signal_term_curve_time
+ON signal(term_id, curve_id, created_at DESC);
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_signal_time_term_curve
+ON signal(created_at DESC, term_id, curve_id);
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_signal_term_id
+ON signal(term_id);
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_signal_curve_id
+ON signal(curve_id);
+
+-- Share price change table indexes for continuous aggregates
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_share_price_change_term_curve_time
+ON share_price_change(term_id, curve_id, updated_at DESC);
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_share_price_change_time_term_curve
+ON share_price_change(updated_at DESC, term_id, curve_id);
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_share_price_change_term_id
+ON share_price_change(term_id);
+
+-- Term total state change table indexes for continuous aggregates
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_term_total_state_change_term_time
+ON term_total_state_change(term_id, created_at DESC);
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_term_total_state_change_time_term
+ON term_total_state_change(created_at DESC, term_id);
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_term_total_state_change_term_id
+ON term_total_state_change(term_id);
