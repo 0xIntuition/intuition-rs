@@ -2,7 +2,7 @@
 
 # Clone the repo locally
 rm -rf intuition-contracts-v2
-git clone --depth 1 --branch main git@github.com:0xIntuition/intuition-contracts-v2.git 
+git clone --depth 1 --branch main git@github.com:0xIntuition/intuition-contracts-v2.git
 
 cp intuition-contracts-v2/.env.example intuition-contracts-v2/.env
 # Build the Docker image
