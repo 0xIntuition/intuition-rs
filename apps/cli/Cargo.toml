@@ -3,13 +3,24 @@ name = "cli"
 version = "0.1.0"
 edition = "2024"
 
+[lib]
+name = "cli"
+path = "src/lib.rs"
+
+[[bin]]
+name = "cli"
+path = "src/main.rs"
+
 [dependencies]
 alloy.workspace = true
 chrono = "0.4"
+clap = { version = "4.5", features = ["derive"] }
 crossterm = "0.28.1"
 graphql_client = { version = "0.14", features = ["reqwest"] }
 lazy_static = "1.4.0"
 ratatui = "0.29"
 reqwest = { version = "0.12.8", features = ["json", "blocking"] }
 serde.workspace = true
+serde_json = "1.0"
+thiserror = "1.0"
 tokio.workspace = true

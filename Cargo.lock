@@ -1617,12 +1617,15 @@ version = "0.1.0"
 dependencies = [
  "alloy",
  "chrono",
+ "clap",
  "crossterm",
  "graphql_client",
  "lazy_static",
  "ratatui",
  "reqwest 0.12.23",
  "serde",
+ "serde_json",
+ "thiserror 1.0.69",
  "tokio",
 ]
 
