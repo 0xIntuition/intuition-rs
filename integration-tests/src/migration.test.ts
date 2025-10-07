@@ -72,10 +72,10 @@ suite('migration mode', async () => {
     const termIds = [...triple, tripleId]
     const userBalances = termIds.map(i => (parseEther('1')))
     const hash = await contract.write.batchSetUserBalances([{
-      termIds,
+      termIds: [termIds],
       bondingCurveId: BigInt(1),
-      user: alice.account.address,
-      userBalances
+      users: [alice.account.address],
+      userBalances: [userBalances]
     }]);
     expect(hash).toBeDefined()
     console.log(`http://localhost/tx/${hash}`)

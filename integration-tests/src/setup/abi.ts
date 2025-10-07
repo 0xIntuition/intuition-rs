@@ -1,6 +1,19 @@
 export const abi = [
   {
     "type": "function",
+    "name": "ATOM_SALT",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "BURN_ADDRESS",
     "inputs": [],
     "outputs": [
@@ -8,19 +21,6 @@ export const abi = [
         "name": "",
         "type": "address",
         "internalType": "address"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "CONTROLLER_ROLE",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
       }
     ],
     "stateMutability": "view"
@@ -92,29 +92,13 @@ export const abi = [
   },
   {
     "type": "function",
-    "name": "_maxRedeem",
-    "inputs": [
-      {
-        "name": "sender",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "termId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      },
-      {
-        "name": "curveId",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
+    "name": "TRIPLE_SALT",
+    "inputs": [],
     "outputs": [
       {
         "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
+        "type": "bytes32",
+        "internalType": "bytes32"
       }
     ],
     "stateMutability": "view"
@@ -278,8 +262,8 @@ export const abi = [
         "components": [
           {
             "name": "termIds",
-            "type": "bytes32[]",
-            "internalType": "bytes32[]"
+            "type": "bytes32[][]",
+            "internalType": "bytes32[][]"
           },
           {
             "name": "bondingCurveId",
@@ -287,14 +271,14 @@ export const abi = [
             "internalType": "uint256"
           },
           {
-            "name": "user",
-            "type": "address",
-            "internalType": "address"
+            "name": "users",
+            "type": "address[]",
+            "internalType": "address[]"
           },
           {
             "name": "userBalances",
-            "type": "uint256[]",
-            "internalType": "uint256[]"
+            "type": "uint256[][]",
+            "internalType": "uint256[][]"
           }
         ]
       }
@@ -474,7 +458,7 @@ export const abi = [
         "internalType": "bytes32"
       },
       {
-        "name": "bondingCurveId",
+        "name": "curveId",
         "type": "uint256",
         "internalType": "uint256"
       },
@@ -835,19 +819,6 @@ export const abi = [
   },
   {
     "type": "function",
-    "name": "getAtomCreationCost",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "getAtomWarden",
     "inputs": [],
     "outputs": [
@@ -902,19 +873,6 @@ export const abi = [
       }
     ],
     "stateMutability": "pure"
-  },
-  {
-    "type": "function",
-    "name": "getDefaultCurveId",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -1242,11 +1200,6 @@ export const abi = [
         "internalType": "struct WalletConfig",
         "components": [
           {
-            "name": "permit2",
-            "type": "address",
-            "internalType": "contract IPermit2"
-          },
-          {
             "name": "entryPoint",
             "type": "address",
             "internalType": "address"
@@ -1409,11 +1362,6 @@ export const abi = [
         "internalType": "struct WalletConfig",
         "components": [
           {
-            "name": "permit2",
-            "type": "address",
-            "internalType": "contract IPermit2"
-          },
-          {
             "name": "entryPoint",
             "type": "address",
             "internalType": "address"
@@ -1575,6 +1523,35 @@ export const abi = [
   },
   {
     "type": "function",
+    "name": "maxRedeem",
+    "inputs": [
+      {
+        "name": "sender",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "termId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "curveId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "pause",
     "inputs": [],
     "outputs": [],
@@ -1705,19 +1682,19 @@ export const abi = [
         "internalType": "uint256"
       },
       {
-        "name": "assets",
+        "name": "shares",
         "type": "uint256",
         "internalType": "uint256"
       }
     ],
     "outputs": [
       {
-        "name": "shares",
+        "name": "assetsAfterFees",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "assetsAfterFees",
+        "name": "sharesUsed",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -2084,11 +2061,6 @@ export const abi = [
         "internalType": "struct WalletConfig",
         "components": [
           {
-            "name": "permit2",
-            "type": "address",
-            "internalType": "contract IPermit2"
-          },
-          {
             "name": "entryPoint",
             "type": "address",
             "internalType": "address"
@@ -2132,6 +2104,19 @@ export const abi = [
       }
     ],
     "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "sweepAccumulatedProtocolFees",
+    "inputs": [
+      {
+        "name": "epoch",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
@@ -2253,11 +2238,6 @@ export const abi = [
     "inputs": [],
     "outputs": [
       {
-        "name": "permit2",
-        "type": "address",
-        "internalType": "contract IPermit2"
-      },
-      {
         "name": "entryPoint",
         "type": "address",
         "internalType": "address"
@@ -2338,31 +2318,6 @@ export const abi = [
   },
   {
     "type": "event",
-    "name": "AtomDepositFractionDeposited",
-    "inputs": [
-      {
-        "name": "termId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
-      },
-      {
-        "name": "sender",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "amount",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
     "name": "AtomWalletDepositFeeCollected",
     "inputs": [
       {
@@ -2407,19 +2362,6 @@ export const abi = [
         "type": "uint256",
         "indexed": true,
         "internalType": "uint256"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "ConfigSynced",
-    "inputs": [
-      {
-        "name": "caller",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
       }
     ],
     "anonymous": false
@@ -2481,68 +2423,6 @@ export const abi = [
         "type": "uint8",
         "indexed": false,
         "internalType": "enum IMultiVault.VaultType"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "EntryFeeCollected",
-    "inputs": [
-      {
-        "name": "termId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
-      },
-      {
-        "name": "curveId",
-        "type": "uint256",
-        "indexed": true,
-        "internalType": "uint256"
-      },
-      {
-        "name": "sender",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "amount",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "ExitFeeCollected",
-    "inputs": [
-      {
-        "name": "termId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
-      },
-      {
-        "name": "curveId",
-        "type": "uint256",
-        "indexed": true,
-        "internalType": "uint256"
-      },
-      {
-        "name": "sender",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "amount",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
       }
     ],
     "anonymous": false
@@ -2644,6 +2524,12 @@ export const abi = [
         "type": "uint256",
         "indexed": true,
         "internalType": "uint256"
+      },
+      {
+        "name": "sender",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
       },
       {
         "name": "amount",
@@ -2860,69 +2746,6 @@ export const abi = [
   },
   {
     "type": "event",
-    "name": "SharesPullApproval",
-    "inputs": [
-      {
-        "name": "accountFrom",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "accountTo",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "status",
-        "type": "bool",
-        "indexed": false,
-        "internalType": "bool"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "TermCountSet",
-    "inputs": [
-      {
-        "name": "termCount",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "TokensRecovered",
-    "inputs": [
-      {
-        "name": "token",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "recipient",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "amount",
-        "type": "uint256",
-        "indexed": true,
-        "internalType": "uint256"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
     "name": "TotalUtilizationAdded",
     "inputs": [
       {
@@ -3022,105 +2845,6 @@ export const abi = [
     "anonymous": false
   },
   {
-    "type": "event",
-    "name": "WalletMigrated",
-    "inputs": [
-      {
-        "name": "termId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
-      },
-      {
-        "name": "curveId",
-        "type": "uint256",
-        "indexed": true,
-        "internalType": "uint256"
-      },
-      {
-        "name": "oldWallet",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "newWallet",
-        "type": "address",
-        "indexed": false,
-        "internalType": "address"
-      },
-      {
-        "name": "sharesMigrated",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "WrappedERC20Registered",
-    "inputs": [
-      {
-        "name": "termId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
-      },
-      {
-        "name": "curveId",
-        "type": "uint256",
-        "indexed": true,
-        "internalType": "uint256"
-      },
-      {
-        "name": "wrappedERC20",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "WrapperTransfer",
-    "inputs": [
-      {
-        "name": "from",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "to",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "termId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
-      },
-      {
-        "name": "curveId",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      },
-      {
-        "name": "shares",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      }
-    ],
-    "anonymous": false
-  },
-  {
     "type": "error",
     "name": "AccessControlBadConfirmation",
     "inputs": []
@@ -3136,17 +2860,6 @@ export const abi = [
       },
       {
         "name": "neededRole",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ]
-  },
-  {
-    "type": "error",
-    "name": "AtomDoesNotExist",
-    "inputs": [
-      {
-        "name": "termId",
         "type": "bytes32",
         "internalType": "bytes32"
       }
@@ -3187,6 +2900,44 @@ export const abi = [
     "type": "error",
     "name": "InvalidInitialization",
     "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "MultiVaultCore_AtomDoesNotExist",
+    "inputs": [
+      {
+        "name": "termId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "MultiVaultCore_InvalidAdmin",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "MultiVaultCore_TermDoesNotExist",
+    "inputs": [
+      {
+        "name": "termId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "MultiVaultCore_TripleDoesNotExist",
+    "inputs": [
+      {
+        "name": "termId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ]
   },
   {
     "type": "error",
@@ -3242,6 +2993,16 @@ export const abi = [
   },
   {
     "type": "error",
+    "name": "MultiVault_CannotDirectlyInitializeCounterTriple",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "MultiVault_DefaultCurveMustBeInitializedViaCreatePaths",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "MultiVault_DepositBelowMinimumDeposit",
     "inputs": []
   },
@@ -3252,7 +3013,12 @@ export const abi = [
   },
   {
     "type": "error",
-    "name": "MultiVault_EmptyArray",
+    "name": "MultiVault_DepositTooSmallToCoverMinShares",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "MultiVault_HasCounterStake",
     "inputs": []
   },
   {
@@ -3318,7 +3084,7 @@ export const abi = [
   },
   {
     "type": "error",
-    "name": "MultiVault_TermDoesNotExist",
+    "name": "MultiVault_TermNotTriple",
     "inputs": []
   },
   {
@@ -3354,11 +3120,6 @@ export const abi = [
   },
   {
     "type": "error",
-    "name": "MultiVault_ZeroValue",
-    "inputs": []
-  },
-  {
-    "type": "error",
     "name": "NotInitializing",
     "inputs": []
   },
@@ -3366,27 +3127,5 @@ export const abi = [
     "type": "error",
     "name": "ReentrancyGuardReentrantCall",
     "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "TermDoesNotExist",
-    "inputs": [
-      {
-        "name": "termId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ]
-  },
-  {
-    "type": "error",
-    "name": "TripleDoesNotExist",
-    "inputs": [
-      {
-        "name": "termId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ]
   }
 ] as const

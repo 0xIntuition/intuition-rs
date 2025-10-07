@@ -77,7 +77,7 @@ GROUP BY 1, 2, 3;
 ALTER MATERIALIZED VIEW signal_stats_hourly set (timescaledb.materialized_only = false);
 
 SELECT add_continuous_aggregate_policy('signal_stats_hourly',
-  start_offset => NULL,
+  start_offset => INTERVAL '3 hours',
   end_offset => INTERVAL '1 h',
   schedule_interval => INTERVAL '1 h');
 
@@ -95,7 +95,7 @@ GROUP BY 1, 2, 3;
 ALTER MATERIALIZED VIEW signal_stats_daily set (timescaledb.materialized_only = false);
 
 SELECT add_continuous_aggregate_policy('signal_stats_daily',
-  start_offset => NULL,
+  start_offset => INTERVAL '3 days',
   end_offset => INTERVAL '1 day',
   schedule_interval => INTERVAL '1 day');
 
@@ -113,9 +113,9 @@ GROUP BY 1, 2, 3;
 ALTER MATERIALIZED VIEW signal_stats_weekly set (timescaledb.materialized_only = false);
 
 SELECT add_continuous_aggregate_policy('signal_stats_weekly',
-  start_offset => NULL,
+  start_offset => INTERVAL '3 weeks',
   end_offset => INTERVAL '1 week',
-  schedule_interval => INTERVAL '1 day');
+  schedule_interval => INTERVAL '1 week');
 
 CREATE MATERIALIZED VIEW signal_stats_monthly
 WITH (timescaledb.continuous)
@@ -131,9 +131,9 @@ GROUP BY 1, 2, 3;
 ALTER MATERIALIZED VIEW signal_stats_monthly set (timescaledb.materialized_only = false);
 
 SELECT add_continuous_aggregate_policy('signal_stats_monthly',
-  start_offset => NULL,
-  end_offset => INTERVAL '1 month',
-  schedule_interval => INTERVAL '1 day');
+start_offset => INTERVAL '3 months',
+end_offset => INTERVAL '1 month',
+schedule_interval => INTERVAL '1 week');
 
 -- ========================================
 -- SHARE PRICE CHANGE STATS MATERIALIZED VIEWS
@@ -155,7 +155,7 @@ GROUP BY 1, 2, 3;
 ALTER MATERIALIZED VIEW share_price_change_stats_hourly set (timescaledb.materialized_only = false);
 
 SELECT add_continuous_aggregate_policy('share_price_change_stats_hourly',
-  start_offset => NULL,
+  start_offset => INTERVAL '3 hours',
   end_offset => INTERVAL '1 h',
   schedule_interval => INTERVAL '1 h');
 
@@ -175,7 +175,7 @@ GROUP BY 1, 2, 3;
 ALTER MATERIALIZED VIEW share_price_change_stats_daily set (timescaledb.materialized_only = false);
 
 SELECT add_continuous_aggregate_policy('share_price_change_stats_daily',
-  start_offset => NULL,
+  start_offset => INTERVAL '3 days',
   end_offset => INTERVAL '1 day',
   schedule_interval => INTERVAL '1 day');
 
@@ -195,9 +195,9 @@ GROUP BY 1, 2, 3;
 ALTER MATERIALIZED VIEW share_price_change_stats_weekly set (timescaledb.materialized_only = false);
 
 SELECT add_continuous_aggregate_policy('share_price_change_stats_weekly',
-  start_offset => NULL,
+  start_offset => INTERVAL '3 weeks',
   end_offset => INTERVAL '1 week',
-  schedule_interval => INTERVAL '1 day');
+  schedule_interval => INTERVAL '1 week');
 
 CREATE MATERIALIZED VIEW share_price_change_stats_monthly
 WITH (timescaledb.continuous)
@@ -215,9 +215,9 @@ GROUP BY 1, 2, 3;
 ALTER MATERIALIZED VIEW share_price_change_stats_monthly set (timescaledb.materialized_only = false);
 
 SELECT add_continuous_aggregate_policy('share_price_change_stats_monthly',
-  start_offset => NULL,
-  end_offset => INTERVAL '1 month',
-  schedule_interval => INTERVAL '1 day');
+start_offset => INTERVAL '3 months',
+end_offset => INTERVAL '1 month',
+schedule_interval => INTERVAL '1 week');
 
 -- ========================================
 -- TERM TOTAL STATE CHANGE STATS MATERIALIZED VIEWS
@@ -237,7 +237,7 @@ GROUP BY 1, 2;
 ALTER MATERIALIZED VIEW term_total_state_change_stats_hourly set (timescaledb.materialized_only = false);
 
 SELECT add_continuous_aggregate_policy('term_total_state_change_stats_hourly',
-  start_offset => NULL,
+  start_offset => INTERVAL '3 hours',
   end_offset => INTERVAL '1 h',
   schedule_interval => INTERVAL '1 h');
 
@@ -255,7 +255,7 @@ GROUP BY 1, 2;
 ALTER MATERIALIZED VIEW term_total_state_change_stats_daily set (timescaledb.materialized_only = false);
 
 SELECT add_continuous_aggregate_policy('term_total_state_change_stats_daily',
-  start_offset => NULL,
+  start_offset => INTERVAL '3 days',
   end_offset => INTERVAL '1 day',
   schedule_interval => INTERVAL '1 day');
 
@@ -273,9 +273,9 @@ GROUP BY 1, 2;
 ALTER MATERIALIZED VIEW term_total_state_change_stats_weekly set (timescaledb.materialized_only = false);
 
 SELECT add_continuous_aggregate_policy('term_total_state_change_stats_weekly',
-  start_offset => NULL,
+  start_offset => INTERVAL '3 weeks',
   end_offset => INTERVAL '1 week',
-  schedule_interval => INTERVAL '1 day');
+  schedule_interval => INTERVAL '1 week');
 
 CREATE MATERIALIZED VIEW term_total_state_change_stats_monthly
 WITH (timescaledb.continuous)
@@ -291,6 +291,46 @@ GROUP BY 1, 2;
 ALTER MATERIALIZED VIEW term_total_state_change_stats_monthly set (timescaledb.materialized_only = false);
 
 SELECT add_continuous_aggregate_policy('term_total_state_change_stats_monthly',
-  start_offset => NULL,
-  end_offset => INTERVAL '1 month',
-  schedule_interval => INTERVAL '1 day');
+start_offset => INTERVAL '3 months',
+end_offset => INTERVAL '1 month',
+schedule_interval => INTERVAL '1 week');
+
+-- ========================================
+-- COMPRESSION POLICIES
+-- ========================================
+-- Enable compression on hypertables to reduce disk usage and improve query performance
+-- Compression automatically compresses chunks older than 7 days
+-- Benefits:
+-- - 70-95% disk space reduction
+-- - Faster query performance on compressed data (less I/O)
+-- - Automatic background compression jobs
+--
+-- segment_by: columns used in WHERE clauses (enables chunk exclusion)
+-- order_by: time column DESC (optimizes time-range queries)
+
+-- Signal table compression
+ALTER TABLE signal SET (
+  timescaledb.compress,
+  timescaledb.compress_segmentby = 'term_id,curve_id',
+  timescaledb.compress_orderby = 'created_at DESC'
+);
+
+SELECT add_compression_policy('signal', INTERVAL '7 days');
+
+-- Share price change table compression
+ALTER TABLE share_price_change SET (
+  timescaledb.compress,
+  timescaledb.compress_segmentby = 'term_id,curve_id',
+  timescaledb.compress_orderby = 'updated_at DESC'
+);
+
+SELECT add_compression_policy('share_price_change', INTERVAL '7 days');
+
+-- Term total state change table compression
+ALTER TABLE term_total_state_change SET (
+  timescaledb.compress,
+  timescaledb.compress_segmentby = 'term_id',
+  timescaledb.compress_orderby = 'created_at DESC'
+);
+
+SELECT add_compression_policy('term_total_state_change', INTERVAL '7 days');

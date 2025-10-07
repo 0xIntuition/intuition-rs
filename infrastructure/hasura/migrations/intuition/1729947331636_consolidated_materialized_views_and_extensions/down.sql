@@ -1,6 +1,26 @@
 -- Down migration for consolidated materialized views and extensions
 -- This will drop all materialized views and extensions
 
+-- Remove compression policies first
+SELECT remove_compression_policy('term_total_state_change', if_exists => true);
+SELECT remove_compression_policy('share_price_change', if_exists => true);
+SELECT remove_compression_policy('signal', if_exists => true);
+
+-- Decompress any compressed chunks
+SELECT decompress_chunk(chunk, if_compressed => true)
+FROM show_chunks('term_total_state_change');
+
+SELECT decompress_chunk(chunk, if_compressed => true)
+FROM show_chunks('share_price_change');
+
+SELECT decompress_chunk(chunk, if_compressed => true)
+FROM show_chunks('signal');
+
+-- Disable compression
+ALTER TABLE term_total_state_change SET (timescaledb.compress = false);
+ALTER TABLE share_price_change SET (timescaledb.compress = false);
+ALTER TABLE signal SET (timescaledb.compress = false);
+
 -- Drop materialized views first
 DROP MATERIALIZED VIEW IF EXISTS term_total_state_change_stats_monthly;
 DROP MATERIALIZED VIEW IF EXISTS term_total_state_change_stats_weekly;
