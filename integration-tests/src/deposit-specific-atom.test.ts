@@ -6,8 +6,8 @@ test('deposit on atom with specific raw data', async () => {
   const alice = await getIntuition(3)
 
   // The specific term ID you provided
-  const vaultId = '0x937959d6af46f1f6bb0b7834c13947cb3ace6628b334272efaa8fdfbf8df2016'
-  
+  const vaultId = '0xb23c0457f7b7e19e001063d2a080f51d64b81887f6645e53cea708aaec94674b'
+
   console.log('Using vault ID:', vaultId)
 
   // Check if the atom exists
