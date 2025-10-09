@@ -77,6 +77,14 @@ CREATE INDEX idx_event_block_number ON event(block_number);
 CREATE INDEX idx_event_created_at ON event(created_at);
 CREATE INDEX idx_event_transaction_hash ON event(transaction_hash);
 
+-- Text and JSON object indexes
+CREATE INDEX IF NOT EXISTS idx_text_object_data_fts ON text_object USING GIN(to_tsvector('english', data));
+CREATE INDEX IF NOT EXISTS idx_text_object_data ON text_object(data);
+CREATE INDEX IF NOT EXISTS idx_json_object_data ON json_object USING GIN(data);
+
+-- Atom search indexes
+CREATE INDEX IF NOT EXISTS idx_atom_label ON atom(label);
+
 -- Term table indexes
 CREATE INDEX idx_term_id ON term(id);
 CREATE INDEX idx_term_type ON term(type);
