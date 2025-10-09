@@ -33,6 +33,7 @@ CREATE INDEX position_transaction_index_idx ON position(transaction_index);
 -- Basic schema foreign key indexes
 CREATE INDEX idx_atom_creator ON atom(creator_id);
 CREATE INDEX idx_atom_vault ON atom(term_id);
+CREATE INDEX idx_term_created_at ON term(created_at);
 CREATE INDEX idx_triple_creator ON triple(creator_id);
 CREATE INDEX idx_triple_subject ON triple(subject_id);
 CREATE INDEX idx_triple_predicate ON triple(predicate_id);
