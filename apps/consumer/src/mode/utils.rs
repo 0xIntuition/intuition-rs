@@ -467,19 +467,19 @@ pub async fn get_or_create_term(
     if let Some(term) = term {
         Ok(term)
     } else {
+        let date = DateTime::from_timestamp(block_info.block_timestamp, 0).ok_or(
+            ConsumerError::BlockTimestampError(
+                "Failed to convert block timestamp to DateTime".to_string(),
+            ),
+        )?;
         let term = Term::builder()
             .id(term_id.clone())
             .term_type(term_type.clone())
             // Everytime we create a new term, we need to set the total assets and market cap to 0
             .total_assets(U256Wrapper::from_str("0")?)
             .total_market_cap(U256Wrapper::from_str("0")?)
-            .updated_at(
-                DateTime::from_timestamp(block_info.block_timestamp, 0).ok_or(
-                    ConsumerError::BlockTimestampError(
-                        "Failed to convert block timestamp to DateTime".to_string(),
-                    ),
-                )?,
-            );
+            .created_at(date)
+            .updated_at(date);
 
         if let TermType::Atom = term_type {
             term.atom_id(term_id.clone())

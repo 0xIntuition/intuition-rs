@@ -12,14 +12,14 @@ use crate::{
 use models::{
     account::{Account, AccountType},
     atom::{Atom, AtomResolvingStatus, AtomType},
-    term::TermType,
+    term::{Term, TermType},
     traits::SimpleCrud,
     types::{FixedBytesWrapper, U256Wrapper},
     vault::Vault,
 };
 use sqlx::PgPool;
 use std::fmt::Debug;
-use tracing::{debug, warn};
+use tracing::{debug, error, warn};
 
 /// This trait represents a fee transferred event
 pub trait AtomCreatedEvent:
@@ -145,7 +145,33 @@ pub trait AtomCreatedEvent:
             decoded_consumer_context,
         )
         .await?;
+        Self::update_term_created_at(self, decoded_consumer_context, event).await?;
         Ok(atom)
+    }
+
+    /// This function updates the term created at for atoms with a zero transaction hash
+    async fn update_term_created_at(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+        event: &DecodedMessage,
+    ) -> Result<(), ConsumerError> {
+        if let Some(mut term) = Term::find_by_id(
+            self.term_id()?.into(),
+            &decoded_consumer_context.backend_schema,
+            &decoded_consumer_context.pg_pool,
+        )
+        .await?
+        {
+            term.created_at = get_block_timestamp(event.block_timestamp)?;
+            term.upsert(
+                &decoded_consumer_context.backend_schema,
+                &decoded_consumer_context.pg_pool,
+            )
+            .await?;
+        } else {
+            error!("Term does not exist, skipping update");
+        }
+        Ok(())
     }
     /// This function verifies if the atom wallet account exists in our DB. If it does, it returns it.
     /// If it does not, it creates it.

@@ -29,7 +29,7 @@ SELECT ai.create_vectorizer(
 -- ========================================
 
 CREATE FUNCTION search_term (query text) RETURNS SETOF term LANGUAGE sql STABLE AS $$
-    SELECT t.id, t.type, t.atom_id, t.triple_id, t.total_assets, t.total_market_cap, t.updated_at FROM (
+    SELECT t.id, t.type, t.atom_id, t.triple_id, t.total_assets, t.total_market_cap, t.created_at, t.updated_at FROM (
         SELECT 
             t.id,
             embedding <=> ai.openai_embed('text-embedding-3-small', query, dimensions=>768) as distance
@@ -47,7 +47,7 @@ $$;
 CREATE OR REPLACE FUNCTION search_term_from_following(address text, query text) RETURNS SETOF term
     LANGUAGE sql STABLE
     AS $$
-    SELECT t.id, t.type, t.atom_id, t.triple_id, t.total_assets, t.total_market_cap, t.updated_at FROM (
+    SELECT t.id, t.type, t.atom_id, t.triple_id, t.total_assets, t.total_market_cap, t.created_at, t.updated_at FROM (
 	SELECT
 		t.id,
 		embedding <=>  ai.openai_embed('text-embedding-3-small', query, dimensions=>768) as distance

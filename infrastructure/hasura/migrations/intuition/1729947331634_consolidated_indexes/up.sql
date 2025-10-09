@@ -33,6 +33,7 @@ CREATE INDEX position_transaction_index_idx ON position(transaction_index);
 -- Basic schema foreign key indexes
 CREATE INDEX idx_atom_creator ON atom(creator_id);
 CREATE INDEX idx_atom_vault ON atom(term_id);
+CREATE INDEX idx_term_created_at ON term(created_at);
 CREATE INDEX idx_triple_creator ON triple(creator_id);
 CREATE INDEX idx_triple_subject ON triple(subject_id);
 CREATE INDEX idx_triple_predicate ON triple(predicate_id);
@@ -75,6 +76,17 @@ CREATE INDEX idx_event_triple ON event(triple_id);
 CREATE INDEX idx_event_block_number ON event(block_number);
 CREATE INDEX idx_event_created_at ON event(created_at);
 CREATE INDEX idx_event_transaction_hash ON event(transaction_hash);
+
+-- Text and JSON object indexes
+CREATE INDEX IF NOT EXISTS idx_text_object_data_fts ON text_object USING GIN(to_tsvector('english', data));
+CREATE INDEX IF NOT EXISTS idx_text_object_data ON text_object(data);
+CREATE INDEX IF NOT EXISTS idx_json_object_data ON json_object USING GIN(data);
+
+-- Atom search indexes
+CREATE INDEX IF NOT EXISTS idx_atom_label ON atom(label);
+
+-- Account search indexes
+CREATE INDEX IF NOT EXISTS idx_account_label ON account(label);
 
 -- Term table indexes
 CREATE INDEX idx_term_id ON term(id);
