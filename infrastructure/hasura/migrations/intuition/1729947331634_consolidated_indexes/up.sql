@@ -85,6 +85,9 @@ CREATE INDEX IF NOT EXISTS idx_json_object_data ON json_object USING GIN(data);
 -- Atom search indexes
 CREATE INDEX IF NOT EXISTS idx_atom_label ON atom(label);
 
+-- Account search indexes
+CREATE INDEX IF NOT EXISTS idx_account_label ON account(label);
+
 -- Term table indexes
 CREATE INDEX idx_term_id ON term(id);
 CREATE INDEX idx_term_type ON term(type);
