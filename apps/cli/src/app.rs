@@ -12,8 +12,6 @@ use tokio::sync::mpsc;
 pub enum AppError {
     #[error("Network error: {0}")]
     Network(#[from] reqwest::Error),
-    #[error("GraphQL error: {0}")]
-    GraphQL(String),
     #[error("No data returned from {0} query")]
     NoData(String),
     #[error("JSON parsing error: {0}")]
@@ -23,17 +21,25 @@ pub enum AppError {
 // Channel message types for async communication
 #[derive(Debug)]
 pub enum AppMessage {
-    DataLoaded { tab: Tab, result: DataResult },
-    AccountInfoLoaded { account: Option<get_account_info::GetAccountInfoAccount> },
+    DataLoaded {
+        tab: Tab,
+        result: DataResult,
+    },
+    AccountInfoLoaded {
+        account: Option<get_account_info::GetAccountInfoAccount>,
+    },
 }
 
 #[derive(Debug)]
+#[allow(clippy::large_enum_variant)]
 pub enum DataResult {
     Aggregates(Result<get_aggregates::ResponseData, AppError>),
     Accounts(Result<Vec<get_accounts::GetAccountsAccounts>, AppError>),
     Atoms(Result<Vec<get_atoms::GetAtomsAtoms>, AppError>),
     Signals(Result<Vec<get_signals::GetSignalsSignals>, AppError>),
-    PredicateObjects(Result<Vec<get_predicate_objects::GetPredicateObjectsPredicateObjects>, AppError>),
+    PredicateObjects(
+        Result<Vec<get_predicate_objects::GetPredicateObjectsPredicateObjects>, AppError>,
+    ),
 }
 
 #[derive(Clone, Debug)]
@@ -54,7 +60,6 @@ impl fmt::Display for LoadingState {
         }
     }
 }
-
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Tab {
@@ -168,7 +173,7 @@ impl App {
         };
         self.set_loading_state(self.current_tab, state);
     }
-
+    #[allow(dead_code)]
     pub async fn fetch_all_data(&mut self) {
         let endpoint = self.endpoint.clone();
         for tab in Tab::ALL {
@@ -206,12 +211,14 @@ impl App {
     }
 
     pub fn get_current_loading_state(&self) -> &LoadingState {
-        self.loading_states.get(&self.current_tab)
+        self.loading_states
+            .get(&self.current_tab)
             .unwrap_or(&LoadingState::NotLoaded)
     }
-
+    #[allow(dead_code)]
     pub fn get_loading_state(&self, tab: Tab) -> &LoadingState {
-        self.loading_states.get(&tab)
+        self.loading_states
+            .get(&tab)
             .unwrap_or(&LoadingState::NotLoaded)
     }
 
@@ -227,6 +234,7 @@ impl App {
         self.selected_account = Some(id);
     }
 
+    #[allow(dead_code)]
     pub async fn fetch_account_details(&mut self) {
         if let Some(id) = &self.selected_account {
             let details = fetch_account_info(&self.endpoint, id).await;
@@ -331,18 +339,10 @@ impl App {
 
         tokio::spawn(async move {
             let result = match tab {
-                Tab::Aggregates => {
-                    DataResult::Aggregates(fetch_aggregates(&endpoint).await)
-                }
-                Tab::Accounts => {
-                    DataResult::Accounts(fetch_accounts(&endpoint).await)
-                }
-                Tab::Atoms => {
-                    DataResult::Atoms(fetch_atoms(&endpoint).await)
-                }
-                Tab::Signals => {
-                    DataResult::Signals(fetch_signals(&endpoint).await)
-                }
+                Tab::Aggregates => DataResult::Aggregates(fetch_aggregates(&endpoint).await),
+                Tab::Accounts => DataResult::Accounts(fetch_accounts(&endpoint).await),
+                Tab::Atoms => DataResult::Atoms(fetch_atoms(&endpoint).await),
+                Tab::Signals => DataResult::Signals(fetch_signals(&endpoint).await),
                 Tab::PredicateObjects => {
                     DataResult::PredicateObjects(fetch_predicate_objects(&endpoint).await)
                 }
@@ -371,11 +371,7 @@ where
     B: serde::Serialize,
 {
     let client = reqwest::Client::new();
-    let res = client
-        .post(endpoint)
-        .json(&request_body)
-        .send()
-        .await?;
+    let res = client.post(endpoint).json(&request_body).send().await?;
 
     let response: T = res.json().await?;
     Ok(response)
@@ -388,17 +384,22 @@ async fn fetch_aggregates(endpoint: &str) -> Result<get_aggregates::ResponseData
     let response: graphql_client::Response<get_aggregates::ResponseData> =
         execute_graphql(endpoint, request_body).await?;
 
-    response.data.ok_or_else(|| AppError::NoData("aggregates".to_string()))
+    response
+        .data
+        .ok_or_else(|| AppError::NoData("aggregates".to_string()))
 }
 
-async fn fetch_accounts(endpoint: &str) -> Result<Vec<get_accounts::GetAccountsAccounts>, AppError> {
+async fn fetch_accounts(
+    endpoint: &str,
+) -> Result<Vec<get_accounts::GetAccountsAccounts>, AppError> {
     let variables = get_accounts::Variables {};
     let request_body = GetAccounts::build_query(variables);
 
     let response: graphql_client::Response<get_accounts::ResponseData> =
         execute_graphql(endpoint, request_body).await?;
 
-    response.data
+    response
+        .data
         .map(|d| d.accounts)
         .ok_or_else(|| AppError::NoData("accounts".to_string()))
 }
@@ -410,7 +411,8 @@ async fn fetch_atoms(endpoint: &str) -> Result<Vec<get_atoms::GetAtomsAtoms>, Ap
     let response: graphql_client::Response<get_atoms::ResponseData> =
         execute_graphql(endpoint, request_body).await?;
 
-    response.data
+    response
+        .data
         .map(|d| d.atoms)
         .ok_or_else(|| AppError::NoData("atoms".to_string()))
 }
@@ -422,24 +424,31 @@ async fn fetch_signals(endpoint: &str) -> Result<Vec<get_signals::GetSignalsSign
     let response: graphql_client::Response<get_signals::ResponseData> =
         execute_graphql(endpoint, request_body).await?;
 
-    response.data
+    response
+        .data
         .map(|d| d.signals)
         .ok_or_else(|| AppError::NoData("signals".to_string()))
 }
 
-async fn fetch_predicate_objects(endpoint: &str) -> Result<Vec<get_predicate_objects::GetPredicateObjectsPredicateObjects>, AppError> {
+async fn fetch_predicate_objects(
+    endpoint: &str,
+) -> Result<Vec<get_predicate_objects::GetPredicateObjectsPredicateObjects>, AppError> {
     let variables = get_predicate_objects::Variables {};
     let request_body = GetPredicateObjects::build_query(variables);
 
     let response: graphql_client::Response<get_predicate_objects::ResponseData> =
         execute_graphql(endpoint, request_body).await?;
 
-    response.data
+    response
+        .data
         .map(|d| d.predicate_objects)
         .ok_or_else(|| AppError::NoData("predicate objects".to_string()))
 }
 
-async fn fetch_account_info(endpoint: &str, address: &str) -> Option<get_account_info::GetAccountInfoAccount> {
+async fn fetch_account_info(
+    endpoint: &str,
+    address: &str,
+) -> Option<get_account_info::GetAccountInfoAccount> {
     let variables = get_account_info::Variables {
         address: address.to_string(),
     };

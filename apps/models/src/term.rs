@@ -29,6 +29,7 @@ pub struct Term {
     pub triple_id: Option<FixedBytesWrapper>,
     pub total_assets: U256Wrapper,
     pub total_market_cap: U256Wrapper,
+    pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
 /// This is a trait that all models must implement.
@@ -44,7 +45,7 @@ impl SimpleCrud<FixedBytesWrapper> for Term {
     {
         let query = format!(
             r#"
-            INSERT INTO {}.term (id, type, atom_id, triple_id, total_assets, total_market_cap, updated_at)
+            INSERT INTO {}.term (id, type, atom_id, triple_id, total_assets, total_market_cap, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             ON CONFLICT (id) DO UPDATE SET
                 type = EXCLUDED.type,
@@ -52,6 +53,7 @@ impl SimpleCrud<FixedBytesWrapper> for Term {
                 triple_id = EXCLUDED.triple_id,
                 total_assets = EXCLUDED.total_assets,
                 total_market_cap = EXCLUDED.total_market_cap,
+                created_at = EXCLUDED.created_at,
                 updated_at = EXCLUDED.updated_at
             RETURNING id, type, atom_id, triple_id, total_assets, total_market_cap, updated_at
             "#,
@@ -65,6 +67,7 @@ impl SimpleCrud<FixedBytesWrapper> for Term {
             .bind(self.triple_id.as_ref())
             .bind(self.total_assets.to_big_decimal()?)
             .bind(self.total_market_cap.to_big_decimal()?)
+            .bind(self.created_at)
             .bind(self.updated_at)
             .fetch_one(executor)
             .await
@@ -89,6 +92,7 @@ impl SimpleCrud<FixedBytesWrapper> for Term {
                 triple_id,
                 total_assets,
                 total_market_cap,
+                created_at,
                 updated_at
             FROM {}.term 
             WHERE id = $1

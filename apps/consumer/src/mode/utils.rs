@@ -473,6 +473,13 @@ pub async fn get_or_create_term(
             // Everytime we create a new term, we need to set the total assets and market cap to 0
             .total_assets(U256Wrapper::from_str("0")?)
             .total_market_cap(U256Wrapper::from_str("0")?)
+            .created_at(
+                DateTime::from_timestamp(block_info.block_timestamp, 0).ok_or(
+                    ConsumerError::BlockTimestampError(
+                        "Failed to convert block timestamp to DateTime".to_string(),
+                    ),
+                )?,
+            )
             .updated_at(
                 DateTime::from_timestamp(block_info.block_timestamp, 0).ok_or(
                     ConsumerError::BlockTimestampError(

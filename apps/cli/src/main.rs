@@ -91,10 +91,7 @@ pub fn restore_tui() -> io::Result<()> {
     Ok(())
 }
 
-fn handle_key_event(
-    key: KeyCode,
-    app: &mut App,
-) -> io::Result<bool> {
+fn handle_key_event(key: KeyCode, app: &mut App) -> io::Result<bool> {
     match key {
         KeyCode::Char('q') => return Ok(true), // Signal to quit
 
@@ -106,11 +103,23 @@ fn handle_key_event(
 
         KeyCode::Char('R') => {
             // Refresh all tabs data (Shift+R)
-            for tab in [Tab::Aggregates, Tab::Accounts, Tab::Atoms, Tab::Signals, Tab::PredicateObjects] {
+            for tab in [
+                Tab::Aggregates,
+                Tab::Accounts,
+                Tab::Atoms,
+                Tab::Signals,
+                Tab::PredicateObjects,
+            ] {
                 app.set_loading_state(tab, LoadingState::Loading);
             }
             // Spawn all fetch tasks
-            for tab in [Tab::Aggregates, Tab::Accounts, Tab::Atoms, Tab::Signals, Tab::PredicateObjects] {
+            for tab in [
+                Tab::Aggregates,
+                Tab::Accounts,
+                Tab::Atoms,
+                Tab::Signals,
+                Tab::PredicateObjects,
+            ] {
                 let old_tab = app.current_tab;
                 app.current_tab = tab;
                 app.fetch_current_tab_data_async();
@@ -165,7 +174,7 @@ fn handle_key_event(
 
 async fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<()> {
     let mut last_tick = std::time::Instant::now();
-    let tick_rate = std::time::Duration::from_millis(100);  // Faster tick for spinner animation
+    let tick_rate = std::time::Duration::from_millis(100); // Faster tick for spinner animation
 
     loop {
         // Check for messages from background tasks
@@ -177,12 +186,11 @@ async fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Re
             .checked_sub(last_tick.elapsed())
             .unwrap_or_else(|| std::time::Duration::from_secs(0));
 
-        if event::poll(timeout)? {
-            if let Event::Key(key) = event::read()? {
-                if handle_key_event(key.code, &mut app)? {
-                    return Ok(()); // Quit requested
-                }
-            }
+        if event::poll(timeout)?
+            && let Event::Key(key) = event::read()?
+            && handle_key_event(key.code, &mut app)?
+        {
+            return Ok(()); // Quit requested
         }
 
         if last_tick.elapsed() >= tick_rate {
