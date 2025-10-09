@@ -19,7 +19,7 @@ use models::{
 };
 use sqlx::PgPool;
 use std::fmt::Debug;
-use tracing::{debug, warn};
+use tracing::{debug, error, warn};
 
 /// This trait represents a fee transferred event
 pub trait AtomCreatedEvent:
@@ -145,30 +145,31 @@ pub trait AtomCreatedEvent:
             decoded_consumer_context,
         )
         .await?;
-        Self::update_term_created_at(
-            self,
-            &decoded_consumer_context.backend_schema,
-            &decoded_consumer_context.pg_pool,
-            event,
-        )
-        .await?;
+        Self::update_term_created_at(self, decoded_consumer_context, event).await?;
         Ok(atom)
     }
 
     /// This function updates the term created at for atoms with a zero transaction hash
     async fn update_term_created_at(
         &self,
-        backend_schema: &str,
-        pg_pool: &PgPool,
+        decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
-        if let Some(mut term) =
-            Term::find_by_id(self.term_id()?.into(), backend_schema, pg_pool).await?
+        if let Some(mut term) = Term::find_by_id(
+            self.term_id()?.into(),
+            &decoded_consumer_context.backend_schema,
+            &decoded_consumer_context.pg_pool,
+        )
+        .await?
         {
             term.created_at = get_block_timestamp(event.block_timestamp)?;
-            term.upsert(backend_schema, pg_pool).await?;
+            term.upsert(
+                &decoded_consumer_context.backend_schema,
+                &decoded_consumer_context.pg_pool,
+            )
+            .await?;
         } else {
-            warn!("Term does not exist, skipping update");
+            error!("Term does not exist, skipping update");
         }
         Ok(())
     }
