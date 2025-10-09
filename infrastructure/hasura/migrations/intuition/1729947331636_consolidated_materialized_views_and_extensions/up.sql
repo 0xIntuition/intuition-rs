@@ -5,63 +5,84 @@
 -- EXTENSIONS
 -- ========================================
 
--- Enable TimescaleDB extension
-CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;
+-- Enable TimescaleDB extension (may already be created in basic structure)
+DO $$ BEGIN
+  CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;
+EXCEPTION WHEN OTHERS THEN null;
+END $$;
 
 -- Enable AI extension for vector search
-CREATE EXTENSION IF NOT EXISTS ai CASCADE;
+DO $$ BEGIN
+  CREATE EXTENSION IF NOT EXISTS ai CASCADE;
+EXCEPTION WHEN OTHERS THEN null;
+END $$;
 
 -- ========================================
 -- PGAI VECTORIZER SETUP
 -- ========================================
 
--- Create vectorizer for term_text table
-SELECT ai.create_vectorizer(
-    'term_text'::regclass,
-    destination => ai.destination_table('term_embeddings'),
-    embedding => ai.embedding_openai('text-embedding-3-small', 768),
-    loading => ai.loading_column('description'),
-    formatting => ai.formatting_python_template('title: $title id: $id $chunk')
-);
+-- Create vectorizer for term_text table (skip if AI extension not available)
+DO $body$ BEGIN
+  PERFORM ai.create_vectorizer(
+      'term_text'::regclass,
+      destination => ai.destination_table('term_embeddings'),
+      embedding => ai.embedding_openai('text-embedding-3-small', 768),
+      loading => ai.loading_column('description'),
+      formatting => ai.formatting_python_template('title: $title id: $id $chunk')
+  );
+EXCEPTION WHEN OTHERS THEN 
+  RAISE NOTICE 'Skipping vectorizer creation - AI extension not available: %', SQLERRM;
+END $body$;
 
 -- ========================================
 -- PGAI SEARCH FUNCTION
 -- ========================================
 
-CREATE FUNCTION search_term (query text) RETURNS SETOF term LANGUAGE sql STABLE AS $$
-    SELECT t.id, t.type, t.atom_id, t.triple_id, t.total_assets, t.total_market_cap, t.updated_at FROM (
-        SELECT 
-            t.id,
-            embedding <=> ai.openai_embed('text-embedding-3-small', query, dimensions=>768) as distance
-        FROM term_embeddings
-        LEFT JOIN term t ON term_embeddings.id = t.id
-        ORDER BY distance
-    ) s
-    JOIN term t ON s.id = t.id
-$$;
+DO $body$ BEGIN
+  CREATE FUNCTION search_term (query text) RETURNS SETOF term LANGUAGE sql STABLE AS $func$
+      SELECT t.id, t.type, t.atom_id, t.triple_id, t.total_assets, t.total_market_cap, t.updated_at FROM (
+          SELECT 
+              t.id,
+              embedding <=> ai.openai_embed('text-embedding-3-small', query, dimensions=>768) as distance
+          FROM term_embeddings
+          LEFT JOIN term t ON term_embeddings.id = t.id
+          ORDER BY distance
+      ) s
+      JOIN term t ON s.id = t.id
+  $func$;
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'Skipping search_term function creation - AI extension not available: %', SQLERRM;
+END $body$;
 
 -- ========================================
 -- SEARCH TERM FROM FOLLOWING FUNCTION
 -- ========================================
 
-CREATE OR REPLACE FUNCTION search_term_from_following(address text, query text) RETURNS SETOF term
-    LANGUAGE sql STABLE
-    AS $$
-    SELECT t.id, t.type, t.atom_id, t.triple_id, t.total_assets, t.total_market_cap, t.updated_at FROM (
-	SELECT
-		t.id,
-		embedding <=>  ai.openai_embed('text-embedding-3-small', query, dimensions=>768) as distance
-	FROM positions_from_following(address) p
-	LEFT JOIN term_embeddings te on p.term_id = te.id
-    left join term t on p.term_id = t.id
-	ORDER BY distance
-	) s
-    JOIN term t ON s.id = t.id
-$$;
+DO $body$ BEGIN
+  CREATE OR REPLACE FUNCTION search_term_from_following(address text, query text) RETURNS SETOF term
+      LANGUAGE sql STABLE
+      AS $func$
+      SELECT t.id, t.type, t.atom_id, t.triple_id, t.total_assets, t.total_market_cap, t.updated_at FROM (
+  	SELECT
+  		t.id,
+  		embedding <=>  ai.openai_embed('text-embedding-3-small', query, dimensions=>768) as distance
+  	FROM positions_from_following(address) p
+  	LEFT JOIN term_embeddings te on p.term_id = te.id
+      left join term t on p.term_id = t.id
+  	ORDER BY distance
+  	) s
+      JOIN term t ON s.id = t.id
+  $func$;
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'Skipping search_term_from_following function creation - AI extension not available: %', SQLERRM;
+END $body$;
 
 -- ========================================
 -- SIGNAL STATS MATERIALIZED VIEWS
 -- ========================================
+-- Skip all TimescaleDB-dependent materialized views if TimescaleDB is not available
+
+DO $tsdb$ BEGIN
 
 CREATE MATERIALIZED VIEW signal_stats_hourly
 WITH (timescaledb.continuous)
@@ -334,3 +355,7 @@ ALTER TABLE term_total_state_change SET (
 );
 
 SELECT add_compression_policy('term_total_state_change', INTERVAL '7 days');
+
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'Skipping TimescaleDB materialized views and compression policies - TimescaleDB not available: %', SQLERRM;
+END $tsdb$;

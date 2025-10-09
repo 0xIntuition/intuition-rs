@@ -4,26 +4,60 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
 COMMENT ON EXTENSION pgcrypto IS 'cryptographic functions';
 
--- Create custom enum types
-CREATE TYPE vault_type AS ENUM ('Triple', 'CounterTriple', 'Atom');
-CREATE TYPE account_type AS ENUM ('Default', 'AtomWallet', 'ProtocolVault');
-CREATE TYPE event_type AS ENUM ('AtomCreated', 'TripleCreated', 'Deposited', 'Redeemed', 'FeesTransfered', 'Initialized');
-CREATE TYPE atom_type AS ENUM (
-  'Unknown', 'Account', 'Thing', 'ThingPredicate', 'Person', 'PersonPredicate',
-  'Organization', 'OrganizationPredicate', 'Book', 'LikeAction', 'FollowAction', 'Keywords',
-  'Caip10', 'JsonObject', 'TextObject', 'ByteObject'
-);
-CREATE TYPE atom_resolving_status AS ENUM ('Pending', 'Resolved', 'Failed');
-CREATE TYPE image_classification AS ENUM ('Safe', 'Unsafe', 'Unknown');
-CREATE TYPE term_type AS ENUM ('Atom', 'Triple', 'CounterTriple');
+-- Create custom enum types (idempotent)
+DO $$ BEGIN
+  CREATE TYPE vault_type AS ENUM ('Triple', 'CounterTriple', 'Atom');
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
 
--- Create tables
-CREATE TABLE chainlink_price (
+DO $$ BEGIN
+  CREATE TYPE account_type AS ENUM ('Default', 'AtomWallet', 'ProtocolVault');
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE event_type AS ENUM ('AtomCreated', 'TripleCreated', 'Deposited', 'Redeemed', 'FeesTransfered', 'Initialized');
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE atom_type AS ENUM (
+    'Unknown', 'Account', 'Thing', 'ThingPredicate', 'Person', 'PersonPredicate',
+    'Organization', 'OrganizationPredicate', 'Book', 'LikeAction', 'FollowAction', 'Keywords',
+    'Caip10', 'JsonObject', 'TextObject', 'ByteObject'
+  );
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE atom_resolving_status AS ENUM ('Pending', 'Resolved', 'Failed');
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE image_classification AS ENUM ('Safe', 'Unsafe', 'Unknown');
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE term_type AS ENUM ('Atom', 'Triple', 'CounterTriple');
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
+
+-- Create tables (idempotent)
+CREATE TABLE IF NOT EXISTS chainlink_price (
   id NUMERIC(78, 0) PRIMARY KEY NOT NULL,
   usd FLOAT
 );
 
-CREATE TABLE stats (
+CREATE TABLE IF NOT EXISTS stats (
   id INTEGER PRIMARY KEY NOT NULL,
   total_accounts INTEGER,
   total_atoms INTEGER,
@@ -37,7 +71,7 @@ CREATE TABLE stats (
   last_updated TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE TABLE stats_hour (
+CREATE TABLE IF NOT EXISTS stats_hour (
   id SERIAL PRIMARY KEY NOT NULL,
   total_accounts INTEGER,
   total_atoms INTEGER,
@@ -49,7 +83,7 @@ CREATE TABLE stats_hour (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE TABLE account (
+CREATE TABLE IF NOT EXISTS account (
   id TEXT PRIMARY KEY NOT NULL,
   atom_id TEXT,
   label TEXT NOT NULL,
@@ -57,7 +91,7 @@ CREATE TABLE account (
   type account_type NOT NULL
 );
 
-CREATE TABLE term (
+CREATE TABLE IF NOT EXISTS term (
   id TEXT PRIMARY KEY,
   type term_type NOT NULL,
   atom_id TEXT,
@@ -67,7 +101,7 @@ CREATE TABLE term (
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
 
-CREATE TABLE atom (
+CREATE TABLE IF NOT EXISTS atom (
   term_id TEXT PRIMARY KEY NOT NULL,
   wallet_id TEXT REFERENCES account(id) NOT NULL,
   creator_id TEXT REFERENCES account(id) NOT NULL,
@@ -86,7 +120,7 @@ CREATE TABLE atom (
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
 
-CREATE TABLE triple (
+CREATE TABLE IF NOT EXISTS triple (
   term_id TEXT PRIMARY KEY NOT NULL,
   creator_id TEXT REFERENCES account(id) NOT NULL,
   subject_id TEXT NOT NULL,
@@ -98,7 +132,7 @@ CREATE TABLE triple (
   transaction_hash TEXT NOT NULL
 );
 
-CREATE TABLE vault (
+CREATE TABLE IF NOT EXISTS vault (
   term_id TEXT NOT NULL,
   curve_id NUMERIC(78, 0) NOT NULL,
   total_shares NUMERIC(78, 0) NOT NULL,
@@ -114,7 +148,7 @@ CREATE TABLE vault (
   PRIMARY KEY (term_id, curve_id)
 );
 
-CREATE TABLE triple_vault (
+CREATE TABLE IF NOT EXISTS triple_vault (
   term_id TEXT REFERENCES term(id) NOT NULL,
   counter_term_id TEXT REFERENCES term(id) NOT NULL,
   curve_id NUMERIC(78, 0) NOT NULL,
@@ -128,7 +162,7 @@ CREATE TABLE triple_vault (
   PRIMARY KEY (term_id, curve_id)
 );
 
-CREATE TABLE triple_term (
+CREATE TABLE IF NOT EXISTS triple_term (
   term_id TEXT REFERENCES term(id) NOT NULL,
   counter_term_id TEXT REFERENCES term(id) NOT NULL,
   total_assets NUMERIC(78, 0) NOT NULL,
@@ -138,7 +172,7 @@ CREATE TABLE triple_term (
   PRIMARY KEY (term_id)
 );
 
-CREATE TABLE fee_transfer (
+CREATE TABLE IF NOT EXISTS fee_transfer (
   id TEXT PRIMARY KEY NOT NULL,
   sender_id TEXT REFERENCES account(id) NOT NULL,
   receiver_id TEXT REFERENCES account(id) NOT NULL,
@@ -148,7 +182,7 @@ CREATE TABLE fee_transfer (
   transaction_hash TEXT NOT NULL
 );
 
-CREATE TABLE deposit (
+CREATE TABLE IF NOT EXISTS deposit (
   id TEXT PRIMARY KEY NOT NULL,
   sender_id TEXT REFERENCES account(id) NOT NULL,
   receiver_id TEXT REFERENCES account(id) NOT NULL,
@@ -164,7 +198,7 @@ CREATE TABLE deposit (
   log_index BIGINT NOT NULL
 );
 
-CREATE TABLE redemption (
+CREATE TABLE IF NOT EXISTS redemption (
   id TEXT PRIMARY KEY NOT NULL,
   sender_id TEXT REFERENCES account(id) NOT NULL,
   receiver_id TEXT REFERENCES account(id) NOT NULL,
@@ -181,7 +215,7 @@ CREATE TABLE redemption (
   log_index BIGINT NOT NULL
 );
 
-CREATE TABLE event (
+CREATE TABLE IF NOT EXISTS event (
   id TEXT PRIMARY KEY NOT NULL,
   type event_type NOT NULL,
   atom_id TEXT, 
@@ -194,7 +228,7 @@ CREATE TABLE event (
   transaction_hash TEXT NOT NULL
 );
 
-CREATE TABLE position (
+CREATE TABLE IF NOT EXISTS position (
   id TEXT PRIMARY KEY NOT NULL,
   account_id TEXT REFERENCES account(id) NOT NULL,
   term_id TEXT NOT NULL,
@@ -210,14 +244,14 @@ CREATE TABLE position (
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
 
-CREATE TABLE predicate_object (
+CREATE TABLE IF NOT EXISTS predicate_object (
   id TEXT PRIMARY KEY NOT NULL,
   predicate_id TEXT NOT NULL,
   object_id TEXT NOT NULL,
   triple_count INTEGER NOT NULL
 );
 
-CREATE TABLE signal (
+CREATE TABLE IF NOT EXISTS signal (
   id TEXT NOT NULL,
   delta NUMERIC(78, 0) NOT NULL,
   account_id TEXT REFERENCES account(id) NOT NULL,
@@ -236,12 +270,9 @@ CREATE TABLE signal (
     OR
     (atom_id IS NULL AND triple_id IS NOT NULL))
   )
-) WITH (
-   tsdb.hypertable,
-   tsdb.partition_column='created_at'
 );
 
-CREATE TABLE thing (
+CREATE TABLE IF NOT EXISTS thing (
   id TEXT PRIMARY KEY NOT NULL,
   name TEXT,
   description TEXT,
@@ -249,7 +280,7 @@ CREATE TABLE thing (
   url TEXT
 );
 
-CREATE TABLE person (
+CREATE TABLE IF NOT EXISTS person (
   id TEXT PRIMARY KEY NOT NULL,
   identifier TEXT,
   name TEXT,
@@ -259,7 +290,7 @@ CREATE TABLE person (
   email TEXT
 );
 
-CREATE TABLE organization (
+CREATE TABLE IF NOT EXISTS organization (
   id TEXT PRIMARY KEY NOT NULL,
   name TEXT,
   description TEXT,
@@ -268,7 +299,7 @@ CREATE TABLE organization (
   email TEXT
 );
 
-CREATE TABLE book (
+CREATE TABLE IF NOT EXISTS book (
   id TEXT PRIMARY KEY NOT NULL,
   name TEXT,
   description TEXT,
@@ -276,29 +307,29 @@ CREATE TABLE book (
   url TEXT
 );
 
-CREATE TABLE caip10 (
+CREATE TABLE IF NOT EXISTS caip10 (
   id TEXT PRIMARY KEY NOT NULL,
   namespace TEXT NOT NULL,
   chain_id INTEGER NOT NULL,
   account_address TEXT NOT NULL
 );
 
-CREATE TABLE json_object (
+CREATE TABLE IF NOT EXISTS json_object (
   id TEXT PRIMARY KEY NOT NULL,
   data JSONB NOT NULL
 );
 
-CREATE TABLE text_object (
+CREATE TABLE IF NOT EXISTS text_object (
   id TEXT PRIMARY KEY NOT NULL,
   data TEXT NOT NULL
 );
 
-CREATE TABLE byte_object (
+CREATE TABLE IF NOT EXISTS byte_object (
   id TEXT PRIMARY KEY NOT NULL,
   data BYTEA NOT NULL
 );
 
-CREATE TABLE atom_value (
+CREATE TABLE IF NOT EXISTS atom_value (
   id TEXT PRIMARY KEY NOT NULL,
   account_id TEXT REFERENCES account(id),
   thing_id TEXT REFERENCES thing(id),
@@ -311,7 +342,7 @@ CREATE TABLE atom_value (
   byte_object_id TEXT REFERENCES byte_object(id)
 );
 
-CREATE TABLE share_price_change(
+CREATE TABLE IF NOT EXISTS share_price_change(
   id BIGSERIAL,
   term_id TEXT NOT NULL,
   vault_type vault_type NOT NULL,
@@ -325,12 +356,9 @@ CREATE TABLE share_price_change(
   log_index BIGINT NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
   UNIQUE(term_id, curve_id, block_number, log_index, updated_at)
-) WITH (
-   tsdb.hypertable,
-   tsdb.partition_column='updated_at'
 );
 
-CREATE TABLE initialize (
+CREATE TABLE IF NOT EXISTS initialize (
   version BIGINT NOT NULL PRIMARY KEY,
   block_number NUMERIC(78,0) NOT NULL,
   block_timestamp BIGINT NOT NULL,
@@ -338,7 +366,7 @@ CREATE TABLE initialize (
   log_index INTEGER NOT NULL
 );
 
-CREATE TABLE failed_logs (
+CREATE TABLE IF NOT EXISTS failed_logs (
   block_number BIGINT NOT NULL,
   block_hash TEXT NOT NULL,
   transaction_hash TEXT NOT NULL,
@@ -351,115 +379,155 @@ CREATE TABLE failed_logs (
   PRIMARY KEY (block_number, log_index)
 );
 
-CREATE TABLE term_text (
+CREATE TABLE IF NOT EXISTS term_text (
   id TEXT PRIMARY KEY NOT NULL,
   title TEXT,
   description TEXT
 );
 
-CREATE TABLE term_total_state_change (
+CREATE TABLE IF NOT EXISTS term_total_state_change (
   term_id TEXT NOT NULL,
   total_assets NUMERIC(78, 0) NOT NULL,
   total_market_cap NUMERIC(78, 0) NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL 
-) WITH (
-   tsdb.hypertable,
-   tsdb.partition_column='created_at'
 );
 
 -- ========================================
--- HYPERTABLE CHUNK INTERVAL OPTIMIZATION
+-- TIMESCALEDB EXTENSION
 -- ========================================
--- Set optimal chunk intervals for hypertables
+-- Enable TimescaleDB extension (required for hypertables)
+DO $$ BEGIN
+  CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;
+EXCEPTION WHEN OTHERS THEN null;
+END $$;
+
+-- ========================================
+-- HYPERTABLE SETUP
+-- ========================================
+-- Convert tables to hypertables and set chunk intervals (idempotent)
 -- Default is 7 days, but 1 day is better for:
 -- 1. More efficient compression (smaller chunks compress better)
 -- 2. Better query pruning (TimescaleDB can skip irrelevant chunks)
 -- 3. Faster DROP of old data (can drop entire chunks)
 -- 4. Aligns with continuous aggregate time buckets (1 hour/1 day)
 
-SELECT set_chunk_time_interval('signal', INTERVAL '1 day');
-SELECT set_chunk_time_interval('share_price_change', INTERVAL '1 day');
-SELECT set_chunk_time_interval('term_total_state_change', INTERVAL '1 day');
+DO $$ BEGIN
+  PERFORM create_hypertable('signal', 'created_at', if_not_exists => TRUE);
+  PERFORM set_chunk_time_interval('signal', INTERVAL '1 day');
+EXCEPTION WHEN OTHERS THEN null;
+END $$;
 
--- Add foreign key constraints
-ALTER TABLE account
-  ADD CONSTRAINT fk_account_atom
-  FOREIGN KEY (atom_id) REFERENCES atom(term_id);
+DO $$ BEGIN
+  PERFORM create_hypertable('share_price_change', 'updated_at', if_not_exists => TRUE);
+  PERFORM set_chunk_time_interval('share_price_change', INTERVAL '1 day');
+EXCEPTION WHEN OTHERS THEN null;
+END $$;
 
-ALTER TABLE atom
-  ADD CONSTRAINT atom_term_fkey 
-  FOREIGN KEY (term_id) REFERENCES term(id);
+DO $$ BEGIN
+  PERFORM create_hypertable('term_total_state_change', 'created_at', if_not_exists => TRUE);
+  PERFORM set_chunk_time_interval('term_total_state_change', INTERVAL '1 day');
+EXCEPTION WHEN OTHERS THEN null;
+END $$;
 
-ALTER TABLE triple
-  ADD CONSTRAINT triple_term_fkey 
-  FOREIGN KEY (term_id) REFERENCES term(id);
+-- Add foreign key constraints (idempotent)
+DO $$ BEGIN
+  ALTER TABLE account ADD CONSTRAINT fk_account_atom FOREIGN KEY (atom_id) REFERENCES atom(term_id);
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
-ALTER TABLE vault
-  ADD CONSTRAINT vault_term_fkey 
-  FOREIGN KEY (term_id) REFERENCES term(id);
+DO $$ BEGIN
+  ALTER TABLE atom ADD CONSTRAINT atom_term_fkey FOREIGN KEY (term_id) REFERENCES term(id);
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
-ALTER TABLE deposit
-  ADD CONSTRAINT deposit_term_fkey 
-  FOREIGN KEY (term_id) REFERENCES term(id);
+DO $$ BEGIN
+  ALTER TABLE triple ADD CONSTRAINT triple_term_fkey FOREIGN KEY (term_id) REFERENCES term(id);
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
-ALTER TABLE redemption
-  ADD CONSTRAINT redemption_term_fkey 
-  FOREIGN KEY (term_id) REFERENCES term(id);
+DO $$ BEGIN
+  ALTER TABLE vault ADD CONSTRAINT vault_term_fkey FOREIGN KEY (term_id) REFERENCES term(id);
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
-ALTER TABLE position
-  ADD CONSTRAINT position_term_fkey 
-  FOREIGN KEY (term_id) REFERENCES term(id);
+DO $$ BEGIN
+  ALTER TABLE deposit ADD CONSTRAINT deposit_term_fkey FOREIGN KEY (term_id) REFERENCES term(id);
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
-ALTER TABLE signal
-  ADD CONSTRAINT signal_term_fkey 
-  FOREIGN KEY (term_id) REFERENCES term(id);
+DO $$ BEGIN
+  ALTER TABLE redemption ADD CONSTRAINT redemption_term_fkey FOREIGN KEY (term_id) REFERENCES term(id);
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
-ALTER TABLE atom_value
-  ADD CONSTRAINT atom_value_atom_fkey
-  FOREIGN KEY (id) REFERENCES atom(term_id);
+DO $$ BEGIN
+  ALTER TABLE position ADD CONSTRAINT position_term_fkey FOREIGN KEY (term_id) REFERENCES term(id);
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
-ALTER TABLE thing
-  ADD CONSTRAINT thing_term_fkey 
-  FOREIGN KEY (id) REFERENCES term(id);
+DO $$ BEGIN
+  ALTER TABLE signal ADD CONSTRAINT signal_term_fkey FOREIGN KEY (term_id) REFERENCES term(id);
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
-ALTER TABLE share_price_change
-  ADD CONSTRAINT share_price_change_term_fkey 
-  FOREIGN KEY (term_id) REFERENCES term(id);
+DO $$ BEGIN
+  ALTER TABLE atom_value ADD CONSTRAINT atom_value_atom_fkey FOREIGN KEY (id) REFERENCES atom(term_id);
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
--- Add vault composite key foreign key constraints
-ALTER TABLE deposit
-  ADD CONSTRAINT deposit_vault_fkey 
-  FOREIGN KEY (term_id, curve_id) REFERENCES vault(term_id, curve_id);
+DO $$ BEGIN
+  ALTER TABLE thing ADD CONSTRAINT thing_term_fkey FOREIGN KEY (id) REFERENCES term(id);
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
-ALTER TABLE redemption
-  ADD CONSTRAINT redemption_vault_fkey 
-  FOREIGN KEY (term_id, curve_id) REFERENCES vault(term_id, curve_id);
+DO $$ BEGIN
+  ALTER TABLE share_price_change ADD CONSTRAINT share_price_change_term_fkey FOREIGN KEY (term_id) REFERENCES term(id);
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
-ALTER TABLE position
-  ADD CONSTRAINT position_vault_fkey 
-  FOREIGN KEY (term_id, curve_id) REFERENCES vault(term_id, curve_id);
+-- Add vault composite key foreign key constraints (idempotent)
+DO $$ BEGIN
+  ALTER TABLE deposit ADD CONSTRAINT deposit_vault_fkey FOREIGN KEY (term_id, curve_id) REFERENCES vault(term_id, curve_id);
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
-ALTER TABLE signal
-  ADD CONSTRAINT signal_vault_fkey 
-  FOREIGN KEY (term_id, curve_id) REFERENCES vault(term_id, curve_id);
+DO $$ BEGIN
+  ALTER TABLE redemption ADD CONSTRAINT redemption_vault_fkey FOREIGN KEY (term_id, curve_id) REFERENCES vault(term_id, curve_id);
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
--- Add missing foreign key constraints for relationships
-ALTER TABLE triple
-  ADD CONSTRAINT triple_subject_fkey 
-  FOREIGN KEY (subject_id) REFERENCES atom(term_id);
+DO $$ BEGIN
+  ALTER TABLE position ADD CONSTRAINT position_vault_fkey FOREIGN KEY (term_id, curve_id) REFERENCES vault(term_id, curve_id);
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
-ALTER TABLE triple
-  ADD CONSTRAINT triple_predicate_fkey 
-  FOREIGN KEY (predicate_id) REFERENCES atom(term_id);
+DO $$ BEGIN
+  ALTER TABLE signal ADD CONSTRAINT signal_vault_fkey FOREIGN KEY (term_id, curve_id) REFERENCES vault(term_id, curve_id);
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
-ALTER TABLE triple
-  ADD CONSTRAINT triple_object_fkey 
-  FOREIGN KEY (object_id) REFERENCES atom(term_id);
+-- Add missing foreign key constraints for relationships (idempotent)
+DO $$ BEGIN
+  ALTER TABLE triple ADD CONSTRAINT triple_subject_fkey FOREIGN KEY (subject_id) REFERENCES atom(term_id);
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
-ALTER TABLE predicate_object
-  ADD CONSTRAINT predicate_object_predicate_fkey 
-  FOREIGN KEY (predicate_id) REFERENCES atom(term_id);
+DO $$ BEGIN
+  ALTER TABLE triple ADD CONSTRAINT triple_predicate_fkey FOREIGN KEY (predicate_id) REFERENCES atom(term_id);
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
-ALTER TABLE predicate_object
-  ADD CONSTRAINT predicate_object_object_fkey 
-  FOREIGN KEY (object_id) REFERENCES atom(term_id);
+DO $$ BEGIN
+  ALTER TABLE triple ADD CONSTRAINT triple_object_fkey FOREIGN KEY (object_id) REFERENCES atom(term_id);
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE predicate_object ADD CONSTRAINT predicate_object_predicate_fkey FOREIGN KEY (predicate_id) REFERENCES atom(term_id);
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE predicate_object ADD CONSTRAINT predicate_object_object_fkey FOREIGN KEY (object_id) REFERENCES atom(term_id);
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
