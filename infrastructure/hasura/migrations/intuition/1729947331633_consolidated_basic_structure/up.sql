@@ -68,8 +68,6 @@ CREATE TABLE term (
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_term_created_at ON term(created_at);
-
 CREATE TABLE atom (
   term_id TEXT PRIMARY KEY NOT NULL,
   wallet_id TEXT REFERENCES account(id) NOT NULL,
