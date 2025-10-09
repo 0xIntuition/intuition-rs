@@ -46,16 +46,15 @@ impl SimpleCrud<FixedBytesWrapper> for Term {
         let query = format!(
             r#"
             INSERT INTO {}.term (id, type, atom_id, triple_id, total_assets, total_market_cap, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             ON CONFLICT (id) DO UPDATE SET
                 type = EXCLUDED.type,
                 atom_id = EXCLUDED.atom_id,
                 triple_id = EXCLUDED.triple_id,
                 total_assets = EXCLUDED.total_assets,
                 total_market_cap = EXCLUDED.total_market_cap,
-                created_at = EXCLUDED.created_at,
                 updated_at = EXCLUDED.updated_at
-            RETURNING id, type, atom_id, triple_id, total_assets, total_market_cap, updated_at
+            RETURNING id, type, atom_id, triple_id, total_assets, total_market_cap, created_at, updated_at
             "#,
             schema,
         );
