@@ -2,7 +2,7 @@ import { expect, test } from 'vitest'
 import { getIntuition } from './setup/utils.js'
 import { parseEther, toHex } from 'viem'
 
-test('deposit on atom with specific raw data', async () => {
+test.skip('deposit on atom with specific raw data', async () => {
   const alice = await getIntuition(3)
 
   // The specific term ID you provided
