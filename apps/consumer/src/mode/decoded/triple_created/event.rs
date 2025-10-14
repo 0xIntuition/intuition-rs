@@ -12,7 +12,6 @@ use crate::{
 use models::{
     account::{Account, AccountType},
     atom::{Atom, AtomResolvingStatus, AtomType},
-    predicate_object::PredicateObject,
     term::TermType,
     traits::SimpleCrud,
     triple::Triple,
@@ -356,30 +355,6 @@ pub trait TripleCreatedEvent:
         .upsert(&decoded_consumer_context.backend_schema, tx.as_mut())
         .await
         .map_err(ConsumerError::ModelError)
-    }
-    /// This function updates the predicate object triple count
-    async fn update_predicate_object_triple_count(
-        &self,
-        backend_schema: &str,
-        tx: &mut Transaction<'_, Postgres>,
-    ) -> Result<(), ConsumerError> {
-        let id = format!("{}-{}", self.predicate_id()?, self.object_id()?);
-        if let Some(mut predicate_object) =
-            PredicateObject::find_by_id(id.clone(), backend_schema, tx.as_mut()).await?
-        {
-            predicate_object.triple_count += 1;
-            predicate_object.upsert(backend_schema, tx.as_mut()).await?;
-        } else {
-            PredicateObject::builder()
-                .id(id)
-                .predicate_id(self.predicate_id()?)
-                .object_id(self.object_id()?)
-                .triple_count(1)
-                .build()
-                .upsert(backend_schema, tx.as_mut())
-                .await?;
-        }
-        Ok(())
     }
     /// This function checks if the subject atom is an account and if the predicate and object atoms are a person or organization.
     fn is_account_with_person_or_org(

@@ -60,10 +60,6 @@ where
             .await?;
 
         debug!("Triple created: {triple:#?}");
-        // Update the predicate object triple count
-        self.0
-            .update_predicate_object_triple_count(&decoded_consumer_context.backend_schema, &mut tx)
-            .await?;
         // Update the predicate object
         self.0
             .check_and_update_account_predicate_object(decoded_consumer_context, event, &mut tx)

@@ -23,6 +23,7 @@ DROP TRIGGER IF EXISTS position_insert_trigger ON position;
 DROP TRIGGER IF EXISTS triple_insert_trigger ON triple;
 DROP TRIGGER IF EXISTS atom_insert_trigger ON atom;
 DROP TRIGGER IF EXISTS account_insert_trigger ON account;
+DROP TRIGGER IF EXISTS triple_predicate_object_trigger ON triple;
 
 -- Drop functions
 DROP FUNCTION IF EXISTS update_triple_term_position_count();
@@ -41,6 +42,7 @@ DROP FUNCTION IF EXISTS update_position_stats();
 DROP FUNCTION IF EXISTS update_triple_stats();
 DROP FUNCTION IF EXISTS update_atom_stats();
 DROP FUNCTION IF EXISTS update_account_stats();
+DROP FUNCTION IF EXISTS update_predicate_object_on_triple_insert();
 DROP FUNCTION IF EXISTS search_positions_on_subject(JSONB, TEXT[]);
 DROP FUNCTION IF EXISTS following(TEXT);
 DROP FUNCTION IF EXISTS positions_from_following(TEXT);

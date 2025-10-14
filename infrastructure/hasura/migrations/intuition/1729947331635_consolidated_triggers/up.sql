@@ -629,3 +629,48 @@ CREATE TRIGGER vault_triple_vault_trigger
 AFTER INSERT OR UPDATE OR DELETE ON vault
 FOR EACH ROW
 EXECUTE FUNCTION update_triple_vault_from_vault();
+
+-- ========================================
+-- PREDICATE OBJECT TRIGGER
+-- ========================================
+
+-- Function to automatically update predicate_object when a triple is inserted
+CREATE OR REPLACE FUNCTION update_predicate_object_on_triple_insert()
+RETURNS TRIGGER AS $$
+DECLARE
+    po_id TEXT;
+BEGIN
+    -- Generate the predicate_object ID
+    po_id := NEW.predicate_id || '-' || NEW.object_id;
+
+    -- Insert or increment the triple_count
+    INSERT INTO predicate_object (id, predicate_id, object_id, triple_count)
+    VALUES (po_id, NEW.predicate_id, NEW.object_id, 1)
+    ON CONFLICT (id) DO UPDATE SET
+        triple_count = predicate_object.triple_count + 1;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER triple_predicate_object_trigger
+AFTER INSERT ON triple
+FOR EACH ROW
+EXECUTE FUNCTION update_predicate_object_on_triple_insert();
+
+-- ========================================
+-- PREDICATE OBJECT DATA RECONCILIATION
+-- ========================================
+
+-- Recalculate all existing predicate_object counts from the triple table
+-- This ensures consistency when the trigger is first enabled
+TRUNCATE TABLE predicate_object;
+
+INSERT INTO predicate_object (id, predicate_id, object_id, triple_count)
+SELECT
+    predicate_id || '-' || object_id as id,
+    predicate_id,
+    object_id,
+    COUNT(*) as triple_count
+FROM triple
+GROUP BY predicate_id, object_id;
