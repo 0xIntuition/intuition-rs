@@ -13,6 +13,17 @@ object_relationships:
   - name: predicate
     using:
       foreign_key_constraint_on: predicate_id
+array_relationships:
+  - name: triples
+    using:
+      manual_configuration:
+        column_mapping:
+          object_id: object_id
+          predicate_id: predicate_id
+        insertion_order: null
+        remote_table:
+          name: triple
+          schema: public
 select_permissions:
   - role: anonymous
     permission:
