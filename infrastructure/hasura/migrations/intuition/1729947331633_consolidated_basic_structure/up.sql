@@ -215,7 +215,9 @@ CREATE TABLE predicate_object (
   id TEXT PRIMARY KEY NOT NULL,
   predicate_id TEXT NOT NULL,
   object_id TEXT NOT NULL,
-  triple_count INTEGER NOT NULL
+  triple_count INTEGER NOT NULL,
+  total_position_count INTEGER NOT NULL DEFAULT 0,
+  total_market_cap NUMERIC(78, 0) NOT NULL DEFAULT 0
 );
 
 CREATE TABLE signal (

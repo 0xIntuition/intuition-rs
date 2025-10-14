@@ -644,8 +644,8 @@ BEGIN
     po_id := NEW.predicate_id || '-' || NEW.object_id;
 
     -- Insert or increment the triple_count
-    INSERT INTO predicate_object (id, predicate_id, object_id, triple_count)
-    VALUES (po_id, NEW.predicate_id, NEW.object_id, 1)
+    INSERT INTO predicate_object (id, predicate_id, object_id, triple_count, total_position_count, total_market_cap)
+    VALUES (po_id, NEW.predicate_id, NEW.object_id, 1, 0, 0)
     ON CONFLICT (id) DO UPDATE SET
         triple_count = predicate_object.triple_count + 1;
 
@@ -674,3 +674,111 @@ SELECT
     COUNT(*) as triple_count
 FROM triple
 GROUP BY predicate_id, object_id;
+
+-- Recalculate total_position_count and total_market_cap for all predicate_object records
+-- This ensures consistency with the triple_term aggregation pattern
+UPDATE predicate_object po
+SET
+    total_position_count = (
+        SELECT COALESCE(SUM(tt.total_position_count), 0)
+        FROM triple_term tt
+        WHERE (tt.term_id IN (
+                SELECT t.term_id
+                FROM triple t
+                WHERE t.predicate_id = po.predicate_id
+                  AND t.object_id = po.object_id
+            )
+            OR tt.counter_term_id IN (
+                SELECT t.term_id
+                FROM triple t
+                WHERE t.predicate_id = po.predicate_id
+                  AND t.object_id = po.object_id
+            ))
+    ),
+    total_market_cap = (
+        SELECT COALESCE(SUM(tt.total_market_cap), 0)
+        FROM triple_term tt
+        WHERE (tt.term_id IN (
+                SELECT t.term_id
+                FROM triple t
+                WHERE t.predicate_id = po.predicate_id
+                  AND t.object_id = po.object_id
+            )
+            OR tt.counter_term_id IN (
+                SELECT t.term_id
+                FROM triple t
+                WHERE t.predicate_id = po.predicate_id
+                  AND t.object_id = po.object_id
+            ))
+    );
+
+-- ========================================
+-- PREDICATE OBJECT AGGREGATES UPDATE TRIGGER
+-- ========================================
+
+-- Function to update predicate_object.total_market_cap and total_position_count when triple_term changes
+CREATE OR REPLACE FUNCTION update_predicate_object_aggregates()
+RETURNS TRIGGER AS $$
+DECLARE
+    affected_term_id TEXT;
+    affected_counter_term_id TEXT;
+BEGIN
+    -- Determine which term_id and counter_term_id were affected
+    IF (TG_OP = 'DELETE') THEN
+        affected_term_id := OLD.term_id;
+        affected_counter_term_id := OLD.counter_term_id;
+    ELSE
+        affected_term_id := NEW.term_id;
+        affected_counter_term_id := NEW.counter_term_id;
+    END IF;
+
+    -- Update all predicate_object records for triples that match either term_id or counter_term_id
+    UPDATE predicate_object po
+    SET
+        total_market_cap = (
+            SELECT COALESCE(SUM(tt.total_market_cap), 0)
+            FROM triple_term tt
+            WHERE (tt.term_id IN (
+                    SELECT t.term_id
+                    FROM triple t
+                    WHERE t.predicate_id = po.predicate_id
+                      AND t.object_id = po.object_id
+                )
+                OR tt.counter_term_id IN (
+                    SELECT t.term_id
+                    FROM triple t
+                    WHERE t.predicate_id = po.predicate_id
+                      AND t.object_id = po.object_id
+                ))
+        ),
+        total_position_count = (
+            SELECT COALESCE(SUM(tt.total_position_count), 0)
+            FROM triple_term tt
+            WHERE (tt.term_id IN (
+                    SELECT t.term_id
+                    FROM triple t
+                    WHERE t.predicate_id = po.predicate_id
+                      AND t.object_id = po.object_id
+                )
+                OR tt.counter_term_id IN (
+                    SELECT t.term_id
+                    FROM triple t
+                    WHERE t.predicate_id = po.predicate_id
+                      AND t.object_id = po.object_id
+                ))
+        )
+    WHERE po.id IN (
+        SELECT t.predicate_id || '-' || t.object_id
+        FROM triple t
+        WHERE t.term_id = affected_term_id
+           OR t.term_id = affected_counter_term_id
+    );
+
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER triple_term_predicate_object_trigger
+AFTER INSERT OR UPDATE OR DELETE ON triple_term
+FOR EACH ROW
+EXECUTE FUNCTION update_predicate_object_aggregates();
