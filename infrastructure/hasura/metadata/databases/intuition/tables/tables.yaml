@@ -27,6 +27,7 @@
 - "!include public_signal_stats_weekly.yaml"
 - "!include public_stats.yaml"
 - "!include public_stats_hour.yaml"
+- "!include public_subject_predicate.yaml"
 - "!include public_term.yaml"
 - "!include public_term_total_state_change.yaml"
 - "!include public_term_total_state_change_stats_daily.yaml"

@@ -220,6 +220,15 @@ CREATE TABLE predicate_object (
   total_market_cap NUMERIC(78, 0) NOT NULL DEFAULT 0
 );
 
+CREATE TABLE subject_predicate (
+  id TEXT PRIMARY KEY NOT NULL,
+  subject_id TEXT NOT NULL,
+  predicate_id TEXT NOT NULL,
+  triple_count INTEGER NOT NULL,
+  total_position_count INTEGER NOT NULL DEFAULT 0,
+  total_market_cap NUMERIC(78, 0) NOT NULL DEFAULT 0
+);
+
 CREATE TABLE signal (
   id TEXT NOT NULL,
   delta NUMERIC(78, 0) NOT NULL,
@@ -460,9 +469,17 @@ ALTER TABLE triple
   FOREIGN KEY (object_id) REFERENCES atom(term_id);
 
 ALTER TABLE predicate_object
-  ADD CONSTRAINT predicate_object_predicate_fkey 
+  ADD CONSTRAINT predicate_object_predicate_fkey
   FOREIGN KEY (predicate_id) REFERENCES atom(term_id);
 
 ALTER TABLE predicate_object
-  ADD CONSTRAINT predicate_object_object_fkey 
+  ADD CONSTRAINT predicate_object_object_fkey
   FOREIGN KEY (object_id) REFERENCES atom(term_id);
+
+ALTER TABLE subject_predicate
+  ADD CONSTRAINT subject_predicate_subject_fkey
+  FOREIGN KEY (subject_id) REFERENCES atom(term_id);
+
+ALTER TABLE subject_predicate
+  ADD CONSTRAINT subject_predicate_predicate_fkey
+  FOREIGN KEY (predicate_id) REFERENCES atom(term_id);

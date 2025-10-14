@@ -52,6 +52,8 @@ CREATE INDEX idx_position_account ON position(account_id);
 CREATE INDEX idx_position_vault ON position(term_id);
 CREATE INDEX idx_predicate_object_predicate ON predicate_object(predicate_id);
 CREATE INDEX idx_predicate_object_object ON predicate_object(object_id);
+CREATE INDEX idx_subject_predicate_subject ON subject_predicate(subject_id);
+CREATE INDEX idx_subject_predicate_predicate ON subject_predicate(predicate_id);
 CREATE INDEX idx_signal_account ON signal(account_id);
 CREATE INDEX idx_signal_atom ON signal(atom_id);
 CREATE INDEX idx_signal_triple ON signal(triple_id);

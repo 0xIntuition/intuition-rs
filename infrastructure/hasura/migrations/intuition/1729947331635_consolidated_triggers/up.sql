@@ -659,6 +659,34 @@ FOR EACH ROW
 EXECUTE FUNCTION update_predicate_object_on_triple_insert();
 
 -- ========================================
+-- SUBJECT PREDICATE TRIGGER
+-- ========================================
+
+-- Function to automatically update subject_predicate when a triple is inserted
+CREATE OR REPLACE FUNCTION update_subject_predicate_on_triple_insert()
+RETURNS TRIGGER AS $$
+DECLARE
+    sp_id TEXT;
+BEGIN
+    -- Generate the subject_predicate ID
+    sp_id := NEW.subject_id || '-' || NEW.predicate_id;
+
+    -- Insert or increment the triple_count
+    INSERT INTO subject_predicate (id, subject_id, predicate_id, triple_count, total_position_count, total_market_cap)
+    VALUES (sp_id, NEW.subject_id, NEW.predicate_id, 1, 0, 0)
+    ON CONFLICT (id) DO UPDATE SET
+        triple_count = subject_predicate.triple_count + 1;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER triple_subject_predicate_trigger
+AFTER INSERT ON triple
+FOR EACH ROW
+EXECUTE FUNCTION update_subject_predicate_on_triple_insert();
+
+-- ========================================
 -- PREDICATE OBJECT DATA RECONCILIATION
 -- ========================================
 
@@ -782,3 +810,74 @@ CREATE TRIGGER triple_term_predicate_object_trigger
 AFTER INSERT OR UPDATE OR DELETE ON triple_term
 FOR EACH ROW
 EXECUTE FUNCTION update_predicate_object_aggregates();
+
+-- ========================================
+-- SUBJECT PREDICATE AGGREGATES UPDATE TRIGGER
+-- ========================================
+
+-- Function to update subject_predicate.total_market_cap and total_position_count when triple_term changes
+CREATE OR REPLACE FUNCTION update_subject_predicate_aggregates()
+RETURNS TRIGGER AS $$
+DECLARE
+    affected_term_id TEXT;
+    affected_counter_term_id TEXT;
+BEGIN
+    -- Determine which term_id and counter_term_id were affected
+    IF (TG_OP = 'DELETE') THEN
+        affected_term_id := OLD.term_id;
+        affected_counter_term_id := OLD.counter_term_id;
+    ELSE
+        affected_term_id := NEW.term_id;
+        affected_counter_term_id := NEW.counter_term_id;
+    END IF;
+
+    -- Update all subject_predicate records for triples that match either term_id or counter_term_id
+    UPDATE subject_predicate sp
+    SET
+        total_market_cap = (
+            SELECT COALESCE(SUM(tt.total_market_cap), 0)
+            FROM triple_term tt
+            WHERE (tt.term_id IN (
+                    SELECT t.term_id
+                    FROM triple t
+                    WHERE t.subject_id = sp.subject_id
+                      AND t.predicate_id = sp.predicate_id
+                )
+                OR tt.counter_term_id IN (
+                    SELECT t.term_id
+                    FROM triple t
+                    WHERE t.subject_id = sp.subject_id
+                      AND t.predicate_id = sp.predicate_id
+                ))
+        ),
+        total_position_count = (
+            SELECT COALESCE(SUM(tt.total_position_count), 0)
+            FROM triple_term tt
+            WHERE (tt.term_id IN (
+                    SELECT t.term_id
+                    FROM triple t
+                    WHERE t.subject_id = sp.subject_id
+                      AND t.predicate_id = sp.predicate_id
+                )
+                OR tt.counter_term_id IN (
+                    SELECT t.term_id
+                    FROM triple t
+                    WHERE t.subject_id = sp.subject_id
+                      AND t.predicate_id = sp.predicate_id
+                ))
+        )
+    WHERE sp.id IN (
+        SELECT t.subject_id || '-' || t.predicate_id
+        FROM triple t
+        WHERE t.term_id = affected_term_id
+           OR t.term_id = affected_counter_term_id
+    );
+
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER triple_term_subject_predicate_trigger
+AFTER INSERT OR UPDATE OR DELETE ON triple_term
+FOR EACH ROW
+EXECUTE FUNCTION update_subject_predicate_aggregates();
