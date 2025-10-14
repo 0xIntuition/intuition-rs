@@ -220,25 +220,20 @@ services:
       - '--config.file=/etc/prometheus/prometheus.yml'
 
 
-  geth:
-    container_name: geth
-    image: ethereum/client-go:latest
+  anvil:
+    container_name: anvil
+    image: ghcr.io/foundry-rs/foundry
+    environment:
+      ANVIL_IP_ADDR: "0.0.0.0"
     ports:
       - '8545:8545'
     healthcheck:
-      test: ["CMD", "geth", "attach", "--exec", "eth.blockNumber", "http://localhost:8545"]
+      test: ["CMD", "cast", "block-number", "--rpc-url", "http://localhost:8545"]
       interval: 2s
       timeout: 2s
       retries: 10
-    entrypoint: sh /root/init-script.sh
-    command: '--dev --dev.period=1 --cache=8192 --gcmode=full --history.state=0 --history.transactions=0 --syncmode=full --cache.gc=0 --http --http.api=eth,web3,net,debug,txpool --mine  --http.port=8545 --http.vhosts=* --http.addr=0.0.0.0 --http.corsdomain="http://localhost" --datadir=/data --password=/root/password.txt'
-    volumes:
-      - data_geth:/data
-      - ../infrastructure/geth/genesis.json:/config/genesis.json
-      - ../infrastructure/geth/init-script.sh:/root/init-script.sh
-      - ../infrastructure/geth/keystore.json:/data/keystore/UTC--2024-06-03T19-15-34.118131000Z--63e87dc2366dc7f1be110ded239879422e165d96
-      - ../infrastructure/geth/password.txt:/root/password.txt
-  
+    command: anvil
+
   contract-deployer-2-0:
     container_name: contract-deployer-2-0
     image: ghcr.io/0xintuition/contract-deployer-2-0:latest
@@ -248,7 +243,7 @@ services:
       POSTGRES_DB: storage
       POSTGRES_PORT: 5435
     depends_on:
-      geth:
+      anvil:
         condition: service_healthy 
     volumes:
       - ../infrastructure/geth/keystore.json:/data/keystore.json
@@ -260,7 +255,7 @@ services:
       image: ghcr.io/0xintuition/contract-deployer-2-0:latest
       entrypoint: /app/verify.sh
       depends_on:
-        geth:
+        anvil:
           condition: service_healthy 
         contract-deployer-2-0:
           condition: service_completed_successfully
@@ -280,5 +275,4 @@ volumes:
   pgadmin-data:
   ipfs_data:
   redis_data:
-  data_geth:
   contract-deployer-2-0-data:

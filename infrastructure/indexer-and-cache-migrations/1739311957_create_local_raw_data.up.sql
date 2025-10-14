@@ -35,4 +35,4 @@ CREATE INDEX idx_raw_data_address ON local.raw_data(address);
 CREATE INDEX idx_raw_data_topics ON local.raw_data(topics);
 
 -- now we need to insert the reference for histocrawler
-INSERT INTO histocrawler.app_config (indexer_schema, rpc_url, start_block, end_block, contract_address, raw_logs_channel) VALUES ('local', 'http://geth:8545', 0, NULL, '0xB4375293a13017BCe71a034bB588786A3D3C7295', 'local_raw_logs_channel');
+INSERT INTO histocrawler.app_config (indexer_schema, rpc_url, start_block, end_block, contract_address, raw_logs_channel) VALUES ('local', 'http://anvil:8545', 0, NULL, '0xB4375293a13017BCe71a034bB588786A3D3C7295', 'local_raw_logs_channel');

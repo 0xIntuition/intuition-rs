@@ -8,7 +8,7 @@ import { abi } from './abi'
 
 
 const local = defineChain({
-  id: 1337,
+  id: 31337,
   name: 'Local intuition',
   nativeCurrency: {
     decimals: 18,
