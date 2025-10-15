@@ -1,9 +1,15 @@
 {
+  "timestamp": "0x1",
+  "basefee": "0x3b9aca00",
+  "difficulty": "0x0",
+  "prevrandao": "0x0000000000000000000000000000000000000000000000000000000000000000",
+  "blob_excess_gas_and_price": {
+    "excess_blob_gas": 0,
+    "blob_gasprice": 1
+  },
   "nonce": "0x42",
-  "timestamp": "0x0",
   "extraData": "0x5343",
-  "gasLimit": "0x4000000000000",
-  "difficulty": "0x400000000",
+  "gasLimit": "0x1c9c380",
   "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
   "coinbase": "0x0000000000000000000000000000000000000000",
   "alloc": {
@@ -15,7 +21,6 @@
   "gasUsed": "0x0",
   "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
   "config": {
-    "ethash": {},
     "chainId": 31337,
     "homesteadBlock": 0,
     "eip150Block": 0,
@@ -29,6 +34,7 @@
     "londonBlock": 0,
     "terminalTotalDifficulty": 0,
     "terminalTotalDifficultyPassed": true,
-    "shanghaiTime": 0
+    "shanghaiTime": 0,
+    "cancunTime": 0
   }
 }
