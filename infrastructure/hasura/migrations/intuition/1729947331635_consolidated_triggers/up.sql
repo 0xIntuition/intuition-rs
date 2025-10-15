@@ -707,46 +707,30 @@ BEGIN
     END IF;
 
     -- Update all predicate_object records for triples that match either term_id or counter_term_id
-    UPDATE predicate_object po
-    SET
-        total_market_cap = (
-            SELECT COALESCE(SUM(tt.total_market_cap), 0)
-            FROM triple_term tt
-            WHERE (tt.term_id IN (
-                    SELECT t.term_id
-                    FROM triple t
-                    WHERE t.predicate_id = po.predicate_id
-                      AND t.object_id = po.object_id
-                )
-                OR tt.counter_term_id IN (
-                    SELECT t.term_id
-                    FROM triple t
-                    WHERE t.predicate_id = po.predicate_id
-                      AND t.object_id = po.object_id
-                ))
-        ),
-        total_position_count = (
-            SELECT COALESCE(SUM(tt.total_position_count), 0)
-            FROM triple_term tt
-            WHERE (tt.term_id IN (
-                    SELECT t.term_id
-                    FROM triple t
-                    WHERE t.predicate_id = po.predicate_id
-                      AND t.object_id = po.object_id
-                )
-                OR tt.counter_term_id IN (
-                    SELECT t.term_id
-                    FROM triple t
-                    WHERE t.predicate_id = po.predicate_id
-                      AND t.object_id = po.object_id
-                ))
-        )
-    WHERE po.id IN (
-        SELECT t.predicate_id || '-' || t.object_id
+    -- Use CTE to avoid duplicate subquery execution
+    WITH affected_triples AS (
+        SELECT t.predicate_id, t.object_id, t.term_id
         FROM triple t
         WHERE t.term_id = affected_term_id
            OR t.term_id = affected_counter_term_id
-    );
+    ),
+    predicate_object_aggregates AS (
+        SELECT
+            po.id,
+            COALESCE(SUM(tt.total_market_cap), 0) AS agg_market_cap,
+            COALESCE(SUM(tt.total_position_count), 0) AS agg_position_count
+        FROM predicate_object po
+        INNER JOIN affected_triples at ON po.predicate_id = at.predicate_id AND po.object_id = at.object_id
+        LEFT JOIN triple t ON t.predicate_id = po.predicate_id AND t.object_id = po.object_id
+        LEFT JOIN triple_term tt ON tt.term_id = t.term_id OR tt.counter_term_id = t.term_id
+        GROUP BY po.id
+    )
+    UPDATE predicate_object po
+    SET
+        total_market_cap = poa.agg_market_cap,
+        total_position_count = poa.agg_position_count
+    FROM predicate_object_aggregates poa
+    WHERE po.id = poa.id;
 
     RETURN NULL;
 END;
@@ -778,46 +762,30 @@ BEGIN
     END IF;
 
     -- Update all subject_predicate records for triples that match either term_id or counter_term_id
-    UPDATE subject_predicate sp
-    SET
-        total_market_cap = (
-            SELECT COALESCE(SUM(tt.total_market_cap), 0)
-            FROM triple_term tt
-            WHERE (tt.term_id IN (
-                    SELECT t.term_id
-                    FROM triple t
-                    WHERE t.subject_id = sp.subject_id
-                      AND t.predicate_id = sp.predicate_id
-                )
-                OR tt.counter_term_id IN (
-                    SELECT t.term_id
-                    FROM triple t
-                    WHERE t.subject_id = sp.subject_id
-                      AND t.predicate_id = sp.predicate_id
-                ))
-        ),
-        total_position_count = (
-            SELECT COALESCE(SUM(tt.total_position_count), 0)
-            FROM triple_term tt
-            WHERE (tt.term_id IN (
-                    SELECT t.term_id
-                    FROM triple t
-                    WHERE t.subject_id = sp.subject_id
-                      AND t.predicate_id = sp.predicate_id
-                )
-                OR tt.counter_term_id IN (
-                    SELECT t.term_id
-                    FROM triple t
-                    WHERE t.subject_id = sp.subject_id
-                      AND t.predicate_id = sp.predicate_id
-                ))
-        )
-    WHERE sp.id IN (
-        SELECT t.subject_id || '-' || t.predicate_id
+    -- Use CTE to avoid duplicate subquery execution
+    WITH affected_triples AS (
+        SELECT t.subject_id, t.predicate_id, t.term_id
         FROM triple t
         WHERE t.term_id = affected_term_id
            OR t.term_id = affected_counter_term_id
-    );
+    ),
+    subject_predicate_aggregates AS (
+        SELECT
+            sp.id,
+            COALESCE(SUM(tt.total_market_cap), 0) AS agg_market_cap,
+            COALESCE(SUM(tt.total_position_count), 0) AS agg_position_count
+        FROM subject_predicate sp
+        INNER JOIN affected_triples at ON sp.subject_id = at.subject_id AND sp.predicate_id = at.predicate_id
+        LEFT JOIN triple t ON t.subject_id = sp.subject_id AND t.predicate_id = sp.predicate_id
+        LEFT JOIN triple_term tt ON tt.term_id = t.term_id OR tt.counter_term_id = t.term_id
+        GROUP BY sp.id
+    )
+    UPDATE subject_predicate sp
+    SET
+        total_market_cap = spa.agg_market_cap,
+        total_position_count = spa.agg_position_count
+    FROM subject_predicate_aggregates spa
+    WHERE sp.id = spa.id;
 
     RETURN NULL;
 END;

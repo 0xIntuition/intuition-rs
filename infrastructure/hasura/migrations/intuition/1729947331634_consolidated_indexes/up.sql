@@ -262,3 +262,9 @@ CREATE INDEX IF NOT EXISTS idx_atom_data ON atom(data);
 -- Used by: update_triple_vault_from_vault() function
 -- Query pattern: WHERE term_id = X AND counter_term_id = Y (or vice versa)
 CREATE INDEX IF NOT EXISTS idx_triple_term_composite ON triple_term(term_id, counter_term_id);
+
+-- Covering index for aggregate queries to avoid table lookups
+-- Used by: update_predicate_object_aggregates() and update_subject_predicate_aggregates()
+-- This index allows index-only scans by including aggregate columns
+CREATE INDEX IF NOT EXISTS idx_triple_term_aggregates ON triple_term(term_id, counter_term_id)
+INCLUDE (total_market_cap, total_position_count);
