@@ -708,7 +708,6 @@ BEGIN
         SELECT
             at.predicate_id,
             at.object_id,
-            COALESCE(COUNT(DISTINCT t.term_id), 0) AS triple_count,
             COALESCE(SUM(tt.total_market_cap), 0) AS agg_market_cap,
             COALESCE(SUM(tt.total_position_count), 0) AS agg_position_count
         FROM affected_triples at
@@ -720,7 +719,7 @@ BEGIN
     SELECT
         poa.predicate_id,
         poa.object_id,
-        0, -- Initial triple_count, will be updated by triple insert trigger
+        0, -- Initial triple_count, managed exclusively by triple insert trigger
         poa.agg_market_cap,
         poa.agg_position_count
     FROM predicate_object_aggregates poa
@@ -769,7 +768,6 @@ BEGIN
         SELECT
             at.subject_id,
             at.predicate_id,
-            COALESCE(COUNT(DISTINCT t.term_id), 0) AS triple_count,
             COALESCE(SUM(tt.total_market_cap), 0) AS agg_market_cap,
             COALESCE(SUM(tt.total_position_count), 0) AS agg_position_count
         FROM affected_triples at
@@ -781,7 +779,7 @@ BEGIN
     SELECT
         spa.subject_id,
         spa.predicate_id,
-        0, -- Initial triple_count, will be updated by triple insert trigger
+        0, -- Initial triple_count, managed exclusively by triple insert trigger
         spa.agg_market_cap,
         spa.agg_position_count
     FROM subject_predicate_aggregates spa
