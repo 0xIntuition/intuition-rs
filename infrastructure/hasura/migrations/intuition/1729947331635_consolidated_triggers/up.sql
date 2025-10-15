@@ -706,7 +706,7 @@ BEGIN
         affected_counter_term_id := NEW.counter_term_id;
     END IF;
 
-    -- Update all predicate_object records for triples that match either term_id or counter_term_id
+    -- Insert or update all predicate_object records for triples that match either term_id or counter_term_id
     -- Use CTE to avoid duplicate subquery execution
     WITH affected_triples AS (
         SELECT t.predicate_id, t.object_id, t.term_id
@@ -716,21 +716,29 @@ BEGIN
     ),
     predicate_object_aggregates AS (
         SELECT
-            po.id,
+            at.predicate_id,
+            at.object_id,
+            at.predicate_id || '-' || at.object_id AS po_id,
+            COALESCE(COUNT(DISTINCT t.term_id), 0) AS triple_count,
             COALESCE(SUM(tt.total_market_cap), 0) AS agg_market_cap,
             COALESCE(SUM(tt.total_position_count), 0) AS agg_position_count
-        FROM predicate_object po
-        INNER JOIN affected_triples at ON po.predicate_id = at.predicate_id AND po.object_id = at.object_id
-        LEFT JOIN triple t ON t.predicate_id = po.predicate_id AND t.object_id = po.object_id
+        FROM affected_triples at
+        LEFT JOIN triple t ON t.predicate_id = at.predicate_id AND t.object_id = at.object_id
         LEFT JOIN triple_term tt ON tt.term_id = t.term_id OR tt.counter_term_id = t.term_id
-        GROUP BY po.id
+        GROUP BY at.predicate_id, at.object_id
     )
-    UPDATE predicate_object po
-    SET
-        total_market_cap = poa.agg_market_cap,
-        total_position_count = poa.agg_position_count
+    INSERT INTO predicate_object (id, predicate_id, object_id, triple_count, total_market_cap, total_position_count)
+    SELECT
+        poa.po_id,
+        poa.predicate_id,
+        poa.object_id,
+        0, -- Initial triple_count, will be updated by triple insert trigger
+        poa.agg_market_cap,
+        poa.agg_position_count
     FROM predicate_object_aggregates poa
-    WHERE po.id = poa.id;
+    ON CONFLICT (id) DO UPDATE SET
+        total_market_cap = EXCLUDED.total_market_cap,
+        total_position_count = EXCLUDED.total_position_count;
 
     RETURN NULL;
 END;
@@ -761,7 +769,7 @@ BEGIN
         affected_counter_term_id := NEW.counter_term_id;
     END IF;
 
-    -- Update all subject_predicate records for triples that match either term_id or counter_term_id
+    -- Insert or update all subject_predicate records for triples that match either term_id or counter_term_id
     -- Use CTE to avoid duplicate subquery execution
     WITH affected_triples AS (
         SELECT t.subject_id, t.predicate_id, t.term_id
@@ -771,21 +779,29 @@ BEGIN
     ),
     subject_predicate_aggregates AS (
         SELECT
-            sp.id,
+            at.subject_id,
+            at.predicate_id,
+            at.subject_id || '-' || at.predicate_id AS sp_id,
+            COALESCE(COUNT(DISTINCT t.term_id), 0) AS triple_count,
             COALESCE(SUM(tt.total_market_cap), 0) AS agg_market_cap,
             COALESCE(SUM(tt.total_position_count), 0) AS agg_position_count
-        FROM subject_predicate sp
-        INNER JOIN affected_triples at ON sp.subject_id = at.subject_id AND sp.predicate_id = at.predicate_id
-        LEFT JOIN triple t ON t.subject_id = sp.subject_id AND t.predicate_id = sp.predicate_id
+        FROM affected_triples at
+        LEFT JOIN triple t ON t.subject_id = at.subject_id AND t.predicate_id = at.predicate_id
         LEFT JOIN triple_term tt ON tt.term_id = t.term_id OR tt.counter_term_id = t.term_id
-        GROUP BY sp.id
+        GROUP BY at.subject_id, at.predicate_id
     )
-    UPDATE subject_predicate sp
-    SET
-        total_market_cap = spa.agg_market_cap,
-        total_position_count = spa.agg_position_count
+    INSERT INTO subject_predicate (id, subject_id, predicate_id, triple_count, total_market_cap, total_position_count)
+    SELECT
+        spa.sp_id,
+        spa.subject_id,
+        spa.predicate_id,
+        0, -- Initial triple_count, will be updated by triple insert trigger
+        spa.agg_market_cap,
+        spa.agg_position_count
     FROM subject_predicate_aggregates spa
-    WHERE sp.id = spa.id;
+    ON CONFLICT (id) DO UPDATE SET
+        total_market_cap = EXCLUDED.total_market_cap,
+        total_position_count = EXCLUDED.total_position_count;
 
     RETURN NULL;
 END;
