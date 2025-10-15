@@ -713,7 +713,7 @@ BEGIN
             COALESCE(SUM(tt.total_position_count), 0) AS agg_position_count
         FROM affected_triples at
         LEFT JOIN triple t ON t.predicate_id = at.predicate_id AND t.object_id = at.object_id
-        LEFT JOIN triple_term tt ON tt.term_id = t.term_id OR tt.counter_term_id = t.term_id
+        LEFT JOIN triple_term tt ON tt.term_id = t.term_id
         GROUP BY at.predicate_id, at.object_id
     )
     INSERT INTO predicate_object (predicate_id, object_id, triple_count, total_market_cap, total_position_count)
@@ -774,7 +774,7 @@ BEGIN
             COALESCE(SUM(tt.total_position_count), 0) AS agg_position_count
         FROM affected_triples at
         LEFT JOIN triple t ON t.subject_id = at.subject_id AND t.predicate_id = at.predicate_id
-        LEFT JOIN triple_term tt ON tt.term_id = t.term_id OR tt.counter_term_id = t.term_id
+        LEFT JOIN triple_term tt ON tt.term_id = t.term_id
         GROUP BY at.subject_id, at.predicate_id
     )
     INSERT INTO subject_predicate (subject_id, predicate_id, triple_count, total_market_cap, total_position_count)
