@@ -46,7 +46,7 @@ fi
 
 # If started with arg histo_local_1_5 deploy contract to local anvil and get contract address
 if [ "$INDEXER_SCHEMA" == "local" ]; then
-  docker compose -p intuition -f docker/docker-compose-shared.yml up contract-deployer-2-0 anvil -d --wait
+  docker compose -p intuition -f docker/docker-compose-shared.yml up contract-deployer-2-0 reth -d --wait
 
   docker compose -f infrastructure/blockscout/docker-compose.yml up -d --wait
 
@@ -70,8 +70,8 @@ if [ "$INDEXER_SCHEMA" == "local" ]; then
   export VITE_INTUITION_CONTRACT_ADDRESS=$CONTRACT_ADDRESS
   export INTUITION_CONTRACT_ADDRESS=$CONTRACT_ADDRESS
   export INDEXER_SCHEMA="local"
-  export BASE_SEPOLIA_RPC_URL="http://anvil:8545"
-  export BASE_MAINNET_RPC_URL="http://anvil:8545"
+  export BASE_SEPOLIA_RPC_URL="http://reth:8545"
+  export BASE_MAINNET_RPC_URL="http://reth:8545"
 fi
 
 if [ "$2" == "test" ]; then

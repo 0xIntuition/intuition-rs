@@ -37,20 +37,20 @@ export ANVIL_MULTI_VAULT_ROLE_MIGRATOR=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb9226
 export ANVIL_CHAIN_ID=31337\n\
 export TARGET_CHAIN_ID=31337\n\
 export ANVIL_TRUST_TOKEN=0x000000000000000000000000000000000000dEaD\n\
-OUTPUT0=$(forge script script/base/BaseEmissionsControllerDeploy.s.sol --slow --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --rpc-url http://anvil:8545 --broadcast --optimizer-runs 200 2>&1)\n\
+OUTPUT0=$(forge script script/base/BaseEmissionsControllerDeploy.s.sol --slow --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --rpc-url http://reth:8545 --broadcast --optimizer-runs 200 2>&1)\n\
 echo "$OUTPUT0"\n\
 export ANVIL_BASE_EMISSIONS_CONTROLLER=$(echo "$OUTPUT0" | grep "BaseEmissionsController Proxy: " | sed -E "s/.*BaseEmissionsController Proxy: //")\n\
-OUTPUT1=$(forge script script/intuition/MultiVaultMigrationModeDeploy.s.sol:MultiVaultMigrationModeDeploy --slow --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --rpc-url http://anvil:8545 --broadcast --optimizer-runs 200 2>&1)\n\
+OUTPUT1=$(forge script script/intuition/MultiVaultMigrationModeDeploy.s.sol:MultiVaultMigrationModeDeploy --slow --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --rpc-url http://reth:8545 --broadcast --optimizer-runs 200 2>&1)\n\
 echo "$OUTPUT1"\n\
 export ANVIL_MULTIVAULT_MIGRATION_MODE_IMPLEMENTATION=$(echo "$OUTPUT1" | grep "MultiVaultMigrationMode Implementation: " | sed -E "s/.*MultiVaultMigrationMode Implementation: //")\n\
-OUTPUT2=$(forge script script/intuition/IntuitionDeployAndSetup.s.sol --slow --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --rpc-url http://anvil:8545 --broadcast --optimizer-runs 200 2>&1)\n\
+OUTPUT2=$(forge script script/intuition/IntuitionDeployAndSetup.s.sol --slow --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --rpc-url http://reth:8545 --broadcast --optimizer-runs 200 2>&1)\n\
 echo "$OUTPUT2"\n\
 export ANVIL_MULTIVAULT_PROXY=$(echo "$OUTPUT2" | grep "MultiVault : " | sed -E "s/.*MultiVault : //")\n\
 PGPASSWORD=$POSTGRES_PASSWORD psql -h database -U $POSTGRES_USER -d $POSTGRES_DB -p $POSTGRES_PORT -c "UPDATE histocrawler.app_config SET contract_address = '\''$ANVIL_MULTIVAULT_PROXY'\'', start_block = 0 WHERE indexer_schema = '\''local'\''"' > /app/deploy.sh && chmod +x /app/deploy.sh
 
 RUN echo '#!/bin/sh\n\
-forge script script/intuition/MultiVaultMigrationDeploy.s.sol --slow --rpc-url http://anvil:8545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --broadcast --optimizer-runs 200 --resume --verify --verifier blockscout --verifier-url http://host.docker.internal/api/\n\
-forge script script/intuition/IntuitionDeployAndSetup.s.sol --slow --rpc-url http://anvil:8545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --broadcast --optimizer-runs 200 --resume --verify --verifier blockscout --verifier-url http://host.docker.internal/api/\n\' > /app/verify.sh && chmod +x /app/verify.sh
+forge script script/intuition/MultiVaultMigrationDeploy.s.sol --slow --rpc-url http://reth:8545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --broadcast --optimizer-runs 200 --resume --verify --verifier blockscout --verifier-url http://host.docker.internal/api/\n\
+forge script script/intuition/IntuitionDeployAndSetup.s.sol --slow --rpc-url http://reth:8545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --broadcast --optimizer-runs 200 --resume --verify --verifier blockscout --verifier-url http://host.docker.internal/api/\n\' > /app/verify.sh && chmod +x /app/verify.sh
 
 # Set the entrypoint to the script
 ENTRYPOINT ["/app/deploy.sh"]

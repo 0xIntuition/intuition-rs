@@ -220,19 +220,17 @@ services:
       - '--config.file=/etc/prometheus/prometheus.yml'
 
 
-  anvil:
-    container_name: anvil
-    image: ghcr.io/foundry-rs/foundry
+  reth:
+    container_name: reth
+    image: ghcr.io/paradigmxyz/reth
     environment:
-      ANVIL_IP_ADDR: "0.0.0.0"
+      RUST_LOG: info
     ports:
       - '8545:8545'
-    healthcheck:
-      test: ["CMD", "cast", "block-number", "--rpc-url", "http://localhost:8545"]
-      interval: 2s
-      timeout: 2s
-      retries: 10
-    command: anvil
+    volumes:
+      - reth-data:/reth-data
+      - ../infrastructure/reth/chain.json:/chain.json:ro
+    command: node --dev --dev.block-time 1s --http --http.addr 0.0.0.0 --http.port 8545 --http.api all --datadir /reth-data --chain /chain.json
 
   contract-deployer-2-0:
     container_name: contract-deployer-2-0
@@ -243,11 +241,9 @@ services:
       POSTGRES_DB: storage
       POSTGRES_PORT: 5435
     depends_on:
-      anvil:
-        condition: service_healthy 
+      reth:
+        condition: service_started 
     volumes:
-      - ../infrastructure/geth/keystore.json:/data/keystore.json
-      - ../infrastructure/geth/password.txt:/data/password.txt
       - contract-deployer-2-0-data:/app
 
   contract-verifier-2-0:
@@ -255,8 +251,8 @@ services:
       image: ghcr.io/0xintuition/contract-deployer-2-0:latest
       entrypoint: /app/verify.sh
       depends_on:
-        anvil:
-          condition: service_healthy 
+        reth:
+          condition: service_started
         contract-deployer-2-0:
           condition: service_completed_successfully
       volumes:
@@ -275,4 +271,5 @@ volumes:
   pgadmin-data:
   ipfs_data:
   redis_data:
+  reth-data:
   contract-deployer-2-0-data:
