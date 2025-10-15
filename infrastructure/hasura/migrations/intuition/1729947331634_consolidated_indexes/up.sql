@@ -208,3 +208,57 @@ ON term_total_state_change(created_at DESC, term_id);
 
 CREATE INDEX IF NOT EXISTS idx_term_total_state_change_term_id
 ON term_total_state_change(term_id);
+
+-- ========================================
+-- INDEXES FOR PREDICATE_OBJECT AND SUBJECT_PREDICATE TRIGGERS
+-- ========================================
+-- These indexes are critical for the performance of:
+-- - update_predicate_object_aggregates() trigger
+-- - update_subject_predicate_aggregates() trigger
+-- - update_triple_vault_from_vault() trigger
+
+-- Critical: triple.term_id is used in WHERE clauses of both aggregate triggers
+CREATE INDEX IF NOT EXISTS idx_triple_term_id ON triple(term_id);
+
+-- Optimization: Covering indexes for predicate_object aggregate queries
+CREATE INDEX IF NOT EXISTS idx_triple_predicate_object_term ON triple(predicate_id, object_id, term_id);
+
+-- Optimization: Covering indexes for subject_predicate aggregate queries
+CREATE INDEX IF NOT EXISTS idx_triple_subject_predicate_term ON triple(subject_id, predicate_id, term_id);
+
+-- Optimization: Composite indexes for triple_vault lookups in update_triple_vault_from_vault trigger
+CREATE INDEX IF NOT EXISTS idx_triple_vault_term_curve ON triple_vault(term_id, curve_id);
+CREATE INDEX IF NOT EXISTS idx_triple_vault_counter_curve ON triple_vault(counter_term_id, curve_id);
+
+-- ========================================
+-- CRITICAL INDEXES FOR POSITION UPDATE TRIGGERS
+-- ========================================
+-- These indexes are essential for deposit and redemption position update triggers
+-- The update_position_deposit_assets() and update_position_redeem_assets() triggers
+-- fire on every deposit/redemption INSERT and need to efficiently locate positions
+-- by the composite key (account_id, term_id, curve_id)
+
+-- Critical: 3-column composite index for position lookups
+-- Used by: update_position_deposit_assets() and update_position_redeem_assets() triggers
+-- Query pattern: UPDATE position WHERE account_id = X AND term_id = Y AND curve_id = Z
+CREATE INDEX IF NOT EXISTS idx_position_account_term_curve ON position(account_id, term_id, curve_id);
+
+-- ========================================
+-- INDEXES FOR SEARCH FUNCTIONS
+-- ========================================
+-- These indexes optimize the search_positions_on_subject() function
+
+-- Index for atom data filtering in search queries
+-- Used by: search_positions_on_subject() function
+-- Query pattern: WHERE (predicate_atom.data, object_atom.data) IN (...)
+CREATE INDEX IF NOT EXISTS idx_atom_data ON atom(data);
+
+-- ========================================
+-- OPTIMIZATION INDEXES FOR COMPLEX AGGREGATES
+-- ========================================
+-- These indexes optimize complex aggregate queries in triple_vault updates
+
+-- Composite index for triple_term lookups
+-- Used by: update_triple_vault_from_vault() function
+-- Query pattern: WHERE term_id = X AND counter_term_id = Y (or vice versa)
+CREATE INDEX IF NOT EXISTS idx_triple_term_composite ON triple_term(term_id, counter_term_id);
