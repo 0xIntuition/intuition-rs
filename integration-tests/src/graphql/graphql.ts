@@ -3722,7 +3722,33 @@ export type Predicate_Objects = {
   /** An object relationship */
   predicate: Atoms;
   predicate_id: Scalars['String']['output'];
+  total_market_cap: Scalars['numeric']['output'];
+  total_position_count: Scalars['Int']['output'];
   triple_count: Scalars['Int']['output'];
+  /** An array relationship */
+  triples: Array<Triples>;
+  /** An aggregate relationship */
+  triples_aggregate: Triples_Aggregate;
+};
+
+
+/** columns and relationships of "predicate_object" */
+export type Predicate_ObjectsTriplesArgs = {
+  distinct_on?: InputMaybe<Array<Triples_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Triples_Order_By>>;
+  where?: InputMaybe<Triples_Bool_Exp>;
+};
+
+
+/** columns and relationships of "predicate_object" */
+export type Predicate_ObjectsTriples_AggregateArgs = {
+  distinct_on?: InputMaybe<Array<Triples_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Triples_Order_By>>;
+  where?: InputMaybe<Triples_Bool_Exp>;
 };
 
 /** aggregated selection of "predicate_object" */
@@ -3784,11 +3810,15 @@ export type Predicate_Objects_Aggregate_Order_By = {
 /** aggregate avg on columns */
 export type Predicate_Objects_Avg_Fields = {
   __typename?: 'predicate_objects_avg_fields';
+  total_market_cap?: Maybe<Scalars['Float']['output']>;
+  total_position_count?: Maybe<Scalars['Float']['output']>;
   triple_count?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by avg() on columns of table "predicate_object" */
 export type Predicate_Objects_Avg_Order_By = {
+  total_market_cap?: InputMaybe<Order_By>;
+  total_position_count?: InputMaybe<Order_By>;
   triple_count?: InputMaybe<Order_By>;
 };
 
@@ -3802,7 +3832,11 @@ export type Predicate_Objects_Bool_Exp = {
   object_id?: InputMaybe<String_Comparison_Exp>;
   predicate?: InputMaybe<Atoms_Bool_Exp>;
   predicate_id?: InputMaybe<String_Comparison_Exp>;
+  total_market_cap?: InputMaybe<Numeric_Comparison_Exp>;
+  total_position_count?: InputMaybe<Int_Comparison_Exp>;
   triple_count?: InputMaybe<Int_Comparison_Exp>;
+  triples?: InputMaybe<Triples_Bool_Exp>;
+  triples_aggregate?: InputMaybe<Triples_Aggregate_Bool_Exp>;
 };
 
 /** aggregate max on columns */
@@ -3811,6 +3845,8 @@ export type Predicate_Objects_Max_Fields = {
   id?: Maybe<Scalars['String']['output']>;
   object_id?: Maybe<Scalars['String']['output']>;
   predicate_id?: Maybe<Scalars['String']['output']>;
+  total_market_cap?: Maybe<Scalars['numeric']['output']>;
+  total_position_count?: Maybe<Scalars['Int']['output']>;
   triple_count?: Maybe<Scalars['Int']['output']>;
 };
 
@@ -3819,6 +3855,8 @@ export type Predicate_Objects_Max_Order_By = {
   id?: InputMaybe<Order_By>;
   object_id?: InputMaybe<Order_By>;
   predicate_id?: InputMaybe<Order_By>;
+  total_market_cap?: InputMaybe<Order_By>;
+  total_position_count?: InputMaybe<Order_By>;
   triple_count?: InputMaybe<Order_By>;
 };
 
@@ -3828,6 +3866,8 @@ export type Predicate_Objects_Min_Fields = {
   id?: Maybe<Scalars['String']['output']>;
   object_id?: Maybe<Scalars['String']['output']>;
   predicate_id?: Maybe<Scalars['String']['output']>;
+  total_market_cap?: Maybe<Scalars['numeric']['output']>;
+  total_position_count?: Maybe<Scalars['Int']['output']>;
   triple_count?: Maybe<Scalars['Int']['output']>;
 };
 
@@ -3836,6 +3876,8 @@ export type Predicate_Objects_Min_Order_By = {
   id?: InputMaybe<Order_By>;
   object_id?: InputMaybe<Order_By>;
   predicate_id?: InputMaybe<Order_By>;
+  total_market_cap?: InputMaybe<Order_By>;
+  total_position_count?: InputMaybe<Order_By>;
   triple_count?: InputMaybe<Order_By>;
 };
 
@@ -3846,7 +3888,10 @@ export type Predicate_Objects_Order_By = {
   object_id?: InputMaybe<Order_By>;
   predicate?: InputMaybe<Atoms_Order_By>;
   predicate_id?: InputMaybe<Order_By>;
+  total_market_cap?: InputMaybe<Order_By>;
+  total_position_count?: InputMaybe<Order_By>;
   triple_count?: InputMaybe<Order_By>;
+  triples_aggregate?: InputMaybe<Triples_Aggregate_Order_By>;
 };
 
 /** select columns of table "predicate_object" */
@@ -3858,39 +3903,55 @@ export enum Predicate_Objects_Select_Column {
   /** column name */
   PredicateId = 'predicate_id',
   /** column name */
+  TotalMarketCap = 'total_market_cap',
+  /** column name */
+  TotalPositionCount = 'total_position_count',
+  /** column name */
   TripleCount = 'triple_count'
 }
 
 /** aggregate stddev on columns */
 export type Predicate_Objects_Stddev_Fields = {
   __typename?: 'predicate_objects_stddev_fields';
+  total_market_cap?: Maybe<Scalars['Float']['output']>;
+  total_position_count?: Maybe<Scalars['Float']['output']>;
   triple_count?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by stddev() on columns of table "predicate_object" */
 export type Predicate_Objects_Stddev_Order_By = {
+  total_market_cap?: InputMaybe<Order_By>;
+  total_position_count?: InputMaybe<Order_By>;
   triple_count?: InputMaybe<Order_By>;
 };
 
 /** aggregate stddev_pop on columns */
 export type Predicate_Objects_Stddev_Pop_Fields = {
   __typename?: 'predicate_objects_stddev_pop_fields';
+  total_market_cap?: Maybe<Scalars['Float']['output']>;
+  total_position_count?: Maybe<Scalars['Float']['output']>;
   triple_count?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by stddev_pop() on columns of table "predicate_object" */
 export type Predicate_Objects_Stddev_Pop_Order_By = {
+  total_market_cap?: InputMaybe<Order_By>;
+  total_position_count?: InputMaybe<Order_By>;
   triple_count?: InputMaybe<Order_By>;
 };
 
 /** aggregate stddev_samp on columns */
 export type Predicate_Objects_Stddev_Samp_Fields = {
   __typename?: 'predicate_objects_stddev_samp_fields';
+  total_market_cap?: Maybe<Scalars['Float']['output']>;
+  total_position_count?: Maybe<Scalars['Float']['output']>;
   triple_count?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by stddev_samp() on columns of table "predicate_object" */
 export type Predicate_Objects_Stddev_Samp_Order_By = {
+  total_market_cap?: InputMaybe<Order_By>;
+  total_position_count?: InputMaybe<Order_By>;
   triple_count?: InputMaybe<Order_By>;
 };
 
@@ -3907,50 +3968,68 @@ export type Predicate_Objects_Stream_Cursor_Value_Input = {
   id?: InputMaybe<Scalars['String']['input']>;
   object_id?: InputMaybe<Scalars['String']['input']>;
   predicate_id?: InputMaybe<Scalars['String']['input']>;
+  total_market_cap?: InputMaybe<Scalars['numeric']['input']>;
+  total_position_count?: InputMaybe<Scalars['Int']['input']>;
   triple_count?: InputMaybe<Scalars['Int']['input']>;
 };
 
 /** aggregate sum on columns */
 export type Predicate_Objects_Sum_Fields = {
   __typename?: 'predicate_objects_sum_fields';
+  total_market_cap?: Maybe<Scalars['numeric']['output']>;
+  total_position_count?: Maybe<Scalars['Int']['output']>;
   triple_count?: Maybe<Scalars['Int']['output']>;
 };
 
 /** order by sum() on columns of table "predicate_object" */
 export type Predicate_Objects_Sum_Order_By = {
+  total_market_cap?: InputMaybe<Order_By>;
+  total_position_count?: InputMaybe<Order_By>;
   triple_count?: InputMaybe<Order_By>;
 };
 
 /** aggregate var_pop on columns */
 export type Predicate_Objects_Var_Pop_Fields = {
   __typename?: 'predicate_objects_var_pop_fields';
+  total_market_cap?: Maybe<Scalars['Float']['output']>;
+  total_position_count?: Maybe<Scalars['Float']['output']>;
   triple_count?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by var_pop() on columns of table "predicate_object" */
 export type Predicate_Objects_Var_Pop_Order_By = {
+  total_market_cap?: InputMaybe<Order_By>;
+  total_position_count?: InputMaybe<Order_By>;
   triple_count?: InputMaybe<Order_By>;
 };
 
 /** aggregate var_samp on columns */
 export type Predicate_Objects_Var_Samp_Fields = {
   __typename?: 'predicate_objects_var_samp_fields';
+  total_market_cap?: Maybe<Scalars['Float']['output']>;
+  total_position_count?: Maybe<Scalars['Float']['output']>;
   triple_count?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by var_samp() on columns of table "predicate_object" */
 export type Predicate_Objects_Var_Samp_Order_By = {
+  total_market_cap?: InputMaybe<Order_By>;
+  total_position_count?: InputMaybe<Order_By>;
   triple_count?: InputMaybe<Order_By>;
 };
 
 /** aggregate variance on columns */
 export type Predicate_Objects_Variance_Fields = {
   __typename?: 'predicate_objects_variance_fields';
+  total_market_cap?: Maybe<Scalars['Float']['output']>;
+  total_position_count?: Maybe<Scalars['Float']['output']>;
   triple_count?: Maybe<Scalars['Float']['output']>;
 };
 
 /** order by variance() on columns of table "predicate_object" */
 export type Predicate_Objects_Variance_Order_By = {
+  total_market_cap?: InputMaybe<Order_By>;
+  total_position_count?: InputMaybe<Order_By>;
   triple_count?: InputMaybe<Order_By>;
 };
 
@@ -4116,6 +4195,12 @@ export type Query_Root = {
   stats: Array<Stats>;
   /** fetch aggregated fields from the table: "stats" */
   stats_aggregate: Stats_Aggregate;
+  /** fetch data from the table: "subject_predicate" */
+  subject_predicates: Array<Subject_Predicates>;
+  /** fetch aggregated fields from the table: "subject_predicate" */
+  subject_predicates_aggregate: Subject_Predicates_Aggregate;
+  /** fetch data from the table: "subject_predicate" using primary key columns */
+  subject_predicates_by_pk?: Maybe<Subject_Predicates>;
   /** fetch data from the table: "term" using primary key columns */
   term?: Maybe<Terms>;
   /** fetch data from the table: "term_total_state_change_stats_daily" */
@@ -4816,6 +4901,29 @@ export type Query_RootStats_AggregateArgs = {
   offset?: InputMaybe<Scalars['Int']['input']>;
   order_by?: InputMaybe<Array<Stats_Order_By>>;
   where?: InputMaybe<Stats_Bool_Exp>;
+};
+
+
+export type Query_RootSubject_PredicatesArgs = {
+  distinct_on?: InputMaybe<Array<Subject_Predicates_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Subject_Predicates_Order_By>>;
+  where?: InputMaybe<Subject_Predicates_Bool_Exp>;
+};
+
+
+export type Query_RootSubject_Predicates_AggregateArgs = {
+  distinct_on?: InputMaybe<Array<Subject_Predicates_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Subject_Predicates_Order_By>>;
+  where?: InputMaybe<Subject_Predicates_Bool_Exp>;
+};
+
+
+export type Query_RootSubject_Predicates_By_PkArgs = {
+  id: Scalars['String']['input'];
 };
 
 
@@ -7642,6 +7750,225 @@ export type Stats_Variance_Fields = {
   total_triples?: Maybe<Scalars['Float']['output']>;
 };
 
+/** columns and relationships of "subject_predicate" */
+export type Subject_Predicates = {
+  __typename?: 'subject_predicates';
+  id: Scalars['String']['output'];
+  /** An object relationship */
+  predicate: Atoms;
+  predicate_id: Scalars['String']['output'];
+  /** An object relationship */
+  subject: Atoms;
+  subject_id: Scalars['String']['output'];
+  total_market_cap: Scalars['numeric']['output'];
+  total_position_count: Scalars['Int']['output'];
+  triple_count: Scalars['Int']['output'];
+  /** An array relationship */
+  triples: Array<Triples>;
+  /** An aggregate relationship */
+  triples_aggregate: Triples_Aggregate;
+};
+
+
+/** columns and relationships of "subject_predicate" */
+export type Subject_PredicatesTriplesArgs = {
+  distinct_on?: InputMaybe<Array<Triples_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Triples_Order_By>>;
+  where?: InputMaybe<Triples_Bool_Exp>;
+};
+
+
+/** columns and relationships of "subject_predicate" */
+export type Subject_PredicatesTriples_AggregateArgs = {
+  distinct_on?: InputMaybe<Array<Triples_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Triples_Order_By>>;
+  where?: InputMaybe<Triples_Bool_Exp>;
+};
+
+/** aggregated selection of "subject_predicate" */
+export type Subject_Predicates_Aggregate = {
+  __typename?: 'subject_predicates_aggregate';
+  aggregate?: Maybe<Subject_Predicates_Aggregate_Fields>;
+  nodes: Array<Subject_Predicates>;
+};
+
+/** aggregate fields of "subject_predicate" */
+export type Subject_Predicates_Aggregate_Fields = {
+  __typename?: 'subject_predicates_aggregate_fields';
+  avg?: Maybe<Subject_Predicates_Avg_Fields>;
+  count: Scalars['Int']['output'];
+  max?: Maybe<Subject_Predicates_Max_Fields>;
+  min?: Maybe<Subject_Predicates_Min_Fields>;
+  stddev?: Maybe<Subject_Predicates_Stddev_Fields>;
+  stddev_pop?: Maybe<Subject_Predicates_Stddev_Pop_Fields>;
+  stddev_samp?: Maybe<Subject_Predicates_Stddev_Samp_Fields>;
+  sum?: Maybe<Subject_Predicates_Sum_Fields>;
+  var_pop?: Maybe<Subject_Predicates_Var_Pop_Fields>;
+  var_samp?: Maybe<Subject_Predicates_Var_Samp_Fields>;
+  variance?: Maybe<Subject_Predicates_Variance_Fields>;
+};
+
+
+/** aggregate fields of "subject_predicate" */
+export type Subject_Predicates_Aggregate_FieldsCountArgs = {
+  columns?: InputMaybe<Array<Subject_Predicates_Select_Column>>;
+  distinct?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+/** aggregate avg on columns */
+export type Subject_Predicates_Avg_Fields = {
+  __typename?: 'subject_predicates_avg_fields';
+  total_market_cap?: Maybe<Scalars['Float']['output']>;
+  total_position_count?: Maybe<Scalars['Float']['output']>;
+  triple_count?: Maybe<Scalars['Float']['output']>;
+};
+
+/** Boolean expression to filter rows from the table "subject_predicate". All fields are combined with a logical 'AND'. */
+export type Subject_Predicates_Bool_Exp = {
+  _and?: InputMaybe<Array<Subject_Predicates_Bool_Exp>>;
+  _not?: InputMaybe<Subject_Predicates_Bool_Exp>;
+  _or?: InputMaybe<Array<Subject_Predicates_Bool_Exp>>;
+  id?: InputMaybe<String_Comparison_Exp>;
+  predicate?: InputMaybe<Atoms_Bool_Exp>;
+  predicate_id?: InputMaybe<String_Comparison_Exp>;
+  subject?: InputMaybe<Atoms_Bool_Exp>;
+  subject_id?: InputMaybe<String_Comparison_Exp>;
+  total_market_cap?: InputMaybe<Numeric_Comparison_Exp>;
+  total_position_count?: InputMaybe<Int_Comparison_Exp>;
+  triple_count?: InputMaybe<Int_Comparison_Exp>;
+  triples?: InputMaybe<Triples_Bool_Exp>;
+  triples_aggregate?: InputMaybe<Triples_Aggregate_Bool_Exp>;
+};
+
+/** aggregate max on columns */
+export type Subject_Predicates_Max_Fields = {
+  __typename?: 'subject_predicates_max_fields';
+  id?: Maybe<Scalars['String']['output']>;
+  predicate_id?: Maybe<Scalars['String']['output']>;
+  subject_id?: Maybe<Scalars['String']['output']>;
+  total_market_cap?: Maybe<Scalars['numeric']['output']>;
+  total_position_count?: Maybe<Scalars['Int']['output']>;
+  triple_count?: Maybe<Scalars['Int']['output']>;
+};
+
+/** aggregate min on columns */
+export type Subject_Predicates_Min_Fields = {
+  __typename?: 'subject_predicates_min_fields';
+  id?: Maybe<Scalars['String']['output']>;
+  predicate_id?: Maybe<Scalars['String']['output']>;
+  subject_id?: Maybe<Scalars['String']['output']>;
+  total_market_cap?: Maybe<Scalars['numeric']['output']>;
+  total_position_count?: Maybe<Scalars['Int']['output']>;
+  triple_count?: Maybe<Scalars['Int']['output']>;
+};
+
+/** Ordering options when selecting data from "subject_predicate". */
+export type Subject_Predicates_Order_By = {
+  id?: InputMaybe<Order_By>;
+  predicate?: InputMaybe<Atoms_Order_By>;
+  predicate_id?: InputMaybe<Order_By>;
+  subject?: InputMaybe<Atoms_Order_By>;
+  subject_id?: InputMaybe<Order_By>;
+  total_market_cap?: InputMaybe<Order_By>;
+  total_position_count?: InputMaybe<Order_By>;
+  triple_count?: InputMaybe<Order_By>;
+  triples_aggregate?: InputMaybe<Triples_Aggregate_Order_By>;
+};
+
+/** select columns of table "subject_predicate" */
+export enum Subject_Predicates_Select_Column {
+  /** column name */
+  Id = 'id',
+  /** column name */
+  PredicateId = 'predicate_id',
+  /** column name */
+  SubjectId = 'subject_id',
+  /** column name */
+  TotalMarketCap = 'total_market_cap',
+  /** column name */
+  TotalPositionCount = 'total_position_count',
+  /** column name */
+  TripleCount = 'triple_count'
+}
+
+/** aggregate stddev on columns */
+export type Subject_Predicates_Stddev_Fields = {
+  __typename?: 'subject_predicates_stddev_fields';
+  total_market_cap?: Maybe<Scalars['Float']['output']>;
+  total_position_count?: Maybe<Scalars['Float']['output']>;
+  triple_count?: Maybe<Scalars['Float']['output']>;
+};
+
+/** aggregate stddev_pop on columns */
+export type Subject_Predicates_Stddev_Pop_Fields = {
+  __typename?: 'subject_predicates_stddev_pop_fields';
+  total_market_cap?: Maybe<Scalars['Float']['output']>;
+  total_position_count?: Maybe<Scalars['Float']['output']>;
+  triple_count?: Maybe<Scalars['Float']['output']>;
+};
+
+/** aggregate stddev_samp on columns */
+export type Subject_Predicates_Stddev_Samp_Fields = {
+  __typename?: 'subject_predicates_stddev_samp_fields';
+  total_market_cap?: Maybe<Scalars['Float']['output']>;
+  total_position_count?: Maybe<Scalars['Float']['output']>;
+  triple_count?: Maybe<Scalars['Float']['output']>;
+};
+
+/** Streaming cursor of the table "subject_predicates" */
+export type Subject_Predicates_Stream_Cursor_Input = {
+  /** Stream column input with initial value */
+  initial_value: Subject_Predicates_Stream_Cursor_Value_Input;
+  /** cursor ordering */
+  ordering?: InputMaybe<Cursor_Ordering>;
+};
+
+/** Initial value of the column from where the streaming should start */
+export type Subject_Predicates_Stream_Cursor_Value_Input = {
+  id?: InputMaybe<Scalars['String']['input']>;
+  predicate_id?: InputMaybe<Scalars['String']['input']>;
+  subject_id?: InputMaybe<Scalars['String']['input']>;
+  total_market_cap?: InputMaybe<Scalars['numeric']['input']>;
+  total_position_count?: InputMaybe<Scalars['Int']['input']>;
+  triple_count?: InputMaybe<Scalars['Int']['input']>;
+};
+
+/** aggregate sum on columns */
+export type Subject_Predicates_Sum_Fields = {
+  __typename?: 'subject_predicates_sum_fields';
+  total_market_cap?: Maybe<Scalars['numeric']['output']>;
+  total_position_count?: Maybe<Scalars['Int']['output']>;
+  triple_count?: Maybe<Scalars['Int']['output']>;
+};
+
+/** aggregate var_pop on columns */
+export type Subject_Predicates_Var_Pop_Fields = {
+  __typename?: 'subject_predicates_var_pop_fields';
+  total_market_cap?: Maybe<Scalars['Float']['output']>;
+  total_position_count?: Maybe<Scalars['Float']['output']>;
+  triple_count?: Maybe<Scalars['Float']['output']>;
+};
+
+/** aggregate var_samp on columns */
+export type Subject_Predicates_Var_Samp_Fields = {
+  __typename?: 'subject_predicates_var_samp_fields';
+  total_market_cap?: Maybe<Scalars['Float']['output']>;
+  total_position_count?: Maybe<Scalars['Float']['output']>;
+  triple_count?: Maybe<Scalars['Float']['output']>;
+};
+
+/** aggregate variance on columns */
+export type Subject_Predicates_Variance_Fields = {
+  __typename?: 'subject_predicates_variance_fields';
+  total_market_cap?: Maybe<Scalars['Float']['output']>;
+  total_position_count?: Maybe<Scalars['Float']['output']>;
+  triple_count?: Maybe<Scalars['Float']['output']>;
+};
+
 export type Subscription_Root = {
   __typename?: 'subscription_root';
   /** fetch data from the table: "account" using primary key columns */
@@ -7864,6 +8191,14 @@ export type Subscription_Root = {
   stats_aggregate: Stats_Aggregate;
   /** fetch data from the table in a streaming manner: "stats" */
   stats_stream: Array<Stats>;
+  /** fetch data from the table: "subject_predicate" */
+  subject_predicates: Array<Subject_Predicates>;
+  /** fetch aggregated fields from the table: "subject_predicate" */
+  subject_predicates_aggregate: Subject_Predicates_Aggregate;
+  /** fetch data from the table: "subject_predicate" using primary key columns */
+  subject_predicates_by_pk?: Maybe<Subject_Predicates>;
+  /** fetch data from the table in a streaming manner: "subject_predicate" */
+  subject_predicates_stream: Array<Subject_Predicates>;
   /** fetch data from the table: "term" using primary key columns */
   term?: Maybe<Terms>;
   /** fetch data from the table: "term_total_state_change_stats_daily" */
@@ -8798,6 +9133,36 @@ export type Subscription_RootStats_StreamArgs = {
   batch_size: Scalars['Int']['input'];
   cursor: Array<InputMaybe<Stats_Stream_Cursor_Input>>;
   where?: InputMaybe<Stats_Bool_Exp>;
+};
+
+
+export type Subscription_RootSubject_PredicatesArgs = {
+  distinct_on?: InputMaybe<Array<Subject_Predicates_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Subject_Predicates_Order_By>>;
+  where?: InputMaybe<Subject_Predicates_Bool_Exp>;
+};
+
+
+export type Subscription_RootSubject_Predicates_AggregateArgs = {
+  distinct_on?: InputMaybe<Array<Subject_Predicates_Select_Column>>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  order_by?: InputMaybe<Array<Subject_Predicates_Order_By>>;
+  where?: InputMaybe<Subject_Predicates_Bool_Exp>;
+};
+
+
+export type Subscription_RootSubject_Predicates_By_PkArgs = {
+  id: Scalars['String']['input'];
+};
+
+
+export type Subscription_RootSubject_Predicates_StreamArgs = {
+  batch_size: Scalars['Int']['input'];
+  cursor: Array<InputMaybe<Subject_Predicates_Stream_Cursor_Input>>;
+  where?: InputMaybe<Subject_Predicates_Bool_Exp>;
 };
 
 
@@ -9834,6 +10199,7 @@ export type Terms = {
   /** An object relationship */
   atomById?: Maybe<Atoms>;
   atom_id?: Maybe<Scalars['String']['output']>;
+  created_at: Scalars['timestamptz']['output'];
   /** An array relationship */
   deposits: Array<Deposits>;
   /** An aggregate relationship */
@@ -10142,6 +10508,7 @@ export type Terms_Bool_Exp = {
   atom?: InputMaybe<Atoms_Bool_Exp>;
   atomById?: InputMaybe<Atoms_Bool_Exp>;
   atom_id?: InputMaybe<String_Comparison_Exp>;
+  created_at?: InputMaybe<Timestamptz_Comparison_Exp>;
   deposits?: InputMaybe<Deposits_Bool_Exp>;
   deposits_aggregate?: InputMaybe<Deposits_Aggregate_Bool_Exp>;
   id?: InputMaybe<String_Comparison_Exp>;
@@ -10177,6 +10544,7 @@ export type Terms_Bool_Exp = {
 export type Terms_Max_Fields = {
   __typename?: 'terms_max_fields';
   atom_id?: Maybe<Scalars['String']['output']>;
+  created_at?: Maybe<Scalars['timestamptz']['output']>;
   id?: Maybe<Scalars['String']['output']>;
   total_assets?: Maybe<Scalars['numeric']['output']>;
   total_market_cap?: Maybe<Scalars['numeric']['output']>;
@@ -10189,6 +10557,7 @@ export type Terms_Max_Fields = {
 export type Terms_Min_Fields = {
   __typename?: 'terms_min_fields';
   atom_id?: Maybe<Scalars['String']['output']>;
+  created_at?: Maybe<Scalars['timestamptz']['output']>;
   id?: Maybe<Scalars['String']['output']>;
   total_assets?: Maybe<Scalars['numeric']['output']>;
   total_market_cap?: Maybe<Scalars['numeric']['output']>;
@@ -10202,6 +10571,7 @@ export type Terms_Order_By = {
   atom?: InputMaybe<Atoms_Order_By>;
   atomById?: InputMaybe<Atoms_Order_By>;
   atom_id?: InputMaybe<Order_By>;
+  created_at?: InputMaybe<Order_By>;
   deposits_aggregate?: InputMaybe<Deposits_Aggregate_Order_By>;
   id?: InputMaybe<Order_By>;
   positions_aggregate?: InputMaybe<Positions_Aggregate_Order_By>;
@@ -10231,6 +10601,8 @@ export type Terms_Order_By = {
 export enum Terms_Select_Column {
   /** column name */
   AtomId = 'atom_id',
+  /** column name */
+  CreatedAt = 'created_at',
   /** column name */
   Id = 'id',
   /** column name */
@@ -10277,6 +10649,7 @@ export type Terms_Stream_Cursor_Input = {
 /** Initial value of the column from where the streaming should start */
 export type Terms_Stream_Cursor_Value_Input = {
   atom_id?: InputMaybe<Scalars['String']['input']>;
+  created_at?: InputMaybe<Scalars['timestamptz']['input']>;
   id?: InputMaybe<Scalars['String']['input']>;
   total_assets?: InputMaybe<Scalars['numeric']['input']>;
   total_market_cap?: InputMaybe<Scalars['numeric']['input']>;
