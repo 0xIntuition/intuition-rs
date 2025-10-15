@@ -32,7 +32,6 @@ suite('predicate_object triggers', () => {
           predicate_id: { _eq: $predicateId },
           object_id: { _eq: $objectId }
         }) {
-          id
           predicate_id
           object_id
           triple_count
@@ -96,7 +95,6 @@ suite('predicate_object triggers', () => {
           predicate_id: { _eq: $predicateId },
           object_id: { _eq: $objectId }
         }) {
-          id
           triple_count
           triples {
             term_id
@@ -146,7 +144,6 @@ suite('subject_predicate triggers', () => {
           subject_id: { _eq: $subjectId },
           predicate_id: { _eq: $predicateId }
         }) {
-          id
           subject_id
           predicate_id
           triple_count
@@ -210,7 +207,6 @@ suite('subject_predicate triggers', () => {
           subject_id: { _eq: $subjectId },
           predicate_id: { _eq: $predicateId }
         }) {
-          id
           triple_count
           triples {
             term_id
@@ -264,7 +260,6 @@ suite('predicate_object aggregations', () => {
           predicate_id: { _eq: $predicateId },
           object_id: { _eq: $objectId }
         }) {
-          id
           total_market_cap
           total_position_count
           triple_count
@@ -328,7 +323,6 @@ suite('predicate_object aggregations', () => {
           predicate_id: { _eq: $predicateId },
           object_id: { _eq: $objectId }
         }) {
-          id
           total_market_cap
           total_position_count
           triple_count
@@ -448,7 +442,6 @@ suite('subject_predicate aggregations', () => {
           subject_id: { _eq: $subjectId },
           predicate_id: { _eq: $predicateId }
         }) {
-          id
           total_market_cap
           total_position_count
           triple_count
@@ -512,7 +505,6 @@ suite('subject_predicate aggregations', () => {
           subject_id: { _eq: $subjectId },
           predicate_id: { _eq: $predicateId }
         }) {
-          id
           total_market_cap
           total_position_count
           triple_count
@@ -632,7 +624,6 @@ suite('predicate_object and subject_predicate integration', () => {
           predicate_id: { _eq: $predicateId },
           object_id: { _eq: $objectId }
         }) {
-          id
           triple_count
           total_market_cap
           total_position_count
@@ -641,7 +632,6 @@ suite('predicate_object and subject_predicate integration', () => {
           subject_id: { _eq: $subjectId },
           predicate_id: { _eq: $predicateId }
         }) {
-          id
           triple_count
           total_market_cap
           total_position_count
@@ -725,7 +715,6 @@ suite('predicate_object and subject_predicate integration', () => {
           predicate_id: { _eq: $predicateId },
           object_id: { _eq: $objectId }
         }) {
-          id
           triple_count
           total_market_cap
           total_position_count

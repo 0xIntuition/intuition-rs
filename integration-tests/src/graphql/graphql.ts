@@ -3715,7 +3715,6 @@ export type Positions_Variance_Order_By = {
 /** columns and relationships of "predicate_object" */
 export type Predicate_Objects = {
   __typename?: 'predicate_objects';
-  id: Scalars['String']['output'];
   /** An object relationship */
   object: Atoms;
   object_id: Scalars['String']['output'];
@@ -3827,7 +3826,6 @@ export type Predicate_Objects_Bool_Exp = {
   _and?: InputMaybe<Array<Predicate_Objects_Bool_Exp>>;
   _not?: InputMaybe<Predicate_Objects_Bool_Exp>;
   _or?: InputMaybe<Array<Predicate_Objects_Bool_Exp>>;
-  id?: InputMaybe<String_Comparison_Exp>;
   object?: InputMaybe<Atoms_Bool_Exp>;
   object_id?: InputMaybe<String_Comparison_Exp>;
   predicate?: InputMaybe<Atoms_Bool_Exp>;
@@ -3842,7 +3840,6 @@ export type Predicate_Objects_Bool_Exp = {
 /** aggregate max on columns */
 export type Predicate_Objects_Max_Fields = {
   __typename?: 'predicate_objects_max_fields';
-  id?: Maybe<Scalars['String']['output']>;
   object_id?: Maybe<Scalars['String']['output']>;
   predicate_id?: Maybe<Scalars['String']['output']>;
   total_market_cap?: Maybe<Scalars['numeric']['output']>;
@@ -3852,7 +3849,6 @@ export type Predicate_Objects_Max_Fields = {
 
 /** order by max() on columns of table "predicate_object" */
 export type Predicate_Objects_Max_Order_By = {
-  id?: InputMaybe<Order_By>;
   object_id?: InputMaybe<Order_By>;
   predicate_id?: InputMaybe<Order_By>;
   total_market_cap?: InputMaybe<Order_By>;
@@ -3863,7 +3859,6 @@ export type Predicate_Objects_Max_Order_By = {
 /** aggregate min on columns */
 export type Predicate_Objects_Min_Fields = {
   __typename?: 'predicate_objects_min_fields';
-  id?: Maybe<Scalars['String']['output']>;
   object_id?: Maybe<Scalars['String']['output']>;
   predicate_id?: Maybe<Scalars['String']['output']>;
   total_market_cap?: Maybe<Scalars['numeric']['output']>;
@@ -3873,7 +3868,6 @@ export type Predicate_Objects_Min_Fields = {
 
 /** order by min() on columns of table "predicate_object" */
 export type Predicate_Objects_Min_Order_By = {
-  id?: InputMaybe<Order_By>;
   object_id?: InputMaybe<Order_By>;
   predicate_id?: InputMaybe<Order_By>;
   total_market_cap?: InputMaybe<Order_By>;
@@ -3883,7 +3877,6 @@ export type Predicate_Objects_Min_Order_By = {
 
 /** Ordering options when selecting data from "predicate_object". */
 export type Predicate_Objects_Order_By = {
-  id?: InputMaybe<Order_By>;
   object?: InputMaybe<Atoms_Order_By>;
   object_id?: InputMaybe<Order_By>;
   predicate?: InputMaybe<Atoms_Order_By>;
@@ -3896,8 +3889,6 @@ export type Predicate_Objects_Order_By = {
 
 /** select columns of table "predicate_object" */
 export enum Predicate_Objects_Select_Column {
-  /** column name */
-  Id = 'id',
   /** column name */
   ObjectId = 'object_id',
   /** column name */
@@ -3965,7 +3956,6 @@ export type Predicate_Objects_Stream_Cursor_Input = {
 
 /** Initial value of the column from where the streaming should start */
 export type Predicate_Objects_Stream_Cursor_Value_Input = {
-  id?: InputMaybe<Scalars['String']['input']>;
   object_id?: InputMaybe<Scalars['String']['input']>;
   predicate_id?: InputMaybe<Scalars['String']['input']>;
   total_market_cap?: InputMaybe<Scalars['numeric']['input']>;
@@ -4652,7 +4642,8 @@ export type Query_RootPredicate_Objects_AggregateArgs = {
 
 
 export type Query_RootPredicate_Objects_By_PkArgs = {
-  id: Scalars['String']['input'];
+  object_id: Scalars['String']['input'];
+  predicate_id: Scalars['String']['input'];
 };
 
 
@@ -4923,7 +4914,8 @@ export type Query_RootSubject_Predicates_AggregateArgs = {
 
 
 export type Query_RootSubject_Predicates_By_PkArgs = {
-  id: Scalars['String']['input'];
+  predicate_id: Scalars['String']['input'];
+  subject_id: Scalars['String']['input'];
 };
 
 
@@ -7753,7 +7745,6 @@ export type Stats_Variance_Fields = {
 /** columns and relationships of "subject_predicate" */
 export type Subject_Predicates = {
   __typename?: 'subject_predicates';
-  id: Scalars['String']['output'];
   /** An object relationship */
   predicate: Atoms;
   predicate_id: Scalars['String']['output'];
@@ -7832,7 +7823,6 @@ export type Subject_Predicates_Bool_Exp = {
   _and?: InputMaybe<Array<Subject_Predicates_Bool_Exp>>;
   _not?: InputMaybe<Subject_Predicates_Bool_Exp>;
   _or?: InputMaybe<Array<Subject_Predicates_Bool_Exp>>;
-  id?: InputMaybe<String_Comparison_Exp>;
   predicate?: InputMaybe<Atoms_Bool_Exp>;
   predicate_id?: InputMaybe<String_Comparison_Exp>;
   subject?: InputMaybe<Atoms_Bool_Exp>;
@@ -7847,7 +7837,6 @@ export type Subject_Predicates_Bool_Exp = {
 /** aggregate max on columns */
 export type Subject_Predicates_Max_Fields = {
   __typename?: 'subject_predicates_max_fields';
-  id?: Maybe<Scalars['String']['output']>;
   predicate_id?: Maybe<Scalars['String']['output']>;
   subject_id?: Maybe<Scalars['String']['output']>;
   total_market_cap?: Maybe<Scalars['numeric']['output']>;
@@ -7858,7 +7847,6 @@ export type Subject_Predicates_Max_Fields = {
 /** aggregate min on columns */
 export type Subject_Predicates_Min_Fields = {
   __typename?: 'subject_predicates_min_fields';
-  id?: Maybe<Scalars['String']['output']>;
   predicate_id?: Maybe<Scalars['String']['output']>;
   subject_id?: Maybe<Scalars['String']['output']>;
   total_market_cap?: Maybe<Scalars['numeric']['output']>;
@@ -7868,7 +7856,6 @@ export type Subject_Predicates_Min_Fields = {
 
 /** Ordering options when selecting data from "subject_predicate". */
 export type Subject_Predicates_Order_By = {
-  id?: InputMaybe<Order_By>;
   predicate?: InputMaybe<Atoms_Order_By>;
   predicate_id?: InputMaybe<Order_By>;
   subject?: InputMaybe<Atoms_Order_By>;
@@ -7881,8 +7868,6 @@ export type Subject_Predicates_Order_By = {
 
 /** select columns of table "subject_predicate" */
 export enum Subject_Predicates_Select_Column {
-  /** column name */
-  Id = 'id',
   /** column name */
   PredicateId = 'predicate_id',
   /** column name */
@@ -7929,7 +7914,6 @@ export type Subject_Predicates_Stream_Cursor_Input = {
 
 /** Initial value of the column from where the streaming should start */
 export type Subject_Predicates_Stream_Cursor_Value_Input = {
-  id?: InputMaybe<Scalars['String']['input']>;
   predicate_id?: InputMaybe<Scalars['String']['input']>;
   subject_id?: InputMaybe<Scalars['String']['input']>;
   total_market_cap?: InputMaybe<Scalars['numeric']['input']>;
@@ -8786,7 +8770,8 @@ export type Subscription_RootPredicate_Objects_AggregateArgs = {
 
 
 export type Subscription_RootPredicate_Objects_By_PkArgs = {
-  id: Scalars['String']['input'];
+  object_id: Scalars['String']['input'];
+  predicate_id: Scalars['String']['input'];
 };
 
 
@@ -9155,7 +9140,8 @@ export type Subscription_RootSubject_Predicates_AggregateArgs = {
 
 
 export type Subscription_RootSubject_Predicates_By_PkArgs = {
-  id: Scalars['String']['input'];
+  predicate_id: Scalars['String']['input'];
+  subject_id: Scalars['String']['input'];
 };
 
 
@@ -12127,7 +12113,7 @@ export type PredicateObjectAutoCreateQueryVariables = Exact<{
 }>;
 
 
-export type PredicateObjectAutoCreateQuery = { __typename?: 'query_root', predicate_objects: Array<{ __typename?: 'predicate_objects', id: string, predicate_id: string, object_id: string, triple_count: number, total_position_count: number, total_market_cap: any }> };
+export type PredicateObjectAutoCreateQuery = { __typename?: 'query_root', predicate_objects: Array<{ __typename?: 'predicate_objects', predicate_id: string, object_id: string, triple_count: number, total_position_count: number, total_market_cap: any }> };
 
 export type PredicateObjectTripleCountQueryVariables = Exact<{
   predicateId: Scalars['String']['input'];
@@ -12135,7 +12121,7 @@ export type PredicateObjectTripleCountQueryVariables = Exact<{
 }>;
 
 
-export type PredicateObjectTripleCountQuery = { __typename?: 'query_root', predicate_objects: Array<{ __typename?: 'predicate_objects', id: string, triple_count: number, triples: Array<{ __typename?: 'triples', term_id: string }> }> };
+export type PredicateObjectTripleCountQuery = { __typename?: 'query_root', predicate_objects: Array<{ __typename?: 'predicate_objects', triple_count: number, triples: Array<{ __typename?: 'triples', term_id: string }> }> };
 
 export type SubjectPredicateAutoCreateQueryVariables = Exact<{
   subjectId: Scalars['String']['input'];
@@ -12143,7 +12129,7 @@ export type SubjectPredicateAutoCreateQueryVariables = Exact<{
 }>;
 
 
-export type SubjectPredicateAutoCreateQuery = { __typename?: 'query_root', subject_predicates: Array<{ __typename?: 'subject_predicates', id: string, subject_id: string, predicate_id: string, triple_count: number, total_position_count: number, total_market_cap: any }> };
+export type SubjectPredicateAutoCreateQuery = { __typename?: 'query_root', subject_predicates: Array<{ __typename?: 'subject_predicates', subject_id: string, predicate_id: string, triple_count: number, total_position_count: number, total_market_cap: any }> };
 
 export type SubjectPredicateTripleCountQueryVariables = Exact<{
   subjectId: Scalars['String']['input'];
@@ -12151,7 +12137,7 @@ export type SubjectPredicateTripleCountQueryVariables = Exact<{
 }>;
 
 
-export type SubjectPredicateTripleCountQuery = { __typename?: 'query_root', subject_predicates: Array<{ __typename?: 'subject_predicates', id: string, triple_count: number, triples: Array<{ __typename?: 'triples', term_id: string }> }> };
+export type SubjectPredicateTripleCountQuery = { __typename?: 'query_root', subject_predicates: Array<{ __typename?: 'subject_predicates', triple_count: number, triples: Array<{ __typename?: 'triples', term_id: string }> }> };
 
 export type PredicateObjectAggregatesQueryVariables = Exact<{
   predicateId: Scalars['String']['input'];
@@ -12159,7 +12145,7 @@ export type PredicateObjectAggregatesQueryVariables = Exact<{
 }>;
 
 
-export type PredicateObjectAggregatesQuery = { __typename?: 'query_root', predicate_objects: Array<{ __typename?: 'predicate_objects', id: string, total_market_cap: any, total_position_count: number, triple_count: number }> };
+export type PredicateObjectAggregatesQuery = { __typename?: 'query_root', predicate_objects: Array<{ __typename?: 'predicate_objects', total_market_cap: any, total_position_count: number, triple_count: number }> };
 
 export type PredicateObjectPositionsQueryVariables = Exact<{
   predicateId: Scalars['String']['input'];
@@ -12175,7 +12161,7 @@ export type SubjectPredicateAggregatesQueryVariables = Exact<{
 }>;
 
 
-export type SubjectPredicateAggregatesQuery = { __typename?: 'query_root', subject_predicates: Array<{ __typename?: 'subject_predicates', id: string, total_market_cap: any, total_position_count: number, triple_count: number }> };
+export type SubjectPredicateAggregatesQuery = { __typename?: 'query_root', subject_predicates: Array<{ __typename?: 'subject_predicates', total_market_cap: any, total_position_count: number, triple_count: number }> };
 
 export type SubjectPredicatePositionsQueryVariables = Exact<{
   subjectId: Scalars['String']['input'];
@@ -12192,7 +12178,7 @@ export type IntegrationCheckQueryVariables = Exact<{
 }>;
 
 
-export type IntegrationCheckQuery = { __typename?: 'query_root', predicate_objects: Array<{ __typename?: 'predicate_objects', id: string, triple_count: number, total_market_cap: any, total_position_count: number }>, subject_predicates: Array<{ __typename?: 'subject_predicates', id: string, triple_count: number, total_market_cap: any, total_position_count: number }> };
+export type IntegrationCheckQuery = { __typename?: 'query_root', predicate_objects: Array<{ __typename?: 'predicate_objects', triple_count: number, total_market_cap: any, total_position_count: number }>, subject_predicates: Array<{ __typename?: 'subject_predicates', triple_count: number, total_market_cap: any, total_position_count: number }> };
 
 export type ComplexScenarioQueryVariables = Exact<{
   predicateId: Scalars['String']['input'];
@@ -12200,7 +12186,7 @@ export type ComplexScenarioQueryVariables = Exact<{
 }>;
 
 
-export type ComplexScenarioQuery = { __typename?: 'query_root', predicate_objects: Array<{ __typename?: 'predicate_objects', id: string, triple_count: number, total_market_cap: any, total_position_count: number, triples: Array<{ __typename?: 'triples', term_id: string, subject_id: string, predicate_id: string, object_id: string }> }> };
+export type ComplexScenarioQuery = { __typename?: 'query_root', predicate_objects: Array<{ __typename?: 'predicate_objects', triple_count: number, total_market_cap: any, total_position_count: number, triples: Array<{ __typename?: 'triples', term_id: string, subject_id: string, predicate_id: string, object_id: string }> }> };
 
 export type SearchTermQueryVariables = Exact<{
   query: Scalars['String']['input'];
@@ -12434,7 +12420,6 @@ export const PredicateObjectAutoCreateDocument = new TypedDocumentString(`
   predicate_objects(
     where: {predicate_id: {_eq: $predicateId}, object_id: {_eq: $objectId}}
   ) {
-    id
     predicate_id
     object_id
     triple_count
@@ -12448,7 +12433,6 @@ export const PredicateObjectTripleCountDocument = new TypedDocumentString(`
   predicate_objects(
     where: {predicate_id: {_eq: $predicateId}, object_id: {_eq: $objectId}}
   ) {
-    id
     triple_count
     triples {
       term_id
@@ -12461,7 +12445,6 @@ export const SubjectPredicateAutoCreateDocument = new TypedDocumentString(`
   subject_predicates(
     where: {subject_id: {_eq: $subjectId}, predicate_id: {_eq: $predicateId}}
   ) {
-    id
     subject_id
     predicate_id
     triple_count
@@ -12475,7 +12458,6 @@ export const SubjectPredicateTripleCountDocument = new TypedDocumentString(`
   subject_predicates(
     where: {subject_id: {_eq: $subjectId}, predicate_id: {_eq: $predicateId}}
   ) {
-    id
     triple_count
     triples {
       term_id
@@ -12488,7 +12470,6 @@ export const PredicateObjectAggregatesDocument = new TypedDocumentString(`
   predicate_objects(
     where: {predicate_id: {_eq: $predicateId}, object_id: {_eq: $objectId}}
   ) {
-    id
     total_market_cap
     total_position_count
     triple_count
@@ -12509,7 +12490,6 @@ export const SubjectPredicateAggregatesDocument = new TypedDocumentString(`
   subject_predicates(
     where: {subject_id: {_eq: $subjectId}, predicate_id: {_eq: $predicateId}}
   ) {
-    id
     total_market_cap
     total_position_count
     triple_count
@@ -12530,7 +12510,6 @@ export const IntegrationCheckDocument = new TypedDocumentString(`
   predicate_objects(
     where: {predicate_id: {_eq: $predicateId}, object_id: {_eq: $objectId}}
   ) {
-    id
     triple_count
     total_market_cap
     total_position_count
@@ -12538,7 +12517,6 @@ export const IntegrationCheckDocument = new TypedDocumentString(`
   subject_predicates(
     where: {subject_id: {_eq: $subjectId}, predicate_id: {_eq: $predicateId}}
   ) {
-    id
     triple_count
     total_market_cap
     total_position_count
@@ -12550,7 +12528,6 @@ export const ComplexScenarioDocument = new TypedDocumentString(`
   predicate_objects(
     where: {predicate_id: {_eq: $predicateId}, object_id: {_eq: $objectId}}
   ) {
-    id
     triple_count
     total_market_cap
     total_position_count

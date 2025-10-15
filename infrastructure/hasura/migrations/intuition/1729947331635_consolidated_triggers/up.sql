@@ -637,16 +637,11 @@ EXECUTE FUNCTION update_triple_vault_from_vault();
 -- Function to automatically update predicate_object when a triple is inserted
 CREATE OR REPLACE FUNCTION update_predicate_object_on_triple_insert()
 RETURNS TRIGGER AS $$
-DECLARE
-    po_id TEXT;
 BEGIN
-    -- Generate the predicate_object ID
-    po_id := NEW.predicate_id || '-' || NEW.object_id;
-
     -- Insert or increment the triple_count
-    INSERT INTO predicate_object (id, predicate_id, object_id, triple_count, total_position_count, total_market_cap)
-    VALUES (po_id, NEW.predicate_id, NEW.object_id, 1, 0, 0)
-    ON CONFLICT (id) DO UPDATE SET
+    INSERT INTO predicate_object (predicate_id, object_id, triple_count, total_position_count, total_market_cap)
+    VALUES (NEW.predicate_id, NEW.object_id, 1, 0, 0)
+    ON CONFLICT (predicate_id, object_id) DO UPDATE SET
         triple_count = predicate_object.triple_count + 1;
 
     RETURN NEW;
@@ -665,16 +660,11 @@ EXECUTE FUNCTION update_predicate_object_on_triple_insert();
 -- Function to automatically update subject_predicate when a triple is inserted
 CREATE OR REPLACE FUNCTION update_subject_predicate_on_triple_insert()
 RETURNS TRIGGER AS $$
-DECLARE
-    sp_id TEXT;
 BEGIN
-    -- Generate the subject_predicate ID
-    sp_id := NEW.subject_id || '-' || NEW.predicate_id;
-
     -- Insert or increment the triple_count
-    INSERT INTO subject_predicate (id, subject_id, predicate_id, triple_count, total_position_count, total_market_cap)
-    VALUES (sp_id, NEW.subject_id, NEW.predicate_id, 1, 0, 0)
-    ON CONFLICT (id) DO UPDATE SET
+    INSERT INTO subject_predicate (subject_id, predicate_id, triple_count, total_position_count, total_market_cap)
+    VALUES (NEW.subject_id, NEW.predicate_id, 1, 0, 0)
+    ON CONFLICT (subject_id, predicate_id) DO UPDATE SET
         triple_count = subject_predicate.triple_count + 1;
 
     RETURN NEW;
@@ -718,7 +708,6 @@ BEGIN
         SELECT
             at.predicate_id,
             at.object_id,
-            at.predicate_id || '-' || at.object_id AS po_id,
             COALESCE(COUNT(DISTINCT t.term_id), 0) AS triple_count,
             COALESCE(SUM(tt.total_market_cap), 0) AS agg_market_cap,
             COALESCE(SUM(tt.total_position_count), 0) AS agg_position_count
@@ -727,16 +716,15 @@ BEGIN
         LEFT JOIN triple_term tt ON tt.term_id = t.term_id OR tt.counter_term_id = t.term_id
         GROUP BY at.predicate_id, at.object_id
     )
-    INSERT INTO predicate_object (id, predicate_id, object_id, triple_count, total_market_cap, total_position_count)
+    INSERT INTO predicate_object (predicate_id, object_id, triple_count, total_market_cap, total_position_count)
     SELECT
-        poa.po_id,
         poa.predicate_id,
         poa.object_id,
         0, -- Initial triple_count, will be updated by triple insert trigger
         poa.agg_market_cap,
         poa.agg_position_count
     FROM predicate_object_aggregates poa
-    ON CONFLICT (id) DO UPDATE SET
+    ON CONFLICT (predicate_id, object_id) DO UPDATE SET
         total_market_cap = EXCLUDED.total_market_cap,
         total_position_count = EXCLUDED.total_position_count;
 
@@ -781,7 +769,6 @@ BEGIN
         SELECT
             at.subject_id,
             at.predicate_id,
-            at.subject_id || '-' || at.predicate_id AS sp_id,
             COALESCE(COUNT(DISTINCT t.term_id), 0) AS triple_count,
             COALESCE(SUM(tt.total_market_cap), 0) AS agg_market_cap,
             COALESCE(SUM(tt.total_position_count), 0) AS agg_position_count
@@ -790,16 +777,15 @@ BEGIN
         LEFT JOIN triple_term tt ON tt.term_id = t.term_id OR tt.counter_term_id = t.term_id
         GROUP BY at.subject_id, at.predicate_id
     )
-    INSERT INTO subject_predicate (id, subject_id, predicate_id, triple_count, total_market_cap, total_position_count)
+    INSERT INTO subject_predicate (subject_id, predicate_id, triple_count, total_market_cap, total_position_count)
     SELECT
-        spa.sp_id,
         spa.subject_id,
         spa.predicate_id,
         0, -- Initial triple_count, will be updated by triple insert trigger
         spa.agg_market_cap,
         spa.agg_position_count
     FROM subject_predicate_aggregates spa
-    ON CONFLICT (id) DO UPDATE SET
+    ON CONFLICT (subject_id, predicate_id) DO UPDATE SET
         total_market_cap = EXCLUDED.total_market_cap,
         total_position_count = EXCLUDED.total_position_count;
 

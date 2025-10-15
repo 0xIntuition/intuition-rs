@@ -28,7 +28,6 @@ select_permissions:
   - role: anonymous
     permission:
       columns:
-        - id
         - object_id
         - predicate_id
         - total_market_cap

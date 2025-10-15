@@ -212,21 +212,21 @@ CREATE TABLE position (
 );
 
 CREATE TABLE predicate_object (
-  id TEXT PRIMARY KEY NOT NULL,
   predicate_id TEXT NOT NULL,
   object_id TEXT NOT NULL,
   triple_count INTEGER NOT NULL,
   total_position_count INTEGER NOT NULL DEFAULT 0,
-  total_market_cap NUMERIC(78, 0) NOT NULL DEFAULT 0
+  total_market_cap NUMERIC(78, 0) NOT NULL DEFAULT 0,
+  PRIMARY KEY (predicate_id, object_id)
 );
 
 CREATE TABLE subject_predicate (
-  id TEXT PRIMARY KEY NOT NULL,
   subject_id TEXT NOT NULL,
   predicate_id TEXT NOT NULL,
   triple_count INTEGER NOT NULL,
   total_position_count INTEGER NOT NULL DEFAULT 0,
-  total_market_cap NUMERIC(78, 0) NOT NULL DEFAULT 0
+  total_market_cap NUMERIC(78, 0) NOT NULL DEFAULT 0,
+  PRIMARY KEY (subject_id, predicate_id)
 );
 
 CREATE TABLE signal (
