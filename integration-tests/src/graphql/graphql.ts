@@ -12121,6 +12121,87 @@ export type PositionsQueryVariables = Exact<{
 
 export type PositionsQuery = { __typename?: 'query_root', account?: { __typename?: 'accounts', positions: Array<{ __typename?: 'positions', id: string, curve_id: any, term_id: string, shares: any }> } | null };
 
+export type PredicateObjectAutoCreateQueryVariables = Exact<{
+  predicateId: Scalars['String']['input'];
+  objectId: Scalars['String']['input'];
+}>;
+
+
+export type PredicateObjectAutoCreateQuery = { __typename?: 'query_root', predicate_objects: Array<{ __typename?: 'predicate_objects', id: string, predicate_id: string, object_id: string, triple_count: number, total_position_count: number, total_market_cap: any }> };
+
+export type PredicateObjectTripleCountQueryVariables = Exact<{
+  predicateId: Scalars['String']['input'];
+  objectId: Scalars['String']['input'];
+}>;
+
+
+export type PredicateObjectTripleCountQuery = { __typename?: 'query_root', predicate_objects: Array<{ __typename?: 'predicate_objects', id: string, triple_count: number, triples: Array<{ __typename?: 'triples', term_id: string }> }> };
+
+export type SubjectPredicateAutoCreateQueryVariables = Exact<{
+  subjectId: Scalars['String']['input'];
+  predicateId: Scalars['String']['input'];
+}>;
+
+
+export type SubjectPredicateAutoCreateQuery = { __typename?: 'query_root', subject_predicates: Array<{ __typename?: 'subject_predicates', id: string, subject_id: string, predicate_id: string, triple_count: number, total_position_count: number, total_market_cap: any }> };
+
+export type SubjectPredicateTripleCountQueryVariables = Exact<{
+  subjectId: Scalars['String']['input'];
+  predicateId: Scalars['String']['input'];
+}>;
+
+
+export type SubjectPredicateTripleCountQuery = { __typename?: 'query_root', subject_predicates: Array<{ __typename?: 'subject_predicates', id: string, triple_count: number, triples: Array<{ __typename?: 'triples', term_id: string }> }> };
+
+export type PredicateObjectAggregatesQueryVariables = Exact<{
+  predicateId: Scalars['String']['input'];
+  objectId: Scalars['String']['input'];
+}>;
+
+
+export type PredicateObjectAggregatesQuery = { __typename?: 'query_root', predicate_objects: Array<{ __typename?: 'predicate_objects', id: string, total_market_cap: any, total_position_count: number, triple_count: number }> };
+
+export type PredicateObjectPositionsQueryVariables = Exact<{
+  predicateId: Scalars['String']['input'];
+  objectId: Scalars['String']['input'];
+}>;
+
+
+export type PredicateObjectPositionsQuery = { __typename?: 'query_root', predicate_objects: Array<{ __typename?: 'predicate_objects', total_position_count: number }> };
+
+export type SubjectPredicateAggregatesQueryVariables = Exact<{
+  subjectId: Scalars['String']['input'];
+  predicateId: Scalars['String']['input'];
+}>;
+
+
+export type SubjectPredicateAggregatesQuery = { __typename?: 'query_root', subject_predicates: Array<{ __typename?: 'subject_predicates', id: string, total_market_cap: any, total_position_count: number, triple_count: number }> };
+
+export type SubjectPredicatePositionsQueryVariables = Exact<{
+  subjectId: Scalars['String']['input'];
+  predicateId: Scalars['String']['input'];
+}>;
+
+
+export type SubjectPredicatePositionsQuery = { __typename?: 'query_root', subject_predicates: Array<{ __typename?: 'subject_predicates', total_position_count: number }> };
+
+export type IntegrationCheckQueryVariables = Exact<{
+  subjectId: Scalars['String']['input'];
+  predicateId: Scalars['String']['input'];
+  objectId: Scalars['String']['input'];
+}>;
+
+
+export type IntegrationCheckQuery = { __typename?: 'query_root', predicate_objects: Array<{ __typename?: 'predicate_objects', id: string, triple_count: number, total_market_cap: any, total_position_count: number }>, subject_predicates: Array<{ __typename?: 'subject_predicates', id: string, triple_count: number, total_market_cap: any, total_position_count: number }> };
+
+export type ComplexScenarioQueryVariables = Exact<{
+  predicateId: Scalars['String']['input'];
+  objectId: Scalars['String']['input'];
+}>;
+
+
+export type ComplexScenarioQuery = { __typename?: 'query_root', predicate_objects: Array<{ __typename?: 'predicate_objects', id: string, triple_count: number, total_market_cap: any, total_position_count: number, triples: Array<{ __typename?: 'triples', term_id: string, subject_id: string, predicate_id: string, object_id: string }> }> };
+
 export type SearchTermQueryVariables = Exact<{
   query: Scalars['String']['input'];
 }>;
@@ -12348,6 +12429,140 @@ export const PositionsDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<PositionsQuery, PositionsQueryVariables>;
+export const PredicateObjectAutoCreateDocument = new TypedDocumentString(`
+    query PredicateObjectAutoCreate($predicateId: String!, $objectId: String!) {
+  predicate_objects(
+    where: {predicate_id: {_eq: $predicateId}, object_id: {_eq: $objectId}}
+  ) {
+    id
+    predicate_id
+    object_id
+    triple_count
+    total_position_count
+    total_market_cap
+  }
+}
+    `) as unknown as TypedDocumentString<PredicateObjectAutoCreateQuery, PredicateObjectAutoCreateQueryVariables>;
+export const PredicateObjectTripleCountDocument = new TypedDocumentString(`
+    query PredicateObjectTripleCount($predicateId: String!, $objectId: String!) {
+  predicate_objects(
+    where: {predicate_id: {_eq: $predicateId}, object_id: {_eq: $objectId}}
+  ) {
+    id
+    triple_count
+    triples {
+      term_id
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<PredicateObjectTripleCountQuery, PredicateObjectTripleCountQueryVariables>;
+export const SubjectPredicateAutoCreateDocument = new TypedDocumentString(`
+    query SubjectPredicateAutoCreate($subjectId: String!, $predicateId: String!) {
+  subject_predicates(
+    where: {subject_id: {_eq: $subjectId}, predicate_id: {_eq: $predicateId}}
+  ) {
+    id
+    subject_id
+    predicate_id
+    triple_count
+    total_position_count
+    total_market_cap
+  }
+}
+    `) as unknown as TypedDocumentString<SubjectPredicateAutoCreateQuery, SubjectPredicateAutoCreateQueryVariables>;
+export const SubjectPredicateTripleCountDocument = new TypedDocumentString(`
+    query SubjectPredicateTripleCount($subjectId: String!, $predicateId: String!) {
+  subject_predicates(
+    where: {subject_id: {_eq: $subjectId}, predicate_id: {_eq: $predicateId}}
+  ) {
+    id
+    triple_count
+    triples {
+      term_id
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<SubjectPredicateTripleCountQuery, SubjectPredicateTripleCountQueryVariables>;
+export const PredicateObjectAggregatesDocument = new TypedDocumentString(`
+    query PredicateObjectAggregates($predicateId: String!, $objectId: String!) {
+  predicate_objects(
+    where: {predicate_id: {_eq: $predicateId}, object_id: {_eq: $objectId}}
+  ) {
+    id
+    total_market_cap
+    total_position_count
+    triple_count
+  }
+}
+    `) as unknown as TypedDocumentString<PredicateObjectAggregatesQuery, PredicateObjectAggregatesQueryVariables>;
+export const PredicateObjectPositionsDocument = new TypedDocumentString(`
+    query PredicateObjectPositions($predicateId: String!, $objectId: String!) {
+  predicate_objects(
+    where: {predicate_id: {_eq: $predicateId}, object_id: {_eq: $objectId}}
+  ) {
+    total_position_count
+  }
+}
+    `) as unknown as TypedDocumentString<PredicateObjectPositionsQuery, PredicateObjectPositionsQueryVariables>;
+export const SubjectPredicateAggregatesDocument = new TypedDocumentString(`
+    query SubjectPredicateAggregates($subjectId: String!, $predicateId: String!) {
+  subject_predicates(
+    where: {subject_id: {_eq: $subjectId}, predicate_id: {_eq: $predicateId}}
+  ) {
+    id
+    total_market_cap
+    total_position_count
+    triple_count
+  }
+}
+    `) as unknown as TypedDocumentString<SubjectPredicateAggregatesQuery, SubjectPredicateAggregatesQueryVariables>;
+export const SubjectPredicatePositionsDocument = new TypedDocumentString(`
+    query SubjectPredicatePositions($subjectId: String!, $predicateId: String!) {
+  subject_predicates(
+    where: {subject_id: {_eq: $subjectId}, predicate_id: {_eq: $predicateId}}
+  ) {
+    total_position_count
+  }
+}
+    `) as unknown as TypedDocumentString<SubjectPredicatePositionsQuery, SubjectPredicatePositionsQueryVariables>;
+export const IntegrationCheckDocument = new TypedDocumentString(`
+    query IntegrationCheck($subjectId: String!, $predicateId: String!, $objectId: String!) {
+  predicate_objects(
+    where: {predicate_id: {_eq: $predicateId}, object_id: {_eq: $objectId}}
+  ) {
+    id
+    triple_count
+    total_market_cap
+    total_position_count
+  }
+  subject_predicates(
+    where: {subject_id: {_eq: $subjectId}, predicate_id: {_eq: $predicateId}}
+  ) {
+    id
+    triple_count
+    total_market_cap
+    total_position_count
+  }
+}
+    `) as unknown as TypedDocumentString<IntegrationCheckQuery, IntegrationCheckQueryVariables>;
+export const ComplexScenarioDocument = new TypedDocumentString(`
+    query ComplexScenario($predicateId: String!, $objectId: String!) {
+  predicate_objects(
+    where: {predicate_id: {_eq: $predicateId}, object_id: {_eq: $objectId}}
+  ) {
+    id
+    triple_count
+    total_market_cap
+    total_position_count
+    triples {
+      term_id
+      subject_id
+      predicate_id
+      object_id
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<ComplexScenarioQuery, ComplexScenarioQueryVariables>;
 export const SearchTermDocument = new TypedDocumentString(`
     query SearchTerm($query: String!) {
   search_term(args: {query: $query}, limit: 2) {
