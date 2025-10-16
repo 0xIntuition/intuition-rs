@@ -33,7 +33,7 @@ else
 fi
 
 # Start shared services
-docker compose -p intuition -f docker/docker-compose-shared.yml up database pgai-installer vectorizer-worker drizzle-studio redis redis-setup ipfs safe-content graphql-engine indexer-migrations hasura-migrations prometheus -d --wait --force-recreate
+docker compose -p intuition -f docker/docker-compose-shared.yml up database pgai-installer vectorizer-worker drizzle-studio redis redis-setup ipfs safe-content graphql-engine indexer-migrations hasura-migrations prometheus grafana -d --wait --force-recreate
 
 export INITIAL_CONTRACT_VERSION="v2"
 # First arg is indexer schema
@@ -84,4 +84,6 @@ docker compose -p intuition -f docker/docker-compose-apps.yml up resolver_consum
 
 echo -e "\nGraphQL: http://localhost:8080/console"
 echo -e "Database: https://local.drizzle.studio/"
+echo -e "Grafana: http://localhost:3001 (admin/admin)"
+echo -e "Prometheus: http://localhost:9090"
 echo -e "\n"

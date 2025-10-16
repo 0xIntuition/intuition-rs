@@ -219,6 +219,25 @@ services:
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
 
+  grafana:
+    container_name: grafana
+    image: grafana/grafana:latest
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ../infrastructure/grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+      - ../infrastructure/grafana/dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml
+      - ../infrastructure/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+    depends_on:
+      - prometheus
+    restart: unless-stopped
 
   reth:
     container_name: reth
@@ -273,3 +292,4 @@ volumes:
   redis_data:
   reth-data:
   contract-deployer-2-0-data:
+  grafana-data:
