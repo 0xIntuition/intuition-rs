@@ -225,12 +225,14 @@ services:
     image: ghcr.io/paradigmxyz/reth
     environment:
       RUST_LOG: info
+      RUST_BACKTRACE: '0'
     ports:
       - '8545:8545'
     volumes:
       - reth-data:/reth-data
       - ../infrastructure/reth/chain.json:/chain.json:ro
-    command: node --dev --dev.block-time 1s --http --http.addr 0.0.0.0 --http.port 8545 --http.api all --http.corsdomain "*" --datadir /reth-data --chain /chain.json
+    command: node --rpc.max-logs-per-response 0 --dev --dev.block-time 1s --http --http.addr 0.0.0.0 --http.port 8545 --http.api all --http.corsdomain "*" --datadir /reth-data --chain /chain.json --disable-discovery --max-outbound-peers 0 --max-inbound-peers 0
+
 
   contract-deployer-2-0:
     container_name: contract-deployer-2-0
