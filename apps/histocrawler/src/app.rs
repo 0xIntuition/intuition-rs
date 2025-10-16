@@ -5,7 +5,7 @@ use alloy::{
     providers::{Provider, ProviderBuilder},
     rpc::types::{Block, Filter, Log},
 };
-use log::info;
+use log::{debug, info};
 use models::{histocrawler::AppConfig, raw_logs::RawLog};
 use shared_utils::postgres::connect_to_db;
 use sqlx::PgPool;
@@ -83,7 +83,7 @@ impl HistoCrawler {
             .insert(&self.pg_pool, &self.app_config.indexer_schema)
             .await?;
 
-        info!("Inserted log: {:#?}", raw_log);
+        debug!("Inserted log: {:#?}", raw_log);
         Ok(())
     }
 
@@ -258,6 +258,7 @@ impl HistoCrawler {
             // Process logs in the current batch.
             // If an error occurs, break out and re-fetch for the reduced range.
             let mut encountered_error = false;
+            let mut processed_log_count = 0;
             for log in logs {
                 if let Err(e) = self.decode_raw_log_and_insert(log.clone()).await {
                     info!(
@@ -274,6 +275,7 @@ impl HistoCrawler {
                         return Err(e);
                     }
                 }
+                processed_log_count += 1;
             }
 
             if encountered_error {
@@ -281,7 +283,10 @@ impl HistoCrawler {
                 continue;
             }
 
-            info!("Successfully scanned blocks {} to {}", start_block, end_block);
+            info!(
+                "Successfully scanned blocks {} to {}, processed {} logs",
+                start_block, end_block, processed_log_count
+            );
 
             // Update the last processed block in the database after successful processing
             self.app_config
