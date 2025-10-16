@@ -258,8 +258,6 @@ services:
         contract-deployer-2-0:
           condition: service_completed_successfully
       volumes:
-        - ./geth/keystore.json:/data/keystore.json
-        - ./geth/password.txt:/data/password.txt
         - contract-deployer-2-0-data:/app
 
 
