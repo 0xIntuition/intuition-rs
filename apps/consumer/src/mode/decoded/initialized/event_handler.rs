@@ -6,7 +6,7 @@ use models::{
     traits::SimpleCrud,
     types::U256Wrapper,
 };
-use tracing::info;
+use tracing::debug;
 
 use crate::{
     error::ConsumerError,
@@ -31,7 +31,7 @@ where
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
-        info!("Handling initialized: {:#?}", self.0);
+        debug!("Handling initialized: {:#?}", self.0);
 
         // Check if the initialized already exists, skip if it does
         match Initialize::find_by_id(
@@ -42,11 +42,11 @@ where
         .await?
         {
             Some(initialized) => {
-                info!("Initialized already exists: {:?}", initialized);
+                debug!("Initialized already exists: {:?}", initialized);
                 return Ok(());
             }
             None => {
-                info!("Initialized does not exist, creating it");
+                debug!("Initialized does not exist, creating it");
             }
         }
         let mut tx = decoded_consumer_context.pg_pool.begin().await?;

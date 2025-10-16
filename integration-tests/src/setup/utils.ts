@@ -8,7 +8,7 @@ import { abi } from './abi'
 
 
 const local = defineChain({
-  id: 1337,
+  id: 31337,
   name: 'Local intuition',
   nativeCurrency: {
     decimals: 18,
@@ -16,19 +16,19 @@ const local = defineChain({
     symbol: 'lTRUST',
   },
   rpcUrls: {
-    default: { http: ['http://127.0.0.1:8545'] },
+    default: { http: ['http://localhost:8545'] },
   },
 })
 
 export const publicClient = createPublicClient({
   chain: local,
-  transport: http(),
+  transport: http('http://localhost:8545'),
 })
 
 export const adminClient = createWalletClient({
   chain: local,
-  transport: http(),
-  account: ADMIN.address,
+  transport: http('http://localhost:8545'),
+  account: ADMIN,
 })
 
 export async function getIntuition(accountIndex: number) {
@@ -54,7 +54,7 @@ export async function getIntuition(accountIndex: number) {
     // Faucet
     //@ts-ignore
     const hash = await adminClient.sendTransaction({
-      account: ADMIN.address,
+      account: ADMIN,
       value: parseEther('100'),
       to: account.address,
     })

@@ -33,7 +33,7 @@ else
 fi
 
 # Start shared services
-docker compose -p intuition -f docker/docker-compose-shared.yml up database pgai-installer vectorizer-worker drizzle-studio redis redis-setup ipfs safe-content graphql-engine indexer-migrations hasura-migrations prometheus -d --wait --force-recreate
+docker compose -p intuition -f docker/docker-compose-shared.yml up database pgai-installer vectorizer-worker drizzle-studio redis redis-setup ipfs safe-content graphql-engine indexer-migrations hasura-migrations prometheus grafana -d --wait --force-recreate
 
 export INITIAL_CONTRACT_VERSION="v2"
 # First arg is indexer schema
@@ -44,9 +44,9 @@ if [ -n "$CONTRACT_ADDRESS" ]; then
   export INDEXER_SCHEMA=$INDEXER_SCHEMA
 fi
 
-# If started with arg histo_local_1_5 deploy contract to local geth and get contract address
+# If started with arg histo_local_1_5 deploy contract to local anvil and get contract address
 if [ "$INDEXER_SCHEMA" == "local" ]; then
-  docker compose -p intuition -f docker/docker-compose-shared.yml up contract-deployer-2-0 geth -d --wait
+  docker compose -p intuition -f docker/docker-compose-shared.yml up contract-deployer-2-0 reth -d --wait
 
   docker compose -f infrastructure/blockscout/docker-compose.yml up -d --wait
 
@@ -70,8 +70,8 @@ if [ "$INDEXER_SCHEMA" == "local" ]; then
   export VITE_INTUITION_CONTRACT_ADDRESS=$CONTRACT_ADDRESS
   export INTUITION_CONTRACT_ADDRESS=$CONTRACT_ADDRESS
   export INDEXER_SCHEMA="local"
-  export BASE_SEPOLIA_RPC_URL="http://geth:8545"
-  export BASE_MAINNET_RPC_URL="http://geth:8545"
+  export BASE_SEPOLIA_RPC_URL="http://reth:8545"
+  export BASE_MAINNET_RPC_URL="http://reth:8545"
 fi
 
 if [ "$2" == "test" ]; then
@@ -84,4 +84,6 @@ docker compose -p intuition -f docker/docker-compose-apps.yml up resolver_consum
 
 echo -e "\nGraphQL: http://localhost:8080/console"
 echo -e "Database: https://local.drizzle.studio/"
+echo -e "Grafana: http://localhost:3001 (admin/admin)"
+echo -e "Prometheus: http://localhost:9090"
 echo -e "\n"

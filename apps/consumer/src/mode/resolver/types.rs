@@ -22,7 +22,7 @@ use models::{
 use serde::{Deserialize, Serialize};
 use sqlx::{Postgres, Transaction};
 use std::str::FromStr;
-use tracing::{debug, info};
+use tracing::debug;
 
 /// This struct represents a message that is sent to the resolver
 /// consumer to be processed.
@@ -109,7 +109,7 @@ impl ResolverMessageType {
         resolver_consumer_context: &ResolverConsumerContext,
         atom: &Atom,
     ) -> Result<(), ConsumerError> {
-        info!("Atom is an account, updating ENS for the account");
+        debug!("Atom is an account, updating ENS for the account");
 
         let account_data = atom.data.clone().ok_or_else(|| {
             debug!("No data found for atom: {:?}", atom);

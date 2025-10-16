@@ -157,19 +157,29 @@ impl BasicConsumer for RedisStreams {
         info!("Starting the Redis streams consumer loop");
         let mut backoff_ms = 0;
         let max_backoff = 1000; // 1 second max delay
+        let mut total_processed = 0u64;
 
         loop {
-            info!("awaiting for new messages from Redis stream...");
+            debug!("awaiting for new messages from Redis stream...");
             let messages = self.receive_message().await?;
 
             if !messages.is_empty() {
                 // Reset backoff when messages are found
                 backoff_ms = 0;
+                let batch_size = messages.len();
+                let start = std::time::Instant::now();
 
                 for message in messages {
                     mode.process_message(message.body.clone()).await?;
                     self.consume_message(message).await?
                 }
+
+                let elapsed = start.elapsed();
+                total_processed += batch_size as u64;
+                info!(
+                    "Processed batch of {} messages in {:?} (total: {})",
+                    batch_size, elapsed, total_processed
+                );
             } else {
                 // Implement exponential backoff with max limit
                 backoff_ms = (backoff_ms * 2 + 100).min(max_backoff);

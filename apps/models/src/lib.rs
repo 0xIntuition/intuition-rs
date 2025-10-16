@@ -17,7 +17,6 @@ pub mod json_object;
 pub mod organization;
 pub mod person;
 pub mod position;
-pub mod predicate_object;
 pub mod raw_logs;
 pub mod redemption;
 pub mod share_price_change;

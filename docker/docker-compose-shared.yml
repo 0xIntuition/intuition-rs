@@ -219,26 +219,40 @@ services:
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
 
+  grafana:
+    container_name: grafana
+    image: grafana/grafana:latest
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ../infrastructure/grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+      - ../infrastructure/grafana/dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml
+      - ../infrastructure/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+    depends_on:
+      - prometheus
+    restart: unless-stopped
 
-  geth:
-    container_name: geth
-    image: ethereum/client-go:latest
+  reth:
+    container_name: reth
+    image: ghcr.io/paradigmxyz/reth
+    environment:
+      RUST_LOG: info
+      RUST_BACKTRACE: '0'
     ports:
       - '8545:8545'
-    healthcheck:
-      test: ["CMD", "geth", "attach", "--exec", "eth.blockNumber", "http://localhost:8545"]
-      interval: 2s
-      timeout: 2s
-      retries: 10
-    entrypoint: sh /root/init-script.sh
-    command: '--dev --dev.period=1 --cache=8192 --gcmode=full --history.state=0 --history.transactions=0 --syncmode=full --cache.gc=0 --http --http.api=eth,web3,net,debug,txpool --mine  --http.port=8545 --http.vhosts=* --http.addr=0.0.0.0 --http.corsdomain="http://localhost" --datadir=/data --password=/root/password.txt'
     volumes:
-      - data_geth:/data
-      - ../infrastructure/geth/genesis.json:/config/genesis.json
-      - ../infrastructure/geth/init-script.sh:/root/init-script.sh
-      - ../infrastructure/geth/keystore.json:/data/keystore/UTC--2024-06-03T19-15-34.118131000Z--63e87dc2366dc7f1be110ded239879422e165d96
-      - ../infrastructure/geth/password.txt:/root/password.txt
-  
+      - reth-data:/reth-data
+      - ../infrastructure/reth/chain.json:/chain.json:ro
+    command: node --rpc.max-logs-per-response 0 --dev --dev.block-time 1s --http --http.addr 0.0.0.0 --http.port 8545 --http.api all --http.corsdomain "*" --datadir /reth-data --chain /chain.json --disable-discovery --max-outbound-peers 0 --max-inbound-peers 0
+
+
   contract-deployer-2-0:
     container_name: contract-deployer-2-0
     image: ghcr.io/0xintuition/contract-deployer-2-0:latest
@@ -248,11 +262,9 @@ services:
       POSTGRES_DB: storage
       POSTGRES_PORT: 5435
     depends_on:
-      geth:
-        condition: service_healthy 
+      reth:
+        condition: service_started 
     volumes:
-      - ../infrastructure/geth/keystore.json:/data/keystore.json
-      - ../infrastructure/geth/password.txt:/data/password.txt
       - contract-deployer-2-0-data:/app
 
   contract-verifier-2-0:
@@ -260,13 +272,11 @@ services:
       image: ghcr.io/0xintuition/contract-deployer-2-0:latest
       entrypoint: /app/verify.sh
       depends_on:
-        geth:
-          condition: service_healthy 
+        reth:
+          condition: service_started
         contract-deployer-2-0:
           condition: service_completed_successfully
       volumes:
-        - ./geth/keystore.json:/data/keystore.json
-        - ./geth/password.txt:/data/password.txt
         - contract-deployer-2-0-data:/app
 
 
@@ -280,5 +290,6 @@ volumes:
   pgadmin-data:
   ipfs_data:
   redis_data:
-  data_geth:
+  reth-data:
   contract-deployer-2-0-data:
+  grafana-data:

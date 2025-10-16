@@ -14,6 +14,18 @@ DROP INDEX CONCURRENTLY IF EXISTS idx_signal_term_id;
 DROP INDEX CONCURRENTLY IF EXISTS idx_signal_time_term_curve;
 DROP INDEX CONCURRENTLY IF EXISTS idx_signal_term_curve_time;
 
+-- Indexes for predicate_object and subject_predicate triggers
+DROP INDEX CONCURRENTLY IF EXISTS idx_triple_vault_counter_curve;
+DROP INDEX CONCURRENTLY IF EXISTS idx_triple_vault_term_curve;
+DROP INDEX CONCURRENTLY IF EXISTS idx_triple_subject_predicate_term;
+DROP INDEX CONCURRENTLY IF EXISTS idx_triple_predicate_object_term;
+DROP INDEX CONCURRENTLY IF EXISTS idx_triple_term_id;
+
+-- Newly added critical indexes
+DROP INDEX CONCURRENTLY IF EXISTS idx_position_account_term_curve;
+DROP INDEX CONCURRENTLY IF EXISTS idx_atom_data;
+DROP INDEX CONCURRENTLY IF EXISTS idx_triple_term_composite;
+
 DROP INDEX CONCURRENTLY IF EXISTS idx_account_id;
 DROP INDEX CONCURRENTLY IF EXISTS idx_atom_value_id;
 DROP INDEX CONCURRENTLY IF EXISTS idx_vault_term_curve;

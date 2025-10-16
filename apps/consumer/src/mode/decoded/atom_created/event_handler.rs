@@ -16,7 +16,7 @@ use models::{
     types::{FixedBytesWrapper, U256Wrapper},
 };
 use std::fmt::Debug;
-use tracing::{debug, info};
+use tracing::debug;
 
 #[derive(Debug)]
 pub struct AtomCreatedEventHandler<T>(pub T);
@@ -30,7 +30,7 @@ where
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
-        info!("Handling atom creation: {self:#?}");
+        debug!("Handling atom creation: {self:#?}");
 
         // Check if the atom already exists, skip if it does
         match Atom::find_by_id(
