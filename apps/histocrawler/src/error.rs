@@ -26,4 +26,6 @@ pub enum HistoCrawlerError {
     SharedUtils(#[from] shared_utils::error::LibError),
     #[error("Invalid block range: start_block ({start}) > end_block ({end})")]
     InvalidBlockRange { start: i64, end: i64 },
+    #[error("RPC response size limit exceeded - batch size too large")]
+    ResponseSizeLimitExceeded,
 }
