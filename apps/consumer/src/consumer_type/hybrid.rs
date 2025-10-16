@@ -184,17 +184,21 @@ impl HybridConsumer {
 
         let page_size = Self::get_page_size(amount_of_logs);
         let pages = Self::ceiling_div(amount_of_logs, page_size);
-        debug!("Processing {} pages with page size {}", pages, page_size);
+        info!(
+            "Historical sync: Processing {} total logs in {} pages (page size: {})",
+            amount_of_logs, pages, page_size
+        );
 
         let mut processed_logs_counter = 0;
         let mut join_set = JoinSet::new();
 
-        'outer_loop: for _page in 0..pages {
+        'outer_loop: for page_num in 0..pages {
             if *shutdown_rx.borrow() {
                 warn!("Shutdown signal received before page fetch. Exiting...");
                 break 'outer_loop;
             }
 
+            let page_start = std::time::Instant::now();
             let logs = RawLog::get_paginated_after_id(
                 &self.histoflux_pg_pool,
                 last_processed_id as i32,
@@ -295,6 +299,19 @@ impl HybridConsumer {
                     }
                 }
             }
+
+            // Log progress after each page
+            let page_elapsed = page_start.elapsed();
+            let progress_pct = (processed_logs_counter as f64 / amount_of_logs as f64) * 100.0;
+            info!(
+                "Historical sync: Page {}/{} completed in {:?} - Progress: {}/{} logs ({:.1}%)",
+                page_num + 1,
+                pages,
+                page_elapsed,
+                processed_logs_counter,
+                amount_of_logs,
+                progress_pct
+            );
         }
 
         // Await remaining tasks
