@@ -14,7 +14,7 @@ use models::{
     types::U256Wrapper,
 };
 use std::fmt::Debug;
-use tracing::{debug, info};
+use tracing::debug;
 
 #[derive(Debug)]
 pub struct TripleCreatedEventHandler<T>(pub T);
@@ -28,7 +28,7 @@ where
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
-        info!("Handling triple creation: {self:#?}");
+        debug!("Handling triple creation: {self:#?}");
 
         // Check if the triple already exists, skip if it does
         match Triple::find_by_id(
@@ -39,11 +39,11 @@ where
         .await?
         {
             Some(triple) => {
-                info!("Triple already exists: {:?}", triple);
+                debug!("Triple already exists: {:?}", triple);
                 return Ok(());
             }
             None => {
-                info!("Triple does not exist, creating it");
+                debug!("Triple does not exist, creating it");
             }
         }
         // Ensure that the vault and counter vault exist

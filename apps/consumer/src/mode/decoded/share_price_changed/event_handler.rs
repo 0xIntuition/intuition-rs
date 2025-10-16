@@ -15,7 +15,7 @@ use models::{
     types::{FixedBytesWrapper, U256Wrapper},
 };
 use std::fmt::Debug;
-use tracing::{debug, info};
+use tracing::debug;
 
 #[derive(Debug)]
 pub struct SharePriceChangedEventHandler<T>(pub T);
@@ -29,7 +29,7 @@ where
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
-        info!("Handling SharePriceChanged / SharePriceChangedCurve event: {self:#?}",);
+        debug!("Handling SharePriceChanged / SharePriceChangedCurve event: {self:#?}",);
 
         // Check if the share price changed already exists, skip if it does
         match SharePriceChange::fetch_share_price_from_internal(
@@ -53,14 +53,14 @@ where
         .await?
         {
             Some(share_price_changed) => {
-                info!(
+                debug!(
                     "Share price changed already exists: {:?}",
                     share_price_changed
                 );
                 return Ok(());
             }
             None => {
-                info!("Share price changed does not exist, creating it");
+                debug!("Share price changed does not exist, creating it");
             }
         }
 

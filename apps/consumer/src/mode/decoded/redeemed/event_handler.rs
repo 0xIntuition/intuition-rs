@@ -18,7 +18,7 @@ use models::{
     vault::Vault,
 };
 use std::fmt::Debug;
-use tracing::info;
+use tracing::debug;
 
 #[derive(Debug)]
 pub struct RedeemedEventHandler<T>(pub T);
@@ -32,7 +32,7 @@ where
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
-        info!("Handling Redeemed / RedeemedCurve events : {self:#?}");
+        debug!("Handling Redeemed / RedeemedCurve events : {self:#?}");
 
         // Check if the redemption already exists, skip if it does
         match Redemption::find_by_id(
@@ -43,11 +43,11 @@ where
         .await?
         {
             Some(redemption) => {
-                info!("Redemption already exists: {:?}", redemption);
+                debug!("Redemption already exists: {:?}", redemption);
                 return Ok(());
             }
             None => {
-                info!("Redemption does not exist, creating it");
+                debug!("Redemption does not exist, creating it");
             }
         }
 

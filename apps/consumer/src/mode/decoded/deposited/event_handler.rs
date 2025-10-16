@@ -14,7 +14,7 @@ use models::{
     types::{FixedBytesWrapper, U256Wrapper},
 };
 use std::fmt::Debug;
-use tracing::info;
+use tracing::debug;
 
 #[derive(Debug)]
 pub struct DepositedEventHandler<T>(pub T);
@@ -28,7 +28,7 @@ where
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
-        info!("Handling Deposited / DepositedCurve event: {self:#?}",);
+        debug!("Handling Deposited / DepositedCurve event: {self:#?}",);
 
         // Check if the deposit already exists, skip if it does
         match Deposit::find_by_id(
@@ -39,11 +39,11 @@ where
         .await?
         {
             Some(deposit) => {
-                info!("Deposit already exists: {:?}", deposit);
+                debug!("Deposit already exists: {:?}", deposit);
                 return Ok(());
             }
             None => {
-                info!("Deposit does not exist, creating it");
+                debug!("Deposit does not exist, creating it");
             }
         }
 
