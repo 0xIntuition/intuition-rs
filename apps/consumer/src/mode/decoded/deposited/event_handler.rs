@@ -13,6 +13,7 @@ use models::{
     traits::SimpleCrud,
     types::{FixedBytesWrapper, U256Wrapper},
 };
+use sqlx::{Postgres, Transaction};
 use std::fmt::Debug;
 use tracing::info;
 
@@ -30,16 +31,20 @@ where
     ) -> Result<(), ConsumerError> {
         info!("Handling Deposited / DepositedCurve event: {self:#?}",);
 
+        // Start a transaction to use a single connection for all operations
+        let mut tx = decoded_consumer_context.pg_pool.begin().await?;
+
         // Check if the deposit already exists, skip if it does
         match Deposit::find_by_id(
             DecodedMessage::event_id(event),
             &decoded_consumer_context.backend_schema,
-            &decoded_consumer_context.pg_pool,
+            tx.as_mut(),
         )
         .await?
         {
             Some(deposit) => {
                 info!("Deposit already exists: {:?}", deposit);
+                // No need to commit, just return
                 return Ok(());
             }
             None => {
@@ -70,12 +75,15 @@ where
             .await?;
 
         // Create event
-        self.create_event(decoded_consumer_context, event).await?;
+        self.create_event(decoded_consumer_context, event, &mut tx).await?;
 
         // Create signal
         self.0
             .create_signal(decoded_consumer_context, event, &vault)
             .await?;
+
+        // Commit the transaction
+        tx.commit().await?;
 
         Ok(())
     }
@@ -84,6 +92,7 @@ where
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
         // Create the event
         let event = if self.0.vault_type()? == VaultType::Triple {
@@ -111,7 +120,7 @@ where
         event
             .upsert(
                 &decoded_consumer_context.backend_schema,
-                &decoded_consumer_context.pg_pool,
+                tx.as_mut(),
             )
             .await
             .map_err(ConsumerError::ModelError)?;

@@ -18,7 +18,7 @@ use models::{
     types::FixedBytesWrapper,
 };
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
+use sqlx::{Postgres, Transaction};
 use std::str::FromStr;
 use tracing::debug;
 /// Represents the metadata for an atom
@@ -76,6 +76,7 @@ impl AtomMetadata {
         atom_id: FixedBytesWrapper,
         caip10: String,
         decoded_consumer_context: &DecodedConsumerContext,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Caip10, ConsumerError> {
         let caip10_parts = caip10.split(':').collect::<Vec<&str>>();
         if caip10_parts.len() != 4 {
@@ -94,7 +95,7 @@ impl AtomMetadata {
             .build()
             .upsert(
                 &decoded_consumer_context.backend_schema,
-                &decoded_consumer_context.pg_pool,
+                tx.as_mut(),
             )
             .await
             .map_err(ConsumerError::ModelError)
@@ -115,6 +116,7 @@ impl AtomMetadata {
         &self,
         resolved_atom: &ResolveAtom,
         decoded_consumer_context: &DecodedConsumerContext,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
         match AtomType::from_str(self.atom_type.as_str())? {
             AtomType::Account => {
@@ -122,7 +124,7 @@ impl AtomMetadata {
                     "Updating account for: {}",
                     resolved_atom.atom.data.clone().unwrap()
                 );
-                self.update_account_and_atom_value(resolved_atom, decoded_consumer_context)
+                self.update_account_and_atom_value(resolved_atom, decoded_consumer_context, tx)
                     .await
             }
             AtomType::Caip10 => {
@@ -134,6 +136,7 @@ impl AtomMetadata {
                     resolved_atom.atom.term_id.clone(),
                     resolved_atom.atom.data.clone().unwrap(),
                     decoded_consumer_context,
+                    tx,
                 )
                 .await?;
                 Ok(())
@@ -267,6 +270,7 @@ impl AtomMetadata {
         &self,
         resolved_atom: &ResolveAtom,
         decoded_consumer_context: &DecodedConsumerContext,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
         if self.atom_type != "Account" {
             debug!("Skipping account creation for: {}", self.atom_type);
@@ -280,6 +284,7 @@ impl AtomMetadata {
                 .clone()
                 .ok_or(ConsumerError::AtomDataNotFound)?,
             decoded_consumer_context,
+            tx,
         )
         .await?;
 
@@ -287,6 +292,7 @@ impl AtomMetadata {
             &mut account,
             resolved_atom.atom.term_id.clone(),
             decoded_consumer_context,
+            tx,
         )
         .await?;
 
@@ -294,7 +300,7 @@ impl AtomMetadata {
         if AtomValue::find_by_id(
             resolved_atom.atom.term_id.clone(),
             &decoded_consumer_context.backend_schema,
-            &decoded_consumer_context.pg_pool,
+            tx.as_mut(),
         )
         .await?
         .is_some()
@@ -309,7 +315,7 @@ impl AtomMetadata {
             .build()
             .upsert(
                 &decoded_consumer_context.backend_schema,
-                &decoded_consumer_context.pg_pool,
+                tx.as_mut(),
             )
             .await?;
 
@@ -321,13 +327,13 @@ impl AtomMetadata {
         &self,
         atom: &mut Atom,
         backend_schema: &str,
-        pg_pool: &PgPool,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<AtomMetadata, ConsumerError> {
         atom.emoji = Some(self.emoji.clone());
         atom.atom_type = AtomType::from_str(&self.atom_type)?;
         atom.label = Some(self.label.clone());
         atom.image = self.image.clone();
-        atom.upsert(backend_schema, pg_pool).await?;
+        atom.upsert(backend_schema, tx.as_mut()).await?;
         Ok(AtomMetadata {
             label: self.label.clone(),
             emoji: self.emoji.clone(),
@@ -347,19 +353,10 @@ impl AtomMetadata {
 pub fn is_valid_address(address: &str) -> Result<bool, ConsumerError> {
     // First check if it can be parsed as an address
     match Address::from_str(address) {
-        Ok(_) => {
-            // For addresses that contain mixed case, validate EIP-55 checksum
-            if address.chars().any(|c| c.is_ascii_uppercase()) {
-                // Parse with checksum validation
-                match Address::parse_checksummed(address, None) {
-                    Ok(_) => Ok(true),
-                    Err(_) => Ok(false),
-                }
-            } else {
-                // All lowercase addresses are valid (but not checksummed)
-                Ok(true)
-            }
-        }
+        Ok(_) => match Address::parse_checksummed(address, None) {
+            Ok(_) => Ok(true),
+            Err(_) => Ok(false),
+        },
         Err(_) => Ok(false),
     }
 }
@@ -417,6 +414,7 @@ pub async fn get_supported_atom_metadata(
     atom: &mut Atom,
     decoded_atom_data: &str,
     decoded_consumer_context: &DecodedConsumerContext,
+    _tx: &mut Transaction<'_, Postgres>,
 ) -> Result<AtomMetadata, ConsumerError> {
     // 1. Handling the happy path (schema.org URL, predicate)
     if let Some(schema_org_url) = try_to_resolve_schema_org_url(decoded_atom_data).await? {
@@ -539,18 +537,18 @@ mod tests {
             uppercase_address, uppercase_result
         );
 
-        // Lowercase should always be valid (no checksum validation needed)
+        // Lowercase should be rejected (no proper checksum)
         let lowercase_result = is_valid_address(lowercase_address)?;
         println!(
             "Lowercase address '{}' is valid: {}",
             lowercase_address, lowercase_result
         );
-        assert!(lowercase_result, "Lowercase address should always be valid");
+        assert!(
+            !lowercase_result,
+            "Lowercase address should be rejected (no checksum)"
+        );
 
-        // Test some other valid cases
-        assert!(is_valid_address(
-            "0x1234567890123456789012345678901234567890"
-        )?);
+        // Test some valid cases - all zeros has valid checksum
         assert!(is_valid_address(
             "0x0000000000000000000000000000000000000000"
         )?);

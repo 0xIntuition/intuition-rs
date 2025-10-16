@@ -17,6 +17,7 @@ use models::{
     types::U256Wrapper,
     vault::Vault,
 };
+use sqlx::{Postgres, Transaction};
 use std::fmt::Debug;
 use tracing::info;
 
@@ -34,16 +35,20 @@ where
     ) -> Result<(), ConsumerError> {
         info!("Handling Redeemed / RedeemedCurve events : {self:#?}");
 
+        // Start a transaction to use a single connection for all operations
+        let mut tx = decoded_consumer_context.pg_pool.begin().await?;
+
         // Check if the redemption already exists, skip if it does
         match Redemption::find_by_id(
             DecodedMessage::event_id(event),
             &decoded_consumer_context.backend_schema,
-            &decoded_consumer_context.pg_pool,
+            tx.as_mut(),
         )
         .await?
         {
             Some(redemption) => {
                 info!("Redemption already exists: {:?}", redemption);
+                // No need to commit, just return
                 return Ok(());
             }
             None => {
@@ -55,7 +60,7 @@ where
         let vault = Vault::find_by_term_id_and_curve_id(
             self.0.term_id()?.into(),
             RedeemedEvent::curve_id(&self.0)?.into(),
-            &decoded_consumer_context.pg_pool.clone(),
+            tx.as_mut(),
             &decoded_consumer_context.backend_schema,
         )
         .await?
@@ -63,9 +68,9 @@ where
 
         // 2. Set up accounts
         let sender_account =
-            get_or_create_account(self.0.sender()?, decoded_consumer_context).await?;
+            get_or_create_account(self.0.sender()?, decoded_consumer_context, &mut tx).await?;
         let receiver_account =
-            get_or_create_account(self.0.receiver()?, decoded_consumer_context).await?;
+            get_or_create_account(self.0.receiver()?, decoded_consumer_context, &mut tx).await?;
 
         // 3. Create redemption record
         self.0
@@ -82,11 +87,14 @@ where
             .await?;
 
         // 4. Create event and signal records
-        self.create_event(decoded_consumer_context, event).await?;
+        self.create_event(decoded_consumer_context, event, &mut tx).await?;
 
         self.0
             .create_signal(decoded_consumer_context, event, &vault)
             .await?;
+
+        // Commit the transaction
+        tx.commit().await?;
 
         Ok(())
     }
@@ -94,11 +102,12 @@ where
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
         let vault = Vault::find_by_term_id_and_curve_id(
             self.0.term_id()?.into(),
             U256Wrapper::try_from(1)?,
-            &decoded_consumer_context.pg_pool,
+            tx.as_mut(),
             &decoded_consumer_context.backend_schema,
         )
         .await?
@@ -107,7 +116,7 @@ where
         let term_type = Term::find_by_id(
             vault.term_id.clone(),
             &decoded_consumer_context.backend_schema,
-            &decoded_consumer_context.pg_pool,
+            tx.as_mut(),
         )
         .await?
         .ok_or(ConsumerError::TermNotFound)?;
@@ -137,7 +146,7 @@ where
         event
             .upsert(
                 &decoded_consumer_context.backend_schema,
-                &decoded_consumer_context.pg_pool,
+                tx.as_mut(),
             )
             .await?;
         Ok(())

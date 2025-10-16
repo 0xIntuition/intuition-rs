@@ -83,6 +83,17 @@ CREATE INDEX idx_term_atom_id ON term(atom_id);
 CREATE INDEX idx_term_triple_id ON term(triple_id);
 CREATE INDEX idx_total_market_cap ON term(total_market_cap);
 CREATE INDEX idx_total_assets ON term(total_assets);
+CREATE INDEX idx_term_created_at ON term(created_at);
+-- Text and JSON object indexes
+CREATE INDEX IF NOT EXISTS idx_text_object_data_fts ON text_object USING GIN(to_tsvector('english', data));
+CREATE INDEX IF NOT EXISTS idx_text_object_data ON text_object(data);
+CREATE INDEX IF NOT EXISTS idx_json_object_data ON json_object USING GIN(data);
+
+-- Atom search indexes
+CREATE INDEX IF NOT EXISTS idx_atom_label ON atom(label);
+
+-- Account search indexes
+CREATE INDEX IF NOT EXISTS idx_account_label ON account(label);
 
 -- Vault structure indexes
 CREATE INDEX idx_vault_term_id ON vault(term_id);

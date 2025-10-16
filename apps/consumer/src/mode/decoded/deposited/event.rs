@@ -21,6 +21,7 @@ use models::{
     types::{FixedBytesWrapper, U256Wrapper},
     vault::Vault,
 };
+use sqlx::{Postgres, Transaction};
 use tracing::debug;
 
 /// This trait represents a deposited event
@@ -46,6 +47,7 @@ pub trait DepositedEvent:
         &self,
         event: &DecodedMessage,
         decoded_consumer_context: &DecodedConsumerContext,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Deposit, ConsumerError> {
         Deposit::builder()
             .id(DecodedMessage::event_id(event))
@@ -62,10 +64,7 @@ pub trait DepositedEvent:
             .transaction_hash(event.transaction_hash.clone())
             .log_index(event.log_index)
             .build()
-            .upsert(
-                &decoded_consumer_context.backend_schema,
-                &decoded_consumer_context.pg_pool,
-            )
+            .upsert(&decoded_consumer_context.backend_schema, tx.as_mut())
             .await
             .map_err(ConsumerError::ModelError)
     }
@@ -76,6 +75,7 @@ pub trait DepositedEvent:
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
         vault: &Vault,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
         if self.assets_after_fees()? > U256::from(0) {
             let created_at = get_block_timestamp(event.block_timestamp)?;
@@ -107,10 +107,7 @@ pub trait DepositedEvent:
                     .build()
             };
             signal
-                .upsert(
-                    &decoded_consumer_context.backend_schema,
-                    &decoded_consumer_context.pg_pool,
-                )
+                .upsert(&decoded_consumer_context.backend_schema, tx.as_mut())
                 .await?;
         } else {
             debug!("Sender assets after total fees is 0, nothing to do.");
@@ -122,10 +119,12 @@ pub trait DepositedEvent:
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Vault, ConsumerError> {
-        // Create accounts
-        let _sender = get_or_create_account(self.sender()?, decoded_consumer_context).await?;
-        let _receiver = get_or_create_account(self.receiver()?, decoded_consumer_context).await?;
+        let _sender =
+            get_or_create_account(self.sender()?, decoded_consumer_context, &mut tx).await?;
+        let _receiver =
+            get_or_create_account(self.receiver()?, decoded_consumer_context, &mut tx).await?;
 
         VaultOrigin::Deposit
             .get_or_create_vault(
@@ -137,6 +136,7 @@ pub trait DepositedEvent:
                     VaultType::CounterTriple => TermType::CounterTriple,
                 },
                 event,
+                tx,
                 None,
             )
             .await

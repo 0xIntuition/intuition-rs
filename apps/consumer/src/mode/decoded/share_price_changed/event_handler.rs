@@ -14,6 +14,7 @@ use models::{
     term::TermType,
     types::{FixedBytesWrapper, U256Wrapper},
 };
+use sqlx::{Postgres, Transaction};
 use std::fmt::Debug;
 use tracing::{debug, info};
 
@@ -76,6 +77,7 @@ where
             decoded_consumer_context,
             term_type,
             event,
+            tx,
         )
         .await?;
         debug!("Finished updating vault, updating share price aggregate");
@@ -92,6 +94,7 @@ where
         &self,
         _context: &DecodedConsumerContext,
         _event: &DecodedMessage,
+        _tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
         Ok(())
     }

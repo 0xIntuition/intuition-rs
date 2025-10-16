@@ -39,6 +39,7 @@ pub trait TripleCreatedEvent:
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
         // Get the counter vault ID
         let counter_vault_id = get_counter_id_from_triple_id(self.term_id()?.into())?;
@@ -50,12 +51,13 @@ pub trait TripleCreatedEvent:
                 decoded_consumer_context,
                 TermType::Triple,
                 event,
+                tx,
                 None,
             )
             .await?;
 
         // Get or update the counter vault
-        self.get_or_create_counter_vault(counter_vault_id, decoded_consumer_context, event)
+        self.get_or_create_counter_vault(counter_vault_id, decoded_consumer_context, event, tx)
             .await?;
 
         // Get or create the triple term
@@ -64,6 +66,7 @@ pub trait TripleCreatedEvent:
                 self.clone(),
                 event.block_timestamp,
                 decoded_consumer_context,
+                tx,
             )
             .await?;
         // Get or create the triple vault
@@ -73,6 +76,7 @@ pub trait TripleCreatedEvent:
                 decoded_consumer_context,
                 event,
                 event.block_timestamp,
+                tx,
             )
             .await?;
 
@@ -85,11 +89,12 @@ pub trait TripleCreatedEvent:
         counter_vault_id: FixedBytesWrapper,
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Vault, ConsumerError> {
         let vault = Vault::find_by_term_id_and_curve_id(
             counter_vault_id.clone(),
             self.curve_id()?,
-            &decoded_consumer_context.pg_pool,
+            tx.as_mut(),
             &decoded_consumer_context.backend_schema,
         )
         .await?;
@@ -129,10 +134,7 @@ pub trait TripleCreatedEvent:
                 )
                 .created_at(get_block_timestamp(event.block_timestamp)?)
                 .build()
-                .upsert(
-                    &decoded_consumer_context.backend_schema,
-                    &decoded_consumer_context.pg_pool,
-                )
+                .upsert(&decoded_consumer_context.backend_schema, tx.as_mut())
                 .await
                 .map_err(ConsumerError::ModelError)?;
 
@@ -254,6 +256,7 @@ pub trait TripleCreatedEvent:
                 decoded_consumer_context,
                 TermType::Atom,
                 event,
+                tx,
                 Some(id.clone()),
             )
             .await

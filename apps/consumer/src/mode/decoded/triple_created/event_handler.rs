@@ -13,6 +13,7 @@ use models::{
     triple::Triple,
     types::U256Wrapper,
 };
+use sqlx::{Postgres, Transaction};
 use std::fmt::Debug;
 use tracing::{debug, info};
 
@@ -30,16 +31,20 @@ where
     ) -> Result<(), ConsumerError> {
         info!("Handling triple creation: {self:#?}");
 
+        // Start a transaction to use a single connection for all operations
+        let mut tx = decoded_consumer_context.pg_pool.begin().await?;
+
         // Check if the triple already exists, skip if it does
         match Triple::find_by_id(
             self.0.term_id()?.into(),
             &decoded_consumer_context.backend_schema,
-            &decoded_consumer_context.pg_pool,
+            tx.as_mut(),
         )
         .await?
         {
             Some(triple) => {
                 info!("Triple already exists: {:?}", triple);
+                // No need to commit, just return
                 return Ok(());
             }
             None => {
@@ -48,37 +53,49 @@ where
         }
         // Ensure that the vault and counter vault exist
         self.0
-            .get_or_create_vaults(decoded_consumer_context, event)
+            .get_or_create_vaults(decoded_consumer_context, event, &mut tx)
             .await?;
-
-        let mut tx = decoded_consumer_context.pg_pool.begin().await?;
 
         // Get or create the triple
         let triple = self
             .0
-            .get_or_create_triple(decoded_consumer_context, event, &mut tx)
+            .get_or_create_triple(
+                decoded_consumer_context,
+                event,
+                &mut tx,
+            )
             .await?;
 
         debug!("Triple created: {triple:#?}");
         // Update the predicate object triple count
         self.0
-            .update_predicate_object_triple_count(&decoded_consumer_context.backend_schema, &mut tx)
+            .update_predicate_object_triple_count(
+                &decoded_consumer_context.backend_schema,
+                &mut tx,
+            )
             .await?;
         // Update the predicate object
         self.0
-            .check_and_update_account_predicate_object(decoded_consumer_context, event, &mut tx)
+            .check_and_update_account_predicate_object(
+                decoded_consumer_context,
+                event,
+                &mut tx,
+            )
             .await?;
 
+        // Create the event
+        self.create_event(decoded_consumer_context, event, &mut tx).await?;
+
+        // Commit the transaction
         tx.commit().await?;
 
-        // Create the event
-        self.create_event(decoded_consumer_context, event).await?;
         Ok(())
     }
     async fn create_event(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
         let triple_id = self.0.term_id()?;
         Event::builder()
@@ -91,7 +108,7 @@ where
             .build()
             .upsert(
                 &decoded_consumer_context.backend_schema,
-                &decoded_consumer_context.pg_pool,
+                tx.as_mut(),
             )
             .await
             .map_err(ConsumerError::ModelError)?;

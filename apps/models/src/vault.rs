@@ -277,13 +277,16 @@ impl Vault {
     }
 
     /// This function fetches triple vault aggregates from the vault table for a specific curve
-    pub async fn fetch_triple_vault_aggregates(
+    pub async fn fetch_triple_vault_aggregates<'e, E>(
         term_id: FixedBytesWrapper,
         counter_term_id: FixedBytesWrapper,
         curve_id: U256Wrapper,
-        pool: &PgPool,
+        executor: E,
         schema: &str,
-    ) -> Result<Vec<Vault>, ModelError> {
+    ) -> Result<Vec<Vault>, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"
             SELECT * FROM {}.vault 
@@ -295,18 +298,21 @@ impl Vault {
             .bind(term_id)
             .bind(counter_term_id)
             .bind(curve_id.to_big_decimal()?)
-            .fetch_all(pool)
+            .fetch_all(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
     }
 
     /// This function fetches triple term aggregates from the vault table for all curves
-    pub async fn fetch_triple_term_aggregates(
+    pub async fn fetch_triple_term_aggregates<'e, E>(
         term_id: FixedBytesWrapper,
         counter_term_id: FixedBytesWrapper,
-        pool: &PgPool,
+        executor: E,
         schema: &str,
-    ) -> Result<Vec<Vault>, ModelError> {
+    ) -> Result<Vec<Vault>, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
         let query = format!(
             r#"
             SELECT * FROM {}.vault 
@@ -317,7 +323,7 @@ impl Vault {
         sqlx::query_as::<_, Vault>(&query)
             .bind(term_id)
             .bind(counter_term_id)
-            .fetch_all(pool)
+            .fetch_all(executor)
             .await
             .map_err(|e| ModelError::QueryError(e.to_string()))
     }

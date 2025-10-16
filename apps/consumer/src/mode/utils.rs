@@ -19,7 +19,7 @@ use models::{
     types::{FixedBytesWrapper, U256Wrapper},
     vault::Vault,
 };
-use sqlx::PgPool;
+use sqlx::{Postgres, Transaction};
 use std::fmt::Debug;
 use tracing::{debug, warn};
 
@@ -51,7 +51,8 @@ impl VaultOrigin {
         event: impl SharePriceEvent,
         context: &DecodedConsumerContext,
         term_type: TermType,
-        tx: &DecodedMessage,
+        chain_tx: &DecodedMessage,
+        tx: &mut Transaction<'_, Postgres>,
         custom_term_id: Option<FixedBytesWrapper>,
     ) -> Result<Vault, ConsumerError> {
         let term_id = match custom_term_id.clone() {
@@ -62,7 +63,7 @@ impl VaultOrigin {
         if let Some(existing) = Vault::find_by_term_id_and_curve_id(
             term_id.clone(),
             event.curve_id()?,
-            &context.pg_pool,
+            tx.as_mut(),
             &context.backend_schema,
         )
         .await?
@@ -78,14 +79,14 @@ impl VaultOrigin {
             context,
             term_type.clone(),
             BlockInfo {
-                block_number: tx.block_number,
-                block_timestamp: tx.block_timestamp,
+                block_number: chain_tx.block_number,
+                block_timestamp: chain_tx.block_timestamp,
             },
         )
         .await?;
 
         let new_vault = self
-            .build_new_vault(&event, context, tx, custom_term_id.clone())
+            .build_new_vault(&event, context, chain_tx, custom_term_id.clone())
             .await?;
         debug!("New vault: {:?}", new_vault);
 
@@ -108,7 +109,7 @@ impl VaultOrigin {
 
         // If this is a triple vault, also create/update the triple_vault record
         if matches!(term_type, TermType::Triple | TermType::CounterTriple) {
-            self.ensure_triple_vault_exists(&event, context, tx, custom_term_id.clone())
+            self.ensure_triple_vault_exists(&event, context, custom_term_id.clone(), tx)
                 .await?;
         }
 
@@ -124,8 +125,9 @@ impl VaultOrigin {
         &self,
         event: &impl SharePriceEvent,
         context: &DecodedConsumerContext,
-        tx: &DecodedMessage,
+        chain_tx: &DecodedMessage,
         custom_term_id: Option<FixedBytesWrapper>,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
         let term_id = match custom_term_id {
             Some(term_id) => term_id,
@@ -137,7 +139,7 @@ impl VaultOrigin {
         if let Some(_existing) = TripleVault::find_by_term_id_and_curve_id(
             term_id.clone(),
             curve_id.clone(),
-            &context.pg_pool,
+            tx.as_mut(),
             &context.backend_schema,
         )
         .await?
@@ -154,7 +156,7 @@ impl VaultOrigin {
             term_id.clone(),
             counter_vault_id.clone(),
             curve_id.clone(),
-            &context.pg_pool,
+            tx.as_mut(),
             &context.backend_schema,
         )
         .await?;
@@ -174,9 +176,9 @@ impl VaultOrigin {
             .total_assets(total_assets)
             .position_count(position_count)
             .market_cap(market_cap)
-            .block_number(U256Wrapper::try_from(tx.block_number).unwrap_or_default())
-            .log_index(tx.log_index)
-            .updated_at(DateTime::from_timestamp(tx.block_timestamp, 0).ok_or(
+            .block_number(U256Wrapper::try_from(chain_tx.block_number).unwrap_or_default())
+            .log_index(chain_tx.log_index)
+            .updated_at(DateTime::from_timestamp(chain_tx.block_timestamp, 0).ok_or(
                 ConsumerError::BlockTimestampError(
                     "Failed to convert block timestamp to DateTime".to_string(),
                 ),
@@ -184,7 +186,7 @@ impl VaultOrigin {
             .build();
 
         triple_vault
-            .upsert(&context.backend_schema, &context.pg_pool)
+            .upsert(&context.backend_schema, tx.as_mut())
             .await
             .map_err(ConsumerError::ModelError)?;
 
@@ -197,12 +199,13 @@ impl VaultOrigin {
         event: impl SharePriceEvent + TripleTermManager,
         block_timestamp: i64,
         decoded_consumer_context: &DecodedConsumerContext,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<TripleTerm, ConsumerError> {
         let counter_vault_id = get_counter_id_from_triple_id(event.term_id()?.into())?;
         let triple_term = TripleTerm::find_by_id(
             event.term_id()?.into(),
             &decoded_consumer_context.backend_schema,
-            &decoded_consumer_context.pg_pool,
+            tx.as_mut(),
         )
         .await?;
 
@@ -224,10 +227,7 @@ impl VaultOrigin {
                     ),
                 )?)
                 .build()
-                .upsert(
-                    &decoded_consumer_context.backend_schema,
-                    &decoded_consumer_context.pg_pool,
-                )
+                .upsert(&decoded_consumer_context.backend_schema, tx.as_mut())
                 .await
                 .map_err(ConsumerError::ModelError)
         }
@@ -238,15 +238,16 @@ impl VaultOrigin {
         &self,
         event: impl SharePriceEvent + TripleVaultManager,
         decoded_consumer_context: &DecodedConsumerContext,
-        tx: &DecodedMessage,
+        chain_tx: &DecodedMessage,
         block_timestamp: i64,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<TripleVault, ConsumerError> {
         let counter_vault_id = get_counter_id_from_triple_id(event.term_id()?.into())?;
 
         let triple_vault = TripleVault::find_by_id(
             event.term_id()?.into(),
             &decoded_consumer_context.backend_schema,
-            &decoded_consumer_context.pg_pool,
+            tx.as_mut(),
         )
         .await?;
 
@@ -269,18 +270,15 @@ impl VaultOrigin {
                 .total_assets(triple_aggregate.total_assets)
                 .position_count(triple_aggregate.total_position_count)
                 .market_cap(triple_aggregate.total_market_cap)
-                .block_number(U256Wrapper::try_from(tx.block_number).unwrap_or_default())
-                .log_index(tx.log_index)
+                .block_number(U256Wrapper::try_from(chain_tx.block_number).unwrap_or_default())
+                .log_index(chain_tx.log_index)
                 .updated_at(DateTime::from_timestamp(block_timestamp, 0).ok_or(
                     ConsumerError::BlockTimestampError(
                         "Failed to convert block timestamp to DateTime".to_string(),
                     ),
                 )?)
                 .build()
-                .upsert(
-                    &decoded_consumer_context.backend_schema,
-                    &decoded_consumer_context.pg_pool,
-                )
+                .upsert(&decoded_consumer_context.backend_schema, tx.as_mut())
                 .await
                 .map_err(ConsumerError::ModelError)
         }
@@ -291,7 +289,7 @@ impl VaultOrigin {
         &self,
         event: &impl SharePriceEvent,
         context: &DecodedConsumerContext,
-        tx: &DecodedMessage,
+        chain_tx: &DecodedMessage,
         custom_term_id: Option<FixedBytesWrapper>,
     ) -> Result<Vault, ConsumerError> {
         let term_id = match custom_term_id {
@@ -299,12 +297,12 @@ impl VaultOrigin {
             None => FixedBytesWrapper::from(event.term_id()?),
         };
         let curve_id = event.curve_id()?;
-        let block_number = tx.block_number;
+        let block_number = chain_tx.block_number;
         let total_shares = event.total_shares(context, block_number).await?;
         let share_price = event.current_share_price(context, block_number).await?;
         let total_assets = event.total_assets()?;
         let position_count = event.position_count(context).await?;
-        let created_at = get_block_timestamp(tx.block_timestamp)?;
+        let created_at = get_block_timestamp(chain_tx.block_timestamp)?;
 
         let market_cap = Self::compute_market_cap(total_shares.clone(), share_price.clone());
 
@@ -317,8 +315,8 @@ impl VaultOrigin {
             .market_cap(market_cap)
             .block_number(block_number)
             .total_shares(total_shares)
-            .log_index(tx.log_index)
-            .transaction_hash(tx.transaction_hash.clone())
+            .log_index(chain_tx.log_index)
+            .transaction_hash(chain_tx.transaction_hash.clone())
             .created_at(created_at)
             .build())
     }
@@ -359,16 +357,14 @@ pub fn short_id(address: &str) -> String {
 async fn update_unknown_account_or_create_account_and_enqueue_resolver_message(
     decoded_consumer_context: &DecodedConsumerContext,
     id: String,
+    tx: &mut Transaction<'_, Postgres>,
 ) -> Result<Account, ConsumerError> {
     let account = Account::builder()
         .id(id.clone())
         .label(short_id(&id))
         .account_type(AccountType::Default)
         .build()
-        .upsert(
-            &decoded_consumer_context.backend_schema,
-            &decoded_consumer_context.pg_pool.clone(),
-        )
+        .upsert(&decoded_consumer_context.backend_schema, tx.as_mut())
         .await
         .map_err(ConsumerError::ModelError)?;
 
@@ -388,13 +384,11 @@ pub async fn update_account_with_atom_id(
     account: &mut Account,
     atom_id: FixedBytesWrapper,
     decoded_consumer_context: &DecodedConsumerContext,
+    tx: &mut Transaction<'_, Postgres>,
 ) -> Result<(), ConsumerError> {
     account.atom_id = Some(atom_id);
     account
-        .upsert(
-            &decoded_consumer_context.backend_schema,
-            &decoded_consumer_context.pg_pool,
-        )
+        .upsert(&decoded_consumer_context.backend_schema, tx.as_mut())
         .await?;
     debug!("Updated account: {:?}", account);
 
@@ -413,11 +407,12 @@ pub async fn update_account_with_atom_id(
 pub async fn get_or_create_account(
     id: String,
     decoded_consumer_context: &DecodedConsumerContext,
+    tx: &mut Transaction<'_, Postgres>,
 ) -> Result<Account, ConsumerError> {
     if let Some(account) = Account::find_by_id(
         id.clone(),
         &decoded_consumer_context.backend_schema,
-        &decoded_consumer_context.pg_pool.clone(),
+        tx.as_mut(),
     )
     .await?
     {
@@ -426,6 +421,7 @@ pub async fn get_or_create_account(
             let account = update_unknown_account_or_create_account_and_enqueue_resolver_message(
                 decoded_consumer_context,
                 id,
+                tx,
             )
             .await?;
             Ok(account)
@@ -436,6 +432,7 @@ pub async fn get_or_create_account(
         let account = update_unknown_account_or_create_account_and_enqueue_resolver_message(
             decoded_consumer_context,
             id,
+            tx,
         )
         .await?;
         Ok(account)
@@ -523,9 +520,9 @@ pub async fn get_or_create_term(
 pub async fn get_or_create_account_from_event(
     event: impl AccountManager + Debug,
     backend_schema: &str,
-    pg_pool: &PgPool,
+    tx: &mut Transaction<'_, Postgres>,
 ) -> Result<Account, ConsumerError> {
-    let account = Account::find_by_id(event.account_id(), backend_schema, pg_pool).await?;
+    let account = Account::find_by_id(event.account_id(), backend_schema, tx.as_mut()).await?;
 
     if let Some(account) = account {
         Ok(account)
@@ -535,7 +532,7 @@ pub async fn get_or_create_account_from_event(
             .label(event.label())
             .account_type(event.account_type())
             .build()
-            .upsert(backend_schema, pg_pool)
+            .upsert(backend_schema, tx.as_mut())
             .await?;
 
         Ok(account)

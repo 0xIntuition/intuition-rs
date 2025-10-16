@@ -331,7 +331,7 @@ impl ResolverMessageType {
                     .server_initialize
                     .env
                     .backend_schema,
-                &resolver_consumer_context.pg_pool,
+                tx,
             )
             .await?;
 

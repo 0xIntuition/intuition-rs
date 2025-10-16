@@ -17,7 +17,7 @@ use models::{
     types::{FixedBytesWrapper, U256Wrapper},
     vault::Vault,
 };
-use sqlx::PgPool;
+use sqlx::{Postgres, Transaction};
 use std::fmt::Debug;
 use tracing::{debug, warn};
 
@@ -32,6 +32,7 @@ pub trait AtomCreatedEvent:
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(Vault, Atom), ConsumerError> {
         debug!("Creating vault for atom {}", self.term_id()?);
         // Get or create the vault
@@ -41,6 +42,7 @@ pub trait AtomCreatedEvent:
                 decoded_consumer_context,
                 TermType::Atom,
                 event,
+                tx,
                 None,
             )
             .await
@@ -63,7 +65,7 @@ pub trait AtomCreatedEvent:
         // created first, so if they don't exist, we create them as part of this
         // process.
         let atom = self
-            .get_or_create_vault_atom(decoded_consumer_context, event)
+            .get_or_create_vault_atom(decoded_consumer_context, event, tx)
             .await?;
 
         Ok((vault, atom))
@@ -74,11 +76,12 @@ pub trait AtomCreatedEvent:
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Atom, ConsumerError> {
         if let Some(atom) = Atom::find_by_id(
             self.term_id()?.into(),
             &decoded_consumer_context.backend_schema,
-            &decoded_consumer_context.pg_pool,
+            tx.as_mut(),
         )
         .await?
         {
@@ -88,6 +91,7 @@ pub trait AtomCreatedEvent:
                     .update_atom_with_zero_transaction_hash_or_create_atom(
                         decoded_consumer_context,
                         event,
+                        tx,
                     )
                     .await?;
                 return Ok(atom);
@@ -101,6 +105,7 @@ pub trait AtomCreatedEvent:
                 .update_atom_with_zero_transaction_hash_or_create_atom(
                     decoded_consumer_context,
                     event,
+                    tx,
                 )
                 .await?;
 
@@ -112,15 +117,13 @@ pub trait AtomCreatedEvent:
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Atom, ConsumerError> {
         let mut atom_wallet_account = self
-            .get_or_create_atom_wallet_account(
-                &decoded_consumer_context.backend_schema,
-                &decoded_consumer_context.pg_pool,
-            )
+            .get_or_create_atom_wallet_account(&decoded_consumer_context.backend_schema, tx)
             .await?;
         let creator_account =
-            get_or_create_account(self.creator_id()?, decoded_consumer_context).await?;
+            get_or_create_account(self.creator_id()?, decoded_consumer_context, tx).await?;
         let atom = Atom::builder()
             .term_id(FixedBytesWrapper::from(self.term_id()?))
             .wallet_id(atom_wallet_account.id.clone())
@@ -134,15 +137,13 @@ pub trait AtomCreatedEvent:
             .resolving_status(AtomResolvingStatus::Pending)
             .log_index(event.log_index)
             .build()
-            .upsert(
-                &decoded_consumer_context.backend_schema,
-                &decoded_consumer_context.pg_pool,
-            )
+            .upsert(&decoded_consumer_context.backend_schema, tx.as_mut())
             .await?;
         Self::update_account_with_atom_id(
             &mut atom_wallet_account,
             atom.term_id.clone(),
             decoded_consumer_context,
+            tx,
         )
         .await?;
         Ok(atom)
@@ -152,16 +153,16 @@ pub trait AtomCreatedEvent:
     async fn get_or_create_atom_wallet_account(
         &self,
         backend_schema: &str,
-        pg_pool: &PgPool,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Account, ConsumerError> {
         // First try to find existing account
         let mut account =
-            get_or_create_account_from_event(self.clone(), backend_schema, pg_pool).await?;
+            get_or_create_account_from_event(self.clone(), backend_schema, tx).await?;
 
         // We update the account type to `AtomWallet` if it is not already set
         if account.account_type != AccountType::AtomWallet {
             account.account_type = AccountType::AtomWallet;
-            account.upsert(backend_schema, pg_pool).await?;
+            account.upsert(backend_schema, tx.as_mut()).await?;
         }
         Ok(account)
     }
@@ -170,13 +171,11 @@ pub trait AtomCreatedEvent:
         account: &mut Account,
         atom_id: FixedBytesWrapper,
         decoded_consumer_context: &DecodedConsumerContext,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
         account.atom_id = Some(atom_id);
         account
-            .upsert(
-                &decoded_consumer_context.backend_schema,
-                &decoded_consumer_context.pg_pool,
-            )
+            .upsert(&decoded_consumer_context.backend_schema, tx.as_mut())
             .await?;
         debug!("Updated account: {:?}", account);
 
@@ -196,6 +195,7 @@ pub trait AtomCreatedEvent:
         atom: &mut Atom,
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<String, ConsumerError> {
         // decode the hex data from the atomData.
         let decoded_atom_data = if let Ok(decoded_atom_data) = Atom::decode_data(self.atom_data()?)
@@ -213,11 +213,8 @@ pub trait AtomCreatedEvent:
         atom.data = Some(decoded_atom_data.clone());
         atom.block_number = U256Wrapper::try_from(event.block_number)?;
         atom.log_index = event.log_index;
-        atom.upsert(
-            &decoded_consumer_context.backend_schema,
-            &decoded_consumer_context.pg_pool,
-        )
-        .await?;
+        atom.upsert(&decoded_consumer_context.backend_schema, tx.as_mut())
+            .await?;
         Ok(decoded_atom_data)
     }
 }

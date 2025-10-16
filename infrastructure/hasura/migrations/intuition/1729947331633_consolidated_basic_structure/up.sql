@@ -98,6 +98,7 @@ CREATE TABLE IF NOT EXISTS term (
   triple_id TEXT,
   total_assets NUMERIC(78, 0),
   total_market_cap NUMERIC(78, 0),
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
 

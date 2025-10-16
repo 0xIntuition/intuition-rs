@@ -6,6 +6,7 @@ use models::{
     traits::SimpleCrud,
     types::U256Wrapper,
 };
+use sqlx::{Postgres, Transaction};
 use tracing::info;
 
 use crate::{
@@ -33,23 +34,26 @@ where
     ) -> Result<(), ConsumerError> {
         info!("Handling initialized: {:#?}", self.0);
 
+        // Start a transaction to use a single connection for all operations
+        let mut tx = decoded_consumer_context.pg_pool.begin().await?;
+
         // Check if the initialized already exists, skip if it does
         match Initialize::find_by_id(
             self.0.version()?,
             &decoded_consumer_context.backend_schema,
-            &decoded_consumer_context.pg_pool,
+            tx.as_mut(),
         )
         .await?
         {
             Some(initialized) => {
                 info!("Initialized already exists: {:?}", initialized);
+                // No need to commit, just return
                 return Ok(());
             }
             None => {
                 info!("Initialized does not exist, creating it");
             }
         }
-        let mut tx = decoded_consumer_context.pg_pool.begin().await?;
 
         Initialize::builder()
             .version(self.0.version()?)
@@ -58,7 +62,10 @@ where
             .transaction_hash(event.transaction_hash.clone())
             .log_index(event.log_index as i32)
             .build()
-            .upsert(&decoded_consumer_context.backend_schema, tx.as_mut())
+            .upsert(
+                &decoded_consumer_context.backend_schema,
+                tx.as_mut(),
+            )
             .await
             .map_err(ConsumerError::ModelError)?;
 
@@ -69,8 +76,9 @@ where
         }
 
         // Create the event
-        self.create_event(decoded_consumer_context, event).await?;
+        self.create_event(decoded_consumer_context, event, &mut tx).await?;
 
+        // Commit the transaction
         tx.commit().await?;
 
         Ok(())
@@ -80,6 +88,7 @@ where
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
         // Create the event
         Event::builder()
@@ -91,7 +100,7 @@ where
             .build()
             .upsert(
                 &decoded_consumer_context.backend_schema,
-                &decoded_consumer_context.pg_pool,
+                tx.as_mut(),
             )
             .await
             .map_err(ConsumerError::ModelError)?;

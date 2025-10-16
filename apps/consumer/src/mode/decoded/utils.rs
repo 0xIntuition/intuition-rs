@@ -9,6 +9,7 @@ use crate::{
 use alloy::primitives::keccak256;
 use chrono::{DateTime, Utc};
 use models::{term::TermType, traits::SimpleCrud, types::FixedBytesWrapper, vault::Vault};
+use sqlx::{Postgres, Transaction};
 use tracing::debug;
 
 /// This function gets the block timestamp from the block number
@@ -26,6 +27,7 @@ pub trait EventHandler: Debug + Sync + Send {
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError>;
     /// This function processes an event
     async fn process_event(
@@ -41,6 +43,7 @@ pub async fn update_vault_from_share_price_changed_events(
     decoded_consumer_context: &DecodedConsumerContext,
     term_type: TermType,
     transaction_data: &DecodedMessage,
+    tx: &mut Transaction<'_, Postgres>,
 ) -> Result<(), ConsumerError> {
     debug!(
         "Processing SharePriceChanged event: {:?}",
@@ -50,7 +53,7 @@ pub async fn update_vault_from_share_price_changed_events(
     let vault = Vault::find_by_term_id_and_curve_id(
         FixedBytesWrapper::from(share_price_changed.term_id()?),
         share_price_changed.curve_id()?,
-        &decoded_consumer_context.pg_pool,
+        tx.as_mut(),
         &decoded_consumer_context.backend_schema,
     )
     .await?;
@@ -73,10 +76,7 @@ pub async fn update_vault_from_share_price_changed_events(
         vault.log_index = transaction_data.log_index;
         vault.transaction_hash = transaction_data.transaction_hash.clone();
         vault
-            .insert_from_share_price(
-                &decoded_consumer_context.backend_schema,
-                &decoded_consumer_context.pg_pool,
-            )
+            .insert_from_share_price(&decoded_consumer_context.backend_schema, tx.as_mut())
             .await?;
         debug!("Updated vault share price and total shares");
         // The term is going to be updated by the trigger on the vault table
@@ -88,6 +88,7 @@ pub async fn update_vault_from_share_price_changed_events(
                 decoded_consumer_context,
                 term_type,
                 transaction_data,
+                tx,
                 None,
             )
             .await?

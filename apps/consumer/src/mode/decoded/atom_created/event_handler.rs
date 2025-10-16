@@ -15,6 +15,7 @@ use models::{
     traits::SimpleCrud,
     types::{FixedBytesWrapper, U256Wrapper},
 };
+use sqlx::{Postgres, Transaction};
 use std::fmt::Debug;
 use tracing::{debug, info};
 
@@ -32,16 +33,20 @@ where
     ) -> Result<(), ConsumerError> {
         info!("Handling atom creation: {self:#?}");
 
+        // Start a transaction to use a single connection for all operations
+        let mut tx = decoded_consumer_context.pg_pool.begin().await?;
+
         // Check if the atom already exists, skip if it does
         match Atom::find_by_id(
             FixedBytesWrapper::from(self.0.term_id()?),
             &decoded_consumer_context.backend_schema,
-            &decoded_consumer_context.pg_pool,
+            tx.as_mut(),
         )
         .await?
         {
             Some(atom) => {
                 debug!("Atom already exists: {:?}", atom);
+                // No need to commit, just return
                 return Ok(());
             }
             None => {
@@ -52,24 +57,24 @@ where
         // Get or create the vault and atom
         let (_vault, mut atom) = self
             .0
-            .get_or_create_vault_and_atom(decoded_consumer_context, event)
+            .get_or_create_vault_and_atom(decoded_consumer_context, event, &mut tx)
             .await?;
 
         // decode the hex data from the atomData.
         let decoded_atom_data = self
             .0
-            .decode_atom_data_and_update_atom(&mut atom, decoded_consumer_context, event)
+            .decode_atom_data_and_update_atom(&mut atom, decoded_consumer_context, event, &mut tx)
             .await?;
         debug!("Decoded atom data and updated atom");
 
         // get the supported atom metadata and update the atom metadata
         let supported_atom_metadata =
-            get_supported_atom_metadata(&mut atom, &decoded_atom_data, decoded_consumer_context)
+            get_supported_atom_metadata(&mut atom, &decoded_atom_data, decoded_consumer_context, &mut tx)
                 .await?
                 .update_atom_metadata(
                     &mut atom,
                     &decoded_consumer_context.backend_schema,
-                    &decoded_consumer_context.pg_pool,
+                    &mut tx,
                 )
                 .await?;
         debug!("Updated atom metadata: {:?}", supported_atom_metadata);
@@ -77,12 +82,15 @@ where
         // Handle the account or caip10 type
         let resolved_atom = ResolveAtom { atom: atom.clone() };
         supported_atom_metadata
-            .handle_account_or_caip10_type(&resolved_atom, decoded_consumer_context)
+            .handle_account_or_caip10_type(&resolved_atom, decoded_consumer_context, &mut tx)
             .await?;
         debug!("Handled account or caip10 type");
 
         // Create the event
-        self.create_event(decoded_consumer_context, event).await?;
+        self.create_event(decoded_consumer_context, event, &mut tx).await?;
+
+        // Commit the transaction
+        tx.commit().await?;
 
         Ok(())
     }
@@ -90,6 +98,7 @@ where
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
         Event::builder()
             .id(DecodedMessage::event_id(event))
@@ -101,7 +110,7 @@ where
             .build()
             .upsert(
                 &decoded_consumer_context.backend_schema,
-                &decoded_consumer_context.pg_pool,
+                tx.as_mut(),
             )
             .await
             .map_err(ConsumerError::ModelError)?;
