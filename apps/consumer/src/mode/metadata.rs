@@ -345,21 +345,9 @@ impl AtomMetadata {
 /// # Returns
 /// * `bool` - True if valid address with proper checksum, false otherwise
 pub fn is_valid_address(address: &str) -> Result<bool, ConsumerError> {
-    // First check if it can be parsed as an address
-    match Address::from_str(address) {
-        Ok(_) => {
-            // For addresses that contain mixed case, validate EIP-55 checksum
-            if address.chars().any(|c| c.is_ascii_uppercase()) {
-                // Parse with checksum validation
-                match Address::parse_checksummed(address, None) {
-                    Ok(_) => Ok(true),
-                    Err(_) => Ok(false),
-                }
-            } else {
-                // All lowercase addresses are valid (but not checksummed)
-                Ok(true)
-            }
-        }
+    // Enforce EIP-55 checksum validation for all addresses
+    match Address::parse_checksummed(address, None) {
+        Ok(_) => Ok(true),
         Err(_) => Ok(false),
     }
 }
@@ -539,21 +527,16 @@ mod tests {
             uppercase_address, uppercase_result
         );
 
-        // Lowercase should always be valid (no checksum validation needed)
+        // Lowercase addresses should be rejected (no valid checksum)
         let lowercase_result = is_valid_address(lowercase_address)?;
         println!(
             "Lowercase address '{}' is valid: {}",
             lowercase_address, lowercase_result
         );
-        assert!(lowercase_result, "Lowercase address should always be valid");
-
-        // Test some other valid cases
-        assert!(is_valid_address(
-            "0x1234567890123456789012345678901234567890"
-        )?);
-        assert!(is_valid_address(
-            "0x0000000000000000000000000000000000000000"
-        )?);
+        assert!(
+            !lowercase_result,
+            "Lowercase address should be rejected (no valid EIP-55 checksum)"
+        );
 
         // Test some invalid cases
         assert!(!is_valid_address("not_an_address")?);
