@@ -1,0 +1,117 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: health-check
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: health-check-pod-reader
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: health-check-pod-reader
+subjects:
+- kind: ServiceAccount
+  name: health-check
+  namespace: default
+roleRef:
+  kind: ClusterRole
+  name: health-check-pod-reader
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: health-check
+  namespace: default
+  labels:
+    app: health-check
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: health-check
+  template:
+    metadata:
+      labels:
+        app: health-check
+    spec:
+      serviceAccountName: health-check
+      containers:
+      - name: health-check
+        image: gcr.io/PROJECT_ID/health-check:latest
+        ports:
+        - containerPort: 3000
+          name: http
+        env:
+        - name: PORT
+          value: "3000"
+        - name: API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: health-check-secrets
+              key: api-key
+        - name: RUST_LOG
+          value: "info"
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health-check
+            port: 3000
+            httpHeaders:
+            - name: x-api-key
+              value: healthcheck
+            - name: Content-Type
+              value: application/json
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health-check
+            port: 3000
+            httpHeaders:
+            - name: x-api-key
+              value: healthcheck
+            - name: Content-Type
+              value: application/json
+          initialDelaySeconds: 5
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: health-check
+  namespace: default
+  labels:
+    app: health-check
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 3000
+    protocol: TCP
+    name: http
+  selector:
+    app: health-check
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: health-check-secrets
+  namespace: default
+type: Opaque
+stringData:
+  api-key: "REPLACE_WITH_YOUR_API_KEY"

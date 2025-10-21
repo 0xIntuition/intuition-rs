@@ -1,0 +1,22 @@
+[package]
+name = "health-check"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+axum = { version = "0.8.1", features = ["tokio"] }
+axum-macros = "0.5.0"
+dotenvy.workspace = true
+env_logger.workspace = true
+envy.workspace = true
+http = "1.1.0"
+log.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tower = "0.5.2"
+tower-http = { version = "0.6.2", features = ["cors"] }
+kube = { version = "0.97", features = ["client", "rustls-tls"] }
+k8s-openapi = { version = "0.23", features = ["v1_30"] }
