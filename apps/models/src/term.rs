@@ -70,7 +70,7 @@ impl SimpleCrud<FixedBytesWrapper> for Term {
             .bind(self.updated_at)
             .fetch_one(executor)
             .await
-            .map_err(|e| ModelError::InsertError(e.to_string()))
+            .map_err(|e| ModelError::TermUpsertError(e.to_string()))
     }
 
     /// Finds a term by its id.

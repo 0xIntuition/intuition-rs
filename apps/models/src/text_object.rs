@@ -41,7 +41,7 @@ impl SimpleCrud<FixedBytesWrapper> for TextObject {
             .bind(self.data.clone())
             .fetch_one(executor)
             .await
-            .map_err(|e| ModelError::InsertError(e.to_string()))
+            .map_err(|e| ModelError::TextObjectUpsertError(e.to_string()))
     }
 
     /// Finds a thing by its id.

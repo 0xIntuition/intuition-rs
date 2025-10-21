@@ -59,7 +59,7 @@ impl StatsHour {
             )
             .fetch_one(pool)
             .await
-            .map_err(|e| ModelError::InsertError(e.to_string()))
+            .map_err(|e| ModelError::StatsHourUpsertError(e.to_string()))
     }
 
     /// This is a method to find stats by id.

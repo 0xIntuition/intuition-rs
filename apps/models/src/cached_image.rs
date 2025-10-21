@@ -55,7 +55,7 @@ impl SimpleCrud<String> for CachedImage {
             .bind(self.created_at)
             .fetch_one(executor)
             .await
-            .map_err(|e| ModelError::InsertError(e.to_string()))
+            .map_err(|e| ModelError::CachedImageUpsertError(e.to_string()))
     }
 
     async fn find_by_id<'e, E>(

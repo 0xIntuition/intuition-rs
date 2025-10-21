@@ -40,7 +40,7 @@ impl SimpleCrud<FixedBytesWrapper> for ByteObject {
             .bind(&self.data[..])
             .fetch_one(executor)
             .await
-            .map_err(|e| ModelError::InsertError(e.to_string()))
+            .map_err(|e| ModelError::ByteObjectUpsertError(e.to_string()))
     }
 
     /// Finds a thing by its id.

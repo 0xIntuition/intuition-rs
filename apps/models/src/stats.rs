@@ -69,7 +69,7 @@ impl Stats {
             .bind(self.last_processed_block_timestamp)
             .fetch_one(pool)
             .await
-            .map_err(|e| ModelError::InsertError(e.to_string()))
+            .map_err(|e| ModelError::StatsUpsertError(e.to_string()))
     }
 
     /// This is a method to find stats by id.

@@ -92,7 +92,7 @@ impl SimpleCrud<FixedBytesWrapper> for Vault {
             .bind(self.created_at)
             .fetch_one(executor)
             .await
-            .map_err(|e| ModelError::InsertError(e.to_string()))
+            .map_err(|e| ModelError::VaultUpsertError(e.to_string()))
     }
 
     /// Finds a vault by its id.
@@ -352,7 +352,7 @@ impl Vault {
             .bind(self.created_at)
             .fetch_one(executor)
             .await
-            .map_err(|e| ModelError::InsertError(e.to_string()))
+            .map_err(|e| ModelError::VaultInsertError(e.to_string()))
     }
 
     /// This method upserts a vault from share price events with special handling for zero total_shares.
@@ -421,6 +421,6 @@ impl Vault {
             .bind(self.created_at)
             .fetch_one(executor)
             .await
-            .map_err(|e| ModelError::InsertError(e.to_string()))
+            .map_err(|e| ModelError::VaultInsertFromSharePriceError(e.to_string()))
     }
 }

@@ -42,7 +42,7 @@ impl SimpleCrud<FixedBytesWrapper> for JsonObject {
             .bind(self.data.clone())
             .fetch_one(executor)
             .await
-            .map_err(|e| ModelError::InsertError(e.to_string()))
+            .map_err(|e| ModelError::JsonObjectUpsertError(e.to_string()))
     }
 
     /// Finds a thing by its id.

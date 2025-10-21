@@ -48,7 +48,7 @@ impl SimpleCrud<String> for Claim {
             .bind(self.position_id.clone())
             .fetch_one(executor)
             .await
-            .map_err(|e| ModelError::InsertError(e.to_string()))
+            .map_err(|e| ModelError::ClaimUpsertError(e.to_string()))
     }
 
     /// Finds a claim by its ID

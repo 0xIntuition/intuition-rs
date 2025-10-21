@@ -54,7 +54,7 @@ impl SimpleCrud<FixedBytesWrapper> for Organization {
             .bind(self.email.clone())
             .fetch_one(executor)
             .await
-            .map_err(|e| ModelError::InsertError(e.to_string()))
+            .map_err(|e| ModelError::OrganizationUpsertError(e.to_string()))
     }
 
     /// Finds an organization by its id.

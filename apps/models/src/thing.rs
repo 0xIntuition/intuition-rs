@@ -65,7 +65,7 @@ impl SimpleCrud<FixedBytesWrapper> for Thing {
             .bind(url_to_use)
             .fetch_one(executor)
             .await
-            .map_err(|e| ModelError::InsertError(e.to_string()))
+            .map_err(|e| ModelError::ThingUpsertError(e.to_string()))
     }
 
     /// Finds a thing by its id.

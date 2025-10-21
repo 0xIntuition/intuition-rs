@@ -62,7 +62,7 @@ impl SimpleCrud<FixedBytesWrapper> for Person {
             .bind(self.email.clone())
             .fetch_one(executor)
             .await
-            .map_err(|e| ModelError::InsertError(e.to_string()))
+            .map_err(|e| ModelError::PersonUpsertError(e.to_string()))
     }
 
     /// Finds a person by its id.

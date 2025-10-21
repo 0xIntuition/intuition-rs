@@ -49,7 +49,7 @@ impl SimpleCrud<FixedBytesWrapper> for Caip10 {
             .bind(self.account_address.clone())
             .fetch_one(executor)
             .await
-            .map_err(|e| ModelError::InsertError(e.to_string()))
+            .map_err(|e| ModelError::Caip10UpsertError(e.to_string()))
     }
 
     /// Finds a thing by its id.
