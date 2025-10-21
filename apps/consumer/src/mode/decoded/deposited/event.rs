@@ -1,10 +1,8 @@
 use crate::{
     error::ConsumerError,
     mode::{
-        decoded::utils::get_block_timestamp,
-        resolver::types::ResolverConsumerMessage,
+        decoded::utils::get_block_timestamp, resolver::types::ResolverConsumerMessage,
         types::DecodedConsumerContext,
-        utils::{VaultOrigin, get_or_create_account},
     },
     schemas::types::DecodedMessage,
     traits::{SharePriceEvent, TripleTermManager, TripleVaultManager, VaultManager},
@@ -16,10 +14,8 @@ use models::{
     deposit::{Deposit, VaultType},
     position::Position,
     signal::Signal,
-    term::TermType,
     traits::SimpleCrud,
     types::{FixedBytesWrapper, U256Wrapper},
-    vault::Vault,
 };
 use tracing::debug;
 
@@ -75,7 +71,7 @@ pub trait DepositedEvent:
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
-        vault: &Vault,
+        term_id: FixedBytesWrapper,
     ) -> Result<(), ConsumerError> {
         if self.assets_after_fees()? > U256::from(0) {
             let created_at = get_block_timestamp(event.block_timestamp)?;
@@ -84,12 +80,12 @@ pub trait DepositedEvent:
                     .id(DecodedMessage::event_id(event))
                     .account_id(self.sender()?)
                     .delta(U256Wrapper::from(self.assets_after_fees()?))
-                    .atom_id(vault.term_id.clone())
+                    .atom_id(term_id.clone())
                     .deposit_id(DecodedMessage::event_id(event))
                     .block_number(U256Wrapper::try_from(event.block_number)?)
                     .created_at(created_at)
                     .transaction_hash(event.transaction_hash.clone())
-                    .term_id(vault.term_id.clone())
+                    .term_id(term_id.clone())
                     .curve_id(DepositedEvent::curve_id(self)?)
                     .build()
             } else {
@@ -97,12 +93,12 @@ pub trait DepositedEvent:
                     .id(DecodedMessage::event_id(event))
                     .account_id(self.sender()?)
                     .delta(U256Wrapper::from(self.assets_after_fees()?))
-                    .triple_id(vault.term_id.clone())
+                    .triple_id(term_id.clone())
                     .deposit_id(DecodedMessage::event_id(event))
                     .block_number(U256Wrapper::try_from(event.block_number)?)
                     .created_at(created_at)
                     .transaction_hash(event.transaction_hash.clone())
-                    .term_id(vault.term_id.clone())
+                    .term_id(term_id.clone())
                     .curve_id(DepositedEvent::curve_id(self)?)
                     .build()
             };
@@ -116,30 +112,6 @@ pub trait DepositedEvent:
             debug!("Sender assets after total fees is 0, nothing to do.");
         }
         Ok(())
-    }
-    /// This function initializes the accounts and vault
-    async fn initialize_accounts_and_vault(
-        &self,
-        decoded_consumer_context: &DecodedConsumerContext,
-        event: &DecodedMessage,
-    ) -> Result<Vault, ConsumerError> {
-        // Create accounts
-        let _sender = get_or_create_account(self.sender()?, decoded_consumer_context).await?;
-        let _receiver = get_or_create_account(self.receiver()?, decoded_consumer_context).await?;
-
-        VaultOrigin::Deposit
-            .get_or_create_vault(
-                self.clone(),
-                decoded_consumer_context,
-                match self.vault_type()? {
-                    VaultType::Triple => TermType::Triple,
-                    VaultType::Atom => TermType::Atom,
-                    VaultType::CounterTriple => TermType::CounterTriple,
-                },
-                event,
-                None,
-            )
-            .await
     }
     /// This function formats the position ID
     fn format_position_id(&self, curve_id: &str) -> Result<String, ConsumerError> {

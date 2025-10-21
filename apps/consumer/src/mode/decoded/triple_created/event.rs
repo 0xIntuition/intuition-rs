@@ -42,17 +42,6 @@ pub trait TripleCreatedEvent:
         // Get the counter vault ID
         let counter_vault_id = get_counter_id_from_triple_id(self.term_id()?.into())?;
 
-        // Get or update the vault
-        VaultOrigin::TripleCreated
-            .get_or_create_vault(
-                self.clone(),
-                decoded_consumer_context,
-                TermType::Triple,
-                event,
-                None,
-            )
-            .await?;
-
         // Get or update the counter vault
         self.get_or_create_counter_vault(counter_vault_id, decoded_consumer_context, event)
             .await?;

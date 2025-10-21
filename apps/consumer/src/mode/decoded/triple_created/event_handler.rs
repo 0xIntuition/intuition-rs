@@ -46,7 +46,7 @@ where
                 debug!("Triple does not exist, creating it");
             }
         }
-        // Ensure that the vault and counter vault exist
+        // Ensure that the counter vault exist
         self.0
             .get_or_create_vaults(decoded_consumer_context, event)
             .await?;

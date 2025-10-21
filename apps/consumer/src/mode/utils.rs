@@ -34,7 +34,6 @@ pub struct BlockInfo {
 pub enum VaultOrigin {
     AtomCreated,
     TripleCreated,
-    Deposit,
     SharePriceChanged,
 }
 

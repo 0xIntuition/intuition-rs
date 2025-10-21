@@ -70,8 +70,8 @@ CREATE TABLE term (
 
 CREATE TABLE atom (
   term_id TEXT PRIMARY KEY NOT NULL,
-  wallet_id TEXT REFERENCES account(id) NOT NULL,
-  creator_id TEXT REFERENCES account(id) NOT NULL,
+  wallet_id TEXT NOT NULL,
+  creator_id TEXT NOT NULL,
   data TEXT,
   raw_data TEXT NOT NULL,
   type atom_type NOT NULL,
@@ -89,7 +89,7 @@ CREATE TABLE atom (
 
 CREATE TABLE triple (
   term_id TEXT PRIMARY KEY NOT NULL,
-  creator_id TEXT REFERENCES account(id) NOT NULL,
+  creator_id TEXT NOT NULL,
   subject_id TEXT NOT NULL,
   predicate_id TEXT NOT NULL,
   object_id TEXT NOT NULL,
@@ -116,8 +116,8 @@ CREATE TABLE vault (
 );
 
 CREATE TABLE triple_vault (
-  term_id TEXT REFERENCES term(id) NOT NULL,
-  counter_term_id TEXT REFERENCES term(id) NOT NULL,
+  term_id TEXT NOT NULL,
+  counter_term_id TEXT NOT NULL,
   curve_id NUMERIC(78, 0) NOT NULL,
   total_shares NUMERIC(78, 0) NOT NULL,
   total_assets NUMERIC(78, 0) NOT NULL,
@@ -130,8 +130,8 @@ CREATE TABLE triple_vault (
 );
 
 CREATE TABLE triple_term (
-  term_id TEXT REFERENCES term(id) NOT NULL,
-  counter_term_id TEXT REFERENCES term(id) NOT NULL,
+  term_id TEXT NOT NULL,
+  counter_term_id TEXT NOT NULL,
   total_assets NUMERIC(78, 0) NOT NULL,
   total_market_cap NUMERIC(78, 0) NOT NULL,
   total_position_count BIGINT NOT NULL,
@@ -141,8 +141,8 @@ CREATE TABLE triple_term (
 
 CREATE TABLE fee_transfer (
   id TEXT PRIMARY KEY NOT NULL,
-  sender_id TEXT REFERENCES account(id) NOT NULL,
-  receiver_id TEXT REFERENCES account(id) NOT NULL,
+  sender_id TEXT NOT NULL,
+  receiver_id TEXT NOT NULL,
   amount NUMERIC(78, 0) NOT NULL,
   block_number NUMERIC(78, 0) NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL,
@@ -151,8 +151,8 @@ CREATE TABLE fee_transfer (
 
 CREATE TABLE deposit (
   id TEXT PRIMARY KEY NOT NULL,
-  sender_id TEXT REFERENCES account(id) NOT NULL,
-  receiver_id TEXT REFERENCES account(id) NOT NULL,
+  sender_id TEXT NOT NULL,
+  receiver_id TEXT NOT NULL,
   assets_after_fees NUMERIC(78, 0) NOT NULL,
   shares NUMERIC(78, 0) NOT NULL,
   total_shares NUMERIC(78, 0) NOT NULL,
@@ -167,8 +167,8 @@ CREATE TABLE deposit (
 
 CREATE TABLE redemption (
   id TEXT PRIMARY KEY NOT NULL,
-  sender_id TEXT REFERENCES account(id) NOT NULL,
-  receiver_id TEXT REFERENCES account(id) NOT NULL,
+  sender_id TEXT NOT NULL,
+  receiver_id TEXT NOT NULL,
   assets NUMERIC(78, 0) NOT NULL,
   vault_type vault_type NOT NULL,
   fees NUMERIC(78, 0) NOT NULL,
@@ -187,9 +187,9 @@ CREATE TABLE event (
   type event_type NOT NULL,
   atom_id TEXT, 
   triple_id TEXT,
-  fee_transfer_id TEXT REFERENCES fee_transfer(id),
-  deposit_id TEXT REFERENCES deposit(id),
-  redemption_id TEXT REFERENCES redemption(id),
+  fee_transfer_id TEXT,
+  deposit_id TEXT,
+  redemption_id TEXT,
   block_number NUMERIC(78, 0) NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL,
   transaction_hash TEXT NOT NULL
@@ -197,7 +197,7 @@ CREATE TABLE event (
 
 CREATE TABLE position (
   id TEXT PRIMARY KEY NOT NULL,
-  account_id TEXT REFERENCES account(id) NOT NULL,
+  account_id TEXT NOT NULL,
   term_id TEXT NOT NULL,
   curve_id NUMERIC(78, 0) NOT NULL,
   shares NUMERIC(78, 0) NOT NULL,
@@ -232,13 +232,13 @@ CREATE TABLE subject_predicate (
 CREATE TABLE signal (
   id TEXT NOT NULL,
   delta NUMERIC(78, 0) NOT NULL,
-  account_id TEXT REFERENCES account(id) NOT NULL,
+  account_id TEXT NOT NULL,
   atom_id TEXT, 
   triple_id TEXT,
   term_id TEXT NOT NULL,
   curve_id NUMERIC(78, 0) NOT NULL,
-  deposit_id TEXT REFERENCES deposit(id),
-  redemption_id TEXT REFERENCES redemption(id),
+  deposit_id TEXT,
+  redemption_id TEXT,
   block_number NUMERIC(78, 0) NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL,
   transaction_hash TEXT NOT NULL,
@@ -312,15 +312,15 @@ CREATE TABLE byte_object (
 
 CREATE TABLE atom_value (
   id TEXT PRIMARY KEY NOT NULL,
-  account_id TEXT REFERENCES account(id),
-  thing_id TEXT REFERENCES thing(id),
-  person_id TEXT REFERENCES person(id),
-  organization_id TEXT REFERENCES organization(id),
-  book_id TEXT REFERENCES book(id),
-  caip10_id TEXT REFERENCES caip10(id),
-  json_object_id TEXT REFERENCES json_object(id),
-  text_object_id TEXT REFERENCES text_object(id),
-  byte_object_id TEXT REFERENCES byte_object(id)
+  account_id TEXT,
+  thing_id TEXT,
+  person_id TEXT,
+  organization_id TEXT,
+  book_id TEXT,
+  caip10_id TEXT,
+  json_object_id TEXT,
+  text_object_id TEXT,
+  byte_object_id TEXT
 );
 
 CREATE TABLE share_price_change(
@@ -392,94 +392,3 @@ CREATE TABLE term_total_state_change (
 SELECT set_chunk_time_interval('signal', INTERVAL '1 day');
 SELECT set_chunk_time_interval('share_price_change', INTERVAL '1 day');
 SELECT set_chunk_time_interval('term_total_state_change', INTERVAL '1 day');
-
--- Add foreign key constraints
-ALTER TABLE account
-  ADD CONSTRAINT fk_account_atom
-  FOREIGN KEY (atom_id) REFERENCES atom(term_id);
-
-ALTER TABLE atom
-  ADD CONSTRAINT atom_term_fkey 
-  FOREIGN KEY (term_id) REFERENCES term(id);
-
-ALTER TABLE triple
-  ADD CONSTRAINT triple_term_fkey 
-  FOREIGN KEY (term_id) REFERENCES term(id);
-
-ALTER TABLE vault
-  ADD CONSTRAINT vault_term_fkey 
-  FOREIGN KEY (term_id) REFERENCES term(id);
-
-ALTER TABLE deposit
-  ADD CONSTRAINT deposit_term_fkey 
-  FOREIGN KEY (term_id) REFERENCES term(id);
-
-ALTER TABLE redemption
-  ADD CONSTRAINT redemption_term_fkey 
-  FOREIGN KEY (term_id) REFERENCES term(id);
-
-ALTER TABLE position
-  ADD CONSTRAINT position_term_fkey 
-  FOREIGN KEY (term_id) REFERENCES term(id);
-
-ALTER TABLE signal
-  ADD CONSTRAINT signal_term_fkey 
-  FOREIGN KEY (term_id) REFERENCES term(id);
-
-ALTER TABLE atom_value
-  ADD CONSTRAINT atom_value_atom_fkey
-  FOREIGN KEY (id) REFERENCES atom(term_id);
-
-ALTER TABLE thing
-  ADD CONSTRAINT thing_term_fkey 
-  FOREIGN KEY (id) REFERENCES term(id);
-
-ALTER TABLE share_price_change
-  ADD CONSTRAINT share_price_change_term_fkey 
-  FOREIGN KEY (term_id) REFERENCES term(id);
-
--- Add vault composite key foreign key constraints
-ALTER TABLE deposit
-  ADD CONSTRAINT deposit_vault_fkey 
-  FOREIGN KEY (term_id, curve_id) REFERENCES vault(term_id, curve_id);
-
-ALTER TABLE redemption
-  ADD CONSTRAINT redemption_vault_fkey 
-  FOREIGN KEY (term_id, curve_id) REFERENCES vault(term_id, curve_id);
-
-ALTER TABLE position
-  ADD CONSTRAINT position_vault_fkey 
-  FOREIGN KEY (term_id, curve_id) REFERENCES vault(term_id, curve_id);
-
-ALTER TABLE signal
-  ADD CONSTRAINT signal_vault_fkey 
-  FOREIGN KEY (term_id, curve_id) REFERENCES vault(term_id, curve_id);
-
--- Add missing foreign key constraints for relationships
-ALTER TABLE triple
-  ADD CONSTRAINT triple_subject_fkey 
-  FOREIGN KEY (subject_id) REFERENCES atom(term_id);
-
-ALTER TABLE triple
-  ADD CONSTRAINT triple_predicate_fkey 
-  FOREIGN KEY (predicate_id) REFERENCES atom(term_id);
-
-ALTER TABLE triple
-  ADD CONSTRAINT triple_object_fkey 
-  FOREIGN KEY (object_id) REFERENCES atom(term_id);
-
-ALTER TABLE predicate_object
-  ADD CONSTRAINT predicate_object_predicate_fkey
-  FOREIGN KEY (predicate_id) REFERENCES atom(term_id);
-
-ALTER TABLE predicate_object
-  ADD CONSTRAINT predicate_object_object_fkey
-  FOREIGN KEY (object_id) REFERENCES atom(term_id);
-
-ALTER TABLE subject_predicate
-  ADD CONSTRAINT subject_predicate_subject_fkey
-  FOREIGN KEY (subject_id) REFERENCES atom(term_id);
-
-ALTER TABLE subject_predicate
-  ADD CONSTRAINT subject_predicate_predicate_fkey
-  FOREIGN KEY (predicate_id) REFERENCES atom(term_id);

@@ -49,10 +49,9 @@ where
             }
         }
 
-        // Get or create the vault and atom
-        let (_vault, mut atom) = self
+        let mut atom = self
             .0
-            .get_or_create_vault_and_atom(decoded_consumer_context, event)
+            .get_or_create_vault_atom(decoded_consumer_context, event)
             .await?;
 
         // decode the hex data from the atomData.

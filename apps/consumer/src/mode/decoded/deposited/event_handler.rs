@@ -47,13 +47,6 @@ where
             }
         }
 
-        // We need to process the deposit one way or another, so the accounts, vault and term
-        // must be initialized. This dont need to be part of the transaction.
-        let vault = self
-            .0
-            .initialize_accounts_and_vault(decoded_consumer_context, event)
-            .await?;
-
         // Create deposit record
         self.0
             .create_deposit(event, decoded_consumer_context)
@@ -74,9 +67,12 @@ where
 
         // Create signal
         self.0
-            .create_signal(decoded_consumer_context, event, &vault)
+            .create_signal(
+                decoded_consumer_context,
+                event,
+                FixedBytesWrapper::from(self.0.term_id()?),
+            )
             .await?;
-
         Ok(())
     }
 
