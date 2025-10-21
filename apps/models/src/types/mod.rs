@@ -213,7 +213,10 @@ impl Type<Postgres> for U256Wrapper {
 /// type. This is necessary because the `sqlx` library needs to be able to
 /// convert the type to the correct one.
 impl Encode<'_, Postgres> for U256Wrapper {
-    fn encode_by_ref(&self, buf: &mut PgArgumentBuffer) -> Result<IsNull, Box<dyn std::error::Error + Send + Sync>> {
+    fn encode_by_ref(
+        &self,
+        buf: &mut PgArgumentBuffer,
+    ) -> Result<IsNull, Box<dyn std::error::Error + Send + Sync>> {
         let s = self.0.to_string();
         <&str as Encode<Postgres>>::encode(&s, buf)
     }
@@ -231,7 +234,13 @@ impl<'r> sqlx::Decode<'r, Postgres> for U256Wrapper {
         // First, decode the value as `BigDecimal`.
         let bd: BigDecimal = BigDecimal::decode(value)?;
 
-        let u256 = U256::from_str(&bd.to_string()).map_err(|e| sqlx::Error::Decode(Box::new(e)))?;
+        // Convert to plain string without scientific notation
+        // For NUMERIC(78, 0), we need the full decimal representation
+        // Use with_scale(0) to remove any decimal places, then to_string
+        // This avoids scientific notation for large integers
+        let decimal_str = bd.with_scale(0).to_string();
+
+        let u256 = U256::from_str(&decimal_str).map_err(|e| sqlx::Error::Decode(Box::new(e)))?;
         // Wrap the parsed `U256` in `U256Wrapper` and return.
         Ok(U256Wrapper(u256))
     }
@@ -250,7 +259,10 @@ impl Type<Postgres> for FixedBytesWrapper {
 /// type. This is necessary because the `sqlx` library needs to be able to
 /// convert the type to the correct one.
 impl Encode<'_, Postgres> for FixedBytesWrapper {
-    fn encode_by_ref(&self, buf: &mut PgArgumentBuffer) -> Result<IsNull, Box<dyn std::error::Error + Send + Sync>> {
+    fn encode_by_ref(
+        &self,
+        buf: &mut PgArgumentBuffer,
+    ) -> Result<IsNull, Box<dyn std::error::Error + Send + Sync>> {
         let hex_string = self.0.to_string();
         <&str as Encode<Postgres>>::encode(&hex_string, buf)
     }

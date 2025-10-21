@@ -9,7 +9,7 @@ use crate::{app::App, endpoints::proxy::JsonRpcRequest, error::ApiError};
 /// The method enum.
 #[allow(clippy::enum_variant_names)]
 #[derive(sqlx::Type, Debug, PartialEq, Clone, Serialize, Deserialize)]
-#[sqlx(type_name = "method")]
+#[sqlx(type_name = "rpc_proxy.method")]
 pub enum Method {
     #[sqlx(rename = "eth_call")]
     EthCall,
