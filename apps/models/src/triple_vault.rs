@@ -83,7 +83,7 @@ impl SimpleCrud<FixedBytesWrapper> for TripleVault {
             .bind(self.updated_at)
             .fetch_one(executor)
             .await
-            .map_err(|e| ModelError::InsertError(e.to_string()))
+            .map_err(|e| ModelError::TripleVaultUpsertError(e.to_string()))
     }
 
     /// Finds a vault by its id.

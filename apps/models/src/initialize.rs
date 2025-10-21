@@ -59,7 +59,7 @@ impl SimpleCrud<i64> for Initialize {
             .bind(self.log_index)
             .fetch_one(executor)
             .await
-            .map_err(|e| ModelError::InsertError(e.to_string()))
+            .map_err(|e| ModelError::InitializeUpsertError(e.to_string()))
     }
 
     /// Finds a fee transfer record by its ID.

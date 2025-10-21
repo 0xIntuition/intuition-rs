@@ -52,7 +52,7 @@ impl SimpleCrud<FixedBytesWrapper> for Book {
             .bind(self.url.clone())
             .fetch_one(executor)
             .await
-            .map_err(|e| ModelError::InsertError(e.to_string()))
+            .map_err(|e| ModelError::BookUpsertError(e.to_string()))
     }
 
     /// This method finds a book by its ID in the database.

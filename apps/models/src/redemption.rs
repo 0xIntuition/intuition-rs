@@ -95,7 +95,7 @@ impl SimpleCrud<String> for Redemption {
             .bind(self.log_index)
             .fetch_one(executor)
             .await
-            .map_err(|e| crate::error::ModelError::InsertError(e.to_string()))
+            .map_err(|e| crate::error::ModelError::RedemptionUpsertError(e.to_string()))
     }
 
     /// Finds a redemption record by its ID.

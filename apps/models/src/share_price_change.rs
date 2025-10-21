@@ -102,7 +102,7 @@ impl SimpleCrud<U256Wrapper> for SharePriceChange {
             .bind(self.updated_at) // <- moved to last
             .fetch_one(executor)
             .await
-            .map_err(|e| ModelError::InsertError(e.to_string()))
+            .map_err(|e| ModelError::SharePriceChangeUpsertError(e.to_string()))
     }
 
     async fn find_by_id<'e, E>(
@@ -178,7 +178,7 @@ impl SharePriceChange {
             .bind(share_price_change.log_index)
             .fetch_one(executor)
             .await
-            .map_err(|e| ModelError::InsertError(e.to_string()))
+            .map_err(|e| ModelError::SharePriceChangeInsertError(e.to_string()))
     }
 
     pub async fn fetch_current_share_price(

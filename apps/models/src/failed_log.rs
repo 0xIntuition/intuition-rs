@@ -70,6 +70,6 @@ impl FailedLog {
             .bind(self.block_timestamp)
             .fetch_one(pg_pool)
             .await
-            .map_err(|error| ModelError::InsertError(error.to_string()))
+            .map_err(|error| ModelError::FailedLogInsertError(error.to_string()))
     }
 }
