@@ -213,7 +213,7 @@ impl Type<Postgres> for U256Wrapper {
 /// type. This is necessary because the `sqlx` library needs to be able to
 /// convert the type to the correct one.
 impl Encode<'_, Postgres> for U256Wrapper {
-    fn encode_by_ref(&self, buf: &mut PgArgumentBuffer) -> IsNull {
+    fn encode_by_ref(&self, buf: &mut PgArgumentBuffer) -> Result<IsNull, Box<dyn std::error::Error + Send + Sync>> {
         let s = self.0.to_string();
         <&str as Encode<Postgres>>::encode(&s, buf)
     }
@@ -250,7 +250,7 @@ impl Type<Postgres> for FixedBytesWrapper {
 /// type. This is necessary because the `sqlx` library needs to be able to
 /// convert the type to the correct one.
 impl Encode<'_, Postgres> for FixedBytesWrapper {
-    fn encode_by_ref(&self, buf: &mut PgArgumentBuffer) -> IsNull {
+    fn encode_by_ref(&self, buf: &mut PgArgumentBuffer) -> Result<IsNull, Box<dyn std::error::Error + Send + Sync>> {
         let hex_string = self.0.to_string();
         <&str as Encode<Postgres>>::encode(&hex_string, buf)
     }
