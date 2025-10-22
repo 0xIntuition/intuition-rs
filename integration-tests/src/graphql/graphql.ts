@@ -12376,25 +12376,21 @@ export const AtomOrgProfileDocument = new TypedDocumentString(`
   atom(term_id: $term_id) {
     term_id
     label
-    orgs: as_subject_triples(
-      where: {predicate: {data: {_eq: "https://www.w3.org/ns/org#memberOf"}}}
-    ) {
+    orgs: as_subject_triples(where: {predicate: {data: {_eq: "is a member of"}}}) {
       object {
         term_id
         label
       }
     }
     projects: as_subject_triples(
-      where: {predicate: {data: {_eq: "https://www.w3.org/ns/prov#wasAssociatedWith"}}}
+      where: {predicate: {data: {_eq: "was associated with"}}}
     ) {
       object {
         term_id
         label
       }
     }
-    skills: as_subject_triples(
-      where: {predicate: {data: {_eq: "https://schema.org/skills"}}}
-    ) {
+    skills: as_subject_triples(where: {predicate: {data: {_eq: "is skilled in"}}}) {
       object {
         term_id
         label

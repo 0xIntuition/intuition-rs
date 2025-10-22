@@ -24,6 +24,9 @@ suite('organization, projects, people', async () => {
     SystemAtom.WasAssociatedWith,
   )
 
+  const hasTag = await admin.getOrCreateAtom(
+    SystemAtom.Keywords,
+  )
   // People
 
   // Maya
@@ -252,6 +255,172 @@ suite('organization, projects, people', async () => {
     developerSkill.vaultId,
   )
 
+
+  // Tags
+
+  const web3Tag = await admin.getOrCreateAtom('Web3')
+  const manufacturingTag = await admin.getOrCreateAtom('Manufacturing')
+
+  // Industry/Domain tags
+  const biotechnologyTag = await admin.getOrCreateAtom('Biotechnology')
+  const cybersecurityTag = await admin.getOrCreateAtom('Cybersecurity')
+  const blockchainTag = await admin.getOrCreateAtom('Blockchain')
+  const supplyChainTag = await admin.getOrCreateAtom('Supply Chain')
+  const healthcareTag = await admin.getOrCreateAtom('Healthcare')
+
+  // Technology tags
+  const aiMlTag = await admin.getOrCreateAtom('AI/ML')
+  const cloudComputingTag = await admin.getOrCreateAtom('Cloud Computing')
+  const smartContractsTag = await admin.getOrCreateAtom('Smart Contracts')
+
+  // Organization type tags
+  const startupTag = await admin.getOrCreateAtom('Startup')
+  const enterpriseTag = await admin.getOrCreateAtom('Enterprise')
+
+  // Project stage tags
+  const productionTag = await admin.getOrCreateAtom('Production')
+  const researchTag = await admin.getOrCreateAtom('Research')
+
+  // People attribute tags
+  const remoteTag = await admin.getOrCreateAtom('Remote')
+  const leadershipTag = await admin.getOrCreateAtom('Leadership')
+  const technicalTag = await admin.getOrCreateAtom('Technical')
+
+  // Tag organizations
+
+  // Nova Biotech
+  await maya.getCreateOrDepositOnTriple(
+    novaBiotechOrg.vaultId,
+    hasTag.vaultId,
+    biotechnologyTag.vaultId,
+  )
+
+  await maya.getCreateOrDepositOnTriple(
+    novaBiotechOrg.vaultId,
+    hasTag.vaultId,
+    healthcareTag.vaultId,
+  )
+
+  await maya.getCreateOrDepositOnTriple(
+    novaBiotechOrg.vaultId,
+    hasTag.vaultId,
+    startupTag.vaultId,
+  )
+
+  // GridSec
+  await maya.getCreateOrDepositOnTriple(
+    gridSecOrg.vaultId,
+    hasTag.vaultId,
+    cybersecurityTag.vaultId,
+  )
+
+  await maya.getCreateOrDepositOnTriple(
+    gridSecOrg.vaultId,
+    hasTag.vaultId,
+    enterpriseTag.vaultId,
+  )
+
+  // SkyChain
+  await maya.getCreateOrDepositOnTriple(
+    skyChainOrg.vaultId,
+    hasTag.vaultId,
+    blockchainTag.vaultId,
+  )
+
+  await leo.getCreateOrDepositOnTriple(
+    skyChainOrg.vaultId,
+    hasTag.vaultId,
+    supplyChainTag.vaultId,
+  )
+
+  await leo.getCreateOrDepositOnTriple(
+    skyChainOrg.vaultId,
+    hasTag.vaultId,
+    startupTag.vaultId,
+  )
+
+  // Tag projects
+
+  // Helix
+  await maya.getCreateOrDepositOnTriple(
+    helixProject.vaultId,
+    hasTag.vaultId,
+    web3Tag.vaultId,
+  )
+
+  await maya.getCreateOrDepositOnTriple(
+    helixProject.vaultId,
+    hasTag.vaultId,
+    manufacturingTag.vaultId,
+  )
+
+  await maya.getCreateOrDepositOnTriple(
+    helixProject.vaultId,
+    hasTag.vaultId,
+    smartContractsTag.vaultId,
+  )
+
+  await leo.getCreateOrDepositOnTriple(
+    helixProject.vaultId,
+    hasTag.vaultId,
+    productionTag.vaultId,
+  )
+
+  // Sentinel
+  await leo.getCreateOrDepositOnTriple(
+    sentinelProject.vaultId,
+    hasTag.vaultId,
+    cybersecurityTag.vaultId,
+  )
+
+  await leo.getCreateOrDepositOnTriple(
+    sentinelProject.vaultId,
+    hasTag.vaultId,
+    cloudComputingTag.vaultId,
+  )
+
+  await leo.getCreateOrDepositOnTriple(
+    sentinelProject.vaultId,
+    hasTag.vaultId,
+    productionTag.vaultId,
+  )
+
+  // Tag people
+
+  // Maya
+  await leo.getCreateOrDepositOnTriple(
+    mayaPerson.vaultId,
+    hasTag.vaultId,
+    leadershipTag.vaultId,
+  )
+
+  await leo.getCreateOrDepositOnTriple(
+    mayaPerson.vaultId,
+    hasTag.vaultId,
+    remoteTag.vaultId,
+  )
+
+  await leo.getCreateOrDepositOnTriple(
+    mayaPerson.vaultId,
+    hasTag.vaultId,
+    technicalTag.vaultId,
+  )
+
+  // Leo
+  await maya.getCreateOrDepositOnTriple(
+    leoPerson.vaultId,
+    hasTag.vaultId,
+    technicalTag.vaultId,
+  )
+
+  await maya.getCreateOrDepositOnTriple(
+    leoPerson.vaultId,
+    hasTag.vaultId,
+    remoteTag.vaultId,
+  )
+
+
+
   expect(mayaDeveloper).toBeDefined()
   expect(mayaProductManager).toBeDefined()
   expect(leoDeveloper).toBeDefined()
@@ -272,7 +441,7 @@ suite('organization, projects, people', async () => {
           term_id
           label
           orgs: as_subject_triples(where: {
-            predicate: {data: {_eq: "https://www.w3.org/ns/org#memberOf"}}
+            predicate: {data: {_eq: "is a member of"}}
           }) {
             object {
               term_id
@@ -280,7 +449,7 @@ suite('organization, projects, people', async () => {
             }
           }
           projects: as_subject_triples(where: {
-            predicate: {data: {_eq: "https://www.w3.org/ns/prov#wasAssociatedWith"}}
+            predicate: {data: {_eq: "was associated with"}}
           }) {
             object {
               term_id
@@ -288,7 +457,7 @@ suite('organization, projects, people', async () => {
             }
           }
           skills: as_subject_triples(where: {
-            predicate: {data: {_eq: "https://schema.org/skills"}}
+            predicate: {data: {_eq: "is skilled in"}}
           }) {
             object {
               term_id

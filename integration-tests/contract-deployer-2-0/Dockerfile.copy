@@ -39,7 +39,7 @@ export ANVIL_TRUST_TOKEN=0x000000000000000000000000000000000000dEaD\n\
 OUTPUT0=$(forge script script/base/BaseEmissionsControllerDeploy.s.sol --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --rpc-url http://reth:8545 --broadcast --optimizer-runs 200 2>&1)\n\
 echo "$OUTPUT0"\n\
 export ANVIL_BASE_EMISSIONS_CONTROLLER=$(echo "$OUTPUT0" | grep "BaseEmissionsController Proxy: " | sed -E "s/.*BaseEmissionsController Proxy: //")\n\
-OUTPUT1=$(forge script script/intuition/MultiVaultMigrationModeDeploy.s.sol:MultiVaultMigrationModeDeploy --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --rpc-url http://reth:8545 --broadcast --optimizer-runs 200 2>&1)\n\
+OUTPUT1=$(forge script script/intuition/MultiVaultMigrationModeDeploy.s.sol:MultiVaultMigrationModeDeploy --via-ir --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --rpc-url http://reth:8545 --broadcast --optimizer-runs 200 2>&1)\n\
 echo "$OUTPUT1"\n\
 export ANVIL_MULTIVAULT_MIGRATION_MODE_IMPLEMENTATION=$(echo "$OUTPUT1" | grep "MultiVaultMigrationMode Implementation: " | sed -E "s/.*MultiVaultMigrationMode Implementation: //")\n\
 OUTPUT2=$(forge script script/intuition/IntuitionDeployAndSetup.s.sol --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --rpc-url http://reth:8545 --broadcast --optimizer-runs 200 2>&1)\n\
