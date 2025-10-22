@@ -535,7 +535,7 @@ mod tests {
 
         // Valid non-eip155 CAIP10
         assert!(is_valid_caip10(
-            "caip10:cosmos:cosmoshub-4:cosmos1abc123def456"
+            "caip10:cosmos:cosmoshub-4:cosmos1abc123def456ghi789jkl012mno345pqr678stu901"
         )?);
         assert!(is_valid_caip10(
             "caip10:bitcoin:mainnet:1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"
@@ -579,9 +579,9 @@ mod tests {
         ));
 
         // Valid general format
-        assert!(is_valid_account_format("user123"));
+        assert!(is_valid_account_format("user123456"));
         assert!(is_valid_account_format("account-name"));
-        assert!(is_valid_account_format("user.name"));
+        assert!(is_valid_account_format("user.name123"));
 
         // Invalid cases
         assert!(!is_valid_account_format("")); // Empty
