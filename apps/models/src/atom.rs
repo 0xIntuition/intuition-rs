@@ -298,4 +298,22 @@ mod tests {
 
         assert_eq!(result, expected_output);
     }
+
+    #[test]
+    fn test_decode_address_data() {
+        let hex_string = "0x307842393563613344333134346539643144414646304545336433356134343838413441354339466335";
+
+        // Use the decode_data function
+        let result = Atom::decode_data(hex_string.to_string()).expect("Decoding data failed");
+
+        println!("Decoded address: '{}'", result);
+        println!("Decoded address length: {}", result.len());
+        println!("Decoded address bytes: {:?}", result.as_bytes());
+        println!("Expected: '0xB95ca3D3144e9d1DAFF0EE3d35a4488A4A5C9Fc5'");
+        println!(
+            "Expected length: {}",
+            "0xB95ca3D3144e9d1DAFF0EE3d35a4488A4A5C9Fc5".len()
+        );
+        assert_eq!(result, "0xB95ca3D3144e9d1DAFF0EE3d35a4488A4A5C9Fc5");
+    }
 }

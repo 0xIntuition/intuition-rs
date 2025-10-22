@@ -4,6 +4,7 @@ use crate::{
     mode::{
         decoded::utils::{EventHandler, get_block_timestamp},
         types::DecodedConsumerContext,
+        utils::get_or_create_account,
     },
     schemas::types::DecodedMessage,
 };
@@ -46,6 +47,10 @@ where
                 debug!("Deposit does not exist, creating it");
             }
         }
+
+        // Create accounts
+        let _sender = get_or_create_account(self.0.sender()?, decoded_consumer_context).await?;
+        let _receiver = get_or_create_account(self.0.receiver()?, decoded_consumer_context).await?;
 
         // Create deposit record
         self.0

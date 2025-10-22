@@ -406,6 +406,9 @@ pub async fn get_supported_atom_metadata(
     decoded_atom_data: &str,
     decoded_consumer_context: &DecodedConsumerContext,
 ) -> Result<AtomMetadata, ConsumerError> {
+    // Trim whitespace from decoded atom data
+    let decoded_atom_data = decoded_atom_data.trim();
+
     // 1. Handling the happy path (schema.org URL, predicate)
     if let Some(schema_org_url) = try_to_resolve_schema_org_url(decoded_atom_data).await? {
         debug!("Schema.org URL found, returning predicate metadata...");
@@ -492,6 +495,15 @@ mod tests {
             "Valid EIP-55 checksummed address should be valid"
         );
 
+        // Test with another valid EIP-55 checksummed address (from actual atom raw_data)
+        let valid_checksummed_2 = "0xB95ca3D3144e9d1DAFF0EE3d35a4488A4A5C9Fc5";
+        let result = is_valid_address(valid_checksummed_2)?;
+        println!(
+            "Address '{}' validation result: {}",
+            valid_checksummed_2, result
+        );
+        assert!(result, "Address {} should be valid", valid_checksummed_2);
+
         // Test with invalid checksum (wrong capitalization)
         let invalid_checksummed = "0xd8da6BF26964aF9D7eEd9e03E53415D37aA96045"; // Wrong checksum
         let invalid_result = is_valid_address(invalid_checksummed)?;
@@ -543,6 +555,24 @@ mod tests {
         assert!(!is_valid_address("0x")?);
         assert!(!is_valid_address("")?);
         assert!(!is_valid_address("0x123")?); // Too short
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_is_valid_address_with_whitespace() -> Result<(), ConsumerError> {
+        // Test addresses with leading/trailing whitespace
+        let address_with_spaces = "  0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045  ";
+        assert!(
+            is_valid_address(address_with_spaces.trim())?,
+            "Address with whitespace should be valid after trimming"
+        );
+
+        let address_with_newline = "0xB95ca3D3144e9d1DAFF0EE3d35a4488A4A5C9Fc5\n";
+        assert!(
+            is_valid_address(address_with_newline.trim())?,
+            "Address with newline should be valid after trimming"
+        );
 
         Ok(())
     }
