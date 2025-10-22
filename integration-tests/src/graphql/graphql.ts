@@ -12188,6 +12188,13 @@ export type ComplexScenarioQueryVariables = Exact<{
 
 export type ComplexScenarioQuery = { __typename?: 'query_root', predicate_objects: Array<{ __typename?: 'predicate_objects', triple_count: number, total_market_cap: any, total_position_count: number, triples: Array<{ __typename?: 'triples', term_id: string, subject_id: string, predicate_id: string, object_id: string }> }> };
 
+export type AtomQueryVariables = Exact<{
+  term_id: Scalars['String']['input'];
+}>;
+
+
+export type AtomQuery = { __typename?: 'query_root', atom?: { __typename?: 'atoms', data?: string | null, label?: string | null, term_id: string, resolving_status: any, creator_id: string, type: any, term: { __typename?: 'terms', type: any, vaults: Array<{ __typename?: 'vaults', curve_id: any, market_cap: any, position_count: number, total_assets: any, total_shares: any, positions: Array<{ __typename?: 'positions', account_id: string, shares: any, total_deposit_assets_after_total_fees: any, total_redeem_assets_for_receiver: any }> }>, deposits: Array<{ __typename?: 'deposits', curve_id: any, receiver_id: string, sender_id: string, shares: any, total_shares: any, assets_after_fees: any, vault_type: any }>, share_price_changes: Array<{ __typename?: 'share_price_changes', curve_id: any, share_price: any, total_assets: any, total_shares: any }> } } | null };
+
 export type SearchTermQueryVariables = Exact<{
   query: Scalars['String']['input'];
 }>;
@@ -12536,6 +12543,49 @@ export const ComplexScenarioDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<ComplexScenarioQuery, ComplexScenarioQueryVariables>;
+export const AtomDocument = new TypedDocumentString(`
+    query Atom($term_id: String!) {
+  atom(term_id: $term_id) {
+    data
+    label
+    term_id
+    resolving_status
+    creator_id
+    type
+    term {
+      type
+      vaults {
+        curve_id
+        market_cap
+        position_count
+        total_assets
+        total_shares
+        positions {
+          account_id
+          shares
+          total_deposit_assets_after_total_fees
+          total_redeem_assets_for_receiver
+        }
+      }
+      deposits {
+        curve_id
+        receiver_id
+        sender_id
+        shares
+        total_shares
+        assets_after_fees
+        vault_type
+      }
+      share_price_changes {
+        curve_id
+        share_price
+        total_assets
+        total_shares
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<AtomQuery, AtomQueryVariables>;
 export const SearchTermDocument = new TypedDocumentString(`
     query SearchTerm($query: String!) {
   search_term(args: {query: $query}, limit: 2) {
