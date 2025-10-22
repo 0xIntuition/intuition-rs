@@ -120,7 +120,7 @@ pub trait TripleCreatedEvent:
                 .block_number(event.block_number)
                 .log_index(event.log_index)
                 .transaction_hash(event.transaction_hash.clone())
-                .total_assets(self.total_assets()?)
+                .total_assets(self.total_assets(decoded_consumer_context).await?)
                 .market_cap(self.market_cap()?)
                 .total_shares(
                     self.total_shares(decoded_consumer_context, event.block_number)

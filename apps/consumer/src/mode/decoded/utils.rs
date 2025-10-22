@@ -65,7 +65,9 @@ pub async fn update_vault_from_share_price_changed_events(
             .await?;
         // Update the share price of the vault
         vault.current_share_price = share_price_changed.new_share_price()?;
-        vault.total_assets = share_price_changed.total_assets()?;
+        vault.total_assets = share_price_changed
+            .total_assets(decoded_consumer_context)
+            .await?;
         vault.total_shares = total_shares.clone();
         vault.market_cap =
             VaultOrigin::compute_market_cap(total_shares.clone(), current_share_price.clone());

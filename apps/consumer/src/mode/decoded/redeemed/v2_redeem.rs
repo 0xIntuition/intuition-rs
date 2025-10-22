@@ -77,8 +77,21 @@ impl VaultManager for &Redeemed {
 
 /// This impl is used to convert the `Redeemed` event into a `RedeemedEvent`
 impl SharePriceEvent for &Redeemed {
-    fn total_assets(&self) -> Result<U256Wrapper, ConsumerError> {
-        Ok(self.assets.into())
+    async fn total_assets(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+    ) -> Result<U256Wrapper, ConsumerError> {
+        let share_price_change = SharePriceChange::fetch_current_share_price(
+            self.termId.into(),
+            self.curveId.into(),
+            &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
+        )
+        .await?;
+        if let Some(share_price_change) = share_price_change {
+            return Ok(share_price_change.total_assets);
+        }
+        Ok(U256Wrapper::from_str("0")?)
     }
 }
 

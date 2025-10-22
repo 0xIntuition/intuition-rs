@@ -40,7 +40,9 @@ where
                 .vault_type(SharePriceChangedEvent::vault_type(&self.0)?)
                 .curve_id(SharePriceChangedEvent::curve_id(&self.0)?)
                 .share_price(SharePriceEvent::new_share_price(&self.0)?)
-                .total_assets(SharePriceEvent::total_assets(&self.0)?)
+                .total_assets(
+                    SharePriceEvent::total_assets(&self.0, decoded_consumer_context).await?,
+                )
                 .total_shares(SharePriceChangedEvent::total_shares(&self.0)?)
                 .block_number(U256Wrapper::try_from(event.block_number)?)
                 .block_timestamp(event.block_timestamp)

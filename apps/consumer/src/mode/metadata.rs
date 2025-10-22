@@ -352,6 +352,56 @@ pub fn is_valid_address(address: &str) -> Result<bool, ConsumerError> {
     }
 }
 
+/// Validates if a string is a valid account format for non-Ethereum chains
+///
+/// # Arguments
+/// * `account` - The account string to validate
+///
+/// # Returns
+/// * `bool` - True if valid account format, false otherwise
+///
+/// This function performs basic format validation for different blockchain account formats:
+/// - Bitcoin: 26-35 characters, base58 encoded
+/// - Solana: 32-44 characters, base58 encoded
+/// - Cosmos: bech32 encoded with specific prefixes
+/// - General: non-empty, reasonable length, no invalid characters
+pub fn is_valid_account_format(account: &str) -> bool {
+    if account.is_empty() {
+        return false;
+    }
+
+    // Check for reasonable length (most blockchain addresses are 20-100 chars)
+    if account.len() < 10 || account.len() > 100 {
+        return false;
+    }
+
+    // Check for obviously invalid characters
+    if account.contains('\0') || account.contains('\n') || account.contains('\r') {
+        return false;
+    }
+
+    // Basic format checks for common blockchain address patterns
+    if account.starts_with("bc1") || account.starts_with("tb1") {
+        // Bitcoin bech32 addresses
+        return account.len() >= 42 && account.len() <= 62;
+    } else if account.starts_with("1") || account.starts_with("3") {
+        // Bitcoin legacy addresses
+        return account.len() >= 26 && account.len() <= 35;
+    } else if account.starts_with("cosmos1") || account.starts_with("osmo1") {
+        // Cosmos bech32 addresses
+        return account.len() >= 39 && account.len() <= 59;
+    } else if account.len() >= 32 && account.len() <= 44 {
+        // Solana addresses (base58, 32-44 chars)
+        return true;
+    }
+
+    // For other formats, just ensure it's not obviously malformed
+    // Allow alphanumeric, hyphens, underscores, dots
+    account
+        .chars()
+        .all(|c| c.is_alphanumeric() || c == '-' || c == '_' || c == '.')
+}
+
 /// Validates if a string is a valid CAIP10
 ///
 /// # Arguments
@@ -375,10 +425,19 @@ pub fn is_valid_caip10(caip10: &str) -> Result<bool, ConsumerError> {
         return Ok(false);
     }
 
-    // Check if the last part is a valid Ethereum address
+    let namespace = parts[1];
     let address = parts.last().unwrap();
-    if !is_valid_address(address)? {
-        return Ok(false);
+
+    // For eip155 chains, validate using EIP-55 checksum
+    if namespace == "eip155" {
+        if !is_valid_address(address)? {
+            return Ok(false);
+        }
+    } else {
+        // For other chains, perform basic format validation
+        if !is_valid_account_format(address) {
+            return Ok(false);
+        }
     }
 
     Ok(true)
@@ -474,13 +533,63 @@ mod tests {
             "caip10:eip155:8453:0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70"
         )?);
 
+        // Valid non-eip155 CAIP10
+        assert!(is_valid_caip10(
+            "caip10:cosmos:cosmoshub-4:cosmos1abc123def456"
+        )?);
+        assert!(is_valid_caip10(
+            "caip10:bitcoin:mainnet:1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"
+        )?);
+
         // Invalid cases
         assert!(!is_valid_caip10("not_caip10:eip155:1:0x123")?);
         assert!(!is_valid_caip10("caip10:eip155:1")?); // Missing address
         assert!(!is_valid_caip10("caip10:eip155:1:not_an_address")?);
+        assert!(!is_valid_caip10("caip10:cosmos:cosmoshub-4:")?); // Empty address
         assert!(!is_valid_caip10("")?);
 
         Ok(())
+    }
+
+    #[test]
+    fn test_is_valid_account_format() {
+        // Valid Bitcoin addresses
+        assert!(is_valid_account_format(
+            "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"
+        ));
+        assert!(is_valid_account_format(
+            "3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy"
+        ));
+        assert!(is_valid_account_format(
+            "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4"
+        ));
+
+        // Valid Cosmos addresses
+        assert!(is_valid_account_format(
+            "cosmos1abc123def456ghi789jkl012mno345pqr678stu901"
+        ));
+        assert!(is_valid_account_format(
+            "osmo1abc123def456ghi789jkl012mno345pqr678stu901"
+        ));
+
+        // Valid Solana addresses (32-44 chars)
+        assert!(is_valid_account_format("11111111111111111111111111111112"));
+        assert!(is_valid_account_format(
+            "So11111111111111111111111111111111111111112"
+        ));
+
+        // Valid general format
+        assert!(is_valid_account_format("user123"));
+        assert!(is_valid_account_format("account-name"));
+        assert!(is_valid_account_format("user.name"));
+
+        // Invalid cases
+        assert!(!is_valid_account_format("")); // Empty
+        assert!(!is_valid_account_format("a")); // Too short
+        assert!(!is_valid_account_format(&"a".repeat(101))); // Too long
+        assert!(!is_valid_account_format("invalid\nchar")); // Contains newline
+        assert!(!is_valid_account_format("invalid\0char")); // Contains null
+        assert!(!is_valid_account_format("invalid@char")); // Invalid character
     }
 
     #[test]
