@@ -57,7 +57,8 @@ where
             .create_deposit(event, decoded_consumer_context)
             .await?;
 
-        // Handle atom re-resolution logic
+        // Handle atom re-resolution logic. Depositing on an Atom can trigger the atom re-resolution.
+        // This is a mechanism that can be used to re-fetch Failed atoms or update ENS data.
         self.0
             .handle_atom_resolution(decoded_consumer_context)
             .await?;

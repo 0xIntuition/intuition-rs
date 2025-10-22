@@ -352,6 +352,21 @@ pub fn is_valid_address(address: &str) -> Result<bool, ConsumerError> {
     }
 }
 
+/// Validates if a string is a valid address format (without EIP-55 checksum validation)
+///
+/// # Arguments
+/// * `address` - The address string to validate
+///
+/// # Returns
+/// * `bool` - True if valid address format, false otherwise
+pub fn is_valid_address_format(address: &str) -> Result<bool, ConsumerError> {
+    // Basic address format validation without checksum enforcement
+    match address.parse::<Address>() {
+        Ok(_) => Ok(true),
+        Err(_) => Ok(false),
+    }
+}
+
 /// Validates if a string is a valid CAIP10
 ///
 /// # Arguments
@@ -375,9 +390,9 @@ pub fn is_valid_caip10(caip10: &str) -> Result<bool, ConsumerError> {
         return Ok(false);
     }
 
-    // Check if the last part is a valid Ethereum address
+    // Check if the last part is a valid address format
     let address = parts.last().unwrap();
-    if !is_valid_address(address)? {
+    if !is_valid_address_format(address)? {
         return Ok(false);
     }
 

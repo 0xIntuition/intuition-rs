@@ -17,7 +17,7 @@ use models::{
     traits::SimpleCrud,
     types::{FixedBytesWrapper, U256Wrapper},
 };
-use tracing::debug;
+use tracing::{debug, info};
 
 /// This trait represents a deposited event
 pub trait DepositedEvent:
@@ -218,7 +218,7 @@ pub trait DepositedEvent:
     }
 
     /// Threshold (in minutes) for considering an atom as recently updated.
-    const ATOM_RECENT_UPDATE_THRESHOLD_MINUTES: i64 = 1;
+    const ATOM_RECENT_UPDATE_THRESHOLD_MINUTES: i64 = 5;
 
     /// This function checks if an atom was updated within the last minute
     async fn is_atom_recently_updated(
@@ -274,15 +274,11 @@ pub trait DepositedEvent:
         match atom {
             Some(atom) => {
                 if Self::is_atom_recently_updated(&atom, decoded_consumer_context).await? {
-                    debug!(
-                        "Atom was updated in the last minute, skipping atom re-resolution logic"
-                    );
+                    debug!("Atom was updated recently, skipping atom re-resolution logic");
                     return Ok(());
                 }
 
-                debug!(
-                    "Atom was not updated in the last minute, proceeding with atom re-resolution logic"
-                );
+                info!("Deposit triggered atom re-resolution logic");
 
                 if Self::atom_needs_resolution(&atom) {
                     self.enqueue_atom_resolution(&atom, decoded_consumer_context)
@@ -294,6 +290,8 @@ pub trait DepositedEvent:
                 }
             }
             None => {
+                // There's a chance that the atom creation was not processed yet for this term_id.
+                // This can happen in multithreaded scenarios, so in those cases, we just skip.
                 debug!("Atom does not exist, skipping atom re-resolution logic");
             }
         }
