@@ -56,7 +56,10 @@ impl SharePriceEvent for &SharePriceChanged {
     fn new_share_price(&self) -> Result<U256Wrapper, ConsumerError> {
         Ok(U256Wrapper::from(self.sharePrice))
     }
-    fn total_assets(&self) -> Result<U256Wrapper, ConsumerError> {
+    async fn total_assets(
+        &self,
+        _decoded_consumer_context: &DecodedConsumerContext,
+    ) -> Result<U256Wrapper, ConsumerError> {
         Ok(U256Wrapper::from(self.totalAssets))
     }
 }

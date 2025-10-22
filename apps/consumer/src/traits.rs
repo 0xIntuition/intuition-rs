@@ -59,8 +59,11 @@ pub trait SharePriceEvent: VaultManager {
     fn new_share_price(&self) -> Result<U256Wrapper, ConsumerError> {
         Ok(0.try_into()?)
     }
-    #[allow(dead_code)]
-    fn total_assets(&self) -> Result<U256Wrapper, ConsumerError> {
+    #[allow(dead_code, unused_variables)]
+    async fn total_assets(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+    ) -> Result<U256Wrapper, ConsumerError> {
         Ok(0.try_into()?)
     }
 

@@ -157,8 +157,21 @@ impl VaultManager for &Deposited {
 
 /// This impl is used to convert the `DepositedV1_5` event into a `SharePriceEvent`
 impl SharePriceEvent for &Deposited {
-    fn total_assets(&self) -> Result<U256Wrapper, ConsumerError> {
-        Ok(self.assetsAfterFees.into())
+    async fn total_assets(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+    ) -> Result<U256Wrapper, ConsumerError> {
+        let share_price_change = SharePriceChange::fetch_current_share_price(
+            self.termId.into(),
+            self.curveId.into(),
+            &decoded_consumer_context.pg_pool,
+            &decoded_consumer_context.backend_schema,
+        )
+        .await?;
+        if let Some(share_price_change) = share_price_change {
+            return Ok(share_price_change.total_assets);
+        }
+        Ok(U256Wrapper::from_str("0")?)
     }
 }
 

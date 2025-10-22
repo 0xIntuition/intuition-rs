@@ -18,7 +18,10 @@ use super::event::AtomCreatedEvent;
 
 /// This impl is used to convert the `AtomCreated` event into a `SharePriceEvent`
 impl SharePriceEvent for &AtomCreated {
-    fn total_assets(&self) -> Result<U256Wrapper, ConsumerError> {
+    async fn total_assets(
+        &self,
+        _decoded_consumer_context: &DecodedConsumerContext,
+    ) -> Result<U256Wrapper, ConsumerError> {
         Ok(U256Wrapper::from_str("0")?)
     }
 

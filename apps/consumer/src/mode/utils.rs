@@ -302,7 +302,7 @@ impl VaultOrigin {
         let block_number = tx.block_number;
         let total_shares = event.total_shares(context, block_number).await?;
         let share_price = event.current_share_price(context, block_number).await?;
-        let total_assets = event.total_assets()?;
+        let total_assets = event.total_assets(context).await?;
         let position_count = event.position_count(context).await?;
         let created_at = get_block_timestamp(tx.block_timestamp)?;
 
