@@ -1,15 +1,11 @@
 use std::fmt::Debug;
 
 use crate::{
-    error::ConsumerError,
-    mode::{types::DecodedConsumerContext, utils::VaultOrigin},
-    schemas::types::DecodedMessage,
-    traits::SharePriceEvent,
+    error::ConsumerError, mode::types::DecodedConsumerContext, schemas::types::DecodedMessage,
 };
 use alloy::primitives::keccak256;
 use chrono::{DateTime, Utc};
-use models::{term::TermType, traits::SimpleCrud, types::FixedBytesWrapper, vault::Vault};
-use tracing::debug;
+use models::types::FixedBytesWrapper;
 
 /// This function gets the block timestamp from the block number
 pub fn get_block_timestamp(block_timestamp: i64) -> Result<DateTime<Utc>, ConsumerError> {
@@ -33,75 +29,6 @@ pub trait EventHandler: Debug + Sync + Send {
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError>;
-}
-
-/// This function gets or creates a vault from a share price changed event
-pub async fn update_vault_from_share_price_changed_events(
-    share_price_changed: impl SharePriceEvent + Debug,
-    decoded_consumer_context: &DecodedConsumerContext,
-    term_type: TermType,
-    transaction_data: &DecodedMessage,
-) -> Result<(), ConsumerError> {
-    debug!(
-        "Processing SharePriceChanged event: {:?}",
-        share_price_changed
-    );
-
-    let vault = Vault::find_by_term_id_and_curve_id(
-        FixedBytesWrapper::from(share_price_changed.term_id()?),
-        share_price_changed.curve_id()?,
-        &decoded_consumer_context.pg_pool,
-        &decoded_consumer_context.backend_schema,
-    )
-    .await?;
-
-    if let Some(mut vault) = vault {
-        debug!("Updating vault share price and total shares");
-        let total_shares = share_price_changed
-            .total_shares(decoded_consumer_context, transaction_data.block_number)
-            .await?;
-        let current_share_price = share_price_changed
-            .current_share_price(decoded_consumer_context, transaction_data.block_number)
-            .await?;
-        // Update the share price of the vault
-        vault.current_share_price = share_price_changed.new_share_price()?;
-        vault.total_assets = share_price_changed
-            .total_assets(decoded_consumer_context)
-            .await?;
-        vault.total_shares = total_shares.clone();
-        vault.market_cap =
-            VaultOrigin::compute_market_cap(total_shares.clone(), current_share_price.clone());
-        vault.block_number = transaction_data.block_number;
-        vault.log_index = transaction_data.log_index;
-        vault.transaction_hash = transaction_data.transaction_hash.clone();
-        vault
-            .insert_from_share_price(
-                &decoded_consumer_context.backend_schema,
-                &decoded_consumer_context.pg_pool,
-            )
-            .await?;
-        debug!("Updated vault share price and total shares");
-        // The term is going to be updated by the trigger on the vault table
-    } else {
-        debug!("Vault not found, creating it");
-        VaultOrigin::SharePriceChanged
-            .get_or_create_vault(
-                share_price_changed,
-                decoded_consumer_context,
-                term_type,
-                transaction_data,
-                None,
-            )
-            .await?
-            .upsert(
-                &decoded_consumer_context.backend_schema,
-                &decoded_consumer_context.pg_pool,
-            )
-            .await?;
-    }
-    debug!("Finished updating vault, updating share price aggregate");
-
-    Ok(())
 }
 
 /// Returns the counter id from the triple ID using the same logic as the Solidity contract

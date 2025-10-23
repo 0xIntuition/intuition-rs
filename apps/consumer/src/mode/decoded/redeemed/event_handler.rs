@@ -7,7 +7,6 @@ use crate::{
         utils::get_or_create_account,
     },
     schemas::types::DecodedMessage,
-    traits::SharePriceEvent,
 };
 use models::{
     event::{Event, EventType},
@@ -18,21 +17,21 @@ use models::{
     vault::Vault,
 };
 use std::fmt::Debug;
-use tracing::debug;
+use tracing::{debug, info};
 
 #[derive(Debug)]
 pub struct RedeemedEventHandler<T>(pub T);
 
 impl<T> EventHandler for RedeemedEventHandler<T>
 where
-    T: RedeemedEvent + SharePriceEvent + Debug + Sync + Send,
+    T: RedeemedEvent + Debug + Sync + Send,
 {
     async fn process_event(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
-        debug!("Handling Redeemed / RedeemedCurve events : {self:#?}");
+        info!("Handling Redeemed event: {self:#?}",);
 
         // Check if the redemption already exists, skip if it does
         match Redemption::find_by_id(
@@ -54,7 +53,7 @@ where
         // 1. Ensure the vault exists
         let vault = Vault::find_by_term_id_and_curve_id(
             self.0.term_id()?.into(),
-            RedeemedEvent::curve_id(&self.0)?.into(),
+            self.0.curve_id()?.into(),
             &decoded_consumer_context.pg_pool.clone(),
             &decoded_consumer_context.backend_schema,
         )

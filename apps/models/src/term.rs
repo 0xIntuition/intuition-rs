@@ -1,4 +1,5 @@
 use crate::{
+    deposit::VaultType,
     error::ModelError,
     traits::{Model, SimpleCrud},
     types::{FixedBytesWrapper, U256Wrapper},
@@ -15,6 +16,15 @@ pub enum TermType {
     CounterTriple,
 }
 
+impl From<VaultType> for TermType {
+    fn from(vault_type: VaultType) -> Self {
+        match vault_type {
+            VaultType::Atom => TermType::Atom,
+            VaultType::Triple => TermType::Triple,
+            VaultType::CounterTriple => TermType::CounterTriple,
+        }
+    }
+}
 /// This struct defines the vault in the database. Note that both `atom_id` and
 /// `triple_id` are optional. This is because a vault can either be created by
 /// an atom or a triple, but not both. We have SQL rails to prevent a vault from

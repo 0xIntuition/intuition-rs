@@ -1,5 +1,9 @@
 export const abi = [
   {
+    "type": "receive",
+    "stateMutability": "payable"
+  },
+  {
     "type": "function",
     "name": "ATOM_SALT",
     "inputs": [],
@@ -740,7 +744,7 @@ export const abi = [
         "internalType": "uint256"
       },
       {
-        "name": "decimalPrecision",
+        "name": "feeThreshold",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -907,7 +911,7 @@ export const abi = [
             "internalType": "uint256"
           },
           {
-            "name": "decimalPrecision",
+            "name": "feeThreshold",
             "type": "uint256",
             "internalType": "uint256"
           }
@@ -1047,11 +1051,6 @@ export const abi = [
             "internalType": "uint256"
           },
           {
-            "name": "totalAtomDepositsOnTripleCreation",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
             "name": "atomDepositFractionForTriple",
             "type": "uint256",
             "internalType": "uint256"
@@ -1089,6 +1088,49 @@ export const abi = [
         "name": "",
         "type": "bytes32",
         "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getUserLastActiveEpoch",
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getUserUtilization",
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "epoch",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "int256",
+        "internalType": "int256"
       }
     ],
     "stateMutability": "view"
@@ -1317,7 +1359,7 @@ export const abi = [
             "internalType": "uint256"
           },
           {
-            "name": "decimalPrecision",
+            "name": "feeThreshold",
             "type": "uint256",
             "internalType": "uint256"
           }
@@ -1347,11 +1389,6 @@ export const abi = [
         "components": [
           {
             "name": "tripleCreationProtocolFee",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "totalAtomDepositsOnTripleCreation",
             "type": "uint256",
             "internalType": "uint256"
           },
@@ -1510,25 +1547,6 @@ export const abi = [
   },
   {
     "type": "function",
-    "name": "lastActiveEpoch",
-    "inputs": [
-      {
-        "name": "user",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "epoch",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "maxRedeem",
     "inputs": [
       {
@@ -1608,11 +1626,6 @@ export const abi = [
         "name": "termId",
         "type": "bytes32",
         "internalType": "bytes32"
-      },
-      {
-        "name": "curveId",
-        "type": "uint256",
-        "internalType": "uint256"
       },
       {
         "name": "assets",
@@ -1715,11 +1728,6 @@ export const abi = [
         "name": "termId",
         "type": "bytes32",
         "internalType": "bytes32"
-      },
-      {
-        "name": "curveId",
-        "type": "uint256",
-        "internalType": "uint256"
       },
       {
         "name": "assets",
@@ -1974,7 +1982,7 @@ export const abi = [
             "internalType": "uint256"
           },
           {
-            "name": "decimalPrecision",
+            "name": "feeThreshold",
             "type": "uint256",
             "internalType": "uint256"
           }
@@ -2008,11 +2016,6 @@ export const abi = [
         "components": [
           {
             "name": "tripleCreationProtocolFee",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "totalAtomDepositsOnTripleCreation",
             "type": "uint256",
             "internalType": "uint256"
           },
@@ -2196,11 +2199,6 @@ export const abi = [
         "internalType": "uint256"
       },
       {
-        "name": "totalAtomDepositsOnTripleCreation",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
         "name": "atomDepositFractionForTriple",
         "type": "uint256",
         "internalType": "uint256"
@@ -2214,6 +2212,30 @@ export const abi = [
     "inputs": [],
     "outputs": [],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "userEpochHistory",
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "epoch",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -2287,6 +2309,25 @@ export const abi = [
         "type": "uint8",
         "indexed": false,
         "internalType": "enum ApprovalTypes"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "AtomConfigUpdated",
+    "inputs": [
+      {
+        "name": "atomCreationProtocolFee",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "atomWalletDepositFee",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
       }
     ],
     "anonymous": false
@@ -2374,6 +2415,25 @@ export const abi = [
   },
   {
     "type": "event",
+    "name": "BondingCurveConfigUpdated",
+    "inputs": [
+      {
+        "name": "registry",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "defaultCurveId",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "Deposited",
     "inputs": [
       {
@@ -2429,6 +2489,61 @@ export const abi = [
         "type": "uint8",
         "indexed": false,
         "internalType": "enum VaultType"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "GeneralConfigUpdated",
+    "inputs": [
+      {
+        "name": "admin",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "protocolMultisig",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "feeDenominator",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "trustBonding",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "minDeposit",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "minShare",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "atomDataMaxLength",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "feeThreshold",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
       }
     ],
     "anonymous": false
@@ -2802,6 +2917,25 @@ export const abi = [
   },
   {
     "type": "event",
+    "name": "TripleConfigUpdated",
+    "inputs": [
+      {
+        "name": "tripleCreationProtocolFee",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "atomDepositFractionForTriple",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "TripleCreated",
     "inputs": [
       {
@@ -2843,6 +2977,62 @@ export const abi = [
     "inputs": [
       {
         "name": "account",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "VaultFeesUpdated",
+    "inputs": [
+      {
+        "name": "entryFee",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "exitFee",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "protocolFee",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "WalletConfigUpdated",
+    "inputs": [
+      {
+        "name": "entryPoint",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "atomWarden",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "atomWalletBeacon",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "atomWalletFactory",
         "type": "address",
         "indexed": false,
         "internalType": "address"
@@ -2952,6 +3142,11 @@ export const abi = [
   },
   {
     "type": "error",
+    "name": "MultiVault_ActionExceedsMaxShares",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "MultiVault_ArraysNotSameLength",
     "inputs": []
   },
@@ -3024,6 +3219,11 @@ export const abi = [
   },
   {
     "type": "error",
+    "name": "MultiVault_EpochNotTracked",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "MultiVault_HasCounterStake",
     "inputs": []
   },
@@ -3065,6 +3265,11 @@ export const abi = [
   },
   {
     "type": "error",
+    "name": "MultiVault_InvalidEpoch",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "MultiVault_NoAtomDataProvided",
     "inputs": []
   },
@@ -3087,6 +3292,17 @@ export const abi = [
     "type": "error",
     "name": "MultiVault_SlippageExceeded",
     "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "MultiVault_TermDoesNotExist",
+    "inputs": [
+      {
+        "name": "termId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ]
   },
   {
     "type": "error",
@@ -3134,4 +3350,4 @@ export const abi = [
     "name": "ReentrancyGuardReentrantCall",
     "inputs": []
   }
-] as const
+] as const;

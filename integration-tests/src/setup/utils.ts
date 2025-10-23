@@ -192,9 +192,9 @@ export enum SystemAtom {
   Thing = 'https://schema.org/Thing',
   FollowAction = 'https://schema.org/FollowAction',
   Keywords = 'https://schema.org/keywords',
-  Skills = 'https://schema.org/skills',
-  MemberOf = 'https://www.w3.org/ns/org#memberOf',
-  WasAssociatedWith = 'https://www.w3.org/ns/prov#wasAssociatedWith'
+  Skills = 'is skilled in',
+  MemberOf = 'is a member of',
+  WasAssociatedWith = 'was associated with'
 }
 
 
