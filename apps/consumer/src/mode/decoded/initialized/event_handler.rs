@@ -6,7 +6,7 @@ use models::{
     traits::SimpleCrud,
     types::U256Wrapper,
 };
-use tracing::debug;
+use tracing::{debug, info};
 
 use crate::{
     error::ConsumerError,
@@ -31,7 +31,7 @@ where
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
-        debug!("Handling initialized: {:#?}", self.0);
+        info!("Handling initialized event: {self:#?}",);
 
         // Check if the initialized already exists, skip if it does
         match Initialize::find_by_id(

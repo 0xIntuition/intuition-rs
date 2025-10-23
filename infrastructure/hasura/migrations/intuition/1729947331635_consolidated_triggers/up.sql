@@ -314,11 +314,34 @@ $$ LANGUAGE plpgsql;
 -- INSERT into position with shares > 0
 CREATE OR REPLACE FUNCTION increment_vault_position_count()
 RETURNS TRIGGER AS $$
+DECLARE
+    affected_rows INTEGER;
+    retry_count INTEGER := 0;
+    max_retries INTEGER := 3;
 BEGIN
   IF NEW.shares > 0 THEN
-    UPDATE vault
-    SET position_count = position_count + 1
-    WHERE term_id = NEW.term_id AND curve_id = NEW.curve_id;
+    LOOP
+      UPDATE vault
+      SET position_count = position_count + 1
+      WHERE term_id = NEW.term_id AND curve_id = NEW.curve_id;
+      
+      GET DIAGNOSTICS affected_rows = ROW_COUNT;
+      
+      -- If update succeeded or max retries reached, exit loop
+      IF affected_rows > 0 OR retry_count >= max_retries THEN
+        EXIT;
+      END IF;
+      
+      -- Wait briefly before retry (10ms)
+      PERFORM pg_sleep(0.01);
+      retry_count := retry_count + 1;
+    END LOOP;
+    
+    -- Log warning if all retries failed
+    IF affected_rows = 0 THEN
+      RAISE WARNING 'Failed to update vault position_count after % retries for term_id: %, curve_id: %', 
+        max_retries, NEW.term_id, NEW.curve_id;
+    END IF;
   END IF;
   RETURN NEW;
 END;
@@ -596,6 +619,7 @@ FOR EACH ROW
 EXECUTE FUNCTION update_term_text_function();
 
 -- Vault and position update triggers
+-- this increment the position count when a position is created
 CREATE TRIGGER position_update_trigger
 AFTER INSERT ON position
 FOR EACH ROW

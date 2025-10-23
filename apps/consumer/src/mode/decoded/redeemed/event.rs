@@ -2,9 +2,8 @@ use crate::{
     error::ConsumerError,
     mode::{decoded::utils::get_block_timestamp, types::DecodedConsumerContext},
     schemas::types::DecodedMessage,
-    traits::SharePriceEvent,
 };
-use alloy::primitives::Uint;
+use alloy::primitives::{FixedBytes, Uint};
 use models::{
     account::Account,
     deposit::VaultType,
@@ -17,7 +16,7 @@ use models::{
     vault::Vault,
 };
 /// This trait represents a redeemed event
-pub trait RedeemedEvent: SharePriceEvent + Clone {
+pub trait RedeemedEvent: Clone {
     /// This function returns the sender of the redeemed event
     fn sender(&self) -> Result<String, ConsumerError>;
     /// This function returns the receiver of the redeemed event
@@ -34,6 +33,8 @@ pub trait RedeemedEvent: SharePriceEvent + Clone {
     fn total_shares(&self) -> Result<Uint<256, 4>, ConsumerError>;
     /// This function returns the curve ID
     fn curve_id(&self) -> Result<Uint<256, 4>, ConsumerError>;
+    /// This function returns the term ID
+    fn term_id(&self) -> Result<FixedBytes<32>, ConsumerError>;
     // Helper methods to break down the complexity:
     async fn create_redemption_record(
         &self,

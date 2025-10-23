@@ -16,7 +16,7 @@ use models::{
     types::{FixedBytesWrapper, U256Wrapper},
 };
 use std::fmt::Debug;
-use tracing::debug;
+use tracing::{debug, info};
 
 #[derive(Debug)]
 pub struct AtomCreatedEventHandler<T>(pub T);
@@ -30,7 +30,7 @@ where
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
-        debug!("Handling atom creation: {self:#?}");
+        info!("Handling atom creation: {self:#?}",);
 
         // Check if the atom already exists, skip if it does
         match Atom::find_by_id(
@@ -50,9 +50,9 @@ where
         }
 
         // Get or create the vault and atom
-        let (_vault, mut atom) = self
+        let mut atom = self
             .0
-            .get_or_create_vault_and_atom(decoded_consumer_context, event)
+            .get_or_create_vault_atom(decoded_consumer_context, event)
             .await?;
 
         // decode the hex data from the atomData.

@@ -4,6 +4,7 @@ use crate::{
     mode::{
         decoded::utils::{EventHandler, get_block_timestamp},
         types::DecodedConsumerContext,
+        utils::get_or_create_account,
     },
     schemas::types::DecodedMessage,
 };
@@ -14,7 +15,7 @@ use models::{
     types::{FixedBytesWrapper, U256Wrapper},
 };
 use std::fmt::Debug;
-use tracing::debug;
+use tracing::{debug, info};
 
 #[derive(Debug)]
 pub struct DepositedEventHandler<T>(pub T);
@@ -28,7 +29,7 @@ where
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
-        debug!("Handling Deposited / DepositedCurve event: {self:#?}",);
+        info!("Handling Deposited event: {self:#?}",);
 
         // Check if the deposit already exists, skip if it does
         match Deposit::find_by_id(
@@ -47,13 +48,8 @@ where
             }
         }
 
-        // We need to process the deposit one way or another, so the accounts, vault and term
-        // must be initialized. This dont need to be part of the transaction.
-        let vault = self
-            .0
-            .initialize_accounts_and_vault(decoded_consumer_context, event)
-            .await?;
-
+        let _sender = get_or_create_account(self.0.sender()?, decoded_consumer_context).await?;
+        let _receiver = get_or_create_account(self.0.receiver()?, decoded_consumer_context).await?;
         // Create deposit record
         self.0
             .create_deposit(event, decoded_consumer_context)
@@ -74,7 +70,11 @@ where
 
         // Create signal
         self.0
-            .create_signal(decoded_consumer_context, event, &vault)
+            .create_signal(
+                decoded_consumer_context,
+                event,
+                FixedBytesWrapper::from(self.0.term_id()?),
+            )
             .await?;
 
         Ok(())

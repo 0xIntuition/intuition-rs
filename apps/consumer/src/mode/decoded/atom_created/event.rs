@@ -4,70 +4,28 @@ use crate::{
         decoded::utils::get_block_timestamp,
         resolver::types::ResolverConsumerMessage,
         types::DecodedConsumerContext,
-        utils::{VaultOrigin, get_or_create_account, get_or_create_account_from_event},
+        utils::{get_or_create_account, get_or_create_account_from_event},
     },
     schemas::types::DecodedMessage,
-    traits::{AccountManager, SharePriceEvent, VaultManager},
+    traits::AccountManager,
 };
+use alloy::primitives::FixedBytes;
 use models::{
     account::{Account, AccountType},
     atom::{Atom, AtomResolvingStatus, AtomType},
-    term::{Term, TermType},
+    term::Term,
     traits::SimpleCrud,
     types::{FixedBytesWrapper, U256Wrapper},
-    vault::Vault,
 };
 use sqlx::PgPool;
 use std::fmt::Debug;
 use tracing::{debug, error, warn};
 
 /// This trait represents a fee transferred event
-pub trait AtomCreatedEvent:
-    SharePriceEvent + VaultManager + AccountManager + Debug + Clone
-{
+pub trait AtomCreatedEvent: AccountManager + Debug + Clone {
+    fn term_id(&self) -> Result<FixedBytes<32>, ConsumerError>;
     fn creator_id(&self) -> Result<String, ConsumerError>;
     fn atom_data(&self) -> Result<String, ConsumerError>;
-    /// This function updates the vault current share price and it returns the vault and atom
-    async fn get_or_create_vault_and_atom(
-        &self,
-        decoded_consumer_context: &DecodedConsumerContext,
-        event: &DecodedMessage,
-    ) -> Result<(Vault, Atom), ConsumerError> {
-        debug!("Creating vault for atom {}", self.term_id()?);
-        // Get or create the vault
-        let vault = match VaultOrigin::AtomCreated
-            .get_or_create_vault(
-                self.clone(),
-                decoded_consumer_context,
-                TermType::Atom,
-                event,
-                None,
-            )
-            .await
-        {
-            Ok(vault) => vault,
-            Err(e) => {
-                VaultOrigin::handle_vault_insert_error(
-                    e,
-                    self.term_id()?.into(),
-                    self.curve_id()?,
-                    decoded_consumer_context,
-                )
-                .await?
-            }
-        };
-
-        // In order to upsert a [`Vault`] we need to have an [`Atom`] first.
-        // Verify that the atom exists, if not, create it. Note that in order
-        // to create the atom, we need to have the creator and the wallet accounts
-        // created first, so if they don't exist, we create them as part of this
-        // process.
-        let atom = self
-            .get_or_create_vault_atom(decoded_consumer_context, event)
-            .await?;
-
-        Ok((vault, atom))
-    }
     /// This function verifies if the atom exists in our DB. If it does, it returns it.
     /// If it does not, it creates it.
     async fn get_or_create_vault_atom(

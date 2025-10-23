@@ -4,12 +4,8 @@ use crate::{
     mode::types::{ConsumerMode, DecodedConsumerContext},
     schemas::{goldsky::RawMessage, types::DecodedMessage},
 };
-use alloy::primitives::FixedBytes;
 use async_trait::async_trait;
-use models::{
-    account::AccountType,
-    types::{FixedBytesWrapper, U256Wrapper},
-};
+use models::account::AccountType;
 use sqlx::PgPool;
 
 pub trait AtomUpdater {
@@ -51,97 +47,6 @@ pub trait BasicConsumer: Send + Sync {
 /// raw message into a `RawMessage` struct.
 pub trait IntoRawMessage {
     fn into_raw_message(self) -> Result<RawMessage, ConsumerError>;
-}
-
-/// This trait is implemented by all share price events.
-pub trait SharePriceEvent: VaultManager {
-    #[allow(dead_code)]
-    fn new_share_price(&self) -> Result<U256Wrapper, ConsumerError> {
-        Ok(0.try_into()?)
-    }
-    #[allow(dead_code, unused_variables)]
-    async fn total_assets(
-        &self,
-        decoded_consumer_context: &DecodedConsumerContext,
-    ) -> Result<U256Wrapper, ConsumerError> {
-        Ok(0.try_into()?)
-    }
-
-    #[allow(dead_code)]
-    fn market_cap(&self) -> Result<U256Wrapper, ConsumerError> {
-        Ok(0.try_into()?)
-    }
-}
-
-/// This trait is implemented by all vault managers.
-pub trait VaultManager {
-    fn term_id(&self) -> Result<FixedBytes<32>, ConsumerError>;
-    fn curve_id(&self) -> Result<U256Wrapper, ConsumerError>;
-    async fn total_shares(
-        &self,
-        decoded_consumer_context: &DecodedConsumerContext,
-        block_number: i64,
-    ) -> Result<U256Wrapper, ConsumerError>;
-    async fn current_share_price(
-        &self,
-        decoded_consumer_context: &DecodedConsumerContext,
-        block_number: i64,
-    ) -> Result<U256Wrapper, ConsumerError>;
-    async fn position_count(
-        &self,
-        decoded_consumer_context: &DecodedConsumerContext,
-    ) -> Result<i32, ConsumerError>;
-}
-
-/// Custom type for triple aggregate data
-pub struct TripleAggregate {
-    pub total_shares: U256Wrapper,
-    pub total_assets: U256Wrapper,
-    pub total_market_cap: U256Wrapper,
-    pub total_position_count: i64,
-}
-
-impl TripleAggregate {
-    pub fn new(
-        total_shares: U256Wrapper,
-        total_assets: U256Wrapper,
-        total_market_cap: U256Wrapper,
-        total_position_count: i64,
-    ) -> Self {
-        Self {
-            total_shares,
-            total_assets,
-            total_market_cap,
-            total_position_count,
-        }
-    }
-}
-
-/// This trait is implemented by all triple term managers.
-pub trait TripleTermManager {
-    async fn triple_aggregate(
-        &self,
-        decoded_consumer_context: &DecodedConsumerContext,
-        counter_vault_id: FixedBytesWrapper,
-    ) -> Result<TripleAggregate, ConsumerError>;
-}
-
-/// This trait is implemented by all triple term managers.
-pub trait TripleVaultManager {
-    async fn triple_vault_aggregate(
-        &self,
-        decoded_consumer_context: &DecodedConsumerContext,
-        counter_vault_id: FixedBytesWrapper,
-        curve_id: U256Wrapper,
-    ) -> Result<TripleAggregate, ConsumerError>;
-
-    #[allow(dead_code)]
-    async fn position_aggregate(
-        &self,
-        decoded_consumer_context: &DecodedConsumerContext,
-        counter_vault_id: FixedBytesWrapper,
-        curve_id: U256Wrapper,
-    ) -> Result<i64, ConsumerError>;
 }
 
 /// This trait is implemented by all account managers. It allows us to create
