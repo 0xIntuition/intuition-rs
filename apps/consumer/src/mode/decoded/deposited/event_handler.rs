@@ -48,8 +48,10 @@ where
             }
         }
 
-        let _sender = get_or_create_account(self.0.sender()?, decoded_consumer_context).await?;
-        let _receiver = get_or_create_account(self.0.receiver()?, decoded_consumer_context).await?;
+        let _sender =
+            get_or_create_account(self.0.sender()?, decoded_consumer_context, None).await?;
+        let _receiver =
+            get_or_create_account(self.0.receiver()?, decoded_consumer_context, None).await?;
         // Create deposit record
         self.0
             .create_deposit(event, decoded_consumer_context)

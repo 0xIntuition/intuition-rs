@@ -13,15 +13,11 @@ use crate::{
 };
 use alloy::{
     eips::BlockId,
-    primitives::{Address, Bytes, U256},
+    primitives::{Address, U256},
     providers::{DynProvider, ProviderBuilder},
 };
 use alloy_network::Ethereum;
-use models::{
-    initialize::Initialize,
-    stats::Stats,
-    types::{FixedBytesWrapper, U256Wrapper},
-};
+use models::{initialize::Initialize, stats::Stats, types::U256Wrapper};
 use once_cell::sync::OnceCell;
 use prometheus::{HistogramVec, register_histogram_vec};
 use reqwest::Client;
@@ -86,7 +82,7 @@ impl DecodedConsumerContext {
     /// function that returns a `Result<T, ConsumerError>`, where `T` is the type of the result
     /// of the function and `F` is the function that returns the result, F also needs to be a
     /// `Future<Output = Result<T, ConsumerError>>`.
-    async fn retry_with_backoff<T, F, Fut>(&self, mut f: F) -> Result<T, ConsumerError>
+    pub async fn retry_with_backoff<T, F, Fut>(&self, mut f: F) -> Result<T, ConsumerError>
     where
         F: FnMut() -> Fut,
         Fut: std::future::Future<Output = Result<T, ConsumerError>>,
@@ -129,25 +125,6 @@ impl DecodedConsumerContext {
                 }
                 Err(e) => {
                     warn!("Error fetching contract balance: {}", e);
-                    Err(ConsumerError::MaxRetriesExceeded)
-                }
-            }
-        })
-        .await
-    }
-
-    /// This function fetches the atom data from the contract
-    pub async fn fetch_atom_data(&self, id: FixedBytesWrapper) -> Result<Bytes, ConsumerError> {
-        self.retry_with_backoff(|| async {
-            let atom_data = self.base_client.get_atoms(id.clone()).await;
-            match &atom_data {
-                Ok(data) => {
-                    debug!("Atom data: {:?}", data);
-                    Ok(data.clone())
-                }
-                Err(e) => {
-                    warn!("Response: {:?}", atom_data);
-                    warn!("Error fetching atom data: {}", e);
                     Err(ConsumerError::MaxRetriesExceeded)
                 }
             }

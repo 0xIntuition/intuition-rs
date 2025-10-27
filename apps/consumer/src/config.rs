@@ -6,7 +6,7 @@ use crate::{
 };
 use alloy::{
     eips::BlockId,
-    primitives::{Address, Bytes, U256},
+    primitives::{Address, U256},
     providers::{DynProvider, Provider},
 };
 use alloy_network::Ethereum;
@@ -195,10 +195,10 @@ impl ContractInstance {
         }
     }
 
-    /// Returns the atoms of the contract instance
-    pub async fn get_atoms(&self, id: FixedBytesWrapper) -> Result<Bytes, ConsumerError> {
-        match self {
-            Self::V2(client) => Ok(client.getAtom(id.0).call().await?),
-        }
-    }
+    // /// Returns the atoms of the contract instance
+    // pub async fn get_atoms(&self, id: FixedBytesWrapper) -> Result<Bytes, ConsumerError> {
+    //     match self {
+    //         Self::V2(client) => Ok(client.getAtom(id.0).call().await?),
+    //     }
+    // }
 }

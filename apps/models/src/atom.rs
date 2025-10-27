@@ -282,6 +282,75 @@ impl Atom {
         let filtered_bytes: Vec<u8> = s.as_bytes().iter().filter(|&&b| b != 0).cloned().collect();
         String::from_utf8(filtered_bytes).map_err(|e| ModelError::DecodingError(e.to_string()))
     }
+
+    /// Finds subject, predicate, and object atoms by their IDs in a single query.
+    /// Returns a tuple of (subject_atom, predicate_atom, object_atom) if all three exist.
+    /// Returns an error if any of the atoms are not found.
+    pub async fn find_subject_predicate_object<'e, E>(
+        subject_id: FixedBytesWrapper,
+        predicate_id: FixedBytesWrapper,
+        object_id: FixedBytesWrapper,
+        schema: &str,
+        executor: E,
+    ) -> Result<(Self, Self, Self), ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
+        let query = format!(
+            r#"
+            SELECT 
+                wallet_id, 
+                creator_id, 
+                term_id, 
+                data, 
+                raw_data,
+                type as atom_type, 
+                emoji, 
+                label, 
+                image, 
+                value_id,
+                block_number,
+                created_at,
+                transaction_hash,
+                resolving_status,
+                log_index
+            FROM {}.atom
+            WHERE term_id = $1 OR term_id = $2 OR term_id = $3
+            ORDER BY 
+                CASE term_id
+                    WHEN $1 THEN 1
+                    WHEN $2 THEN 2
+                    WHEN $3 THEN 3
+                END
+            "#,
+            schema
+        );
+
+        let atoms: Vec<Atom> = sqlx::query_as::<_, Atom>(&query)
+            .bind(subject_id.clone())
+            .bind(predicate_id.clone())
+            .bind(object_id.clone())
+            .fetch_all(executor)
+            .await
+            .map_err(|e| ModelError::QueryError(e.to_string()))?;
+
+        if atoms.len() != 3 {
+            return Err(ModelError::QueryError(format!(
+                "Expected 3 atoms, found {}. Missing atoms for IDs: subject={}, predicate={}, object={}",
+                atoms.len(),
+                subject_id,
+                predicate_id,
+                object_id
+            )));
+        }
+
+        // The ORDER BY ensures atoms are returned in the correct order
+        let subject_atom = atoms[0].clone();
+        let predicate_atom = atoms[1].clone();
+        let object_atom = atoms[2].clone();
+
+        Ok((subject_atom, predicate_atom, object_atom))
+    }
 }
 
 #[cfg(test)]
