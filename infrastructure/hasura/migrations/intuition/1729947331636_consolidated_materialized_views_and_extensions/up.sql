@@ -5,8 +5,8 @@
 -- EXTENSIONS
 -- ========================================
 
--- Enable TimescaleDB extension
-CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;
+-- TimescaleDB extension is created in migration 1729947331633_consolidated_basic_structure
+-- This migration only creates the AI extension
 
 -- Enable AI extension for vector search
 CREATE EXTENSION IF NOT EXISTS ai CASCADE;
@@ -63,7 +63,7 @@ $$;
 -- SIGNAL STATS MATERIALIZED VIEWS
 -- ========================================
 
-CREATE MATERIALIZED VIEW signal_stats_hourly
+CREATE MATERIALIZED VIEW IF NOT EXISTS signal_stats_hourly
 WITH (timescaledb.continuous)
 AS SELECT
     time_bucket('1 h'::interval, created_at) as bucket,
@@ -81,7 +81,7 @@ SELECT add_continuous_aggregate_policy('signal_stats_hourly',
   end_offset => INTERVAL '1 h',
   schedule_interval => INTERVAL '1 h');
 
-CREATE MATERIALIZED VIEW signal_stats_daily
+CREATE MATERIALIZED VIEW IF NOT EXISTS signal_stats_daily
 WITH (timescaledb.continuous)
 AS SELECT
     time_bucket('1 day'::interval, bucket) as bucket,
@@ -99,7 +99,7 @@ SELECT add_continuous_aggregate_policy('signal_stats_daily',
   end_offset => INTERVAL '1 day',
   schedule_interval => INTERVAL '1 day');
 
-CREATE MATERIALIZED VIEW signal_stats_weekly
+CREATE MATERIALIZED VIEW IF NOT EXISTS signal_stats_weekly
 WITH (timescaledb.continuous)
 AS SELECT
     time_bucket('1 week'::interval, bucket) as bucket,
@@ -117,7 +117,7 @@ SELECT add_continuous_aggregate_policy('signal_stats_weekly',
   end_offset => INTERVAL '1 week',
   schedule_interval => INTERVAL '1 week');
 
-CREATE MATERIALIZED VIEW signal_stats_monthly
+CREATE MATERIALIZED VIEW IF NOT EXISTS signal_stats_monthly
 WITH (timescaledb.continuous)
 AS SELECT
     time_bucket('1 month'::interval, bucket) as bucket,
@@ -139,7 +139,7 @@ schedule_interval => INTERVAL '1 week');
 -- SHARE PRICE CHANGE STATS MATERIALIZED VIEWS
 -- ========================================
 
-CREATE MATERIALIZED VIEW share_price_change_stats_hourly
+CREATE MATERIALIZED VIEW IF NOT EXISTS share_price_change_stats_hourly
 WITH (timescaledb.continuous)
 AS SELECT
     time_bucket('1 h'::interval, updated_at) as bucket,
@@ -159,7 +159,7 @@ SELECT add_continuous_aggregate_policy('share_price_change_stats_hourly',
   end_offset => INTERVAL '1 h',
   schedule_interval => INTERVAL '1 h');
 
-CREATE MATERIALIZED VIEW share_price_change_stats_daily
+CREATE MATERIALIZED VIEW IF NOT EXISTS share_price_change_stats_daily
 WITH (timescaledb.continuous)
 AS SELECT
     time_bucket('1 day'::interval, bucket) as bucket,
@@ -179,7 +179,7 @@ SELECT add_continuous_aggregate_policy('share_price_change_stats_daily',
   end_offset => INTERVAL '1 day',
   schedule_interval => INTERVAL '1 day');
 
-CREATE MATERIALIZED VIEW share_price_change_stats_weekly
+CREATE MATERIALIZED VIEW IF NOT EXISTS share_price_change_stats_weekly
 WITH (timescaledb.continuous)
 AS SELECT
     time_bucket('1 week'::interval, bucket) as bucket,
@@ -199,7 +199,7 @@ SELECT add_continuous_aggregate_policy('share_price_change_stats_weekly',
   end_offset => INTERVAL '1 week',
   schedule_interval => INTERVAL '1 week');
 
-CREATE MATERIALIZED VIEW share_price_change_stats_monthly
+CREATE MATERIALIZED VIEW IF NOT EXISTS share_price_change_stats_monthly
 WITH (timescaledb.continuous)
 AS SELECT
     time_bucket('1 month'::interval, bucket) as bucket,
@@ -223,7 +223,7 @@ schedule_interval => INTERVAL '1 week');
 -- TERM TOTAL STATE CHANGE STATS MATERIALIZED VIEWS
 -- ========================================
 
-CREATE MATERIALIZED VIEW term_total_state_change_stats_hourly
+CREATE MATERIALIZED VIEW IF NOT EXISTS term_total_state_change_stats_hourly
 WITH (timescaledb.continuous)
 AS SELECT
     time_bucket('1 h'::interval, created_at) as bucket,
@@ -241,7 +241,7 @@ SELECT add_continuous_aggregate_policy('term_total_state_change_stats_hourly',
   end_offset => INTERVAL '1 h',
   schedule_interval => INTERVAL '1 h');
 
-CREATE MATERIALIZED VIEW term_total_state_change_stats_daily
+CREATE MATERIALIZED VIEW IF NOT EXISTS term_total_state_change_stats_daily
 WITH (timescaledb.continuous)
 AS SELECT
     time_bucket('1 day'::interval, bucket) as bucket,
@@ -259,7 +259,7 @@ SELECT add_continuous_aggregate_policy('term_total_state_change_stats_daily',
   end_offset => INTERVAL '1 day',
   schedule_interval => INTERVAL '1 day');
 
-CREATE MATERIALIZED VIEW term_total_state_change_stats_weekly
+CREATE MATERIALIZED VIEW IF NOT EXISTS term_total_state_change_stats_weekly
 WITH (timescaledb.continuous)
 AS SELECT
     time_bucket('1 week'::interval, bucket) as bucket,
@@ -277,7 +277,7 @@ SELECT add_continuous_aggregate_policy('term_total_state_change_stats_weekly',
   end_offset => INTERVAL '1 week',
   schedule_interval => INTERVAL '1 week');
 
-CREATE MATERIALIZED VIEW term_total_state_change_stats_monthly
+CREATE MATERIALIZED VIEW IF NOT EXISTS term_total_state_change_stats_monthly
 WITH (timescaledb.continuous)
 AS SELECT
     time_bucket('1 month'::interval, bucket) as bucket,

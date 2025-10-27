@@ -4,26 +4,58 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
 COMMENT ON EXTENSION pgcrypto IS 'cryptographic functions';
 
+-- Enable TimescaleDB extension
+CREATE EXTENSION IF NOT EXISTS timescaledb WITH SCHEMA public;
+COMMENT ON EXTENSION timescaledb IS 'scalable time-series database';
+
 -- Create custom enum types
-CREATE TYPE vault_type AS ENUM ('Triple', 'CounterTriple', 'Atom');
-CREATE TYPE account_type AS ENUM ('Default', 'AtomWallet', 'ProtocolVault');
-CREATE TYPE event_type AS ENUM ('AtomCreated', 'TripleCreated', 'Deposited', 'Redeemed', 'FeesTransfered', 'Initialized');
-CREATE TYPE atom_type AS ENUM (
-  'Unknown', 'Account', 'Thing', 'ThingPredicate', 'Person', 'PersonPredicate',
-  'Organization', 'OrganizationPredicate', 'Book', 'LikeAction', 'FollowAction', 'Keywords',
-  'Caip10', 'JsonObject', 'TextObject', 'ByteObject'
-);
-CREATE TYPE atom_resolving_status AS ENUM ('Pending', 'Resolved', 'Failed');
-CREATE TYPE image_classification AS ENUM ('Safe', 'Unsafe', 'Unknown');
-CREATE TYPE term_type AS ENUM ('Atom', 'Triple', 'CounterTriple');
+DO $$ BEGIN
+    CREATE TYPE vault_type AS ENUM ('Triple', 'CounterTriple', 'Atom');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+DO $$ BEGIN
+    CREATE TYPE account_type AS ENUM ('Default', 'AtomWallet', 'ProtocolVault');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+DO $$ BEGIN
+    CREATE TYPE event_type AS ENUM ('AtomCreated', 'TripleCreated', 'Deposited', 'Redeemed', 'FeesTransfered', 'Initialized');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+DO $$ BEGIN
+    CREATE TYPE atom_type AS ENUM (
+      'Unknown', 'Account', 'Thing', 'ThingPredicate', 'Person', 'PersonPredicate',
+      'Organization', 'OrganizationPredicate', 'Book', 'LikeAction', 'FollowAction', 'Keywords',
+      'Caip10', 'JsonObject', 'TextObject', 'ByteObject'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+DO $$ BEGIN
+    CREATE TYPE atom_resolving_status AS ENUM ('Pending', 'Resolved', 'Failed');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+DO $$ BEGIN
+    CREATE TYPE image_classification AS ENUM ('Safe', 'Unsafe', 'Unknown');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+DO $$ BEGIN
+    CREATE TYPE term_type AS ENUM ('Atom', 'Triple', 'CounterTriple');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- Create tables
-CREATE TABLE chainlink_price (
+CREATE TABLE IF NOT EXISTS chainlink_price (
   id NUMERIC(78, 0) PRIMARY KEY NOT NULL,
   usd FLOAT
 );
 
-CREATE TABLE stats (
+CREATE TABLE IF NOT EXISTS stats (
   id INTEGER PRIMARY KEY NOT NULL,
   total_accounts INTEGER,
   total_atoms INTEGER,
@@ -37,7 +69,7 @@ CREATE TABLE stats (
   last_updated TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE TABLE stats_hour (
+CREATE TABLE IF NOT EXISTS stats_hour (
   id SERIAL PRIMARY KEY NOT NULL,
   total_accounts INTEGER,
   total_atoms INTEGER,
@@ -49,7 +81,7 @@ CREATE TABLE stats_hour (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE TABLE account (
+CREATE TABLE IF NOT EXISTS account (
   id TEXT PRIMARY KEY NOT NULL,
   atom_id TEXT,
   label TEXT NOT NULL,
@@ -57,7 +89,7 @@ CREATE TABLE account (
   type account_type NOT NULL
 );
 
-CREATE TABLE term (
+CREATE TABLE IF NOT EXISTS term (
   id TEXT PRIMARY KEY,
   type term_type NOT NULL,
   atom_id TEXT,
@@ -68,10 +100,10 @@ CREATE TABLE term (
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
 
-CREATE TABLE atom (
+CREATE TABLE IF NOT EXISTS atom (
   term_id TEXT PRIMARY KEY NOT NULL,
-  wallet_id TEXT REFERENCES account(id) NOT NULL,
-  creator_id TEXT REFERENCES account(id) NOT NULL,
+  wallet_id TEXT NOT NULL,
+  creator_id TEXT NOT NULL,
   data TEXT,
   raw_data TEXT NOT NULL,
   type atom_type NOT NULL,
@@ -87,9 +119,9 @@ CREATE TABLE atom (
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
 
-CREATE TABLE triple (
+CREATE TABLE IF NOT EXISTS triple (
   term_id TEXT PRIMARY KEY NOT NULL,
-  creator_id TEXT REFERENCES account(id) NOT NULL,
+  creator_id TEXT NOT NULL,
   subject_id TEXT NOT NULL,
   predicate_id TEXT NOT NULL,
   object_id TEXT NOT NULL,
@@ -99,7 +131,7 @@ CREATE TABLE triple (
   transaction_hash TEXT NOT NULL
 );
 
-CREATE TABLE vault (
+CREATE TABLE IF NOT EXISTS vault (
   term_id TEXT NOT NULL,
   curve_id NUMERIC(78, 0) NOT NULL,
   total_shares NUMERIC(78, 0) NOT NULL,
@@ -115,9 +147,9 @@ CREATE TABLE vault (
   PRIMARY KEY (term_id, curve_id)
 );
 
-CREATE TABLE triple_vault (
-  term_id TEXT REFERENCES term(id) NOT NULL,
-  counter_term_id TEXT REFERENCES term(id) NOT NULL,
+CREATE TABLE IF NOT EXISTS triple_vault (
+  term_id TEXT NOT NULL,
+  counter_term_id TEXT NOT NULL,
   curve_id NUMERIC(78, 0) NOT NULL,
   total_shares NUMERIC(78, 0) NOT NULL,
   total_assets NUMERIC(78, 0) NOT NULL,
@@ -129,9 +161,9 @@ CREATE TABLE triple_vault (
   PRIMARY KEY (term_id, curve_id)
 );
 
-CREATE TABLE triple_term (
-  term_id TEXT REFERENCES term(id) NOT NULL,
-  counter_term_id TEXT REFERENCES term(id) NOT NULL,
+CREATE TABLE IF NOT EXISTS triple_term (
+  term_id TEXT NOT NULL,
+  counter_term_id TEXT NOT NULL,
   total_assets NUMERIC(78, 0) NOT NULL,
   total_market_cap NUMERIC(78, 0) NOT NULL,
   total_position_count BIGINT NOT NULL,
@@ -139,20 +171,20 @@ CREATE TABLE triple_term (
   PRIMARY KEY (term_id)
 );
 
-CREATE TABLE fee_transfer (
+CREATE TABLE IF NOT EXISTS fee_transfer (
   id TEXT PRIMARY KEY NOT NULL,
-  sender_id TEXT REFERENCES account(id) NOT NULL,
-  receiver_id TEXT REFERENCES account(id) NOT NULL,
+  sender_id TEXT NOT NULL,
+  receiver_id TEXT NOT NULL,
   amount NUMERIC(78, 0) NOT NULL,
   block_number NUMERIC(78, 0) NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL,
   transaction_hash TEXT NOT NULL
 );
 
-CREATE TABLE deposit (
+CREATE TABLE IF NOT EXISTS deposit (
   id TEXT PRIMARY KEY NOT NULL,
-  sender_id TEXT REFERENCES account(id) NOT NULL,
-  receiver_id TEXT REFERENCES account(id) NOT NULL,
+  sender_id TEXT NOT NULL,
+  receiver_id TEXT NOT NULL,
   assets_after_fees NUMERIC(78, 0) NOT NULL,
   shares NUMERIC(78, 0) NOT NULL,
   total_shares NUMERIC(78, 0) NOT NULL,
@@ -165,10 +197,10 @@ CREATE TABLE deposit (
   log_index BIGINT NOT NULL
 );
 
-CREATE TABLE redemption (
+CREATE TABLE IF NOT EXISTS redemption (
   id TEXT PRIMARY KEY NOT NULL,
-  sender_id TEXT REFERENCES account(id) NOT NULL,
-  receiver_id TEXT REFERENCES account(id) NOT NULL,
+  sender_id TEXT NOT NULL,
+  receiver_id TEXT NOT NULL,
   assets NUMERIC(78, 0) NOT NULL,
   vault_type vault_type NOT NULL,
   fees NUMERIC(78, 0) NOT NULL,
@@ -182,22 +214,22 @@ CREATE TABLE redemption (
   log_index BIGINT NOT NULL
 );
 
-CREATE TABLE event (
+CREATE TABLE IF NOT EXISTS event (
   id TEXT PRIMARY KEY NOT NULL,
   type event_type NOT NULL,
   atom_id TEXT, 
   triple_id TEXT,
-  fee_transfer_id TEXT REFERENCES fee_transfer(id),
-  deposit_id TEXT REFERENCES deposit(id),
-  redemption_id TEXT REFERENCES redemption(id),
+  fee_transfer_id TEXT,
+  deposit_id TEXT,
+  redemption_id TEXT,
   block_number NUMERIC(78, 0) NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL,
   transaction_hash TEXT NOT NULL
 );
 
-CREATE TABLE position (
+CREATE TABLE IF NOT EXISTS position (
   id TEXT PRIMARY KEY NOT NULL,
-  account_id TEXT REFERENCES account(id) NOT NULL,
+  account_id TEXT NOT NULL,
   term_id TEXT NOT NULL,
   curve_id NUMERIC(78, 0) NOT NULL,
   shares NUMERIC(78, 0) NOT NULL,
@@ -211,7 +243,7 @@ CREATE TABLE position (
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
 
-CREATE TABLE predicate_object (
+CREATE TABLE IF NOT EXISTS predicate_object (
   predicate_id TEXT NOT NULL,
   object_id TEXT NOT NULL,
   triple_count INTEGER NOT NULL,
@@ -220,7 +252,7 @@ CREATE TABLE predicate_object (
   PRIMARY KEY (predicate_id, object_id)
 );
 
-CREATE TABLE subject_predicate (
+CREATE TABLE IF NOT EXISTS subject_predicate (
   subject_id TEXT NOT NULL,
   predicate_id TEXT NOT NULL,
   triple_count INTEGER NOT NULL,
@@ -229,16 +261,16 @@ CREATE TABLE subject_predicate (
   PRIMARY KEY (subject_id, predicate_id)
 );
 
-CREATE TABLE signal (
+CREATE TABLE IF NOT EXISTS signal (
   id TEXT NOT NULL,
   delta NUMERIC(78, 0) NOT NULL,
-  account_id TEXT REFERENCES account(id) NOT NULL,
+  account_id TEXT NOT NULL,
   atom_id TEXT, 
   triple_id TEXT,
   term_id TEXT NOT NULL,
   curve_id NUMERIC(78, 0) NOT NULL,
-  deposit_id TEXT REFERENCES deposit(id),
-  redemption_id TEXT REFERENCES redemption(id),
+  deposit_id TEXT,
+  redemption_id TEXT,
   block_number NUMERIC(78, 0) NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL,
   transaction_hash TEXT NOT NULL,
@@ -249,11 +281,11 @@ CREATE TABLE signal (
     (atom_id IS NULL AND triple_id IS NOT NULL))
   )
 ) WITH (
-   tsdb.hypertable,
-   tsdb.partition_column='created_at'
+   timescaledb.hypertable,
+   timescaledb.partition_column='created_at'
 );
 
-CREATE TABLE thing (
+CREATE TABLE IF NOT EXISTS thing (
   id TEXT PRIMARY KEY NOT NULL,
   name TEXT,
   description TEXT,
@@ -261,7 +293,7 @@ CREATE TABLE thing (
   url TEXT
 );
 
-CREATE TABLE person (
+CREATE TABLE IF NOT EXISTS person (
   id TEXT PRIMARY KEY NOT NULL,
   identifier TEXT,
   name TEXT,
@@ -271,7 +303,7 @@ CREATE TABLE person (
   email TEXT
 );
 
-CREATE TABLE organization (
+CREATE TABLE IF NOT EXISTS organization (
   id TEXT PRIMARY KEY NOT NULL,
   name TEXT,
   description TEXT,
@@ -280,7 +312,7 @@ CREATE TABLE organization (
   email TEXT
 );
 
-CREATE TABLE book (
+CREATE TABLE IF NOT EXISTS book (
   id TEXT PRIMARY KEY NOT NULL,
   name TEXT,
   description TEXT,
@@ -288,42 +320,42 @@ CREATE TABLE book (
   url TEXT
 );
 
-CREATE TABLE caip10 (
+CREATE TABLE IF NOT EXISTS caip10 (
   id TEXT PRIMARY KEY NOT NULL,
   namespace TEXT NOT NULL,
   chain_id INTEGER NOT NULL,
   account_address TEXT NOT NULL
 );
 
-CREATE TABLE json_object (
+CREATE TABLE IF NOT EXISTS json_object (
   id TEXT PRIMARY KEY NOT NULL,
   data JSONB NOT NULL
 );
 
-CREATE TABLE text_object (
+CREATE TABLE IF NOT EXISTS text_object (
   id TEXT PRIMARY KEY NOT NULL,
   data TEXT NOT NULL
 );
 
-CREATE TABLE byte_object (
+CREATE TABLE IF NOT EXISTS byte_object (
   id TEXT PRIMARY KEY NOT NULL,
   data BYTEA NOT NULL
 );
 
-CREATE TABLE atom_value (
+CREATE TABLE IF NOT EXISTS atom_value (
   id TEXT PRIMARY KEY NOT NULL,
-  account_id TEXT REFERENCES account(id),
-  thing_id TEXT REFERENCES thing(id),
-  person_id TEXT REFERENCES person(id),
-  organization_id TEXT REFERENCES organization(id),
-  book_id TEXT REFERENCES book(id),
-  caip10_id TEXT REFERENCES caip10(id),
-  json_object_id TEXT REFERENCES json_object(id),
-  text_object_id TEXT REFERENCES text_object(id),
-  byte_object_id TEXT REFERENCES byte_object(id)
+  account_id TEXT,
+  thing_id TEXT,
+  person_id TEXT,
+  organization_id TEXT,
+  book_id TEXT,
+  caip10_id TEXT,
+  json_object_id TEXT,
+  text_object_id TEXT,
+  byte_object_id TEXT
 );
 
-CREATE TABLE share_price_change(
+CREATE TABLE IF NOT EXISTS share_price_change(
   id BIGSERIAL,
   term_id TEXT NOT NULL,
   vault_type vault_type NOT NULL,
@@ -338,11 +370,11 @@ CREATE TABLE share_price_change(
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
   UNIQUE(term_id, curve_id, block_number, log_index, updated_at)
 ) WITH (
-   tsdb.hypertable,
-   tsdb.partition_column='updated_at'
+   timescaledb.hypertable,
+   timescaledb.partition_column='updated_at'
 );
 
-CREATE TABLE initialize (
+CREATE TABLE IF NOT EXISTS initialize (
   version BIGINT NOT NULL PRIMARY KEY,
   block_number NUMERIC(78,0) NOT NULL,
   block_timestamp BIGINT NOT NULL,
@@ -350,7 +382,7 @@ CREATE TABLE initialize (
   log_index INTEGER NOT NULL
 );
 
-CREATE TABLE failed_logs (
+CREATE TABLE IF NOT EXISTS failed_logs (
   block_number BIGINT NOT NULL,
   block_hash TEXT NOT NULL,
   transaction_hash TEXT NOT NULL,
@@ -363,20 +395,20 @@ CREATE TABLE failed_logs (
   PRIMARY KEY (block_number, log_index)
 );
 
-CREATE TABLE term_text (
+CREATE TABLE IF NOT EXISTS term_text (
   id TEXT PRIMARY KEY NOT NULL,
   title TEXT,
   description TEXT
 );
 
-CREATE TABLE term_total_state_change (
+CREATE TABLE IF NOT EXISTS term_total_state_change (
   term_id TEXT NOT NULL,
   total_assets NUMERIC(78, 0) NOT NULL,
   total_market_cap NUMERIC(78, 0) NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL 
 ) WITH (
-   tsdb.hypertable,
-   tsdb.partition_column='created_at'
+   timescaledb.hypertable,
+   timescaledb.partition_column='created_at'
 );
 
 -- ========================================
@@ -393,93 +425,115 @@ SELECT set_chunk_time_interval('signal', INTERVAL '1 day');
 SELECT set_chunk_time_interval('share_price_change', INTERVAL '1 day');
 SELECT set_chunk_time_interval('term_total_state_change', INTERVAL '1 day');
 
--- Add foreign key constraints
-ALTER TABLE account
-  ADD CONSTRAINT fk_account_atom
-  FOREIGN KEY (atom_id) REFERENCES atom(term_id);
+-- Add indexes for performance (replacing foreign key constraints)
+-- Account indexes
+CREATE INDEX IF NOT EXISTS idx_account_atom_id ON account(atom_id);
 
-ALTER TABLE atom
-  ADD CONSTRAINT atom_term_fkey 
-  FOREIGN KEY (term_id) REFERENCES term(id);
+-- Atom indexes
+CREATE INDEX IF NOT EXISTS idx_atom_wallet_id ON atom(wallet_id);
+CREATE INDEX IF NOT EXISTS idx_atom_creator_id ON atom(creator_id);
+CREATE INDEX IF NOT EXISTS idx_atom_block_number ON atom(block_number);
+CREATE INDEX IF NOT EXISTS idx_atom_created_at ON atom(created_at);
+CREATE INDEX IF NOT EXISTS idx_atom_transaction_hash ON atom(transaction_hash);
 
-ALTER TABLE triple
-  ADD CONSTRAINT triple_term_fkey 
-  FOREIGN KEY (term_id) REFERENCES term(id);
+-- Triple indexes
+CREATE INDEX IF NOT EXISTS idx_triple_creator_id ON triple(creator_id);
+CREATE INDEX IF NOT EXISTS idx_triple_subject_id ON triple(subject_id);
+CREATE INDEX IF NOT EXISTS idx_triple_predicate_id ON triple(predicate_id);
+CREATE INDEX IF NOT EXISTS idx_triple_object_id ON triple(object_id);
+CREATE INDEX IF NOT EXISTS idx_triple_counter_term_id ON triple(counter_term_id);
+CREATE INDEX IF NOT EXISTS idx_triple_block_number ON triple(block_number);
+CREATE INDEX IF NOT EXISTS idx_triple_created_at ON triple(created_at);
 
-ALTER TABLE vault
-  ADD CONSTRAINT vault_term_fkey 
-  FOREIGN KEY (term_id) REFERENCES term(id);
+-- Vault indexes
+CREATE INDEX IF NOT EXISTS idx_vault_term_id ON vault(term_id);
+CREATE INDEX IF NOT EXISTS idx_vault_curve_id ON vault(curve_id);
+CREATE INDEX IF NOT EXISTS idx_vault_block_number ON vault(block_number);
+CREATE INDEX IF NOT EXISTS idx_vault_created_at ON vault(created_at);
 
-ALTER TABLE deposit
-  ADD CONSTRAINT deposit_term_fkey 
-  FOREIGN KEY (term_id) REFERENCES term(id);
+-- Triple vault indexes
+CREATE INDEX IF NOT EXISTS idx_triple_vault_term_id ON triple_vault(term_id);
+CREATE INDEX IF NOT EXISTS idx_triple_vault_counter_term_id ON triple_vault(counter_term_id);
+CREATE INDEX IF NOT EXISTS idx_triple_vault_curve_id ON triple_vault(curve_id);
 
-ALTER TABLE redemption
-  ADD CONSTRAINT redemption_term_fkey 
-  FOREIGN KEY (term_id) REFERENCES term(id);
+-- Triple term indexes
+CREATE INDEX IF NOT EXISTS idx_triple_term_term_id ON triple_term(term_id);
+CREATE INDEX IF NOT EXISTS idx_triple_term_counter_term_id ON triple_term(counter_term_id);
 
-ALTER TABLE position
-  ADD CONSTRAINT position_term_fkey 
-  FOREIGN KEY (term_id) REFERENCES term(id);
+-- Fee transfer indexes
+CREATE INDEX IF NOT EXISTS idx_fee_transfer_sender_id ON fee_transfer(sender_id);
+CREATE INDEX IF NOT EXISTS idx_fee_transfer_receiver_id ON fee_transfer(receiver_id);
+CREATE INDEX IF NOT EXISTS idx_fee_transfer_block_number ON fee_transfer(block_number);
+CREATE INDEX IF NOT EXISTS idx_fee_transfer_created_at ON fee_transfer(created_at);
 
-ALTER TABLE signal
-  ADD CONSTRAINT signal_term_fkey 
-  FOREIGN KEY (term_id) REFERENCES term(id);
+-- Deposit indexes
+CREATE INDEX IF NOT EXISTS idx_deposit_sender_id ON deposit(sender_id);
+CREATE INDEX IF NOT EXISTS idx_deposit_receiver_id ON deposit(receiver_id);
+CREATE INDEX IF NOT EXISTS idx_deposit_term_id ON deposit(term_id);
+CREATE INDEX IF NOT EXISTS idx_deposit_curve_id ON deposit(curve_id);
+CREATE INDEX IF NOT EXISTS idx_deposit_vault_composite ON deposit(term_id, curve_id);
+CREATE INDEX IF NOT EXISTS idx_deposit_block_number ON deposit(block_number);
+CREATE INDEX IF NOT EXISTS idx_deposit_created_at ON deposit(created_at);
 
-ALTER TABLE atom_value
-  ADD CONSTRAINT atom_value_atom_fkey
-  FOREIGN KEY (id) REFERENCES atom(term_id);
+-- Redemption indexes
+CREATE INDEX IF NOT EXISTS idx_redemption_sender_id ON redemption(sender_id);
+CREATE INDEX IF NOT EXISTS idx_redemption_receiver_id ON redemption(receiver_id);
+CREATE INDEX IF NOT EXISTS idx_redemption_term_id ON redemption(term_id);
+CREATE INDEX IF NOT EXISTS idx_redemption_curve_id ON redemption(curve_id);
+CREATE INDEX IF NOT EXISTS idx_redemption_vault_composite ON redemption(term_id, curve_id);
+CREATE INDEX IF NOT EXISTS idx_redemption_block_number ON redemption(block_number);
+CREATE INDEX IF NOT EXISTS idx_redemption_created_at ON redemption(created_at);
 
-ALTER TABLE thing
-  ADD CONSTRAINT thing_term_fkey 
-  FOREIGN KEY (id) REFERENCES term(id);
+-- Event indexes
+CREATE INDEX IF NOT EXISTS idx_event_atom_id ON event(atom_id);
+CREATE INDEX IF NOT EXISTS idx_event_triple_id ON event(triple_id);
+CREATE INDEX IF NOT EXISTS idx_event_fee_transfer_id ON event(fee_transfer_id);
+CREATE INDEX IF NOT EXISTS idx_event_deposit_id ON event(deposit_id);
+CREATE INDEX IF NOT EXISTS idx_event_redemption_id ON event(redemption_id);
+CREATE INDEX IF NOT EXISTS idx_event_block_number ON event(block_number);
+CREATE INDEX IF NOT EXISTS idx_event_created_at ON event(created_at);
 
-ALTER TABLE share_price_change
-  ADD CONSTRAINT share_price_change_term_fkey 
-  FOREIGN KEY (term_id) REFERENCES term(id);
+-- Position indexes
+CREATE INDEX IF NOT EXISTS idx_position_account_id ON position(account_id);
+CREATE INDEX IF NOT EXISTS idx_position_term_id ON position(term_id);
+CREATE INDEX IF NOT EXISTS idx_position_curve_id ON position(curve_id);
+CREATE INDEX IF NOT EXISTS idx_position_vault_composite ON position(term_id, curve_id);
+CREATE INDEX IF NOT EXISTS idx_position_block_number ON position(block_number);
+CREATE INDEX IF NOT EXISTS idx_position_created_at ON position(created_at);
 
--- Add vault composite key foreign key constraints
-ALTER TABLE deposit
-  ADD CONSTRAINT deposit_vault_fkey 
-  FOREIGN KEY (term_id, curve_id) REFERENCES vault(term_id, curve_id);
+-- Signal indexes
+CREATE INDEX IF NOT EXISTS idx_signal_account_id ON signal(account_id);
+CREATE INDEX IF NOT EXISTS idx_signal_atom_id ON signal(atom_id);
+CREATE INDEX IF NOT EXISTS idx_signal_triple_id ON signal(triple_id);
+CREATE INDEX IF NOT EXISTS idx_signal_term_id ON signal(term_id);
+CREATE INDEX IF NOT EXISTS idx_signal_curve_id ON signal(curve_id);
+CREATE INDEX IF NOT EXISTS idx_signal_vault_composite ON signal(term_id, curve_id);
+CREATE INDEX IF NOT EXISTS idx_signal_deposit_id ON signal(deposit_id);
+CREATE INDEX IF NOT EXISTS idx_signal_redemption_id ON signal(redemption_id);
+CREATE INDEX IF NOT EXISTS idx_signal_block_number ON signal(block_number);
+CREATE INDEX IF NOT EXISTS idx_signal_created_at ON signal(created_at);
 
-ALTER TABLE redemption
-  ADD CONSTRAINT redemption_vault_fkey 
-  FOREIGN KEY (term_id, curve_id) REFERENCES vault(term_id, curve_id);
+-- Predicate object indexes
+CREATE INDEX IF NOT EXISTS idx_predicate_object_predicate_id ON predicate_object(predicate_id);
+CREATE INDEX IF NOT EXISTS idx_predicate_object_object_id ON predicate_object(object_id);
 
-ALTER TABLE position
-  ADD CONSTRAINT position_vault_fkey 
-  FOREIGN KEY (term_id, curve_id) REFERENCES vault(term_id, curve_id);
+-- Subject predicate indexes
+CREATE INDEX IF NOT EXISTS idx_subject_predicate_subject_id ON subject_predicate(subject_id);
+CREATE INDEX IF NOT EXISTS idx_subject_predicate_predicate_id ON subject_predicate(predicate_id);
 
-ALTER TABLE signal
-  ADD CONSTRAINT signal_vault_fkey 
-  FOREIGN KEY (term_id, curve_id) REFERENCES vault(term_id, curve_id);
+-- Atom value indexes
+CREATE INDEX IF NOT EXISTS idx_atom_value_account_id ON atom_value(account_id);
+CREATE INDEX IF NOT EXISTS idx_atom_value_thing_id ON atom_value(thing_id);
+CREATE INDEX IF NOT EXISTS idx_atom_value_person_id ON atom_value(person_id);
+CREATE INDEX IF NOT EXISTS idx_atom_value_organization_id ON atom_value(organization_id);
+CREATE INDEX IF NOT EXISTS idx_atom_value_book_id ON atom_value(book_id);
+CREATE INDEX IF NOT EXISTS idx_atom_value_caip10_id ON atom_value(caip10_id);
+CREATE INDEX IF NOT EXISTS idx_atom_value_json_object_id ON atom_value(json_object_id);
+CREATE INDEX IF NOT EXISTS idx_atom_value_text_object_id ON atom_value(text_object_id);
+CREATE INDEX IF NOT EXISTS idx_atom_value_byte_object_id ON atom_value(byte_object_id);
 
--- Add missing foreign key constraints for relationships
-ALTER TABLE triple
-  ADD CONSTRAINT triple_subject_fkey 
-  FOREIGN KEY (subject_id) REFERENCES atom(term_id);
-
-ALTER TABLE triple
-  ADD CONSTRAINT triple_predicate_fkey 
-  FOREIGN KEY (predicate_id) REFERENCES atom(term_id);
-
-ALTER TABLE triple
-  ADD CONSTRAINT triple_object_fkey 
-  FOREIGN KEY (object_id) REFERENCES atom(term_id);
-
-ALTER TABLE predicate_object
-  ADD CONSTRAINT predicate_object_predicate_fkey
-  FOREIGN KEY (predicate_id) REFERENCES atom(term_id);
-
-ALTER TABLE predicate_object
-  ADD CONSTRAINT predicate_object_object_fkey
-  FOREIGN KEY (object_id) REFERENCES atom(term_id);
-
-ALTER TABLE subject_predicate
-  ADD CONSTRAINT subject_predicate_subject_fkey
-  FOREIGN KEY (subject_id) REFERENCES atom(term_id);
-
-ALTER TABLE subject_predicate
-  ADD CONSTRAINT subject_predicate_predicate_fkey
-  FOREIGN KEY (predicate_id) REFERENCES atom(term_id);
+-- Share price change indexes
+CREATE INDEX IF NOT EXISTS idx_share_price_change_term_id ON share_price_change(term_id);
+CREATE INDEX IF NOT EXISTS idx_share_price_change_curve_id ON share_price_change(curve_id);
+CREATE INDEX IF NOT EXISTS idx_share_price_change_block_number ON share_price_change(block_number);
+CREATE INDEX IF NOT EXISTS idx_share_price_change_updated_at ON share_price_change(updated_at);

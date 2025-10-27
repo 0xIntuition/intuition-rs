@@ -10,7 +10,13 @@ configuration:
 object_relationships:
   - name: receiver
     using:
-      foreign_key_constraint_on: receiver_id
+      manual_configuration:
+        column_mapping:
+          receiver_id: id
+        insertion_order: null
+        remote_table:
+          name: account
+          schema: public
   - name: sender
     using:
       manual_configuration:
@@ -22,7 +28,13 @@ object_relationships:
           schema: public
   - name: term
     using:
-      foreign_key_constraint_on: term_id
+      manual_configuration:
+        column_mapping:
+          term_id: id
+        insertion_order: null
+        remote_table:
+          name: term
+          schema: public
   - name: vault
     using:
       manual_configuration:

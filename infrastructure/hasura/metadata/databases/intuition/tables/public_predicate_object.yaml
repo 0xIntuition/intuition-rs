@@ -9,10 +9,22 @@ configuration:
 object_relationships:
   - name: object
     using:
-      foreign_key_constraint_on: object_id
+      manual_configuration:
+        column_mapping:
+          object_id: term_id
+        insertion_order: null
+        remote_table:
+          name: atom
+          schema: public
   - name: predicate
     using:
-      foreign_key_constraint_on: predicate_id
+      manual_configuration:
+        column_mapping:
+          predicate_id: term_id
+        insertion_order: null
+        remote_table:
+          name: atom
+          schema: public
 array_relationships:
   - name: triples
     using:
