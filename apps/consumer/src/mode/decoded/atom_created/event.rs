@@ -56,15 +56,6 @@ pub trait AtomCreatedEvent: AccountManager + Debug + Clone {
                 &decoded_consumer_context.pg_pool,
             )
             .await?;
-
-        // // Now we need to enqueue the message to be processed by the resolver. In this
-        //     // process we check if the account has ENS data associated, and if it does, we
-        //     // update the account with the ENS data (name [label] and image)
-        //     let message = ResolverConsumerMessage::new_account(account.clone());
-        //     decoded_consumer_context
-        //         .client
-        //         .send_message(serde_json::to_string(&message)?, None)
-        //         .await?;
         Ok(atom)
     }
 
@@ -88,59 +79,4 @@ pub trait AtomCreatedEvent: AccountManager + Debug + Clone {
         }
         Ok(account)
     }
-    // /// This function updates an account with an atom ID and enqueues a resolver message
-    // async fn update_account_with_atom_id(
-    //     account: &mut Account,
-    //     atom_id: FixedBytesWrapper,
-    //     decoded_consumer_context: &DecodedConsumerContext,
-    // ) -> Result<(), ConsumerError> {
-    //     account.atom_id = Some(atom_id);
-    //     account
-    //         .upsert(
-    //             &decoded_consumer_context.backend_schema,
-    //             &decoded_consumer_context.pg_pool,
-    //         )
-    //         .await?;
-    //     debug!("Updated account: {:?}", account);
-
-    //     // Now we need to enqueue the message to be processed by the resolver. In this
-    //     // process we check if the account has ENS data associated, and if it does, we
-    //     // update the account with the ENS data (name [label] and image)
-    //     let message = ResolverConsumerMessage::new_account(account.clone());
-    //     decoded_consumer_context
-    //         .client
-    //         .send_message(serde_json::to_string(&message)?, None)
-    //         .await?;
-    //     Ok(())
-    // }
-    // /// This function decodes the atom data
-    // async fn decode_atom_data_and_update_atom(
-    //     &self,
-    //     atom: &mut Atom,
-    //     decoded_consumer_context: &DecodedConsumerContext,
-    //     event: &DecodedMessage,
-    // ) -> Result<String, ConsumerError> {
-    //     // decode the hex data from the atomData.
-    //     let decoded_atom_data = if let Ok(decoded_atom_data) = Atom::decode_data(self.atom_data()?)
-    //     {
-    //         decoded_atom_data
-    //     } else {
-    //         warn!(
-    //             "Failed to decode atom data. This is not a critical error, but this atom will be created with empty data and `Unknown` type.",
-    //         );
-    //         // return an empty string
-    //         String::new()
-    //     };
-
-    //     // Update the atom with the decoded data
-    //     atom.data = Some(decoded_atom_data.clone());
-    //     atom.block_number = U256Wrapper::try_from(event.block_number)?;
-    //     atom.log_index = event.log_index;
-    //     atom.upsert(
-    //         &decoded_consumer_context.backend_schema,
-    //         &decoded_consumer_context.pg_pool,
-    //     )
-    //     .await?;
-    //     Ok(decoded_atom_data)
-    // }
 }
