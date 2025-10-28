@@ -498,7 +498,7 @@ CREATE OR REPLACE FUNCTION following(address text) RETURNS SETOF account
 SELECT *
 FROM accounts_that_claim_about_account(
     address,
-    (SELECT term_id FROM atom WHERE type = 'Thing'),
+    (SELECT term_id FROM atom WHERE type = 'ThingPredicate'),
     (SELECT term_id FROM atom WHERE type = 'FollowAction')
 );
 $$;
