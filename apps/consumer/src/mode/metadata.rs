@@ -340,6 +340,32 @@ pub fn is_valid_address(address: &str) -> Result<bool, ConsumerError> {
     }
 }
 
+/// Validates if a string is a valid EIP-155 address format without enforcing EIP-55 checksum
+///
+/// # Arguments
+/// * `address` - The address string to validate
+///
+/// # Returns
+/// * `bool` - True if valid EIP-155 address format, false otherwise
+///
+/// This function validates the hex address format (0x followed by 40 hex characters)
+/// but does not enforce EIP-55 checksum validation. Use this for CAIP-10 addresses
+/// where checksumming may not be enforced.
+pub fn is_valid_eip155_address(address: &str) -> bool {
+    // Must start with 0x
+    if !address.starts_with("0x") {
+        return false;
+    }
+
+    // Must be exactly 42 characters (0x + 40 hex chars)
+    if address.len() != 42 {
+        return false;
+    }
+
+    // All characters after 0x must be valid hex (0-9, a-f, A-F)
+    address[2..].chars().all(|c| c.is_ascii_hexdigit())
+}
+
 /// Validates if a string is a valid account format for non-Ethereum chains
 ///
 /// # Arguments
@@ -416,9 +442,9 @@ pub fn is_valid_caip10(caip10: &str) -> Result<bool, ConsumerError> {
     let namespace = parts[1];
     let address = parts.last().unwrap();
 
-    // For eip155 chains, validate using EIP-55 checksum
+    // For eip155 chains, validate address format without enforcing EIP-55 checksum
     if namespace == "eip155" {
-        if !is_valid_address(address)? {
+        if !is_valid_eip155_address(address) {
             return Ok(false);
         }
     } else {

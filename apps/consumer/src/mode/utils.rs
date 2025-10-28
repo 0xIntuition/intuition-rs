@@ -315,32 +315,6 @@ pub async fn create_default_account(
     Ok(account)
 }
 
-// /// This function updates an account with an atom ID and enqueues a resolver message
-// pub async fn update_account_with_atom_id(
-//     account: &mut Account,
-//     atom_id: FixedBytesWrapper,
-//     decoded_consumer_context: &DecodedConsumerContext,
-// ) -> Result<(), ConsumerError> {
-//     account.atom_id = Some(atom_id);
-//     account
-//         .upsert(
-//             &decoded_consumer_context.backend_schema,
-//             &decoded_consumer_context.pg_pool,
-//         )
-//         .await?;
-//     debug!("Updated account: {:?}", account);
-
-//     // Now we need to enqueue the message to be processed by the resolver. In this
-//     // process we check if the account has ENS data associated, and if it does, we
-//     // update the account with the ENS data (name [label] and image)
-//     let message = ResolverConsumerMessage::new_account(account.clone());
-//     decoded_consumer_context
-//         .client
-//         .send_message(serde_json::to_string(&message)?, None)
-//         .await?;
-//     Ok(())
-// }
-
 /// This function gets or creates an account
 pub async fn get_or_create_account(
     id: String,

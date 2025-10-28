@@ -7,7 +7,6 @@ use alloy::primitives::FixedBytes;
 use models::{
     deposit::VaultType,
     share_price_change::{SharePriceChange, SharePriceChangeInternal},
-    traits::SimpleCrud,
     types::{FixedBytesWrapper, U256Wrapper},
     vault::Vault,
 };
@@ -95,11 +94,6 @@ pub trait SharePriceChangedEvent: Clone {
             debug!("Vault not found, creating it");
             VaultOrigin::SharePriceChanged
                 .get_or_create_vault(self, decoded_consumer_context, transaction_data)
-                .await?
-                .upsert(
-                    &decoded_consumer_context.backend_schema,
-                    &decoded_consumer_context.pg_pool,
-                )
                 .await?;
         }
         debug!("Finished updating vault, updating share price aggregate");
