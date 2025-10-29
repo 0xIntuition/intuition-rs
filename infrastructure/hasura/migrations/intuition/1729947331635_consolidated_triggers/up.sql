@@ -317,7 +317,7 @@ RETURNS TRIGGER AS $$
 DECLARE
     affected_rows INTEGER;
     retry_count INTEGER := 0;
-    max_retries INTEGER := 3;
+    max_retries INTEGER := 5;
 BEGIN
   IF NEW.shares > 0 THEN
     LOOP

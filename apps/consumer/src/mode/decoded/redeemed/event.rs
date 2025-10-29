@@ -75,7 +75,8 @@ pub trait RedeemedEvent: Clone {
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
-        // Update position
+        // Update position - only if it exists
+        // Position should have been created by a prior deposit event
         if let Some(mut position) = Position::find_by_id(
             format!(
                 "{}-{}-{}",

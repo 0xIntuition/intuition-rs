@@ -33,6 +33,7 @@ impl Model for Vault {}
 #[async_trait]
 impl SimpleCrud<FixedBytesWrapper> for Vault {
     /// This method upserts a vault into the database.
+    /// NOTE: position_count is intentionally excluded from the UPDATE clause to preserve values set by database triggers.
     async fn upsert<'e, E>(&self, schema: &str, executor: E) -> Result<Self, ModelError>
     where
         E: Executor<'e, Database = Postgres>,
@@ -49,7 +50,7 @@ impl SimpleCrud<FixedBytesWrapper> for Vault {
                 ON CONFLICT (term_id, curve_id) DO UPDATE SET
                     total_shares = EXCLUDED.total_shares,
                     current_share_price = EXCLUDED.current_share_price,
-                    position_count = EXCLUDED.position_count,
+                    -- position_count is NOT updated here - it's managed by database triggers
                     total_assets = EXCLUDED.total_assets,
                     market_cap = EXCLUDED.market_cap,
                     block_number = EXCLUDED.block_number,
