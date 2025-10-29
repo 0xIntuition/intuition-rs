@@ -655,167 +655,22 @@ FOR EACH ROW
 EXECUTE FUNCTION update_triple_vault_from_vault();
 
 -- ========================================
--- PREDICATE OBJECT TRIGGER
+-- MATERIALIZED VIEW REFRESH TRIGGERS
 -- ========================================
 
--- Function to automatically update predicate_object when a triple is inserted
-CREATE OR REPLACE FUNCTION update_predicate_object_on_triple_insert()
+-- Function to refresh predicate_object and subject_predicate materialized views when triple_term changes
+CREATE OR REPLACE FUNCTION refresh_predicate_object_subject_predicate_views()
 RETURNS TRIGGER AS $$
 BEGIN
-    -- Insert or increment the triple_count
-    INSERT INTO predicate_object (predicate_id, object_id, triple_count, total_position_count, total_market_cap)
-    VALUES (NEW.predicate_id, NEW.object_id, 1, 0, 0)
-    ON CONFLICT (predicate_id, object_id) DO UPDATE SET
-        triple_count = predicate_object.triple_count + 1;
-
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER triple_predicate_object_trigger
-AFTER INSERT ON triple
-FOR EACH ROW
-EXECUTE FUNCTION update_predicate_object_on_triple_insert();
-
--- ========================================
--- SUBJECT PREDICATE TRIGGER
--- ========================================
-
--- Function to automatically update subject_predicate when a triple is inserted
-CREATE OR REPLACE FUNCTION update_subject_predicate_on_triple_insert()
-RETURNS TRIGGER AS $$
-BEGIN
-    -- Insert or increment the triple_count
-    INSERT INTO subject_predicate (subject_id, predicate_id, triple_count, total_position_count, total_market_cap)
-    VALUES (NEW.subject_id, NEW.predicate_id, 1, 0, 0)
-    ON CONFLICT (subject_id, predicate_id) DO UPDATE SET
-        triple_count = subject_predicate.triple_count + 1;
-
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER triple_subject_predicate_trigger
-AFTER INSERT ON triple
-FOR EACH ROW
-EXECUTE FUNCTION update_subject_predicate_on_triple_insert();
-
--- ========================================
--- PREDICATE OBJECT AGGREGATES UPDATE TRIGGER
--- ========================================
-
--- Function to update predicate_object.total_market_cap and total_position_count when triple_term changes
-CREATE OR REPLACE FUNCTION update_predicate_object_aggregates()
-RETURNS TRIGGER AS $$
-DECLARE
-    affected_term_id TEXT;
-    affected_counter_term_id TEXT;
-BEGIN
-    -- Determine which term_id and counter_term_id were affected
-    IF (TG_OP = 'DELETE') THEN
-        affected_term_id := OLD.term_id;
-        affected_counter_term_id := OLD.counter_term_id;
-    ELSE
-        affected_term_id := NEW.term_id;
-        affected_counter_term_id := NEW.counter_term_id;
-    END IF;
-
-    -- Insert or update all predicate_object records for triples that match either term_id or counter_term_id
-    -- Use CTE to avoid duplicate subquery execution
-    WITH affected_triples AS (
-        SELECT t.predicate_id, t.object_id, t.term_id
-        FROM triple t
-        WHERE t.term_id = affected_term_id
-           OR t.term_id = affected_counter_term_id
-    ),
-    predicate_object_aggregates AS (
-        SELECT
-            at.predicate_id,
-            at.object_id,
-            COALESCE(SUM(tt.total_market_cap), 0) AS agg_market_cap,
-            COALESCE(SUM(tt.total_position_count), 0) AS agg_position_count
-        FROM affected_triples at
-        LEFT JOIN triple t ON t.predicate_id = at.predicate_id AND t.object_id = at.object_id
-        LEFT JOIN triple_term tt ON tt.term_id = t.term_id
-        GROUP BY at.predicate_id, at.object_id
-    )
-    INSERT INTO predicate_object (predicate_id, object_id, triple_count, total_market_cap, total_position_count)
-    SELECT
-        poa.predicate_id,
-        poa.object_id,
-        0, -- Initial triple_count, managed exclusively by triple insert trigger
-        poa.agg_market_cap,
-        poa.agg_position_count
-    FROM predicate_object_aggregates poa
-    ON CONFLICT (predicate_id, object_id) DO UPDATE SET
-        total_market_cap = EXCLUDED.total_market_cap,
-        total_position_count = EXCLUDED.total_position_count;
-
+    -- Refresh both materialized views
+    REFRESH MATERIALIZED VIEW CONCURRENTLY predicate_object;
+    REFRESH MATERIALIZED VIEW CONCURRENTLY subject_predicate;
     RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER triple_term_predicate_object_trigger
+-- Trigger to refresh views when triple_term changes
+CREATE TRIGGER triple_term_refresh_views_trigger
 AFTER INSERT OR UPDATE OR DELETE ON triple_term
-FOR EACH ROW
-EXECUTE FUNCTION update_predicate_object_aggregates();
-
--- ========================================
--- SUBJECT PREDICATE AGGREGATES UPDATE TRIGGER
--- ========================================
-
--- Function to update subject_predicate.total_market_cap and total_position_count when triple_term changes
-CREATE OR REPLACE FUNCTION update_subject_predicate_aggregates()
-RETURNS TRIGGER AS $$
-DECLARE
-    affected_term_id TEXT;
-    affected_counter_term_id TEXT;
-BEGIN
-    -- Determine which term_id and counter_term_id were affected
-    IF (TG_OP = 'DELETE') THEN
-        affected_term_id := OLD.term_id;
-        affected_counter_term_id := OLD.counter_term_id;
-    ELSE
-        affected_term_id := NEW.term_id;
-        affected_counter_term_id := NEW.counter_term_id;
-    END IF;
-
-    -- Insert or update all subject_predicate records for triples that match either term_id or counter_term_id
-    -- Use CTE to avoid duplicate subquery execution
-    WITH affected_triples AS (
-        SELECT t.subject_id, t.predicate_id, t.term_id
-        FROM triple t
-        WHERE t.term_id = affected_term_id
-           OR t.term_id = affected_counter_term_id
-    ),
-    subject_predicate_aggregates AS (
-        SELECT
-            at.subject_id,
-            at.predicate_id,
-            COALESCE(SUM(tt.total_market_cap), 0) AS agg_market_cap,
-            COALESCE(SUM(tt.total_position_count), 0) AS agg_position_count
-        FROM affected_triples at
-        LEFT JOIN triple t ON t.subject_id = at.subject_id AND t.predicate_id = at.predicate_id
-        LEFT JOIN triple_term tt ON tt.term_id = t.term_id
-        GROUP BY at.subject_id, at.predicate_id
-    )
-    INSERT INTO subject_predicate (subject_id, predicate_id, triple_count, total_market_cap, total_position_count)
-    SELECT
-        spa.subject_id,
-        spa.predicate_id,
-        0, -- Initial triple_count, managed exclusively by triple insert trigger
-        spa.agg_market_cap,
-        spa.agg_position_count
-    FROM subject_predicate_aggregates spa
-    ON CONFLICT (subject_id, predicate_id) DO UPDATE SET
-        total_market_cap = EXCLUDED.total_market_cap,
-        total_position_count = EXCLUDED.total_position_count;
-
-    RETURN NULL;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER triple_term_subject_predicate_trigger
-AFTER INSERT OR UPDATE OR DELETE ON triple_term
-FOR EACH ROW
-EXECUTE FUNCTION update_subject_predicate_aggregates();
+FOR EACH STATEMENT
+EXECUTE FUNCTION refresh_predicate_object_subject_predicate_views();

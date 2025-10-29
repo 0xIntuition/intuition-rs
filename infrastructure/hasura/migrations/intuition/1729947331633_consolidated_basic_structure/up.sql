@@ -243,23 +243,33 @@ CREATE TABLE IF NOT EXISTS position (
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
 
-CREATE TABLE IF NOT EXISTS predicate_object (
-  predicate_id TEXT NOT NULL,
-  object_id TEXT NOT NULL,
-  triple_count INTEGER NOT NULL,
-  total_position_count INTEGER NOT NULL DEFAULT 0,
-  total_market_cap NUMERIC(78, 0) NOT NULL DEFAULT 0,
-  PRIMARY KEY (predicate_id, object_id)
-);
+CREATE MATERIALIZED VIEW IF NOT EXISTS predicate_object AS
+SELECT
+    t.predicate_id,
+    t.object_id,
+    COUNT(DISTINCT t.term_id)::INTEGER AS triple_count,
+    COALESCE(SUM(tt.total_position_count), 0)::INTEGER AS total_position_count,
+    COALESCE(SUM(tt.total_market_cap), 0) AS total_market_cap
+FROM triple t
+LEFT JOIN triple_term tt ON tt.term_id = t.term_id
+GROUP BY t.predicate_id, t.object_id;
 
-CREATE TABLE IF NOT EXISTS subject_predicate (
-  subject_id TEXT NOT NULL,
-  predicate_id TEXT NOT NULL,
-  triple_count INTEGER NOT NULL,
-  total_position_count INTEGER NOT NULL DEFAULT 0,
-  total_market_cap NUMERIC(78, 0) NOT NULL DEFAULT 0,
-  PRIMARY KEY (subject_id, predicate_id)
-);
+-- Create unique index for CONCURRENTLY refresh support
+CREATE UNIQUE INDEX IF NOT EXISTS idx_predicate_object_unique ON predicate_object(predicate_id, object_id);
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS subject_predicate AS
+SELECT
+    t.subject_id,
+    t.predicate_id,
+    COUNT(DISTINCT t.term_id)::INTEGER AS triple_count,
+    COALESCE(SUM(tt.total_position_count), 0)::INTEGER AS total_position_count,
+    COALESCE(SUM(tt.total_market_cap), 0) AS total_market_cap
+FROM triple t
+LEFT JOIN triple_term tt ON tt.term_id = t.term_id
+GROUP BY t.subject_id, t.predicate_id;
+
+-- Create unique index for CONCURRENTLY refresh support
+CREATE UNIQUE INDEX IF NOT EXISTS idx_subject_predicate_unique ON subject_predicate(subject_id, predicate_id);
 
 CREATE TABLE IF NOT EXISTS signal (
   id TEXT NOT NULL,
