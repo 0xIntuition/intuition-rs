@@ -357,6 +357,7 @@ impl Vault {
 
     /// This method upserts a vault from share price events with special handling for zero total_shares.
     /// It updates even when block_number/log_index is lower, but only if the current vault has zero total_shares.
+    /// NOTE: position_count is intentionally excluded from the UPDATE clause to preserve values set by database triggers.
     pub async fn insert_from_share_price<'e, E>(
         &self,
         schema: &str,
@@ -377,7 +378,7 @@ impl Vault {
                 ON CONFLICT (term_id, curve_id) DO UPDATE SET
                     total_shares = EXCLUDED.total_shares,
                     current_share_price = EXCLUDED.current_share_price,
-                    position_count = EXCLUDED.position_count,
+                    -- position_count is NOT updated here - it's managed by database triggers
                     total_assets = EXCLUDED.total_assets,
                     market_cap = EXCLUDED.market_cap,
                     block_number = EXCLUDED.block_number,
