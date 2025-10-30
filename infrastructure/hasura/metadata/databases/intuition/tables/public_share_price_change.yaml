@@ -47,3 +47,22 @@ select_permissions:
       limit: 100
       allow_aggregations: true
     comment: ""
+  - role: frontend
+    permission:
+      columns:
+        - vault_type
+        - block_timestamp
+        - id
+        - log_index
+        - term_id
+        - block_number
+        - curve_id
+        - share_price
+        - total_assets
+        - total_shares
+        - transaction_hash
+        - updated_at
+      filter: {}
+      limit: 100
+      allow_aggregations: true
+    comment: ""

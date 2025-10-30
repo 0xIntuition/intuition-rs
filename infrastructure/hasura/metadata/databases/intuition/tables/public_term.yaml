@@ -196,3 +196,18 @@ select_permissions:
       limit: 100
       allow_aggregations: true
     comment: ""
+  - role: frontend
+    permission:
+      columns:
+        - type
+        - atom_id
+        - id
+        - triple_id
+        - total_assets
+        - total_market_cap
+        - created_at
+        - updated_at
+      filter: {}
+      limit: 100
+      allow_aggregations: true
+    comment: ""

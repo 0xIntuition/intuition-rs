@@ -12,3 +12,13 @@ select_permissions:
         - bucket
       filter: {}
     comment: ""
+  - role: frontend
+    permission:
+      columns:
+        - difference
+        - first_total_market_cap
+        - last_total_market_cap
+        - term_id
+        - bucket
+      filter: {}
+    comment: ""

@@ -43,3 +43,19 @@ select_permissions:
       filter: {}
       limit: 100
     comment: ""
+  - role: frontend
+    permission:
+      columns:
+        - log_index
+        - position_count
+        - block_number
+        - counter_term_id
+        - curve_id
+        - market_cap
+        - term_id
+        - total_assets
+        - total_shares
+        - updated_at
+      filter: {}
+      limit: 100
+    comment: ""

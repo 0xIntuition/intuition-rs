@@ -26,3 +26,21 @@ select_permissions:
       limit: 98
       allow_aggregations: true
     comment: ""
+  - role: frontend
+    permission:
+      columns:
+        - id
+        - total_accounts
+        - total_atoms
+        - total_positions
+        - total_signals
+        - total_triples
+        - contract_balance
+        - last_processed_block_number
+        - total_fees
+        - last_processed_block_timestamp
+        - last_updated
+      filter: {}
+      limit: 98
+      allow_aggregations: true
+    comment: ""

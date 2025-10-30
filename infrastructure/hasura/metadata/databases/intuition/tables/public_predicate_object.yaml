@@ -49,3 +49,15 @@ select_permissions:
       limit: 250
       allow_aggregations: true
     comment: ""
+  - role: frontend
+    permission:
+      columns:
+        - object_id
+        - predicate_id
+        - total_market_cap
+        - total_position_count
+        - triple_count
+      filter: {}
+      limit: 250
+      allow_aggregations: true
+    comment: ""

@@ -74,3 +74,22 @@ select_permissions:
       limit: 250
       allow_aggregations: true
     comment: ""
+  - role: frontend
+    permission:
+      columns:
+        - atom_id
+        - term_id
+        - triple_id
+        - block_number
+        - curve_id
+        - delta
+        - account_id
+        - deposit_id
+        - id
+        - redemption_id
+        - transaction_hash
+        - created_at
+      filter: {}
+      limit: 250
+      allow_aggregations: true
+    comment: ""
