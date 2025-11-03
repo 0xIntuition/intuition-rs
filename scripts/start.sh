@@ -17,6 +17,7 @@ if [ -f "$PROJECT_ROOT/.env" ]; then
   export LINEA_SEPOLIA_RPC_URL
   export TRUST_TESTNET_RPC_URL
   export TRUST_MAINNET_RPC_URL
+  export LOCAL_INTUITION_RPC_URL
 else
   echo "Warning: .env file not found at $PROJECT_ROOT/.env"
   echo "Some environment variables may not be set. Create a .env file with required variables:"
@@ -72,6 +73,7 @@ if [ "$INDEXER_SCHEMA" == "local" ]; then
   export INDEXER_SCHEMA="local"
   export BASE_SEPOLIA_RPC_URL="http://reth:8545"
   export BASE_MAINNET_RPC_URL="http://reth:8545"
+  export LOCAL_INTUITION_RPC_URL="http://reth:8545"
 fi
 
 if [ "$2" == "test" ]; then
