@@ -92,7 +92,7 @@ impl App {
             84532 => Ok(self.env.base_sepolia_rpc_url.clone()),
             13579 => Ok(self.env.trust_testnet_rpc_url.clone()),
             1155 => Ok(self.env.trust_mainnet_rpc_url.clone()),
-            31337 => Ok(self.env.local_intuition_rpc_url.clone()),
+            8545 => Ok(self.env.local_intuition_rpc_url.clone()),
             1 => Ok(self.env.ethereum_mainnet_rpc_url.clone()),
             _ => Err(ApiError::UnsupportedChainId(chain_id)),
         }
