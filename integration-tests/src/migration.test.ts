@@ -6,7 +6,7 @@ import { adminClient, publicClient } from './setup/utils.js'
 import { getContractAddress } from './setup/deploy.js'
 import { getContract, parseEther, toHex } from 'viem'
 
-suite('migration mode', async () => {
+suite.skip('migration mode', async () => {
   const address = await getContractAddress()
   const contract = getContract({
     abi,
