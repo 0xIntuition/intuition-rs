@@ -1,0 +1,35 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: timescale-cluster
+spec:
+  instances: 1
+  imageName: ghcr.io/clevyr/cloudnativepg-timescale:17-ts2
+
+  enableSuperuserAccess: true
+  superuserSecret:
+    name: postgres-superuser
+
+  postgresql:
+    parameters:
+      max_connections: "200"
+      shared_buffers: "256MB"
+
+  bootstrap:
+    initdb:
+      database: storage
+      owner: postgres
+
+  storage:
+    size: 1Gi
+    storageClass: standard
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-superuser
+type: kubernetes.io/basic-auth
+stringData:
+  username: postgres
+  password: postgres

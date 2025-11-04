@@ -18,6 +18,9 @@ if [ -f "$PROJECT_ROOT/.env" ]; then
   export TRUST_TESTNET_RPC_URL
   export TRUST_MAINNET_RPC_URL
   export LOCAL_INTUITION_RPC_URL
+  export INTUITION_MAINNET_RPC_URL
+  export INDEXER_SCHEMA
+  export INTUITION_CONTRACT_ADDRESS
 else
   echo "Warning: .env file not found at $PROJECT_ROOT/.env"
   echo "Some environment variables may not be set. Create a .env file with required variables:"
@@ -31,6 +34,10 @@ else
   echo "  LINEA_SEPOLIA_RPC_URL=your_linea_sepolia_rpc"
   echo "  TRUST_TESTNET_RPC_URL=your_trust_testnet_rpc"
   echo "  TRUST_MAINNET_RPC_URL=your_trust_mainnet_rpc"
+  echo "  LOCAL_INTUITION_RPC_URL=your_local_intuition_rpc"
+  echo "  INTUITION_MAINNET_RPC_URL=your_intuition_mainnet_rpc"
+  echo "  INDEXER_SCHEMA=your_indexer_schema"
+  echo "  INTUITION_CONTRACT_ADDRESS=your_intuition_contract_address"
 fi
 
 # Start shared services

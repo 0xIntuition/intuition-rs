@@ -55,6 +55,10 @@ args = [
 command = "./scripts/start.sh"
 args = ["local"]
 
+[tasks.start-mainnet]
+command = "./scripts/start.sh"
+args = ["intuition_mainnet"]
+
 # Stop the full system using the stop script
 [tasks.stop]
 command = "./scripts/stop.sh"

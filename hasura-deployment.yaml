@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hasura
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hasura
+  template:
+    metadata:
+      labels:
+        app: hasura
+    spec:
+      containers:
+      - name: hasura
+        image: hasura/graphql-engine:v2.48.0
+        ports:
+        - containerPort: 8080
+        env:
+        - name: HASURA_GRAPHQL_METADATA_DATABASE_URL
+          value: postgres://postgres:postgres@timescale-cluster-rw:5432/storage
+        - name: HASURA_GRAPHQL_CACHE_DATABASE_URL
+          value: postgres://postgres:postgres@timescale-cluster-rw:5432/storage
+        - name: HASURA_GRAPHQL_ENABLE_CONSOLE
+          value: "true"
+        - name: HASURA_GRAPHQL_ADMIN_SECRET
+          value: myadminsecretkey
+        - name: HASURA_GRAPHQL_DEV_MODE
+          value: "true"
+        - name: HASURA_GRAPHQL_ENABLED_LOG_TYPES
+          value: startup, http-log, webhook-log, websocket-log, query-log
+        - name: HASURA_GRAPHQL_UNAUTHORIZED_ROLE
+          value: anonymous
+        - name: HASURA_GRAPHQL_STRINGIFY_NUMERIC_TYPES
+          value: "true"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hasura
+spec:
+  selector:
+    app: hasura
+  ports:
+  - port: 8080
+    targetPort: 8080
+  type: ClusterIP
