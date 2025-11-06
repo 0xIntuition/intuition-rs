@@ -116,3 +116,20 @@ select_permissions:
       limit: 250
       allow_aggregations: true
     comment: ""
+  - role: frontend
+    permission:
+      columns:
+        - book_id
+        - byte_object_id
+        - caip10_id
+        - id
+        - json_object_id
+        - organization_id
+        - person_id
+        - text_object_id
+        - thing_id
+        - account_id
+      filter: {}
+      limit: 250
+      allow_aggregations: true
+    comment: ""

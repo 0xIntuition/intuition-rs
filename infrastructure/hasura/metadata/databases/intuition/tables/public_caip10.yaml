@@ -29,3 +29,14 @@ select_permissions:
       limit: 250
       allow_aggregations: true
     comment: ""
+  - role: frontend
+    permission:
+      columns:
+        - chain_id
+        - id
+        - account_address
+        - namespace
+      filter: {}
+      limit: 250
+      allow_aggregations: true
+    comment: ""

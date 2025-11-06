@@ -37,20 +37,26 @@ pub trait AtomCreatedEvent: AccountManager + Debug + Clone {
             .await?;
         let creator_account =
             get_or_create_account(self.creator_id()?, decoded_consumer_context, None).await?;
-        let atom = Atom::builder()
-            .term_id(FixedBytesWrapper::from(self.term_id()?))
+        let raw_data = self.atom_data()?;
+        let decoded_data = Atom::decode_data(raw_data.clone()).ok();
+        let term_id = FixedBytesWrapper::from(self.term_id()?);
+        let block_number = U256Wrapper::try_from(event.block_number)?;
+        let created_at = get_block_timestamp(event.block_timestamp)?;
+        let mut atom = Atom::builder()
+            .term_id(term_id.clone())
             .wallet_id(atom_wallet_account.id.clone())
             .creator_id(creator_account.id)
-            .value_id(FixedBytesWrapper::from(self.term_id()?))
-            .raw_data(self.atom_data()?)
+            .value_id(term_id.clone())
+            .raw_data(raw_data)
             .atom_type(AtomType::Unknown)
-            .data(Atom::decode_data(self.atom_data()?)?)
-            .block_number(U256Wrapper::try_from(event.block_number)?)
-            .created_at(get_block_timestamp(event.block_timestamp)?)
+            .block_number(block_number)
+            .created_at(created_at)
             .transaction_hash(event.transaction_hash.clone())
             .resolving_status(AtomResolvingStatus::Pending)
             .log_index(event.log_index)
-            .build()
+            .build();
+        atom.data = decoded_data;
+        let atom = atom
             .upsert(
                 &decoded_consumer_context.backend_schema,
                 &decoded_consumer_context.pg_pool,

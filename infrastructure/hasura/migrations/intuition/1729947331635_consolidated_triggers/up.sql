@@ -317,7 +317,7 @@ RETURNS TRIGGER AS $$
 DECLARE
     affected_rows INTEGER;
     retry_count INTEGER := 0;
-    max_retries INTEGER := 3;
+    max_retries INTEGER := 5;
 BEGIN
   IF NEW.shares > 0 THEN
     LOOP
@@ -819,3 +819,139 @@ CREATE TRIGGER triple_term_subject_predicate_trigger
 AFTER INSERT OR UPDATE OR DELETE ON triple_term
 FOR EACH ROW
 EXECUTE FUNCTION update_subject_predicate_aggregates();
+
+-- -- ========================================
+-- -- TRIPLE TERM POSITION COUNT TRIGGERS
+-- -- ========================================
+
+-- -- Function to increment triple_term.total_position_count when a position is created
+-- CREATE OR REPLACE FUNCTION increment_triple_term_position_count()
+-- RETURNS TRIGGER AS $$
+-- DECLARE
+--     affected_rows INTEGER;
+--     retry_count INTEGER := 0;
+--     max_retries INTEGER := 5;
+-- BEGIN
+--   IF NEW.shares > 0 THEN
+--     LOOP
+--       UPDATE triple_term
+--       SET total_position_count = total_position_count + 1,
+--           updated_at = NOW()
+--       WHERE term_id = NEW.term_id;
+      
+--       GET DIAGNOSTICS affected_rows = ROW_COUNT;
+      
+--       -- If update succeeded or max retries reached, exit loop
+--       IF affected_rows > 0 OR retry_count >= max_retries THEN
+--         EXIT;
+--       END IF;
+      
+--       -- Wait briefly before retry (10ms)
+--       PERFORM pg_sleep(0.01);
+--       retry_count := retry_count + 1;
+--     END LOOP;
+    
+--     -- Log warning if update failed
+--     IF affected_rows = 0 THEN
+--       RAISE WARNING 'Failed to update triple_term position_count after % retries for term_id: %', 
+--         max_retries, NEW.term_id;
+--     END IF;
+--   END IF;
+--   RETURN NEW;
+-- END;
+-- $$ LANGUAGE plpgsql;
+
+-- -- Function to decrement triple_term.total_position_count when a position is closed
+-- CREATE OR REPLACE FUNCTION decrement_triple_term_position_count()
+-- RETURNS TRIGGER AS $$
+-- DECLARE
+--     affected_rows INTEGER;
+--     retry_count INTEGER := 0;
+--     max_retries INTEGER := 5;
+-- BEGIN
+--   IF OLD.shares > 0 AND NEW.shares = 0 THEN
+--     LOOP
+--       UPDATE triple_term
+--       SET total_position_count = total_position_count - 1,
+--           updated_at = NOW()
+--       WHERE term_id = OLD.term_id;
+      
+--       GET DIAGNOSTICS affected_rows = ROW_COUNT;
+      
+--       -- If update succeeded or max retries reached, exit loop
+--       IF affected_rows > 0 OR retry_count >= max_retries THEN
+--         EXIT;
+--       END IF;
+      
+--       -- Wait briefly before retry (10ms)
+--       PERFORM pg_sleep(0.01);
+--       retry_count := retry_count + 1;
+--     END LOOP;
+    
+--     -- Log warning if update failed
+--     IF affected_rows = 0 THEN
+--       RAISE WARNING 'Failed to update triple_term position_count after % retries for term_id: %', 
+--         max_retries, OLD.term_id;
+--     END IF;
+--   END IF;
+--   RETURN NEW;
+-- END;
+-- $$ LANGUAGE plpgsql;
+
+-- -- Function to reopen triple_term.total_position_count when a position is reopened
+-- CREATE OR REPLACE FUNCTION reopen_triple_term_position_count()
+-- RETURNS TRIGGER AS $$
+-- DECLARE
+--     affected_rows INTEGER;
+--     retry_count INTEGER := 0;
+--     max_retries INTEGER := 5;
+-- BEGIN
+--   IF OLD.shares = 0 AND NEW.shares > 0 THEN
+--     LOOP
+--       UPDATE triple_term
+--       SET total_position_count = total_position_count + 1,
+--           updated_at = NOW()
+--       WHERE term_id = NEW.term_id;
+      
+--       GET DIAGNOSTICS affected_rows = ROW_COUNT;
+      
+--       -- If update succeeded or max retries reached, exit loop
+--       IF affected_rows > 0 OR retry_count >= max_retries THEN
+--         EXIT;
+--       END IF;
+      
+--       -- Wait briefly before retry (10ms)
+--       PERFORM pg_sleep(0.01);
+--       retry_count := retry_count + 1;
+--     END LOOP;
+    
+--     -- Log warning if update failed
+--     IF affected_rows = 0 THEN
+--       RAISE WARNING 'Failed to update triple_term position_count after % retries for term_id: %', 
+--         max_retries, NEW.term_id;
+--     END IF;
+--   END IF;
+--   RETURN NEW;
+-- END;
+-- $$ LANGUAGE plpgsql;
+
+-- -- Create triggers on position table for triple_term updates
+-- CREATE TRIGGER position_insert_triple_term_trigger
+-- AFTER INSERT ON position
+-- FOR EACH ROW
+-- EXECUTE FUNCTION increment_triple_term_position_count();
+
+-- CREATE TRIGGER position_update_triple_term_trigger
+-- AFTER UPDATE ON position
+-- FOR EACH ROW
+-- EXECUTE FUNCTION increment_triple_term_position_count();
+
+-- CREATE TRIGGER position_reopen_triple_term_trigger
+-- AFTER UPDATE ON position
+-- FOR EACH ROW
+-- EXECUTE FUNCTION reopen_triple_term_position_count();
+
+-- CREATE TRIGGER position_close_triple_term_trigger
+-- AFTER UPDATE ON position
+-- FOR EACH ROW
+-- EXECUTE FUNCTION decrement_triple_term_position_count();

@@ -11,7 +11,6 @@ use alloy::{eips::BlockId, primitives::U256};
 use chrono::DateTime;
 use models::{
     account::{Account, AccountType},
-    position::Position,
     term::{Term, TermType},
     traits::SimpleCrud,
     triple_term::TripleTerm,
@@ -61,36 +60,38 @@ impl VaultOrigin {
         &self,
         event: &impl SharePriceChangedEvent,
         context: &DecodedConsumerContext,
-        tx: &DecodedMessage,
+        decoded_message: &DecodedMessage,
     ) -> Result<Vault, ConsumerError> {
         debug!(
             "Creating new term and vault for term_id: {:?}",
             event.term_id()?
         );
 
+        // If this is a triple vault, also create/update the triple_vault record
+        if matches!(event.vault_type()?.into(), TermType::Triple) {
+            self.ensure_triple_vault_exists(event, context, decoded_message)
+                .await?;
+            self.ensure_triple_term_exists(event, context, decoded_message)
+                .await?;
+        }
+
         get_or_create_term(
             event,
             context,
             BlockInfo {
-                block_number: tx.block_number,
-                block_timestamp: tx.block_timestamp,
+                block_number: decoded_message.block_number,
+                block_timestamp: decoded_message.block_timestamp,
             },
         )
         .await?;
 
-        let new_vault = self.build_new_vault(event, context, tx).await?;
+        let new_vault = self.build_new_vault(event, decoded_message).await?;
         debug!("New vault: {:?}", new_vault);
 
         new_vault
             .insert_from_share_price(&context.backend_schema, &context.pg_pool)
             .await
             .map_err(ConsumerError::ModelError)?;
-
-        // If this is a triple vault, also create/update the triple_vault record
-        if matches!(event.vault_type()?.into(), TermType::Triple) {
-            self.ensure_triple_vault_exists(event, context, tx).await?;
-            self.ensure_triple_term_exists(event, context, tx).await?;
-        }
 
         Ok(new_vault)
     }
@@ -239,7 +240,6 @@ impl VaultOrigin {
     async fn build_new_vault(
         &self,
         event: &impl SharePriceChangedEvent,
-        context: &DecodedConsumerContext,
         tx: &DecodedMessage,
     ) -> Result<Vault, ConsumerError> {
         let curve_id = event.curve_id()?;
@@ -247,13 +247,7 @@ impl VaultOrigin {
         let total_shares = event.total_shares()?;
         let share_price = event.new_share_price()?;
         let total_assets = event.total_assets()?;
-        let position_count = Position::count_by_vault_and_curve(
-            event.term_id()?.into(),
-            curve_id.clone(),
-            &context.pg_pool,
-            &context.backend_schema,
-        )
-        .await? as i32;
+        let position_count = 0_i32;
         let created_at = get_block_timestamp(tx.block_timestamp)?;
 
         let market_cap = Self::compute_market_cap(total_shares.clone(), share_price.clone());
@@ -314,32 +308,6 @@ pub async fn create_default_account(
 
     Ok(account)
 }
-
-// /// This function updates an account with an atom ID and enqueues a resolver message
-// pub async fn update_account_with_atom_id(
-//     account: &mut Account,
-//     atom_id: FixedBytesWrapper,
-//     decoded_consumer_context: &DecodedConsumerContext,
-// ) -> Result<(), ConsumerError> {
-//     account.atom_id = Some(atom_id);
-//     account
-//         .upsert(
-//             &decoded_consumer_context.backend_schema,
-//             &decoded_consumer_context.pg_pool,
-//         )
-//         .await?;
-//     debug!("Updated account: {:?}", account);
-
-//     // Now we need to enqueue the message to be processed by the resolver. In this
-//     // process we check if the account has ENS data associated, and if it does, we
-//     // update the account with the ENS data (name [label] and image)
-//     let message = ResolverConsumerMessage::new_account(account.clone());
-//     decoded_consumer_context
-//         .client
-//         .send_message(serde_json::to_string(&message)?, None)
-//         .await?;
-//     Ok(())
-// }
 
 /// This function gets or creates an account
 pub async fn get_or_create_account(

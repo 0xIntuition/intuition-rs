@@ -18,3 +18,13 @@ select_permissions:
       filter: {}
       limit: 1000
     comment: ""
+  - role: frontend
+    permission:
+      columns:
+        - term_id
+        - total_assets
+        - total_market_cap
+        - created_at
+      filter: {}
+      limit: 1000
+    comment: ""

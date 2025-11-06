@@ -26,3 +26,11 @@ select_permissions:
       filter: {}
       allow_aggregations: true
     comment: ""
+  - role: frontend
+    permission:
+      columns:
+        - id
+        - data
+      filter: {}
+      allow_aggregations: true
+    comment: ""

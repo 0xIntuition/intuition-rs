@@ -16,3 +16,11 @@ select_permissions:
       filter: {}
       limit: 250
     comment: ""
+  - role: frontend
+    permission:
+      columns:
+        - usd
+        - id
+      filter: {}
+      limit: 250
+    comment: ""

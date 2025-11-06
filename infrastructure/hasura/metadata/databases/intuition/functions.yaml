@@ -10,4 +10,7 @@ functions:
     permissions:
       - role: anonymous
         definition:
+          allow: true
+      - role: frontend
+        definition:
           allow: true 
