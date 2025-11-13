@@ -1,20 +1,22 @@
 use crate::error::HistoFluxError;
 use crate::models::cursor::HistoFluxCursor;
 use aws_sdk_sqs::Client as AWSClient;
+use chrono::Utc;
 use log::info;
 use models::raw_logs::RawLog;
 use serde::Deserialize;
 use shared_utils::postgres::connect_to_db;
-use sqlx::postgres::{PgListener, PgNotification};
 use sqlx::PgPool;
+use sqlx::postgres::{PgListener, PgNotification};
 
 /// The environment variables
 #[derive(Clone, Deserialize, Debug)]
 pub struct Env {
     pub localstack_url: Option<String>,
     pub indexer_database_url: String,
-    pub histoflux_cursor_id: i32,
+    pub environment: String,
     pub raw_logs_channel: String,
+    pub raw_queue_url: String,
     pub indexer_schema: String,
 }
 
@@ -22,9 +24,8 @@ pub struct Env {
 pub struct SqsProducer {
     client: AWSClient,
     pg_pool: PgPool,
-    raw_queue_url: String,
     env: Env,
-    indexer_schema: String,
+    cursor: HistoFluxCursor,
 }
 
 #[derive(Debug, Deserialize)]
@@ -57,23 +58,41 @@ impl SqsProducer {
         dotenvy::dotenv().ok();
         // Parse the .env file
         let env = envy::from_env::<Env>()?;
+
         // Create the SQS client
         let client = Self::get_aws_client(env.localstack_url.clone()).await;
         // Connect to the database
         let pg_pool = connect_to_db(&env.indexer_database_url).await?;
-        let indexer_schema = env.indexer_schema.clone();
-        let cursor = HistoFluxCursor::find(&pg_pool, env.histoflux_cursor_id)
-            .await?
-            .ok_or(HistoFluxError::CursorNotSet)?;
-        let raw_queue_url = cursor.queue_url.clone();
+
+        // Get or create the cursor
+        let cursor = Self::get_or_create_cursor(&env, &pg_pool).await?;
 
         Ok(Self {
             client,
             pg_pool,
             env,
-            raw_queue_url,
-            indexer_schema,
+            cursor,
         })
+    }
+
+    /// This function returns a [`HistoFluxCursor`] from the database. If the
+    /// cursor does not exist, it creates a new one and returns it.
+    async fn get_or_create_cursor(
+        env: &Env,
+        pg_pool: &PgPool,
+    ) -> Result<HistoFluxCursor, HistoFluxError> {
+        let cursor = HistoFluxCursor::find_by_environment(pg_pool, &env.environment).await?;
+        if let Some(cursor) = cursor {
+            Ok(cursor)
+        } else {
+            HistoFluxCursor::builder()
+                .last_processed_id(0)
+                .environment(env.environment.clone())
+                .updated_at(Utc::now())
+                .build()
+                .insert(pg_pool)
+                .await
+        }
     }
 
     /// This function returns an [`aws_sdk_sqs::Client`] based on the
@@ -97,7 +116,7 @@ impl SqsProducer {
     pub async fn send_message(&self, message: String) -> Result<(), HistoFluxError> {
         self.client
             .send_message()
-            .queue_url(&self.raw_queue_url)
+            .queue_url(&self.env.raw_queue_url)
             .message_body(&message)
             .message_group_id("raw")
             // If the queue is FIFO, you need to set .message_deduplication_id
@@ -138,17 +157,11 @@ impl SqsProducer {
     /// This function processes all existing records in the database and sends
     /// them to the SQS queue.
     pub async fn process_historical_records(&self) -> Result<(), HistoFluxError> {
-        // Get the last processed id from the database, if it doesnt exist,
-        // it will return the default value.
-        info!("Getting last processed id from the DB");
-        let mut last_processed_id =
-            HistoFluxCursor::find(&self.pg_pool, self.env.histoflux_cursor_id)
-                .await?
-                .ok_or(HistoFluxError::NotFound)?
-                .last_processed_id;
+        // Get the last processed id from the cursor
+        let mut last_processed_id = self.cursor.last_processed_id;
         info!("Last processed id: {}", last_processed_id);
         let amount_of_logs =
-            RawLog::get_total_count(&self.pg_pool, &self.indexer_schema.to_string()).await?;
+            RawLog::get_total_count(&self.pg_pool, &self.env.indexer_schema.to_string()).await?;
         // If there are no logs, we dont need to process anything
         if amount_of_logs == 0 {
             return Ok(());
@@ -167,7 +180,7 @@ impl SqsProducer {
                 &self.pg_pool,
                 last_processed_id as i32,
                 page_size,
-                &self.indexer_schema.to_string(),
+                &self.env.indexer_schema.to_string(),
             )
             .await?;
 
@@ -199,7 +212,7 @@ impl SqsProducer {
     ) -> Result<(), HistoFluxError> {
         HistoFluxCursor::update_last_processed_id(
             &self.pg_pool,
-            self.env.histoflux_cursor_id,
+            &self.env.environment,
             last_processed_id,
         )
         .await?;
