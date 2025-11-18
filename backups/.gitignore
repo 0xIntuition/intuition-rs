@@ -1,0 +1,8 @@
+# Ignore all backup files
+*.dump
+*.dump.sha256
+*.sql
+*.log
+
+# Keep this .gitignore file
+!.gitignore
