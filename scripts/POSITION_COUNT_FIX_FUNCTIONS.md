@@ -16,6 +16,8 @@ psql -h localhost -p 5435 -U <username> -d storage \
   -f infrastructure/hasura/migrations/intuition/1729947331638_fix_position_count_functions/up.sql
 ```
 
+**Note:** Replace `<username>` with your database username. You may need to set `PGPASSWORD` environment variable or use a `.pgpass` file.
+
 ## Usage
 
 ### 1. Fix All Position Counts
@@ -168,4 +170,12 @@ psql -h localhost -p 5435 -U <username> -d storage \
 2. **After Issues**: If a specific term_id has wrong counts, use `fix_position_counts_for_term()`
 3. **Full Recalculation**: Only use `fix_all_position_counts()` during maintenance windows or after major data migrations
 4. **Monitor**: Check the output to see how many rows were updated - if numbers are high, investigate the root cause
+
+## Authentication
+
+All commands use placeholders `<username>` and `<password>`. Replace these with your actual database credentials. For better security:
+
+- Use environment variables: `export PGPASSWORD='<password>'` then omit `PGPASSWORD='<password>'` from commands
+- Use a `.pgpass` file: Create `~/.pgpass` with format `hostname:port:database:username:password`
+- Use connection strings: `psql postgresql://username:password@localhost:5435/storage`
 
