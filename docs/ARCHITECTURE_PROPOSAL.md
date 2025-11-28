@@ -316,35 +316,32 @@ graph TD
 ```mermaid
 flowchart TD
     start((Start Batch)) --> Fetch[Fetch Events from DB]
-    Fetch --> ShardCheck{Is Event for<br/>My Shard?}
+    Fetch --> ShardCheck{"Is Event for My Shard?"}
     
-    ShardCheck -- No --> Skip[Skip Event]
-    Skip --> NextEvent
+    ShardCheck -- No --> NextEvent{"More Events?"}
     
     ShardCheck -- Yes --> TypeCheck{Event Type}
     
     %% Processing Logic
-    TypeCheck -- Deposited --> DepCheck[Check 'Vaults' Table]
+    TypeCheck -- Deposited --> DepCheck[Check Vaults Table]
     
     DepCheck -- Vault Exists --> ApplyDep[Upsert Position]
-    DepCheck -- Vault Missing --> RetryWait[Wait 200ms<br/>(Retry Logic)]
+    DepCheck -- Vault Missing --> RetryWait["Wait 200ms (Retry Logic)"]
     RetryWait --> DepCheck
     
     TypeCheck -- Redeemed --> ApplyRed[Update Position]
     
     %% Loop Logic
-    ApplyDep --> NextEvent
+    ApplyDep --> NextEvent{"More Events?"}
     ApplyRed --> NextEvent
     
-    NextEvent{More Events?} -- Yes --> ShardCheck
-    NextEvent -- No --> Commit[Update Checkpoint<br/>Commit Transaction]
+    NextEvent -- Yes --> ShardCheck
+    NextEvent -- No --> Commit["Update Checkpoint & Commit Transaction"]
     Commit --> start
     
-    subgraph "Sticky Partitioning Strategy"
-    direction TB
-    Note["Worker ID: 2
-    Total Shards: 4
-    Process if: hash(user_id) % 4 == 2"]
+    subgraph Strategy ["Sticky Partitioning Strategy"]
+        direction TB
+        StrategyNote["Worker ID: 2 | Total Shards: 4 | Process if: hash(user_id) % 4 == 2"]
     end
 ```
 
