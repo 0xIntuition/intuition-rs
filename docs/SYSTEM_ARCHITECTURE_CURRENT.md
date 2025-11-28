@@ -233,98 +233,187 @@ The system processes the following events from the MultiVault v2.0 contract:
 
 ### Core Tables
 
-**atom**: Stores atom records
-- `term_id` (PK): Unique atom identifier
-- `wallet_id`: Associated atom wallet address
-- `creator_id`: Creator account address
-- `data`: Decoded atom data (JSON string or text)
-- `raw_data`: Raw hex-encoded atom data
-- `type`: Atom type (Account, Image, Text, JSON, Unknown)
-- `label`: Human-readable label
-- `image`: Image URL or IPFS hash
-- `emoji`: Emoji representation
-- `resolving_status`: Status (Pending, Resolved, Failed)
-- `block_number`, `created_at`, `transaction_hash`
+#### atom
 
-**triple**: Stores triple (subject-predicate-object) records
-- `term_id` (PK): Unique triple identifier
-- `subject_id`: Subject atom term_id
-- `predicate_id`: Predicate atom term_id
-- `object_id`: Object atom term_id
-- `block_number`, `created_at`, `transaction_hash`
+Stores atom records.
 
-**vault**: Stores vault state for atoms and triples
-- `term_id` + `curve_id` (PK): Composite key
-- `total_assets`: Total assets in vault
-- `total_shares`: Total shares in vault
-- `vault_type`: Atom or Triple
-- `block_number`, `created_at`, `transaction_hash`
+| Column | Type | Description | Constraints |
+|--------|------|-------------|-------------|
+| `term_id` | TEXT | Unique atom identifier | PRIMARY KEY |
+| `wallet_id` | TEXT | Associated atom wallet address | NOT NULL |
+| `creator_id` | TEXT | Creator account address | NOT NULL |
+| `data` | TEXT | Decoded atom data (JSON string or text) | |
+| `raw_data` | TEXT | Raw hex-encoded atom data | |
+| `type` | TEXT | Atom type | CHECK: Account, Image, Text, JSON, Unknown |
+| `label` | TEXT | Human-readable label | |
+| `image` | TEXT | Image URL or IPFS hash | |
+| `emoji` | TEXT | Emoji representation | |
+| `resolving_status` | TEXT | Status | CHECK: Pending, Resolved, Failed |
+| `block_number` | BIGINT | Block number where atom was created | NOT NULL |
+| `created_at` | TIMESTAMPTZ | Creation timestamp | DEFAULT NOW() |
+| `transaction_hash` | TEXT | Transaction hash | NOT NULL |
 
-**deposit**: Records all deposits
-- `id` (PK): Event ID
-- `sender_id`: Depositor account
-- `receiver_id`: Share recipient account
-- `term_id`: Vault term ID
-- `curve_id`: Bonding curve ID
-- `assets_after_fees`: Assets after fees
-- `shares`: Shares minted
-- `total_shares`: Total shares after deposit
-- `vault_type`: Atom or Triple
-- `block_number`, `created_at`, `transaction_hash`, `log_index`
+#### triple
 
-**redemption**: Records all redemptions
-- `id` (PK): Event ID
-- `sender_id`: Share redeemer account
-- `receiver_id`: Asset recipient account
-- `term_id`: Vault term ID
-- `curve_id`: Bonding curve ID
-- `shares`: Shares redeemed
-- `assets`: Assets received
-- `fees`: Fees deducted
-- `total_shares`: Total shares after redemption
-- `vault_type`: Atom or Triple
-- `block_number`, `created_at`, `transaction_hash`, `log_index`
+Stores triple (subject-predicate-object) records.
 
-**position**: Tracks user positions in vaults
-- `account_id` + `term_id` + `curve_id` (PK): Composite key
-- `shares`: User's share balance
-- `block_number`, `created_at`, `transaction_hash`
+| Column | Type | Description | Constraints |
+|--------|------|-------------|-------------|
+| `term_id` | TEXT | Unique triple identifier | PRIMARY KEY |
+| `subject_id` | TEXT | Subject atom term_id | NOT NULL, FK → atom(term_id) |
+| `predicate_id` | TEXT | Predicate atom term_id | NOT NULL, FK → atom(term_id) |
+| `object_id` | TEXT | Object atom term_id | NOT NULL, FK → atom(term_id) |
+| `block_number` | BIGINT | Block number where triple was created | NOT NULL |
+| `created_at` | TIMESTAMPTZ | Creation timestamp | DEFAULT NOW() |
+| `transaction_hash` | TEXT | Transaction hash | NOT NULL |
 
-**account**: Stores account information
-- `id` (PK): Account address
-- `atom_id`: Associated atom term_id (if account atom)
-- `label`: ENS name or short address
-- `image`: Profile image URL
-- `type`: Account type (User, AtomWallet, etc.)
-- `created_at`, `updated_at`
+#### vault
 
-**event**: Event log for all processed events
-- `id` (PK): Event ID (transaction_hash + log_index)
-- `event_type`: Type of event
-- `atom_id`, `triple_id`, `deposit_id`, `redemption_id`: Optional foreign keys
-- `block_number`, `created_at`, `transaction_hash`
+Stores vault state for atoms and triples.
 
-**signal**: Activity signals for deposits/redemptions
-- `id` (PK): Signal ID
-- `term_id`: Vault term ID
-- `account_id`: Account involved
-- `signal_type`: Deposit or Redemption
-- `block_number`, `created_at`, `transaction_hash`
+| Column | Type | Description | Constraints |
+|--------|------|-------------|-------------|
+| `term_id` | TEXT | Vault term ID | PRIMARY KEY (composite) |
+| `curve_id` | NUMERIC(78,0) | Bonding curve ID | PRIMARY KEY (composite) |
+| `total_assets` | NUMERIC(78,0) | Total assets in vault | NOT NULL, DEFAULT 0 |
+| `total_shares` | NUMERIC(78,0) | Total shares in vault | NOT NULL, DEFAULT 0 |
+| `vault_type` | TEXT | Type of vault | NOT NULL, CHECK: Atom, Triple |
+| `block_number` | BIGINT | Block number | NOT NULL |
+| `created_at` | TIMESTAMPTZ | Creation timestamp | DEFAULT NOW() |
+| `transaction_hash` | TEXT | Transaction hash | NOT NULL |
 
-**share_price_change**: Historical share price changes
-- `term_id` + `curve_id` + `block_number` (PK): Composite key
-- `share_price`: Share price at this point
-- `total_assets`: Total assets at this point
-- `total_shares`: Total shares at this point
-- `vault_type`: Atom or Triple
-- `block_timestamp`, `transaction_hash`, `log_index`
+#### deposit
 
-**stats**: System-wide statistics
-- `id` (PK): Always 1
-- `total_accounts`, `total_atoms`, `total_triples`, `total_positions`, `total_signals`
-- `total_fees`: Accumulated protocol fees
-- `contract_balance`: Current contract balance
-- `last_processed_block_number`, `last_processed_block_timestamp`
+Records all deposits.
+
+| Column | Type | Description | Constraints |
+|--------|------|-------------|-------------|
+| `id` | TEXT | Event ID | PRIMARY KEY |
+| `sender_id` | TEXT | Depositor account | NOT NULL, FK → account(id) |
+| `receiver_id` | TEXT | Share recipient account | NOT NULL, FK → account(id) |
+| `term_id` | TEXT | Vault term ID | NOT NULL, FK → vault(term_id) |
+| `curve_id` | NUMERIC(78,0) | Bonding curve ID | NOT NULL, FK → vault(curve_id) |
+| `assets_after_fees` | NUMERIC(78,0) | Assets after fees | NOT NULL |
+| `shares` | NUMERIC(78,0) | Shares minted | NOT NULL |
+| `total_shares` | NUMERIC(78,0) | Total shares after deposit | NOT NULL |
+| `vault_type` | TEXT | Type of vault | NOT NULL, CHECK: Atom, Triple |
+| `block_number` | BIGINT | Block number | NOT NULL |
+| `created_at` | TIMESTAMPTZ | Creation timestamp | DEFAULT NOW() |
+| `transaction_hash` | TEXT | Transaction hash | NOT NULL |
+| `log_index` | INTEGER | Log index in transaction | NOT NULL |
+
+#### redemption
+
+Records all redemptions.
+
+| Column | Type | Description | Constraints |
+|--------|------|-------------|-------------|
+| `id` | TEXT | Event ID | PRIMARY KEY |
+| `sender_id` | TEXT | Share redeemer account | NOT NULL, FK → account(id) |
+| `receiver_id` | TEXT | Asset recipient account | NOT NULL, FK → account(id) |
+| `term_id` | TEXT | Vault term ID | NOT NULL, FK → vault(term_id) |
+| `curve_id` | NUMERIC(78,0) | Bonding curve ID | NOT NULL, FK → vault(curve_id) |
+| `shares` | NUMERIC(78,0) | Shares redeemed | NOT NULL |
+| `assets` | NUMERIC(78,0) | Assets received | NOT NULL |
+| `fees` | NUMERIC(78,0) | Fees deducted | NOT NULL |
+| `total_shares` | NUMERIC(78,0) | Total shares after redemption | NOT NULL |
+| `vault_type` | TEXT | Type of vault | NOT NULL, CHECK: Atom, Triple |
+| `block_number` | BIGINT | Block number | NOT NULL |
+| `created_at` | TIMESTAMPTZ | Creation timestamp | DEFAULT NOW() |
+| `transaction_hash` | TEXT | Transaction hash | NOT NULL |
+| `log_index` | INTEGER | Log index in transaction | NOT NULL |
+
+#### position
+
+Tracks user positions in vaults.
+
+| Column | Type | Description | Constraints |
+|--------|------|-------------|-------------|
+| `account_id` | TEXT | Account address | PRIMARY KEY (composite), FK → account(id) |
+| `term_id` | TEXT | Vault term ID | PRIMARY KEY (composite), FK → vault(term_id) |
+| `curve_id` | NUMERIC(78,0) | Bonding curve ID | PRIMARY KEY (composite), FK → vault(curve_id) |
+| `shares` | NUMERIC(78,0) | User's share balance | NOT NULL, DEFAULT 0 |
+| `block_number` | BIGINT | Block number | NOT NULL |
+| `created_at` | TIMESTAMPTZ | Creation timestamp | DEFAULT NOW() |
+| `transaction_hash` | TEXT | Transaction hash | NOT NULL |
+
+#### account
+
+Stores account information.
+
+| Column | Type | Description | Constraints |
+|--------|------|-------------|-------------|
+| `id` | TEXT | Account address | PRIMARY KEY |
+| `atom_id` | TEXT | Associated atom term_id (if account atom) | FK → atom(term_id) |
+| `label` | TEXT | ENS name or short address | |
+| `image` | TEXT | Profile image URL | |
+| `type` | TEXT | Account type (User, AtomWallet, etc.) | |
+| `created_at` | TIMESTAMPTZ | Creation timestamp | DEFAULT NOW() |
+| `updated_at` | TIMESTAMPTZ | Last update timestamp | DEFAULT NOW() |
+
+#### event
+
+Event log for all processed events.
+
+| Column | Type | Description | Constraints |
+|--------|------|-------------|-------------|
+| `id` | TEXT | Event ID (transaction_hash + log_index) | PRIMARY KEY |
+| `event_type` | TEXT | Type of event | NOT NULL |
+| `atom_id` | TEXT | Reference to atom | FK → atom(term_id) |
+| `triple_id` | TEXT | Reference to triple | FK → triple(term_id) |
+| `deposit_id` | TEXT | Reference to deposit | FK → deposit(id) |
+| `redemption_id` | TEXT | Reference to redemption | FK → redemption(id) |
+| `block_number` | BIGINT | Block number | NOT NULL |
+| `created_at` | TIMESTAMPTZ | Creation timestamp | DEFAULT NOW() |
+| `transaction_hash` | TEXT | Transaction hash | NOT NULL |
+
+#### signal
+
+Activity signals for deposits/redemptions.
+
+| Column | Type | Description | Constraints |
+|--------|------|-------------|-------------|
+| `id` | BIGSERIAL | Signal ID | PRIMARY KEY |
+| `term_id` | TEXT | Vault term ID | NOT NULL |
+| `account_id` | TEXT | Account involved | NOT NULL, FK → account(id) |
+| `signal_type` | TEXT | Type of signal | NOT NULL, CHECK: Deposit, Redemption |
+| `block_number` | BIGINT | Block number | NOT NULL |
+| `created_at` | TIMESTAMPTZ | Creation timestamp | DEFAULT NOW() |
+| `transaction_hash` | TEXT | Transaction hash | NOT NULL |
+
+#### share_price_change
+
+Historical share price changes.
+
+| Column | Type | Description | Constraints |
+|--------|------|-------------|-------------|
+| `term_id` | TEXT | Vault term ID | PRIMARY KEY (composite), FK → vault(term_id) |
+| `curve_id` | NUMERIC(78,0) | Bonding curve ID | PRIMARY KEY (composite), FK → vault(curve_id) |
+| `block_number` | BIGINT | Block number | PRIMARY KEY (composite) |
+| `share_price` | NUMERIC(78,0) | Share price at this point | NOT NULL |
+| `total_assets` | NUMERIC(78,0) | Total assets at this point | NOT NULL |
+| `total_shares` | NUMERIC(78,0) | Total shares at this point | NOT NULL |
+| `vault_type` | TEXT | Type of vault | NOT NULL, CHECK: Atom, Triple |
+| `block_timestamp` | TIMESTAMPTZ | Block timestamp | NOT NULL |
+| `transaction_hash` | TEXT | Transaction hash | NOT NULL |
+| `log_index` | INTEGER | Log index in transaction | NOT NULL |
+
+#### stats
+
+System-wide statistics.
+
+| Column | Type | Description | Constraints |
+|--------|------|-------------|-------------|
+| `id` | INTEGER | Always 1 | PRIMARY KEY, CHECK: id = 1 |
+| `total_accounts` | BIGINT | Total number of accounts | NOT NULL, DEFAULT 0 |
+| `total_atoms` | BIGINT | Total number of atoms | NOT NULL, DEFAULT 0 |
+| `total_triples` | BIGINT | Total number of triples | NOT NULL, DEFAULT 0 |
+| `total_positions` | BIGINT | Total number of positions | NOT NULL, DEFAULT 0 |
+| `total_signals` | BIGINT | Total number of signals | NOT NULL, DEFAULT 0 |
+| `total_fees` | NUMERIC(78,0) | Accumulated protocol fees | NOT NULL, DEFAULT 0 |
+| `contract_balance` | NUMERIC(78,0) | Current contract balance | NOT NULL, DEFAULT 0 |
+| `last_processed_block_number` | BIGINT | Last processed block number | |
+| `last_processed_block_timestamp` | TIMESTAMPTZ | Last processed block timestamp | |
 
 ### Aggregate Tables
 
@@ -334,14 +423,16 @@ The system maintains several aggregate tables that pre-compute totals across rel
 
 **Purpose**: Provides a unified view of all terms (atoms and triples) in the system.
 
-**Schema**:
-- `id` (PK): Term identifier (same as atom.term_id or triple.term_id)
-- `type`: Term type enum (`Atom`, `Triple`, `CounterTriple`)
-- `atom_id`: Reference to atom table (if type is `Atom`)
-- `triple_id`: Reference to triple table (if type is `Triple` or `CounterTriple`)
-- `total_assets`: Aggregated total assets across all vaults for this term
-- `total_market_cap`: Aggregated market cap across all vaults for this term
-- `created_at`, `updated_at`: Timestamps
+| Column | Type | Description | Constraints |
+|--------|------|-------------|-------------|
+| `id` | TEXT | Term identifier (same as atom.term_id or triple.term_id) | PRIMARY KEY |
+| `type` | TEXT | Term type enum | NOT NULL, CHECK: Atom, Triple, CounterTriple |
+| `atom_id` | TEXT | Reference to atom table (if type is `Atom`) | FK → atom(term_id) |
+| `triple_id` | TEXT | Reference to triple table (if type is `Triple` or `CounterTriple`) | FK → triple(term_id) |
+| `total_assets` | NUMERIC(78,0) | Aggregated total assets across all vaults for this term | DEFAULT 0 |
+| `total_market_cap` | NUMERIC(78,0) | Aggregated market cap across all vaults for this term | DEFAULT 0 |
+| `created_at` | TIMESTAMPTZ | Creation timestamp | DEFAULT NOW() |
+| `updated_at` | TIMESTAMPTZ | Last update timestamp | DEFAULT NOW() |
 
 **Key Points**:
 - Every atom and triple has a corresponding `term` record
@@ -357,16 +448,18 @@ The system maintains several aggregate tables that pre-compute totals across rel
 
 **Purpose**: Aggregates vault data for a specific bonding curve across both sides of a triple relationship.
 
-**Schema**:
-- `term_id` + `counter_term_id` + `curve_id` (PK): Composite key
-- `term_id`: The triple's main term ID (references `term.id`)
-- `counter_term_id`: The triple's counter term ID (references `term.id`)
-- `curve_id`: Bonding curve ID
-- `total_shares`: Sum of `total_shares` from vaults for both `term_id` and `counter_term_id` for this `curve_id`
-- `total_assets`: Sum of `total_assets` from vaults for both `term_id` and `counter_term_id` for this `curve_id`
-- `market_cap`: Sum of `market_cap` from vaults for both `term_id` and `counter_term_id` for this `curve_id`
-- `position_count`: Sum of `position_count` from vaults for both `term_id` and `counter_term_id` for this `curve_id`
-- `block_number`, `log_index`, `updated_at`: Metadata
+| Column | Type | Description | Constraints |
+|--------|------|-------------|-------------|
+| `term_id` | TEXT | The triple's main term ID | PRIMARY KEY (composite), FK → term(id) |
+| `counter_term_id` | TEXT | The triple's counter term ID | PRIMARY KEY (composite), FK → term(id) |
+| `curve_id` | NUMERIC(78,0) | Bonding curve ID | PRIMARY KEY (composite) |
+| `total_shares` | NUMERIC(78,0) | Sum of `total_shares` from vaults for both `term_id` and `counter_term_id` for this `curve_id` | DEFAULT 0 |
+| `total_assets` | NUMERIC(78,0) | Sum of `total_assets` from vaults for both `term_id` and `counter_term_id` for this `curve_id` | DEFAULT 0 |
+| `market_cap` | NUMERIC(78,0) | Sum of `market_cap` from vaults for both `term_id` and `counter_term_id` for this `curve_id` | DEFAULT 0 |
+| `position_count` | BIGINT | Sum of `position_count` from vaults for both `term_id` and `counter_term_id` for this `curve_id` | DEFAULT 0 |
+| `block_number` | BIGINT | Block number | |
+| `log_index` | INTEGER | Log index | |
+| `updated_at` | TIMESTAMPTZ | Last update timestamp | DEFAULT NOW() |
 
 **How It Works**:
 - For each triple, there are two vaults: one for `term_id` and one for `counter_term_id`
@@ -395,13 +488,14 @@ triple_vault record:
 
 **Purpose**: Aggregates vault data across **all curves** for a triple relationship.
 
-**Schema**:
-- `term_id` (PK): The triple's main term ID (references `term.id`)
-- `counter_term_id`: The triple's counter term ID (references `term.id`)
-- `total_assets`: Sum of `total_assets` from all vaults for both `term_id` and `counter_term_id` across **all curves**
-- `total_market_cap`: Sum of `market_cap` from all vaults for both `term_id` and `counter_term_id` across **all curves**
-- `total_position_count`: Sum of `position_count` from all vaults for both `term_id` and `counter_term_id` across **all curves**
-- `updated_at`: Last update timestamp
+| Column | Type | Description | Constraints |
+|--------|------|-------------|-------------|
+| `term_id` | TEXT | The triple's main term ID | PRIMARY KEY, FK → term(id) |
+| `counter_term_id` | TEXT | The triple's counter term ID | NOT NULL, FK → term(id) |
+| `total_assets` | NUMERIC(78,0) | Sum of `total_assets` from all vaults for both `term_id` and `counter_term_id` across **all curves** | DEFAULT 0 |
+| `total_market_cap` | NUMERIC(78,0) | Sum of `market_cap` from all vaults for both `term_id` and `counter_term_id` across **all curves** | DEFAULT 0 |
+| `total_position_count` | BIGINT | Sum of `position_count` from all vaults for both `term_id` and `counter_term_id` across **all curves** | DEFAULT 0 |
+| `updated_at` | TIMESTAMPTZ | Last update timestamp | DEFAULT NOW() |
 
 **How It Works**:
 - Aggregates data from **all curves** (not just one curve like `triple_vault`)
@@ -454,13 +548,13 @@ triple_term (per term_id + counter_term_id, all curves)
 
 **Purpose**: Aggregates data for all triples that share the same predicate-object pair.
 
-**Schema**:
-- `predicate_id` + `object_id` (PK): Composite key
-- `predicate_id`: Atom term_id used as predicate
-- `object_id`: Atom term_id used as object
-- `triple_count`: Count of triples with this predicate-object pair
-- `total_position_count`: Sum of `total_position_count` from all `triple_term` records for triples matching this predicate-object pair
-- `total_market_cap`: Sum of `total_market_cap` from all `triple_term` records for triples matching this predicate-object pair
+| Column | Type | Description | Constraints |
+|--------|------|-------------|-------------|
+| `predicate_id` | TEXT | Atom term_id used as predicate | PRIMARY KEY (composite), FK → atom(term_id) |
+| `object_id` | TEXT | Atom term_id used as object | PRIMARY KEY (composite), FK → atom(term_id) |
+| `triple_count` | BIGINT | Count of triples with this predicate-object pair | DEFAULT 0 |
+| `total_position_count` | BIGINT | Sum of `total_position_count` from all `triple_term` records for triples matching this predicate-object pair | DEFAULT 0 |
+| `total_market_cap` | NUMERIC(78,0) | Sum of `total_market_cap` from all `triple_term` records for triples matching this predicate-object pair | DEFAULT 0 |
 
 **How It Works**:
 - Groups triples by their `(predicate_id, object_id)` combination
@@ -488,13 +582,13 @@ predicate_object record:
 
 **Purpose**: Aggregates data for all triples that share the same subject-predicate pair.
 
-**Schema**:
-- `subject_id` + `predicate_id` (PK): Composite key
-- `subject_id`: Atom term_id used as subject
-- `predicate_id`: Atom term_id used as predicate
-- `triple_count`: Count of triples with this subject-predicate pair
-- `total_position_count`: Sum of `total_position_count` from all `triple_term` records for triples matching this subject-predicate pair
-- `total_market_cap`: Sum of `total_market_cap` from all `triple_term` records for triples matching this subject-predicate pair
+| Column | Type | Description | Constraints |
+|--------|------|-------------|-------------|
+| `subject_id` | TEXT | Atom term_id used as subject | PRIMARY KEY (composite), FK → atom(term_id) |
+| `predicate_id` | TEXT | Atom term_id used as predicate | PRIMARY KEY (composite), FK → atom(term_id) |
+| `triple_count` | BIGINT | Count of triples with this subject-predicate pair | DEFAULT 0 |
+| `total_position_count` | BIGINT | Sum of `total_position_count` from all `triple_term` records for triples matching this subject-predicate pair | DEFAULT 0 |
+| `total_market_cap` | NUMERIC(78,0) | Sum of `total_market_cap` from all `triple_term` records for triples matching this subject-predicate pair | DEFAULT 0 |
 
 **How It Works**:
 - Groups triples by their `(subject_id, predicate_id)` combination

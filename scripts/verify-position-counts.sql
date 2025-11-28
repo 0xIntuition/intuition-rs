@@ -39,7 +39,7 @@ SELECT
     (SELECT COUNT(*) FROM position WHERE shares > 0) as actual_count,
     s.total_positions - (SELECT COUNT(*) FROM position WHERE shares > 0) as difference
 FROM stats s
-WHERE id = 1;
+WHERE id = 0;
 
 -- 3. Check triple_term.total_position_count vs sum of vault.position_count for both term_id and counter_term_id
 SELECT 
