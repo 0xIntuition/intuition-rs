@@ -326,6 +326,218 @@ The system processes the following events from the MultiVault v2.0 contract:
 - `contract_balance`: Current contract balance
 - `last_processed_block_number`, `last_processed_block_timestamp`
 
+### Aggregate Tables
+
+The system maintains several aggregate tables that pre-compute totals across related entities. These aggregates are updated automatically via database triggers when underlying data changes.
+
+#### term: Unified Term View
+
+**Purpose**: Provides a unified view of all terms (atoms and triples) in the system.
+
+**Schema**:
+- `id` (PK): Term identifier (same as atom.term_id or triple.term_id)
+- `type`: Term type enum (`Atom`, `Triple`, `CounterTriple`)
+- `atom_id`: Reference to atom table (if type is `Atom`)
+- `triple_id`: Reference to triple table (if type is `Triple` or `CounterTriple`)
+- `total_assets`: Aggregated total assets across all vaults for this term
+- `total_market_cap`: Aggregated market cap across all vaults for this term
+- `created_at`, `updated_at`: Timestamps
+
+**Key Points**:
+- Every atom and triple has a corresponding `term` record
+- Acts as a unified interface for querying both atoms and triples
+- `total_assets` and `total_market_cap` are aggregates computed from vaults
+- Used by `triple_vault` and `triple_term` for relationships
+
+**Example**:
+- Atom with `term_id = 0x123...` → `term` record with `id = 0x123...`, `type = 'Atom'`, `atom_id = 0x123...`
+- Triple with `term_id = 0x456...` → `term` record with `id = 0x456...`, `type = 'Triple'`, `triple_id = 0x456...`
+
+#### triple_vault: Per-Curve Triple Aggregates
+
+**Purpose**: Aggregates vault data for a specific bonding curve across both sides of a triple relationship.
+
+**Schema**:
+- `term_id` + `counter_term_id` + `curve_id` (PK): Composite key
+- `term_id`: The triple's main term ID (references `term.id`)
+- `counter_term_id`: The triple's counter term ID (references `term.id`)
+- `curve_id`: Bonding curve ID
+- `total_shares`: Sum of `total_shares` from vaults for both `term_id` and `counter_term_id` for this `curve_id`
+- `total_assets`: Sum of `total_assets` from vaults for both `term_id` and `counter_term_id` for this `curve_id`
+- `market_cap`: Sum of `market_cap` from vaults for both `term_id` and `counter_term_id` for this `curve_id`
+- `position_count`: Sum of `position_count` from vaults for both `term_id` and `counter_term_id` for this `curve_id`
+- `block_number`, `log_index`, `updated_at`: Metadata
+
+**How It Works**:
+- For each triple, there are two vaults: one for `term_id` and one for `counter_term_id`
+- `triple_vault` aggregates data from **both** vaults for a specific `curve_id`
+- Updated automatically via triggers when `vault` records change
+- One record per `(term_id, counter_term_id, curve_id)` combination
+
+**Example**:
+```
+Triple: term_id = 0xABC, counter_term_id = 0xDEF
+Vault 1: term_id = 0xABC, curve_id = 1, total_assets = 1000
+Vault 2: term_id = 0xDEF, curve_id = 1, total_assets = 2000
+
+triple_vault record:
+  term_id = 0xABC
+  counter_term_id = 0xDEF
+  curve_id = 1
+  total_assets = 3000 (1000 + 2000)
+```
+
+**Maintenance**:
+- Trigger `update_triple_vault_from_vault()` fires on `vault` INSERT/UPDATE/DELETE
+- Recalculates aggregates by summing vault data where `vault.term_id IN (triple_vault.term_id, triple_vault.counter_term_id)`
+
+#### triple_term: Cross-Curve Triple Aggregates
+
+**Purpose**: Aggregates vault data across **all curves** for a triple relationship.
+
+**Schema**:
+- `term_id` (PK): The triple's main term ID (references `term.id`)
+- `counter_term_id`: The triple's counter term ID (references `term.id`)
+- `total_assets`: Sum of `total_assets` from all vaults for both `term_id` and `counter_term_id` across **all curves**
+- `total_market_cap`: Sum of `market_cap` from all vaults for both `term_id` and `counter_term_id` across **all curves**
+- `total_position_count`: Sum of `position_count` from all vaults for both `term_id` and `counter_term_id` across **all curves**
+- `updated_at`: Last update timestamp
+
+**How It Works**:
+- Aggregates data from **all curves** (not just one curve like `triple_vault`)
+- One record per `(term_id, counter_term_id)` pair
+- Updated automatically via triggers when `vault` records change
+- Provides a single view of total activity across all bonding curves for a triple
+
+**Example**:
+```
+Triple: term_id = 0xABC, counter_term_id = 0xDEF
+Vault 1: term_id = 0xABC, curve_id = 1, total_assets = 1000
+Vault 2: term_id = 0xDEF, curve_id = 1, total_assets = 2000
+Vault 3: term_id = 0xABC, curve_id = 2, total_assets = 500
+Vault 4: term_id = 0xDEF, curve_id = 2, total_assets = 1500
+
+triple_term record:
+  term_id = 0xABC
+  counter_term_id = 0xDEF
+  total_assets = 5000 (1000 + 2000 + 500 + 1500)
+```
+
+**Maintenance**:
+- Trigger `update_triple_vault_from_vault()` also updates `triple_term` when vaults change
+- Recalculates by summing vault data where `vault.term_id IN (triple_term.term_id, triple_term.counter_term_id)` (across all curves)
+
+### Aggregate Hierarchy
+
+The aggregate tables form a hierarchy:
+
+```
+vault (per term_id, per curve_id)
+    ↓
+triple_vault (per term_id + counter_term_id, per curve_id)
+    ↓
+triple_term (per term_id + counter_term_id, all curves)
+```
+
+**Query Patterns**:
+- **Per-curve triple data**: Query `triple_vault` with specific `curve_id`
+- **All-curves triple data**: Query `triple_term`
+- **Individual vault data**: Query `vault` directly
+- **Unified term view**: Query `term` to get atom or triple details
+
+**Performance Benefits**:
+- Pre-computed aggregates avoid expensive JOINs and SUMs at query time
+- Fast lookups for dashboard queries and analytics
+- Maintained automatically via triggers (no application code needed)
+
+#### predicate_object: Predicate-Object Pair Aggregates
+
+**Purpose**: Aggregates data for all triples that share the same predicate-object pair.
+
+**Schema**:
+- `predicate_id` + `object_id` (PK): Composite key
+- `predicate_id`: Atom term_id used as predicate
+- `object_id`: Atom term_id used as object
+- `triple_count`: Count of triples with this predicate-object pair
+- `total_position_count`: Sum of `total_position_count` from all `triple_term` records for triples matching this predicate-object pair
+- `total_market_cap`: Sum of `total_market_cap` from all `triple_term` records for triples matching this predicate-object pair
+
+**How It Works**:
+- Groups triples by their `(predicate_id, object_id)` combination
+- Aggregates position counts and market caps from `triple_term` table
+- Useful for queries like "all triples where predicate=X and object=Y"
+
+**Example**:
+```
+Triple 1: predicate_id = 0xPRED, object_id = 0xOBJ, triple_term.total_position_count = 100
+Triple 2: predicate_id = 0xPRED, object_id = 0xOBJ, triple_term.total_position_count = 50
+Triple 3: predicate_id = 0xPRED, object_id = 0xOBJ, triple_term.total_position_count = 75
+
+predicate_object record:
+  predicate_id = 0xPRED
+  object_id = 0xOBJ
+  triple_count = 3
+  total_position_count = 225 (100 + 50 + 75)
+```
+
+**Maintenance**:
+- Updated via triggers when `triple_term` records change
+- Recalculates by summing `triple_term` data where `triple.predicate_id` and `triple.object_id` match
+
+#### subject_predicate: Subject-Predicate Pair Aggregates
+
+**Purpose**: Aggregates data for all triples that share the same subject-predicate pair.
+
+**Schema**:
+- `subject_id` + `predicate_id` (PK): Composite key
+- `subject_id`: Atom term_id used as subject
+- `predicate_id`: Atom term_id used as predicate
+- `triple_count`: Count of triples with this subject-predicate pair
+- `total_position_count`: Sum of `total_position_count` from all `triple_term` records for triples matching this subject-predicate pair
+- `total_market_cap`: Sum of `total_market_cap` from all `triple_term` records for triples matching this subject-predicate pair
+
+**How It Works**:
+- Groups triples by their `(subject_id, predicate_id)` combination
+- Aggregates position counts and market caps from `triple_term` table
+- Useful for queries like "all triples where subject=X and predicate=Y"
+
+**Example**:
+```
+Triple 1: subject_id = 0xSUBJ, predicate_id = 0xPRED, triple_term.total_position_count = 200
+Triple 2: subject_id = 0xSUBJ, predicate_id = 0xPRED, triple_term.total_position_count = 150
+
+subject_predicate record:
+  subject_id = 0xSUBJ
+  predicate_id = 0xPRED
+  triple_count = 2
+  total_position_count = 350 (200 + 150)
+```
+
+**Maintenance**:
+- Updated via triggers when `triple_term` records change
+- Recalculates by summing `triple_term` data where `triple.subject_id` and `triple.predicate_id` match
+
+### Complete Aggregate Hierarchy
+
+The aggregate tables form a complete hierarchy from individual vaults to semantic groupings:
+
+```
+vault (per term_id, per curve_id)
+    ↓
+triple_vault (per term_id + counter_term_id, per curve_id)
+    ↓
+triple_term (per term_id + counter_term_id, all curves)
+    ↓
+predicate_object (per predicate_id + object_id, all matching triples)
+subject_predicate (per subject_id + predicate_id, all matching triples)
+```
+
+**Use Cases**:
+- **triple_vault**: "Show me vault stats for this triple on curve 1"
+- **triple_term**: "Show me total activity for this triple across all curves"
+- **predicate_object**: "Show me all triples with predicate 'follows' and object 'person X'"
+- **subject_predicate**: "Show me all triples where subject 'person X' has predicate 'follows'"
+
 ## Data Flow Examples
 
 ### Example 1: Atom Creation Flow
@@ -379,6 +591,25 @@ The system processes the following events from the MultiVault v2.0 contract:
    - **Decoded Consumer** receives `SharePriceChanged` event
    - Creates `Vault` record (if it doesn't exist) or updates existing vault
    - Updates vault totals and share price
+
+### Example 4: Redemption Flow
+
+1. **Decoded Consumer**:
+   - Receives decoded `Redeemed` event
+   - Creates/updates `Account` records (sender, receiver)
+   - Creates `Redemption` record with all redemption details (shares, assets, fees)
+   - Updates `Vault` totals (decreases `total_assets`, decreases `total_shares`)
+   - Updates `Position` record for sender (decreases `shares` balance)
+   - Creates `Signal` record for the redemption
+   - Creates `Event` record with type `Redeemed`
+   - Updates aggregate tables (`triple_vault`, `triple_term`) via triggers if applicable
+   - Updates `Stats` (block number, contract balance)
+
+**Key Differences from Deposit**:
+- Decreases vault totals instead of increasing
+- Decreases position shares instead of increasing
+- Position may reach zero shares (position remains but is inactive)
+- Fees are deducted from assets received
 
 ## Queue Communication
 
