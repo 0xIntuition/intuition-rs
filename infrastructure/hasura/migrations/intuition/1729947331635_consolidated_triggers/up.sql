@@ -350,11 +350,34 @@ $$ LANGUAGE plpgsql;
 -- UPDATE position where shares go 0 → > 0 (reopen)
 CREATE OR REPLACE FUNCTION reopen_vault_position_count()
 RETURNS TRIGGER AS $$
+DECLARE
+    affected_rows INTEGER;
+    retry_count INTEGER := 0;
+    max_retries INTEGER := 3;
 BEGIN
   IF OLD.shares = 0 AND NEW.shares > 0 THEN
-    UPDATE vault
-    SET position_count = position_count + 1
-    WHERE term_id = NEW.term_id AND curve_id = NEW.curve_id;
+    LOOP
+      UPDATE vault
+      SET position_count = position_count + 1
+      WHERE term_id = NEW.term_id AND curve_id = NEW.curve_id;
+      
+      GET DIAGNOSTICS affected_rows = ROW_COUNT;
+      
+      -- If update succeeded or max retries reached, exit loop
+      IF affected_rows > 0 OR retry_count >= max_retries THEN
+        EXIT;
+      END IF;
+      
+      -- Wait briefly before retry (10ms)
+      PERFORM pg_sleep(0.01);
+      retry_count := retry_count + 1;
+    END LOOP;
+    
+    -- Log warning if all retries failed
+    IF affected_rows = 0 THEN
+      RAISE WARNING 'Failed to update vault position_count after % retries for term_id: %, curve_id: %', 
+        max_retries, NEW.term_id, NEW.curve_id;
+    END IF;
   END IF;
   RETURN NEW;
 END;
@@ -363,13 +386,72 @@ $$ LANGUAGE plpgsql;
 -- UPDATE position where shares go > 0 → 0 (close)
 CREATE OR REPLACE FUNCTION decrement_vault_position_count()
 RETURNS TRIGGER AS $$
+DECLARE
+    affected_rows INTEGER;
+    retry_count INTEGER := 0;
+    max_retries INTEGER := 3;
 BEGIN
   IF OLD.shares > 0 AND NEW.shares = 0 THEN
-    UPDATE vault
-    SET position_count = position_count - 1
-    WHERE term_id = NEW.term_id AND curve_id = NEW.curve_id;
+    LOOP
+      UPDATE vault
+      SET position_count = position_count - 1
+      WHERE term_id = NEW.term_id AND curve_id = NEW.curve_id;
+      
+      GET DIAGNOSTICS affected_rows = ROW_COUNT;
+      
+      -- If update succeeded or max retries reached, exit loop
+      IF affected_rows > 0 OR retry_count >= max_retries THEN
+        EXIT;
+      END IF;
+      
+      -- Wait briefly before retry (10ms)
+      PERFORM pg_sleep(0.01);
+      retry_count := retry_count + 1;
+    END LOOP;
+    
+    -- Log warning if all retries failed
+    IF affected_rows = 0 THEN
+      RAISE WARNING 'Failed to update vault position_count after % retries for term_id: %, curve_id: %', 
+        max_retries, NEW.term_id, NEW.curve_id;
+    END IF;
   END IF;
   RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- DELETE position - decrement vault position_count if shares > 0
+CREATE OR REPLACE FUNCTION delete_vault_position_count()
+RETURNS TRIGGER AS $$
+DECLARE
+    affected_rows INTEGER;
+    retry_count INTEGER := 0;
+    max_retries INTEGER := 3;
+BEGIN
+  IF OLD.shares > 0 THEN
+    LOOP
+      UPDATE vault
+      SET position_count = position_count - 1
+      WHERE term_id = OLD.term_id AND curve_id = OLD.curve_id;
+      
+      GET DIAGNOSTICS affected_rows = ROW_COUNT;
+      
+      -- If update succeeded or max retries reached, exit loop
+      IF affected_rows > 0 OR retry_count >= max_retries THEN
+        EXIT;
+      END IF;
+      
+      -- Wait briefly before retry (10ms)
+      PERFORM pg_sleep(0.01);
+      retry_count := retry_count + 1;
+    END LOOP;
+    
+    -- Log warning if all retries failed
+    IF affected_rows = 0 THEN
+      RAISE WARNING 'Failed to update vault position_count after % retries for term_id: %, curve_id: %', 
+        max_retries, OLD.term_id, OLD.curve_id;
+    END IF;
+  END IF;
+  RETURN OLD;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -558,6 +640,11 @@ CREATE TRIGGER position_delete_trigger
 AFTER DELETE ON position
 FOR EACH ROW
 EXECUTE FUNCTION delete_position_stats();
+
+CREATE TRIGGER position_delete_vault_count_trigger
+AFTER DELETE ON position
+FOR EACH ROW
+EXECUTE FUNCTION delete_vault_position_count();
 
 CREATE TRIGGER signal_insert_trigger
 AFTER INSERT ON signal
