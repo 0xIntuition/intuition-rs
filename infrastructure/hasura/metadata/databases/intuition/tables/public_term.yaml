@@ -35,9 +35,11 @@ object_relationships:
           schema: public
   - name: tripleById
     using:
-      foreign_key_constraint_on:
-        column: term_id
-        table:
+      manual_configuration:
+        column_mapping:
+          id: term_id
+        insertion_order: null
+        remote_table:
           name: triple
           schema: public
 array_relationships:
@@ -50,9 +52,11 @@ array_relationships:
           schema: public
   - name: positions
     using:
-      foreign_key_constraint_on:
-        column: term_id
-        table:
+      manual_configuration:
+        column_mapping:
+          id: term_id
+        insertion_order: null
+        remote_table:
           name: position
           schema: public
   - name: redemptions
@@ -159,9 +163,11 @@ array_relationships:
           schema: public
   - name: vaults
     using:
-      foreign_key_constraint_on:
-        column: term_id
-        table:
+      manual_configuration:
+        column_mapping:
+          id: term_id
+        insertion_order: null
+        remote_table:
           name: vault
           schema: public
 select_permissions:

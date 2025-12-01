@@ -10,10 +10,22 @@ configuration:
 object_relationships:
   - name: account
     using:
-      foreign_key_constraint_on: account_id
+      manual_configuration:
+        column_mapping:
+          account_id: id
+        insertion_order: null
+        remote_table:
+          name: account
+          schema: public
   - name: atom
     using:
-      foreign_key_constraint_on: id
+      manual_configuration:
+        column_mapping:
+          id: term_id
+        insertion_order: null
+        remote_table:
+          name: atom
+          schema: public
   - name: book
     using:
       manual_configuration:
@@ -34,7 +46,13 @@ object_relationships:
           schema: public
   - name: caip10
     using:
-      foreign_key_constraint_on: caip10_id
+      manual_configuration:
+        column_mapping:
+          caip10_id: id
+        insertion_order: null
+        remote_table:
+          name: caip10
+          schema: public
   - name: json_object
     using:
       manual_configuration:
