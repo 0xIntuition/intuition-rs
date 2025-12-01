@@ -54,37 +54,47 @@ array_relationships:
           schema: public
   - name: as_object_predicate_objects
     using:
-      foreign_key_constraint_on:
-        column: object_id
-        table:
+      manual_configuration:
+        column_mapping:
+          term_id: object_id
+        insertion_order: null
+        remote_table:
           name: predicate_object
           schema: public
   - name: as_object_triples
     using:
-      foreign_key_constraint_on:
-        column: object_id
-        table:
+      manual_configuration:
+        column_mapping:
+          term_id: object_id
+        insertion_order: null
+        remote_table:
           name: triple
           schema: public
   - name: as_predicate_predicate_objects
     using:
-      foreign_key_constraint_on:
-        column: predicate_id
-        table:
+      manual_configuration:
+        column_mapping:
+          term_id: predicate_id
+        insertion_order: null
+        remote_table:
           name: predicate_object
           schema: public
   - name: as_predicate_triples
     using:
-      foreign_key_constraint_on:
-        column: predicate_id
-        table:
+      manual_configuration:
+        column_mapping:
+          term_id: predicate_id
+        insertion_order: null
+        remote_table:
           name: triple
           schema: public
   - name: as_subject_triples
     using:
-      foreign_key_constraint_on:
-        column: subject_id
-        table:
+      manual_configuration:
+        column_mapping:
+          term_id: subject_id
+        insertion_order: null
+        remote_table:
           name: triple
           schema: public
   - name: positions

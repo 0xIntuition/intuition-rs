@@ -10,7 +10,13 @@ configuration:
 object_relationships:
   - name: atom
     using:
-      foreign_key_constraint_on: atom_id
+      manual_configuration:
+        column_mapping:
+          atom_id: term_id
+        insertion_order: null
+        remote_table:
+          name: atom
+          schema: public
 array_relationships:
   - name: atoms
     using:
