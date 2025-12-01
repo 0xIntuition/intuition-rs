@@ -39,3 +39,15 @@ select_permissions:
       filter: {}
       limit: 250
     comment: ""
+  - role: frontend
+    permission:
+      columns:
+        - counter_term_id
+        - term_id
+        - total_assets
+        - total_market_cap
+        - total_position_count
+        - updated_at
+      filter: {}
+      limit: 250
+    comment: ""

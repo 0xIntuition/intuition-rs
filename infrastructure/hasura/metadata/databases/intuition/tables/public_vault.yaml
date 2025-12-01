@@ -122,3 +122,22 @@ select_permissions:
       limit: 250
       allow_aggregations: true
     comment: ""
+  - role: frontend
+    permission:
+      columns:
+        - block_number
+        - log_index
+        - term_id
+        - position_count
+        - current_share_price
+        - curve_id
+        - market_cap
+        - total_assets
+        - total_shares
+        - transaction_hash
+        - created_at
+        - updated_at
+      filter: {}
+      limit: 250
+      allow_aggregations: true
+    comment: ""

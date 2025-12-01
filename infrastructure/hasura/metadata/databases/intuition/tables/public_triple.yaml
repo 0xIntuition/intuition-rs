@@ -116,3 +116,19 @@ select_permissions:
       limit: 250
       allow_aggregations: true
     comment: ""
+  - role: frontend
+    permission:
+      columns:
+        - transaction_hash
+        - block_number
+        - created_at
+        - counter_term_id
+        - term_id
+        - object_id
+        - predicate_id
+        - subject_id
+        - creator_id
+      filter: {}
+      limit: 250
+      allow_aggregations: true
+    comment: ""

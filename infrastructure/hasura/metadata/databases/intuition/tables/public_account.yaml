@@ -99,3 +99,15 @@ select_permissions:
       limit: 250
       allow_aggregations: true
     comment: ""
+  - role: frontend
+    permission:
+      columns:
+        - atom_id
+        - id
+        - image
+        - label
+        - type
+      filter: {}
+      limit: 250
+      allow_aggregations: true
+    comment: ""
