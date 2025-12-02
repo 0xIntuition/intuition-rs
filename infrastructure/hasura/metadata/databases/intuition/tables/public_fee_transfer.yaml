@@ -35,3 +35,17 @@ select_permissions:
       limit: 250
       allow_aggregations: true
     comment: ""
+  - role: frontend
+    permission:
+      columns:
+        - transaction_hash
+        - amount
+        - block_number
+        - created_at
+        - id
+        - receiver_id
+        - sender_id
+      filter: {}
+      limit: 250
+      allow_aggregations: true
+    comment: ""
