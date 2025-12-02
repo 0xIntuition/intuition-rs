@@ -3,10 +3,10 @@ use crate::{
     mode::{
         resolver::{
             atom_resolver::{try_to_parse_json_or_text, try_to_resolve_schema_org_url},
-            types::{ResolveAtom, ResolverConsumerMessage},
+            types::ResolverConsumerMessage,
         },
         types::DecodedConsumerContext,
-        utils::{get_or_create_account, short_id, update_account_with_atom_id},
+        utils::{get_or_create_account, short_id},
     },
 };
 use alloy::primitives::Address;
@@ -113,36 +113,27 @@ impl AtomMetadata {
     /// Stores the atom data in the database based on the atom type
     pub async fn handle_account_or_caip10_type(
         &self,
-        resolved_atom: &ResolveAtom,
+        atom: &mut Atom,
         decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<(), ConsumerError> {
         match AtomType::from_str(self.atom_type.as_str())? {
             AtomType::Account => {
-                debug!(
-                    "Updating account for: {}",
-                    resolved_atom.atom.data.clone().unwrap()
-                );
-                self.update_account_and_atom_value(resolved_atom, decoded_consumer_context)
+                debug!("Updating account for: {}", atom.data.clone().unwrap());
+                self.update_account_and_atom_value(atom, decoded_consumer_context)
                     .await
             }
             AtomType::Caip10 => {
-                debug!(
-                    "Creating caip10 for: {}",
-                    resolved_atom.atom.data.clone().unwrap()
-                );
+                debug!("Creating caip10 for: {}", atom.data.clone().unwrap());
                 Self::create_caip10(
-                    resolved_atom.atom.term_id.clone(),
-                    resolved_atom.atom.data.clone().unwrap(),
+                    atom.term_id.clone(),
+                    atom.data.clone().unwrap(),
                     decoded_consumer_context,
                 )
                 .await?;
                 Ok(())
             }
             _ => {
-                debug!(
-                    "This atom type is updated at the end of processing: {}",
-                    self.atom_type
-                );
+                debug!("No need to update atom type");
                 Ok(())
             }
         }
@@ -265,7 +256,7 @@ impl AtomMetadata {
     /// Creates an account and an atom value
     pub async fn update_account_and_atom_value(
         &self,
-        resolved_atom: &ResolveAtom,
+        atom: &mut Atom,
         decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<(), ConsumerError> {
         if self.atom_type != "Account" {
@@ -273,26 +264,23 @@ impl AtomMetadata {
             return Ok(());
         }
 
-        let mut account = get_or_create_account(
-            resolved_atom
-                .atom
-                .data
-                .clone()
-                .ok_or(ConsumerError::AtomDataNotFound)?,
+        let account = get_or_create_account(
+            atom.data.clone().unwrap(),
             decoded_consumer_context,
+            Some(atom.term_id.clone()),
         )
         .await?;
 
-        update_account_with_atom_id(
-            &mut account,
-            resolved_atom.atom.term_id.clone(),
-            decoded_consumer_context,
-        )
-        .await?;
+        // now we enqueue the message to be processed by the resolver
+        let message = ResolverConsumerMessage::new_account(account.clone());
+        decoded_consumer_context
+            .client
+            .send_message(serde_json::to_string(&message)?, None)
+            .await?;
 
         // Skip if atom value already exists
         if AtomValue::find_by_id(
-            resolved_atom.atom.term_id.clone(),
+            atom.term_id.clone(),
             &decoded_consumer_context.backend_schema,
             &decoded_consumer_context.pg_pool,
         )
@@ -304,7 +292,7 @@ impl AtomMetadata {
         }
 
         AtomValue::builder()
-            .id(resolved_atom.atom.term_id.clone())
+            .id(atom.term_id.clone())
             .account_id(account.id)
             .build()
             .upsert(
@@ -350,6 +338,32 @@ pub fn is_valid_address(address: &str) -> Result<bool, ConsumerError> {
         Ok(_) => Ok(true),
         Err(_) => Ok(false),
     }
+}
+
+/// Validates if a string is a valid EIP-155 address format without enforcing EIP-55 checksum
+///
+/// # Arguments
+/// * `address` - The address string to validate
+///
+/// # Returns
+/// * `bool` - True if valid EIP-155 address format, false otherwise
+///
+/// This function validates the hex address format (0x followed by 40 hex characters)
+/// but does not enforce EIP-55 checksum validation. Use this for CAIP-10 addresses
+/// where checksumming may not be enforced.
+pub fn is_valid_eip155_address(address: &str) -> bool {
+    // Must start with 0x
+    if !address.starts_with("0x") {
+        return false;
+    }
+
+    // Must be exactly 42 characters (0x + 40 hex chars)
+    if address.len() != 42 {
+        return false;
+    }
+
+    // All characters after 0x must be valid hex (0-9, a-f, A-F)
+    address[2..].chars().all(|c| c.is_ascii_hexdigit())
 }
 
 /// Validates if a string is a valid account format for non-Ethereum chains
@@ -428,9 +442,9 @@ pub fn is_valid_caip10(caip10: &str) -> Result<bool, ConsumerError> {
     let namespace = parts[1];
     let address = parts.last().unwrap();
 
-    // For eip155 chains, validate using EIP-55 checksum
+    // For eip155 chains, validate address format without enforcing EIP-55 checksum
     if namespace == "eip155" {
-        if !is_valid_address(address)? {
+        if !is_valid_eip155_address(address) {
             return Ok(false);
         }
     } else {
@@ -462,11 +476,13 @@ pub fn is_valid_caip10(caip10: &str) -> Result<bool, ConsumerError> {
 ///    of the JSON object and then map it to an atom.
 pub async fn get_supported_atom_metadata(
     atom: &mut Atom,
-    decoded_atom_data: &str,
     decoded_consumer_context: &DecodedConsumerContext,
 ) -> Result<AtomMetadata, ConsumerError> {
     // 1. Handling the happy path (schema.org URL, predicate)
-    if let Some(schema_org_url) = try_to_resolve_schema_org_url(decoded_atom_data).await? {
+    if let Some(schema_org_url) =
+        try_to_resolve_schema_org_url(&atom.data.clone().ok_or(ConsumerError::AtomDataNotFound)?)
+            .await?
+    {
         debug!("Schema.org URL found, returning predicate metadata...");
         // As we dont need to resolve anything, we can mark the atom as resolved
         atom.resolving_status = AtomResolvingStatus::Resolved;
@@ -476,17 +492,22 @@ pub async fn get_supported_atom_metadata(
     }
 
     // 2. Handling the happy path (address)
-    if is_valid_address(decoded_atom_data)? {
+    if is_valid_address(&atom.data.clone().ok_or(ConsumerError::AtomDataNotFound)?)? {
         debug!("Atom data is an address, returning account metadata...");
         // As we dont need to resolve anything, we can mark the atom as resolved
         atom.resolving_status = AtomResolvingStatus::Resolved;
-        Ok(AtomMetadata::address(decoded_atom_data, atom.image.clone()))
+        Ok(AtomMetadata::address(
+            &atom.data.clone().ok_or(ConsumerError::AtomDataNotFound)?,
+            atom.image.clone(),
+        ))
     // 3. Handling the happy path (CAIP10)
-    } else if is_valid_caip10(decoded_atom_data)? {
+    } else if is_valid_caip10(&atom.data.clone().ok_or(ConsumerError::AtomDataNotFound)?)? {
         debug!("Atom data is a CAIP10, returning account metadata...");
         // As we dont need to resolve anything, we can mark the atom as resolved
         atom.resolving_status = AtomResolvingStatus::Resolved;
-        Ok(AtomMetadata::caip10(decoded_atom_data.to_string()))
+        Ok(AtomMetadata::caip10(
+            atom.data.clone().ok_or(ConsumerError::AtomDataNotFound)?,
+        ))
     } else {
         debug!("Atom data is not an address, verifying if it's an IPFS URI...");
         // 4. Now we need to enqueue the message to be processed by the resolver
@@ -499,8 +520,12 @@ pub async fn get_supported_atom_metadata(
         // 5. Now we try to parse the JSON and return the metadata. At this point
         // the resolver will handle the rest of the cases, like text object,
         // byte object, etc.
-        let metadata =
-            try_to_parse_json_or_text(decoded_atom_data, atom, decoded_consumer_context).await?;
+        let metadata = try_to_parse_json_or_text(
+            &atom.data.clone().ok_or(ConsumerError::AtomDataNotFound)?,
+            atom,
+            decoded_consumer_context,
+        )
+        .await?;
 
         Ok(metadata)
     }

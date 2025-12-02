@@ -10,7 +10,13 @@ configuration:
 object_relationships:
   - name: receiver
     using:
-      foreign_key_constraint_on: receiver_id
+      manual_configuration:
+        column_mapping:
+          receiver_id: id
+        insertion_order: null
+        remote_table:
+          name: account
+          schema: public
   - name: sender
     using:
       manual_configuration:
@@ -22,6 +28,20 @@ object_relationships:
           schema: public
 select_permissions:
   - role: anonymous
+    permission:
+      columns:
+        - transaction_hash
+        - amount
+        - block_number
+        - created_at
+        - id
+        - receiver_id
+        - sender_id
+      filter: {}
+      limit: 250
+      allow_aggregations: true
+    comment: ""
+  - role: frontend
     permission:
       columns:
         - transaction_hash

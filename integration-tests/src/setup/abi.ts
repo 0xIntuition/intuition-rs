@@ -1113,7 +1113,7 @@ export const abi = [
   },
   {
     "type": "function",
-    "name": "getUserUtilization",
+    "name": "getUserUtilizationForEpoch",
     "inputs": [
       {
         "name": "user",
@@ -1137,7 +1137,7 @@ export const abi = [
   },
   {
     "type": "function",
-    "name": "getUserUtilizationForEpoch",
+    "name": "getUserUtilizationInEpoch",
     "inputs": [
       {
         "name": "user",

@@ -14,3 +14,15 @@ select_permissions:
       filter: {}
       limit: 250
     comment: ""
+  - role: frontend
+    permission:
+      columns:
+        - safe
+        - score
+        - model
+        - original_url
+        - url
+        - created_at
+      filter: {}
+      limit: 250
+    comment: ""

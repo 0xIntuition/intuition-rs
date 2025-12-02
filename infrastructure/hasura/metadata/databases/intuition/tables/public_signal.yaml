@@ -19,13 +19,31 @@ object_relationships:
           schema: public
   - name: deposit
     using:
-      foreign_key_constraint_on: deposit_id
+      manual_configuration:
+        column_mapping:
+          deposit_id: id
+        insertion_order: null
+        remote_table:
+          name: deposit
+          schema: public
   - name: redemption
     using:
-      foreign_key_constraint_on: redemption_id
+      manual_configuration:
+        column_mapping:
+          redemption_id: id
+        insertion_order: null
+        remote_table:
+          name: redemption
+          schema: public
   - name: term
     using:
-      foreign_key_constraint_on: term_id
+      manual_configuration:
+        column_mapping:
+          term_id: id
+        insertion_order: null
+        remote_table:
+          name: term
+          schema: public
   - name: vault
     using:
       manual_configuration:
@@ -38,6 +56,25 @@ object_relationships:
           schema: public
 select_permissions:
   - role: anonymous
+    permission:
+      columns:
+        - atom_id
+        - term_id
+        - triple_id
+        - block_number
+        - curve_id
+        - delta
+        - account_id
+        - deposit_id
+        - id
+        - redemption_id
+        - transaction_hash
+        - created_at
+      filter: {}
+      limit: 250
+      allow_aggregations: true
+    comment: ""
+  - role: frontend
     permission:
       columns:
         - atom_id

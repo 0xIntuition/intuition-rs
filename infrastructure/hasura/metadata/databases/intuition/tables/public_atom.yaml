@@ -19,58 +19,84 @@ object_relationships:
           schema: public
   - name: creator
     using:
-      foreign_key_constraint_on: creator_id
+      manual_configuration:
+        column_mapping:
+          creator_id: id
+        insertion_order: null
+        remote_table:
+          name: account
+          schema: public
   - name: term
     using:
-      foreign_key_constraint_on: term_id
+      manual_configuration:
+        column_mapping:
+          term_id: id
+        insertion_order: null
+        remote_table:
+          name: term
+          schema: public
   - name: value
     using:
-      foreign_key_constraint_on:
-        column: id
-        table:
+      manual_configuration:
+        column_mapping:
+          term_id: id
+        insertion_order: null
+        remote_table:
           name: atom_value
           schema: public
 array_relationships:
   - name: accounts
     using:
-      foreign_key_constraint_on:
-        column: atom_id
-        table:
+      manual_configuration:
+        column_mapping:
+          term_id: atom_id
+        insertion_order: null
+        remote_table:
           name: account
           schema: public
   - name: as_object_predicate_objects
     using:
-      foreign_key_constraint_on:
-        column: object_id
-        table:
+      manual_configuration:
+        column_mapping:
+          term_id: object_id
+        insertion_order: null
+        remote_table:
           name: predicate_object
           schema: public
   - name: as_object_triples
     using:
-      foreign_key_constraint_on:
-        column: object_id
-        table:
+      manual_configuration:
+        column_mapping:
+          term_id: object_id
+        insertion_order: null
+        remote_table:
           name: triple
           schema: public
   - name: as_predicate_predicate_objects
     using:
-      foreign_key_constraint_on:
-        column: predicate_id
-        table:
+      manual_configuration:
+        column_mapping:
+          term_id: predicate_id
+        insertion_order: null
+        remote_table:
           name: predicate_object
           schema: public
   - name: as_predicate_triples
     using:
-      foreign_key_constraint_on:
-        column: predicate_id
-        table:
+      manual_configuration:
+        column_mapping:
+          term_id: predicate_id
+        insertion_order: null
+        remote_table:
           name: triple
           schema: public
   - name: as_subject_triples
     using:
-      foreign_key_constraint_on:
-        column: subject_id
-        table:
+      manual_configuration:
+        column_mapping:
+          term_id: subject_id
+        insertion_order: null
+        remote_table:
           name: triple
           schema: public
   - name: positions
@@ -104,6 +130,29 @@ remote_relationships:
     name: cached_image
 select_permissions:
   - role: anonymous
+    permission:
+      columns:
+        - resolving_status
+        - type
+        - log_index
+        - term_id
+        - value_id
+        - block_number
+        - creator_id
+        - data
+        - emoji
+        - image
+        - label
+        - raw_data
+        - transaction_hash
+        - wallet_id
+        - created_at
+        - updated_at
+      filter: {}
+      limit: 250
+      allow_aggregations: true
+    comment: ""
+  - role: frontend
     permission:
       columns:
         - resolving_status

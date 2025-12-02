@@ -65,18 +65,18 @@ suite('random atom', () => {
 
     // Validate term structure
     expect(result.atom?.term).toBeDefined()
-    expect(result.atom?.term.type).toBe('Atom')
+    expect(result.atom?.term?.type).toBe('Atom')
 
     // Validate vaults
-    expect(result.atom?.term.vaults).toBeDefined()
-    expect(result.atom?.term.vaults.length).toBe(1)
+    expect(result.atom?.term?.vaults).toBeDefined()
+    expect(result.atom?.term?.vaults.length).toBe(1)
 
-    const vault = result.atom?.term.vaults[0]
+    const vault = result.atom?.term?.vaults[0]
     expect(vault?.curve_id).toBe('1')
     expect(vault?.position_count).toBe(1)
-    expect(vault?.total_assets).toBe('980000001000000')
-    expect(vault?.total_shares).toBe('980000001000000')
-    expect(vault?.market_cap).toBe('980000001000000')
+    expect(vault?.total_assets).toBe('9825000001000000')
+    expect(vault?.total_shares).toBe('9825000001000000')
+    expect(vault?.market_cap).toBe('9825000001000000')
 
     // Validate positions
     expect(vault?.positions).toBeDefined()
@@ -84,20 +84,20 @@ suite('random atom', () => {
 
     const position = vault?.positions[0]
     expect(position?.account_id).toBe(user.account.address)
-    expect(position?.shares).toBe('980000000000000')
-    expect(position?.total_deposit_assets_after_total_fees).toBe('980000000000000')
+    expect(position?.shares).toBe('9825000000000000')
+    expect(position?.total_deposit_assets_after_total_fees).toBe('9825000000000000')
     expect(position?.total_redeem_assets_for_receiver).toBe('0')
 
     // Validate deposits
-    expect(result.atom?.term.deposits).toBeDefined()
-    expect(result.atom?.term.deposits.length).toBeGreaterThan(0)
+    expect(result.atom?.term?.deposits).toBeDefined()
+    expect(result.atom?.term?.deposits.length).toBeGreaterThan(0)
 
-    const deposit = result.atom?.term.deposits[0]
+    const deposit = result.atom?.term?.deposits[0]
     expect(deposit?.curve_id).toBe('1')
     expect(deposit?.sender_id).toBe(user.account.address)
     expect(deposit?.receiver_id).toBe(user.account.address)
-    expect(deposit?.shares).toBe('980000000000000')
-    expect(deposit?.assets_after_fees).toBe('980000000000000')
+    expect(deposit?.shares).toBe('9825000000000000')
+    expect(deposit?.assets_after_fees).toBe('9825000000000000')
     expect(deposit?.vault_type).toBe('Atom')
 
     // Validate share price changes
@@ -106,8 +106,8 @@ suite('random atom', () => {
 
     const sharePriceChange = result.atom?.term.share_price_changes[0]
     expect(sharePriceChange?.curve_id).toBe('1')
-    expect(sharePriceChange?.total_assets).toBe('980000001000000')
-    expect(sharePriceChange?.total_shares).toBe('980000001000000')
+    expect(sharePriceChange?.total_assets).toBe('9825000001000000')
+    expect(sharePriceChange?.total_shares).toBe('9825000001000000')
 
 
   })

@@ -4,7 +4,6 @@ use crate::{
     mode::{
         decoded::utils::{EventHandler, get_block_timestamp},
         metadata::get_supported_atom_metadata,
-        resolver::types::ResolveAtom,
         types::DecodedConsumerContext,
     },
     schemas::types::DecodedMessage,
@@ -52,19 +51,12 @@ where
         // Get or create the vault and atom
         let mut atom = self
             .0
-            .get_or_create_vault_atom(decoded_consumer_context, event)
+            .create_atom_wallet_account_and_atom(decoded_consumer_context, event)
             .await?;
-
-        // decode the hex data from the atomData.
-        let decoded_atom_data = self
-            .0
-            .decode_atom_data_and_update_atom(&mut atom, decoded_consumer_context, event)
-            .await?;
-        debug!("Decoded atom data and updated atom");
 
         // get the supported atom metadata and update the atom metadata
         let supported_atom_metadata =
-            get_supported_atom_metadata(&mut atom, &decoded_atom_data, decoded_consumer_context)
+            get_supported_atom_metadata(&mut atom, decoded_consumer_context)
                 .await?
                 .update_atom_metadata(
                     &mut atom,
@@ -73,11 +65,16 @@ where
                 )
                 .await?;
         debug!("Updated atom metadata: {:?}", supported_atom_metadata);
+        // we Insert the atom in the database with the data we have so far
+        atom.upsert(
+            &decoded_consumer_context.backend_schema,
+            &decoded_consumer_context.pg_pool,
+        )
+        .await?;
 
         // Handle the account or caip10 type
-        let resolved_atom = ResolveAtom { atom: atom.clone() };
         supported_atom_metadata
-            .handle_account_or_caip10_type(&resolved_atom, decoded_consumer_context)
+            .handle_account_or_caip10_type(&mut atom, decoded_consumer_context)
             .await?;
         debug!("Handled account or caip10 type");
 

@@ -17,6 +17,7 @@ if [ -f "$PROJECT_ROOT/.env" ]; then
   export LINEA_SEPOLIA_RPC_URL
   export TRUST_TESTNET_RPC_URL
   export TRUST_MAINNET_RPC_URL
+  export LOCAL_INTUITION_RPC_URL
 else
   echo "Warning: .env file not found at $PROJECT_ROOT/.env"
   echo "Some environment variables may not be set. Create a .env file with required variables:"
@@ -33,7 +34,7 @@ else
 fi
 
 # Start shared services
-docker compose -p intuition -f docker/docker-compose-shared.yml up database pgai-installer vectorizer-worker drizzle-studio redis redis-setup ipfs safe-content graphql-engine indexer-migrations hasura-migrations prometheus grafana -d --wait --force-recreate
+docker compose -p intuition -f docker/docker-compose-shared.yml up database pgai-installer vectorizer-worker redis redis-setup ipfs safe-content graphql-engine indexer-migrations hasura-migrations prometheus grafana -d --wait --force-recreate
 
 export INITIAL_CONTRACT_VERSION="v2"
 # First arg is indexer schema
@@ -72,6 +73,7 @@ if [ "$INDEXER_SCHEMA" == "local" ]; then
   export INDEXER_SCHEMA="local"
   export BASE_SEPOLIA_RPC_URL="http://reth:8545"
   export BASE_MAINNET_RPC_URL="http://reth:8545"
+  export LOCAL_INTUITION_RPC_URL="http://reth:8545"
 fi
 
 if [ "$2" == "test" ]; then
@@ -83,7 +85,7 @@ fi
 docker compose -p intuition -f docker/docker-compose-apps.yml up resolver_consumer ipfs_upload_consumer decoded_consumer api prod-rpc-proxy histocrawler -d --force-recreate
 
 echo -e "\nGraphQL: http://localhost:8080/console"
-echo -e "Database: https://local.drizzle.studio/"
+# echo -e "Database: https://local.drizzle.studio/"
 echo -e "Grafana: http://localhost:3001 (admin/admin)"
 echo -e "Prometheus: http://localhost:9090"
 echo -e "\n"

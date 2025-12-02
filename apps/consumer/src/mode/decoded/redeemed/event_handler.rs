@@ -62,9 +62,9 @@ where
 
         // 2. Set up accounts
         let sender_account =
-            get_or_create_account(self.0.sender()?, decoded_consumer_context).await?;
+            get_or_create_account(self.0.sender()?, decoded_consumer_context, None).await?;
         let receiver_account =
-            get_or_create_account(self.0.receiver()?, decoded_consumer_context).await?;
+            get_or_create_account(self.0.receiver()?, decoded_consumer_context, None).await?;
 
         // 3. Create redemption record
         self.0

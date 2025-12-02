@@ -39,6 +39,7 @@ actions:
         version: 2
     permissions:
       - role: anonymous
+      - role: frontend
     comment: Uploads and pins Organization to IPFS
   - name: pinPerson
     definition:
@@ -81,6 +82,7 @@ actions:
         version: 2
     permissions:
       - role: anonymous
+      - role: frontend
     comment: Uploads and pins Person to IPFS
   - name: pinThing
     definition:
@@ -121,6 +123,7 @@ actions:
         version: 2
     permissions:
       - role: anonymous
+      - role: frontend
     comment: Uploads and pins Thing to IPFS
 custom_types:
   enums: []

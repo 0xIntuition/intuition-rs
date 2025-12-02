@@ -16,7 +16,7 @@ services:
       PINATA_GATEWAY_TOKEN: $PINATA_GATEWAY_TOKEN
       PG_MIN_CONNECTIONS: '5'
       RESOLVER_STREAM: 'resolver_stream'
-      RPC_URL_BASE: "http://prod-rpc-proxy:3008/8545/proxy"
+      RPC_URL_BASE: "http://prod-rpc-proxy:3008/31337/proxy"
       RPC_URL_MAINNET: "http://prod-rpc-proxy:3008/1/proxy"
       RUST_LOG: 'info'
       BACKEND_SCHEMA: 'public'
@@ -68,7 +68,7 @@ services:
       LOCALSTACK_URL: 'http://redis:6379'
       PG_MIN_CONNECTIONS: '20'
       RESOLVER_STREAM: 'resolver_stream'
-      RPC_URL_BASE: "http://prod-rpc-proxy:3008/8545/proxy"
+      RPC_URL_BASE: "http://prod-rpc-proxy:3008/31337/proxy"
       RUST_LOG: 'info'
       BACKEND_SCHEMA: 'public'
       REDIS_URL: 'redis://redis:6379'
@@ -116,6 +116,7 @@ services:
       LINEA_SEPOLIA_RPC_URL: $LINEA_SEPOLIA_RPC_URL
       TRUST_TESTNET_RPC_URL: $TRUST_TESTNET_RPC_URL
       TRUST_MAINNET_RPC_URL: $TRUST_MAINNET_RPC_URL
+      LOCAL_INTUITION_RPC_URL: $LOCAL_INTUITION_RPC_URL
       RUST_LOG: 'info'
     restart: always
     ports:

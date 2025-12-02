@@ -25,6 +25,7 @@ impl Model for TripleTerm {}
 #[async_trait]
 impl SimpleCrud<FixedBytesWrapper> for TripleTerm {
     /// This method upserts a triple term into the database.
+    /// NOTE: total_position_count is intentionally excluded from the UPDATE clause to preserve values set by database triggers.
     async fn upsert<'e, E>(&self, schema: &str, executor: E) -> Result<Self, ModelError>
     where
         E: Executor<'e, Database = Postgres>,
@@ -36,7 +37,7 @@ impl SimpleCrud<FixedBytesWrapper> for TripleTerm {
             ON CONFLICT (term_id) DO UPDATE SET
                 total_assets = EXCLUDED.total_assets,
                 total_market_cap = EXCLUDED.total_market_cap,
-                total_position_count = EXCLUDED.total_position_count,
+                -- total_position_count is NOT updated here - it's managed by database triggers
                 updated_at = EXCLUDED.updated_at
             RETURNING term_id, counter_term_id, total_assets, total_market_cap, total_position_count, updated_at
             "#,

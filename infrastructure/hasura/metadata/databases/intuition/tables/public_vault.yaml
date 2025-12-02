@@ -10,7 +10,13 @@ configuration:
 object_relationships:
   - name: term
     using:
-      foreign_key_constraint_on: term_id
+      manual_configuration:
+        column_mapping:
+          term_id: id
+        insertion_order: null
+        remote_table:
+          name: term
+          schema: public
 array_relationships:
   - name: deposits
     using:
@@ -104,6 +110,25 @@ array_relationships:
           schema: public
 select_permissions:
   - role: anonymous
+    permission:
+      columns:
+        - block_number
+        - log_index
+        - term_id
+        - position_count
+        - current_share_price
+        - curve_id
+        - market_cap
+        - total_assets
+        - total_shares
+        - transaction_hash
+        - created_at
+        - updated_at
+      filter: {}
+      limit: 250
+      allow_aggregations: true
+    comment: ""
+  - role: frontend
     permission:
       columns:
         - block_number

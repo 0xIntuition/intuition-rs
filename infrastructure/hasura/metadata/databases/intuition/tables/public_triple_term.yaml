@@ -10,12 +10,36 @@ configuration:
 object_relationships:
   - name: counter_term
     using:
-      foreign_key_constraint_on: counter_term_id
+      manual_configuration:
+        column_mapping:
+          counter_term_id: id
+        insertion_order: null
+        remote_table:
+          name: term
+          schema: public
   - name: term
     using:
-      foreign_key_constraint_on: term_id
+      manual_configuration:
+        column_mapping:
+          term_id: id
+        insertion_order: null
+        remote_table:
+          name: term
+          schema: public
 select_permissions:
   - role: anonymous
+    permission:
+      columns:
+        - counter_term_id
+        - term_id
+        - total_assets
+        - total_market_cap
+        - total_position_count
+        - updated_at
+      filter: {}
+      limit: 250
+    comment: ""
+  - role: frontend
     permission:
       columns:
         - counter_term_id

@@ -25,3 +25,16 @@ select_permissions:
       filter: {}
       limit: 1000
     comment: ""
+  - role: frontend
+    permission:
+      columns:
+        - change_count
+        - curve_id
+        - difference
+        - first_share_price
+        - last_share_price
+        - term_id
+        - bucket
+      filter: {}
+      limit: 1000
+    comment: ""
