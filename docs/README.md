@@ -40,18 +40,17 @@ Documentation of the existing multi-stage consumer pipeline architecture.
 
 ---
 
-### [RELEVANCE_SCORING_FORMULA.md](./RELEVANCE_SCORING_FORMULA.md)
-**Relevance Scoring Formula for Search**
+### [BACKEND_REQUIREMENTS.md](./BACKEND_REQUIREMENTS.md)
+**Backend Feature Requirements**
 
-Mathematical formula for ranking Atoms and Triples by relevance in search results.
+Tracking document for backend feature requirements and enhancements.
 
 **Key Topics:**
-- Relevance Score formula combining Magnitude and Recency
-- Net Position Magnitude calculation
-- Exponential decay recency factor with tunable parameters
-- Implementation guidance for API and indexing services
+- Real-time event streaming for frontend (replacing polling)
+- Time series API for share price data
+- Developer experience improvements
 
-**Formula:** `R = (Net Position Magnitude) × (Recency Factor)`
+**Use Case:** Planning and tracking backend feature development.
 
 ---
 
@@ -61,7 +60,6 @@ Mathematical formula for ranking Atoms and Triples by relevance in search result
 
 **Planning a migration?** Review [ARCHITECTURE_PROPOSAL.md](./ARCHITECTURE_PROPOSAL.md) for the proposed Event Sourcing architecture.
 
-**Implementing search?** See [RELEVANCE_SCORING_FORMULA.md](./RELEVANCE_SCORING_FORMULA.md) for the ranking algorithm.
 
 ---
 
@@ -71,7 +69,7 @@ Mathematical formula for ranking Atoms and Triples by relevance in search result
 |----------|--------|--------------|
 | ARCHITECTURE_PROPOSAL.md | Production-Ready Spec | v3.0 |
 | SYSTEM_ARCHITECTURE_CURRENT.md | Current System Docs | Active |
-| RELEVANCE_SCORING_FORMULA.md | Design Specification | Active |
+| BACKEND_REQUIREMENTS.md | Active | 2025-01-XX |
 
 ---
 
