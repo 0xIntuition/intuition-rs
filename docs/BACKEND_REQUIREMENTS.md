@@ -105,6 +105,79 @@ Make the backend easy to run for developers, reducing setup friction and onboard
 
 ---
 
+### 4. Season 2 Airdrop Features
+
+**Status:** 🔴 Needs Discussion  
+**Priority:** High
+
+**Requirement:**
+Backend support for Season 2 Airdrop program, including enhanced data tracking, PNL calculations, and economic game mechanics.
+
+**Details:**
+
+#### 4.1 Oppose/Support Data Enhancement
+- Make oppose and support actions more useful and trackable
+- Provide data insights on oppose/support patterns
+- Enable analysis of user behavior around these actions
+
+#### 4.2 Portal & Economic Game Mechanics
+**Context:** Portal is much larger than username, making economic games less compelling. Need to:
+- Make clear the behaviors we are trying to incentivize
+- Direct people to specific regions of the knowledge graph
+- Concentrate monetary activity in certain regions
+- Improve early adopter experience
+
+**Requirements:**
+- API endpoints to query knowledge graph regions
+- Tracking of user activity by graph region
+- Metrics for monetary activity concentration
+- Behavioral incentive tracking
+
+#### 4.3 Fee Tracking
+- Track all fees associated with positions and transactions
+- Provide fee breakdown by transaction type
+- Support fee history queries
+- Calculate total fees paid per user/vault/position
+
+#### 4.4 PNL (Profit & Loss) Calculations
+- **Realized PNL:** Calculate PNL for closed positions
+- **Unrealized PNL:** Calculate current PNL for open positions
+- **PNL Granularity:**
+  - Global PNL (across all positions)
+  - Atom-specific PNL
+  - Triple-specific PNL
+- Support historical PNL queries
+
+#### 4.5 Position Timeseries Data
+- Track when positions were opened
+- Track when positions were closed (if applicable)
+- Current status of positions (open/closed)
+- Position lifecycle events timeline
+- Support queries for position history over time ranges
+
+**API Considerations:**
+- Endpoints for PNL queries (realized, unrealized, by scope)
+- Position timeseries endpoints
+- Fee tracking and reporting endpoints
+- Knowledge graph region activity endpoints
+- Behavioral metrics endpoints
+
+**Data Requirements:**
+- Position open/close timestamps
+- Fee tracking tables/aggregates
+- PNL calculation logic (realized vs unrealized)
+- Knowledge graph region mapping
+- User activity tracking by region
+
+**Open Questions:**
+- How should PNL be calculated? (mark-to-market, cost basis, etc.)
+- What time granularity is needed for position timeseries?
+- How to define "regions" of the knowledge graph?
+- What specific behaviors should be tracked for incentives?
+- How to handle partial position closes for PNL calculations?
+
+---
+
 ## 📝 Notes
 
 - This document should be updated as requirements are clarified and implemented
