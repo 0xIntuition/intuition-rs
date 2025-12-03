@@ -70,6 +70,12 @@ Provide an API endpoint that returns time series data for share price changes, w
 - Consider TimescaleDB continuous aggregates for performance
 - Cache frequently requested ranges
 
+**Additional Use Cases:**
+Time-series data work will also serve:
+- (1) User portfolio tracking
+- (2) Trending markets for explore
+- (3) Unlock leaderboards
+
 ---
 
 ### 3. Developer Experience: Easy Backend Setup
@@ -123,21 +129,33 @@ Backend support for Season 2 Airdrop program, including enhanced data tracking, 
 #### 4.2 Portal & Economic Game Mechanics
 **Context:** Portal is much larger than username, making economic games less compelling. Need to:
 - Make clear the behaviors we are trying to incentivize
-- Direct people to specific regions of the knowledge graph
-- Concentrate monetary activity in certain regions
+- Direct people to contribute and curate along specific guidelines
+- Concentrate monetary activity in certain areas
 - Improve early adopter experience
 
 **Requirements:**
-- API endpoints to query knowledge graph regions
-- Tracking of user activity by graph region
+- Flexible system to direct users to focus areas (implementation-agnostic):
+  - Specific lists
+  - Specific tags
+  - Specific sets of skills
+  - Sections of the knowledge graph (when available)
+  - Other targeting mechanisms as needed
+- API endpoints to query and filter by these focus areas
+- Tracking of user activity by focus area
 - Metrics for monetary activity concentration
 - Behavioral incentive tracking
 
-#### 4.3 Fee Tracking
+**Note:** Since we're not using latent space yet, this requirement should be characterized broadly to allow flexibility in how we solve the problem. The goal is to enable directing users to contribute/curate along specific guidelines, regardless of the underlying mechanism.
+
+#### 4.3 Fee Tracking & Trading Volume
 - Track all fees associated with positions and transactions
 - Provide fee breakdown by transaction type
 - Support fee history queries
 - Calculate total fees paid per user/vault/position
+- **Trading Volume:** Track and display trading volume metrics
+  - Trading volume shows the same results as protocol fees but presents bigger numbers from the end user's perspective
+  - Makes the platform feel more impressive and engaging
+  - Support volume queries per user/vault/position/time period
 
 #### 4.4 PNL (Profit & Loss) Calculations
 - **Realized PNL:** Calculate PNL for closed positions
@@ -159,22 +177,25 @@ Backend support for Season 2 Airdrop program, including enhanced data tracking, 
 - Endpoints for PNL queries (realized, unrealized, by scope)
 - Position timeseries endpoints
 - Fee tracking and reporting endpoints
-- Knowledge graph region activity endpoints
+- Trading volume endpoints
+- Focus area activity endpoints (flexible targeting mechanism)
 - Behavioral metrics endpoints
 
 **Data Requirements:**
 - Position open/close timestamps
 - Fee tracking tables/aggregates
+- Trading volume tracking and aggregates
 - PNL calculation logic (realized vs unrealized)
-- Knowledge graph region mapping
-- User activity tracking by region
+- Focus area mapping (lists, tags, skills, knowledge graph sections, etc.)
+- User activity tracking by focus area
 
 **Open Questions:**
 - How should PNL be calculated? (mark-to-market, cost basis, etc.)
 - What time granularity is needed for position timeseries?
-- How to define "regions" of the knowledge graph?
+- What specific focus areas should be prioritized? (lists, tags, skills, knowledge graph sections, etc.)
 - What specific behaviors should be tracked for incentives?
 - How to handle partial position closes for PNL calculations?
+- How should trading volume be calculated and aggregated?
 
 ---
 
