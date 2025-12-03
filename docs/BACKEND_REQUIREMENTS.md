@@ -70,12 +70,6 @@ Provide an API endpoint that returns time series data for share price changes, w
 - Consider TimescaleDB continuous aggregates for performance
 - Cache frequently requested ranges
 
-**Additional Use Cases:**
-Time-series data work will also serve:
-- (1) User portfolio tracking
-- (2) Trending markets for explore
-- (3) Unlock leaderboards
-
 ---
 
 ### 3. Developer Experience: Easy Backend Setup
@@ -172,6 +166,11 @@ Backend support for Season 2 Airdrop program, including enhanced data tracking, 
 - Current status of positions (open/closed)
 - Position lifecycle events timeline
 - Support queries for position history over time ranges
+
+**Note:** Time-series data work for Season 2 Airdrop will also serve:
+- (1) User portfolio tracking
+- (2) Trending markets for explore
+- (3) Unlock leaderboards
 
 **API Considerations:**
 - Endpoints for PNL queries (realized, unrealized, by scope)
