@@ -198,6 +198,59 @@ Backend support for Season 2 Airdrop program, including enhanced data tracking, 
 
 ---
 
+### 5. Vector Database Support for Search & Relations
+
+**Status:** 🔴 Needs Discussion  
+**Priority:** Medium
+
+**Requirement:**
+Support vector databases to enable search engines and easy relation discovery in the data. Determine the optimal data format to serve data for efficient relation finding.
+
+**Details:**
+- Prepare data format/structure that supports vector embeddings
+- Enable semantic search capabilities across the knowledge graph
+- Support relation discovery between entities (atoms, triples, users, etc.)
+- Design data pipeline to generate and maintain vector embeddings
+- Ensure data format allows for efficient similarity searches
+
+**Use Cases:**
+- Plug search engines into the data
+- Find related entities based on semantic similarity
+- Discover connections in the knowledge graph
+- Enable recommendation systems based on similarity
+
+**Technical Considerations:**
+- Vector database selection (Pinecone, Weaviate, Qdrant, pgvector, etc.)
+- Embedding model selection and integration
+- Data transformation pipeline (structured data → embeddings)
+- Update strategy for embeddings when data changes
+- Storage and indexing requirements
+- Query performance and scalability
+- Integration with existing PostgreSQL/TimescaleDB infrastructure
+
+**Data Format Requirements:**
+- Determine what entities need vector representations:
+  - Atoms (concepts, skills, etc.)
+  - Triples (relationships)
+  - User profiles/activity
+  - Vault descriptions
+  - Other entities?
+- Metadata structure to accompany vectors
+- Relationship preservation in vector space
+- Multi-modal support (text, structured data, etc.)
+
+**Open Questions:**
+- What specific search/relation use cases are highest priority?
+- Which vector database solution fits best with current infrastructure?
+- How frequently do embeddings need to be updated?
+- What embedding dimensions are needed?
+- Should we use pre-trained models or fine-tune?
+- How to handle incremental updates vs full re-indexing?
+- What is the expected query volume and latency requirements?
+- How to maintain consistency between source data and vector representations?
+
+---
+
 ## 📝 Notes
 
 - This document should be updated as requirements are clarified and implemented
