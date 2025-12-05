@@ -530,6 +530,12 @@ pub fn parse_caip22(caip22: &str) -> Result<ParsedCaip22, ConsumerError> {
         return Err(ConsumerError::InvalidCaip22);
     }
 
+    // Validate token_id length (U256 max is 2^256-1, which is 77 digits)
+    // This prevents potential overflow/parsing issues
+    if token_id.len() > 77 {
+        return Err(ConsumerError::TokenIdTooLong(token_id.len()));
+    }
+
     Ok(ParsedCaip22 {
         namespace: namespace.to_string(),
         chain_id,
@@ -749,6 +755,32 @@ mod tests {
         assert_eq!(parsed3.asset_namespace, "erc1155");
 
         Ok(())
+    }
+
+    #[test]
+    fn test_parse_caip22_token_id_length_validation() {
+        // Valid token ID (77 digits is the max for U256)
+        let valid_77_digits = format!(
+            "caip22:eip155:1/erc721:0x76BE3b62873462d2142405439777e971754E8E77/{}",
+            "1".repeat(77)
+        );
+        assert!(parse_caip22(&valid_77_digits).is_ok());
+
+        // Invalid: token ID too long (78 digits)
+        let invalid_78_digits = format!(
+            "caip22:eip155:1/erc721:0x76BE3b62873462d2142405439777e971754E8E77/{}",
+            "1".repeat(78)
+        );
+        let result = parse_caip22(&invalid_78_digits);
+        assert!(matches!(result, Err(ConsumerError::TokenIdTooLong(78))));
+
+        // Invalid: extremely long token ID
+        let invalid_100_digits = format!(
+            "caip22:eip155:1/erc721:0x76BE3b62873462d2142405439777e971754E8E77/{}",
+            "9".repeat(100)
+        );
+        let result = parse_caip22(&invalid_100_digits);
+        assert!(matches!(result, Err(ConsumerError::TokenIdTooLong(100))));
     }
 
     #[test]

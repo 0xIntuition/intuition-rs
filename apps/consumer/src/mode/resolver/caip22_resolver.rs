@@ -15,10 +15,22 @@ use alloy::{
 };
 use models::{atom::Atom, traits::SimpleCrud};
 use serde_json::Value;
-use std::str::FromStr;
+use std::{net::IpAddr, str::FromStr, time::Duration};
 use tracing::{debug, warn};
+use url::Url;
 
-/// Gets the RPC URL for a given chain ID from environment configuration
+/// Maximum response size for metadata fetches (1 MB)
+const MAX_RESPONSE_SIZE: usize = 1024 * 1024;
+
+/// Maximum base64 input length (slightly more than MAX_RESPONSE_SIZE to account for encoding overhead)
+const MAX_BASE64_INPUT_LENGTH: usize = 1024 * 1024 + 100_000;
+
+/// HTTP request timeout in seconds
+const HTTP_TIMEOUT_SECS: u64 = 30;
+
+/// Gets the RPC URL for a given chain ID from environment configuration.
+/// Returns `ChainRpcNotConfigured` if chain is supported but RPC URL is missing,
+/// or `UnsupportedChain` if the chain ID is not supported at all.
 fn get_rpc_url_for_chain(
     chain_id: i64,
     resolver_consumer_context: &ResolverConsumerContext,
@@ -29,40 +41,107 @@ fn get_rpc_url_for_chain(
         1 => env
             .ethereum_mainnet_rpc_url
             .clone()
-            .ok_or(ConsumerError::UnsupportedChain(chain_id)),
+            .ok_or(ConsumerError::ChainRpcNotConfigured(chain_id)),
         11155111 => env
             .ethereum_sepolia_rpc_url
             .clone()
-            .ok_or(ConsumerError::UnsupportedChain(chain_id)),
+            .ok_or(ConsumerError::ChainRpcNotConfigured(chain_id)),
         8453 => env
             .base_mainnet_rpc_url
             .clone()
-            .ok_or(ConsumerError::UnsupportedChain(chain_id)),
+            .ok_or(ConsumerError::ChainRpcNotConfigured(chain_id)),
         84532 => env
             .base_sepolia_rpc_url
             .clone()
-            .ok_or(ConsumerError::UnsupportedChain(chain_id)),
+            .ok_or(ConsumerError::ChainRpcNotConfigured(chain_id)),
         59144 => env
             .linea_mainnet_rpc_url
             .clone()
-            .ok_or(ConsumerError::UnsupportedChain(chain_id)),
+            .ok_or(ConsumerError::ChainRpcNotConfigured(chain_id)),
         59141 => env
             .linea_sepolia_rpc_url
             .clone()
-            .ok_or(ConsumerError::UnsupportedChain(chain_id)),
+            .ok_or(ConsumerError::ChainRpcNotConfigured(chain_id)),
         1155 => env
             .trust_mainnet_rpc_url
             .clone()
-            .ok_or(ConsumerError::UnsupportedChain(chain_id)),
+            .ok_or(ConsumerError::ChainRpcNotConfigured(chain_id)),
         13579 => env
             .trust_testnet_rpc_url
             .clone()
-            .ok_or(ConsumerError::UnsupportedChain(chain_id)),
+            .ok_or(ConsumerError::ChainRpcNotConfigured(chain_id)),
         31337 => env
             .local_intuition_rpc_url
             .clone()
-            .ok_or(ConsumerError::UnsupportedChain(chain_id)),
+            .ok_or(ConsumerError::ChainRpcNotConfigured(chain_id)),
         _ => Err(ConsumerError::UnsupportedChain(chain_id)),
+    }
+}
+
+/// Creates a configured HTTP client with timeout
+fn create_http_client() -> Result<reqwest::Client, ConsumerError> {
+    reqwest::Client::builder()
+        .timeout(Duration::from_secs(HTTP_TIMEOUT_SECS))
+        .build()
+        .map_err(ConsumerError::from)
+}
+
+/// Validates that a URL does not point to internal/private networks (SSRF protection)
+fn validate_url_not_internal(url_str: &str) -> Result<(), ConsumerError> {
+    let url = Url::parse(url_str).map_err(|_| ConsumerError::UnsupportedTokenUri(url_str.to_string()))?;
+
+    // Get the host
+    let host = url.host_str().ok_or_else(|| ConsumerError::UnsupportedTokenUri(url_str.to_string()))?;
+
+    // Check for localhost variants
+    if host == "localhost" || host == "127.0.0.1" || host == "::1" || host == "[::1]" {
+        return Err(ConsumerError::SsrfBlocked(url_str.to_string()));
+    }
+
+    // Try to parse as IP address and check for private ranges
+    if let Ok(ip) = host.parse::<IpAddr>() {
+        if is_private_ip(&ip) {
+            return Err(ConsumerError::SsrfBlocked(url_str.to_string()));
+        }
+    }
+
+    // Also check common internal hostnames
+    let host_lower = host.to_lowercase();
+    if host_lower.ends_with(".local")
+        || host_lower.ends_with(".internal")
+        || host_lower.ends_with(".localhost")
+        || host_lower == "metadata.google.internal"
+        || host_lower == "169.254.169.254"
+    {
+        return Err(ConsumerError::SsrfBlocked(url_str.to_string()));
+    }
+
+    Ok(())
+}
+
+/// Checks if an IP address is in a private/internal range
+fn is_private_ip(ip: &IpAddr) -> bool {
+    match ip {
+        IpAddr::V4(ipv4) => {
+            // Private ranges: 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16
+            // Loopback: 127.0.0.0/8
+            // Link-local: 169.254.0.0/16
+            // Carrier-grade NAT: 100.64.0.0/10
+            ipv4.is_private()
+                || ipv4.is_loopback()
+                || ipv4.is_link_local()
+                || ipv4.octets()[0] == 100 && (ipv4.octets()[1] & 0xC0) == 64 // 100.64.0.0/10
+                || ipv4.is_broadcast()
+                || ipv4.is_documentation()
+        }
+        IpAddr::V6(ipv6) => {
+            ipv6.is_loopback()
+                || ipv6.is_unspecified()
+                // Unique local addresses (fc00::/7)
+                || (ipv6.segments()[0] & 0xfe00) == 0xfc00
+                // Link-local (fe80::/10)
+                || (ipv6.segments()[0] & 0xffc0) == 0xfe80
+        }
     }
 }
 
@@ -182,6 +261,7 @@ async fn queue_image_for_ipfs(
 }
 
 /// Fetches token metadata from a URI (handles IPFS, HTTP, data URIs)
+/// Includes SSRF protection, request timeouts, and response size limits.
 async fn fetch_token_metadata(
     token_uri: &str,
     resolver_consumer_context: &ResolverConsumerContext,
@@ -197,14 +277,18 @@ async fn fetch_token_metadata(
                 warn!("Failed to fetch from IPFS: {}", e);
                 ConsumerError::UnsupportedTokenUri(token_uri.to_string())
             })?;
-        let text = response.text().await?;
+        let bytes = response.bytes().await?;
+        if bytes.len() > MAX_RESPONSE_SIZE {
+            return Err(ConsumerError::ResponseTooLarge(bytes.len(), MAX_RESPONSE_SIZE));
+        }
+        let text = String::from_utf8(bytes.to_vec())?;
         return serde_json::from_str(&text).map_err(ConsumerError::from);
     }
 
     // Handle data URIs (base64 encoded JSON)
     if let Some(base64_data) = token_uri.strip_prefix("data:application/json;base64,") {
         debug!("Decoding CAIP-22 metadata from base64 data URI");
-        let decoded = base64_decode(base64_data)?;
+        let decoded = base64_decode_with_limit(base64_data)?;
         let json_str = String::from_utf8(decoded)?;
         return serde_json::from_str(&json_str).map_err(ConsumerError::from);
     }
@@ -212,14 +296,35 @@ async fn fetch_token_metadata(
     // Handle raw JSON data URIs
     if let Some(json_data) = token_uri.strip_prefix("data:application/json,") {
         debug!("Parsing CAIP-22 metadata from raw JSON data URI");
+        if json_data.len() > MAX_RESPONSE_SIZE {
+            return Err(ConsumerError::ResponseTooLarge(json_data.len(), MAX_RESPONSE_SIZE));
+        }
         return serde_json::from_str(json_data).map_err(ConsumerError::from);
     }
 
-    // Handle HTTP(S) URLs
+    // Handle HTTP(S) URLs with SSRF protection
     if token_uri.starts_with("http://") || token_uri.starts_with("https://") {
         debug!("Fetching CAIP-22 metadata from HTTP: {}", token_uri);
-        let response = reqwest::get(token_uri).await?;
-        let text = response.text().await?;
+
+        // SSRF protection: validate URL before fetching
+        validate_url_not_internal(token_uri)?;
+
+        let client = create_http_client()?;
+        let response = client.get(token_uri).send().await?;
+
+        // Check content-length header if available
+        if let Some(content_length) = response.content_length() {
+            if content_length as usize > MAX_RESPONSE_SIZE {
+                return Err(ConsumerError::ResponseTooLarge(content_length as usize, MAX_RESPONSE_SIZE));
+            }
+        }
+
+        let bytes = response.bytes().await?;
+        if bytes.len() > MAX_RESPONSE_SIZE {
+            return Err(ConsumerError::ResponseTooLarge(bytes.len(), MAX_RESPONSE_SIZE));
+        }
+
+        let text = String::from_utf8(bytes.to_vec())?;
         return serde_json::from_str(&text).map_err(ConsumerError::from);
     }
 
@@ -227,7 +332,28 @@ async fn fetch_token_metadata(
     Err(ConsumerError::UnsupportedTokenUri(token_uri.to_string()))
 }
 
-/// Simple base64 decoding helper
+/// Base64 decoding helper with size limit validation
+fn base64_decode_with_limit(input: &str) -> Result<Vec<u8>, ConsumerError> {
+    // Check input length before attempting to decode
+    if input.len() > MAX_BASE64_INPUT_LENGTH {
+        return Err(ConsumerError::ResponseTooLarge(input.len(), MAX_BASE64_INPUT_LENGTH));
+    }
+
+    use base64::{Engine, engine::general_purpose::STANDARD};
+    let decoded = STANDARD
+        .decode(input)
+        .map_err(|e| ConsumerError::DecodingError(e.to_string()))?;
+
+    // Also check decoded size
+    if decoded.len() > MAX_RESPONSE_SIZE {
+        return Err(ConsumerError::ResponseTooLarge(decoded.len(), MAX_RESPONSE_SIZE));
+    }
+
+    Ok(decoded)
+}
+
+/// Simple base64 decoding helper (for tests)
+#[cfg(test)]
 fn base64_decode(input: &str) -> Result<Vec<u8>, ConsumerError> {
     use base64::{Engine, engine::general_purpose::STANDARD};
     STANDARD
@@ -261,13 +387,31 @@ pub async fn fetch_token_uri_direct(
 }
 
 /// Fetches metadata JSON from a token URI (HTTP/HTTPS only, for testing).
+/// Includes SSRF protection, request timeouts, and response size limits.
 pub async fn fetch_metadata_from_http(token_uri: &str) -> Result<Value, ConsumerError> {
     if !token_uri.starts_with("http://") && !token_uri.starts_with("https://") {
         return Err(ConsumerError::UnsupportedTokenUri(token_uri.to_string()));
     }
 
-    let response = reqwest::get(token_uri).await?;
-    let text = response.text().await?;
+    // SSRF protection
+    validate_url_not_internal(token_uri)?;
+
+    let client = create_http_client()?;
+    let response = client.get(token_uri).send().await?;
+
+    // Check content-length header if available
+    if let Some(content_length) = response.content_length() {
+        if content_length as usize > MAX_RESPONSE_SIZE {
+            return Err(ConsumerError::ResponseTooLarge(content_length as usize, MAX_RESPONSE_SIZE));
+        }
+    }
+
+    let bytes = response.bytes().await?;
+    if bytes.len() > MAX_RESPONSE_SIZE {
+        return Err(ConsumerError::ResponseTooLarge(bytes.len(), MAX_RESPONSE_SIZE));
+    }
+
+    let text = String::from_utf8(bytes.to_vec())?;
     serde_json::from_str(&text).map_err(ConsumerError::from)
 }
 
@@ -406,5 +550,85 @@ mod tests {
         let encoded = "SGVsbG8gV29ybGQ=";
         let decoded = base64_decode(encoded).expect("Should decode base64");
         assert_eq!(String::from_utf8(decoded).unwrap(), "Hello World");
+    }
+
+    /// Test SSRF protection - blocks localhost
+    #[test]
+    fn test_ssrf_blocks_localhost() {
+        assert!(validate_url_not_internal("http://localhost/metadata.json").is_err());
+        assert!(validate_url_not_internal("http://127.0.0.1/metadata.json").is_err());
+        assert!(validate_url_not_internal("http://[::1]/metadata.json").is_err());
+    }
+
+    /// Test SSRF protection - blocks private IPs
+    #[test]
+    fn test_ssrf_blocks_private_ips() {
+        // 10.0.0.0/8
+        assert!(validate_url_not_internal("http://10.0.0.1/metadata.json").is_err());
+        assert!(validate_url_not_internal("http://10.255.255.255/metadata.json").is_err());
+
+        // 172.16.0.0/12
+        assert!(validate_url_not_internal("http://172.16.0.1/metadata.json").is_err());
+        assert!(validate_url_not_internal("http://172.31.255.255/metadata.json").is_err());
+
+        // 192.168.0.0/16
+        assert!(validate_url_not_internal("http://192.168.0.1/metadata.json").is_err());
+        assert!(validate_url_not_internal("http://192.168.255.255/metadata.json").is_err());
+
+        // Link-local
+        assert!(validate_url_not_internal("http://169.254.169.254/metadata.json").is_err());
+    }
+
+    /// Test SSRF protection - blocks internal hostnames
+    #[test]
+    fn test_ssrf_blocks_internal_hostnames() {
+        assert!(validate_url_not_internal("http://myservice.local/metadata.json").is_err());
+        assert!(validate_url_not_internal("http://internal.internal/metadata.json").is_err());
+        assert!(validate_url_not_internal("http://test.localhost/metadata.json").is_err());
+        assert!(validate_url_not_internal("http://metadata.google.internal/metadata.json").is_err());
+    }
+
+    /// Test SSRF protection - allows public URLs
+    #[test]
+    fn test_ssrf_allows_public_urls() {
+        assert!(validate_url_not_internal("https://example.com/metadata.json").is_ok());
+        assert!(validate_url_not_internal("https://ipfs.io/ipfs/QmTest").is_ok());
+        assert!(validate_url_not_internal("https://arweave.net/test").is_ok());
+        assert!(validate_url_not_internal("http://8.8.8.8/test").is_ok());
+    }
+
+    /// Test private IP detection
+    #[test]
+    fn test_is_private_ip() {
+        use std::net::{Ipv4Addr, Ipv6Addr};
+
+        // Private IPv4
+        assert!(is_private_ip(&IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1))));
+        assert!(is_private_ip(&IpAddr::V4(Ipv4Addr::new(172, 16, 0, 1))));
+        assert!(is_private_ip(&IpAddr::V4(Ipv4Addr::new(192, 168, 1, 1))));
+        assert!(is_private_ip(&IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1))));
+        assert!(is_private_ip(&IpAddr::V4(Ipv4Addr::new(169, 254, 1, 1))));
+
+        // Public IPv4
+        assert!(!is_private_ip(&IpAddr::V4(Ipv4Addr::new(8, 8, 8, 8))));
+        assert!(!is_private_ip(&IpAddr::V4(Ipv4Addr::new(1, 1, 1, 1))));
+
+        // Private IPv6
+        assert!(is_private_ip(&IpAddr::V6(Ipv6Addr::LOCALHOST)));
+        assert!(is_private_ip(&IpAddr::V6(Ipv6Addr::new(0xfc00, 0, 0, 0, 0, 0, 0, 1))));
+        assert!(is_private_ip(&IpAddr::V6(Ipv6Addr::new(0xfe80, 0, 0, 0, 0, 0, 0, 1))));
+    }
+
+    /// Test base64 size limit
+    #[test]
+    fn test_base64_decode_size_limit() {
+        // Small input should work
+        let small_input = "SGVsbG8="; // "Hello"
+        assert!(base64_decode_with_limit(small_input).is_ok());
+
+        // Very large input should fail
+        let large_input = "A".repeat(MAX_BASE64_INPUT_LENGTH + 1);
+        let result = base64_decode_with_limit(&large_input);
+        assert!(matches!(result, Err(ConsumerError::ResponseTooLarge(_, _))));
     }
 }
