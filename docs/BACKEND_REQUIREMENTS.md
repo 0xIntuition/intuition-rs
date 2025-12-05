@@ -251,6 +251,96 @@ Support vector databases to enable search engines and easy relation discovery in
 
 ---
 
+### 6. Backend Testability & Testing Infrastructure
+
+**Status:** 🔴 Needs Discussion  
+**Priority:** High
+
+**Requirement:**
+Make the backend highly testable with infrastructure to simulate event ingestion, test various scenarios, and follow blockchain backend testing best practices. **All testing is for local development environments, not cloud-based testing.**
+
+**Details:**
+- Enable simulation of event ingestion in parallel (locally)
+- Support testing different scenarios and edge cases (local development)
+- Provide test utilities similar to existing integration-tests patterns
+- Ensure backend components can be tested in isolation (local setup)
+- Support both unit tests and integration tests (runnable locally)
+- All test infrastructure should run on developer machines, not in cloud CI/CD
+
+**Testing Capabilities Needed:**
+
+#### 6.1 Event Ingestion Testing
+- Simulate parallel event ingestion from blockchain
+- Test event ordering and concurrency scenarios
+- Simulate high-volume event streams
+- Test event processing under various load conditions
+- Test event deduplication and idempotency
+
+#### 6.2 Scenario Testing
+- Test different blockchain scenarios:
+  - Multiple deposits/withdrawals in parallel
+  - Position creation and redemption flows
+  - Vault state transitions
+  - Triple creation and updates
+  - User interactions and state changes
+- Test edge cases:
+  - Failed transactions
+  - Partial failures
+  - Network issues
+  - Database failures
+  - Race conditions
+
+#### 6.3 Test Infrastructure
+- Test utilities for common operations (similar to integration-tests)
+- Local blockchain simulation using reth (Ethereum node)
+  - Deploy multivault contract to local reth instance
+  - Generate test data by interacting with deployed contract
+  - Full control over blockchain state and events
+- Test database setup/teardown utilities
+- Test data generators for various entities
+- Utilities to wait for async operations to complete
+- GraphQL query helpers for verification
+
+**Technical Considerations:**
+- **Local Development Focus:** All testing infrastructure must run locally on developer machines
+  - No cloud dependencies for running tests
+  - All services (database, reth, etc.) should be runnable locally via Docker or similar
+  - Tests should be executable with simple commands (e.g., `cargo test`, `make test`)
+- Test database isolation (separate test DB or transactions, local instance)
+- Parallel test execution support
+- Deterministic test data and scenarios
+- Fast test execution (avoid real blockchain waits where possible)
+- Integration with existing test frameworks
+- Support for both Rust unit tests and integration tests
+- **Blockchain Simulation:** Use reth (local Ethereum node) to simulate blockchain events
+  - Deploy multivault contract to local reth instance
+  - Generate events by interacting with the contract
+  - Provides realistic blockchain behavior without external dependencies
+  - Full control over block production and state
+  - Runs entirely locally (no cloud blockchain nodes)
+- Mock/stub external dependencies (IPFS, etc.) where blockchain simulation isn't needed
+
+**Best Practices for Blockchain Backend Testing:**
+- Test event processing independently from blockchain interaction
+- Use test fixtures and factories for common data patterns
+- Test idempotency of event processing
+- Test concurrent event processing
+- Verify database state after event processing
+- Test error handling and retry logic
+- Test performance under load
+- Test data consistency and integrity
+
+**Open Questions:**
+- What level of parallelism should be supported in tests?
+- How to handle test data cleanup between test runs?
+- Should we support property-based testing for event processing?
+- How to test time-dependent scenarios (block timestamps, etc.)?
+- What test coverage targets should we aim for?
+- How to manage reth instance lifecycle (startup, teardown, state reset)?
+- Should we use a shared reth instance across tests or isolated instances?
+
+---
+
 ## 📝 Notes
 
 - This document should be updated as requirements are clarified and implemented

@@ -53,6 +53,14 @@ pub enum ConsumerError {
     LogLevelParse(String),
     #[error("Invalid CAIP10")]
     InvalidCaip10,
+    #[error("Invalid CAIP-22 format")]
+    InvalidCaip22,
+    #[error("Unsupported chain ID: {0}")]
+    UnsupportedChain(i64),
+    #[error("Unsupported token URI format: {0}")]
+    UnsupportedTokenUri(String),
+    #[error("Decoding error: {0}")]
+    DecodingError(String),
     #[error("Failed to parse indexer source: {0}")]
     IndexerSourceParse(String),
     #[error("Label not found")]

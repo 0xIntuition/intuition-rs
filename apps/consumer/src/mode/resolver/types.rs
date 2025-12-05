@@ -11,6 +11,7 @@ use crate::{
         },
         types::ResolverConsumerContext,
     },
+    traits::AtomUpdater,
 };
 use alloy::primitives::Address;
 use models::{
@@ -66,7 +67,7 @@ impl ResolverMessageType {
         }
     }
 
-    /// Processes an atom message by determining if it's an account or regular atom
+    /// Processes an atom message by determining if it's an account, CAIP-22, or regular atom
     async fn process_atom_message(
         &self,
         resolver_consumer_context: &ResolverConsumerContext,
@@ -76,13 +77,53 @@ impl ResolverMessageType {
             .fetch_atom_by_id(resolver_consumer_context, atom_id)
             .await?;
 
-        if atom.atom_type == AtomType::Account {
-            self.process_account_atom(resolver_consumer_context, &atom)
-                .await
-        } else {
-            debug!("Atom is not an account, processing as atom");
-            self.process_atom(resolver_consumer_context, atom_id).await
+        match atom.atom_type {
+            AtomType::Account => {
+                self.process_account_atom(resolver_consumer_context, &atom)
+                    .await
+            }
+            AtomType::Caip22 => {
+                debug!("Atom is a CAIP-22, resolving NFT metadata");
+                self.process_caip22_atom(resolver_consumer_context, &atom)
+                    .await
+            }
+            _ => {
+                debug!("Atom is not an account or CAIP-22, processing as regular atom");
+                self.process_atom(resolver_consumer_context, atom_id).await
+            }
         }
+    }
+
+    /// Processes a CAIP-22 atom by resolving its tokenURI and metadata
+    async fn process_caip22_atom(
+        &self,
+        resolver_consumer_context: &ResolverConsumerContext,
+        atom: &Atom,
+    ) -> Result<(), ConsumerError> {
+        use crate::mode::resolver::caip22_resolver::resolve_caip22;
+
+        // Resolve the CAIP-22 (parses from atom.data, fetches tokenURI, stores as json_object)
+        let metadata = resolve_caip22(atom, resolver_consumer_context).await?;
+
+        // Update atom with resolved metadata (label, image, atom_type)
+        let mut atom = atom.clone();
+        metadata
+            .update_atom_metadata(
+                &mut atom,
+                resolver_consumer_context.backend_schema(),
+                resolver_consumer_context.pool(),
+            )
+            .await?;
+
+        // Mark as resolved
+        atom.mark_as_resolved(
+            resolver_consumer_context.backend_schema(),
+            resolver_consumer_context.pool(),
+        )
+        .await?;
+
+        debug!("Successfully resolved CAIP-22 atom: {:?}", atom);
+        Ok(())
     }
 
     /// Fetches an atom by its ID from the database

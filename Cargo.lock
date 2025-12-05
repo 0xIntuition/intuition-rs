@@ -1719,6 +1719,7 @@ dependencies = [
  "alloy",
  "alloy-network",
  "async-trait",
+ "base64 0.22.1",
  "bytes",
  "chrono",
  "clap",

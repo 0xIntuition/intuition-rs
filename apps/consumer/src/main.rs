@@ -35,6 +35,15 @@ sol! {
     }
 }
 
+// Codegen to interact with ERC-721 contracts for tokenURI calls (CAIP-22 resolution)
+sol! {
+    #[allow(missing_docs)]
+    #[sol(rpc)]
+    interface IERC721Metadata {
+        function tokenURI(uint256 tokenId) external view returns (string);
+    }
+}
+
 /// The current supported CLI parameters are listed below.
 /// Each consumer needs to connect to a queue in a region
 #[derive(Parser, Clone, Debug)]

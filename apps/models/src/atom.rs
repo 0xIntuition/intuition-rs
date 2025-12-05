@@ -46,6 +46,7 @@ pub enum AtomType {
     ByteObject,
     Book,
     Caip10,
+    Caip22,
     FollowAction,
     JsonObject,
     Keywords,

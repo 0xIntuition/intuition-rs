@@ -17,6 +17,7 @@ shared-utils = { path = "../shared-utils" }
 alloy.workspace = true
 alloy-network.workspace = true
 async-trait.workspace = true
+base64 = "0.22"
 bytes.workspace = true
 dotenvy.workspace = true
 envy.workspace = true

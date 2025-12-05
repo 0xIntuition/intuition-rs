@@ -41,6 +41,16 @@ pub struct Env {
     pub redis_url: Option<String>,
     pub threads: Option<usize>,
     pub log_level: Option<String>,
+    // RPC URLs for CAIP-22 multi-chain resolution
+    pub linea_mainnet_rpc_url: Option<String>,
+    pub linea_sepolia_rpc_url: Option<String>,
+    pub base_mainnet_rpc_url: Option<String>,
+    pub base_sepolia_rpc_url: Option<String>,
+    pub trust_testnet_rpc_url: Option<String>,
+    pub trust_mainnet_rpc_url: Option<String>,
+    pub local_intuition_rpc_url: Option<String>,
+    pub ethereum_mainnet_rpc_url: Option<String>,
+    pub ethereum_sepolia_rpc_url: Option<String>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
