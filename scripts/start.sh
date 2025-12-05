@@ -71,7 +71,10 @@ if [ "$INDEXER_SCHEMA" == "local" ]; then
   export VITE_INTUITION_CONTRACT_ADDRESS=$CONTRACT_ADDRESS
   export INTUITION_CONTRACT_ADDRESS=$CONTRACT_ADDRESS
   export INDEXER_SCHEMA="local"
-  export BASE_SEPOLIA_RPC_URL="http://reth:8545"
+  # Note: BASE_SEPOLIA_RPC_URL is intentionally NOT overridden here.
+  # CAIP-22 atoms may reference real NFTs on Base Sepolia, so we need
+  # the real RPC URL from .env to fetch tokenURI and metadata.
+  # If BASE_SEPOLIA_RPC_URL is not set in .env, it will remain unset.
   export BASE_MAINNET_RPC_URL="http://reth:8545"
   export LOCAL_INTUITION_RPC_URL="http://reth:8545"
 fi

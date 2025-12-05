@@ -120,7 +120,9 @@ impl AtomMetadata {
         }
     }
 
-    /// Stores the atom data in the database based on the atom type
+    /// Stores the atom data in the database based on the atom type.
+    /// Also enqueues CAIP-22 atoms for resolution (this must be called AFTER
+    /// the atom type is saved to the database to avoid race conditions).
     pub async fn handle_account_or_caip10_type(
         &self,
         atom: &mut Atom,
@@ -140,6 +142,18 @@ impl AtomMetadata {
                     decoded_consumer_context,
                 )
                 .await?;
+                Ok(())
+            }
+            AtomType::Caip22 => {
+                debug!("Enqueuing CAIP-22 for resolution: {}", atom.data.clone().unwrap());
+                // Now that the atom type is saved to the database, we can safely
+                // enqueue the message for resolution. The resolver consumer will
+                // see the correct atom type and route to process_caip22_atom.
+                let message = ResolverConsumerMessage::new_atom(atom.term_id.0.to_string());
+                decoded_consumer_context
+                    .client
+                    .send_message(serde_json::to_string(&message)?, None)
+                    .await?;
                 Ok(())
             }
             _ => {
@@ -639,16 +653,13 @@ pub async fn get_supported_atom_metadata(
         ))
     // 4. Handling CAIP-22 (NFT asset identifier - requires resolution)
     } else if is_valid_caip22(&atom.data.clone().ok_or(ConsumerError::AtomDataNotFound)?)? {
-        debug!("Atom data is a CAIP-22, enqueuing for resolution...");
+        debug!("Atom data is a CAIP-22, will be enqueued for resolution after atom type is saved...");
         // Mark as pending since we need to resolve the tokenURI
         atom.resolving_status = AtomResolvingStatus::Pending;
 
-        // Enqueue for resolution in the resolver consumer
-        let message = ResolverConsumerMessage::new_atom(atom.term_id.0.to_string());
-        decoded_consumer_context
-            .client
-            .send_message(serde_json::to_string(&message)?, None)
-            .await?;
+        // NOTE: We do NOT send the message here because the atom type needs to be
+        // saved to the database first. The message will be sent in handle_caip22_type()
+        // which is called after update_atom_metadata() saves the atom type.
 
         Ok(AtomMetadata::caip22(None, None))
     } else {

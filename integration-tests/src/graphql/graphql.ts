@@ -12071,6 +12071,60 @@ export type SearchPositionsQueryVariables = Exact<{
 
 export type SearchPositionsQuery = { __typename?: 'query_root', positions: Array<{ __typename?: 'positions', term?: { __typename?: 'terms', triple?: { __typename?: 'triples', subject?: { __typename?: 'atoms', data?: string | null } | null, predicate?: { __typename?: 'atoms', data?: string | null } | null, object?: { __typename?: 'atoms', data?: string | null } | null } | null } | null }> };
 
+export type GetCaip22AtomBasicQueryVariables = Exact<{
+  termId: Scalars['String']['input'];
+}>;
+
+
+export type GetCaip22AtomBasicQuery = { __typename?: 'query_root', atom?: { __typename?: 'atoms', term_id: string, data?: string | null, type: any, resolving_status: any } | null };
+
+export type GetCaip22AtomResolvedQueryVariables = Exact<{
+  termId: Scalars['String']['input'];
+}>;
+
+
+export type GetCaip22AtomResolvedQuery = { __typename?: 'query_root', atom?: { __typename?: 'atoms', term_id: string, data?: string | null, type: any, label?: string | null, image?: string | null, resolving_status: any, value?: { __typename?: 'atom_values', json_object?: { __typename?: 'json_objects', data: any } | null } | null } | null };
+
+export type GetFirstAgentAtomQueryVariables = Exact<{
+  termId: Scalars['String']['input'];
+}>;
+
+
+export type GetFirstAgentAtomQuery = { __typename?: 'query_root', atom?: { __typename?: 'atoms', data?: string | null, type: any } | null };
+
+export type GetSecondAgentAtomQueryVariables = Exact<{
+  termId: Scalars['String']['input'];
+}>;
+
+
+export type GetSecondAgentAtomQuery = { __typename?: 'query_root', atom?: { __typename?: 'atoms', data?: string | null, type: any } | null };
+
+export type GetCaip22AtomsQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type GetCaip22AtomsQuery = { __typename?: 'query_root', atoms: Array<{ __typename?: 'atoms', term_id: string, data?: string | null, label?: string | null, image?: string | null, resolving_status: any }> };
+
+export type GetAgentTripleQueryVariables = Exact<{
+  tripleId: Scalars['String']['input'];
+}>;
+
+
+export type GetAgentTripleQuery = { __typename?: 'query_root', triple?: { __typename?: 'triples', term_id: string, subject?: { __typename?: 'atoms', data?: string | null, type: any, label?: string | null } | null, predicate?: { __typename?: 'atoms', data?: string | null } | null, object?: { __typename?: 'atoms', data?: string | null } | null } | null };
+
+export type GetCaip22AtomInitialQueryVariables = Exact<{
+  termId: Scalars['String']['input'];
+}>;
+
+
+export type GetCaip22AtomInitialQuery = { __typename?: 'query_root', atom?: { __typename?: 'atoms', type: any, resolving_status: any, label?: string | null } | null };
+
+export type GetCaip22AtomAfterDepositQueryVariables = Exact<{
+  termId: Scalars['String']['input'];
+}>;
+
+
+export type GetCaip22AtomAfterDepositQuery = { __typename?: 'query_root', atom?: { __typename?: 'atoms', type: any, resolving_status: any, label?: string | null } | null };
+
 export type TermQueryVariables = Exact<{
   termId: Scalars['String']['input'];
 }>;
@@ -12299,6 +12353,96 @@ export const SearchPositionsDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<SearchPositionsQuery, SearchPositionsQueryVariables>;
+export const GetCaip22AtomBasicDocument = new TypedDocumentString(`
+    query GetCaip22AtomBasic($termId: String!) {
+  atom(term_id: $termId) {
+    term_id
+    data
+    type
+    resolving_status
+  }
+}
+    `) as unknown as TypedDocumentString<GetCaip22AtomBasicQuery, GetCaip22AtomBasicQueryVariables>;
+export const GetCaip22AtomResolvedDocument = new TypedDocumentString(`
+    query GetCaip22AtomResolved($termId: String!) {
+  atom(term_id: $termId) {
+    term_id
+    data
+    type
+    label
+    image
+    resolving_status
+    value {
+      json_object {
+        data
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<GetCaip22AtomResolvedQuery, GetCaip22AtomResolvedQueryVariables>;
+export const GetFirstAgentAtomDocument = new TypedDocumentString(`
+    query GetFirstAgentAtom($termId: String!) {
+  atom(term_id: $termId) {
+    data
+    type
+  }
+}
+    `) as unknown as TypedDocumentString<GetFirstAgentAtomQuery, GetFirstAgentAtomQueryVariables>;
+export const GetSecondAgentAtomDocument = new TypedDocumentString(`
+    query GetSecondAgentAtom($termId: String!) {
+  atom(term_id: $termId) {
+    data
+    type
+  }
+}
+    `) as unknown as TypedDocumentString<GetSecondAgentAtomQuery, GetSecondAgentAtomQueryVariables>;
+export const GetCaip22AtomsDocument = new TypedDocumentString(`
+    query GetCaip22Atoms {
+  atoms(where: {type: {_eq: "Caip22"}}) {
+    term_id
+    data
+    label
+    image
+    resolving_status
+  }
+}
+    `) as unknown as TypedDocumentString<GetCaip22AtomsQuery, GetCaip22AtomsQueryVariables>;
+export const GetAgentTripleDocument = new TypedDocumentString(`
+    query GetAgentTriple($tripleId: String!) {
+  triple(term_id: $tripleId) {
+    term_id
+    subject {
+      data
+      type
+      label
+    }
+    predicate {
+      data
+    }
+    object {
+      data
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<GetAgentTripleQuery, GetAgentTripleQueryVariables>;
+export const GetCaip22AtomInitialDocument = new TypedDocumentString(`
+    query GetCaip22AtomInitial($termId: String!) {
+  atom(term_id: $termId) {
+    type
+    resolving_status
+    label
+  }
+}
+    `) as unknown as TypedDocumentString<GetCaip22AtomInitialQuery, GetCaip22AtomInitialQueryVariables>;
+export const GetCaip22AtomAfterDepositDocument = new TypedDocumentString(`
+    query GetCaip22AtomAfterDeposit($termId: String!) {
+  atom(term_id: $termId) {
+    type
+    resolving_status
+    label
+  }
+}
+    `) as unknown as TypedDocumentString<GetCaip22AtomAfterDepositQuery, GetCaip22AtomAfterDepositQueryVariables>;
 export const TermDocument = new TypedDocumentString(`
     query Term($termId: String!) {
   atom(term_id: $termId) {
