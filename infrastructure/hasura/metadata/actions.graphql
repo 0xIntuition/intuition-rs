@@ -14,6 +14,12 @@ type Mutation {
   pinThing(
     thing: PinThingInput!
   ): PinOutput
+  uploadImageFromUrl(
+    image: UploadImageFromUrlInput!
+  ): UploadImageFromUrlOutput
+  uploadJsonToIpfs(
+    json: jsonb!
+  ): UploadJsonToIpfsOutput
 }
 
 input PinThingInput {
@@ -44,7 +50,30 @@ input PinJsonInput {
   json: jsonb
 }
 
+input UploadImageFromUrlInput {
+  url: String!
+}
+
 type PinOutput {
   uri: String
+}
+
+type UploadImageFromUrlOutput {
+  images: [CachedImage!]!
+}
+
+type CachedImage {
+  url: String!
+  original_url: String!
+  score: jsonb
+  model: String
+  safe: Boolean!
+  created_at: timestamptz!
+}
+
+type UploadJsonToIpfsOutput {
+  name: String!
+  hash: String!
+  size: String!
 }
 

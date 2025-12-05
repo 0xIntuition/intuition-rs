@@ -125,6 +125,64 @@ actions:
       - role: anonymous
       - role: frontend
     comment: Uploads and pins Thing to IPFS
+  - name: uploadImageFromUrl
+    definition:
+      kind: synchronous
+      handler: http://image-guard:3000/upload_image_from_url
+      headers:
+        - name: Content-Type
+          value: application/json
+      request_transform:
+        body:
+          action: transform
+          template: |-
+            {
+              "url": "{{$body.input.image.url}}"
+            }
+        template_engine: Kriti
+        version: 2
+      response_transform:
+        body:
+          action: transform
+          template: |-
+            {
+              "images": {{$body}}
+            }
+        template_engine: Kriti
+        version: 2
+    permissions:
+      - role: anonymous
+      - role: frontend
+    comment: Uploads and classifies an image from a URL using image-guard
+  - name: uploadJsonToIpfs
+    definition:
+      kind: synchronous
+      handler: http://image-guard:3000/upload_json_to_ipfs
+      headers:
+        - name: Content-Type
+          value: application/json
+      request_transform:
+        body:
+          action: transform
+          template: |-
+            {{$body.input.json}}
+        template_engine: Kriti
+        version: 2
+      response_transform:
+        body:
+          action: transform
+          template: |-
+            {
+              "name": "{{$body.Name}}",
+              "hash": "{{$body.Hash}}",
+              "size": "{{$body.Size}}"
+            }
+        template_engine: Kriti
+        version: 2
+    permissions:
+      - role: anonymous
+      - role: frontend
+    comment: Uploads JSON to IPFS using image-guard
 custom_types:
   enums: []
   input_objects:
@@ -132,6 +190,10 @@ custom_types:
     - name: PinPersonInput
     - name: PinOrganizationInput
     - name: PinJsonInput
+    - name: UploadImageFromUrlInput
   objects:
     - name: PinOutput
+    - name: UploadImageFromUrlOutput
+    - name: CachedImage
+    - name: UploadJsonToIpfsOutput
   scalars: []
