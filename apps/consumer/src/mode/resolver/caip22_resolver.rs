@@ -234,3 +234,177 @@ fn base64_decode(input: &str) -> Result<Vec<u8>, ConsumerError> {
         .decode(input)
         .map_err(|e| ConsumerError::DecodingError(e.to_string()))
 }
+
+/// Fetches tokenURI directly from a contract given RPC URL and parsed CAIP-22 data.
+/// This is useful for testing without the full ResolverConsumerContext.
+pub async fn fetch_token_uri_direct(
+    rpc_url: &str,
+    contract_address: &str,
+    token_id: &str,
+) -> Result<String, ConsumerError> {
+    let provider = ProviderBuilder::new().connect_http(rpc_url.parse()?);
+    let dyn_provider = DynProvider::new(provider);
+
+    let address =
+        Address::from_str(contract_address).map_err(|e| ConsumerError::AddressParse(e.to_string()))?;
+
+    let contract = IERC721MetadataInstance::new(address, dyn_provider);
+    let token_id_u256 = U256::from_str(token_id).map_err(ConsumerError::UintParse)?;
+
+    contract.tokenURI(token_id_u256).call().await.map_err(|e| {
+        warn!(
+            "Failed to fetch tokenURI for contract={}, token_id={}: {}",
+            contract_address, token_id, e
+        );
+        ConsumerError::Alloy(e)
+    })
+}
+
+/// Fetches metadata JSON from a token URI (HTTP/HTTPS only, for testing).
+pub async fn fetch_metadata_from_http(token_uri: &str) -> Result<Value, ConsumerError> {
+    if !token_uri.starts_with("http://") && !token_uri.starts_with("https://") {
+        return Err(ConsumerError::UnsupportedTokenUri(token_uri.to_string()));
+    }
+
+    let response = reqwest::get(token_uri).await?;
+    let text = response.text().await?;
+    serde_json::from_str(&text).map_err(ConsumerError::from)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::mode::metadata::parse_caip22;
+
+    /// Integration test for Base Sepolia NFT
+    /// Contract: 0x8004AA63c570c570eBF15376c0dB199918BFe9Fb
+    /// Token ID: 1563
+    #[tokio::test]
+    async fn test_fetch_real_nft_base_sepolia() {
+        let caip22_str = "caip22:eip155:84532/erc721:0x8004AA63c570c570eBF15376c0dB199918BFe9Fb/1563";
+        let parsed = parse_caip22(caip22_str).expect("Should parse CAIP-22");
+
+        assert_eq!(parsed.chain_id, 84532);
+        assert_eq!(
+            parsed.contract_address,
+            "0x8004AA63c570c570eBF15376c0dB199918BFe9Fb"
+        );
+        assert_eq!(parsed.token_id, "1563");
+
+        // Use public Base Sepolia RPC
+        let rpc_url = "https://sepolia.base.org";
+
+        let token_uri = fetch_token_uri_direct(rpc_url, &parsed.contract_address, &parsed.token_id)
+            .await
+            .expect("Should fetch tokenURI from Base Sepolia");
+
+        println!("Base Sepolia tokenURI: {}", token_uri);
+        assert!(!token_uri.is_empty(), "tokenURI should not be empty");
+
+        // Fetch metadata if it's an HTTP URL
+        if token_uri.starts_with("http") {
+            let metadata = fetch_metadata_from_http(&token_uri)
+                .await
+                .expect("Should fetch metadata from HTTP");
+
+            println!("Base Sepolia metadata: {}", metadata);
+
+            // Check that we got valid JSON with expected fields
+            assert!(
+                metadata.is_object(),
+                "Metadata should be a JSON object"
+            );
+
+            if let Some(name) = metadata.get("name") {
+                println!("NFT Name: {}", name);
+            }
+            if let Some(image) = metadata.get("image") {
+                println!("NFT Image: {}", image);
+            }
+        }
+    }
+
+    /// Integration test for Ethereum Sepolia NFT
+    /// Contract: 0x8004a6090Cd10A7288092483047B097295Fb8847
+    /// Token ID: 3265
+    ///
+    /// Note: This test is ignored by default because public Sepolia RPCs can be unreliable.
+    /// Run with: cargo test -p consumer -- test_fetch_real_nft_ethereum_sepolia --ignored --nocapture
+    /// Or set ETHEREUM_SEPOLIA_RPC_URL env var to use a reliable RPC.
+    #[tokio::test]
+    #[ignore = "Requires reliable Ethereum Sepolia RPC - run manually with --ignored"]
+    async fn test_fetch_real_nft_ethereum_sepolia() {
+        let caip22_str =
+            "caip22:eip155:11155111/erc721:0x8004a6090Cd10A7288092483047B097295Fb8847/3265";
+        let parsed = parse_caip22(caip22_str).expect("Should parse CAIP-22");
+
+        assert_eq!(parsed.chain_id, 11155111);
+        assert_eq!(
+            parsed.contract_address,
+            "0x8004a6090Cd10A7288092483047B097295Fb8847"
+        );
+        assert_eq!(parsed.token_id, "3265");
+
+        // Try to use env var first, fallback to public RPC
+        let rpc_url = std::env::var("ETHEREUM_SEPOLIA_RPC_URL")
+            .unwrap_or_else(|_| "https://ethereum-sepolia-rpc.publicnode.com".to_string());
+
+        let token_uri = fetch_token_uri_direct(rpc_url.as_str(), &parsed.contract_address, &parsed.token_id)
+            .await
+            .expect("Should fetch tokenURI from Ethereum Sepolia");
+
+        println!("Ethereum Sepolia tokenURI: {}", token_uri);
+        assert!(!token_uri.is_empty(), "tokenURI should not be empty");
+
+        // Fetch metadata if it's an HTTP URL
+        if token_uri.starts_with("http") {
+            let metadata = fetch_metadata_from_http(&token_uri)
+                .await
+                .expect("Should fetch metadata from HTTP");
+
+            println!("Ethereum Sepolia metadata: {}", metadata);
+
+            // Check that we got valid JSON with expected fields
+            assert!(
+                metadata.is_object(),
+                "Metadata should be a JSON object"
+            );
+
+            if let Some(name) = metadata.get("name") {
+                println!("NFT Name: {}", name);
+            }
+            if let Some(image) = metadata.get("image") {
+                println!("NFT Image: {}", image);
+            }
+        }
+    }
+
+    /// Test metadata field extraction
+    #[test]
+    fn test_extract_metadata_fields() {
+        let metadata: Value = serde_json::json!({
+            "name": "Test NFT",
+            "image": "https://example.com/image.png",
+            "description": "A test NFT"
+        });
+
+        let (name, image) = extract_metadata_fields(&metadata);
+        assert_eq!(name, Some("Test NFT".to_string()));
+        assert_eq!(image, Some("https://example.com/image.png".to_string()));
+
+        // Test with missing fields
+        let empty_metadata: Value = serde_json::json!({});
+        let (name2, image2) = extract_metadata_fields(&empty_metadata);
+        assert_eq!(name2, None);
+        assert_eq!(image2, None);
+    }
+
+    /// Test base64 decoding
+    #[test]
+    fn test_base64_decode() {
+        // "Hello World" in base64
+        let encoded = "SGVsbG8gV29ybGQ=";
+        let decoded = base64_decode(encoded).expect("Should decode base64");
+        assert_eq!(String::from_utf8(decoded).unwrap(), "Hello World");
+    }
+}
