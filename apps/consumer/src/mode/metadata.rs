@@ -709,9 +709,13 @@ mod tests {
         assert!(!is_valid_caip22("caip10:eip155:1:0x123")?); // Wrong prefix
         assert!(!is_valid_caip22("caip22:eip155:84532")?); // Missing asset ref
         assert!(!is_valid_caip22("caip22:eip155:84532/erc721:0x123")?); // Missing token ID
-        assert!(!is_valid_caip22("caip22:eip155:abc/erc721:0x8004AA63c570c570eBF15376c0dB199918BFe9Fb/1")?); // Invalid chain ID
+        assert!(!is_valid_caip22(
+            "caip22:eip155:abc/erc721:0x8004AA63c570c570eBF15376c0dB199918BFe9Fb/1"
+        )?); // Invalid chain ID
         assert!(!is_valid_caip22("caip22:eip155:1/erc721:not_an_address/1")?); // Invalid address
-        assert!(!is_valid_caip22("caip22:eip155:1/erc20:0x8004AA63c570c570eBF15376c0dB199918BFe9Fb/1")?); // Invalid asset namespace
+        assert!(!is_valid_caip22(
+            "caip22:eip155:1/erc20:0x8004AA63c570c570eBF15376c0dB199918BFe9Fb/1"
+        )?); // Invalid asset namespace
         assert!(!is_valid_caip22("")?);
 
         Ok(())
@@ -740,9 +744,8 @@ mod tests {
         assert_eq!(parsed2.token_id, "3265");
 
         // Test with ERC-1155
-        let parsed3 = parse_caip22(
-            "caip22:eip155:1/erc1155:0x76BE3b62873462d2142405439777e971754E8E77/100",
-        )?;
+        let parsed3 =
+            parse_caip22("caip22:eip155:1/erc1155:0x76BE3b62873462d2142405439777e971754E8E77/100")?;
         assert_eq!(parsed3.asset_namespace, "erc1155");
 
         Ok(())
