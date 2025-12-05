@@ -3,7 +3,7 @@
 This document tracks feature requirements and enhancements for the backend services.
 
 **Status:** Active  
-**Last Updated:** 2025-12-03
+**Last Updated:** 2025-12-05
 
 ---
 
@@ -338,6 +338,82 @@ Make the backend highly testable with infrastructure to simulate event ingestion
 - What test coverage targets should we aim for?
 - How to manage reth instance lifecycle (startup, teardown, state reset)?
 - Should we use a shared reth instance across tests or isolated instances?
+
+---
+
+### 7. Position Value Field
+
+**Status:** 🟡 In Planning  
+**Priority:** High
+
+**Requirement:**
+Add a `value` field to the position table that calculates the current value of a position based on shares and vault share price. This enables efficient querying of position values without requiring joins in every query.
+
+**Details:**
+- Add `value` column to the position table
+- Calculate value as: `position.value = position.shares * vault.share_price`
+- Keep value synchronized with share price changes
+- Support both stored value (denormalized) and on-the-fly calculation options
+
+**Calculation Logic:**
+- Value should be calculated when:
+  - Position is created
+  - Shares are updated (deposits, withdrawals, redemptions)
+  - Vault share price changes
+- Value should be stored as a numeric/decimal type to maintain precision
+- Consider using database triggers or application-level updates for synchronization
+
+**Implementation Requirements:**
+- [ ] Database migration to add `value` column to position table
+- [ ] Migration to backfill existing positions with calculated values
+- [ ] Update position creation/update logic to calculate and store value
+- [ ] Update vault share price change handlers to recalculate affected positions
+- [ ] Add database constraints/indexes as needed for performance
+- [ ] Unit tests for value calculation logic
+- [ ] Integration tests for position value updates
+- [ ] Tests for value synchronization with share price changes
+- [ ] Tests for edge cases (zero shares, zero price, etc.)
+
+**Technical Considerations:**
+- **Data Type:** Use appropriate numeric type (NUMERIC, DECIMAL) to maintain precision for financial calculations
+- **Synchronization Strategy:**
+  - Option 1: Database triggers to auto-update on share_price changes
+  - Option 2: Application-level updates in event handlers
+  - Option 3: Hybrid approach (triggers for immediate updates, application logic for complex scenarios)
+- **Performance:**
+  - Index on `value` column if needed for queries
+  - Consider materialized views or computed columns depending on database
+  - Batch updates for bulk share price changes
+- **Consistency:**
+  - Ensure value is always in sync with shares and share_price
+  - Handle race conditions in concurrent updates
+  - Consider using database transactions for atomic updates
+
+**Data Migration:**
+- Backfill existing positions with calculated values
+- Handle positions with missing vault data gracefully
+- Validate migrated data matches calculated values
+- Provide rollback migration if needed
+
+**Testing Requirements:**
+- Unit tests for value calculation function
+- Integration tests for position creation with value
+- Integration tests for value updates on share price changes
+- Integration tests for value updates on share quantity changes
+- Edge case tests:
+  - Zero shares
+  - Zero share price
+  - Very large values (precision testing)
+  - Concurrent updates
+- Performance tests for bulk updates
+
+**Open Questions:**
+- Should value be stored as denormalized data or calculated on-the-fly?
+- What precision is needed for value calculations?
+- How to handle historical position values (should we track value over time)?
+- Should value updates be synchronous or can they be async?
+- How to handle positions where vault share_price is temporarily unavailable?
+- Should we track value in multiple currencies or just the vault's native currency?
 
 ---
 
