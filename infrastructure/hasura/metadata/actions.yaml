@@ -183,6 +183,34 @@ actions:
       - role: anonymous
       - role: frontend
     comment: Uploads JSON to IPFS using image-guard
+  - name: uploadImage
+    definition:
+      kind: synchronous
+      handler: http://image-guard:3000/upload_image_from_url
+      forward_client_headers: false
+      request_transform:
+        body:
+          action: transform
+          template: |-
+            {
+              "url": "data:{{$body.input.image.contentType}};base64,{{$body.input.image.data}}"
+            }
+        content_type: application/json
+        template_engine: Kriti
+        version: 2
+      response_transform:
+        body:
+          action: transform
+          template: |-
+            {
+              "images": {{$body}}
+            }
+        template_engine: Kriti
+        version: 2
+    permissions:
+      - role: anonymous
+      - role: frontend
+    comment: "Uploads and classifies an image file using image-guard. Accepts base64-encoded image data. Note: The original /upload endpoint requires multipart/form-data which Hasura actions cannot construct directly. This mutation uses upload_image_from_url with a data URL workaround. For direct file uploads, use the image-guard API directly or create a wrapper endpoint."
 custom_types:
   enums: []
   input_objects:
@@ -191,6 +219,7 @@ custom_types:
     - name: PinOrganizationInput
     - name: PinJsonInput
     - name: UploadImageFromUrlInput
+    - name: UploadImageInput
   objects:
     - name: PinOutput
     - name: UploadImageFromUrlOutput

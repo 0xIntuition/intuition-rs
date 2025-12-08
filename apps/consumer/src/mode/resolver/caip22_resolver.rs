@@ -74,6 +74,10 @@ fn get_rpc_url_for_chain(
             .local_intuition_rpc_url
             .clone()
             .ok_or(ConsumerError::ChainRpcNotConfigured(chain_id)),
+        80002 => env
+            .polygon_amoy_rpc_url
+            .clone()
+            .ok_or(ConsumerError::ChainRpcNotConfigured(chain_id)),
         _ => Err(ConsumerError::UnsupportedChain(chain_id)),
     }
 }
@@ -167,7 +171,7 @@ pub async fn resolve_caip22(
     let (name, image) = extract_metadata_fields(&metadata_json);
     queue_image_for_ipfs(&image, resolver_consumer_context).await?;
 
-    Ok(AtomMetadata::caip22(name, image))
+    Ok(AtomMetadata::caip22(name, image, Some(parsed.token_id)))
 }
 
 /// Parses the CAIP-22 string from atom data

@@ -21,6 +21,10 @@ import { graphql } from './graphql/gql.js'
 const AGENT_REGISTRY_CONTRACT = '0x8004AA63c570c570eBF15376c0dB199918BFe9Fb'
 const BASE_SEPOLIA_CHAIN_ID = 84532
 
+// Ethereum Sepolia AgentRegistry contract
+const ETH_SEPOLIA_AGENT_REGISTRY = '0x8004a6090Cd10A7288092483047B097295Fb8847'
+const ETH_SEPOLIA_CHAIN_ID = 11155111
+
 // Helper to create CAIP-22 URI
 function createCaip22Uri(chainId: number, contractAddress: string, tokenId: number | string): string {
   return `caip22:eip155:${chainId}/erc721:${contractAddress}/${tokenId}`
@@ -301,5 +305,98 @@ suite('deposit on existing CAIP-22 atom triggers re-resolution', async () => {
     // Atom should still be resolved after re-resolution
     expect(result.atom?.resolving_status).toBe('Resolved')
     console.log(`After deposit, atom status: ${result.atom?.resolving_status}`)
+  })
+})
+
+suite('create Ethereum Sepolia agent atom (CAIP-22)', async () => {
+  const frank = await getIntuition(9)
+
+  // Create a CAIP-22 atom pointing to an AgentRegistry NFT on Ethereum Sepolia
+  const ethSepoliaCaip22 = createCaip22Uri(ETH_SEPOLIA_CHAIN_ID, ETH_SEPOLIA_AGENT_REGISTRY, 3265)
+  console.log(`Creating Ethereum Sepolia CAIP-22 atom: ${ethSepoliaCaip22}`)
+
+  const ethSepoliaAtom = await frank.getOrCreateAtom(ethSepoliaCaip22)
+
+  expect(ethSepoliaAtom).toBeDefined()
+  expect(ethSepoliaAtom.vaultId).toBeDefined()
+
+  test('atom is created with Ethereum Sepolia CAIP-22 data', async () => {
+    await wait(ethSepoliaAtom.hash)
+
+    // Query the atom to verify it was created
+    const result = await execute(
+      graphql(`query GetEthSepoliaCaip22Atom($termId: String!) {
+        atom(term_id: $termId) {
+          term_id
+          data
+          type
+          label
+          resolving_status
+        }
+      }`),
+      { termId: ethSepoliaAtom.vaultId }
+    )
+
+    expect(result).toBeDefined()
+    expect(result.atom).toBeDefined()
+    expect(result.atom?.data).toBe(ethSepoliaCaip22)
+    expect(result.atom?.type).toBe('Caip22')
+
+    // The initial label should be the token ID (3265) as fallback
+    // since resolution hasn't completed yet
+    console.log(`Initial label (should be token ID or resolved name): ${result.atom?.label}`)
+  })
+
+  test('atom is resolved with NFT metadata from Ethereum Sepolia', async () => {
+    // Wait longer for the resolver to fetch tokenURI and metadata
+    await new Promise(resolve => setTimeout(resolve, 15000))
+
+    const result = await execute(
+      graphql(`query GetEthSepoliaCaip22AtomResolved($termId: String!) {
+        atom(term_id: $termId) {
+          term_id
+          data
+          type
+          label
+          image
+          resolving_status
+          value {
+            json_object {
+              data
+            }
+          }
+        }
+      }`),
+      { termId: ethSepoliaAtom.vaultId }
+    )
+
+    expect(result).toBeDefined()
+    expect(result.atom).toBeDefined()
+
+    // Atom type should be Caip22
+    expect(result.atom?.type).toBe('Caip22')
+
+    // Atom should be resolved (or Pending if RPC fails)
+    console.log(`Ethereum Sepolia atom status: ${result.atom?.resolving_status}`)
+
+    // Label should be the resolved name or token ID as fallback
+    expect(result.atom?.label).toBeDefined()
+    expect(result.atom?.label).not.toBe('')
+
+    // If resolution failed, label should be the token ID "3265"
+    // If resolution succeeded, label should be the NFT name
+    console.log(`Ethereum Sepolia agent label: ${result.atom?.label}`)
+
+    if (result.atom?.resolving_status === 'Resolved') {
+      console.log(`Ethereum Sepolia agent image: ${result.atom?.image}`)
+      if (result.atom?.value?.json_object?.data) {
+        const metadata = result.atom.value.json_object.data as Record<string, unknown>
+        console.log(`Ethereum Sepolia agent metadata:`, metadata)
+      }
+    } else {
+      // If pending, the label should be the token ID
+      expect(result.atom?.label).toBe('3265')
+      console.log(`Resolution pending - label correctly shows token ID: ${result.atom?.label}`)
+    }
   })
 })

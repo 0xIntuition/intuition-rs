@@ -20,6 +20,9 @@ type Mutation {
   uploadJsonToIpfs(
     json: jsonb!
   ): UploadJsonToIpfsOutput
+  uploadImage(
+    image: UploadImageInput!
+  ): UploadImageFromUrlOutput
 }
 
 input PinThingInput {
@@ -52,6 +55,12 @@ input PinJsonInput {
 
 input UploadImageFromUrlInput {
   url: String!
+}
+
+input UploadImageInput {
+  data: String!
+  filename: String!
+  contentType: String!
 }
 
 type PinOutput {

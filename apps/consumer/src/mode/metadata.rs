@@ -72,9 +72,10 @@ impl AtomMetadata {
     }
 
     /// Creates a new atom metadata for a CAIP-22 NFT
-    pub fn caip22(name: Option<String>, image: Option<String>) -> Self {
+    /// If name is None, uses the token_id as fallback label
+    pub fn caip22(name: Option<String>, image: Option<String>, token_id: Option<String>) -> Self {
         Self {
-            label: name.unwrap_or_else(|| "NFT".to_string()),
+            label: name.unwrap_or_else(|| token_id.unwrap_or_else(|| "NFT".to_string())),
             emoji: "🖼️".to_string(),
             atom_type: "Caip22".to_string(),
             image,
@@ -661,7 +662,9 @@ pub async fn get_supported_atom_metadata(
         // saved to the database first. The message will be sent in handle_caip22_type()
         // which is called after update_atom_metadata() saves the atom type.
 
-        Ok(AtomMetadata::caip22(None, None))
+        // Parse the CAIP-22 to extract token_id for fallback label
+        let parsed = parse_caip22(&atom.data.clone().unwrap())?;
+        Ok(AtomMetadata::caip22(None, None, Some(parsed.token_id)))
     } else {
         debug!("Atom data is not an address or CAIP, verifying if it's an IPFS URI...");
         // 5. Now we need to enqueue the message to be processed by the resolver
@@ -922,5 +925,42 @@ mod tests {
         assert!(!is_valid_address("0x123")?); // Too short
 
         Ok(())
+    }
+
+    #[test]
+    fn test_caip22_metadata_fallback_label() {
+        // When name is provided, use it as the label
+        let metadata_with_name = AtomMetadata::caip22(
+            Some("My NFT Name".to_string()),
+            Some("https://example.com/image.png".to_string()),
+            Some("12345".to_string()),
+        );
+        assert_eq!(metadata_with_name.label, "My NFT Name");
+        assert_eq!(metadata_with_name.atom_type, "Caip22");
+
+        // When name is None but token_id is provided, use token_id as fallback
+        let metadata_with_token_id = AtomMetadata::caip22(
+            None,
+            None,
+            Some("3265".to_string()),
+        );
+        assert_eq!(metadata_with_token_id.label, "3265");
+        assert_eq!(metadata_with_token_id.atom_type, "Caip22");
+
+        // When both name and token_id are None, use "NFT" as fallback
+        let metadata_no_fallback = AtomMetadata::caip22(None, None, None);
+        assert_eq!(metadata_no_fallback.label, "NFT");
+        assert_eq!(metadata_no_fallback.atom_type, "Caip22");
+
+        // Test with large token ID
+        let metadata_large_token = AtomMetadata::caip22(
+            None,
+            None,
+            Some("115792089237316195423570985008687907853269984665640564039457584007913129639935".to_string()),
+        );
+        assert_eq!(
+            metadata_large_token.label,
+            "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+        );
     }
 }

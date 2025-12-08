@@ -51,6 +51,7 @@ pub struct Env {
     pub local_intuition_rpc_url: Option<String>,
     pub ethereum_mainnet_rpc_url: Option<String>,
     pub ethereum_sepolia_rpc_url: Option<String>,
+    pub polygon_amoy_rpc_url: Option<String>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
