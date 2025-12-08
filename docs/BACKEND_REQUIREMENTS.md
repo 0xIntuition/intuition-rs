@@ -3,7 +3,7 @@
 This document tracks feature requirements and enhancements for the backend services.
 
 **Status:** Active  
-**Last Updated:** 2025-12-03
+**Last Updated:** 2025-12-05
 
 ---
 
@@ -248,6 +248,172 @@ Support vector databases to enable search engines and easy relation discovery in
 - How to handle incremental updates vs full re-indexing?
 - What is the expected query volume and latency requirements?
 - How to maintain consistency between source data and vector representations?
+
+---
+
+### 6. Backend Testability & Testing Infrastructure
+
+**Status:** 🔴 Needs Discussion  
+**Priority:** High
+
+**Requirement:**
+Make the backend highly testable with infrastructure to simulate event ingestion, test various scenarios, and follow blockchain backend testing best practices. **All testing is for local development environments, not cloud-based testing.**
+
+**Details:**
+- Enable simulation of event ingestion in parallel (locally)
+- Support testing different scenarios and edge cases (local development)
+- Provide test utilities similar to existing integration-tests patterns
+- Ensure backend components can be tested in isolation (local setup)
+- Support both unit tests and integration tests (runnable locally)
+- All test infrastructure should run on developer machines, not in cloud CI/CD
+
+**Testing Capabilities Needed:**
+
+#### 6.1 Event Ingestion Testing
+- Simulate parallel event ingestion from blockchain
+- Test event ordering and concurrency scenarios
+- Simulate high-volume event streams
+- Test event processing under various load conditions
+- Test event deduplication and idempotency
+
+#### 6.2 Scenario Testing
+- Test different blockchain scenarios:
+  - Multiple deposits/withdrawals in parallel
+  - Position creation and redemption flows
+  - Vault state transitions
+  - Triple creation and updates
+  - User interactions and state changes
+- Test edge cases:
+  - Failed transactions
+  - Partial failures
+  - Network issues
+  - Database failures
+  - Race conditions
+
+#### 6.3 Test Infrastructure
+- Test utilities for common operations (similar to integration-tests)
+- Local blockchain simulation using reth (Ethereum node)
+  - Deploy multivault contract to local reth instance
+  - Generate test data by interacting with deployed contract
+  - Full control over blockchain state and events
+- Test database setup/teardown utilities
+- Test data generators for various entities
+- Utilities to wait for async operations to complete
+- GraphQL query helpers for verification
+
+**Technical Considerations:**
+- **Local Development Focus:** All testing infrastructure must run locally on developer machines
+  - No cloud dependencies for running tests
+  - All services (database, reth, etc.) should be runnable locally via Docker or similar
+  - Tests should be executable with simple commands (e.g., `cargo test`, `make test`)
+- Test database isolation (separate test DB or transactions, local instance)
+- Parallel test execution support
+- Deterministic test data and scenarios
+- Fast test execution (avoid real blockchain waits where possible)
+- Integration with existing test frameworks
+- Support for both Rust unit tests and integration tests
+- **Blockchain Simulation:** Use reth (local Ethereum node) to simulate blockchain events
+  - Deploy multivault contract to local reth instance
+  - Generate events by interacting with the contract
+  - Provides realistic blockchain behavior without external dependencies
+  - Full control over block production and state
+  - Runs entirely locally (no cloud blockchain nodes)
+- Mock/stub external dependencies (IPFS, etc.) where blockchain simulation isn't needed
+
+**Best Practices for Blockchain Backend Testing:**
+- Test event processing independently from blockchain interaction
+- Use test fixtures and factories for common data patterns
+- Test idempotency of event processing
+- Test concurrent event processing
+- Verify database state after event processing
+- Test error handling and retry logic
+- Test performance under load
+- Test data consistency and integrity
+
+**Open Questions:**
+- What level of parallelism should be supported in tests?
+- How to handle test data cleanup between test runs?
+- Should we support property-based testing for event processing?
+- How to test time-dependent scenarios (block timestamps, etc.)?
+- What test coverage targets should we aim for?
+- How to manage reth instance lifecycle (startup, teardown, state reset)?
+- Should we use a shared reth instance across tests or isolated instances?
+
+---
+
+### 7. Position Value Field
+
+**Status:** 🟡 In Planning  
+**Priority:** High
+
+**Requirement:**
+Add a `value` field to the position table that calculates the current value of a position based on shares and vault share price. This enables efficient querying of position values without requiring joins in every query.
+
+**Details:**
+- Add `value` column to the position table
+- Calculate value as: `position.value = position.shares * vault.share_price`
+- Keep value synchronized with share price changes
+- Support both stored value (denormalized) and on-the-fly calculation options
+
+**Calculation Logic:**
+- Value should be calculated when:
+  - Position is created
+  - Shares are updated (deposits, withdrawals, redemptions)
+  - Vault share price changes
+- Value should be stored as a numeric/decimal type to maintain precision
+- Consider using database triggers or application-level updates for synchronization
+
+**Implementation Requirements:**
+- [ ] Database migration to add `value` column to position table
+- [ ] Migration to backfill existing positions with calculated values
+- [ ] Update position creation/update logic to calculate and store value
+- [ ] Update vault share price change handlers to recalculate affected positions
+- [ ] Add database constraints/indexes as needed for performance
+- [ ] Unit tests for value calculation logic
+- [ ] Integration tests for position value updates
+- [ ] Tests for value synchronization with share price changes
+- [ ] Tests for edge cases (zero shares, zero price, etc.)
+
+**Technical Considerations:**
+- **Data Type:** Use appropriate numeric type (NUMERIC, DECIMAL) to maintain precision for financial calculations
+- **Synchronization Strategy:**
+  - Option 1: Database triggers to auto-update on share_price changes
+  - Option 2: Application-level updates in event handlers
+  - Option 3: Hybrid approach (triggers for immediate updates, application logic for complex scenarios)
+- **Performance:**
+  - Index on `value` column if needed for queries
+  - Consider materialized views or computed columns depending on database
+  - Batch updates for bulk share price changes
+- **Consistency:**
+  - Ensure value is always in sync with shares and share_price
+  - Handle race conditions in concurrent updates
+  - Consider using database transactions for atomic updates
+
+**Data Migration:**
+- Backfill existing positions with calculated values
+- Handle positions with missing vault data gracefully
+- Validate migrated data matches calculated values
+- Provide rollback migration if needed
+
+**Testing Requirements:**
+- Unit tests for value calculation function
+- Integration tests for position creation with value
+- Integration tests for value updates on share price changes
+- Integration tests for value updates on share quantity changes
+- Edge case tests:
+  - Zero shares
+  - Zero share price
+  - Very large values (precision testing)
+  - Concurrent updates
+- Performance tests for bulk updates
+
+**Open Questions:**
+- Should value be stored as denormalized data or calculated on-the-fly?
+- What precision is needed for value calculations?
+- How to handle historical position values (should we track value over time)?
+- Should value updates be synchronous or can they be async?
+- How to handle positions where vault share_price is temporarily unavailable?
+- Should we track value in multiple currencies or just the vault's native currency?
 
 ---
 

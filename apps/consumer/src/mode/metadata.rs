@@ -71,6 +71,17 @@ impl AtomMetadata {
         }
     }
 
+    /// Creates a new atom metadata for a CAIP-22 NFT
+    /// If name is None, uses the token_id as fallback label
+    pub fn caip22(name: Option<String>, image: Option<String>, token_id: Option<String>) -> Self {
+        Self {
+            label: name.unwrap_or_else(|| token_id.unwrap_or_else(|| "NFT".to_string())),
+            emoji: "🖼️".to_string(),
+            atom_type: "Caip22".to_string(),
+            image,
+        }
+    }
+
     /// Creates a new caip10
     pub async fn create_caip10(
         atom_id: FixedBytesWrapper,
@@ -110,7 +121,9 @@ impl AtomMetadata {
         }
     }
 
-    /// Stores the atom data in the database based on the atom type
+    /// Stores the atom data in the database based on the atom type.
+    /// Also enqueues CAIP-22 atoms for resolution (this must be called AFTER
+    /// the atom type is saved to the database to avoid race conditions).
     pub async fn handle_account_or_caip10_type(
         &self,
         atom: &mut Atom,
@@ -130,6 +143,18 @@ impl AtomMetadata {
                     decoded_consumer_context,
                 )
                 .await?;
+                Ok(())
+            }
+            AtomType::Caip22 => {
+                debug!("Enqueuing CAIP-22 for resolution: {}", atom.data.clone().unwrap());
+                // Now that the atom type is saved to the database, we can safely
+                // enqueue the message for resolution. The resolver consumer will
+                // see the correct atom type and route to process_caip22_atom.
+                let message = ResolverConsumerMessage::new_atom(atom.term_id.0.to_string());
+                decoded_consumer_context
+                    .client
+                    .send_message(serde_json::to_string(&message)?, None)
+                    .await?;
                 Ok(())
             }
             _ => {
@@ -416,6 +441,125 @@ pub fn is_valid_account_format(account: &str) -> bool {
         .all(|c| c.is_alphanumeric() || c == '-' || c == '_' || c == '.')
 }
 
+/// Parsed CAIP-22 components
+#[derive(Debug, Clone)]
+pub struct ParsedCaip22 {
+    pub namespace: String,
+    pub chain_id: i64,
+    pub asset_namespace: String,
+    pub contract_address: String,
+    pub token_id: String,
+}
+
+/// Validates if a string is a valid CAIP-22 NFT asset identifier
+///
+/// # Arguments
+/// * `caip22` - The CAIP-22 string to validate
+///
+/// # Returns
+/// * `bool` - True if valid CAIP-22, false otherwise
+///
+/// Format: `caip22:eip155:{chain_id}/erc721:{contract_address}/{token_id}`
+///
+/// # Examples
+/// - `caip22:eip155:84532/erc721:0x8004AA63c570c570eBF15376c0dB199918BFe9Fb/1563`
+/// - `caip22:eip155:11155111/erc721:0x8004a6090Cd10A7288092483047B097295Fb8847/3265`
+pub fn is_valid_caip22(caip22: &str) -> Result<bool, ConsumerError> {
+    Ok(parse_caip22(caip22).is_ok())
+}
+
+/// Parses a CAIP-22 string into its components
+///
+/// # Arguments
+/// * `caip22` - The CAIP-22 string to parse
+///
+/// # Returns
+/// * `ParsedCaip22` - The parsed components
+///
+/// # Errors
+/// Returns `ConsumerError::InvalidCaip22` if the format is invalid
+pub fn parse_caip22(caip22: &str) -> Result<ParsedCaip22, ConsumerError> {
+    // Must start with "caip22:"
+    let without_prefix = caip22
+        .strip_prefix("caip22:")
+        .ok_or(ConsumerError::InvalidCaip22)?;
+
+    // Split by '/' to get chain reference and asset reference
+    // Format: eip155:84532/erc721:0x.../1563
+    let parts: Vec<&str> = without_prefix.splitn(2, '/').collect();
+    if parts.len() != 2 {
+        return Err(ConsumerError::InvalidCaip22);
+    }
+
+    let chain_ref = parts[0]; // eip155:84532
+    let asset_ref = parts[1]; // erc721:0x.../1563
+
+    // Parse chain reference (namespace:chain_id)
+    let chain_parts: Vec<&str> = chain_ref.split(':').collect();
+    if chain_parts.len() != 2 {
+        return Err(ConsumerError::InvalidCaip22);
+    }
+
+    let namespace = chain_parts[0];
+    let chain_id_str = chain_parts[1];
+
+    // Validate namespace is eip155 (for now)
+    if namespace != "eip155" {
+        return Err(ConsumerError::InvalidCaip22);
+    }
+
+    // Parse chain_id
+    let chain_id: i64 = chain_id_str
+        .parse()
+        .map_err(|_| ConsumerError::InvalidCaip22)?;
+
+    // Parse asset reference (asset_namespace:contract/token_id)
+    let asset_parts: Vec<&str> = asset_ref.splitn(2, ':').collect();
+    if asset_parts.len() != 2 {
+        return Err(ConsumerError::InvalidCaip22);
+    }
+
+    let asset_namespace = asset_parts[0]; // erc721
+    let contract_and_token = asset_parts[1]; // 0x.../1563
+
+    // Validate asset namespace
+    if asset_namespace != "erc721" && asset_namespace != "erc1155" {
+        return Err(ConsumerError::InvalidCaip22);
+    }
+
+    // Split contract address and token ID (token_id is after the last '/')
+    let last_slash_pos = contract_and_token
+        .rfind('/')
+        .ok_or(ConsumerError::InvalidCaip22)?;
+
+    let contract_address = &contract_and_token[..last_slash_pos];
+    let token_id = &contract_and_token[last_slash_pos + 1..];
+
+    // Validate contract address
+    if !is_valid_eip155_address(contract_address) {
+        return Err(ConsumerError::InvalidCaip22);
+    }
+
+    // Validate token_id is a valid positive integer
+    if token_id.is_empty() || !token_id.chars().all(|c| c.is_ascii_digit()) {
+        return Err(ConsumerError::InvalidCaip22);
+    }
+
+    // Validate token_id length (U256 max is 2^256-1, which is 77 digits)
+    // This prevents potential overflow/parsing issues
+    if token_id.len() > 77 {
+        return Err(ConsumerError::TokenIdTooLong(token_id.len()));
+    }
+
+    Ok(ParsedCaip22 {
+        namespace: namespace.to_string(),
+        chain_id,
+        asset_namespace: asset_namespace.to_string(),
+        contract_address: contract_address.to_string(),
+        token_id: token_id.to_string(),
+    })
+}
+
 /// Validates if a string is a valid CAIP10
 ///
 /// # Arguments
@@ -508,9 +652,22 @@ pub async fn get_supported_atom_metadata(
         Ok(AtomMetadata::caip10(
             atom.data.clone().ok_or(ConsumerError::AtomDataNotFound)?,
         ))
+    // 4. Handling CAIP-22 (NFT asset identifier - requires resolution)
+    } else if is_valid_caip22(&atom.data.clone().ok_or(ConsumerError::AtomDataNotFound)?)? {
+        debug!("Atom data is a CAIP-22, will be enqueued for resolution after atom type is saved...");
+        // Mark as pending since we need to resolve the tokenURI
+        atom.resolving_status = AtomResolvingStatus::Pending;
+
+        // NOTE: We do NOT send the message here because the atom type needs to be
+        // saved to the database first. The message will be sent in handle_caip22_type()
+        // which is called after update_atom_metadata() saves the atom type.
+
+        // Parse the CAIP-22 to extract token_id for fallback label
+        let parsed = parse_caip22(&atom.data.clone().unwrap())?;
+        Ok(AtomMetadata::caip22(None, None, Some(parsed.token_id)))
     } else {
-        debug!("Atom data is not an address, verifying if it's an IPFS URI...");
-        // 4. Now we need to enqueue the message to be processed by the resolver
+        debug!("Atom data is not an address or CAIP, verifying if it's an IPFS URI...");
+        // 5. Now we need to enqueue the message to be processed by the resolver
         let message = ResolverConsumerMessage::new_atom(atom.term_id.0.to_string());
         decoded_consumer_context
             .client
@@ -550,6 +707,95 @@ pub fn get_predicate_metadata(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_is_valid_caip22() -> Result<(), ConsumerError> {
+        // Valid CAIP-22 examples
+        assert!(is_valid_caip22(
+            "caip22:eip155:84532/erc721:0x8004AA63c570c570eBF15376c0dB199918BFe9Fb/1563"
+        )?);
+        assert!(is_valid_caip22(
+            "caip22:eip155:11155111/erc721:0x8004a6090Cd10A7288092483047B097295Fb8847/3265"
+        )?);
+        assert!(is_valid_caip22(
+            "caip22:eip155:1/erc721:0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D/1234"
+        )?);
+        // ERC-1155 should also be valid
+        assert!(is_valid_caip22(
+            "caip22:eip155:1/erc1155:0x76BE3b62873462d2142405439777e971754E8E77/100"
+        )?);
+
+        // Invalid cases
+        assert!(!is_valid_caip22("caip10:eip155:1:0x123")?); // Wrong prefix
+        assert!(!is_valid_caip22("caip22:eip155:84532")?); // Missing asset ref
+        assert!(!is_valid_caip22("caip22:eip155:84532/erc721:0x123")?); // Missing token ID
+        assert!(!is_valid_caip22(
+            "caip22:eip155:abc/erc721:0x8004AA63c570c570eBF15376c0dB199918BFe9Fb/1"
+        )?); // Invalid chain ID
+        assert!(!is_valid_caip22("caip22:eip155:1/erc721:not_an_address/1")?); // Invalid address
+        assert!(!is_valid_caip22(
+            "caip22:eip155:1/erc20:0x8004AA63c570c570eBF15376c0dB199918BFe9Fb/1"
+        )?); // Invalid asset namespace
+        assert!(!is_valid_caip22("")?);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_caip22() -> Result<(), ConsumerError> {
+        let parsed = parse_caip22(
+            "caip22:eip155:84532/erc721:0x8004AA63c570c570eBF15376c0dB199918BFe9Fb/1563",
+        )?;
+
+        assert_eq!(parsed.namespace, "eip155");
+        assert_eq!(parsed.chain_id, 84532);
+        assert_eq!(parsed.asset_namespace, "erc721");
+        assert_eq!(
+            parsed.contract_address,
+            "0x8004AA63c570c570eBF15376c0dB199918BFe9Fb"
+        );
+        assert_eq!(parsed.token_id, "1563");
+
+        // Test with large chain ID
+        let parsed2 = parse_caip22(
+            "caip22:eip155:11155111/erc721:0x8004a6090Cd10A7288092483047B097295Fb8847/3265",
+        )?;
+        assert_eq!(parsed2.chain_id, 11155111);
+        assert_eq!(parsed2.token_id, "3265");
+
+        // Test with ERC-1155
+        let parsed3 =
+            parse_caip22("caip22:eip155:1/erc1155:0x76BE3b62873462d2142405439777e971754E8E77/100")?;
+        assert_eq!(parsed3.asset_namespace, "erc1155");
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_caip22_token_id_length_validation() {
+        // Valid token ID (77 digits is the max for U256)
+        let valid_77_digits = format!(
+            "caip22:eip155:1/erc721:0x76BE3b62873462d2142405439777e971754E8E77/{}",
+            "1".repeat(77)
+        );
+        assert!(parse_caip22(&valid_77_digits).is_ok());
+
+        // Invalid: token ID too long (78 digits)
+        let invalid_78_digits = format!(
+            "caip22:eip155:1/erc721:0x76BE3b62873462d2142405439777e971754E8E77/{}",
+            "1".repeat(78)
+        );
+        let result = parse_caip22(&invalid_78_digits);
+        assert!(matches!(result, Err(ConsumerError::TokenIdTooLong(78))));
+
+        // Invalid: extremely long token ID
+        let invalid_100_digits = format!(
+            "caip22:eip155:1/erc721:0x76BE3b62873462d2142405439777e971754E8E77/{}",
+            "9".repeat(100)
+        );
+        let result = parse_caip22(&invalid_100_digits);
+        assert!(matches!(result, Err(ConsumerError::TokenIdTooLong(100))));
+    }
 
     #[test]
     fn test_is_valid_caip10() -> Result<(), ConsumerError> {
@@ -679,5 +925,42 @@ mod tests {
         assert!(!is_valid_address("0x123")?); // Too short
 
         Ok(())
+    }
+
+    #[test]
+    fn test_caip22_metadata_fallback_label() {
+        // When name is provided, use it as the label
+        let metadata_with_name = AtomMetadata::caip22(
+            Some("My NFT Name".to_string()),
+            Some("https://example.com/image.png".to_string()),
+            Some("12345".to_string()),
+        );
+        assert_eq!(metadata_with_name.label, "My NFT Name");
+        assert_eq!(metadata_with_name.atom_type, "Caip22");
+
+        // When name is None but token_id is provided, use token_id as fallback
+        let metadata_with_token_id = AtomMetadata::caip22(
+            None,
+            None,
+            Some("3265".to_string()),
+        );
+        assert_eq!(metadata_with_token_id.label, "3265");
+        assert_eq!(metadata_with_token_id.atom_type, "Caip22");
+
+        // When both name and token_id are None, use "NFT" as fallback
+        let metadata_no_fallback = AtomMetadata::caip22(None, None, None);
+        assert_eq!(metadata_no_fallback.label, "NFT");
+        assert_eq!(metadata_no_fallback.atom_type, "Caip22");
+
+        // Test with large token ID
+        let metadata_large_token = AtomMetadata::caip22(
+            None,
+            None,
+            Some("115792089237316195423570985008687907853269984665640564039457584007913129639935".to_string()),
+        );
+        assert_eq!(
+            metadata_large_token.label,
+            "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+        );
     }
 }

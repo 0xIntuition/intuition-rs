@@ -42,6 +42,16 @@ export type Boolean_Comparison_Exp = {
   _nin?: InputMaybe<Array<Scalars['Boolean']['input']>>;
 };
 
+export type CachedImage = {
+  __typename?: 'CachedImage';
+  created_at: Scalars['timestamptz']['output'];
+  model?: Maybe<Scalars['String']['output']>;
+  original_url: Scalars['String']['output'];
+  safe: Scalars['Boolean']['output'];
+  score?: Maybe<Scalars['jsonb']['output']>;
+  url: Scalars['String']['output'];
+};
+
 /** Boolean expression to compare columns of type "Int". All fields are combined with logical 'AND'. */
 export type Int_Comparison_Exp = {
   _eq?: InputMaybe<Scalars['Int']['input']>;
@@ -115,6 +125,28 @@ export type String_Comparison_Exp = {
   _regex?: InputMaybe<Scalars['String']['input']>;
   /** does the column match the given SQL regular expression */
   _similar?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type UploadImageFromUrlInput = {
+  url: Scalars['String']['input'];
+};
+
+export type UploadImageFromUrlOutput = {
+  __typename?: 'UploadImageFromUrlOutput';
+  images: Array<CachedImage>;
+};
+
+export type UploadImageInput = {
+  contentType: Scalars['String']['input'];
+  data: Scalars['String']['input'];
+  filename: Scalars['String']['input'];
+};
+
+export type UploadJsonToIpfsOutput = {
+  __typename?: 'UploadJsonToIpfsOutput';
+  hash: Scalars['String']['output'];
+  name: Scalars['String']['output'];
+  size: Scalars['String']['output'];
 };
 
 /** Boolean expression to compare columns of type "account_type". All fields are combined with logical 'AND'. */
@@ -2986,6 +3018,12 @@ export type Mutation_Root = {
   pinPerson?: Maybe<PinOutput>;
   /** Uploads and pins Thing to IPFS */
   pinThing?: Maybe<PinOutput>;
+  /** Uploads and classifies an image file using image-guard (accepts base64-encoded image data via data URL) */
+  uploadImage?: Maybe<UploadImageFromUrlOutput>;
+  /** Uploads and classifies an image from a URL using image-guard */
+  uploadImageFromUrl?: Maybe<UploadImageFromUrlOutput>;
+  /** Uploads JSON to IPFS using image-guard */
+  uploadJsonToIpfs?: Maybe<UploadJsonToIpfsOutput>;
 };
 
 
@@ -3004,6 +3042,24 @@ export type Mutation_RootPinPersonArgs = {
 /** mutation root */
 export type Mutation_RootPinThingArgs = {
   thing: PinThingInput;
+};
+
+
+/** mutation root */
+export type Mutation_RootUploadImageArgs = {
+  image: UploadImageInput;
+};
+
+
+/** mutation root */
+export type Mutation_RootUploadImageFromUrlArgs = {
+  image: UploadImageFromUrlInput;
+};
+
+
+/** mutation root */
+export type Mutation_RootUploadJsonToIpfsArgs = {
+  json: Scalars['jsonb']['input'];
 };
 
 /** Boolean expression to compare columns of type "numeric". All fields are combined with logical 'AND'. */
@@ -12071,6 +12127,74 @@ export type SearchPositionsQueryVariables = Exact<{
 
 export type SearchPositionsQuery = { __typename?: 'query_root', positions: Array<{ __typename?: 'positions', term?: { __typename?: 'terms', triple?: { __typename?: 'triples', subject?: { __typename?: 'atoms', data?: string | null } | null, predicate?: { __typename?: 'atoms', data?: string | null } | null, object?: { __typename?: 'atoms', data?: string | null } | null } | null } | null }> };
 
+export type GetCaip22AtomBasicQueryVariables = Exact<{
+  termId: Scalars['String']['input'];
+}>;
+
+
+export type GetCaip22AtomBasicQuery = { __typename?: 'query_root', atom?: { __typename?: 'atoms', term_id: string, data?: string | null, type: any, resolving_status: any } | null };
+
+export type GetCaip22AtomResolvedQueryVariables = Exact<{
+  termId: Scalars['String']['input'];
+}>;
+
+
+export type GetCaip22AtomResolvedQuery = { __typename?: 'query_root', atom?: { __typename?: 'atoms', term_id: string, data?: string | null, type: any, label?: string | null, image?: string | null, resolving_status: any, value?: { __typename?: 'atom_values', json_object?: { __typename?: 'json_objects', data: any } | null } | null } | null };
+
+export type GetFirstAgentAtomQueryVariables = Exact<{
+  termId: Scalars['String']['input'];
+}>;
+
+
+export type GetFirstAgentAtomQuery = { __typename?: 'query_root', atom?: { __typename?: 'atoms', data?: string | null, type: any } | null };
+
+export type GetSecondAgentAtomQueryVariables = Exact<{
+  termId: Scalars['String']['input'];
+}>;
+
+
+export type GetSecondAgentAtomQuery = { __typename?: 'query_root', atom?: { __typename?: 'atoms', data?: string | null, type: any } | null };
+
+export type GetCaip22AtomsQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type GetCaip22AtomsQuery = { __typename?: 'query_root', atoms: Array<{ __typename?: 'atoms', term_id: string, data?: string | null, label?: string | null, image?: string | null, resolving_status: any }> };
+
+export type GetAgentTripleQueryVariables = Exact<{
+  tripleId: Scalars['String']['input'];
+}>;
+
+
+export type GetAgentTripleQuery = { __typename?: 'query_root', triple?: { __typename?: 'triples', term_id: string, subject?: { __typename?: 'atoms', data?: string | null, type: any, label?: string | null } | null, predicate?: { __typename?: 'atoms', data?: string | null } | null, object?: { __typename?: 'atoms', data?: string | null } | null } | null };
+
+export type GetCaip22AtomInitialQueryVariables = Exact<{
+  termId: Scalars['String']['input'];
+}>;
+
+
+export type GetCaip22AtomInitialQuery = { __typename?: 'query_root', atom?: { __typename?: 'atoms', type: any, resolving_status: any, label?: string | null } | null };
+
+export type GetCaip22AtomAfterDepositQueryVariables = Exact<{
+  termId: Scalars['String']['input'];
+}>;
+
+
+export type GetCaip22AtomAfterDepositQuery = { __typename?: 'query_root', atom?: { __typename?: 'atoms', type: any, resolving_status: any, label?: string | null } | null };
+
+export type GetEthSepoliaCaip22AtomQueryVariables = Exact<{
+  termId: Scalars['String']['input'];
+}>;
+
+
+export type GetEthSepoliaCaip22AtomQuery = { __typename?: 'query_root', atom?: { __typename?: 'atoms', term_id: string, data?: string | null, type: any, label?: string | null, resolving_status: any } | null };
+
+export type GetEthSepoliaCaip22AtomResolvedQueryVariables = Exact<{
+  termId: Scalars['String']['input'];
+}>;
+
+
+export type GetEthSepoliaCaip22AtomResolvedQuery = { __typename?: 'query_root', atom?: { __typename?: 'atoms', term_id: string, data?: string | null, type: any, label?: string | null, image?: string | null, resolving_status: any, value?: { __typename?: 'atom_values', json_object?: { __typename?: 'json_objects', data: any } | null } | null } | null };
+
 export type TermQueryVariables = Exact<{
   termId: Scalars['String']['input'];
 }>;
@@ -12299,6 +12423,124 @@ export const SearchPositionsDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<SearchPositionsQuery, SearchPositionsQueryVariables>;
+export const GetCaip22AtomBasicDocument = new TypedDocumentString(`
+    query GetCaip22AtomBasic($termId: String!) {
+  atom(term_id: $termId) {
+    term_id
+    data
+    type
+    resolving_status
+  }
+}
+    `) as unknown as TypedDocumentString<GetCaip22AtomBasicQuery, GetCaip22AtomBasicQueryVariables>;
+export const GetCaip22AtomResolvedDocument = new TypedDocumentString(`
+    query GetCaip22AtomResolved($termId: String!) {
+  atom(term_id: $termId) {
+    term_id
+    data
+    type
+    label
+    image
+    resolving_status
+    value {
+      json_object {
+        data
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<GetCaip22AtomResolvedQuery, GetCaip22AtomResolvedQueryVariables>;
+export const GetFirstAgentAtomDocument = new TypedDocumentString(`
+    query GetFirstAgentAtom($termId: String!) {
+  atom(term_id: $termId) {
+    data
+    type
+  }
+}
+    `) as unknown as TypedDocumentString<GetFirstAgentAtomQuery, GetFirstAgentAtomQueryVariables>;
+export const GetSecondAgentAtomDocument = new TypedDocumentString(`
+    query GetSecondAgentAtom($termId: String!) {
+  atom(term_id: $termId) {
+    data
+    type
+  }
+}
+    `) as unknown as TypedDocumentString<GetSecondAgentAtomQuery, GetSecondAgentAtomQueryVariables>;
+export const GetCaip22AtomsDocument = new TypedDocumentString(`
+    query GetCaip22Atoms {
+  atoms(where: {type: {_eq: "Caip22"}}) {
+    term_id
+    data
+    label
+    image
+    resolving_status
+  }
+}
+    `) as unknown as TypedDocumentString<GetCaip22AtomsQuery, GetCaip22AtomsQueryVariables>;
+export const GetAgentTripleDocument = new TypedDocumentString(`
+    query GetAgentTriple($tripleId: String!) {
+  triple(term_id: $tripleId) {
+    term_id
+    subject {
+      data
+      type
+      label
+    }
+    predicate {
+      data
+    }
+    object {
+      data
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<GetAgentTripleQuery, GetAgentTripleQueryVariables>;
+export const GetCaip22AtomInitialDocument = new TypedDocumentString(`
+    query GetCaip22AtomInitial($termId: String!) {
+  atom(term_id: $termId) {
+    type
+    resolving_status
+    label
+  }
+}
+    `) as unknown as TypedDocumentString<GetCaip22AtomInitialQuery, GetCaip22AtomInitialQueryVariables>;
+export const GetCaip22AtomAfterDepositDocument = new TypedDocumentString(`
+    query GetCaip22AtomAfterDeposit($termId: String!) {
+  atom(term_id: $termId) {
+    type
+    resolving_status
+    label
+  }
+}
+    `) as unknown as TypedDocumentString<GetCaip22AtomAfterDepositQuery, GetCaip22AtomAfterDepositQueryVariables>;
+export const GetEthSepoliaCaip22AtomDocument = new TypedDocumentString(`
+    query GetEthSepoliaCaip22Atom($termId: String!) {
+  atom(term_id: $termId) {
+    term_id
+    data
+    type
+    label
+    resolving_status
+  }
+}
+    `) as unknown as TypedDocumentString<GetEthSepoliaCaip22AtomQuery, GetEthSepoliaCaip22AtomQueryVariables>;
+export const GetEthSepoliaCaip22AtomResolvedDocument = new TypedDocumentString(`
+    query GetEthSepoliaCaip22AtomResolved($termId: String!) {
+  atom(term_id: $termId) {
+    term_id
+    data
+    type
+    label
+    image
+    resolving_status
+    value {
+      json_object {
+        data
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<GetEthSepoliaCaip22AtomResolvedQuery, GetEthSepoliaCaip22AtomResolvedQueryVariables>;
 export const TermDocument = new TypedDocumentString(`
     query Term($termId: String!) {
   atom(term_id: $termId) {
