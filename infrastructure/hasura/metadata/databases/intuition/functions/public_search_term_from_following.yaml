@@ -1,3 +1,4 @@
 function:
   name: search_term_from_following
   schema: public
+  comment: Semantic search filtered to terms where the given address has positions from followed accounts.

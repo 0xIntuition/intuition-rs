@@ -334,3 +334,50 @@ ALTER TABLE term_total_state_change SET (
 );
 
 SELECT add_compression_policy('term_total_state_change', INTERVAL '7 days');
+
+-- ========================================
+-- EXTENSION COMMENTS
+-- ========================================
+
+COMMENT ON EXTENSION ai IS 'pgai extension for AI-powered vector embeddings and semantic search using OpenAI.';
+
+-- ========================================
+-- FUNCTION COMMENTS
+-- ========================================
+
+COMMENT ON FUNCTION search_term(query text) IS 'Semantic search across all terms using OpenAI text-embedding-3-small model and pgai vectorization.';
+
+COMMENT ON FUNCTION search_term_from_following(address text, query text) IS 'Semantic search filtered to terms where the given address has positions from followed accounts.';
+
+-- ========================================
+-- CONTINUOUS AGGREGATE COMMENTS
+-- ========================================
+-- Note: TimescaleDB continuous aggregates require COMMENT ON VIEW (not MATERIALIZED VIEW)
+-- because they are exposed as regular views to users despite having materialization underneath
+
+-- Signal stats views
+COMMENT ON VIEW signal_stats_hourly IS 'Hourly aggregation of signal volume and count per term and curve using TimescaleDB continuous aggregates.';
+
+COMMENT ON VIEW signal_stats_daily IS 'Daily aggregation of signal volume and count rolled up from hourly stats.';
+
+COMMENT ON VIEW signal_stats_weekly IS 'Weekly aggregation of signal volume and count rolled up from daily stats.';
+
+COMMENT ON VIEW signal_stats_monthly IS 'Monthly aggregation of signal volume and count rolled up from daily stats.';
+
+-- Share price change stats views
+COMMENT ON VIEW share_price_change_stats_hourly IS 'Hourly share price statistics showing first, last, and difference per term and curve using TimescaleDB continuous aggregates.';
+
+COMMENT ON VIEW share_price_change_stats_daily IS 'Daily share price statistics rolled up from hourly stats.';
+
+COMMENT ON VIEW share_price_change_stats_weekly IS 'Weekly share price statistics rolled up from daily stats.';
+
+COMMENT ON VIEW share_price_change_stats_monthly IS 'Monthly share price statistics rolled up from daily stats.';
+
+-- Term total state change stats views
+COMMENT ON VIEW term_total_state_change_stats_hourly IS 'Hourly market cap statistics showing first, last, and difference per term using TimescaleDB continuous aggregates.';
+
+COMMENT ON VIEW term_total_state_change_stats_daily IS 'Daily market cap statistics rolled up from hourly stats for historical trending.';
+
+COMMENT ON VIEW term_total_state_change_stats_weekly IS 'Weekly market cap statistics rolled up from daily stats for historical trending.';
+
+COMMENT ON VIEW term_total_state_change_stats_monthly IS 'Monthly market cap statistics rolled up from daily stats for long-term historical analysis.';

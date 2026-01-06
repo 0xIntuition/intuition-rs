@@ -1,3 +1,4 @@
 function:
   name: accounts_that_claim_about_account
   schema: public
+  comment: Returns accounts that have positions on triples with the specified subject, predicate, and account as object.
