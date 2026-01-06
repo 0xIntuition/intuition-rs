@@ -27,7 +27,7 @@ pub async fn fetch_aggregate_data(
             first_share_price,
             last_share_price,
             difference,
-            change_count
+            change_count::bigint as change_count
         FROM {}
         WHERE term_id = $1
           AND curve_id = $2::numeric

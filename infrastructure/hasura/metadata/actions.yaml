@@ -211,6 +211,40 @@ actions:
       - role: anonymous
       - role: frontend
     comment: "Uploads and classifies an image file using image-guard. Accepts base64-encoded image data. Note: The original /upload endpoint requires multipart/form-data which Hasura actions cannot construct directly. This mutation uses upload_image_from_url with a data URL workaround. For direct file uploads, use the image-guard API directly or create a wrapper endpoint."
+  - name: getChartDataMainnet
+    definition:
+      kind: synchronous
+      handler: http://chart-api-mainnet-chart-api:8080
+      request_transform:
+        method: GET
+        url: '{{$base_url}}/api/v1/curves/{{$body.input.input.curve_id}}/terms/{{$body.input.input.term_id}}/data'
+        query_params:
+          interval: '{{$body.input.input.interval}}'
+          format: '{{$body.input.input.format}}'
+          count: '{{$body.input.input?.count}}'
+        template_engine: Kriti
+        version: 2
+    permissions:
+      - role: anonymous
+      - role: frontend
+    comment: Fetches chart data for a term/curve combination on mainnet
+  - name: getChartDataTestnet
+    definition:
+      kind: synchronous
+      handler: http://chart-api-testnet-chart-api:8080
+      request_transform:
+        method: GET
+        url: '{{$base_url}}/api/v1/curves/{{$body.input.input.curve_id}}/terms/{{$body.input.input.term_id}}/data'
+        query_params:
+          interval: '{{$body.input.input.interval}}'
+          format: '{{$body.input.input.format}}'
+          count: '{{$body.input.input?.count}}'
+        template_engine: Kriti
+        version: 2
+    permissions:
+      - role: anonymous
+      - role: frontend
+    comment: Fetches chart data for a term/curve combination on testnet
 custom_types:
   enums: []
   input_objects:
@@ -220,9 +254,12 @@ custom_types:
     - name: PinJsonInput
     - name: UploadImageFromUrlInput
     - name: UploadImageInput
+    - name: GetChartDataInput
   objects:
     - name: PinOutput
     - name: UploadImageFromUrlOutput
     - name: CachedImage
     - name: UploadJsonToIpfsOutput
+    - name: ChartDataOutput
+    - name: ChartDataPoint
   scalars: []

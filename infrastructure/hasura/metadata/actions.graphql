@@ -86,3 +86,33 @@ type UploadJsonToIpfsOutput {
   size: String!
 }
 
+type Query {
+  getChartDataMainnet(
+    input: GetChartDataInput!
+  ): ChartDataOutput
+  getChartDataTestnet(
+    input: GetChartDataInput!
+  ): ChartDataOutput
+}
+
+input GetChartDataInput {
+  term_id: String!
+  curve_id: String!
+  interval: String!
+  format: String!
+  count: Int
+}
+
+type ChartDataOutput {
+  term_id: String!
+  curve_id: String!
+  interval: String!
+  count: Int!
+  data: [ChartDataPoint!]!
+}
+
+type ChartDataPoint {
+  timestamp: String!
+  share_price: String!
+}
+

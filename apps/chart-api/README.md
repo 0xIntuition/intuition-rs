@@ -187,7 +187,10 @@ cargo run --bin chart-api
 ### Build
 
 ```bash
-# Build all apps (includes chart-api)
+# Build the Docker image
+docker build -f apps/chart-api/Dockerfile -t chart-api .
+
+# Or build all apps (includes chart-api)
 cargo make build-apps
 ```
 

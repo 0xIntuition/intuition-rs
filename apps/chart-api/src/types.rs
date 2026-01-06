@@ -78,10 +78,10 @@ impl Interval {
     /// Get the SQL interval string for lookback calculation
     pub fn sql_interval(&self) -> &'static str {
         match self {
-            Interval::Hourly => "1 hour",
-            Interval::Daily => "1 day",
-            Interval::Weekly => "1 week",
-            Interval::Monthly => "1 month",
+            Interval::Hourly => "hour",
+            Interval::Daily => "day",
+            Interval::Weekly => "week",
+            Interval::Monthly => "month",
         }
     }
 
