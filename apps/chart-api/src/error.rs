@@ -22,6 +22,10 @@ pub enum ApiError {
     InvalidTermId(String),
     #[error("Invalid curve_id: {0}. Must be a valid numeric string")]
     InvalidCurveId(String),
+    #[error("Invalid graph type: {0}. Valid values are: sharePriceChange, totalMarketCap")]
+    InvalidGraphType(String),
+    #[error("Missing curve_id: this graph type requires a curve_id parameter")]
+    MissingCurveId,
     #[error(transparent)]
     Env(#[from] envy::Error),
     #[error(transparent)]
@@ -48,6 +52,8 @@ impl IntoResponse for ApiError {
             ApiError::InvalidCount(_, _) => StatusCode::BAD_REQUEST,
             ApiError::InvalidTermId(_) => StatusCode::BAD_REQUEST,
             ApiError::InvalidCurveId(_) => StatusCode::BAD_REQUEST,
+            ApiError::InvalidGraphType(_) => StatusCode::BAD_REQUEST,
+            ApiError::MissingCurveId => StatusCode::BAD_REQUEST,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         };
         (status, self.to_string()).into_response()

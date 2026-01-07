@@ -1,3 +1,5 @@
 mod chart_data;
 
-pub use chart_data::{AggregateDataPoint, ChartDataPoint, ChartDataPointSchema, ChartResponse};
+pub use chart_data::{
+    ChartDataPoint, ChartDataPointSchema, ChartResponse, ChartSvgResponse, GenericDataRow,
+};

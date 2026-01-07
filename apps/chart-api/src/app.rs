@@ -1,14 +1,10 @@
 use crate::{
-    endpoints::get_chart_data,
-    error::ApiError,
-    openapi::ApiDoc,
-    state::AppState,
-    types::Env,
+    endpoints::get_chart_data, error::ApiError, openapi::ApiDoc, state::AppState, types::Env,
 };
-use axum::{extract::State, routing::get, Router};
+use axum::{Router, extract::State, routing::get};
 use http::{
-    header::{AUTHORIZATION, CONTENT_TYPE},
     Method,
+    header::{AUTHORIZATION, CONTENT_TYPE},
 };
 use std::time::Duration;
 use tokio::net::TcpListener;
@@ -108,7 +104,7 @@ impl App {
     fn router(&self) -> Router {
         Router::new()
             .route(
-                "/api/v1/curves/{curve_id}/terms/{term_id}/data",
+                "/api/v1/curve/{curve_id}/term/{term_id}/data",
                 get(get_chart_data),
             )
             .route("/health", get(health_check))

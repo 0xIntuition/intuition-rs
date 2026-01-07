@@ -87,25 +87,38 @@ type UploadJsonToIpfsOutput {
 }
 
 type Query {
-  getChartDataMainnet(
-    input: GetChartDataInput!
+  getChartJson(
+    input: GetChartJsonInput!
   ): ChartDataOutput
-  getChartDataTestnet(
-    input: GetChartDataInput!
-  ): ChartDataOutput
+  getChartSvg(
+    input: GetChartSvgInput!
+  ): ChartSvgOutput
 }
 
-input GetChartDataInput {
+input GetChartJsonInput {
   term_id: String!
   curve_id: String!
   interval: String!
-  format: String!
+  graph_type: String
   count: Int
+}
+
+input GetChartSvgInput {
+  term_id: String!
+  curve_id: String!
+  interval: String!
+  graph_type: String
+  count: Int
+  width: Int
+  height: Int
+  line_color: String
+  background_color: String
 }
 
 type ChartDataOutput {
   term_id: String!
-  curve_id: String!
+  curve_id: String
+  graph_type: String!
   interval: String!
   count: Int!
   data: [ChartDataPoint!]!
@@ -113,6 +126,10 @@ type ChartDataOutput {
 
 type ChartDataPoint {
   timestamp: String!
-  share_price: String!
+  value: String!
+}
+
+type ChartSvgOutput {
+  svg: String!
 }
 

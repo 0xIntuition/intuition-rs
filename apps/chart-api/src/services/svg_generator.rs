@@ -1,8 +1,8 @@
 use crate::models::ChartDataPoint;
 use crate::types::SvgConfig;
 use alloy::primitives::U256;
-use svg::node::element::{Group, Line, Path, Rectangle, Text};
 use svg::Document;
+use svg::node::element::{Group, Line, Path, Rectangle, Text};
 
 /// Generate an SVG line chart from chart data points
 pub fn generate_svg(data_points: &[ChartDataPoint], config: &SvgConfig) -> String {
@@ -13,10 +13,10 @@ pub fn generate_svg(data_points: &[ChartDataPoint], config: &SvgConfig) -> Strin
     let chart_width = config.width - (2 * config.padding);
     let chart_height = config.height - (2 * config.padding);
 
-    // Find min/max prices for scaling
-    let (min_price, max_price) = find_price_range(data_points);
-    let price_range = if max_price > min_price {
-        max_price - min_price
+    // Find min/max values for scaling
+    let (min_value, max_value) = find_value_range(data_points);
+    let value_range = if max_value > min_value {
+        max_value - min_value
     } else {
         U256::from(1) // Avoid division by zero for constant values
     };
@@ -40,8 +40,10 @@ pub fn generate_svg(data_points: &[ChartDataPoint], config: &SvgConfig) -> Strin
     }
 
     // Create chart group with padding offset
-    let chart_group = Group::new()
-        .set("transform", format!("translate({}, {})", config.padding, config.padding));
+    let chart_group = Group::new().set(
+        "transform",
+        format!("translate({}, {})", config.padding, config.padding),
+    );
 
     // Add grid lines (optional, for better visualization)
     let grid_group = create_grid(chart_width, chart_height);
@@ -51,8 +53,8 @@ pub fn generate_svg(data_points: &[ChartDataPoint], config: &SvgConfig) -> Strin
         data_points,
         chart_width as f64,
         chart_height as f64,
-        &min_price,
-        &price_range,
+        &min_value,
+        &value_range,
     );
 
     let path = Path::new()
@@ -63,8 +65,7 @@ pub fn generate_svg(data_points: &[ChartDataPoint], config: &SvgConfig) -> Strin
         .set("stroke-linecap", "round")
         .set("stroke-linejoin", "round");
 
-    document = document
-        .add(chart_group.add(grid_group).add(path));
+    document = document.add(chart_group.add(grid_group).add(path));
 
     document.to_string()
 }
@@ -103,22 +104,22 @@ fn generate_empty_svg(config: &SvgConfig) -> String {
     document.to_string()
 }
 
-/// Find the min and max price values in the data
-fn find_price_range(data_points: &[ChartDataPoint]) -> (U256, U256) {
+/// Find the min and max value in the data
+fn find_value_range(data_points: &[ChartDataPoint]) -> (U256, U256) {
     let mut min = U256::MAX;
     let mut max = U256::ZERO;
 
     for point in data_points {
-        let price = point.share_price.0;
-        if price < min {
-            min = price;
+        let value = point.value.0;
+        if value < min {
+            min = value;
         }
-        if price > max {
-            max = price;
+        if value > max {
+            max = value;
         }
     }
 
-    // If all prices are the same, add some padding
+    // If all values are the same, add some padding
     if min == max {
         let padding = min / U256::from(10);
         if padding > U256::ZERO {
@@ -138,8 +139,8 @@ fn build_path_data(
     data_points: &[ChartDataPoint],
     chart_width: f64,
     chart_height: f64,
-    min_price: &U256,
-    price_range: &U256,
+    min_value: &U256,
+    value_range: &U256,
 ) -> String {
     let mut path_data = String::new();
     let point_count = data_points.len();
@@ -155,8 +156,8 @@ fn build_path_data(
             chart_width / 2.0
         };
 
-        let normalized_price = normalize_price(&point.share_price.0, min_price, price_range);
-        let y = (1.0 - normalized_price) * chart_height; // Invert Y axis
+        let normalized_value = normalize_value(&point.value.0, min_value, value_range);
+        let y = (1.0 - normalized_value) * chart_height; // Invert Y axis
 
         if i == 0 {
             path_data.push_str(&format!("M {} {}", x, y));
@@ -168,18 +169,18 @@ fn build_path_data(
     path_data
 }
 
-/// Normalize a price value to a 0.0-1.0 range
-fn normalize_price(price: &U256, min_price: &U256, price_range: &U256) -> f64 {
-    if *price_range == U256::ZERO {
+/// Normalize a value to a 0.0-1.0 range
+fn normalize_value(value: &U256, min_value: &U256, value_range: &U256) -> f64 {
+    if *value_range == U256::ZERO {
         return 0.5; // Middle of chart for constant values
     }
 
-    let offset = price.saturating_sub(*min_price);
+    let offset = value.saturating_sub(*min_value);
 
     // Convert to f64 for division (may lose precision for very large numbers)
     // This is acceptable for visualization purposes
     let offset_f64 = u256_to_f64(&offset);
-    let range_f64 = u256_to_f64(price_range);
+    let range_f64 = u256_to_f64(value_range);
 
     if range_f64 > 0.0 {
         (offset_f64 / range_f64).clamp(0.0, 1.0)
@@ -198,7 +199,9 @@ fn u256_to_f64(value: &U256) -> f64 {
 
 /// Create subtle grid lines for the chart
 fn create_grid(width: u32, height: u32) -> Group {
-    let mut grid = Group::new().set("stroke", "#e0e0e0").set("stroke-width", 0.5);
+    let mut grid = Group::new()
+        .set("stroke", "#e0e0e0")
+        .set("stroke-width", 0.5);
 
     // Horizontal grid lines (5 lines)
     for i in 0..=4 {
@@ -236,15 +239,15 @@ mod tests {
         let data = vec![
             ChartDataPoint {
                 timestamp: Utc::now(),
-                share_price: U256Wrapper(U256::from(100)),
+                value: U256Wrapper(U256::from(100)),
             },
             ChartDataPoint {
                 timestamp: Utc::now(),
-                share_price: U256Wrapper(U256::from(150)),
+                value: U256Wrapper(U256::from(150)),
             },
             ChartDataPoint {
                 timestamp: Utc::now(),
-                share_price: U256Wrapper(U256::from(120)),
+                value: U256Wrapper(U256::from(120)),
             },
         ];
 
@@ -265,11 +268,11 @@ mod tests {
     }
 
     #[test]
-    fn test_normalize_price() {
+    fn test_normalize_value() {
         let min = U256::from(100);
         let range = U256::from(100);
 
-        let result = normalize_price(&U256::from(150), &min, &range);
+        let result = normalize_value(&U256::from(150), &min, &range);
         assert!((result - 0.5).abs() < 0.001);
     }
 }

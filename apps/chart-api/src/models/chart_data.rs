@@ -8,9 +8,9 @@ use utoipa::ToSchema;
 pub struct ChartDataPoint {
     /// Timestamp of this data point (bucket time)
     pub timestamp: DateTime<Utc>,
-    /// Share price at this time (serialized as string to avoid JS precision issues)
+    /// Value at this time (serialized as string to avoid JS precision issues)
     #[serde(serialize_with = "serialize_u256_as_string")]
-    pub share_price: U256Wrapper,
+    pub value: U256Wrapper,
 }
 
 /// Custom serializer to convert U256Wrapper to string
@@ -26,8 +26,8 @@ where
 pub struct ChartDataPointSchema {
     /// Timestamp of this data point (bucket time)
     pub timestamp: String,
-    /// Share price at this time (as string to preserve precision)
-    pub share_price: String,
+    /// Value at this time (as string to preserve precision)
+    pub value: String,
 }
 
 /// Response for JSON format
@@ -35,8 +35,11 @@ pub struct ChartDataPointSchema {
 pub struct ChartResponse {
     /// Term ID
     pub term_id: String,
-    /// Curve ID (as string to preserve precision)
-    pub curve_id: String,
+    /// Curve ID (as string to preserve precision). Optional for term-level graphs.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub curve_id: Option<String>,
+    /// Graph type (e.g., "sharePriceChange", "totalMarketCap")
+    pub graph_type: String,
     /// Interval used
     pub interval: String,
     /// Number of data points
@@ -46,7 +49,15 @@ pub struct ChartResponse {
     pub data: Vec<ChartDataPoint>,
 }
 
-/// Raw data from the continuous aggregate view
+/// Response for SVG wrapped in JSON (for Hasura actions)
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct ChartSvgResponse {
+    /// SVG content as a string
+    pub svg: String,
+}
+
+/// Raw data from the continuous aggregate view (legacy - kept for backward compatibility)
+#[allow(dead_code)]
 #[derive(Debug, sqlx::FromRow)]
 pub struct AggregateDataPoint {
     pub bucket: DateTime<Utc>,
@@ -56,4 +67,18 @@ pub struct AggregateDataPoint {
     pub last_share_price: U256Wrapper,
     pub difference: U256Wrapper,
     pub change_count: i64,
+}
+
+/// Generic data row for different graph types
+///
+/// This struct represents a single data point fetched from the database,
+/// which could come from either curve-level or term-level views.
+#[derive(Debug)]
+#[allow(dead_code)] // Fields used in DB queries and deserialization
+pub struct GenericDataRow {
+    pub bucket: DateTime<Utc>,
+    pub term_id: String,
+    /// Optional curve_id (None for term-level graphs like TotalMarketCap)
+    pub curve_id: Option<U256Wrapper>,
+    pub value: U256Wrapper,
 }

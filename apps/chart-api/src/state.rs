@@ -1,6 +1,6 @@
 use crate::types::Env;
-use redis::aio::ConnectionManager;
 use redis::Client as RedisClient;
+use redis::aio::ConnectionManager;
 use shared_utils::postgres::connect_to_db;
 use sqlx::{Pool, Postgres};
 use std::time::Duration;
@@ -12,6 +12,7 @@ use tracing::{error, info, warn};
 pub struct AppState {
     pub pg_pool: Pool<Postgres>,
     pub redis: ConnectionManager,
+    #[allow(dead_code)] // Stored for future schema-qualified queries
     pub schema: String,
 }
 

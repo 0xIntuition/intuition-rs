@@ -211,40 +211,46 @@ actions:
       - role: anonymous
       - role: frontend
     comment: "Uploads and classifies an image file using image-guard. Accepts base64-encoded image data. Note: The original /upload endpoint requires multipart/form-data which Hasura actions cannot construct directly. This mutation uses upload_image_from_url with a data URL workaround. For direct file uploads, use the image-guard API directly or create a wrapper endpoint."
-  - name: getChartDataMainnet
+  - name: getChartJson
     definition:
       kind: synchronous
-      handler: http://chart-api-mainnet-chart-api:8080
+      handler: '{{chartApiUrl}}'
       request_transform:
         method: GET
-        url: '{{$base_url}}/api/v1/curves/{{$body.input.input.curve_id}}/terms/{{$body.input.input.term_id}}/data'
+        url: '{{$base_url}}/api/v1/curve/{{$body.input.input.curve_id}}/term/{{$body.input.input.term_id}}/data'
         query_params:
           interval: '{{$body.input.input.interval}}'
-          format: '{{$body.input.input.format}}'
+          format: 'json'
+          graph_type: '{{$body.input.input?.graph_type}}'
           count: '{{$body.input.input?.count}}'
         template_engine: Kriti
         version: 2
     permissions:
       - role: anonymous
       - role: frontend
-    comment: Fetches chart data for a term/curve combination on mainnet
-  - name: getChartDataTestnet
+    comment: Fetches chart data (JSON) for a term/curve combination
+  - name: getChartSvg
     definition:
       kind: synchronous
-      handler: http://chart-api-testnet-chart-api:8080
+      handler: '{{chartApiUrl}}'
       request_transform:
         method: GET
-        url: '{{$base_url}}/api/v1/curves/{{$body.input.input.curve_id}}/terms/{{$body.input.input.term_id}}/data'
+        url: '{{$base_url}}/api/v1/curve/{{$body.input.input.curve_id}}/term/{{$body.input.input.term_id}}/data'
         query_params:
           interval: '{{$body.input.input.interval}}'
-          format: '{{$body.input.input.format}}'
+          format: 'svg_json'
+          graph_type: '{{$body.input.input?.graph_type}}'
           count: '{{$body.input.input?.count}}'
+          width: '{{$body.input.input?.width}}'
+          height: '{{$body.input.input?.height}}'
+          line_color: '{{$body.input.input?.line_color}}'
+          background_color: '{{$body.input.input?.background_color}}'
         template_engine: Kriti
         version: 2
     permissions:
       - role: anonymous
       - role: frontend
-    comment: Fetches chart data for a term/curve combination on testnet
+    comment: Fetches chart SVG for a term/curve combination
 custom_types:
   enums: []
   input_objects:
@@ -254,7 +260,8 @@ custom_types:
     - name: PinJsonInput
     - name: UploadImageFromUrlInput
     - name: UploadImageInput
-    - name: GetChartDataInput
+    - name: GetChartJsonInput
+    - name: GetChartSvgInput
   objects:
     - name: PinOutput
     - name: UploadImageFromUrlOutput
@@ -262,4 +269,5 @@ custom_types:
     - name: UploadJsonToIpfsOutput
     - name: ChartDataOutput
     - name: ChartDataPoint
+    - name: ChartSvgOutput
   scalars: []

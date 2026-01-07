@@ -1,4 +1,4 @@
-use crate::models::{AggregateDataPoint, ChartDataPoint};
+use crate::models::{ChartDataPoint, GenericDataRow};
 use crate::types::Interval;
 use chrono::{DateTime, Duration, Utc};
 use models::types::U256Wrapper;
@@ -9,10 +9,10 @@ use std::collections::HashMap;
 /// If there are missing buckets between data points, fill them with the last known value.
 /// If there's no data at all, use the fallback value to create a constant line.
 pub fn fill_gaps(
-    data_points: Vec<AggregateDataPoint>,
+    data_points: Vec<GenericDataRow>,
     interval: Interval,
     count: u32,
-    fallback_price: Option<U256Wrapper>,
+    fallback_value: Option<U256Wrapper>,
 ) -> Vec<ChartDataPoint> {
     let now = Utc::now();
     let bucket_duration = get_bucket_duration(interval);
@@ -24,40 +24,40 @@ pub fn fill_gaps(
     let expected_buckets = generate_expected_buckets(start_time, now, bucket_duration);
 
     // If no data and no fallback, return empty
-    if data_points.is_empty() && fallback_price.is_none() {
+    if data_points.is_empty() && fallback_value.is_none() {
         return Vec::new();
     }
 
     // Create a map of existing data points by bucket
     let data_map: HashMap<DateTime<Utc>, U256Wrapper> = data_points
         .into_iter()
-        .map(|dp| (truncate_to_bucket(dp.bucket, interval), dp.last_share_price))
+        .map(|dp| (truncate_to_bucket(dp.bucket, interval), dp.value))
         .collect();
 
-    // Determine the initial "last known" price
-    let initial_price = data_map
+    // Determine the initial "last known" value
+    let initial_value = data_map
         .iter()
         .min_by_key(|(bucket, _)| *bucket)
-        .map(|(_, price)| price.clone())
-        .or(fallback_price.clone())
+        .map(|(_, value)| value.clone())
+        .or(fallback_value.clone())
         .unwrap_or_default();
 
     // Fill gaps
     let mut result = Vec::with_capacity(expected_buckets.len());
-    let mut last_known_price = initial_price;
+    let mut last_known_value = initial_value;
 
     for bucket in expected_buckets {
         let truncated = truncate_to_bucket(bucket, interval);
-        let price = data_map
+        let value = data_map
             .get(&truncated)
             .cloned()
-            .unwrap_or_else(|| last_known_price.clone());
+            .unwrap_or_else(|| last_known_value.clone());
 
-        last_known_price = price.clone();
+        last_known_value = value.clone();
 
         result.push(ChartDataPoint {
             timestamp: truncated,
-            share_price: price,
+            value,
         });
     }
 
@@ -102,21 +102,17 @@ fn truncate_to_bucket(timestamp: DateTime<Utc>, interval: Interval) -> DateTime<
     use chrono::{Datelike, Timelike};
 
     match interval {
-        Interval::Hourly => {
-            timestamp
-                .with_minute(0)
-                .and_then(|t| t.with_second(0))
-                .and_then(|t| t.with_nanosecond(0))
-                .unwrap_or(timestamp)
-        }
-        Interval::Daily => {
-            timestamp
-                .with_hour(0)
-                .and_then(|t| t.with_minute(0))
-                .and_then(|t| t.with_second(0))
-                .and_then(|t| t.with_nanosecond(0))
-                .unwrap_or(timestamp)
-        }
+        Interval::Hourly => timestamp
+            .with_minute(0)
+            .and_then(|t| t.with_second(0))
+            .and_then(|t| t.with_nanosecond(0))
+            .unwrap_or(timestamp),
+        Interval::Daily => timestamp
+            .with_hour(0)
+            .and_then(|t| t.with_minute(0))
+            .and_then(|t| t.with_second(0))
+            .and_then(|t| t.with_nanosecond(0))
+            .unwrap_or(timestamp),
         Interval::Weekly => {
             // Truncate to start of week (Monday)
             let days_since_monday = timestamp.weekday().num_days_from_monday();
@@ -172,24 +168,18 @@ mod tests {
 
         // Create data with a gap
         let data = vec![
-            AggregateDataPoint {
+            GenericDataRow {
                 bucket: now - bucket_duration * 3,
                 term_id: "test".to_string(),
-                curve_id: U256Wrapper(U256::from(1)),
-                first_share_price: U256Wrapper(U256::from(100)),
-                last_share_price: U256Wrapper(U256::from(100)),
-                difference: U256Wrapper(U256::ZERO),
-                change_count: 1,
+                curve_id: Some(U256Wrapper(U256::from(1))),
+                value: U256Wrapper(U256::from(100)),
             },
             // Gap at now - 2 hours
-            AggregateDataPoint {
+            GenericDataRow {
                 bucket: now - bucket_duration,
                 term_id: "test".to_string(),
-                curve_id: U256Wrapper(U256::from(1)),
-                first_share_price: U256Wrapper(U256::from(150)),
-                last_share_price: U256Wrapper(U256::from(150)),
-                difference: U256Wrapper(U256::ZERO),
-                change_count: 1,
+                curve_id: Some(U256Wrapper(U256::from(1))),
+                value: U256Wrapper(U256::from(150)),
             },
         ];
 

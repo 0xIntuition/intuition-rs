@@ -20,6 +20,68 @@ fn default_cors_origins() -> String {
     String::new()
 }
 
+/// Supported graph types for charting
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema, Default)]
+#[serde(rename_all = "camelCase")]
+pub enum GraphType {
+    /// Share price change over time (default)
+    #[default]
+    #[serde(rename = "sharePriceChange")]
+    SharePriceChange,
+    /// Total market cap over time (term-level, no curve_id required)
+    #[serde(rename = "totalMarketCap")]
+    TotalMarketCap,
+}
+
+impl GraphType {
+    /// Parse graph type from string (case-insensitive, supports snake_case and camelCase)
+    pub fn from_str(s: &str) -> Option<Self> {
+        match s.to_lowercase().replace('_', "").as_str() {
+            "sharepricechange" => Some(GraphType::SharePriceChange),
+            "totalmarketcap" => Some(GraphType::TotalMarketCap),
+            _ => None,
+        }
+    }
+
+    /// Whether this graph type requires a curve_id parameter
+    pub fn requires_curve_id(&self) -> bool {
+        match self {
+            GraphType::SharePriceChange => true,
+            GraphType::TotalMarketCap => false,
+        }
+    }
+
+    /// Get the view name prefix (without interval suffix)
+    pub fn view_name_prefix(&self) -> &'static str {
+        match self {
+            GraphType::SharePriceChange => "share_price_change_stats",
+            GraphType::TotalMarketCap => "term_total_state_change_stats",
+        }
+    }
+
+    /// Get the full view name for the given interval
+    pub fn view_name(&self, interval: Interval) -> String {
+        format!("{}_{}", self.view_name_prefix(), interval.suffix())
+    }
+
+    /// Get the column name that contains the value to chart
+    pub fn value_column(&self) -> &'static str {
+        match self {
+            GraphType::SharePriceChange => "last_share_price",
+            GraphType::TotalMarketCap => "last_total_market_cap",
+        }
+    }
+}
+
+impl fmt::Display for GraphType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            GraphType::SharePriceChange => write!(f, "sharePriceChange"),
+            GraphType::TotalMarketCap => write!(f, "totalMarketCap"),
+        }
+    }
+}
+
 /// Time interval for chart data
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 pub enum Interval {
@@ -48,30 +110,31 @@ impl Interval {
     /// Get the default number of data points for this interval
     pub fn default_count(&self) -> u32 {
         match self {
-            Interval::Hourly => 24,   // 24 hours
-            Interval::Daily => 30,    // 30 days
-            Interval::Weekly => 12,   // 12 weeks
-            Interval::Monthly => 12,  // 12 months
+            Interval::Hourly => 24,  // 24 hours
+            Interval::Daily => 30,   // 30 days
+            Interval::Weekly => 12,  // 12 weeks
+            Interval::Monthly => 12, // 12 months
         }
     }
 
     /// Get the bucket duration in seconds
+    #[allow(dead_code)] // Kept for potential future use in bucket calculations
     pub fn bucket_seconds(&self) -> i64 {
         match self {
-            Interval::Hourly => 3600,           // 1 hour
-            Interval::Daily => 86400,           // 1 day
-            Interval::Weekly => 604800,         // 1 week
-            Interval::Monthly => 2592000,       // ~30 days (approximate)
+            Interval::Hourly => 3600,     // 1 hour
+            Interval::Daily => 86400,     // 1 day
+            Interval::Weekly => 604800,   // 1 week
+            Interval::Monthly => 2592000, // ~30 days (approximate)
         }
     }
 
     /// Get the cache TTL in seconds for this interval
     pub fn cache_ttl_seconds(&self) -> u64 {
         match self {
-            Interval::Hourly => 30,    // 30 seconds
-            Interval::Daily => 60,     // 1 minute
-            Interval::Weekly => 120,   // 2 minutes
-            Interval::Monthly => 300,  // 5 minutes
+            Interval::Hourly => 30,   // 30 seconds
+            Interval::Daily => 60,    // 1 minute
+            Interval::Weekly => 120,  // 2 minutes
+            Interval::Monthly => 300, // 5 minutes
         }
     }
 
@@ -85,13 +148,13 @@ impl Interval {
         }
     }
 
-    /// Get the aggregate view name for this interval
-    pub fn aggregate_view_name(&self) -> &'static str {
+    /// Get the interval suffix for view names (e.g., "hourly", "daily")
+    pub fn suffix(&self) -> &'static str {
         match self {
-            Interval::Hourly => "share_price_change_stats_hourly",
-            Interval::Daily => "share_price_change_stats_daily",
-            Interval::Weekly => "share_price_change_stats_weekly",
-            Interval::Monthly => "share_price_change_stats_monthly",
+            Interval::Hourly => "hourly",
+            Interval::Daily => "daily",
+            Interval::Weekly => "weekly",
+            Interval::Monthly => "monthly",
         }
     }
 }
@@ -113,6 +176,8 @@ impl fmt::Display for Interval {
 pub enum OutputFormat {
     Json,
     Svg,
+    /// SVG wrapped in JSON (for Hasura actions)
+    SvgJson,
 }
 
 impl OutputFormat {
@@ -121,6 +186,7 @@ impl OutputFormat {
         match s.to_lowercase().as_str() {
             "json" => Some(OutputFormat::Json),
             "svg" => Some(OutputFormat::Svg),
+            "svg_json" => Some(OutputFormat::SvgJson),
             _ => None,
         }
     }
@@ -131,6 +197,7 @@ impl fmt::Display for OutputFormat {
         match self {
             OutputFormat::Json => write!(f, "json"),
             OutputFormat::Svg => write!(f, "svg"),
+            OutputFormat::SvgJson => write!(f, "svg_json"),
         }
     }
 }
@@ -142,6 +209,8 @@ pub struct ChartQueryParams {
     pub interval: String,
     /// Output format: json or svg
     pub format: String,
+    /// Graph type: sharePriceChange (default), totalMarketCap
+    pub graph_type: Option<String>,
     /// Optional: number of data points (overrides default)
     pub count: Option<u32>,
     /// Optional: SVG width in pixels (default: 800)
@@ -183,7 +252,10 @@ impl SvgConfig {
         Self {
             width: params.width.unwrap_or(800),
             height: params.height.unwrap_or(400),
-            line_color: params.line_color.clone().unwrap_or_else(|| "#3B82F6".to_string()),
+            line_color: params
+                .line_color
+                .clone()
+                .unwrap_or_else(|| "#3B82F6".to_string()),
             background_color: params.background_color.clone(),
             line_width: 2.0,
             padding: 40,
