@@ -204,7 +204,7 @@ pub async fn data_exists(
         let row = sqlx::query(
             r#"
             SELECT 1 FROM atom
-            WHERE id = $1
+            WHERE term_id = $1
             LIMIT 1
             "#,
         )
