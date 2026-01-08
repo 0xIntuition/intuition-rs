@@ -40,6 +40,7 @@ select_permissions:
   - role: anonymous
     permission:
       columns:
+        - assets
         - block_number
         - log_index
         - transaction_index
@@ -60,6 +61,7 @@ select_permissions:
   - role: frontend
     permission:
       columns:
+        - assets
         - block_number
         - log_index
         - transaction_index

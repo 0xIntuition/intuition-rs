@@ -135,6 +135,8 @@ pub trait DepositedEvent: Clone {
             .term_id(FixedBytesWrapper::from(self.term_id()?))
             .curve_id(DepositedEvent::curve_id(self)?)
             .shares(self.shares()?)
+            // assets is computed by database trigger (shares * current_share_price)
+            .assets(U256Wrapper::try_from(0)?)
             .block_number(event.block_number)
             .log_index(event.log_index)
             .transaction_hash(event.transaction_hash.clone())

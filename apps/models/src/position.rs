@@ -21,6 +21,8 @@ pub struct Position {
     pub shares: U256Wrapper,
     /// Reference to the curve this position is in
     pub curve_id: U256Wrapper,
+    /// Cached position value (shares * current_share_price) - computed by database trigger
+    pub assets: U256Wrapper,
     /// Total deposit assets after total fees
     pub total_deposit_assets_after_total_fees: U256Wrapper,
     /// Total redeem assets for receiver
@@ -126,12 +128,13 @@ impl SimpleCrud<String> for Position {
     {
         let query = format!(
             r#"
-            SELECT 
-                id, 
-                account_id, 
-                term_id, 
+            SELECT
+                id,
+                account_id,
+                term_id,
                 shares,
                 curve_id,
+                assets,
                 total_deposit_assets_after_total_fees,
                 total_redeem_assets_for_receiver,
                 block_number,
@@ -253,12 +256,13 @@ impl Position {
     {
         let query = format!(
             r#"
-            SELECT 
-                id, 
-                account_id, 
-                term_id, 
+            SELECT
+                id,
+                account_id,
+                term_id,
                 shares,
                 curve_id,
+                assets,
                 total_deposit_assets_after_total_fees,
                 total_redeem_assets_for_receiver,
                 block_number,
@@ -266,7 +270,7 @@ impl Position {
                 transaction_hash,
                 transaction_index,
                 created_at
-            FROM {}.position 
+            FROM {}.position
             WHERE id = $1
             "#,
             schema,
