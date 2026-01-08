@@ -1,9 +1,17 @@
 use axum::{
-    body::Body,
-    http::{Response, StatusCode},
-    response::IntoResponse,
+    http::StatusCode,
+    response::{IntoResponse, Response},
+    Json,
 };
+use serde::Serialize;
 use thiserror::Error;
+
+/// Error response body for JSON responses
+#[derive(Serialize)]
+pub struct ErrorResponse {
+    pub error: String,
+    pub code: String,
+}
 
 /// Error types for the Chart API
 #[derive(Error, Debug)]
@@ -48,8 +56,35 @@ pub enum ApiError {
     Internal(String),
 }
 
+impl ApiError {
+    /// Get the error code for this error type
+    fn code(&self) -> &'static str {
+        match self {
+            ApiError::InvalidCombination => "INVALID_COMBINATION",
+            ApiError::NoDataAvailable => "NO_DATA",
+            ApiError::InvalidInterval(_) => "INVALID_INTERVAL",
+            ApiError::InvalidFormat(_) => "INVALID_FORMAT",
+            ApiError::InvalidRange(_, _) => "INVALID_RANGE",
+            ApiError::InvalidStartTimestamp(_) => "INVALID_START_TIMESTAMP",
+            ApiError::InvalidEndTimestamp(_) => "INVALID_END_TIMESTAMP",
+            ApiError::InvalidTimeRange => "INVALID_TIME_RANGE",
+            ApiError::InvalidTermId(_) => "INVALID_TERM_ID",
+            ApiError::InvalidCurveId(_) => "INVALID_CURVE_ID",
+            ApiError::InvalidGraphType(_) => "INVALID_GRAPH_TYPE",
+            ApiError::MissingCurveId => "MISSING_CURVE_ID",
+            ApiError::Env(_) => "ENV_ERROR",
+            ApiError::IO(_) => "IO_ERROR",
+            ApiError::Sqlx(_) => "DATABASE_ERROR",
+            ApiError::Redis(_) => "CACHE_ERROR",
+            ApiError::Serde(_) => "SERIALIZATION_ERROR",
+            ApiError::Model(_) => "MODEL_ERROR",
+            ApiError::Internal(_) => "INTERNAL_ERROR",
+        }
+    }
+}
+
 impl IntoResponse for ApiError {
-    fn into_response(self) -> Response<Body> {
+    fn into_response(self) -> Response {
         let status = match &self {
             ApiError::InvalidCombination => StatusCode::BAD_REQUEST,
             ApiError::NoDataAvailable => StatusCode::NOT_FOUND,
@@ -65,6 +100,12 @@ impl IntoResponse for ApiError {
             ApiError::MissingCurveId => StatusCode::BAD_REQUEST,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         };
-        (status, self.to_string()).into_response()
+
+        let body = ErrorResponse {
+            error: self.to_string(),
+            code: self.code().to_string(),
+        };
+
+        (status, Json(body)).into_response()
     }
 }
