@@ -99,8 +99,8 @@ input GetChartJsonInput {
   term_id: String!
   curve_id: String!
   interval: String!
-  start: String!
-  end: String!
+  start_time: String!
+  end_time: String!
   graph_type: String
 }
 
@@ -108,8 +108,8 @@ input GetChartSvgInput {
   term_id: String!
   curve_id: String!
   interval: String!
-  start: String!
-  end: String!
+  start_time: String!
+  end_time: String!
   graph_type: String
   width: Int
   height: Int

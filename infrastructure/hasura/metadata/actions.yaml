@@ -221,8 +221,8 @@ actions:
         query_params:
           interval: '{{$body.input.input.interval}}'
           format: 'json'
-          start: '{{$body.input.input.start}}'
-          end: '{{$body.input.input.end}}'
+          start: '{{$body.input.input.start_time}}'
+          end: '{{$body.input.input.end_time}}'
           graph_type: '{{$body.input.input?.graph_type}}'
         template_engine: Kriti
         version: 2
@@ -240,8 +240,8 @@ actions:
         query_params:
           interval: '{{$body.input.input.interval}}'
           format: 'svg_json'
-          start: '{{$body.input.input.start}}'
-          end: '{{$body.input.input.end}}'
+          start: '{{$body.input.input.start_time}}'
+          end: '{{$body.input.input.end_time}}'
           graph_type: '{{$body.input.input?.graph_type}}'
           width: '{{$body.input.input?.width}}'
           height: '{{$body.input.input?.height}}'
