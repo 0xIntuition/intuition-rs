@@ -1,14 +1,23 @@
 use crate::error::LibError;
+use base64::{Engine, engine::general_purpose::STANDARD as BASE64};
 use log::{info, warn};
 use models::cached_image::CachedImage;
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
+use uuid::Uuid;
 
 /// Represents the name and extension of an image
 pub struct ImageOutput {
     pub name: String,
     pub extension: String,
+}
+
+/// Represents parsed data from a data URL
+pub struct DataUrlParsed {
+    pub mime_type: String,
+    pub extension: String,
+    pub data: Vec<u8>,
 }
 
 #[derive(Deserialize, Serialize, Debug, ToSchema)]
@@ -18,6 +27,53 @@ pub struct Image {
 }
 
 impl Image {
+    /// Returns true if the URL is a data URL (base64 encoded)
+    pub fn is_data_url(&self) -> bool {
+        self.url.starts_with("data:")
+    }
+
+    /// Parses a data URL and returns the decoded bytes along with metadata
+    /// Data URL format: data:[<mediatype>][;base64],<data>
+    /// Example: data:image/jpeg;base64,/9j/4AAQ...
+    pub fn parse_data_url(&self) -> Result<DataUrlParsed, LibError> {
+        if !self.is_data_url() {
+            return Err(LibError::InvalidDataUrl);
+        }
+
+        // Remove "data:" prefix
+        let without_prefix = self.url.strip_prefix("data:").ok_or(LibError::InvalidDataUrl)?;
+
+        // Split by comma to separate metadata from data
+        let (metadata, base64_data) = without_prefix
+            .split_once(',')
+            .ok_or(LibError::InvalidDataUrl)?;
+
+        // Parse the metadata (e.g., "image/jpeg;base64")
+        let mime_type = metadata
+            .split(';')
+            .next()
+            .ok_or(LibError::InvalidDataUrl)?
+            .to_string();
+
+        // Extract extension from mime type (e.g., "image/jpeg" -> "jpeg")
+        let extension = mime_type
+            .split('/')
+            .nth(1)
+            .ok_or(LibError::InvalidDataUrl)?
+            .to_string();
+
+        // Decode base64 data
+        let data = BASE64
+            .decode(base64_data)
+            .map_err(|e: base64::DecodeError| LibError::Base64Decode(e.to_string()))?;
+
+        Ok(DataUrlParsed {
+            mime_type,
+            extension,
+            data,
+        })
+    }
+
     /// Combines the name and extension of an image
     pub fn combine_name_and_extension(&self) -> Result<String, LibError> {
         let image_output = self
@@ -27,7 +83,14 @@ impl Image {
     }
 
     /// This function downloads an image from a URL and returns the bytes
+    /// For data URLs, it decodes the base64 data directly
     pub async fn download(&self) -> Result<Option<Vec<u8>>, LibError> {
+        if self.is_data_url() {
+            info!("Decoding data URL");
+            let parsed = self.parse_data_url()?;
+            return Ok(Some(parsed.data));
+        }
+
         info!("Downloading image from URL: {}", self.url);
         let response = reqwest::get(&self.url).await?;
         if response.status() != reqwest::StatusCode::OK {
@@ -82,7 +145,20 @@ impl Image {
     }
 
     /// Extracts the name and extension from a URL
+    /// For data URLs, generates a UUID name and extracts extension from mime type
     pub fn extract_name_and_extension(&self) -> Option<ImageOutput> {
+        // Handle data URLs
+        if self.is_data_url() {
+            if let Ok(parsed) = self.parse_data_url() {
+                return Some(ImageOutput {
+                    name: Uuid::new_v4().to_string(),
+                    extension: parsed.extension,
+                });
+            }
+            return None;
+        }
+
+        // Handle regular HTTP URLs
         if let Ok(parsed_url) = Url::parse(&self.url)
             && let Some(mut path) = parsed_url.path_segments()
             && let Some(filename) = path.next_back()
