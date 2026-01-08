@@ -85,9 +85,10 @@ impl Image {
             extension
         };
 
-        // Decode base64 data
+        // Decode base64 data (strip whitespace that some encoders add)
+        let base64_clean: String = base64_data.chars().filter(|c| !c.is_whitespace()).collect();
         let data = BASE64
-            .decode(base64_data)
+            .decode(&base64_clean)
             .map_err(|e: base64::DecodeError| LibError::Base64Decode(e.to_string()))?;
 
         Ok(DataUrlParsed {
