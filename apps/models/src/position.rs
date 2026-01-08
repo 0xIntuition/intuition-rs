@@ -46,7 +46,8 @@ impl Model for Position {}
 #[async_trait]
 impl SimpleCrud<String> for Position {
     /// Creates a new position or updates an existing one in the database if the block number
-    /// and log index are greater than the existing position
+    /// and log index are greater than the existing position.
+    /// NOTE: assets is intentionally excluded from the UPDATE clause to preserve values set by database triggers.
     async fn upsert<'e, E>(&self, schema: &str, executor: E) -> Result<Self, ModelError>
     where
         E: Executor<'e, Database = Postgres>,
@@ -71,6 +72,7 @@ impl SimpleCrud<String> for Position {
                     term_id = EXCLUDED.term_id,
                     shares = EXCLUDED.shares,
                     curve_id = EXCLUDED.curve_id,
+                    -- assets is NOT updated here - it's managed by database triggers
                     total_deposit_assets_after_total_fees = EXCLUDED.total_deposit_assets_after_total_fees,
                     total_redeem_assets_for_receiver = EXCLUDED.total_redeem_assets_for_receiver,
                     block_number = EXCLUDED.block_number,
