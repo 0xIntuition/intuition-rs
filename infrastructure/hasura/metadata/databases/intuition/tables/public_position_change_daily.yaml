@@ -1,0 +1,61 @@
+table:
+  name: position_change_daily
+  schema: public
+object_relationships:
+  - name: account
+    using:
+      manual_configuration:
+        column_mapping:
+          account_id: id
+        insertion_order: null
+        remote_table:
+          name: account
+          schema: public
+  - name: term
+    using:
+      manual_configuration:
+        column_mapping:
+          term_id: id
+        insertion_order: null
+        remote_table:
+          name: term
+          schema: public
+  - name: vault
+    using:
+      manual_configuration:
+        column_mapping:
+          curve_id: curve_id
+          term_id: term_id
+        insertion_order: null
+        remote_table:
+          name: vault
+          schema: public
+select_permissions:
+  - role: anonymous
+    permission:
+      columns:
+        - account_id
+        - assets_in_period
+        - assets_out_period
+        - bucket
+        - curve_id
+        - shares_delta_period
+        - term_id
+        - transaction_count
+      filter: {}
+      limit: 1000
+    comment: ""
+  - role: frontend
+    permission:
+      columns:
+        - account_id
+        - assets_in_period
+        - assets_out_period
+        - bucket
+        - curve_id
+        - shares_delta_period
+        - term_id
+        - transaction_count
+      filter: {}
+      limit: 1000
+    comment: ""
