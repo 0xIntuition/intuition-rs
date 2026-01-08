@@ -1,17 +1,9 @@
 use axum::{
-    http::StatusCode,
-    response::{IntoResponse, Response},
-    Json,
+    body::Body,
+    http::{Response, StatusCode},
+    response::IntoResponse,
 };
-use serde::Serialize;
 use thiserror::Error;
-
-/// Error response body for JSON responses
-#[derive(Serialize)]
-pub struct ErrorResponse {
-    pub error: String,
-    pub code: String,
-}
 
 /// This enum represents the error types of our application.
 /// The first batch of errors are custom errors, and the
@@ -47,52 +39,8 @@ pub enum ApiError {
     LocalWithClassificationAndDbOnly,
 }
 
-impl ApiError {
-    /// Get the error code for this error type
-    fn code(&self) -> &'static str {
-        match self {
-            ApiError::ExtractNameAndExtension => "EXTRACT_NAME_EXTENSION_FAILED",
-            ApiError::Env(_) => "ENV_ERROR",
-            ApiError::ExternalService(_) => "EXTERNAL_SERVICE_ERROR",
-            ApiError::Axum(_) => "AXUM_ERROR",
-            ApiError::HFToken(_) => "HF_TOKEN_ERROR",
-            ApiError::InvalidInput(_) => "INVALID_INPUT",
-            ApiError::Lib(_) => "LIB_ERROR",
-            ApiError::Model(_) => "MODEL_ERROR",
-            ApiError::Multipart(_) => "MULTIPART_ERROR",
-            ApiError::IO(_) => "IO_ERROR",
-            ApiError::Serde(_) => "SERIALIZATION_ERROR",
-            ApiError::LocalWithClassificationAndDbOnly => "CONFIG_ERROR",
-        }
-    }
-
-    /// Get the HTTP status code for this error type
-    fn status_code(&self) -> StatusCode {
-        match self {
-            ApiError::ExtractNameAndExtension => StatusCode::BAD_REQUEST,
-            ApiError::InvalidInput(_) => StatusCode::BAD_REQUEST,
-            ApiError::Multipart(_) => StatusCode::BAD_REQUEST,
-            ApiError::ExternalService(_) => StatusCode::BAD_GATEWAY,
-            ApiError::HFToken(_) => StatusCode::SERVICE_UNAVAILABLE,
-            ApiError::LocalWithClassificationAndDbOnly => StatusCode::INTERNAL_SERVER_ERROR,
-            ApiError::Env(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            ApiError::Axum(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            ApiError::Lib(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            ApiError::Model(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            ApiError::IO(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            ApiError::Serde(_) => StatusCode::INTERNAL_SERVER_ERROR,
-        }
-    }
-}
-
 impl IntoResponse for ApiError {
-    fn into_response(self) -> Response {
-        let status = self.status_code();
-        let body = ErrorResponse {
-            error: self.to_string(),
-            code: self.code().to_string(),
-        };
-
-        (status, Json(body)).into_response()
+    fn into_response(self) -> Response<Body> {
+        (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()).into_response()
     }
 }
