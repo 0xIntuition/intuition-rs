@@ -1,9 +1,15 @@
 use axum::{
-    body::Body,
-    http::{Response, StatusCode},
-    response::IntoResponse,
+    http::StatusCode,
+    response::{IntoResponse, Json, Response},
 };
+use serde::Serialize;
 use thiserror::Error;
+
+/// JSON error response for Hasura compatibility
+#[derive(Serialize)]
+struct ErrorResponse {
+    error: String,
+}
 
 /// Error types for the Chart API
 #[derive(Error, Debug)]
@@ -43,7 +49,7 @@ pub enum ApiError {
 }
 
 impl IntoResponse for ApiError {
-    fn into_response(self) -> Response<Body> {
+    fn into_response(self) -> Response {
         let status = match &self {
             ApiError::InvalidCombination => StatusCode::BAD_REQUEST,
             ApiError::NoDataAvailable => StatusCode::NOT_FOUND,
@@ -56,6 +62,9 @@ impl IntoResponse for ApiError {
             ApiError::MissingCurveId => StatusCode::BAD_REQUEST,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         };
-        (status, self.to_string()).into_response()
+        let body = Json(ErrorResponse {
+            error: self.to_string(),
+        });
+        (status, body).into_response()
     }
 }
