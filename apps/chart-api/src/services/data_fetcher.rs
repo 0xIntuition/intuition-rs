@@ -16,16 +16,16 @@ pub async fn fetch_chart_data(
     term_id: &str,
     curve_id: Option<&str>,
     interval: Interval,
-    count: u32,
+    range_start: DateTime<Utc>,
+    range_end: DateTime<Utc>,
+    limit: u32,
 ) -> Result<Vec<GenericDataRow>, ApiError> {
     let view_name = graph_type.view_name(interval);
     let value_column = graph_type.value_column();
-    let sql_interval = interval.sql_interval();
 
     // Build the WHERE clause based on whether curve_id is needed
     // Filter out rows where value column is '-' or NULL (invalid data)
     let query = if graph_type.requires_curve_id() {
-        let _curve_id = curve_id.ok_or(ApiError::MissingCurveId)?;
         format!(
             r#"
             SELECT
@@ -36,7 +36,8 @@ pub async fn fetch_chart_data(
             FROM {}
             WHERE term_id = $1
               AND curve_id = $2::numeric
-              AND bucket >= NOW() - ($3 || ' ' || $4)::interval
+              AND bucket >= $3
+              AND bucket < $4
               AND {} IS NOT NULL
               AND {}::text != '-'
             ORDER BY bucket ASC
@@ -53,7 +54,8 @@ pub async fn fetch_chart_data(
                 {} as value
             FROM {}
             WHERE term_id = $1
-              AND bucket >= NOW() - ($2 || ' ' || $3)::interval
+              AND bucket >= $2
+              AND bucket < $3
               AND {} IS NOT NULL
               AND {}::text != '-'
             ORDER BY bucket ASC
@@ -69,17 +71,17 @@ pub async fn fetch_chart_data(
         sqlx::query(&query)
             .bind(term_id)
             .bind(curve_id)
-            .bind(count.to_string())
-            .bind(sql_interval)
-            .bind(count as i64)
+            .bind(range_start)
+            .bind(range_end)
+            .bind(limit as i64)
             .fetch_all(pool)
             .await?
     } else {
         sqlx::query(&query)
             .bind(term_id)
-            .bind(count.to_string())
-            .bind(sql_interval)
-            .bind(count as i64)
+            .bind(range_start)
+            .bind(range_end)
+            .bind(limit as i64)
             .fetch_all(pool)
             .await?
     };
@@ -114,19 +116,20 @@ pub async fn fetch_latest_value(
     term_id: &str,
     curve_id: Option<&str>,
     interval: Interval,
+    before: DateTime<Utc>,
 ) -> Result<Option<(DateTime<Utc>, U256Wrapper)>, ApiError> {
     let view_name = graph_type.view_name(interval);
     let value_column = graph_type.value_column();
 
     // Filter out rows where value column is '-' or NULL (invalid data)
     let query = if graph_type.requires_curve_id() {
-        let _curve_id = curve_id.ok_or(ApiError::MissingCurveId)?;
         format!(
             r#"
             SELECT bucket, {} as value
             FROM {}
             WHERE term_id = $1
               AND curve_id = $2::numeric
+              AND bucket < $3
               AND {} IS NOT NULL
               AND {}::text != '-'
             ORDER BY bucket DESC
@@ -140,6 +143,7 @@ pub async fn fetch_latest_value(
             SELECT bucket, {} as value
             FROM {}
             WHERE term_id = $1
+              AND bucket < $2
               AND {} IS NOT NULL
               AND {}::text != '-'
             ORDER BY bucket DESC
@@ -154,11 +158,13 @@ pub async fn fetch_latest_value(
         sqlx::query(&query)
             .bind(term_id)
             .bind(curve_id)
+            .bind(before)
             .fetch_optional(pool)
             .await?
     } else {
         sqlx::query(&query)
             .bind(term_id)
+            .bind(before)
             .fetch_optional(pool)
             .await?
     };

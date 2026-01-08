@@ -14,10 +14,16 @@ pub enum ApiError {
     NoDataAvailable,
     #[error("Invalid interval: {0}. Valid values are: 1h, 1d, 1w, 1m")]
     InvalidInterval(String),
-    #[error("Invalid format: {0}. Valid values are: json, svg")]
+    #[error("Invalid format: {0}. Valid values are: json, svg, svg_json")]
     InvalidFormat(String),
-    #[error("Invalid count: {0}. Must be between 1 and {1}")]
-    InvalidCount(u32, u32),
+    #[error("Invalid range: {0} buckets. Must be between 1 and {1}")]
+    InvalidRange(u32, u32),
+    #[error("Invalid start timestamp: {0}. Expected unix seconds, unix milliseconds, or RFC3339")]
+    InvalidStartTimestamp(String),
+    #[error("Invalid end timestamp: {0}. Expected unix seconds, unix milliseconds, or RFC3339")]
+    InvalidEndTimestamp(String),
+    #[error("Invalid time range: start must be before end")]
+    InvalidTimeRange,
     #[error("Invalid term_id: {0}. Must be a hex string starting with 0x")]
     InvalidTermId(String),
     #[error("Invalid curve_id: {0}. Must be a valid numeric string")]
@@ -49,7 +55,10 @@ impl IntoResponse for ApiError {
             ApiError::NoDataAvailable => StatusCode::NOT_FOUND,
             ApiError::InvalidInterval(_) => StatusCode::BAD_REQUEST,
             ApiError::InvalidFormat(_) => StatusCode::BAD_REQUEST,
-            ApiError::InvalidCount(_, _) => StatusCode::BAD_REQUEST,
+            ApiError::InvalidRange(_, _) => StatusCode::BAD_REQUEST,
+            ApiError::InvalidStartTimestamp(_) => StatusCode::BAD_REQUEST,
+            ApiError::InvalidEndTimestamp(_) => StatusCode::BAD_REQUEST,
+            ApiError::InvalidTimeRange => StatusCode::BAD_REQUEST,
             ApiError::InvalidTermId(_) => StatusCode::BAD_REQUEST,
             ApiError::InvalidCurveId(_) => StatusCode::BAD_REQUEST,
             ApiError::InvalidGraphType(_) => StatusCode::BAD_REQUEST,

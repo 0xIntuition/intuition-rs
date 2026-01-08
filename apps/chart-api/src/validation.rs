@@ -1,4 +1,5 @@
 use crate::error::ApiError;
+use chrono::{DateTime, TimeZone, Utc};
 
 /// Maximum allowed count for data points
 pub const MAX_COUNT: u32 = 1000;
@@ -6,7 +7,7 @@ pub const MAX_COUNT: u32 = 1000;
 /// Minimum allowed count for data points
 pub const MIN_COUNT: u32 = 1;
 
-/// Validate the count parameter
+/// Validate the derived bucket count
 ///
 /// # Arguments
 ///
@@ -14,10 +15,34 @@ pub const MIN_COUNT: u32 = 1;
 ///
 /// # Returns
 ///
-/// Returns `Ok(())` if valid, `Err(ApiError::InvalidCount)` if invalid
+/// Returns `Ok(())` if valid, `Err(ApiError::InvalidRange)` if invalid
 pub fn validate_count(count: u32) -> Result<(), ApiError> {
     if !(MIN_COUNT..=MAX_COUNT).contains(&count) {
-        return Err(ApiError::InvalidCount(count, MAX_COUNT));
+        return Err(ApiError::InvalidRange(count, MAX_COUNT));
+    }
+    Ok(())
+}
+
+/// Parse a timestamp from unix seconds, unix milliseconds, or RFC3339
+pub fn parse_timestamp(value: &str) -> Option<DateTime<Utc>> {
+    if let Ok(ts) = value.parse::<i64>() {
+        let dt = if ts.abs() >= 1_000_000_000_000 {
+            Utc.timestamp_millis_opt(ts).single()
+        } else {
+            Utc.timestamp_opt(ts, 0).single()
+        };
+        return dt;
+    }
+
+    DateTime::parse_from_rfc3339(value)
+        .ok()
+        .map(|dt| dt.with_timezone(&Utc))
+}
+
+/// Validate the time range
+pub fn validate_time_range(start: DateTime<Utc>, end: DateTime<Utc>) -> Result<(), ApiError> {
+    if start >= end {
+        return Err(ApiError::InvalidTimeRange);
     }
     Ok(())
 }
@@ -74,6 +99,7 @@ pub fn validate_curve_id(curve_id: &str) -> Result<(), ApiError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::DateTime;
 
     #[test]
     fn test_validate_count_valid() {
@@ -87,6 +113,34 @@ mod tests {
         assert!(validate_count(0).is_err());
         assert!(validate_count(1001).is_err());
         assert!(validate_count(10000).is_err());
+    }
+
+    #[test]
+    fn test_parse_timestamp_unix_seconds() {
+        let ts = "1700000000";
+        let parsed = parse_timestamp(ts);
+        assert!(parsed.is_some());
+    }
+
+    #[test]
+    fn test_parse_timestamp_unix_millis() {
+        let ts = "1700000000000";
+        let parsed = parse_timestamp(ts);
+        assert!(parsed.is_some());
+    }
+
+    #[test]
+    fn test_parse_timestamp_rfc3339() {
+        let ts = "2026-01-01T00:00:00Z";
+        let parsed = parse_timestamp(ts);
+        assert!(parsed.is_some());
+    }
+
+    #[test]
+    fn test_validate_time_range_invalid() {
+        let start = "2026-01-02T00:00:00Z".parse::<DateTime<Utc>>().unwrap();
+        let end = "2026-01-01T00:00:00Z".parse::<DateTime<Utc>>().unwrap();
+        assert!(validate_time_range(start, end).is_err());
     }
 
     #[test]

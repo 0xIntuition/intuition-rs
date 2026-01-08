@@ -14,7 +14,7 @@ A high-performance Axum-based REST API for serving share price chart data with R
 ## API Endpoint
 
 ```
-GET /api/v1/curves/{curve_id}/terms/{term_id}/data
+GET /api/v1/curve/{curve_id}/term/{term_id}/data
 ```
 
 ### Path Parameters
@@ -30,20 +30,18 @@ GET /api/v1/curves/{curve_id}/terms/{term_id}/data
 |-----------|------|----------|---------|-------------|
 | `interval` | string | Yes | - | Time interval: `1h`, `1d`, `1w`, `1m` |
 | `format` | string | Yes | - | Output format: `json` or `svg` |
-| `count` | integer | No | See below | Number of data points to return |
+| `start` | string | Yes | - | Range start timestamp (unix seconds, unix milliseconds, or RFC3339) |
+| `end` | string | Yes | - | Range end timestamp (unix seconds, unix milliseconds, or RFC3339) |
 | `width` | integer | No | `800` | SVG width in pixels |
 | `height` | integer | No | `400` | SVG height in pixels |
 | `line_color` | string | No | `#3B82F6` | SVG line color (hex) |
 | `background_color` | string | No | transparent | SVG background color (hex) |
 
-### Default Count Values
+### Range Behavior
 
-| Interval | Default Count | Description |
-|----------|---------------|-------------|
-| `1h` | 24 | Last 24 hours |
-| `1d` | 30 | Last 30 days |
-| `1w` | 12 | Last 12 weeks |
-| `1m` | 12 | Last 12 months |
+Data points are derived from the aligned interval buckets within `[start, end)`. For example:
+- `start=2026-01-01T00:00:00Z`, `end=2026-02-01T00:00:00Z`, `interval=1w` → 4 points
+- `start=2026-01-01T00:00:00Z`, `end=2026-02-01T00:00:00Z`, `interval=1d` → 31 points
 
 ## Response Formats
 
@@ -110,7 +108,7 @@ Redis caching with interval-based TTL:
 | `1w` | 120 seconds |
 | `1m` | 300 seconds |
 
-Cache key format: `chart:{term_id}:{curve_id}:{interval}:{count}:{format}`
+Cache key format: `chart:{graph_type}:{term_id}:{curve_id}:{interval}:{start}:{end}:{format}`
 
 ## Error Responses
 
@@ -137,7 +135,7 @@ Cache key format: `chart:{term_id}:{curve_id}:{interval}:{count}:{format}`
 | `CHART_API_PORT` | Yes | - | Port to listen on (e.g., `3010`) |
 | `DATABASE_URL` | Yes | - | PostgreSQL connection string |
 | `REDIS_URL` | Yes | - | Redis connection string |
-| `BACKEND_SCHEMA` | Yes | - | Database schema name |
+| `CORS_ALLOWED_ORIGINS` | No | `*` | Comma-separated list of allowed CORS origins |
 | `RUST_LOG` | No | `info` | Log level (`debug`, `info`, `warn`, `error`) |
 
 ### Example `.env` File
@@ -146,7 +144,6 @@ Cache key format: `chart:{term_id}:{curve_id}:{interval}:{count}:{format}`
 CHART_API_PORT=3010
 DATABASE_URL=postgres://postgres:postgres@localhost:5435/storage
 REDIS_URL=redis://localhost:6379
-BACKEND_SCHEMA=public
 RUST_LOG=info
 ```
 
@@ -176,7 +173,6 @@ cargo make chart-api-local
 export CHART_API_PORT=3010
 export DATABASE_URL=postgres://postgres:postgres@localhost:5435/storage
 export REDIS_URL=redis://localhost:6379
-export BACKEND_SCHEMA=public
 
 # Run the service
 cargo run --bin chart-api
@@ -207,7 +203,6 @@ chart-api:
     CHART_API_PORT: '3010'
     DATABASE_URL: 'postgres://postgres:postgres@database:5435/storage'
     REDIS_URL: 'redis://redis:6379'
-    BACKEND_SCHEMA: 'public'
     RUST_LOG: 'info'
   restart: always
   ports:
@@ -243,34 +238,34 @@ Returns `OK` with status `200` if the service is running.
 
 ## Examples
 
-### Get Daily JSON Data (Last 30 Days)
+### Get Daily JSON Data (Monthly Range)
 
 ```bash
-curl "http://localhost:3010/api/v1/curves/1/terms/0x1234abcd/data?interval=1d&format=json"
+curl "http://localhost:3010/api/v1/curves/1/terms/0x1234abcd/data?interval=1d&format=json&start=2026-01-01T00:00:00Z&end=2026-02-01T00:00:00Z"
 ```
 
-### Get Hourly JSON Data (Last 48 Hours)
+### Get Hourly JSON Data (48-Hour Range)
 
 ```bash
-curl "http://localhost:3010/api/v1/curves/1/terms/0x1234abcd/data?interval=1h&format=json&count=48"
+curl "http://localhost:3010/api/v1/curves/1/terms/0x1234abcd/data?interval=1h&format=json&start=2026-01-01T00:00:00Z&end=2026-01-03T00:00:00Z"
 ```
 
 ### Get SVG Chart (Default Styling)
 
 ```bash
-curl "http://localhost:3010/api/v1/curves/1/terms/0x1234abcd/data?interval=1d&format=svg" > chart.svg
+curl "http://localhost:3010/api/v1/curves/1/terms/0x1234abcd/data?interval=1d&format=svg&start=2026-01-01T00:00:00Z&end=2026-02-01T00:00:00Z" > chart.svg
 ```
 
 ### Get Custom SVG Chart
 
 ```bash
-curl "http://localhost:3010/api/v1/curves/1/terms/0x1234abcd/data?interval=1w&format=svg&width=1200&height=600&line_color=%23FF5733&background_color=%23FFFFFF" > chart.svg
+curl "http://localhost:3010/api/v1/curves/1/terms/0x1234abcd/data?interval=1w&format=svg&start=2026-01-01T00:00:00Z&end=2026-02-01T00:00:00Z&width=1200&height=600&line_color=%23FF5733&background_color=%23FFFFFF" > chart.svg
 ```
 
 ### Embed SVG in HTML
 
 ```html
-<img src="http://localhost:3010/api/v1/curves/1/terms/0x1234abcd/data?interval=1d&format=svg" alt="Share Price Chart" />
+<img src="http://localhost:3010/api/v1/curves/1/terms/0x1234abcd/data?interval=1d&format=svg&start=2026-01-01T00:00:00Z&end=2026-02-01T00:00:00Z" alt="Share Price Chart" />
 ```
 
 ## Database Requirements
@@ -305,7 +300,7 @@ These are automatically maintained by TimescaleDB based on the `share_price_chan
                                 ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                        Redis Cache                              │
-│  Key: chart:{term_id}:{curve_id}:{interval}:{count}:{format}   │
+│  Key: chart:{graph_type}:{term_id}:{curve_id}:{interval}:{start}:{end}:{format}   │
 │  TTL: 30s - 300s based on interval                             │
 └─────────────────────────────────────────────────────────────────┘
                                 │

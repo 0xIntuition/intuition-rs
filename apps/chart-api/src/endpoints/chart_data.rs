@@ -1,10 +1,15 @@
 use crate::cache::ChartCache;
 use crate::error::ApiError;
 use crate::models::{ChartResponse, ChartSvgResponse};
-use crate::services::{data_exists, fetch_chart_data, fetch_latest_value, fill_gaps, generate_svg};
+use crate::services::{
+    align_range, build_expected_buckets, data_exists, fetch_chart_data, fetch_latest_value,
+    fill_gaps, generate_svg,
+};
 use crate::state::AppState;
 use crate::types::{ChartQueryParams, GraphType, Interval, OutputFormat, SvgConfig};
-use crate::validation::{validate_count, validate_curve_id, validate_term_id};
+use crate::validation::{
+    parse_timestamp, validate_count, validate_curve_id, validate_term_id, validate_time_range,
+};
 use axum::extract::{Path, Query, State};
 use axum::http::header;
 use axum::response::{IntoResponse, Response};
@@ -20,8 +25,9 @@ use tracing::info;
         ("term_id" = String, Path, description = "Term ID"),
         ("interval" = String, Query, description = "Time interval: 1h, 1d, 1w, 1m"),
         ("format" = String, Query, description = "Output format: json or svg"),
+        ("start" = String, Query, description = "Range start timestamp (unix seconds, unix milliseconds, or RFC3339)"),
+        ("end" = String, Query, description = "Range end timestamp (unix seconds, unix milliseconds, or RFC3339)"),
         ("graph_type" = Option<String>, Query, description = "Graph type: sharePriceChange (default), totalMarketCap"),
-        ("count" = Option<u32>, Query, description = "Number of data points"),
         ("width" = Option<u32>, Query, description = "SVG width (pixels)"),
         ("height" = Option<u32>, Query, description = "SVG height (pixels)"),
         ("line_color" = Option<String>, Query, description = "SVG line color"),
@@ -71,15 +77,24 @@ pub async fn get_chart_data(
     let format = OutputFormat::from_str(&params.format)
         .ok_or_else(|| ApiError::InvalidFormat(params.format.clone()))?;
 
-    // Get count (use default if not provided)
-    let count = params.count.unwrap_or_else(|| interval.default_count());
+    // Parse and validate timestamps
+    let start = parse_timestamp(&params.start)
+        .ok_or_else(|| ApiError::InvalidStartTimestamp(params.start.clone()))?;
+    let end = parse_timestamp(&params.end)
+        .ok_or_else(|| ApiError::InvalidEndTimestamp(params.end.clone()))?;
+    validate_time_range(start, end)?;
 
-    // Validate count is within acceptable bounds
+    // Align range to bucket boundaries and derive expected bucket count
+    let (range_start, range_end) = align_range(start, end, interval);
+    let expected_buckets = build_expected_buckets(range_start, range_end, interval);
+    let count = expected_buckets.len() as u32;
+
+    // Validate derived count is within acceptable bounds
     validate_count(count)?;
 
     info!(
-        "Chart request: term_id={}, curve_id={:?}, graph_type={}, interval={}, format={}, count={}",
-        term_id, curve_id_opt, graph_type, interval, format, count
+        "Chart request: term_id={}, curve_id={:?}, graph_type={}, interval={}, format={}, start={}, end={}, count={}",
+        term_id, curve_id_opt, graph_type, interval, format, range_start, range_end, count
     );
 
     // Initialize cache
@@ -87,7 +102,7 @@ pub async fn get_chart_data(
 
     // Check cache first
     let cache_key =
-        ChartCache::cache_key(graph_type, &term_id, curve_id_opt, interval, count, format);
+        ChartCache::cache_key(graph_type, &term_id, curve_id_opt, interval, range_start, range_end, format);
 
     if let Some(cached_data) = cache.get_string(&cache_key).await? {
         info!("Returning cached response for {}", cache_key);
@@ -113,13 +128,22 @@ pub async fn get_chart_data(
         &term_id,
         curve_id_opt,
         interval,
+        range_start,
+        range_end,
         count,
     )
     .await?;
 
     // Get fallback value if no data in range
     let fallback_value = if chart_data.is_empty() {
-        fetch_latest_value(&state.pg_pool, graph_type, &term_id, curve_id_opt, interval)
+        fetch_latest_value(
+            &state.pg_pool,
+            graph_type,
+            &term_id,
+            curve_id_opt,
+            interval,
+            range_start,
+        )
             .await?
             .map(|(_, value)| value)
     } else {
@@ -132,7 +156,7 @@ pub async fn get_chart_data(
     }
 
     // Fill gaps in data
-    let data_points = fill_gaps(chart_data, interval, count, fallback_value);
+    let data_points = fill_gaps(chart_data, interval, &expected_buckets, fallback_value);
 
     // Generate response based on format
     let response_body = match format {

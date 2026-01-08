@@ -221,8 +221,9 @@ actions:
         query_params:
           interval: '{{$body.input.input.interval}}'
           format: 'json'
+          start: '{{$body.input.input.start}}'
+          end: '{{$body.input.input.end}}'
           graph_type: '{{$body.input.input?.graph_type}}'
-          count: '{{$body.input.input?.count}}'
         template_engine: Kriti
         version: 2
     permissions:
@@ -239,8 +240,9 @@ actions:
         query_params:
           interval: '{{$body.input.input.interval}}'
           format: 'svg_json'
+          start: '{{$body.input.input.start}}'
+          end: '{{$body.input.input.end}}'
           graph_type: '{{$body.input.input?.graph_type}}'
-          count: '{{$body.input.input?.count}}'
           width: '{{$body.input.input?.width}}'
           height: '{{$body.input.input?.height}}'
           line_color: '{{$body.input.input?.line_color}}'
