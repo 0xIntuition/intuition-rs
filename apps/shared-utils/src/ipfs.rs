@@ -275,7 +275,9 @@ impl IPFSResolver {
         Form::new().part(
             multi_part_handler.name.clone(),
             Part::bytes(multi_part_handler.data.clone().to_vec())
-                .file_name(multi_part_handler.name.clone()),
+                .file_name(multi_part_handler.name.clone())
+                .mime_str(&multi_part_handler.content_type)
+                .unwrap(),
         )
     }
 
