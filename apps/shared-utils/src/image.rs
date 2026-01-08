@@ -35,6 +35,7 @@ impl Image {
     /// Parses a data URL and returns the decoded bytes along with metadata
     /// Data URL format: data:[<mediatype>][;base64],<data>
     /// Example: data:image/jpeg;base64,/9j/4AAQ...
+    /// Note: Only base64-encoded data URLs are supported
     pub fn parse_data_url(&self) -> Result<DataUrlParsed, LibError> {
         if !self.is_data_url() {
             return Err(LibError::InvalidDataUrl);
@@ -48,6 +49,11 @@ impl Image {
             .split_once(',')
             .ok_or(LibError::InvalidDataUrl)?;
 
+        // Verify this is a base64-encoded data URL (per RFC 2397, non-base64 URLs use URL encoding)
+        if !metadata.contains(";base64") {
+            return Err(LibError::InvalidDataUrl);
+        }
+
         // Parse the metadata (e.g., "image/jpeg;base64")
         let mime_type = metadata
             .split(';')
@@ -55,12 +61,29 @@ impl Image {
             .ok_or(LibError::InvalidDataUrl)?
             .to_string();
 
+        // Validate mime type is not empty
+        if mime_type.is_empty() {
+            return Err(LibError::InvalidDataUrl);
+        }
+
         // Extract extension from mime type (e.g., "image/jpeg" -> "jpeg")
         let extension = mime_type
             .split('/')
             .nth(1)
             .ok_or(LibError::InvalidDataUrl)?
             .to_string();
+
+        // Validate extension is not empty
+        if extension.is_empty() {
+            return Err(LibError::InvalidDataUrl);
+        }
+
+        // Normalize composite extensions (e.g., "svg+xml" -> "svg")
+        let extension = if let Some(base_ext) = extension.split('+').next() {
+            base_ext.to_string()
+        } else {
+            extension
+        };
 
         // Decode base64 data
         let data = BASE64
@@ -145,13 +168,16 @@ impl Image {
     }
 
     /// Extracts the name and extension from a URL
-    /// For data URLs, generates a UUID name and extracts extension from mime type
+    /// For data URLs, generates a deterministic UUID name based on the data content
     pub fn extract_name_and_extension(&self) -> Option<ImageOutput> {
         // Handle data URLs
         if self.is_data_url() {
             if let Ok(parsed) = self.parse_data_url() {
+                // Use UUID v5 with a namespace based on the data content for deterministic naming
+                // This ensures the same data URL always produces the same filename
+                let name = Uuid::new_v5(&Uuid::NAMESPACE_OID, &parsed.data).to_string();
                 return Some(ImageOutput {
-                    name: Uuid::new_v4().to_string(),
+                    name,
                     extension: parsed.extension,
                 });
             }
