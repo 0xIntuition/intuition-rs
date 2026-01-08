@@ -24,6 +24,9 @@ CREATE OR REPLACE FUNCTION update_position_assets_on_position_change()
 RETURNS TRIGGER AS $$
 BEGIN
     -- Calculate assets = shares * current_share_price from vault
+    -- NOTE: If vault doesn't exist yet, assets defaults to 0. This is expected
+    -- behavior - the vault share price trigger will recalculate when the vault
+    -- is created/updated. Using COALESCE ensures no NULL values.
     NEW.assets := NEW.shares * COALESCE(
         (SELECT current_share_price FROM vault
          WHERE term_id = NEW.term_id AND curve_id = NEW.curve_id),
@@ -43,6 +46,11 @@ CREATE TRIGGER trg_position_assets_on_position
 -- ========================================
 -- STEP 3: Trigger function for vault share price changes
 -- Updates all position assets when vault's current_share_price changes
+--
+-- PERFORMANCE NOTE: When a vault's share price changes, this updates ALL
+-- positions for that vault. For popular vaults with many positions, this
+-- may cause brief lock contention. The IS DISTINCT FROM check prevents
+-- unnecessary updates. Indexes on (term_id, curve_id) ensure efficient lookups.
 -- ========================================
 
 CREATE OR REPLACE FUNCTION update_position_assets_on_vault_change()

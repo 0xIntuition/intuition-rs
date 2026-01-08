@@ -22,6 +22,7 @@ pub struct Position {
     /// Reference to the curve this position is in
     pub curve_id: U256Wrapper,
     /// Cached position value (shares * current_share_price) - computed by database trigger
+    #[builder(Default)]
     pub assets: U256Wrapper,
     /// Total deposit assets after total fees
     pub total_deposit_assets_after_total_fees: U256Wrapper,
