@@ -41,6 +41,7 @@ select_permissions:
     permission:
       columns:
         - assets
+        - redeemable_value
         - block_number
         - log_index
         - transaction_index
@@ -62,6 +63,7 @@ select_permissions:
     permission:
       columns:
         - assets
+        - redeemable_value
         - block_number
         - log_index
         - transaction_index

@@ -25,6 +25,10 @@ pub struct Position {
     /// DO NOT set manually - this value is managed exclusively by database triggers.
     #[builder(Default)]
     pub assets: U256Wrapper,
+    /// Actual redeemable value accounting for bonding curve math and fees - computed by database trigger.
+    /// DO NOT set manually - this value is managed exclusively by database triggers.
+    #[builder(Default)]
+    pub redeemable_value: U256Wrapper,
     /// Total deposit assets after total fees
     pub total_deposit_assets_after_total_fees: U256Wrapper,
     /// Total redeem assets for receiver
@@ -49,7 +53,7 @@ impl Model for Position {}
 impl SimpleCrud<String> for Position {
     /// Creates a new position or updates an existing one in the database if the block number
     /// and log index are greater than the existing position.
-    /// NOTE: assets is intentionally excluded from the UPDATE clause to preserve values set by database triggers.
+    /// NOTE: assets and redeemable_value are intentionally excluded from the UPDATE clause to preserve values set by database triggers.
     async fn upsert<'e, E>(&self, schema: &str, executor: E) -> Result<Self, ModelError>
     where
         E: Executor<'e, Database = Postgres>,
@@ -74,7 +78,7 @@ impl SimpleCrud<String> for Position {
                     term_id = EXCLUDED.term_id,
                     shares = EXCLUDED.shares,
                     curve_id = EXCLUDED.curve_id,
-                    -- assets is NOT updated here - it's managed by database triggers
+                    -- assets and redeemable_value are NOT updated here - they're managed by database triggers
                     total_deposit_assets_after_total_fees = EXCLUDED.total_deposit_assets_after_total_fees,
                     total_redeem_assets_for_receiver = EXCLUDED.total_redeem_assets_for_receiver,
                     block_number = EXCLUDED.block_number,
@@ -139,6 +143,7 @@ impl SimpleCrud<String> for Position {
                 shares,
                 curve_id,
                 assets,
+                redeemable_value,
                 total_deposit_assets_after_total_fees,
                 total_redeem_assets_for_receiver,
                 block_number,
@@ -267,6 +272,7 @@ impl Position {
                 shares,
                 curve_id,
                 assets,
+                redeemable_value,
                 total_deposit_assets_after_total_fees,
                 total_redeem_assets_for_receiver,
                 block_number,
