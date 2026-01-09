@@ -273,8 +273,8 @@ impl IPFSResolver {
     /// Formats the multipart form to upload a file to IPFS
     fn multipart_form(&self, multi_part_handler: MultiPartHandler) -> Form {
         Form::new().part(
-            multi_part_handler.name.clone(),
-            Part::bytes(multi_part_handler.data.clone().to_vec())
+            "file",
+            Part::stream(multi_part_handler.data.clone())
                 .file_name(multi_part_handler.name.clone())
                 .mime_str(&multi_part_handler.content_type)
                 .unwrap(),
@@ -454,11 +454,31 @@ impl IPFSResolver {
         &self,
         multi_part_handler: MultiPartHandler,
     ) -> Result<Response, reqwest::Error> {
-        self.http_client
-            .post(self.format_ipfs_upload_url())
+        let url = self.format_ipfs_upload_url();
+        tracing::info!(
+            "Uploading to IPFS: url={}, file_name={}, content_type={}, size={}",
+            url,
+            multi_part_handler.name,
+            multi_part_handler.content_type,
+            multi_part_handler.data.len()
+        );
+        let result = self
+            .http_client
+            .post(&url)
             .multipart(self.multipart_form(multi_part_handler.clone()))
             .send()
-            .await
+            .await;
+        if let Err(ref e) = result {
+            tracing::error!(
+                "IPFS upload request failed: is_connect={}, is_timeout={}, is_request={}, is_body={}, error={:#}",
+                e.is_connect(),
+                e.is_timeout(),
+                e.is_request(),
+                e.is_body(),
+                e
+            );
+        }
+        result
     }
 
     /// Sends a request to upload a file to IPFS
