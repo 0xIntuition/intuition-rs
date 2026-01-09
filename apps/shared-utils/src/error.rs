@@ -10,6 +10,8 @@ pub enum LibError {
     ExtractNameAndExtension,
     #[error("Image too large: {0} bytes (max: {1} bytes)")]
     ImageTooLarge(usize, usize),
+    #[error("IPFS URI requires IPFSResolver but none was provided")]
+    MissingIPFSResolver,
     #[error("Network error: {0}")]
     NetworkError(String),
     #[error("Pinata error: {0}")]

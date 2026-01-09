@@ -29,28 +29,51 @@ impl Image {
         Ok(format!("{}.{}", image_output.name, image_output.extension))
     }
 
-    /// This function downloads an image from a URL and returns the bytes
-    /// Supports both HTTP(S) URLs and IPFS URIs (ipfs://)
+    /// Downloads an image from a URL and returns the bytes.
+    ///
+    /// # Arguments
+    /// * `ipfs_resolver` - Required when the URL is an IPFS URI (ipfs://...).
+    ///                     Optional for HTTP(S) URLs.
+    ///
+    /// # Returns
+    /// * `Ok(Some(bytes))` - Successfully downloaded image bytes
+    /// * `Ok(None)` - Failed to download (non-200 status code)
+    /// * `Err(LibError::MissingIPFSResolver)` - IPFS URI provided without resolver
+    /// * `Err(LibError::ImageTooLarge)` - Image exceeds MAX_IMAGE_SIZE (10MB)
+    /// * `Err(_)` - Network or other errors
+    ///
+    /// # Supported URL schemes
+    /// * `ipfs://` - IPFS content identifiers (requires ipfs_resolver)
+    /// * `http://` / `https://` - Standard web URLs
     pub async fn download(&self, ipfs_resolver: Option<&IPFSResolver>) -> Result<Option<Vec<u8>>, LibError> {
         info!("Downloading image from URL: {}", self.url);
 
         // Handle IPFS URIs with IPFSResolver
         if let Some(ipfs_cid) = self.url.strip_prefix("ipfs://") {
-            if let Some(resolver) = ipfs_resolver {
-                info!("Using IPFSResolver for IPFS URI: {}", ipfs_cid);
-                let response = resolver.fetch_from_ipfs(ipfs_cid).await?;
-                let bytes = response.bytes().await?.to_vec();
-
-                if bytes.len() > MAX_IMAGE_SIZE {
-                    return Err(LibError::ImageTooLarge(bytes.len(), MAX_IMAGE_SIZE));
-                }
-
-                info!("Downloaded {} bytes from IPFS: {}", bytes.len(), ipfs_cid);
-                return Ok(Some(bytes));
-            } else {
+            let resolver = ipfs_resolver.ok_or_else(|| {
                 warn!("IPFS URI detected but no IPFSResolver provided: {}", self.url);
-                return Ok(None);
+                LibError::MissingIPFSResolver
+            })?;
+
+            info!("Using IPFSResolver for IPFS URI: {}", ipfs_cid);
+            let response = resolver.fetch_from_ipfs(ipfs_cid).await?;
+
+            // Check Content-Length header before downloading
+            if let Some(content_length) = response.content_length() {
+                if content_length as usize > MAX_IMAGE_SIZE {
+                    return Err(LibError::ImageTooLarge(content_length as usize, MAX_IMAGE_SIZE));
+                }
             }
+
+            let bytes = response.bytes().await?.to_vec();
+
+            // Verify actual size after download (in case Content-Length was missing)
+            if bytes.len() > MAX_IMAGE_SIZE {
+                return Err(LibError::ImageTooLarge(bytes.len(), MAX_IMAGE_SIZE));
+            }
+
+            info!("Downloaded {} bytes from IPFS: {}", bytes.len(), ipfs_cid);
+            return Ok(Some(bytes));
         }
 
         // Fallback to HTTP for non-IPFS URIs
@@ -60,7 +83,16 @@ impl Image {
             return Ok(None);
         }
 
+        // Check Content-Length header before downloading
+        if let Some(content_length) = response.content_length() {
+            if content_length as usize > MAX_IMAGE_SIZE {
+                return Err(LibError::ImageTooLarge(content_length as usize, MAX_IMAGE_SIZE));
+            }
+        }
+
         let bytes = response.bytes().await?.to_vec();
+
+        // Verify actual size after download (in case Content-Length was missing)
         if bytes.len() > MAX_IMAGE_SIZE {
             return Err(LibError::ImageTooLarge(bytes.len(), MAX_IMAGE_SIZE));
         }

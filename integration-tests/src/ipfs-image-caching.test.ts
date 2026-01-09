@@ -4,6 +4,11 @@ import { graphql } from './graphql/gql.js'
 
 suite('IPFS image caching', async () => {
   const alice = await getIntuition(3)
+
+  // IPFS CID for a test image stored on IPFS
+  // This is a publicly accessible image used for testing IPFS image resolution
+  // If this CID becomes unavailable, the test will fail and the CID should be replaced
+  // with another publicly accessible IPFS image
   const ipfsImageUri = 'ipfs://QmbpYuxCQ3PvaDQMQC7PAehEdxSG124HhRHxhoytnGJ5d8'
 
   const uri = await pinJson({

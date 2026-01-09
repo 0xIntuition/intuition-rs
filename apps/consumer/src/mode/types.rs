@@ -312,10 +312,13 @@ impl ConsumerMode {
             .unwrap_or_else(|| panic!("Image guard URL is not set")))
     }
 
-    /// This function creates a ipfs resolver
-    async fn create_ipfs_resolver(data: ServerInitialize) -> Result<IPFSResolver, ConsumerError> {
+    /// This function creates a ipfs resolver with the provided HTTP client
+    async fn create_ipfs_resolver(
+        data: ServerInitialize,
+        http_client: Client,
+    ) -> Result<IPFSResolver, ConsumerError> {
         Ok(IPFSResolver::builder()
-            .http_client(Client::new())
+            .http_client(http_client)
             .ipfs_upload_url(
                 data.env
                     .ipfs_upload_url
@@ -338,7 +341,7 @@ impl ConsumerMode {
                 data.env
                     .pinata_gateway_token
                     .clone()
-                    .unwrap_or_else(|| panic!("Pinata gateway token is not set")),
+                    .unwrap_or_else(|| String::from("")),
             )
             .build())
     }
@@ -361,8 +364,10 @@ impl ConsumerMode {
         .await?;
 
         let image_guard_url = Self::create_image_guard(data.clone()).await?;
+
+        // Create a single HTTP client and reuse it for both IPFSResolver and reqwest operations
         let reqwest_client = reqwest::Client::new();
-        let ipfs_resolver = Self::create_ipfs_resolver(data.clone()).await?;
+        let ipfs_resolver = Self::create_ipfs_resolver(data.clone(), reqwest_client.clone()).await?;
 
         Ok(ConsumerMode::IpfsUpload(IpfsUploadConsumerContext {
             client,
@@ -444,7 +449,9 @@ impl ConsumerMode {
         )
         .await?;
 
-        let ipfs_resolver = Self::create_ipfs_resolver(data.clone()).await?;
+        // Create a single HTTP client for IPFSResolver
+        let http_client = Client::new();
+        let ipfs_resolver = Self::create_ipfs_resolver(data.clone(), http_client).await?;
 
         Ok(ConsumerMode::Resolver(Box::new(ResolverConsumerContext {
             client,
