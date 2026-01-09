@@ -1,9 +1,12 @@
-use crate::error::LibError;
+use crate::{error::LibError, ipfs::IPFSResolver};
 use log::{info, warn};
 use models::cached_image::CachedImage;
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
+
+/// Maximum image size for download (10MB)
+pub const MAX_IMAGE_SIZE: usize = 10 * 1024 * 1024;
 
 /// Represents the name and extension of an image
 pub struct ImageOutput {
@@ -27,14 +30,42 @@ impl Image {
     }
 
     /// This function downloads an image from a URL and returns the bytes
-    pub async fn download(&self) -> Result<Option<Vec<u8>>, LibError> {
+    /// Supports both HTTP(S) URLs and IPFS URIs (ipfs://)
+    pub async fn download(&self, ipfs_resolver: Option<&IPFSResolver>) -> Result<Option<Vec<u8>>, LibError> {
         info!("Downloading image from URL: {}", self.url);
+
+        // Handle IPFS URIs with IPFSResolver
+        if let Some(ipfs_cid) = self.url.strip_prefix("ipfs://") {
+            if let Some(resolver) = ipfs_resolver {
+                info!("Using IPFSResolver for IPFS URI: {}", ipfs_cid);
+                let response = resolver.fetch_from_ipfs(ipfs_cid).await?;
+                let bytes = response.bytes().await?.to_vec();
+
+                if bytes.len() > MAX_IMAGE_SIZE {
+                    return Err(LibError::ImageTooLarge(bytes.len(), MAX_IMAGE_SIZE));
+                }
+
+                info!("Downloaded {} bytes from IPFS: {}", bytes.len(), ipfs_cid);
+                return Ok(Some(bytes));
+            } else {
+                warn!("IPFS URI detected but no IPFSResolver provided: {}", self.url);
+                return Ok(None);
+            }
+        }
+
+        // Fallback to HTTP for non-IPFS URIs
         let response = reqwest::get(&self.url).await?;
         if response.status() != reqwest::StatusCode::OK {
             warn!("Failed to download image, status: {}", response.status());
             return Ok(None);
         }
-        Ok(Some(response.bytes().await?.to_vec()))
+
+        let bytes = response.bytes().await?.to_vec();
+        if bytes.len() > MAX_IMAGE_SIZE {
+            return Err(LibError::ImageTooLarge(bytes.len(), MAX_IMAGE_SIZE));
+        }
+
+        Ok(Some(bytes))
     }
     /// This function downloads an avatar, classifies it and stores it in the database
     pub async fn download_image_classify_and_store(

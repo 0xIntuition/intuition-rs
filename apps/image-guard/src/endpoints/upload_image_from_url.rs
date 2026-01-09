@@ -56,8 +56,8 @@ pub async fn upload_image_from_url(
         );
     }
 
-    // Download the image
-    let image_bytes = image.download().await?;
+    // Download the image (with IPFS support via resolver)
+    let image_bytes = image.download(Some(&state.ipfs_resolver)).await?;
     if let Some(image_bytes) = image_bytes {
         // Validate the image bytes
         validate_image_bytes(&image_bytes)?;

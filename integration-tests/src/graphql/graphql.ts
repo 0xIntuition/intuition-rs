@@ -3018,7 +3018,7 @@ export type Mutation_Root = {
   pinPerson?: Maybe<PinOutput>;
   /** Uploads and pins Thing to IPFS */
   pinThing?: Maybe<PinOutput>;
-  /** Uploads and classifies an image file using image-guard (accepts base64-encoded image data via data URL) */
+  /** Uploads and classifies an image file using image-guard. Accepts base64-encoded image data. Note: The original /upload endpoint requires multipart/form-data which Hasura actions cannot construct directly. This mutation uses upload_image_from_url with a data URL workaround. For direct file uploads, use the image-guard API directly or create a wrapper endpoint. */
   uploadImage?: Maybe<UploadImageFromUrlOutput>;
   /** Uploads and classifies an image from a URL using image-guard */
   uploadImageFromUrl?: Maybe<UploadImageFromUrlOutput>;
@@ -12217,6 +12217,20 @@ export type FollowingQueryVariables = Exact<{
 
 export type FollowingQuery = { __typename?: 'query_root', following: Array<{ __typename?: 'accounts', id: string, atom_id?: string | null }> };
 
+export type GetAtomQueryVariables = Exact<{
+  termId: Scalars['String']['input'];
+}>;
+
+
+export type GetAtomQuery = { __typename?: 'query_root', atom?: { __typename?: 'atoms', label?: string | null, image?: string | null } | null };
+
+export type GetAtomWithCachedImageQueryVariables = Exact<{
+  termId: Scalars['String']['input'];
+}>;
+
+
+export type GetAtomWithCachedImageQuery = { __typename?: 'query_root', atom?: { __typename?: 'atoms', image?: string | null, cached_image?: { __typename?: 'cached_images_cached_image', url: string, original_url: string, safe: boolean, score?: any | null, model?: string | null, created_at: any } | null } | null };
+
 export type AtomOrgProfileQueryVariables = Exact<{
   term_id: Scalars['String']['input'];
 }>;
@@ -12620,6 +12634,29 @@ export const FollowingDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<FollowingQuery, FollowingQueryVariables>;
+export const GetAtomDocument = new TypedDocumentString(`
+    query GetAtom($termId: String!) {
+  atom(term_id: $termId) {
+    label
+    image
+  }
+}
+    `) as unknown as TypedDocumentString<GetAtomQuery, GetAtomQueryVariables>;
+export const GetAtomWithCachedImageDocument = new TypedDocumentString(`
+    query GetAtomWithCachedImage($termId: String!) {
+  atom(term_id: $termId) {
+    image
+    cached_image {
+      url
+      original_url
+      safe
+      score
+      model
+      created_at
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<GetAtomWithCachedImageQuery, GetAtomWithCachedImageQueryVariables>;
 export const AtomOrgProfileDocument = new TypedDocumentString(`
     query AtomOrgProfile($term_id: String!) {
   atom(term_id: $term_id) {

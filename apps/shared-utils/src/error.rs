@@ -8,6 +8,8 @@ use thiserror::Error;
 pub enum LibError {
     #[error("Extract name and extension error")]
     ExtractNameAndExtension,
+    #[error("Image too large: {0} bytes (max: {1} bytes)")]
+    ImageTooLarge(usize, usize),
     #[error("Network error: {0}")]
     NetworkError(String),
     #[error("Pinata error: {0}")]

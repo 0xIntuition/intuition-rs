@@ -178,6 +178,7 @@ pub struct IpfsUploadConsumerContext {
     pub client: Arc<dyn BasicConsumer>,
     pub image_guard_url: String,
     pub reqwest_client: reqwest::Client,
+    pub ipfs_resolver: IPFSResolver,
 }
 
 /// Represents the raw consumer context
@@ -360,12 +361,14 @@ impl ConsumerMode {
         .await?;
 
         let image_guard_url = Self::create_image_guard(data.clone()).await?;
-
         let reqwest_client = reqwest::Client::new();
+        let ipfs_resolver = Self::create_ipfs_resolver(data.clone()).await?;
+
         Ok(ConsumerMode::IpfsUpload(IpfsUploadConsumerContext {
             client,
             image_guard_url,
             reqwest_client,
+            ipfs_resolver,
         }))
     }
 

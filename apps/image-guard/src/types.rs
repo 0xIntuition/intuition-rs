@@ -12,6 +12,7 @@ pub struct Env {
     pub flag_local_with_classification: Option<bool>,
     pub flag_local_with_db_only: Option<bool>,
     pub pinata_api_jwt: String,
+    pub pinata_gateway_token: Option<String>,
     pub image_api_schema: String,
 }
 
