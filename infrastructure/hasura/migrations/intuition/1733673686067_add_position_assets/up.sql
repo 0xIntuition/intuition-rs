@@ -1,6 +1,11 @@
 -- Migration: Add assets column to position table
 -- Purpose: Store cached position value (shares * current_share_price) for efficient sorting/pagination
 -- Pattern: Follows existing trigger patterns in consolidated_triggers/up.sql
+--
+-- CONSISTENCY NOTE: The assets value reflects the share price at the time of the position
+-- INSERT/UPDATE. If a vault's share price changes concurrently, the vault trigger will
+-- cascade updates to affected positions. For sorting/pagination use cases, slight staleness
+-- between concurrent operations is acceptable. PostgreSQL's MVCC ensures atomic updates.
 
 -- ========================================
 -- STEP 1: Add assets column to position table
