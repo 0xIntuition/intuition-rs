@@ -41,9 +41,22 @@ pub async fn upload_image_from_url(
 ) -> Result<Json<Vec<CachedImage>>, ApiError> {
     let mut responses = Vec::new();
     info!("Uploading image");
+
+    // For data URLs, generate the fingerprint to use for cache lookup
+    // (same fingerprint we'll store in the database)
+    let lookup_url = if image.is_data_url() {
+        if let Some(output) = image.extract_name_and_extension() {
+            format!("data:{}", output.name)
+        } else {
+            image.url.clone()
+        }
+    } else {
+        image.url.clone()
+    };
+
     // If the image is already in the database, return it
     if let Some(cached_image) =
-        CachedImage::find_by_original_url(&state.pg_pool, &image.url, &state.image_api_schema)
+        CachedImage::find_by_original_url(&state.pg_pool, &lookup_url, &state.image_api_schema)
             .await?
     {
         info!("Image already in the database, returning it");
@@ -67,11 +80,14 @@ pub async fn upload_image_from_url(
             .extract_name_and_extension()
             .ok_or(ApiError::ExtractNameAndExtension)?;
 
+        // Save the name for later use (before moving into MultiPartHandler)
+        let image_name = image_output.name.clone();
+
         // Construct the MultipartHandler
         let multi_part_handler = MultiPartHandler {
-            name: image_output.name, // Replace with actual name
-            content_type: format!("image/{}", image_output.extension.to_lowercase()), // Replace with actual content type
-            data: Bytes::from(image_bytes), // Convert Vec<u8> to Bytes
+            name: image_output.name,
+            content_type: format!("image/{}", image_output.extension.to_lowercase()),
+            data: Bytes::from(image_bytes),
         };
 
         // Classify the image
@@ -89,9 +105,17 @@ pub async fn upload_image_from_url(
         let ipfs_response = upload_image_to_ipfs(&state, multi_part_handler).await?;
         info!("IPFS response: {:?}", ipfs_response);
 
+        // For data URLs, store a fingerprint instead of the full URL to avoid exceeding
+        // PostgreSQL's index size limit (8KB). Use the deterministic name we generated.
+        let original_url_to_store = if image.is_data_url() {
+            format!("data:{}", image_name)
+        } else {
+            image.url.clone()
+        };
+
         let image_guard = CachedImage::builder()
             .url(format!("ipfs://{}", ipfs_response.hash))
-            .original_url(&image.url)
+            .original_url(&original_url_to_store)
             .score(serde_json::to_string(&scores)?)
             .model(ClassificationModel::FalconsaiNsfwImageDetection.to_string())
             .safe(status)
