@@ -6,6 +6,15 @@
 -- INSERT/UPDATE. If a vault's share price changes concurrently, the vault trigger will
 -- cascade updates to affected positions. For sorting/pagination use cases, slight staleness
 -- between concurrent operations is acceptable. PostgreSQL's MVCC ensures atomic updates.
+--
+-- SCALE NOTE: The vault share price trigger updates all positions for a vault.
+-- Expected position counts: typically <1000 per vault, max observed ~10k.
+-- For very popular vaults, monitor trigger execution time.
+--
+-- VALUE RANGE: NUMERIC(78, 0) supports values up to 10^78.
+-- Shares and share_price are both U256 (max ~10^77), so multiplication
+-- could theoretically approach 10^154, but real-world values are far smaller.
+-- Protocol values typically range from 10^18 (1 token) to 10^30 (trillions of tokens).
 
 -- ========================================
 -- STEP 1: Add assets column to position table
