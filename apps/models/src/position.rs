@@ -5,7 +5,7 @@ use crate::{
 };
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use sqlx::{Executor, Postgres};
+use sqlx::{types::BigDecimal, Executor, Postgres};
 
 /// This struct is used to represent a position in a vault
 #[derive(Debug, Clone, sqlx::FromRow, Builder)]
@@ -29,6 +29,14 @@ pub struct Position {
     /// DO NOT set manually - this value is managed exclusively by database triggers.
     #[builder(Default)]
     pub redeemable_value: U256Wrapper,
+    /// Profit/Loss in wei (redeemable_value + total_redeem - total_deposit) - computed by database trigger.
+    /// Can be negative for losses. DO NOT set manually - this value is managed exclusively by database triggers.
+    #[builder(Default)]
+    pub pnl: BigDecimal,
+    /// Profit/Loss as percentage ROI - computed by database trigger.
+    /// Can be negative for losses. DO NOT set manually - this value is managed exclusively by database triggers.
+    #[builder(Default)]
+    pub pnl_percentage: BigDecimal,
     /// Total deposit assets after total fees
     pub total_deposit_assets_after_total_fees: U256Wrapper,
     /// Total redeem assets for receiver
@@ -53,7 +61,7 @@ impl Model for Position {}
 impl SimpleCrud<String> for Position {
     /// Creates a new position or updates an existing one in the database if the block number
     /// and log index are greater than the existing position.
-    /// NOTE: assets and redeemable_value are intentionally excluded from the UPDATE clause to preserve values set by database triggers.
+    /// NOTE: assets, redeemable_value, pnl, and pnl_percentage are intentionally excluded from the UPDATE clause to preserve values set by database triggers.
     async fn upsert<'e, E>(&self, schema: &str, executor: E) -> Result<Self, ModelError>
     where
         E: Executor<'e, Database = Postgres>,
@@ -78,7 +86,7 @@ impl SimpleCrud<String> for Position {
                     term_id = EXCLUDED.term_id,
                     shares = EXCLUDED.shares,
                     curve_id = EXCLUDED.curve_id,
-                    -- assets and redeemable_value are NOT updated here - they're managed by database triggers
+                    -- assets, redeemable_value, pnl, and pnl_percentage are NOT updated here - they're managed by database triggers
                     total_deposit_assets_after_total_fees = EXCLUDED.total_deposit_assets_after_total_fees,
                     total_redeem_assets_for_receiver = EXCLUDED.total_redeem_assets_for_receiver,
                     block_number = EXCLUDED.block_number,
@@ -144,6 +152,8 @@ impl SimpleCrud<String> for Position {
                 curve_id,
                 assets,
                 redeemable_value,
+                pnl,
+                pnl_percentage,
                 total_deposit_assets_after_total_fees,
                 total_redeem_assets_for_receiver,
                 block_number,
@@ -273,6 +283,8 @@ impl Position {
                 curve_id,
                 assets,
                 redeemable_value,
+                pnl,
+                pnl_percentage,
                 total_deposit_assets_after_total_fees,
                 total_redeem_assets_for_receiver,
                 block_number,

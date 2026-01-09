@@ -42,6 +42,8 @@ select_permissions:
       columns:
         - assets
         - redeemable_value
+        - pnl
+        - pnl_percentage
         - block_number
         - log_index
         - transaction_index
@@ -64,6 +66,8 @@ select_permissions:
       columns:
         - assets
         - redeemable_value
+        - pnl
+        - pnl_percentage
         - block_number
         - log_index
         - transaction_index
