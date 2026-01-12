@@ -7,9 +7,22 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-/// Maximum allowed image size in bytes (50 MB).
-/// Used for validating image data before processing and for HTTP body limits.
+/// Maximum allowed decoded image size in bytes (50 MB).
+/// Used for validating image data before processing.
 pub const MAX_IMAGE_SIZE: usize = 50 * 1024 * 1024;
+
+/// Maximum HTTP body size to accept (accounts for base64 encoding overhead).
+/// Base64 encoding adds ~33% overhead, so we allow 67MB to accept 50MB decoded images.
+/// Formula: MAX_IMAGE_SIZE * 4 / 3, rounded up with extra margin for JSON wrapper.
+pub const MAX_BODY_SIZE: usize = 70 * 1024 * 1024;
+
+/// Custom UUID namespace for generating deterministic image content hashes.
+/// This namespace is specific to this application to avoid collisions with other systems
+/// that might use UUID v5 with standard namespaces.
+/// Generated using: uuid v5 of "intuition.systems/image-guard/content" in DNS namespace.
+const IMAGE_CONTENT_NAMESPACE: Uuid = Uuid::from_bytes([
+    0x7a, 0x2c, 0x8f, 0x4e, 0x3b, 0x1d, 0x5a, 0x9c, 0xb6, 0x0e, 0x7f, 0x2d, 0x4c, 0x8a, 0x1b, 0x3e,
+]);
 
 /// Represents the name and extension of an image
 pub struct ImageOutput {
@@ -136,7 +149,8 @@ impl Image {
 
         // Validate size before allocating memory for decoding
         // Base64 encoded data is ~4/3 the size of decoded data, so check early
-        let estimated_decoded_size = base64_data.len() * 3 / 4;
+        // Use saturating_mul to prevent integer overflow on malicious input
+        let estimated_decoded_size = base64_data.len().saturating_mul(3) / 4;
         if estimated_decoded_size > MAX_IMAGE_SIZE {
             return Err(LibError::InvalidInput(format!(
                 "Estimated image size {} bytes exceeds maximum allowed size of {} bytes",
@@ -155,9 +169,16 @@ impl Image {
             .decode(&base64_clean)
             .map_err(|e: base64::DecodeError| LibError::Base64Decode(e.to_string()))?;
 
-        // Validate decoded data is not empty
+        // Validate decoded data is not empty and within size limits
         if data.is_empty() {
             return Err(LibError::InvalidInput("Decoded image data is empty".into()));
+        }
+        if data.len() > MAX_IMAGE_SIZE {
+            return Err(LibError::InvalidInput(format!(
+                "Decoded image size {} bytes exceeds maximum allowed size of {} bytes",
+                data.len(),
+                MAX_IMAGE_SIZE
+            )));
         }
 
         // Validate magic bytes match the claimed MIME type
@@ -251,9 +272,9 @@ impl Image {
         // Handle data URLs
         if self.is_data_url() {
             if let Ok(parsed) = self.parse_data_url() {
-                // Use UUID v5 with a namespace based on the data content for deterministic naming
-                // This ensures the same data URL always produces the same filename
-                let name = Uuid::new_v5(&Uuid::NAMESPACE_OID, &parsed.data).to_string();
+                // Use UUID v5 with a custom namespace for deterministic content-based naming
+                // This ensures the same image data always produces the same filename
+                let name = Uuid::new_v5(&IMAGE_CONTENT_NAMESPACE, &parsed.data).to_string();
                 return Some(ImageOutput {
                     name,
                     extension: parsed.extension,

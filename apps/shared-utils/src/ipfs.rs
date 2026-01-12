@@ -254,14 +254,23 @@ impl IPFSResolver {
         e: LibError,
         attempts: i32,
     ) -> Result<(), LibError> {
+        // Check if this is a timeout error for proper categorization
+        let is_timeout = matches!(&e, LibError::Reqwest(req_err) if req_err.is_timeout());
+
         if attempts < self.retry_attempts.unwrap_or(RETRY_ATTEMPTS) {
-            warn!("Upload error: {}, retrying... (attempt {})", e, attempts);
+            if is_timeout {
+                warn!("Upload timed out, retrying... (attempt {})", attempts);
+            } else {
+                warn!("Upload error: {}, retrying... (attempt {})", e, attempts);
+            }
             let backoff = self
                 .base_delay
                 .unwrap_or(BASE_DELAY)
                 .mul_f64(2_f64.powi(attempts - 1));
             sleep(backoff).await;
             Ok(())
+        } else if is_timeout {
+            Err(LibError::TimeoutError("IPFS upload timed out".into()))
         } else {
             Err(e)
         }
