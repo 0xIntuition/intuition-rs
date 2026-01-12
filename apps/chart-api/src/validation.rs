@@ -96,6 +96,17 @@ pub fn validate_curve_id(curve_id: &str) -> Result<(), ApiError> {
     Ok(())
 }
 
+/// Validate the account_id parameter
+///
+/// account_id should be a non-empty string
+pub fn validate_account_id(account_id: &str) -> Result<(), ApiError> {
+    if account_id.trim().is_empty() {
+        return Err(ApiError::InvalidAccountId(account_id.to_string()));
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

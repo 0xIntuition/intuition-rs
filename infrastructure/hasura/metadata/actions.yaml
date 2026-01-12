@@ -253,6 +253,53 @@ actions:
       - role: anonymous
       - role: frontend
     comment: Fetches chart SVG for a term/curve combination
+  - name: getPositionPnlChart
+    definition:
+      kind: synchronous
+      handler: '{{chartApiUrl}}'
+      request_transform:
+        method: GET
+        url: '{{$base_url}}/api/v1/accounts/{{$body.input.input.account_id}}/positions/{{$body.input.input.term_id}}/{{$body.input.input.curve_id}}/pnl'
+        query_params:
+          interval: '{{$body.input.input.interval}}'
+          start: '{{$body.input.input.start_time}}'
+          end: '{{$body.input.input.end_time}}'
+        template_engine: Kriti
+        version: 2
+    permissions:
+      - role: anonymous
+      - role: frontend
+    comment: Fetches position PnL chart data
+  - name: getAccountPnlChart
+    definition:
+      kind: synchronous
+      handler: '{{chartApiUrl}}'
+      request_transform:
+        method: GET
+        url: '{{$base_url}}/api/v1/accounts/{{$body.input.input.account_id}}/pnl'
+        query_params:
+          interval: '{{$body.input.input.interval}}'
+          start: '{{$body.input.input.start_time}}'
+          end: '{{$body.input.input.end_time}}'
+        template_engine: Kriti
+        version: 2
+    permissions:
+      - role: anonymous
+      - role: frontend
+    comment: Fetches account-level PnL chart data
+  - name: getAccountPnlCurrent
+    definition:
+      kind: synchronous
+      handler: '{{chartApiUrl}}'
+      request_transform:
+        method: GET
+        url: '{{$base_url}}/api/v1/accounts/{{$body.input.input.account_id}}/pnl/current'
+        template_engine: Kriti
+        version: 2
+    permissions:
+      - role: anonymous
+      - role: frontend
+    comment: Fetches current account PnL snapshot
 custom_types:
   enums: []
   input_objects:
@@ -264,6 +311,9 @@ custom_types:
     - name: UploadImageInput
     - name: GetChartJsonInput
     - name: GetChartSvgInput
+    - name: GetPositionPnlChartInput
+    - name: GetAccountPnlChartInput
+    - name: GetAccountPnlCurrentInput
   objects:
     - name: PinOutput
     - name: UploadImageFromUrlOutput
@@ -272,4 +322,9 @@ custom_types:
     - name: ChartDataOutput
     - name: ChartDataPoint
     - name: ChartSvgOutput
+    - name: PositionPnlChartOutput
+    - name: PositionPnlChartPoint
+    - name: AccountPnlChartOutput
+    - name: AccountPnlChartPoint
+    - name: AccountPnlSnapshotOutput
   scalars: []

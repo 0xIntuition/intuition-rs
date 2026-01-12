@@ -1,5 +1,11 @@
 use crate::{
-    endpoints::get_chart_data, error::ApiError, openapi::ApiDoc, state::AppState, types::Env,
+    endpoints::{
+        get_account_pnl_chart, get_account_pnl_current, get_chart_data, get_position_pnl_chart,
+    },
+    error::ApiError,
+    openapi::ApiDoc,
+    state::AppState,
+    types::Env,
 };
 use axum::{Router, extract::State, routing::get};
 use http::{
@@ -115,6 +121,15 @@ impl App {
             .route(
                 "/api/v1/curve/{curve_id}/term/{term_id}/data",
                 get(get_chart_data),
+            )
+            .route(
+                "/api/v1/accounts/{account_id}/positions/{term_id}/{curve_id}/pnl",
+                get(get_position_pnl_chart),
+            )
+            .route("/api/v1/accounts/{account_id}/pnl", get(get_account_pnl_chart))
+            .route(
+                "/api/v1/accounts/{account_id}/pnl/current",
+                get(get_account_pnl_current),
             )
             .route("/health", get(health_check))
             .with_state(self.app_state.clone())
