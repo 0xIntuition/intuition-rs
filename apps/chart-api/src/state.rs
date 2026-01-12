@@ -95,12 +95,16 @@ impl AppState {
         }
     }
 
-    /// Attempt to connect to Redis once
+    /// Attempt to connect to Redis once with configured timeouts
     async fn try_connect_redis(
         redis_url: &str,
     ) -> Result<ConnectionManager, Box<dyn std::error::Error>> {
         let redis_client = RedisClient::open(redis_url)?;
-        let manager = ConnectionManager::new(redis_client).await?;
+        // Configure connection with timeouts
+        let config = redis::aio::ConnectionManagerConfig::new()
+            .set_connection_timeout(Duration::from_secs(10))
+            .set_response_timeout(Duration::from_secs(5));
+        let manager = ConnectionManager::new_with_config(redis_client, config).await?;
         Ok(manager)
     }
 

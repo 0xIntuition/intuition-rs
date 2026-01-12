@@ -10,6 +10,15 @@ use sqlx::{Pool, Postgres, Row};
 /// This generic function builds dynamic SQL based on the graph type and interval.
 /// For curve-level graphs (e.g., SharePriceChange), curve_id must be Some.
 /// For term-level graphs (e.g., TotalMarketCap), curve_id should be None.
+///
+/// # SQL Injection Safety
+///
+/// This function uses dynamic SQL with interpolated table/column names, but is safe because:
+/// - `view_name` and `value_column` come from `GraphType` enum methods that return
+///   hardcoded `&'static str` values (not user input)
+/// - All user-provided values (`term_id`, `curve_id`, timestamps, limit) are passed
+///   via parameterized queries (`$1`, `$2`, etc.) which are properly escaped by sqlx
+/// - The `term_id` and `curve_id` are validated before reaching this function
 pub async fn fetch_chart_data(
     pool: &Pool<Postgres>,
     graph_type: GraphType,
