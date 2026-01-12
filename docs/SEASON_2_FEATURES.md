@@ -1,4 +1,4 @@
-# Season 2 Airdrop Features
+# Season 2 Features
 
 **Status:** In Planning
 **Priority:** High
@@ -8,7 +8,7 @@
 
 ## Overview
 
-Backend support for Season 2 Airdrop program, including enhanced data tracking, PNL calculations, and economic game mechanics.
+Backend support for Season 2, including enhanced data tracking, PNL calculations, and economic game mechanics.
 
 ---
 
@@ -618,7 +618,7 @@ This time-series infrastructure unlocks multiple use cases:
 | User portfolio tracking | `position_pnl_snapshot` + aggregates |
 | Trending markets for explore | Signal stats + share price change stats (existing) |
 | Leaderboards | `account_pnl_daily` aggregate |
-| Airdrop calculations | Historical PnL snapshots |
+| Season incentive calculations | Historical PnL snapshots |
 
 ---
 
