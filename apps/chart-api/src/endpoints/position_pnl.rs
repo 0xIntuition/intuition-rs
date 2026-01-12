@@ -6,8 +6,8 @@ use crate::models::{
 };
 use crate::services::{
     align_pnl_range, build_pnl_expected_buckets, build_position_pnl_series,
-    build_account_realized_pnl, fetch_account_current_totals, fetch_account_positions,
-    position_exists,
+    account_exists, build_account_realized_pnl, fetch_account_current_totals,
+    fetch_account_positions, position_exists,
 };
 use crate::state::AppState;
 use crate::types::{PnlChartQueryParams, PnlInterval, PnlRealizedQueryParams};
@@ -381,10 +381,11 @@ pub async fn get_account_realized_pnl(
         return Ok(([(header::CONTENT_TYPE, "application/json")], cached_data).into_response());
     }
 
-    let realized = build_account_realized_pnl(&state.pg_pool, &account_id, start, end).await?;
-    if realized.is_empty() {
+    if !account_exists(&state.pg_pool, &account_id).await? {
         return Err(ApiError::NoDataAvailable);
     }
+
+    let realized = build_account_realized_pnl(&state.pg_pool, &account_id, start, end).await?;
 
     let data = realized
         .into_iter()
