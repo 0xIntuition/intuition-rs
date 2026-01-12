@@ -10,6 +10,7 @@ use crate::{
 };
 use axum::{
     Router,
+    extract::DefaultBodyLimit,
     routing::{get, post},
 };
 use axum_prometheus::PrometheusMetricLayer;
@@ -79,6 +80,8 @@ impl App {
         self.router()
             .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
             .layer(self.cors())
+            // Increase body limit to 50MB for large images (base64 encoded images are ~33% larger)
+            .layer(DefaultBodyLimit::max(50 * 1024 * 1024))
     }
 
     /// Initialize the application. This will read the environment variables,
