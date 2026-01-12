@@ -1560,6 +1560,34 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "613afe47fcd5fac7ccf1db93babcb082c5994d996f20b8b159f2ad1658eb5724"
 
 [[package]]
+name = "chart-api"
+version = "0.1.0"
+dependencies = [
+ "alloy",
+ "axum",
+ "chrono",
+ "dotenvy",
+ "env_logger",
+ "envy",
+ "http 1.3.1",
+ "log",
+ "models",
+ "redis",
+ "serde",
+ "serde_json",
+ "shared-utils",
+ "sqlx",
+ "svg",
+ "thiserror 2.0.16",
+ "tokio",
+ "tower-http",
+ "tracing",
+ "tracing-subscriber",
+ "utoipa",
+ "utoipa-swagger-ui",
+]
+
+[[package]]
 name = "chrono"
 version = "0.4.42"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6098,6 +6126,12 @@ name = "subtle"
 version = "2.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
+
+[[package]]
+name = "svg"
+version = "0.18.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "94afda9cd163c04f6bee8b4bf2501c91548deae308373c436f36aeff3cf3c4a3"
 
 [[package]]
 name = "syn"
