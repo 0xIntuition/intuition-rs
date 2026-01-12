@@ -2,14 +2,15 @@ use crate::cache::ChartCache;
 use crate::error::ApiError;
 use crate::models::{
     AccountPnlChartPoint, AccountPnlChartResponse, AccountPnlSnapshot, PnlChartPoint,
-    PnlChartResponse,
+    PnlChartResponse, RealizedPnlEntry, RealizedPnlResponse,
 };
 use crate::services::{
     align_pnl_range, build_pnl_expected_buckets, build_position_pnl_series,
-    fetch_account_current_totals, fetch_account_positions, position_exists,
+    build_account_realized_pnl, fetch_account_current_totals, fetch_account_positions,
+    position_exists,
 };
 use crate::state::AppState;
-use crate::types::{PnlChartQueryParams, PnlInterval};
+use crate::types::{PnlChartQueryParams, PnlInterval, PnlRealizedQueryParams};
 use crate::validation::{
     parse_timestamp, validate_account_id, validate_count, validate_curve_id, validate_term_id,
     validate_time_range,
@@ -34,7 +35,7 @@ fn bigdecimal_to_string(value: &BigDecimal) -> String {
         ("account_id" = String, Path, description = "Account ID"),
         ("term_id" = String, Path, description = "Term ID"),
         ("curve_id" = String, Path, description = "Curve ID"),
-        ("interval" = String, Query, description = "Time interval: 1m, 5m, 1h, 1d"),
+        ("interval" = String, Query, description = "Time interval: 1m, 5m, 1h, 1d, 1w"),
         ("start" = String, Query, description = "Range start timestamp (unix seconds, unix milliseconds, or RFC3339)"),
         ("end" = String, Query, description = "Range end timestamp (unix seconds, unix milliseconds, or RFC3339)"),
     ),
@@ -121,6 +122,7 @@ pub async fn get_position_pnl_chart(
             net_invested: bigdecimal_to_string(&point.net_invested),
             total_pnl: bigdecimal_to_string(&point.total_pnl),
             pnl_pct: bigdecimal_to_string(&point.pnl_pct),
+            unrealized_pnl: bigdecimal_to_string(&(point.equity_value - point.net_invested)),
         })
         .collect::<Vec<_>>();
 
@@ -147,7 +149,7 @@ pub async fn get_position_pnl_chart(
     path = "/api/v1/accounts/{account_id}/pnl",
     params(
         ("account_id" = String, Path, description = "Account ID"),
-        ("interval" = String, Query, description = "Time interval: 1m, 5m, 1h, 1d"),
+        ("interval" = String, Query, description = "Time interval: 1m, 5m, 1h, 1d, 1w"),
         ("start" = String, Query, description = "Range start timestamp (unix seconds, unix milliseconds, or RFC3339)"),
         ("end" = String, Query, description = "Range end timestamp (unix seconds, unix milliseconds, or RFC3339)"),
     ),
@@ -255,6 +257,7 @@ pub async fn get_account_pnl_chart(
                 one.clone()
             };
             let pnl_pct = (total_pnl.clone() * hundred.clone()) / denom;
+            let unrealized_pnl = equity_value.clone() - net_invested.clone();
 
             AccountPnlChartPoint {
                 timestamp: *bucket,
@@ -264,6 +267,7 @@ pub async fn get_account_pnl_chart(
                 net_invested: bigdecimal_to_string(&net_invested),
                 total_pnl: bigdecimal_to_string(&total_pnl),
                 pnl_pct: bigdecimal_to_string(&pnl_pct),
+                unrealized_pnl: bigdecimal_to_string(&unrealized_pnl),
             }
         })
         .collect::<Vec<_>>();
@@ -316,6 +320,7 @@ pub async fn get_account_pnl_current(
         BigDecimal::from(1)
     };
     let pnl_pct = (total_pnl.clone() * BigDecimal::from(100)) / denom;
+    let unrealized_pnl = totals.equity_value.clone() - net_invested.clone();
 
     let response = AccountPnlSnapshot {
         account_id: account_id.clone(),
@@ -326,8 +331,83 @@ pub async fn get_account_pnl_current(
         net_invested: bigdecimal_to_string(&net_invested),
         total_pnl: bigdecimal_to_string(&total_pnl),
         pnl_pct: bigdecimal_to_string(&pnl_pct),
+        unrealized_pnl: bigdecimal_to_string(&unrealized_pnl),
     };
 
     let response_body = serde_json::to_string(&response)?;
+    Ok(([(header::CONTENT_TYPE, "application/json")], response_body).into_response())
+}
+
+/// Handler for realized PnL breakdown
+/// GET /api/v1/accounts/{account_id}/pnl/realized
+#[utoipa::path(
+    get,
+    path = "/api/v1/accounts/{account_id}/pnl/realized",
+    params(
+        ("account_id" = String, Path, description = "Account ID"),
+        ("start" = String, Query, description = "Range start timestamp (unix seconds, unix milliseconds, or RFC3339)"),
+        ("end" = String, Query, description = "Range end timestamp (unix seconds, unix milliseconds, or RFC3339)"),
+    ),
+    responses(
+        (status = 200, description = "Realized PnL breakdown", content_type = "application/json"),
+        (status = 400, description = "Invalid parameters"),
+        (status = 404, description = "No data found"),
+        (status = 500, description = "Internal server error"),
+    ),
+    tag = "PnL"
+)]
+pub async fn get_account_realized_pnl(
+    State(state): State<AppState>,
+    Path(account_id): Path<String>,
+    Query(params): Query<PnlRealizedQueryParams>,
+) -> Result<Response, ApiError> {
+    validate_account_id(&account_id)?;
+
+    let start = parse_timestamp(&params.start)
+        .ok_or_else(|| ApiError::InvalidStartTimestamp(params.start.clone()))?;
+    let end = parse_timestamp(&params.end)
+        .ok_or_else(|| ApiError::InvalidEndTimestamp(params.end.clone()))?;
+    validate_time_range(start, end)?;
+
+    let cache = ChartCache::new(state.redis.clone());
+    let cache_key = format!(
+        "pnl:realized:{}:{}:{}",
+        account_id,
+        start.timestamp(),
+        end.timestamp()
+    );
+
+    if let Some(cached_data) = cache.get_string(&cache_key).await? {
+        return Ok(([(header::CONTENT_TYPE, "application/json")], cached_data).into_response());
+    }
+
+    let realized = build_account_realized_pnl(&state.pg_pool, &account_id, start, end).await?;
+    if realized.is_empty() {
+        return Err(ApiError::NoDataAvailable);
+    }
+
+    let data = realized
+        .into_iter()
+        .map(|entry| RealizedPnlEntry {
+            timestamp: entry.timestamp,
+            term_id: entry.term_id,
+            curve_id: entry.curve_id,
+            shares_redeemed: bigdecimal_to_string(&entry.shares_redeemed),
+            assets_out: bigdecimal_to_string(&entry.assets_out),
+            cost_basis: bigdecimal_to_string(&entry.cost_basis),
+            realized_pnl: bigdecimal_to_string(&entry.realized_pnl),
+            realized_pnl_pct: bigdecimal_to_string(&entry.realized_pnl_pct),
+        })
+        .collect::<Vec<_>>();
+
+    let response = RealizedPnlResponse {
+        account_id: account_id.clone(),
+        count: data.len(),
+        data,
+    };
+
+    let response_body = serde_json::to_string(&response)?;
+    cache.set_string(&cache_key, &response_body, 60).await?;
+
     Ok(([(header::CONTENT_TYPE, "application/json")], response_body).into_response())
 }

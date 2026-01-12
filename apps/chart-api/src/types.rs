@@ -202,6 +202,8 @@ pub enum PnlInterval {
     FiveMinutes,
     #[serde(rename = "1h")]
     OneHour,
+    #[serde(rename = "1w")]
+    OneWeek,
     #[serde(rename = "1d")]
     OneDay,
 }
@@ -213,6 +215,7 @@ impl PnlInterval {
             "1m" => Some(PnlInterval::OneMinute),
             "5m" => Some(PnlInterval::FiveMinutes),
             "1h" => Some(PnlInterval::OneHour),
+            "1w" => Some(PnlInterval::OneWeek),
             "1d" => Some(PnlInterval::OneDay),
             _ => None,
         }
@@ -224,6 +227,7 @@ impl PnlInterval {
             PnlInterval::OneMinute => 30,
             PnlInterval::FiveMinutes => 60,
             PnlInterval::OneHour => 120,
+            PnlInterval::OneWeek => 300,
             PnlInterval::OneDay => 300,
         }
     }
@@ -234,6 +238,7 @@ impl PnlInterval {
             PnlInterval::OneMinute => "1 minute",
             PnlInterval::FiveMinutes => "5 minutes",
             PnlInterval::OneHour => "1 hour",
+            PnlInterval::OneWeek => "1 week",
             PnlInterval::OneDay => "1 day",
         }
     }
@@ -245,6 +250,7 @@ impl fmt::Display for PnlInterval {
             PnlInterval::OneMinute => write!(f, "1m"),
             PnlInterval::FiveMinutes => write!(f, "5m"),
             PnlInterval::OneHour => write!(f, "1h"),
+            PnlInterval::OneWeek => write!(f, "1w"),
             PnlInterval::OneDay => write!(f, "1d"),
         }
     }
@@ -253,8 +259,17 @@ impl fmt::Display for PnlInterval {
 /// Query parameters for PnL chart endpoints
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct PnlChartQueryParams {
-    /// Time interval: 1m, 5m, 1h, 1d
+    /// Time interval: 1m, 5m, 1h, 1d, 1w
     pub interval: String,
+    /// Range start timestamp (unix seconds, unix milliseconds, or RFC3339)
+    pub start: String,
+    /// Range end timestamp (unix seconds, unix milliseconds, or RFC3339)
+    pub end: String,
+}
+
+/// Query parameters for realized PnL endpoints
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct PnlRealizedQueryParams {
     /// Range start timestamp (unix seconds, unix milliseconds, or RFC3339)
     pub start: String,
     /// Range end timestamp (unix seconds, unix milliseconds, or RFC3339)

@@ -54,6 +54,38 @@ pub struct AccountCurrentTotalsRow {
     pub position_count: i64,
 }
 
+#[derive(Debug, sqlx::FromRow)]
+pub struct PositionTotalsByPositionRow {
+    pub term_id: String,
+    pub curve_id: String,
+    pub shares_total: BigDecimal,
+    pub assets_in_total: BigDecimal,
+    pub assets_out_total: BigDecimal,
+}
+
+#[derive(Debug, sqlx::FromRow)]
+pub struct PositionChangeEventRow {
+    pub created_at: DateTime<Utc>,
+    pub term_id: String,
+    pub curve_id: String,
+    pub shares_delta: BigDecimal,
+    pub assets_in: BigDecimal,
+    pub assets_out: BigDecimal,
+    pub log_index: i64,
+}
+
+#[derive(Debug, Clone)]
+pub struct RealizedPnlComputed {
+    pub timestamp: DateTime<Utc>,
+    pub term_id: String,
+    pub curve_id: String,
+    pub shares_redeemed: BigDecimal,
+    pub assets_out: BigDecimal,
+    pub cost_basis: BigDecimal,
+    pub realized_pnl: BigDecimal,
+    pub realized_pnl_pct: BigDecimal,
+}
+
 /// Check if a position exists for account/term/curve
 pub async fn position_exists(
     pool: &Pool<Postgres>,
@@ -356,4 +388,139 @@ pub async fn fetch_account_current_totals(
     }
 
     Ok(Some(row))
+}
+
+/// Fetch cumulative totals for all positions before the range start
+pub async fn fetch_account_position_totals_before(
+    pool: &Pool<Postgres>,
+    account_id: &str,
+    range_start: DateTime<Utc>,
+) -> Result<Vec<PositionTotalsByPositionRow>, ApiError> {
+    let rows = sqlx::query_as::<_, PositionTotalsByPositionRow>(
+        r#"
+        SELECT
+            term_id,
+            curve_id::text AS curve_id,
+            COALESCE(SUM(shares_delta), 0) AS shares_total,
+            COALESCE(SUM(assets_in), 0) AS assets_in_total,
+            COALESCE(SUM(assets_out), 0) AS assets_out_total
+        FROM position_change
+        WHERE account_id = $1
+          AND created_at < $2
+        GROUP BY term_id, curve_id
+        "#,
+    )
+    .bind(account_id)
+    .bind(range_start)
+    .fetch_all(pool)
+    .await?;
+
+    Ok(rows)
+}
+
+/// Fetch position change events for an account within the range
+pub async fn fetch_account_position_changes(
+    pool: &Pool<Postgres>,
+    account_id: &str,
+    range_start: DateTime<Utc>,
+    range_end: DateTime<Utc>,
+) -> Result<Vec<PositionChangeEventRow>, ApiError> {
+    let rows = sqlx::query_as::<_, PositionChangeEventRow>(
+        r#"
+        SELECT
+            created_at,
+            term_id,
+            curve_id::text AS curve_id,
+            shares_delta,
+            assets_in,
+            assets_out,
+            log_index
+        FROM position_change
+        WHERE account_id = $1
+          AND created_at >= $2
+          AND created_at < $3
+        ORDER BY created_at ASC, log_index ASC
+        "#,
+    )
+    .bind(account_id)
+    .bind(range_start)
+    .bind(range_end)
+    .fetch_all(pool)
+    .await?;
+
+    Ok(rows)
+}
+
+/// Build realized PnL entries for an account over a time range
+pub async fn build_account_realized_pnl(
+    pool: &Pool<Postgres>,
+    account_id: &str,
+    range_start: DateTime<Utc>,
+    range_end: DateTime<Utc>,
+) -> Result<Vec<RealizedPnlComputed>, ApiError> {
+    let totals_before = fetch_account_position_totals_before(pool, account_id, range_start).await?;
+    let events = fetch_account_position_changes(pool, account_id, range_start, range_end).await?;
+
+    let mut state: HashMap<(String, String), (BigDecimal, BigDecimal, BigDecimal)> = HashMap::new();
+    for row in totals_before {
+        state.insert(
+            (row.term_id, row.curve_id),
+            (row.shares_total, row.assets_in_total, row.assets_out_total),
+        );
+    }
+
+    let zero = BigDecimal::from(0);
+    let one = BigDecimal::from(1);
+    let hundred = BigDecimal::from(100);
+
+    let mut realized = Vec::new();
+
+    for event in events {
+        let key = (event.term_id.clone(), event.curve_id.clone());
+        let entry = state.entry(key).or_insert_with(|| {
+            (
+                BigDecimal::from(0),
+                BigDecimal::from(0),
+                BigDecimal::from(0),
+            )
+        });
+
+        let shares_before = entry.0.clone();
+        let assets_in_before = entry.1.clone();
+        let assets_out_before = entry.2.clone();
+        let net_invested_before = assets_in_before.clone() - assets_out_before.clone();
+
+        if event.shares_delta < zero {
+            let shares_redeemed = -event.shares_delta.clone();
+            let cost_basis = if shares_before > zero {
+                (net_invested_before.clone() * shares_redeemed.clone()) / shares_before.clone()
+            } else {
+                zero.clone()
+            };
+            let realized_pnl = event.assets_out.clone() - cost_basis.clone();
+            let denom = if cost_basis > zero {
+                cost_basis.clone()
+            } else {
+                one.clone()
+            };
+            let realized_pnl_pct = (realized_pnl.clone() * hundred.clone()) / denom;
+
+            realized.push(RealizedPnlComputed {
+                timestamp: event.created_at,
+                term_id: event.term_id.clone(),
+                curve_id: event.curve_id.clone(),
+                shares_redeemed,
+                assets_out: event.assets_out.clone(),
+                cost_basis,
+                realized_pnl,
+                realized_pnl_pct,
+            });
+        }
+
+        entry.0 = shares_before + event.shares_delta.clone();
+        entry.1 = assets_in_before + event.assets_in.clone();
+        entry.2 = assets_out_before + event.assets_out.clone();
+    }
+
+    Ok(realized)
 }

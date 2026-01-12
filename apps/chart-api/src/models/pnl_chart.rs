@@ -14,6 +14,7 @@ pub struct PnlChartPoint {
     pub net_invested: String,
     pub total_pnl: String,
     pub pnl_pct: String,
+    pub unrealized_pnl: String,
 }
 
 /// Schema-compatible PnL data point for OpenAPI docs
@@ -28,6 +29,7 @@ pub struct PnlChartPointSchema {
     pub net_invested: String,
     pub total_pnl: String,
     pub pnl_pct: String,
+    pub unrealized_pnl: String,
 }
 
 /// Response for position PnL chart
@@ -52,6 +54,7 @@ pub struct AccountPnlChartPoint {
     pub net_invested: String,
     pub total_pnl: String,
     pub pnl_pct: String,
+    pub unrealized_pnl: String,
 }
 
 /// Schema-compatible account-level PnL data point
@@ -64,6 +67,7 @@ pub struct AccountPnlChartPointSchema {
     pub net_invested: String,
     pub total_pnl: String,
     pub pnl_pct: String,
+    pub unrealized_pnl: String,
 }
 
 /// Response for account-level PnL chart
@@ -87,4 +91,40 @@ pub struct AccountPnlSnapshot {
     pub net_invested: String,
     pub total_pnl: String,
     pub pnl_pct: String,
+    pub unrealized_pnl: String,
+}
+
+/// Realized PnL entry per redemption event
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RealizedPnlEntry {
+    pub timestamp: DateTime<Utc>,
+    pub term_id: String,
+    pub curve_id: String,
+    pub shares_redeemed: String,
+    pub assets_out: String,
+    pub cost_basis: String,
+    pub realized_pnl: String,
+    pub realized_pnl_pct: String,
+}
+
+/// Schema-compatible realized PnL entry
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct RealizedPnlEntrySchema {
+    pub timestamp: String,
+    pub term_id: String,
+    pub curve_id: String,
+    pub shares_redeemed: String,
+    pub assets_out: String,
+    pub cost_basis: String,
+    pub realized_pnl: String,
+    pub realized_pnl_pct: String,
+}
+
+/// Response for realized PnL breakdown
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct RealizedPnlResponse {
+    pub account_id: String,
+    pub count: usize,
+    #[schema(value_type = Vec<RealizedPnlEntrySchema>)]
+    pub data: Vec<RealizedPnlEntry>,
 }
