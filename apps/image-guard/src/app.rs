@@ -43,6 +43,7 @@ impl App {
     /// specified headers and a max age of 1 hour.
     fn cors(&self) -> CorsLayer {
         CorsLayer::new()
+            .allow_origin(tower_http::cors::Any)
             .allow_methods([Method::GET, Method::POST])
             .allow_headers([CONTENT_TYPE, AUTHORIZATION])
             .max_age(Duration::from_secs(3600))
