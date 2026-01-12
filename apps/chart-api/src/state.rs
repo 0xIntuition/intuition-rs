@@ -12,8 +12,6 @@ use tracing::{error, info, warn};
 pub struct AppState {
     pub pg_pool: Pool<Postgres>,
     pub redis: ConnectionManager,
-    #[allow(dead_code)] // Stored for future schema-qualified queries
-    pub schema: String,
 }
 
 /// Maximum number of connection retry attempts
@@ -30,11 +28,7 @@ impl AppState {
         // Connect to Redis with retry logic
         let redis = Self::connect_redis_with_retry(&env.redis_url).await?;
 
-        Ok(Self {
-            pg_pool,
-            redis,
-            schema: env.backend_schema.clone(),
-        })
+        Ok(Self { pg_pool, redis })
     }
 
     /// Connect to PostgreSQL with exponential backoff retry
@@ -101,12 +95,16 @@ impl AppState {
         }
     }
 
-    /// Attempt to connect to Redis once
+    /// Attempt to connect to Redis once with configured timeouts
     async fn try_connect_redis(
         redis_url: &str,
     ) -> Result<ConnectionManager, Box<dyn std::error::Error>> {
         let redis_client = RedisClient::open(redis_url)?;
-        let manager = ConnectionManager::new(redis_client).await?;
+        // Configure connection with timeouts
+        let config = redis::aio::ConnectionManagerConfig::new()
+            .set_connection_timeout(Duration::from_secs(10))
+            .set_response_timeout(Duration::from_secs(5));
+        let manager = ConnectionManager::new_with_config(redis_client, config).await?;
         Ok(manager)
     }
 
@@ -118,9 +116,9 @@ impl AppState {
 
     /// Check if Redis connection is healthy
     pub async fn check_redis_health(&self) -> Result<(), redis::RedisError> {
-        use redis::AsyncCommands;
+        use redis::cmd;
         let mut conn = self.redis.clone();
-        let _: String = conn.get("__health_check__").await.unwrap_or_default();
+        cmd("PING").query_async::<String>(&mut conn).await?;
         Ok(())
     }
 }

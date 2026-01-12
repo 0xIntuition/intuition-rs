@@ -30,9 +30,11 @@ impl App {
     ///
     /// If CORS_ALLOWED_ORIGINS is:
     /// - "*": Allow all origins (not recommended for production)
-    /// - Empty/not set: Allow all origins with permissive settings (default for backwards compatibility)
+    /// - Empty/not set: Restrictive mode (no cross-origin requests allowed)
     /// - Comma-separated list: Allow only those specific origins
     fn cors(&self) -> CorsLayer {
+        use tracing::warn;
+
         let cors = CorsLayer::new()
             .allow_methods([Method::GET, Method::OPTIONS])
             .allow_headers([CONTENT_TYPE, AUTHORIZATION])
@@ -41,9 +43,16 @@ impl App {
         // Parse CORS origins from environment
         let origins = &self.env.cors_allowed_origins;
 
-        if origins.is_empty() || origins == "*" {
-            // Allow all origins (backwards compatible default, or explicit wildcard)
+        if origins == "*" {
+            // Explicit wildcard - allow all origins (not recommended for production)
+            warn!(
+                "CORS configured to allow all origins (*). This is not recommended for production."
+            );
             cors.allow_origin(Any)
+        } else if origins.is_empty() {
+            // Empty/not set - restrictive mode (default secure behavior)
+            info!("CORS not configured. Running in restrictive mode (no cross-origin requests).");
+            cors
         } else {
             // Parse comma-separated list of allowed origins
             let origin_list: Vec<_> = origins
@@ -54,9 +63,14 @@ impl App {
                 .collect();
 
             if origin_list.is_empty() {
-                // If parsing failed, fall back to restrictive mode (no origins allowed)
+                // If parsing failed, fall back to restrictive mode
+                warn!("Failed to parse CORS_ALLOWED_ORIGINS. Running in restrictive mode.");
                 cors
             } else {
+                info!(
+                    "CORS configured with {} allowed origin(s)",
+                    origin_list.len()
+                );
                 cors.allow_origin(origin_list)
             }
         }

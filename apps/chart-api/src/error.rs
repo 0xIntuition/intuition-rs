@@ -1,14 +1,16 @@
 use axum::{
+    Json,
     http::StatusCode,
-    response::{IntoResponse, Json, Response},
+    response::{IntoResponse, Response},
 };
 use serde::Serialize;
 use thiserror::Error;
 
-/// JSON error response for Hasura compatibility
+/// Error response body for JSON responses
 #[derive(Serialize)]
-struct ErrorResponse {
-    error: String,
+pub struct ErrorResponse {
+    pub error: String,
+    pub code: String,
 }
 
 /// Error types for the Chart API
@@ -20,10 +22,16 @@ pub enum ApiError {
     NoDataAvailable,
     #[error("Invalid interval: {0}. Valid values are: 1h, 1d, 1w, 1m")]
     InvalidInterval(String),
-    #[error("Invalid format: {0}. Valid values are: json, svg")]
+    #[error("Invalid format: {0}. Valid values are: json, svg, svg_json")]
     InvalidFormat(String),
-    #[error("Invalid count: {0}. Must be between 1 and {1}")]
-    InvalidCount(u32, u32),
+    #[error("Invalid range: {0} buckets. Must be between 1 and {1}")]
+    InvalidRange(u32, u32),
+    #[error("Invalid start timestamp: {0}. Expected unix seconds, unix milliseconds, or RFC3339")]
+    InvalidStartTimestamp(String),
+    #[error("Invalid end timestamp: {0}. Expected unix seconds, unix milliseconds, or RFC3339")]
+    InvalidEndTimestamp(String),
+    #[error("Invalid time range: start must be before end")]
+    InvalidTimeRange,
     #[error("Invalid term_id: {0}. Must be a hex string starting with 0x")]
     InvalidTermId(String),
     #[error("Invalid curve_id: {0}. Must be a valid numeric string")]
@@ -48,6 +56,33 @@ pub enum ApiError {
     Internal(String),
 }
 
+impl ApiError {
+    /// Get the error code for this error type
+    fn code(&self) -> &'static str {
+        match self {
+            ApiError::InvalidCombination => "INVALID_COMBINATION",
+            ApiError::NoDataAvailable => "NO_DATA",
+            ApiError::InvalidInterval(_) => "INVALID_INTERVAL",
+            ApiError::InvalidFormat(_) => "INVALID_FORMAT",
+            ApiError::InvalidRange(_, _) => "INVALID_RANGE",
+            ApiError::InvalidStartTimestamp(_) => "INVALID_START_TIMESTAMP",
+            ApiError::InvalidEndTimestamp(_) => "INVALID_END_TIMESTAMP",
+            ApiError::InvalidTimeRange => "INVALID_TIME_RANGE",
+            ApiError::InvalidTermId(_) => "INVALID_TERM_ID",
+            ApiError::InvalidCurveId(_) => "INVALID_CURVE_ID",
+            ApiError::InvalidGraphType(_) => "INVALID_GRAPH_TYPE",
+            ApiError::MissingCurveId => "MISSING_CURVE_ID",
+            ApiError::Env(_) => "ENV_ERROR",
+            ApiError::IO(_) => "IO_ERROR",
+            ApiError::Sqlx(_) => "DATABASE_ERROR",
+            ApiError::Redis(_) => "CACHE_ERROR",
+            ApiError::Serde(_) => "SERIALIZATION_ERROR",
+            ApiError::Model(_) => "MODEL_ERROR",
+            ApiError::Internal(_) => "INTERNAL_ERROR",
+        }
+    }
+}
+
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
         let status = match &self {
@@ -55,16 +90,22 @@ impl IntoResponse for ApiError {
             ApiError::NoDataAvailable => StatusCode::NOT_FOUND,
             ApiError::InvalidInterval(_) => StatusCode::BAD_REQUEST,
             ApiError::InvalidFormat(_) => StatusCode::BAD_REQUEST,
-            ApiError::InvalidCount(_, _) => StatusCode::BAD_REQUEST,
+            ApiError::InvalidRange(_, _) => StatusCode::BAD_REQUEST,
+            ApiError::InvalidStartTimestamp(_) => StatusCode::BAD_REQUEST,
+            ApiError::InvalidEndTimestamp(_) => StatusCode::BAD_REQUEST,
+            ApiError::InvalidTimeRange => StatusCode::BAD_REQUEST,
             ApiError::InvalidTermId(_) => StatusCode::BAD_REQUEST,
             ApiError::InvalidCurveId(_) => StatusCode::BAD_REQUEST,
             ApiError::InvalidGraphType(_) => StatusCode::BAD_REQUEST,
             ApiError::MissingCurveId => StatusCode::BAD_REQUEST,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         };
-        let body = Json(ErrorResponse {
+
+        let body = ErrorResponse {
             error: self.to_string(),
-        });
-        (status, body).into_response()
+            code: self.code().to_string(),
+        };
+
+        (status, Json(body)).into_response()
     }
 }

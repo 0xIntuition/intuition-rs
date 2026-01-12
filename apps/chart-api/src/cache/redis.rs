@@ -1,5 +1,6 @@
 use crate::error::ApiError;
 use crate::types::{GraphType, Interval, OutputFormat};
+use chrono::{DateTime, Utc};
 use redis::AsyncCommands;
 use redis::aio::ConnectionManager;
 use tracing::debug;
@@ -17,20 +18,27 @@ impl ChartCache {
 
     /// Generate a cache key for chart data
     ///
-    /// Format: chart:{graph_type}:{term_id}:{curve_id}:{interval}:{count}:{format}
+    /// Format: chart:{graph_type}:{term_id}:{curve_id}:{interval}:{start}:{end}:{format}
     /// For term-level graphs without curve_id, use "none" as the curve_id value.
     pub fn cache_key(
         graph_type: GraphType,
         term_id: &str,
         curve_id: Option<&str>,
         interval: Interval,
-        count: u32,
+        range_start: DateTime<Utc>,
+        range_end: DateTime<Utc>,
         format: OutputFormat,
     ) -> String {
         let curve_id_str = curve_id.unwrap_or("none");
         format!(
-            "chart:{}:{}:{}:{}:{}:{}",
-            graph_type, term_id, curve_id_str, interval, count, format
+            "chart:{}:{}:{}:{}:{}:{}:{}",
+            graph_type,
+            term_id,
+            curve_id_str,
+            interval,
+            range_start.timestamp(),
+            range_end.timestamp(),
+            format
         )
     }
 

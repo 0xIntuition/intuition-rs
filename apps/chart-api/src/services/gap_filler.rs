@@ -1,8 +1,44 @@
 use crate::models::{ChartDataPoint, GenericDataRow};
 use crate::types::Interval;
-use chrono::{DateTime, Duration, Utc};
+use chrono::{DateTime, Duration, Months, Utc};
 use models::types::U256Wrapper;
 use std::collections::HashMap;
+
+/// Align a range to interval bucket boundaries (end is exclusive)
+pub fn align_range(
+    start: DateTime<Utc>,
+    end: DateTime<Utc>,
+    interval: Interval,
+) -> (DateTime<Utc>, DateTime<Utc>) {
+    let range_start = ceil_to_bucket(start, interval);
+    let range_end = ceil_to_bucket(end, interval);
+    (range_start, range_end)
+}
+
+/// Build expected bucket timestamps for the aligned range (end is exclusive)
+pub fn build_expected_buckets(
+    range_start: DateTime<Utc>,
+    range_end: DateTime<Utc>,
+    interval: Interval,
+) -> Vec<DateTime<Utc>> {
+    if range_start >= range_end {
+        return Vec::new();
+    }
+
+    let mut buckets = Vec::new();
+    let mut current = range_start;
+
+    while current < range_end {
+        buckets.push(current);
+        let next = next_bucket(current, interval);
+        if next <= current {
+            break;
+        }
+        current = next;
+    }
+
+    buckets
+}
 
 /// Fill gaps in the data to provide continuous time series
 ///
@@ -11,17 +47,12 @@ use std::collections::HashMap;
 pub fn fill_gaps(
     data_points: Vec<GenericDataRow>,
     interval: Interval,
-    count: u32,
+    expected_buckets: &[DateTime<Utc>],
     fallback_value: Option<U256Wrapper>,
 ) -> Vec<ChartDataPoint> {
-    let now = Utc::now();
-    let bucket_duration = get_bucket_duration(interval);
-
-    // Calculate start time based on count and interval
-    let start_time = calculate_start_time(now, interval, count);
-
-    // Generate expected bucket timestamps
-    let expected_buckets = generate_expected_buckets(start_time, now, bucket_duration);
+    if expected_buckets.is_empty() {
+        return Vec::new();
+    }
 
     // If no data and no fallback, return empty
     if data_points.is_empty() && fallback_value.is_none() {
@@ -47,7 +78,7 @@ pub fn fill_gaps(
     let mut last_known_value = initial_value;
 
     for bucket in expected_buckets {
-        let truncated = truncate_to_bucket(bucket, interval);
+        let truncated = truncate_to_bucket(*bucket, interval);
         let value = data_map
             .get(&truncated)
             .cloned()
@@ -64,37 +95,16 @@ pub fn fill_gaps(
     result
 }
 
-/// Get the duration for each bucket based on interval
-fn get_bucket_duration(interval: Interval) -> Duration {
+/// Get the next bucket timestamp based on interval
+fn next_bucket(current: DateTime<Utc>, interval: Interval) -> DateTime<Utc> {
     match interval {
-        Interval::Hourly => Duration::hours(1),
-        Interval::Daily => Duration::days(1),
-        Interval::Weekly => Duration::weeks(1),
-        Interval::Monthly => Duration::days(30), // Approximate
+        Interval::Hourly => current + Duration::hours(1),
+        Interval::Daily => current + Duration::days(1),
+        Interval::Weekly => current + Duration::weeks(1),
+        Interval::Monthly => current
+            .checked_add_months(Months::new(1))
+            .unwrap_or_else(|| current + Duration::days(31)),
     }
-}
-
-/// Calculate the start time based on now, interval, and count
-fn calculate_start_time(now: DateTime<Utc>, interval: Interval, count: u32) -> DateTime<Utc> {
-    let duration = get_bucket_duration(interval);
-    now - duration * count as i32
-}
-
-/// Generate expected bucket timestamps from start to end
-fn generate_expected_buckets(
-    start: DateTime<Utc>,
-    end: DateTime<Utc>,
-    bucket_duration: Duration,
-) -> Vec<DateTime<Utc>> {
-    let mut buckets = Vec::new();
-    let mut current = start;
-
-    while current <= end {
-        buckets.push(current);
-        current += bucket_duration;
-    }
-
-    buckets
 }
 
 /// Truncate a timestamp to its bucket boundary
@@ -134,6 +144,16 @@ fn truncate_to_bucket(timestamp: DateTime<Utc>, interval: Interval) -> DateTime<
                 .and_then(|t| t.with_nanosecond(0))
                 .unwrap_or(timestamp)
         }
+    }
+}
+
+/// Ceil a timestamp to its bucket boundary
+fn ceil_to_bucket(timestamp: DateTime<Utc>, interval: Interval) -> DateTime<Utc> {
+    let truncated = truncate_to_bucket(timestamp, interval);
+    if truncated == timestamp {
+        truncated
+    } else {
+        next_bucket(truncated, interval)
     }
 }
 
@@ -183,7 +203,11 @@ mod tests {
             },
         ];
 
-        let result = fill_gaps(data, Interval::Hourly, 4, None);
+        let range_start = truncate_to_bucket(now - bucket_duration * 3, Interval::Hourly);
+        let range_end = range_start + bucket_duration * 4;
+        let expected_buckets = build_expected_buckets(range_start, range_end, Interval::Hourly);
+
+        let result = fill_gaps(data, Interval::Hourly, &expected_buckets, None);
 
         // Should have 4 data points with gaps filled
         assert!(!result.is_empty());

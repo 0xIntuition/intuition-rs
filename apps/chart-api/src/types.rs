@@ -8,7 +8,6 @@ pub struct Env {
     pub chart_api_port: u16,
     pub database_url: String,
     pub redis_url: String,
-    pub backend_schema: String,
     /// Comma-separated list of allowed CORS origins. If not set, defaults to restrictive mode (no wildcard).
     /// Use "*" to allow all origins (not recommended for production).
     #[serde(default = "default_cors_origins")]
@@ -107,27 +106,6 @@ impl Interval {
         }
     }
 
-    /// Get the default number of data points for this interval
-    pub fn default_count(&self) -> u32 {
-        match self {
-            Interval::Hourly => 24,  // 24 hours
-            Interval::Daily => 30,   // 30 days
-            Interval::Weekly => 12,  // 12 weeks
-            Interval::Monthly => 12, // 12 months
-        }
-    }
-
-    /// Get the bucket duration in seconds
-    #[allow(dead_code)] // Kept for potential future use in bucket calculations
-    pub fn bucket_seconds(&self) -> i64 {
-        match self {
-            Interval::Hourly => 3600,     // 1 hour
-            Interval::Daily => 86400,     // 1 day
-            Interval::Weekly => 604800,   // 1 week
-            Interval::Monthly => 2592000, // ~30 days (approximate)
-        }
-    }
-
     /// Get the cache TTL in seconds for this interval
     pub fn cache_ttl_seconds(&self) -> u64 {
         match self {
@@ -135,16 +113,6 @@ impl Interval {
             Interval::Daily => 60,    // 1 minute
             Interval::Weekly => 120,  // 2 minutes
             Interval::Monthly => 300, // 5 minutes
-        }
-    }
-
-    /// Get the SQL interval string for lookback calculation
-    pub fn sql_interval(&self) -> &'static str {
-        match self {
-            Interval::Hourly => "hour",
-            Interval::Daily => "day",
-            Interval::Weekly => "week",
-            Interval::Monthly => "month",
         }
     }
 
@@ -209,10 +177,12 @@ pub struct ChartQueryParams {
     pub interval: String,
     /// Output format: json or svg
     pub format: String,
+    /// Range start timestamp (unix seconds, unix milliseconds, or RFC3339)
+    pub start: String,
+    /// Range end timestamp (unix seconds, unix milliseconds, or RFC3339)
+    pub end: String,
     /// Graph type: sharePriceChange (default), totalMarketCap
     pub graph_type: Option<String>,
-    /// Optional: number of data points (overrides default)
-    pub count: Option<u32>,
     /// Optional: SVG width in pixels (default: 800)
     pub width: Option<u32>,
     /// Optional: SVG height in pixels (default: 400)
@@ -234,12 +204,19 @@ pub struct SvgConfig {
     pub padding: u32,
 }
 
+/// SVG dimension limits to prevent memory exhaustion
+const SVG_MIN_DIMENSION: u32 = 100;
+const SVG_MAX_DIMENSION: u32 = 4000;
+const SVG_DEFAULT_WIDTH: u32 = 800;
+const SVG_DEFAULT_HEIGHT: u32 = 400;
+const SVG_DEFAULT_COLOR: &str = "#3B82F6";
+
 impl Default for SvgConfig {
     fn default() -> Self {
         Self {
-            width: 800,
-            height: 400,
-            line_color: "#3B82F6".to_string(),
+            width: SVG_DEFAULT_WIDTH,
+            height: SVG_DEFAULT_HEIGHT,
+            line_color: SVG_DEFAULT_COLOR.to_string(),
             background_color: None,
             line_width: 2.0,
             padding: 40,
@@ -248,15 +225,89 @@ impl Default for SvgConfig {
 }
 
 impl SvgConfig {
+    /// Validate and sanitize a color string.
+    /// Only allows hex colors (#RGB, #RRGGBB, #RRGGBBAA) or basic CSS color names.
+    fn sanitize_color(color: &str) -> Option<String> {
+        let color = color.trim();
+
+        // Allow hex colors: #RGB, #RRGGBB, #RRGGBBAA
+        if color.starts_with('#') {
+            let hex_part = &color[1..];
+            let valid_len = matches!(hex_part.len(), 3 | 6 | 8);
+            let valid_chars = hex_part.chars().all(|c| c.is_ascii_hexdigit());
+            if valid_len && valid_chars {
+                return Some(color.to_string());
+            }
+            return None;
+        }
+
+        // Allow basic CSS color names (lowercase, no spaces or special chars)
+        const ALLOWED_COLORS: &[&str] = &[
+            "black",
+            "white",
+            "red",
+            "green",
+            "blue",
+            "yellow",
+            "orange",
+            "purple",
+            "pink",
+            "gray",
+            "grey",
+            "cyan",
+            "magenta",
+            "brown",
+            "navy",
+            "teal",
+            "maroon",
+            "olive",
+            "lime",
+            "aqua",
+            "fuchsia",
+            "silver",
+            "transparent",
+        ];
+
+        let lower = color.to_lowercase();
+        if ALLOWED_COLORS.contains(&lower.as_str()) {
+            return Some(lower);
+        }
+
+        None
+    }
+
+    /// Clamp a dimension value to safe bounds
+    fn clamp_dimension(value: u32) -> u32 {
+        value.clamp(SVG_MIN_DIMENSION, SVG_MAX_DIMENSION)
+    }
+
     pub fn from_query_params(params: &ChartQueryParams) -> Self {
+        let width = params
+            .width
+            .map(Self::clamp_dimension)
+            .unwrap_or(SVG_DEFAULT_WIDTH);
+
+        let height = params
+            .height
+            .map(Self::clamp_dimension)
+            .unwrap_or(SVG_DEFAULT_HEIGHT);
+
+        let line_color = params
+            .line_color
+            .as_ref()
+            .and_then(|c| Self::sanitize_color(c))
+            .unwrap_or_else(|| SVG_DEFAULT_COLOR.to_string());
+
+        let background_color = params
+            .background_color
+            .as_ref()
+            .and_then(|c| Self::sanitize_color(c));
+
         Self {
-            width: params.width.unwrap_or(800),
-            height: params.height.unwrap_or(400),
-            line_color: params
-                .line_color
-                .clone()
-                .unwrap_or_else(|| "#3B82F6".to_string()),
-            background_color: params.background_color.clone(),
+            width,
+            height,
+            line_color,
+            background_color,
             line_width: 2.0,
             padding: 40,
         }
