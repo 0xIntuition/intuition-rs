@@ -135,6 +135,19 @@ services:
     ports:
       - 3008:3008
 
+  chart-api:
+    container_name: chart-api
+    image: ghcr.io/0xintuition/apps:latest
+    command: ./chart-api
+    environment:
+      CHART_API_PORT: '3010'
+      DATABASE_URL: 'postgres://postgres:postgres@database:5435/storage'
+      REDIS_URL: 'redis://redis:6379'
+      RUST_LOG: 'info'
+    restart: always
+    ports:
+      - 3010:3010
+
   histocrawler:
     container_name: histocrawler
     image: ghcr.io/0xintuition/apps:latest
