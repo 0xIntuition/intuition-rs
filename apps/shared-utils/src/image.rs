@@ -54,12 +54,12 @@ impl Image {
             return Err(LibError::InvalidDataUrl);
         }
 
-        // Parse the metadata (e.g., "image/jpeg;base64")
+        // Parse the metadata (e.g., "image/jpeg;base64") and normalize to lowercase
         let mime_type = metadata
             .split(';')
             .next()
             .ok_or(LibError::InvalidDataUrl)?
-            .to_string();
+            .to_lowercase();
 
         // Validate mime type is not empty
         if mime_type.is_empty() {
@@ -71,7 +71,7 @@ impl Image {
             .split('/')
             .nth(1)
             .ok_or(LibError::InvalidDataUrl)?
-            .to_string();
+            .to_string(); // Already lowercase from mime_type
 
         // Validate extension is not empty
         if extension.is_empty() {
@@ -79,17 +79,40 @@ impl Image {
         }
 
         // Normalize composite extensions (e.g., "svg+xml" -> "svg")
+        // This must be done before the whitelist check
         let extension = if let Some(base_ext) = extension.split('+').next() {
             base_ext.to_string()
         } else {
             extension
         };
 
+        // Whitelist allowed image extensions
+        const ALLOWED_EXTENSIONS: &[&str] = &["png", "jpg", "jpeg", "gif", "webp", "bmp", "tiff", "svg"];
+        if !ALLOWED_EXTENSIONS.contains(&extension.as_str()) {
+            return Err(LibError::InvalidInput(format!(
+                "Unsupported image extension: {}. Allowed: {:?}",
+                extension, ALLOWED_EXTENSIONS
+            )));
+        }
+
         // Decode base64 data (strip whitespace that some encoders add)
         let base64_clean: String = base64_data.chars().filter(|c| !c.is_whitespace()).collect();
         let data = BASE64
             .decode(&base64_clean)
             .map_err(|e: base64::DecodeError| LibError::Base64Decode(e.to_string()))?;
+
+        // Validate decoded data is not empty and within size limits (50MB max)
+        const MAX_IMAGE_SIZE: usize = 50 * 1024 * 1024;
+        if data.is_empty() {
+            return Err(LibError::InvalidInput("Decoded image data is empty".into()));
+        }
+        if data.len() > MAX_IMAGE_SIZE {
+            return Err(LibError::InvalidInput(format!(
+                "Image size {} bytes exceeds maximum allowed size of {} bytes",
+                data.len(),
+                MAX_IMAGE_SIZE
+            )));
+        }
 
         Ok(DataUrlParsed {
             mime_type,
@@ -204,5 +227,115 @@ impl Image {
     /// Creates a new image
     pub fn new(url: String) -> Self {
         Self { url }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_is_data_url() {
+        let data_url = Image::new("data:image/png;base64,iVBORw0KGgo=".to_string());
+        assert!(data_url.is_data_url());
+
+        let http_url = Image::new("https://example.com/image.png".to_string());
+        assert!(!http_url.is_data_url());
+    }
+
+    #[test]
+    fn test_parse_data_url_valid_png() {
+        // Minimal valid PNG (1x1 transparent pixel)
+        let png_b64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+        let image = Image::new(format!("data:image/png;base64,{}", png_b64));
+
+        let result = image.parse_data_url();
+        assert!(result.is_ok());
+
+        let parsed = result.unwrap();
+        assert_eq!(parsed.mime_type, "image/png");
+        assert_eq!(parsed.extension, "png");
+        assert!(!parsed.data.is_empty());
+    }
+
+    #[test]
+    fn test_parse_data_url_valid_jpeg() {
+        // Minimal JPEG header (not a complete image, but enough for parsing)
+        let jpeg_b64 = "/9j/4AAQSkZJRg==";
+        let image = Image::new(format!("data:image/jpeg;base64,{}", jpeg_b64));
+
+        let result = image.parse_data_url();
+        assert!(result.is_ok());
+
+        let parsed = result.unwrap();
+        assert_eq!(parsed.mime_type, "image/jpeg");
+        assert_eq!(parsed.extension, "jpeg");
+    }
+
+    #[test]
+    fn test_parse_data_url_svg_extension_normalized() {
+        let svg_b64 = "PHN2Zz48L3N2Zz4="; // <svg></svg>
+        let image = Image::new(format!("data:image/svg+xml;base64,{}", svg_b64));
+
+        let result = image.parse_data_url();
+        assert!(result.is_ok());
+
+        let parsed = result.unwrap();
+        assert_eq!(parsed.mime_type, "image/svg+xml");
+        assert_eq!(parsed.extension, "svg"); // Should be normalized from svg+xml
+    }
+
+    #[test]
+    fn test_parse_data_url_rejects_non_base64() {
+        let image = Image::new("data:image/png,raw-url-encoded-data".to_string());
+        let result = image.parse_data_url();
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_data_url_rejects_empty_mime_type() {
+        let image = Image::new("data:;base64,iVBORw0KGgo=".to_string());
+        let result = image.parse_data_url();
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_data_url_rejects_invalid_mime_type() {
+        let image = Image::new("data:invalid;base64,iVBORw0KGgo=".to_string());
+        let result = image.parse_data_url();
+        assert!(result.is_err()); // No "/" in mime type
+    }
+
+    #[test]
+    fn test_parse_data_url_handles_whitespace() {
+        // Base64 with whitespace (some encoders add newlines)
+        let png_b64_with_ws = "iVBORw0K\nGgoAAAAN\nSUhEUgAA";
+        let image = Image::new(format!("data:image/png;base64,{}", png_b64_with_ws));
+
+        let result = image.parse_data_url();
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_extract_name_and_extension_data_url_deterministic() {
+        let png_b64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+        let image1 = Image::new(format!("data:image/png;base64,{}", png_b64));
+        let image2 = Image::new(format!("data:image/png;base64,{}", png_b64));
+
+        let output1 = image1.extract_name_and_extension().unwrap();
+        let output2 = image2.extract_name_and_extension().unwrap();
+
+        // Same content should produce same UUID name
+        assert_eq!(output1.name, output2.name);
+        assert_eq!(output1.extension, "png");
+    }
+
+    #[test]
+    fn test_extract_name_and_extension_http_url() {
+        let image = Image::new("https://example.com/path/to/image.jpg".to_string());
+        let output = image.extract_name_and_extension().unwrap();
+
+        assert_eq!(output.name, "image");
+        assert_eq!(output.extension, "jpg");
     }
 }

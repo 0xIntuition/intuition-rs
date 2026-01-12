@@ -251,7 +251,7 @@ impl IPFSResolver {
     /// Handles the retry error for IPFS uploads
     async fn handle_upload_retry_error(
         &self,
-        e: reqwest::Error,
+        e: LibError,
         attempts: i32,
     ) -> Result<(), LibError> {
         if attempts < self.retry_attempts.unwrap_or(RETRY_ATTEMPTS) {
@@ -263,22 +263,20 @@ impl IPFSResolver {
             sleep(backoff).await;
             Ok(())
         } else {
-            Err(match e.is_timeout() {
-                true => LibError::TimeoutError("IPFS upload timed out".into()),
-                false => LibError::NetworkError(e.to_string()),
-            })
+            Err(e)
         }
     }
 
-    /// Formats the multipart form to upload a file to IPFS
-    fn multipart_form(&self, multi_part_handler: MultiPartHandler) -> Form {
-        Form::new().part(
+    /// Formats the multipart form to upload a file to IPFS.
+    /// The field name "file" is required by the IPFS HTTP API.
+    fn multipart_form(&self, multi_part_handler: MultiPartHandler) -> Result<Form, LibError> {
+        Ok(Form::new().part(
             "file",
             Part::stream(multi_part_handler.data.clone())
                 .file_name(multi_part_handler.name.clone())
                 .mime_str(&multi_part_handler.content_type)
-                .unwrap(),
-        )
+                .map_err(|e| LibError::InvalidInput(format!("Invalid MIME type: {}", e)))?,
+        ))
     }
 
     /// Formats the multipart form to upload a json to IPFS
@@ -434,7 +432,7 @@ impl IPFSResolver {
 
                     return Ok(result);
                 }
-                Err(e) => match self.handle_upload_retry_error(e, attempts).await {
+                Err(e) => match self.handle_upload_retry_error(e.into(), attempts).await {
                     Ok(()) => continue,
                     Err(e) => break Err(e),
                 },
@@ -453,7 +451,7 @@ impl IPFSResolver {
     async fn upload_to_ipfs_request(
         &self,
         multi_part_handler: MultiPartHandler,
-    ) -> Result<Response, reqwest::Error> {
+    ) -> Result<Response, LibError> {
         let url = self.format_ipfs_upload_url();
         tracing::info!(
             "Uploading to IPFS: url={}, file_name={}, content_type={}, size={}",
@@ -462,12 +460,8 @@ impl IPFSResolver {
             multi_part_handler.content_type,
             multi_part_handler.data.len()
         );
-        let result = self
-            .http_client
-            .post(&url)
-            .multipart(self.multipart_form(multi_part_handler.clone()))
-            .send()
-            .await;
+        let form = self.multipart_form(multi_part_handler.clone())?;
+        let result = self.http_client.post(&url).multipart(form).send().await;
         if let Err(ref e) = result {
             tracing::error!(
                 "IPFS upload request failed: is_connect={}, is_timeout={}, is_request={}, is_body={}, error={:#}",
@@ -478,7 +472,7 @@ impl IPFSResolver {
                 e
             );
         }
-        result
+        result.map_err(|e| LibError::NetworkError(e.to_string()))
     }
 
     /// Sends a request to upload a file to IPFS
