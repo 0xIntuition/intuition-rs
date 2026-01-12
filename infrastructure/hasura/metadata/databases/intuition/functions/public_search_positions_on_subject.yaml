@@ -1,3 +1,4 @@
 function:
   name: search_positions_on_subject
   schema: public
+  comment: Returns positions for accounts where the subject matches ALL specified predicate-object pairs in the search criteria.

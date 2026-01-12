@@ -39,6 +39,7 @@ actions:
         version: 2
     permissions:
       - role: anonymous
+      - role: frontend
     comment: Uploads and pins Organization to IPFS
   - name: pinPerson
     definition:
@@ -81,6 +82,7 @@ actions:
         version: 2
     permissions:
       - role: anonymous
+      - role: frontend
     comment: Uploads and pins Person to IPFS
   - name: pinThing
     definition:
@@ -121,7 +123,136 @@ actions:
         version: 2
     permissions:
       - role: anonymous
+      - role: frontend
     comment: Uploads and pins Thing to IPFS
+  - name: uploadImageFromUrl
+    definition:
+      kind: synchronous
+      handler: http://image-guard:3000/upload_image_from_url
+      headers:
+        - name: Content-Type
+          value: application/json
+      request_transform:
+        body:
+          action: transform
+          template: |-
+            {
+              "url": "{{$body.input.image.url}}"
+            }
+        template_engine: Kriti
+        version: 2
+      response_transform:
+        body:
+          action: transform
+          template: |-
+            {
+              "images": {{$body}}
+            }
+        template_engine: Kriti
+        version: 2
+    permissions:
+      - role: anonymous
+      - role: frontend
+    comment: Uploads and classifies an image from a URL using image-guard
+  - name: uploadJsonToIpfs
+    definition:
+      kind: synchronous
+      handler: http://image-guard:3000/upload_json_to_ipfs
+      headers:
+        - name: Content-Type
+          value: application/json
+      request_transform:
+        body:
+          action: transform
+          template: |-
+            {{$body.input.json}}
+        template_engine: Kriti
+        version: 2
+      response_transform:
+        body:
+          action: transform
+          template: |-
+            {
+              "name": "{{$body.Name}}",
+              "hash": "{{$body.Hash}}",
+              "size": "{{$body.Size}}"
+            }
+        template_engine: Kriti
+        version: 2
+    permissions:
+      - role: anonymous
+      - role: frontend
+    comment: Uploads JSON to IPFS using image-guard
+  - name: uploadImage
+    definition:
+      kind: synchronous
+      handler: http://image-guard:3000/upload_image_from_url
+      forward_client_headers: false
+      request_transform:
+        body:
+          action: transform
+          template: |-
+            {
+              "url": "data:{{$body.input.image.contentType}};base64,{{$body.input.image.data}}"
+            }
+        content_type: application/json
+        template_engine: Kriti
+        version: 2
+      response_transform:
+        body:
+          action: transform
+          template: |-
+            {
+              "images": {{$body}}
+            }
+        template_engine: Kriti
+        version: 2
+    permissions:
+      - role: anonymous
+      - role: frontend
+    comment: "Uploads and classifies an image file using image-guard. Accepts base64-encoded image data. Note: The original /upload endpoint requires multipart/form-data which Hasura actions cannot construct directly. This mutation uses upload_image_from_url with a data URL workaround. For direct file uploads, use the image-guard API directly or create a wrapper endpoint."
+  - name: getChartJson
+    definition:
+      kind: synchronous
+      handler: '{{chartApiUrl}}'
+      request_transform:
+        method: GET
+        url: '{{$base_url}}/api/v1/curve/{{$body.input.input.curve_id}}/term/{{$body.input.input.term_id}}/data'
+        query_params:
+          interval: '{{$body.input.input.interval}}'
+          format: 'json'
+          start: '{{$body.input.input.start_time}}'
+          end: '{{$body.input.input.end_time}}'
+          graph_type: '{{$body.input.input?.graph_type}}'
+        template_engine: Kriti
+        version: 2
+    permissions:
+      - role: anonymous
+      - role: frontend
+    comment: Fetches chart data (JSON) for a term/curve combination
+  - name: getChartSvg
+    definition:
+      kind: synchronous
+      handler: '{{chartApiUrl}}'
+      request_transform:
+        method: GET
+        url: '{{$base_url}}/api/v1/curve/{{$body.input.input.curve_id}}/term/{{$body.input.input.term_id}}/data'
+        query_params:
+          interval: '{{$body.input.input.interval}}'
+          format: 'svg_json'
+          start: '{{$body.input.input.start_time}}'
+          end: '{{$body.input.input.end_time}}'
+          graph_type: '{{$body.input.input?.graph_type}}'
+          width: '{{$body.input.input?.width}}'
+          height: '{{$body.input.input?.height}}'
+          line_color: '{{$body.input.input?.line_color}}'
+          background_color: '{{$body.input.input?.background_color}}'
+        template_engine: Kriti
+        version: 2
+    permissions:
+      - role: anonymous
+      - role: frontend
+    comment: Fetches chart SVG for a term/curve combination
 custom_types:
   enums: []
   input_objects:
@@ -129,6 +260,16 @@ custom_types:
     - name: PinPersonInput
     - name: PinOrganizationInput
     - name: PinJsonInput
+    - name: UploadImageFromUrlInput
+    - name: UploadImageInput
+    - name: GetChartJsonInput
+    - name: GetChartSvgInput
   objects:
     - name: PinOutput
+    - name: UploadImageFromUrlOutput
+    - name: CachedImage
+    - name: UploadJsonToIpfsOutput
+    - name: ChartDataOutput
+    - name: ChartDataPoint
+    - name: ChartSvgOutput
   scalars: []

@@ -17,6 +17,7 @@ shared-utils = { path = "../shared-utils" }
 alloy.workspace = true
 alloy-network.workspace = true
 async-trait.workspace = true
+base64 = "0.22"
 bytes.workspace = true
 dotenvy.workspace = true
 envy.workspace = true
@@ -37,6 +38,7 @@ chrono.workspace = true
 redis = { version = "0.32.4", features = ["tokio-comp", "connection-manager", "streams"] }
 tracing-appender = "0.2"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+url = "2.5"
 uuid = { version = "1.0", features = ["v4"] }
 warp = "0.3.7"
 

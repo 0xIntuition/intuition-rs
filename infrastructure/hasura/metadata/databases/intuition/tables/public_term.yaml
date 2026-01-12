@@ -19,9 +19,11 @@ object_relationships:
           schema: public
   - name: atomById
     using:
-      foreign_key_constraint_on:
-        column: term_id
-        table:
+      manual_configuration:
+        column_mapping:
+          id: term_id
+        insertion_order: null
+        remote_table:
           name: atom
           schema: public
   - name: triple
@@ -45,9 +47,11 @@ object_relationships:
 array_relationships:
   - name: deposits
     using:
-      foreign_key_constraint_on:
-        column: term_id
-        table:
+      manual_configuration:
+        column_mapping:
+          id: term_id
+        insertion_order: null
+        remote_table:
           name: deposit
           schema: public
   - name: positions
@@ -61,9 +65,11 @@ array_relationships:
           schema: public
   - name: redemptions
     using:
-      foreign_key_constraint_on:
-        column: term_id
-        table:
+      manual_configuration:
+        column_mapping:
+          id: term_id
+        insertion_order: null
+        remote_table:
           name: redemption
           schema: public
   - name: share_price_change_stats_daily
@@ -104,16 +110,20 @@ array_relationships:
           schema: public
   - name: share_price_changes
     using:
-      foreign_key_constraint_on:
-        column: term_id
-        table:
+      manual_configuration:
+        column_mapping:
+          id: term_id
+        insertion_order: null
+        remote_table:
           name: share_price_change
           schema: public
   - name: signals
     using:
-      foreign_key_constraint_on:
-        column: term_id
-        table:
+      manual_configuration:
+        column_mapping:
+          id: term_id
+        insertion_order: null
+        remote_table:
           name: signal
           schema: public
   - name: term_total_state_change_daily

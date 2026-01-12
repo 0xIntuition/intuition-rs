@@ -317,7 +317,7 @@ RETURNS TRIGGER AS $$
 DECLARE
     affected_rows INTEGER;
     retry_count INTEGER := 0;
-    max_retries INTEGER := 3;
+    max_retries INTEGER := 5;
 BEGIN
   IF NEW.shares > 0 THEN
     LOOP
@@ -906,3 +906,209 @@ CREATE TRIGGER triple_term_subject_predicate_trigger
 AFTER INSERT OR UPDATE OR DELETE ON triple_term
 FOR EACH ROW
 EXECUTE FUNCTION update_subject_predicate_aggregates();
+
+-- -- ========================================
+-- -- TRIPLE TERM POSITION COUNT TRIGGERS
+-- -- ========================================
+
+-- -- Function to increment triple_term.total_position_count when a position is created
+-- CREATE OR REPLACE FUNCTION increment_triple_term_position_count()
+-- RETURNS TRIGGER AS $$
+-- DECLARE
+--     affected_rows INTEGER;
+--     retry_count INTEGER := 0;
+--     max_retries INTEGER := 5;
+-- BEGIN
+--   IF NEW.shares > 0 THEN
+--     LOOP
+--       UPDATE triple_term
+--       SET total_position_count = total_position_count + 1,
+--           updated_at = NOW()
+--       WHERE term_id = NEW.term_id;
+      
+--       GET DIAGNOSTICS affected_rows = ROW_COUNT;
+      
+--       -- If update succeeded or max retries reached, exit loop
+--       IF affected_rows > 0 OR retry_count >= max_retries THEN
+--         EXIT;
+--       END IF;
+      
+--       -- Wait briefly before retry (10ms)
+--       PERFORM pg_sleep(0.01);
+--       retry_count := retry_count + 1;
+--     END LOOP;
+    
+--     -- Log warning if update failed
+--     IF affected_rows = 0 THEN
+--       RAISE WARNING 'Failed to update triple_term position_count after % retries for term_id: %', 
+--         max_retries, NEW.term_id;
+--     END IF;
+--   END IF;
+--   RETURN NEW;
+-- END;
+-- $$ LANGUAGE plpgsql;
+
+-- -- Function to decrement triple_term.total_position_count when a position is closed
+-- CREATE OR REPLACE FUNCTION decrement_triple_term_position_count()
+-- RETURNS TRIGGER AS $$
+-- DECLARE
+--     affected_rows INTEGER;
+--     retry_count INTEGER := 0;
+--     max_retries INTEGER := 5;
+-- BEGIN
+--   IF OLD.shares > 0 AND NEW.shares = 0 THEN
+--     LOOP
+--       UPDATE triple_term
+--       SET total_position_count = total_position_count - 1,
+--           updated_at = NOW()
+--       WHERE term_id = OLD.term_id;
+      
+--       GET DIAGNOSTICS affected_rows = ROW_COUNT;
+      
+--       -- If update succeeded or max retries reached, exit loop
+--       IF affected_rows > 0 OR retry_count >= max_retries THEN
+--         EXIT;
+--       END IF;
+      
+--       -- Wait briefly before retry (10ms)
+--       PERFORM pg_sleep(0.01);
+--       retry_count := retry_count + 1;
+--     END LOOP;
+    
+--     -- Log warning if update failed
+--     IF affected_rows = 0 THEN
+--       RAISE WARNING 'Failed to update triple_term position_count after % retries for term_id: %', 
+--         max_retries, OLD.term_id;
+--     END IF;
+--   END IF;
+--   RETURN NEW;
+-- END;
+-- $$ LANGUAGE plpgsql;
+
+-- -- Function to reopen triple_term.total_position_count when a position is reopened
+-- CREATE OR REPLACE FUNCTION reopen_triple_term_position_count()
+-- RETURNS TRIGGER AS $$
+-- DECLARE
+--     affected_rows INTEGER;
+--     retry_count INTEGER := 0;
+--     max_retries INTEGER := 5;
+-- BEGIN
+--   IF OLD.shares = 0 AND NEW.shares > 0 THEN
+--     LOOP
+--       UPDATE triple_term
+--       SET total_position_count = total_position_count + 1,
+--           updated_at = NOW()
+--       WHERE term_id = NEW.term_id;
+      
+--       GET DIAGNOSTICS affected_rows = ROW_COUNT;
+      
+--       -- If update succeeded or max retries reached, exit loop
+--       IF affected_rows > 0 OR retry_count >= max_retries THEN
+--         EXIT;
+--       END IF;
+      
+--       -- Wait briefly before retry (10ms)
+--       PERFORM pg_sleep(0.01);
+--       retry_count := retry_count + 1;
+--     END LOOP;
+    
+--     -- Log warning if update failed
+--     IF affected_rows = 0 THEN
+--       RAISE WARNING 'Failed to update triple_term position_count after % retries for term_id: %', 
+--         max_retries, NEW.term_id;
+--     END IF;
+--   END IF;
+--   RETURN NEW;
+-- END;
+-- $$ LANGUAGE plpgsql;
+
+-- -- Create triggers on position table for triple_term updates
+-- CREATE TRIGGER position_insert_triple_term_trigger
+-- AFTER INSERT ON position
+-- FOR EACH ROW
+-- EXECUTE FUNCTION increment_triple_term_position_count();
+
+-- CREATE TRIGGER position_update_triple_term_trigger
+-- AFTER UPDATE ON position
+-- FOR EACH ROW
+-- EXECUTE FUNCTION increment_triple_term_position_count();
+
+-- CREATE TRIGGER position_reopen_triple_term_trigger
+-- AFTER UPDATE ON position
+-- FOR EACH ROW
+-- EXECUTE FUNCTION reopen_triple_term_position_count();
+
+-- CREATE TRIGGER position_close_triple_term_trigger
+-- AFTER UPDATE ON position
+-- FOR EACH ROW
+-- EXECUTE FUNCTION decrement_triple_term_position_count();
+
+-- ========================================
+-- FUNCTION COMMENTS
+-- ========================================
+
+-- Stats update functions
+COMMENT ON FUNCTION update_account_stats() IS 'Trigger function that increments total_accounts in stats table when new accounts are created.';
+
+COMMENT ON FUNCTION update_atom_stats() IS 'Trigger function that increments total_atoms in stats table when new atoms are created.';
+
+COMMENT ON FUNCTION update_triple_stats() IS 'Trigger function that increments total_triples in stats table when new triples are created.';
+
+COMMENT ON FUNCTION update_position_stats() IS 'Trigger function that increments total_positions in stats table when new positions are created.';
+
+COMMENT ON FUNCTION delete_position_stats() IS 'Trigger function that decrements total_positions in stats table when positions are deleted.';
+
+COMMENT ON FUNCTION update_signal_stats() IS 'Trigger function that increments total_signals in stats table when new signals are recorded.';
+
+COMMENT ON FUNCTION update_fee_stats() IS 'Trigger function that adds fee amount to total_fees in stats table when fees are transferred.';
+
+-- Position update functions
+COMMENT ON FUNCTION update_position_deposit_assets() IS 'Updates position total_deposit_assets_after_total_fees when deposits are recorded.';
+
+COMMENT ON FUNCTION update_position_redeem_assets() IS 'Updates position total_redeem_assets_for_receiver when redemptions are recorded.';
+
+-- Term aggregation functions
+COMMENT ON FUNCTION update_term_totals() IS 'Recalculates term total_assets and total_market_cap by summing vault data when vaults change.';
+
+COMMENT ON FUNCTION update_triple_term_totals() IS 'Updates triple_term aggregates (total_assets, total_market_cap, total_position_count) when triple_vault changes.';
+
+COMMENT ON FUNCTION update_triple_vault_from_vault() IS 'Synchronizes triple_vault aggregated data when underlying vault records change.';
+
+-- State change tracking functions
+COMMENT ON FUNCTION update_term_total_state_change_from_triple_vault() IS 'Inserts term state snapshot into term_total_state_change hypertable when triple_vault is updated.';
+
+COMMENT ON FUNCTION update_term_total_state_change_from_term() IS 'Inserts term state snapshot into term_total_state_change hypertable when Atom-type terms are updated.';
+
+-- Vault position count functions
+COMMENT ON FUNCTION increment_vault_position_count() IS 'Increments vault position_count when a new position with shares > 0 is created, with retry logic for concurrency.';
+
+COMMENT ON FUNCTION reopen_vault_position_count() IS 'Increments vault position_count when a position is reopened (shares go from 0 to > 0), with retry logic.';
+
+COMMENT ON FUNCTION decrement_vault_position_count() IS 'Decrements vault position_count when a position is closed (shares go from > 0 to 0), with retry logic.';
+
+COMMENT ON FUNCTION delete_vault_position_count() IS 'Decrements vault position_count when a position with shares > 0 is deleted, with retry logic.';
+
+-- Notification and utility functions
+COMMENT ON FUNCTION notify_version_change() IS 'Sends PostgreSQL notification on version_change_channel when contract version is initialized.';
+
+COMMENT ON FUNCTION update_term_text_function() IS 'Maintains term_text table for pgai vectorization when typed value entities (thing, person, book, organization) are inserted or updated.';
+
+-- Search and query functions
+COMMENT ON FUNCTION search_positions_on_subject(search_fields JSONB, addresses TEXT[]) IS 'Returns positions for accounts where the subject matches ALL specified predicate-object pairs in the search criteria.';
+
+COMMENT ON FUNCTION accounts_that_claim_about_account(address text, subject text, predicate text) IS 'Returns accounts that have positions on triples with the specified subject, predicate, and account as object.';
+
+COMMENT ON FUNCTION following(address text) IS 'Returns all accounts that the given address follows based on FollowAction triples.';
+
+COMMENT ON FUNCTION signals_from_following(address text) IS 'Returns all signal events created by accounts that the given address follows.';
+
+COMMENT ON FUNCTION positions_from_following(address text) IS 'Returns all positions held by accounts that the given address follows.';
+
+-- Aggregate update functions
+COMMENT ON FUNCTION update_predicate_object_on_triple_insert() IS 'Increments predicate_object triple_count when a new triple is created.';
+
+COMMENT ON FUNCTION update_subject_predicate_on_triple_insert() IS 'Increments subject_predicate triple_count when a new triple is created.';
+
+COMMENT ON FUNCTION update_predicate_object_aggregates() IS 'Recalculates predicate_object total_market_cap and total_position_count when triple_term changes.';
+
+COMMENT ON FUNCTION update_subject_predicate_aggregates() IS 'Recalculates subject_predicate total_market_cap and total_position_count when triple_term changes.';

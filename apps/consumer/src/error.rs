@@ -53,6 +53,22 @@ pub enum ConsumerError {
     LogLevelParse(String),
     #[error("Invalid CAIP10")]
     InvalidCaip10,
+    #[error("Invalid CAIP-22 format")]
+    InvalidCaip22,
+    #[error("Unsupported chain ID: {0}")]
+    UnsupportedChain(i64),
+    #[error("Chain {0} is supported but RPC URL is not configured")]
+    ChainRpcNotConfigured(i64),
+    #[error("Unsupported token URI format: {0}")]
+    UnsupportedTokenUri(String),
+    #[error("Decoding error: {0}")]
+    DecodingError(String),
+    #[error("SSRF protection: URL points to internal/private network: {0}")]
+    SsrfBlocked(String),
+    #[error("Response size exceeds limit: {0} bytes (max: {1})")]
+    ResponseTooLarge(usize, usize),
+    #[error("Token ID too long: {0} digits (max: 77 for U256)")]
+    TokenIdTooLong(usize),
     #[error("Failed to parse indexer source: {0}")]
     IndexerSourceParse(String),
     #[error("Label not found")]

@@ -241,6 +241,7 @@ pub trait DepositedEvent: Clone {
     /// This function checks if an atom needs to be re-resolved
     fn atom_needs_resolution(atom: &Atom) -> bool {
         atom.atom_type == AtomType::Account
+            || atom.atom_type == AtomType::Caip22 // Re-resolve CAIP-22 on deposit to refresh NFT metadata
             || atom.resolving_status == AtomResolvingStatus::Pending
             || atom.resolving_status == AtomResolvingStatus::Failed
     }

@@ -14,3 +14,9 @@ CREATE TRIGGER atom_updated_at_trigger
     BEFORE UPDATE ON atom
     FOR EACH ROW
     EXECUTE FUNCTION update_atom_updated_at();
+
+-- ========================================
+-- FUNCTION COMMENTS
+-- ========================================
+
+COMMENT ON FUNCTION update_atom_updated_at() IS 'Trigger function that automatically sets updated_at to current timestamp when atom records are modified.';

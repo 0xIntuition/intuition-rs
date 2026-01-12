@@ -46,22 +46,16 @@ where
                 debug!("Triple does not exist, creating it");
             }
         }
-
-        let mut tx = decoded_consumer_context.pg_pool.begin().await?;
-
         // Get or create the triple
         let triple = self
             .0
-            .get_or_create_triple(decoded_consumer_context, event, &mut tx)
+            .get_or_create_triple(decoded_consumer_context, event)
             .await?;
 
         debug!("Triple created: {triple:#?}");
-        // Update the predicate object
         self.0
-            .check_and_update_account_predicate_object(decoded_consumer_context, event, &mut tx)
+            .check_and_update_account_predicate_object(decoded_consumer_context)
             .await?;
-
-        tx.commit().await?;
 
         // Create the event
         self.create_event(decoded_consumer_context, event).await?;

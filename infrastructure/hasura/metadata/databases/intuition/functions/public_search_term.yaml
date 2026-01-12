@@ -1,3 +1,4 @@
 function:
   name: search_term
   schema: public
+  comment: Semantic search across all terms using OpenAI text-embedding-3-small model and pgai vectorization.

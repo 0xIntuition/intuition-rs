@@ -6,7 +6,7 @@ use crate::{
 };
 use alloy::{
     eips::BlockId,
-    primitives::{Address, Bytes, U256},
+    primitives::{Address, U256},
     providers::{DynProvider, Provider},
 };
 use alloy_network::Ethereum;
@@ -41,6 +41,17 @@ pub struct Env {
     pub redis_url: Option<String>,
     pub threads: Option<usize>,
     pub log_level: Option<String>,
+    // RPC URLs for CAIP-22 multi-chain resolution
+    pub linea_mainnet_rpc_url: Option<String>,
+    pub linea_sepolia_rpc_url: Option<String>,
+    pub base_mainnet_rpc_url: Option<String>,
+    pub base_sepolia_rpc_url: Option<String>,
+    pub trust_testnet_rpc_url: Option<String>,
+    pub trust_mainnet_rpc_url: Option<String>,
+    pub local_intuition_rpc_url: Option<String>,
+    pub ethereum_mainnet_rpc_url: Option<String>,
+    pub ethereum_sepolia_rpc_url: Option<String>,
+    pub polygon_amoy_rpc_url: Option<String>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -195,10 +206,10 @@ impl ContractInstance {
         }
     }
 
-    /// Returns the atoms of the contract instance
-    pub async fn get_atoms(&self, id: FixedBytesWrapper) -> Result<Bytes, ConsumerError> {
-        match self {
-            Self::V2(client) => Ok(client.getAtom(id.0).call().await?),
-        }
-    }
+    // /// Returns the atoms of the contract instance
+    // pub async fn get_atoms(&self, id: FixedBytesWrapper) -> Result<Bytes, ConsumerError> {
+    //     match self {
+    //         Self::V2(client) => Ok(client.getAtom(id.0).call().await?),
+    //     }
+    // }
 }

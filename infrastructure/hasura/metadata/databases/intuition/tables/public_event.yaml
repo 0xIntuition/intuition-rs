@@ -19,13 +19,31 @@ object_relationships:
           schema: public
   - name: deposit
     using:
-      foreign_key_constraint_on: deposit_id
+      manual_configuration:
+        column_mapping:
+          deposit_id: id
+        insertion_order: null
+        remote_table:
+          name: deposit
+          schema: public
   - name: fee_transfer
     using:
-      foreign_key_constraint_on: fee_transfer_id
+      manual_configuration:
+        column_mapping:
+          fee_transfer_id: id
+        insertion_order: null
+        remote_table:
+          name: fee_transfer
+          schema: public
   - name: redemption
     using:
-      foreign_key_constraint_on: redemption_id
+      manual_configuration:
+        column_mapping:
+          redemption_id: id
+        insertion_order: null
+        remote_table:
+          name: redemption
+          schema: public
   - name: triple
     using:
       manual_configuration:

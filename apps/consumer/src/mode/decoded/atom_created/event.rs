@@ -2,7 +2,6 @@ use crate::{
     error::ConsumerError,
     mode::{
         decoded::utils::get_block_timestamp,
-        resolver::types::ResolverConsumerMessage,
         types::DecodedConsumerContext,
         utils::{get_or_create_account, get_or_create_account_from_event},
     },
@@ -13,124 +12,59 @@ use alloy::primitives::FixedBytes;
 use models::{
     account::{Account, AccountType},
     atom::{Atom, AtomResolvingStatus, AtomType},
-    term::Term,
     traits::SimpleCrud,
     types::{FixedBytesWrapper, U256Wrapper},
 };
 use sqlx::PgPool;
 use std::fmt::Debug;
-use tracing::{debug, error, warn};
 
 /// This trait represents a fee transferred event
 pub trait AtomCreatedEvent: AccountManager + Debug + Clone {
     fn term_id(&self) -> Result<FixedBytes<32>, ConsumerError>;
     fn creator_id(&self) -> Result<String, ConsumerError>;
     fn atom_data(&self) -> Result<String, ConsumerError>;
-    /// This function verifies if the atom exists in our DB. If it does, it returns it.
-    /// If it does not, it creates it.
-    async fn get_or_create_vault_atom(
+    /// This function creates an atom
+    async fn create_atom_wallet_account_and_atom(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
     ) -> Result<Atom, ConsumerError> {
-        if let Some(atom) = Atom::find_by_id(
-            self.term_id()?.into(),
-            &decoded_consumer_context.backend_schema,
-            &decoded_consumer_context.pg_pool,
-        )
-        .await?
-        {
-            if atom.transaction_hash == "0x0000000000000000000000000000000000000000" {
-                debug!("Atom exists with zero transaction hash, updating it");
-                let atom = self
-                    .update_atom_with_zero_transaction_hash_or_create_atom(
-                        decoded_consumer_context,
-                        event,
-                    )
-                    .await?;
-                return Ok(atom);
-            }
-            // If the atom exists, return it
-            debug!("Atom already exists, returning it");
-            Ok(atom)
-        } else {
-            debug!("Atom does not exist, creating it");
-            let atom = self
-                .update_atom_with_zero_transaction_hash_or_create_atom(
-                    decoded_consumer_context,
-                    event,
-                )
-                .await?;
-
-            Ok(atom)
-        }
-    }
-    /// This function updates an atom with a zero transaction hash
-    async fn update_atom_with_zero_transaction_hash_or_create_atom(
-        &self,
-        decoded_consumer_context: &DecodedConsumerContext,
-        event: &DecodedMessage,
-    ) -> Result<Atom, ConsumerError> {
-        let mut atom_wallet_account = self
+        let atom_wallet_account = self
             .get_or_create_atom_wallet_account(
                 &decoded_consumer_context.backend_schema,
                 &decoded_consumer_context.pg_pool,
             )
             .await?;
         let creator_account =
-            get_or_create_account(self.creator_id()?, decoded_consumer_context).await?;
-        let atom = Atom::builder()
-            .term_id(FixedBytesWrapper::from(self.term_id()?))
+            get_or_create_account(self.creator_id()?, decoded_consumer_context, None).await?;
+        let raw_data = self.atom_data()?;
+        let decoded_data = Atom::decode_data(raw_data.clone()).ok();
+        let term_id = FixedBytesWrapper::from(self.term_id()?);
+        let block_number = U256Wrapper::try_from(event.block_number)?;
+        let created_at = get_block_timestamp(event.block_timestamp)?;
+        let mut atom = Atom::builder()
+            .term_id(term_id.clone())
             .wallet_id(atom_wallet_account.id.clone())
             .creator_id(creator_account.id)
-            .value_id(FixedBytesWrapper::from(self.term_id()?))
-            .raw_data(self.atom_data()?)
+            .value_id(term_id.clone())
+            .raw_data(raw_data)
             .atom_type(AtomType::Unknown)
-            .block_number(U256Wrapper::try_from(event.block_number)?)
-            .created_at(get_block_timestamp(event.block_timestamp)?)
+            .block_number(block_number)
+            .created_at(created_at)
             .transaction_hash(event.transaction_hash.clone())
             .resolving_status(AtomResolvingStatus::Pending)
             .log_index(event.log_index)
-            .build()
+            .build();
+        atom.data = decoded_data;
+        let atom = atom
             .upsert(
                 &decoded_consumer_context.backend_schema,
                 &decoded_consumer_context.pg_pool,
             )
             .await?;
-        Self::update_account_with_atom_id(
-            &mut atom_wallet_account,
-            atom.term_id.clone(),
-            decoded_consumer_context,
-        )
-        .await?;
-        Self::update_term_created_at(self, decoded_consumer_context, event).await?;
         Ok(atom)
     }
 
-    /// This function updates the term created at for atoms with a zero transaction hash
-    async fn update_term_created_at(
-        &self,
-        decoded_consumer_context: &DecodedConsumerContext,
-        event: &DecodedMessage,
-    ) -> Result<(), ConsumerError> {
-        if let Some(mut term) = Term::find_by_id(
-            self.term_id()?.into(),
-            &decoded_consumer_context.backend_schema,
-            &decoded_consumer_context.pg_pool,
-        )
-        .await?
-        {
-            term.created_at = get_block_timestamp(event.block_timestamp)?;
-            term.upsert(
-                &decoded_consumer_context.backend_schema,
-                &decoded_consumer_context.pg_pool,
-            )
-            .await?;
-        } else {
-            error!("Term does not exist, skipping update");
-        }
-        Ok(())
-    }
     /// This function verifies if the atom wallet account exists in our DB. If it does, it returns it.
     /// If it does not, it creates it.
     async fn get_or_create_atom_wallet_account(
@@ -145,63 +79,10 @@ pub trait AtomCreatedEvent: AccountManager + Debug + Clone {
         // We update the account type to `AtomWallet` if it is not already set
         if account.account_type != AccountType::AtomWallet {
             account.account_type = AccountType::AtomWallet;
+
+            account.atom_id = Some(self.term_id()?.into());
             account.upsert(backend_schema, pg_pool).await?;
         }
         Ok(account)
-    }
-    /// This function updates an account with an atom ID and enqueues a resolver message
-    async fn update_account_with_atom_id(
-        account: &mut Account,
-        atom_id: FixedBytesWrapper,
-        decoded_consumer_context: &DecodedConsumerContext,
-    ) -> Result<(), ConsumerError> {
-        account.atom_id = Some(atom_id);
-        account
-            .upsert(
-                &decoded_consumer_context.backend_schema,
-                &decoded_consumer_context.pg_pool,
-            )
-            .await?;
-        debug!("Updated account: {:?}", account);
-
-        // Now we need to enqueue the message to be processed by the resolver. In this
-        // process we check if the account has ENS data associated, and if it does, we
-        // update the account with the ENS data (name [label] and image)
-        let message = ResolverConsumerMessage::new_account(account.clone());
-        decoded_consumer_context
-            .client
-            .send_message(serde_json::to_string(&message)?, None)
-            .await?;
-        Ok(())
-    }
-    /// This function decodes the atom data
-    async fn decode_atom_data_and_update_atom(
-        &self,
-        atom: &mut Atom,
-        decoded_consumer_context: &DecodedConsumerContext,
-        event: &DecodedMessage,
-    ) -> Result<String, ConsumerError> {
-        // decode the hex data from the atomData.
-        let decoded_atom_data = if let Ok(decoded_atom_data) = Atom::decode_data(self.atom_data()?)
-        {
-            decoded_atom_data
-        } else {
-            warn!(
-                "Failed to decode atom data. This is not a critical error, but this atom will be created with empty data and `Unknown` type.",
-            );
-            // return an empty string
-            String::new()
-        };
-
-        // Update the atom with the decoded data
-        atom.data = Some(decoded_atom_data.clone());
-        atom.block_number = U256Wrapper::try_from(event.block_number)?;
-        atom.log_index = event.log_index;
-        atom.upsert(
-            &decoded_consumer_context.backend_schema,
-            &decoded_consumer_context.pg_pool,
-        )
-        .await?;
-        Ok(decoded_atom_data)
     }
 }

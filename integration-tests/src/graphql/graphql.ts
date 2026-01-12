@@ -42,6 +42,16 @@ export type Boolean_Comparison_Exp = {
   _nin?: InputMaybe<Array<Scalars['Boolean']['input']>>;
 };
 
+export type CachedImage = {
+  __typename?: 'CachedImage';
+  created_at: Scalars['timestamptz']['output'];
+  model?: Maybe<Scalars['String']['output']>;
+  original_url: Scalars['String']['output'];
+  safe: Scalars['Boolean']['output'];
+  score?: Maybe<Scalars['jsonb']['output']>;
+  url: Scalars['String']['output'];
+};
+
 /** Boolean expression to compare columns of type "Int". All fields are combined with logical 'AND'. */
 export type Int_Comparison_Exp = {
   _eq?: InputMaybe<Scalars['Int']['input']>;
@@ -115,6 +125,28 @@ export type String_Comparison_Exp = {
   _regex?: InputMaybe<Scalars['String']['input']>;
   /** does the column match the given SQL regular expression */
   _similar?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type UploadImageFromUrlInput = {
+  url: Scalars['String']['input'];
+};
+
+export type UploadImageFromUrlOutput = {
+  __typename?: 'UploadImageFromUrlOutput';
+  images: Array<CachedImage>;
+};
+
+export type UploadImageInput = {
+  contentType: Scalars['String']['input'];
+  data: Scalars['String']['input'];
+  filename: Scalars['String']['input'];
+};
+
+export type UploadJsonToIpfsOutput = {
+  __typename?: 'UploadJsonToIpfsOutput';
+  hash: Scalars['String']['output'];
+  name: Scalars['String']['output'];
+  size: Scalars['String']['output'];
 };
 
 /** Boolean expression to compare columns of type "account_type". All fields are combined with logical 'AND'. */
@@ -551,7 +583,7 @@ export type Atom_Values = {
   account?: Maybe<Accounts>;
   account_id?: Maybe<Scalars['String']['output']>;
   /** An object relationship */
-  atom: Atoms;
+  atom?: Maybe<Atoms>;
   /** An object relationship */
   book?: Maybe<Books>;
   book_id?: Maybe<Scalars['String']['output']>;
@@ -761,7 +793,7 @@ export type Atoms = {
   controller?: Maybe<Accounts>;
   created_at: Scalars['timestamptz']['output'];
   /** An object relationship */
-  creator: Accounts;
+  creator?: Maybe<Accounts>;
   creator_id: Scalars['String']['output'];
   data?: Maybe<Scalars['String']['output']>;
   emoji?: Maybe<Scalars['String']['output']>;
@@ -779,7 +811,7 @@ export type Atoms = {
   /** An aggregate relationship */
   signals_aggregate: Signals_Aggregate;
   /** An object relationship */
-  term: Terms;
+  term?: Maybe<Terms>;
   term_id: Scalars['String']['output'];
   transaction_hash: Scalars['String']['output'];
   type: Scalars['atom_type']['output'];
@@ -1913,14 +1945,14 @@ export type Deposits = {
   id: Scalars['String']['output'];
   log_index: Scalars['bigint']['output'];
   /** An object relationship */
-  receiver: Accounts;
+  receiver?: Maybe<Accounts>;
   receiver_id: Scalars['String']['output'];
   /** An object relationship */
   sender?: Maybe<Accounts>;
   sender_id: Scalars['String']['output'];
   shares: Scalars['numeric']['output'];
   /** An object relationship */
-  term: Terms;
+  term?: Maybe<Terms>;
   term_id: Scalars['String']['output'];
   total_shares: Scalars['numeric']['output'];
   transaction_hash: Scalars['String']['output'];
@@ -2564,7 +2596,7 @@ export type Fee_Transfers = {
   created_at: Scalars['timestamptz']['output'];
   id: Scalars['String']['output'];
   /** An object relationship */
-  receiver: Accounts;
+  receiver?: Maybe<Accounts>;
   receiver_id: Scalars['String']['output'];
   /** An object relationship */
   sender?: Maybe<Accounts>;
@@ -2986,6 +3018,12 @@ export type Mutation_Root = {
   pinPerson?: Maybe<PinOutput>;
   /** Uploads and pins Thing to IPFS */
   pinThing?: Maybe<PinOutput>;
+  /** Uploads and classifies an image file using image-guard (accepts base64-encoded image data via data URL) */
+  uploadImage?: Maybe<UploadImageFromUrlOutput>;
+  /** Uploads and classifies an image from a URL using image-guard */
+  uploadImageFromUrl?: Maybe<UploadImageFromUrlOutput>;
+  /** Uploads JSON to IPFS using image-guard */
+  uploadJsonToIpfs?: Maybe<UploadJsonToIpfsOutput>;
 };
 
 
@@ -3004,6 +3042,24 @@ export type Mutation_RootPinPersonArgs = {
 /** mutation root */
 export type Mutation_RootPinThingArgs = {
   thing: PinThingInput;
+};
+
+
+/** mutation root */
+export type Mutation_RootUploadImageArgs = {
+  image: UploadImageInput;
+};
+
+
+/** mutation root */
+export type Mutation_RootUploadImageFromUrlArgs = {
+  image: UploadImageFromUrlInput;
+};
+
+
+/** mutation root */
+export type Mutation_RootUploadJsonToIpfsArgs = {
+  json: Scalars['jsonb']['input'];
 };
 
 /** Boolean expression to compare columns of type "numeric". All fields are combined with logical 'AND'. */
@@ -3289,7 +3345,7 @@ export type Positions = {
   log_index: Scalars['bigint']['output'];
   shares: Scalars['numeric']['output'];
   /** An object relationship */
-  term: Terms;
+  term?: Maybe<Terms>;
   term_id: Scalars['String']['output'];
   total_deposit_assets_after_total_fees: Scalars['numeric']['output'];
   total_redeem_assets_for_receiver: Scalars['numeric']['output'];
@@ -3716,10 +3772,10 @@ export type Positions_Variance_Order_By = {
 export type Predicate_Objects = {
   __typename?: 'predicate_objects';
   /** An object relationship */
-  object: Atoms;
+  object?: Maybe<Atoms>;
   object_id: Scalars['String']['output'];
   /** An object relationship */
-  predicate: Atoms;
+  predicate?: Maybe<Atoms>;
   predicate_id: Scalars['String']['output'];
   total_market_cap: Scalars['numeric']['output'];
   total_position_count: Scalars['Int']['output'];
@@ -5119,14 +5175,14 @@ export type Redemptions = {
   id: Scalars['String']['output'];
   log_index: Scalars['bigint']['output'];
   /** An object relationship */
-  receiver: Accounts;
+  receiver?: Maybe<Accounts>;
   receiver_id: Scalars['String']['output'];
   /** An object relationship */
   sender?: Maybe<Accounts>;
   sender_id: Scalars['String']['output'];
   shares: Scalars['numeric']['output'];
   /** An object relationship */
-  term: Terms;
+  term?: Maybe<Terms>;
   term_id: Scalars['String']['output'];
   total_shares: Scalars['numeric']['output'];
   transaction_hash: Scalars['String']['output'];
@@ -6326,7 +6382,7 @@ export type Share_Price_Changes = {
   log_index: Scalars['bigint']['output'];
   share_price: Scalars['numeric']['output'];
   /** An object relationship */
-  term: Terms;
+  term?: Maybe<Terms>;
   term_id: Scalars['String']['output'];
   total_assets: Scalars['numeric']['output'];
   total_shares: Scalars['numeric']['output'];
@@ -7033,7 +7089,7 @@ export type Signals = {
   redemption?: Maybe<Redemptions>;
   redemption_id?: Maybe<Scalars['String']['output']>;
   /** An object relationship */
-  term: Terms;
+  term?: Maybe<Terms>;
   term_id: Scalars['String']['output'];
   transaction_hash: Scalars['String']['output'];
   triple_id?: Maybe<Scalars['String']['output']>;
@@ -7746,10 +7802,10 @@ export type Stats_Variance_Fields = {
 export type Subject_Predicates = {
   __typename?: 'subject_predicates';
   /** An object relationship */
-  predicate: Atoms;
+  predicate?: Maybe<Atoms>;
   predicate_id: Scalars['String']['output'];
   /** An object relationship */
-  subject: Atoms;
+  subject?: Maybe<Atoms>;
   subject_id: Scalars['String']['output'];
   total_market_cap: Scalars['numeric']['output'];
   total_position_count: Scalars['Int']['output'];
@@ -10882,10 +10938,10 @@ export type Timestamptz_Comparison_Exp = {
 export type Triple_Term = {
   __typename?: 'triple_term';
   /** An object relationship */
-  counter_term: Terms;
+  counter_term?: Maybe<Terms>;
   counter_term_id: Scalars['String']['output'];
   /** An object relationship */
-  term: Terms;
+  term?: Maybe<Terms>;
   term_id: Scalars['String']['output'];
   total_assets: Scalars['numeric']['output'];
   total_market_cap: Scalars['numeric']['output'];
@@ -11070,17 +11126,17 @@ export type Triples = {
   creator?: Maybe<Accounts>;
   creator_id: Scalars['String']['output'];
   /** An object relationship */
-  object: Atoms;
+  object?: Maybe<Atoms>;
   object_id: Scalars['String']['output'];
   /** An array relationship */
   positions: Array<Positions>;
   /** An aggregate relationship */
   positions_aggregate: Positions_Aggregate;
   /** An object relationship */
-  predicate: Atoms;
+  predicate?: Maybe<Atoms>;
   predicate_id: Scalars['String']['output'];
   /** An object relationship */
-  subject: Atoms;
+  subject?: Maybe<Atoms>;
   subject_id: Scalars['String']['output'];
   /** An object relationship */
   term?: Maybe<Terms>;
@@ -11476,7 +11532,7 @@ export type Vaults = {
   /** An aggregate relationship */
   signals_aggregate: Signals_Aggregate;
   /** An object relationship */
-  term: Terms;
+  term?: Maybe<Terms>;
   term_id: Scalars['String']['output'];
   total_assets: Scalars['numeric']['output'];
   total_shares: Scalars['numeric']['output'];
@@ -12061,7 +12117,7 @@ export type Vaults_Variance_Order_By = {
 export type GetAgentsQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type GetAgentsQuery = { __typename?: 'query_root', triples: Array<{ __typename?: 'triples', subject: { __typename?: 'atoms', data?: string | null, claims: Array<{ __typename?: 'triples', predicate: { __typename?: 'atoms', data?: string | null }, object: { __typename?: 'atoms', data?: string | null } }> } }> };
+export type GetAgentsQuery = { __typename?: 'query_root', triples: Array<{ __typename?: 'triples', subject?: { __typename?: 'atoms', data?: string | null, claims: Array<{ __typename?: 'triples', predicate?: { __typename?: 'atoms', data?: string | null } | null, object?: { __typename?: 'atoms', data?: string | null } | null }> } | null }> };
 
 export type SearchPositionsQueryVariables = Exact<{
   addresses?: InputMaybe<Scalars['_text']['input']>;
@@ -12069,7 +12125,75 @@ export type SearchPositionsQueryVariables = Exact<{
 }>;
 
 
-export type SearchPositionsQuery = { __typename?: 'query_root', positions: Array<{ __typename?: 'positions', term: { __typename?: 'terms', triple?: { __typename?: 'triples', subject: { __typename?: 'atoms', data?: string | null }, predicate: { __typename?: 'atoms', data?: string | null }, object: { __typename?: 'atoms', data?: string | null } } | null } }> };
+export type SearchPositionsQuery = { __typename?: 'query_root', positions: Array<{ __typename?: 'positions', term?: { __typename?: 'terms', triple?: { __typename?: 'triples', subject?: { __typename?: 'atoms', data?: string | null } | null, predicate?: { __typename?: 'atoms', data?: string | null } | null, object?: { __typename?: 'atoms', data?: string | null } | null } | null } | null }> };
+
+export type GetCaip22AtomBasicQueryVariables = Exact<{
+  termId: Scalars['String']['input'];
+}>;
+
+
+export type GetCaip22AtomBasicQuery = { __typename?: 'query_root', atom?: { __typename?: 'atoms', term_id: string, data?: string | null, type: any, resolving_status: any } | null };
+
+export type GetCaip22AtomResolvedQueryVariables = Exact<{
+  termId: Scalars['String']['input'];
+}>;
+
+
+export type GetCaip22AtomResolvedQuery = { __typename?: 'query_root', atom?: { __typename?: 'atoms', term_id: string, data?: string | null, type: any, label?: string | null, image?: string | null, resolving_status: any, value?: { __typename?: 'atom_values', json_object?: { __typename?: 'json_objects', data: any } | null } | null } | null };
+
+export type GetFirstAgentAtomQueryVariables = Exact<{
+  termId: Scalars['String']['input'];
+}>;
+
+
+export type GetFirstAgentAtomQuery = { __typename?: 'query_root', atom?: { __typename?: 'atoms', data?: string | null, type: any } | null };
+
+export type GetSecondAgentAtomQueryVariables = Exact<{
+  termId: Scalars['String']['input'];
+}>;
+
+
+export type GetSecondAgentAtomQuery = { __typename?: 'query_root', atom?: { __typename?: 'atoms', data?: string | null, type: any } | null };
+
+export type GetCaip22AtomsQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type GetCaip22AtomsQuery = { __typename?: 'query_root', atoms: Array<{ __typename?: 'atoms', term_id: string, data?: string | null, label?: string | null, image?: string | null, resolving_status: any }> };
+
+export type GetAgentTripleQueryVariables = Exact<{
+  tripleId: Scalars['String']['input'];
+}>;
+
+
+export type GetAgentTripleQuery = { __typename?: 'query_root', triple?: { __typename?: 'triples', term_id: string, subject?: { __typename?: 'atoms', data?: string | null, type: any, label?: string | null } | null, predicate?: { __typename?: 'atoms', data?: string | null } | null, object?: { __typename?: 'atoms', data?: string | null } | null } | null };
+
+export type GetCaip22AtomInitialQueryVariables = Exact<{
+  termId: Scalars['String']['input'];
+}>;
+
+
+export type GetCaip22AtomInitialQuery = { __typename?: 'query_root', atom?: { __typename?: 'atoms', type: any, resolving_status: any, label?: string | null } | null };
+
+export type GetCaip22AtomAfterDepositQueryVariables = Exact<{
+  termId: Scalars['String']['input'];
+}>;
+
+
+export type GetCaip22AtomAfterDepositQuery = { __typename?: 'query_root', atom?: { __typename?: 'atoms', type: any, resolving_status: any, label?: string | null } | null };
+
+export type GetEthSepoliaCaip22AtomQueryVariables = Exact<{
+  termId: Scalars['String']['input'];
+}>;
+
+
+export type GetEthSepoliaCaip22AtomQuery = { __typename?: 'query_root', atom?: { __typename?: 'atoms', term_id: string, data?: string | null, type: any, label?: string | null, resolving_status: any } | null };
+
+export type GetEthSepoliaCaip22AtomResolvedQueryVariables = Exact<{
+  termId: Scalars['String']['input'];
+}>;
+
+
+export type GetEthSepoliaCaip22AtomResolvedQuery = { __typename?: 'query_root', atom?: { __typename?: 'atoms', term_id: string, data?: string | null, type: any, label?: string | null, image?: string | null, resolving_status: any, value?: { __typename?: 'atom_values', json_object?: { __typename?: 'json_objects', data: any } | null } | null } | null };
 
 export type TermQueryVariables = Exact<{
   termId: Scalars['String']['input'];
@@ -12084,7 +12208,7 @@ export type AtomWithClaimsQueryVariables = Exact<{
 }>;
 
 
-export type AtomWithClaimsQuery = { __typename?: 'query_root', atom?: { __typename?: 'atoms', term_id: string, label?: string | null, value?: { __typename?: 'atom_values', thing?: { __typename?: 'things', name?: string | null, description?: string | null, url?: string | null, image?: string | null } | null } | null } | null, positions: Array<{ __typename?: 'positions', term: { __typename?: 'terms', triple?: { __typename?: 'triples', predicate: { __typename?: 'atoms', term_id: string, type: any, label?: string | null }, object: { __typename?: 'atoms', value?: { __typename?: 'atom_values', thing?: { __typename?: 'things', name?: string | null, description?: string | null, url?: string | null, image?: string | null } | null } | null } } | null } }>, positions_from_following: Array<{ __typename?: 'positions', term: { __typename?: 'terms', triple?: { __typename?: 'triples', predicate: { __typename?: 'atoms', term_id: string, type: any, label?: string | null }, object: { __typename?: 'atoms', value?: { __typename?: 'atom_values', thing?: { __typename?: 'things', name?: string | null, description?: string | null, url?: string | null, image?: string | null } | null } | null } } | null } }> };
+export type AtomWithClaimsQuery = { __typename?: 'query_root', atom?: { __typename?: 'atoms', term_id: string, label?: string | null, value?: { __typename?: 'atom_values', thing?: { __typename?: 'things', name?: string | null, description?: string | null, url?: string | null, image?: string | null } | null } | null } | null, positions: Array<{ __typename?: 'positions', term?: { __typename?: 'terms', triple?: { __typename?: 'triples', predicate?: { __typename?: 'atoms', term_id: string, type: any, label?: string | null } | null, object?: { __typename?: 'atoms', value?: { __typename?: 'atom_values', thing?: { __typename?: 'things', name?: string | null, description?: string | null, url?: string | null, image?: string | null } | null } | null } | null } | null } | null }>, positions_from_following: Array<{ __typename?: 'positions', term?: { __typename?: 'terms', triple?: { __typename?: 'triples', predicate?: { __typename?: 'atoms', term_id: string, type: any, label?: string | null } | null, object?: { __typename?: 'atoms', value?: { __typename?: 'atom_values', thing?: { __typename?: 'things', name?: string | null, description?: string | null, url?: string | null, image?: string | null } | null } | null } | null } | null } | null }> };
 
 export type FollowingQueryVariables = Exact<{
   address: Scalars['String']['input'];
@@ -12098,7 +12222,7 @@ export type AtomOrgProfileQueryVariables = Exact<{
 }>;
 
 
-export type AtomOrgProfileQuery = { __typename?: 'query_root', atom?: { __typename?: 'atoms', term_id: string, label?: string | null, orgs: Array<{ __typename?: 'triples', object: { __typename?: 'atoms', term_id: string, label?: string | null } }>, projects: Array<{ __typename?: 'triples', object: { __typename?: 'atoms', term_id: string, label?: string | null } }>, skills: Array<{ __typename?: 'triples', object: { __typename?: 'atoms', term_id: string, label?: string | null } }> } | null };
+export type AtomOrgProfileQuery = { __typename?: 'query_root', atom?: { __typename?: 'atoms', term_id: string, label?: string | null, orgs: Array<{ __typename?: 'triples', object?: { __typename?: 'atoms', term_id: string, label?: string | null } | null }>, projects: Array<{ __typename?: 'triples', object?: { __typename?: 'atoms', term_id: string, label?: string | null } | null }>, skills: Array<{ __typename?: 'triples', object?: { __typename?: 'atoms', term_id: string, label?: string | null } | null }> } | null };
 
 export type PositionsQueryVariables = Exact<{
   address: Scalars['String']['input'];
@@ -12193,7 +12317,7 @@ export type AtomQueryVariables = Exact<{
 }>;
 
 
-export type AtomQuery = { __typename?: 'query_root', atom?: { __typename?: 'atoms', data?: string | null, label?: string | null, term_id: string, resolving_status: any, creator_id: string, type: any, term: { __typename?: 'terms', type: any, vaults: Array<{ __typename?: 'vaults', curve_id: any, market_cap: any, position_count: number, total_assets: any, total_shares: any, positions: Array<{ __typename?: 'positions', account_id: string, shares: any, total_deposit_assets_after_total_fees: any, total_redeem_assets_for_receiver: any }> }>, deposits: Array<{ __typename?: 'deposits', curve_id: any, receiver_id: string, sender_id: string, shares: any, total_shares: any, assets_after_fees: any, vault_type: any }>, share_price_changes: Array<{ __typename?: 'share_price_changes', curve_id: any, share_price: any, total_assets: any, total_shares: any }> } } | null };
+export type AtomQuery = { __typename?: 'query_root', atom?: { __typename?: 'atoms', data?: string | null, label?: string | null, term_id: string, resolving_status: any, creator_id: string, type: any, term?: { __typename?: 'terms', type: any, vaults: Array<{ __typename?: 'vaults', curve_id: any, market_cap: any, position_count: number, total_assets: any, total_shares: any, positions: Array<{ __typename?: 'positions', account_id: string, shares: any, total_deposit_assets_after_total_fees: any, total_redeem_assets_for_receiver: any }> }>, deposits: Array<{ __typename?: 'deposits', curve_id: any, receiver_id: string, sender_id: string, shares: any, total_shares: any, assets_after_fees: any, vault_type: any }>, share_price_changes: Array<{ __typename?: 'share_price_changes', curve_id: any, share_price: any, total_assets: any, total_shares: any }> } | null } | null };
 
 export type SearchTermQueryVariables = Exact<{
   query: Scalars['String']['input'];
@@ -12299,6 +12423,124 @@ export const SearchPositionsDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<SearchPositionsQuery, SearchPositionsQueryVariables>;
+export const GetCaip22AtomBasicDocument = new TypedDocumentString(`
+    query GetCaip22AtomBasic($termId: String!) {
+  atom(term_id: $termId) {
+    term_id
+    data
+    type
+    resolving_status
+  }
+}
+    `) as unknown as TypedDocumentString<GetCaip22AtomBasicQuery, GetCaip22AtomBasicQueryVariables>;
+export const GetCaip22AtomResolvedDocument = new TypedDocumentString(`
+    query GetCaip22AtomResolved($termId: String!) {
+  atom(term_id: $termId) {
+    term_id
+    data
+    type
+    label
+    image
+    resolving_status
+    value {
+      json_object {
+        data
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<GetCaip22AtomResolvedQuery, GetCaip22AtomResolvedQueryVariables>;
+export const GetFirstAgentAtomDocument = new TypedDocumentString(`
+    query GetFirstAgentAtom($termId: String!) {
+  atom(term_id: $termId) {
+    data
+    type
+  }
+}
+    `) as unknown as TypedDocumentString<GetFirstAgentAtomQuery, GetFirstAgentAtomQueryVariables>;
+export const GetSecondAgentAtomDocument = new TypedDocumentString(`
+    query GetSecondAgentAtom($termId: String!) {
+  atom(term_id: $termId) {
+    data
+    type
+  }
+}
+    `) as unknown as TypedDocumentString<GetSecondAgentAtomQuery, GetSecondAgentAtomQueryVariables>;
+export const GetCaip22AtomsDocument = new TypedDocumentString(`
+    query GetCaip22Atoms {
+  atoms(where: {type: {_eq: "Caip22"}}) {
+    term_id
+    data
+    label
+    image
+    resolving_status
+  }
+}
+    `) as unknown as TypedDocumentString<GetCaip22AtomsQuery, GetCaip22AtomsQueryVariables>;
+export const GetAgentTripleDocument = new TypedDocumentString(`
+    query GetAgentTriple($tripleId: String!) {
+  triple(term_id: $tripleId) {
+    term_id
+    subject {
+      data
+      type
+      label
+    }
+    predicate {
+      data
+    }
+    object {
+      data
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<GetAgentTripleQuery, GetAgentTripleQueryVariables>;
+export const GetCaip22AtomInitialDocument = new TypedDocumentString(`
+    query GetCaip22AtomInitial($termId: String!) {
+  atom(term_id: $termId) {
+    type
+    resolving_status
+    label
+  }
+}
+    `) as unknown as TypedDocumentString<GetCaip22AtomInitialQuery, GetCaip22AtomInitialQueryVariables>;
+export const GetCaip22AtomAfterDepositDocument = new TypedDocumentString(`
+    query GetCaip22AtomAfterDeposit($termId: String!) {
+  atom(term_id: $termId) {
+    type
+    resolving_status
+    label
+  }
+}
+    `) as unknown as TypedDocumentString<GetCaip22AtomAfterDepositQuery, GetCaip22AtomAfterDepositQueryVariables>;
+export const GetEthSepoliaCaip22AtomDocument = new TypedDocumentString(`
+    query GetEthSepoliaCaip22Atom($termId: String!) {
+  atom(term_id: $termId) {
+    term_id
+    data
+    type
+    label
+    resolving_status
+  }
+}
+    `) as unknown as TypedDocumentString<GetEthSepoliaCaip22AtomQuery, GetEthSepoliaCaip22AtomQueryVariables>;
+export const GetEthSepoliaCaip22AtomResolvedDocument = new TypedDocumentString(`
+    query GetEthSepoliaCaip22AtomResolved($termId: String!) {
+  atom(term_id: $termId) {
+    term_id
+    data
+    type
+    label
+    image
+    resolving_status
+    value {
+      json_object {
+        data
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<GetEthSepoliaCaip22AtomResolvedQuery, GetEthSepoliaCaip22AtomResolvedQueryVariables>;
 export const TermDocument = new TypedDocumentString(`
     query Term($termId: String!) {
   atom(term_id: $termId) {

@@ -39,7 +39,7 @@ object_relationships:
     using:
       manual_configuration:
         column_mapping:
-          value_id: id
+          term_id: id
         insertion_order: null
         remote_table:
           name: atom_value
@@ -47,9 +47,11 @@ object_relationships:
 array_relationships:
   - name: accounts
     using:
-      foreign_key_constraint_on:
-        column: atom_id
-        table:
+      manual_configuration:
+        column_mapping:
+          term_id: atom_id
+        insertion_order: null
+        remote_table:
           name: account
           schema: public
   - name: as_object_predicate_objects
