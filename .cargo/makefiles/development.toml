@@ -98,6 +98,16 @@ dependencies = ["stop", "start-local"]
 [tasks.quick-restart]
 dependencies = ["stop", "start-local"]
 
+# Run the chart-api server locally
+[tasks.chart-api-local]
+env = { RUST_LOG = "info" }
+command = "cargo"
+args = [
+    "run",
+    "--bin",
+    "chart-api"
+]
+
 # Simply format and lint checking with `cargo clippy` for all targets
 # in the workspace, promoting `warnings` to `errors`
 [tasks.clippy]

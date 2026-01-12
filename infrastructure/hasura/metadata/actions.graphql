@@ -86,3 +86,129 @@ type UploadJsonToIpfsOutput {
   size: String!
 }
 
+type Query {
+  getChartJson(
+    input: GetChartJsonInput!
+  ): ChartDataOutput
+  getChartSvg(
+    input: GetChartSvgInput!
+  ): ChartSvgOutput
+  getPositionPnlChart(
+    input: GetPositionPnlChartInput!
+  ): PositionPnlChartOutput
+  getAccountPnlChart(
+    input: GetAccountPnlChartInput!
+  ): AccountPnlChartOutput
+  getAccountPnlCurrent(
+    input: GetAccountPnlCurrentInput!
+  ): AccountPnlSnapshotOutput
+}
+
+input GetChartJsonInput {
+  term_id: String!
+  curve_id: String!
+  interval: String!
+  start_time: String!
+  end_time: String!
+  graph_type: String
+}
+
+input GetChartSvgInput {
+  term_id: String!
+  curve_id: String!
+  interval: String!
+  start_time: String!
+  end_time: String!
+  graph_type: String
+  width: Int
+  height: Int
+  line_color: String
+  background_color: String
+}
+
+type ChartDataOutput {
+  term_id: String!
+  curve_id: String
+  graph_type: String!
+  interval: String!
+  count: Int!
+  data: [ChartDataPoint!]!
+}
+
+type ChartDataPoint {
+  timestamp: String!
+  value: String!
+}
+
+type ChartSvgOutput {
+  svg: String!
+}
+
+input GetPositionPnlChartInput {
+  account_id: String!
+  term_id: String!
+  curve_id: String!
+  interval: String!
+  start_time: String!
+  end_time: String!
+}
+
+input GetAccountPnlChartInput {
+  account_id: String!
+  interval: String!
+  start_time: String!
+  end_time: String!
+}
+
+input GetAccountPnlCurrentInput {
+  account_id: String!
+}
+
+type PositionPnlChartOutput {
+  account_id: String!
+  term_id: String!
+  curve_id: String!
+  interval: String!
+  count: Int!
+  data: [PositionPnlChartPoint!]!
+}
+
+type PositionPnlChartPoint {
+  timestamp: String!
+  shares_total: String!
+  share_price: String!
+  equity_value: String!
+  total_assets_in: String!
+  total_assets_out: String!
+  net_invested: String!
+  total_pnl: String!
+  pnl_pct: String!
+}
+
+type AccountPnlChartOutput {
+  account_id: String!
+  interval: String!
+  count: Int!
+  data: [AccountPnlChartPoint!]!
+}
+
+type AccountPnlChartPoint {
+  timestamp: String!
+  equity_value: String!
+  total_assets_in: String!
+  total_assets_out: String!
+  net_invested: String!
+  total_pnl: String!
+  pnl_pct: String!
+}
+
+type AccountPnlSnapshotOutput {
+  account_id: String!
+  timestamp: String!
+  equity_value: String!
+  total_assets_in: String!
+  total_assets_out: String!
+  net_invested: String!
+  total_pnl: String!
+  pnl_pct: String!
+}
