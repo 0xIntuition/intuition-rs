@@ -300,6 +300,22 @@ actions:
       - role: anonymous
       - role: frontend
     comment: Fetches current account PnL snapshot
+  - name: getAccountPnlRealized
+    definition:
+      kind: synchronous
+      handler: '{{chartApiUrl}}'
+      request_transform:
+        method: GET
+        url: '{{$base_url}}/api/v1/accounts/{{$body.input.input.account_id}}/pnl/realized'
+        query_params:
+          start: '{{$body.input.input.start_time}}'
+          end: '{{$body.input.input.end_time}}'
+        template_engine: Kriti
+        version: 2
+    permissions:
+      - role: anonymous
+      - role: frontend
+    comment: Fetches realized PnL breakdown for an account
 custom_types:
   enums: []
   input_objects:
@@ -314,6 +330,7 @@ custom_types:
     - name: GetPositionPnlChartInput
     - name: GetAccountPnlChartInput
     - name: GetAccountPnlCurrentInput
+    - name: GetAccountPnlRealizedInput
   objects:
     - name: PinOutput
     - name: UploadImageFromUrlOutput
@@ -327,4 +344,6 @@ custom_types:
     - name: AccountPnlChartOutput
     - name: AccountPnlChartPoint
     - name: AccountPnlSnapshotOutput
+    - name: AccountPnlRealizedOutput
+    - name: AccountPnlRealizedEntry
   scalars: []

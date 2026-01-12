@@ -102,6 +102,9 @@ type Query {
   getAccountPnlCurrent(
     input: GetAccountPnlCurrentInput!
   ): AccountPnlSnapshotOutput
+  getAccountPnlRealized(
+    input: GetAccountPnlRealizedInput!
+  ): AccountPnlRealizedOutput
 }
 
 input GetChartJsonInput {
@@ -183,6 +186,7 @@ type PositionPnlChartPoint {
   net_invested: String!
   total_pnl: String!
   pnl_pct: String!
+  unrealized_pnl: String!
 }
 
 type AccountPnlChartOutput {
@@ -200,6 +204,7 @@ type AccountPnlChartPoint {
   net_invested: String!
   total_pnl: String!
   pnl_pct: String!
+  unrealized_pnl: String!
 }
 
 type AccountPnlSnapshotOutput {
@@ -211,4 +216,28 @@ type AccountPnlSnapshotOutput {
   net_invested: String!
   total_pnl: String!
   pnl_pct: String!
+  unrealized_pnl: String!
+}
+
+input GetAccountPnlRealizedInput {
+  account_id: String!
+  start_time: String!
+  end_time: String!
+}
+
+type AccountPnlRealizedOutput {
+  account_id: String!
+  count: Int!
+  data: [AccountPnlRealizedEntry!]!
+}
+
+type AccountPnlRealizedEntry {
+  timestamp: String!
+  term_id: String!
+  curve_id: String!
+  shares_redeemed: String!
+  assets_out: String!
+  cost_basis: String!
+  realized_pnl: String!
+  realized_pnl_pct: String!
 }

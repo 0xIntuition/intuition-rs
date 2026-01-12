@@ -22,7 +22,7 @@ pub enum ApiError {
     NoDataAvailable,
     #[error("Invalid interval: {0}. Valid values are: 1h, 1d, 1w, 1m")]
     InvalidInterval(String),
-    #[error("Invalid PnL interval: {0}. Valid values are: 1m, 5m, 1h, 1d")]
+    #[error("Invalid PnL interval: {0}. Valid values are: 1m, 5m, 1h, 1d, 1w")]
     InvalidPnlInterval(String),
     #[error("Invalid format: {0}. Valid values are: json, svg, svg_json")]
     InvalidFormat(String),

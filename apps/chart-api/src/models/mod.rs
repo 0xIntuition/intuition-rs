@@ -6,5 +6,6 @@ pub use chart_data::{
 };
 pub use pnl_chart::{
     AccountPnlChartPoint, AccountPnlChartPointSchema, AccountPnlChartResponse, AccountPnlSnapshot,
-    PnlChartPoint, PnlChartPointSchema, PnlChartResponse,
+    PnlChartPoint, PnlChartPointSchema, PnlChartResponse, RealizedPnlEntry,
+    RealizedPnlEntrySchema, RealizedPnlResponse,
 };

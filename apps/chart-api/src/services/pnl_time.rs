@@ -44,6 +44,7 @@ fn next_bucket(current: DateTime<Utc>, interval: PnlInterval) -> DateTime<Utc> {
         PnlInterval::OneMinute => current + Duration::minutes(1),
         PnlInterval::FiveMinutes => current + Duration::minutes(5),
         PnlInterval::OneHour => current + Duration::hours(1),
+        PnlInterval::OneWeek => current + Duration::weeks(1),
         PnlInterval::OneDay => current + Duration::days(1),
     }
 }
@@ -69,6 +70,17 @@ fn truncate_to_bucket(timestamp: DateTime<Utc>, interval: PnlInterval) -> DateTi
             .and_then(|t| t.with_second(0))
             .and_then(|t| t.with_nanosecond(0))
             .unwrap_or(timestamp),
+        PnlInterval::OneWeek => {
+            use chrono::{Datelike, Duration as ChronoDuration};
+            let days_since_monday = timestamp.weekday().num_days_from_monday();
+            let start_of_week = timestamp - ChronoDuration::days(days_since_monday as i64);
+            start_of_week
+                .with_hour(0)
+                .and_then(|t| t.with_minute(0))
+                .and_then(|t| t.with_second(0))
+                .and_then(|t| t.with_nanosecond(0))
+                .unwrap_or(timestamp)
+        }
         PnlInterval::OneDay => timestamp
             .with_hour(0)
             .and_then(|t| t.with_minute(0))
