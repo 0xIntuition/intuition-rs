@@ -46,24 +46,38 @@ suite('IPFS image caching', async () => {
   test('cached_image is created after async processing', async () => {
     await wait(atom.hash);
 
-    // Use polling helper (20s timeout, 1s interval)
+    // Poll for cached_image to appear (async processing takes time)
+    // Timeout after 20 seconds, checking every 1 second
+    let result;
+    let attempts = 0;
+    const maxAttempts = 20;
 
-    const result = await execute(
-      graphql(`query GetAtomWithCachedImage($termId: String!) {
-        atom(term_id: $termId) {
-          image
-          cached_image {
-            url
-            original_url
-            safe
-            score
-            model
-            created_at
+    while (attempts < maxAttempts) {
+      result = await execute(
+        graphql(`query GetAtomWithCachedImage($termId: String!) {
+          atom(term_id: $termId) {
+            image
+            cached_image {
+              url
+              original_url
+              safe
+              score
+              model
+            }
           }
-        }
-      }`),
-      { termId: atom.vaultId }
-    );
+        }`),
+        { termId: atom.vaultId }
+      );
+
+      if (result?.atom?.cached_image) {
+        break;
+      }
+
+      attempts++;
+      if (attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
 
     expect(result).toBeDefined();
     expect(result.atom).toBeDefined();

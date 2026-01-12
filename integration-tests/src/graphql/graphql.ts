@@ -12229,7 +12229,7 @@ export type GetAtomWithCachedImageQueryVariables = Exact<{
 }>;
 
 
-export type GetAtomWithCachedImageQuery = { __typename?: 'query_root', atom?: { __typename?: 'atoms', image?: string | null, cached_image?: { __typename?: 'cached_images_cached_image', url: string, original_url: string, safe: boolean, score?: any | null, model?: string | null, created_at: any } | null } | null };
+export type GetAtomWithCachedImageQuery = { __typename?: 'query_root', atom?: { __typename?: 'atoms', image?: string | null, cached_image?: { __typename?: 'cached_images_cached_image', url: string, original_url: string, safe: boolean, score?: any | null, model?: string | null } | null } | null };
 
 export type AtomOrgProfileQueryVariables = Exact<{
   term_id: Scalars['String']['input'];
@@ -12652,7 +12652,6 @@ export const GetAtomWithCachedImageDocument = new TypedDocumentString(`
       safe
       score
       model
-      created_at
     }
   }
 }

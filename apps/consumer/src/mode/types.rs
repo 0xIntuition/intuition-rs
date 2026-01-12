@@ -341,6 +341,8 @@ impl ConsumerMode {
                 data.env
                     .pinata_gateway_token
                     .clone()
+                    // Empty string is acceptable for public IPFS gateways that don't require authentication.
+                    // For private/production deployments, set PINATA_GATEWAY_TOKEN in environment variables.
                     .unwrap_or_else(|| String::from("")),
             )
             .build())
@@ -367,7 +369,8 @@ impl ConsumerMode {
 
         // Create a single HTTP client and reuse it for both IPFSResolver and reqwest operations
         let reqwest_client = reqwest::Client::new();
-        let ipfs_resolver = Self::create_ipfs_resolver(data.clone(), reqwest_client.clone()).await?;
+        let ipfs_resolver =
+            Self::create_ipfs_resolver(data.clone(), reqwest_client.clone()).await?;
 
         Ok(ConsumerMode::IpfsUpload(IpfsUploadConsumerContext {
             client,

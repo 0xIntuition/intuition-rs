@@ -44,7 +44,9 @@ impl AppState {
             .pinata_gateway_token(
                 env.pinata_gateway_token
                     .clone()
-                    .unwrap_or_else(|| String::from(""))
+                    // Empty string is acceptable for public IPFS gateways that don't require authentication.
+                    // For private/production deployments, set PINATA_GATEWAY_TOKEN in environment variables.
+                    .unwrap_or_else(|| String::from("")),
             )
             .build();
 
