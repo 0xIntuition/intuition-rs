@@ -5,6 +5,7 @@ use sqlx::{Pool, Postgres, Row};
 use sqlx::types::BigDecimal;
 use std::collections::HashMap;
 use std::str::FromStr;
+use tracing::warn;
 
 #[derive(Debug, Clone)]
 pub struct PnlComputedPoint {
@@ -71,6 +72,7 @@ pub struct PositionChangeEventRow {
     pub shares_delta: BigDecimal,
     pub assets_in: BigDecimal,
     pub assets_out: BigDecimal,
+    pub transaction_hash: String,
     pub log_index: i64,
 }
 
@@ -84,6 +86,13 @@ pub struct RealizedPnlComputed {
     pub cost_basis: BigDecimal,
     pub realized_pnl: BigDecimal,
     pub realized_pnl_pct: BigDecimal,
+}
+
+#[derive(Debug, Clone)]
+struct PositionState {
+    shares_total: BigDecimal,
+    assets_in_total: BigDecimal,
+    assets_out_total: BigDecimal,
 }
 
 /// Check if a position exists for account/term/curve
@@ -129,6 +138,22 @@ pub async fn fetch_account_positions(
     .await?;
 
     Ok(rows)
+}
+
+/// Check if an account exists
+pub async fn account_exists(pool: &Pool<Postgres>, account_id: &str) -> Result<bool, ApiError> {
+    let row = sqlx::query(
+        r#"
+        SELECT 1 FROM account
+        WHERE id = $1
+        LIMIT 1
+        "#,
+    )
+    .bind(account_id)
+    .fetch_optional(pool)
+    .await?;
+
+    Ok(row.is_some())
 }
 
 /// Fetch cumulative position totals before the start of the range
@@ -434,12 +459,13 @@ pub async fn fetch_account_position_changes(
             shares_delta,
             assets_in,
             assets_out,
+            transaction_hash,
             log_index
         FROM position_change
         WHERE account_id = $1
           AND created_at >= $2
           AND created_at < $3
-        ORDER BY created_at ASC, log_index ASC
+        ORDER BY created_at ASC, transaction_hash ASC, log_index ASC
         "#,
     )
     .bind(account_id)
@@ -451,24 +477,10 @@ pub async fn fetch_account_position_changes(
     Ok(rows)
 }
 
-/// Build realized PnL entries for an account over a time range
-pub async fn build_account_realized_pnl(
-    pool: &Pool<Postgres>,
-    account_id: &str,
-    range_start: DateTime<Utc>,
-    range_end: DateTime<Utc>,
-) -> Result<Vec<RealizedPnlComputed>, ApiError> {
-    let totals_before = fetch_account_position_totals_before(pool, account_id, range_start).await?;
-    let events = fetch_account_position_changes(pool, account_id, range_start, range_end).await?;
-
-    let mut state: HashMap<(String, String), (BigDecimal, BigDecimal, BigDecimal)> = HashMap::new();
-    for row in totals_before {
-        state.insert(
-            (row.term_id, row.curve_id),
-            (row.shares_total, row.assets_in_total, row.assets_out_total),
-        );
-    }
-
+fn compute_realized_pnl(
+    mut state: HashMap<(String, String), PositionState>,
+    events: Vec<PositionChangeEventRow>,
+) -> Vec<RealizedPnlComputed> {
     let zero = BigDecimal::from(0);
     let one = BigDecimal::from(1);
     let hundred = BigDecimal::from(100);
@@ -476,21 +488,39 @@ pub async fn build_account_realized_pnl(
     let mut realized = Vec::new();
 
     for event in events {
+        if event.assets_in > zero && event.assets_out > zero {
+            warn!(
+                term_id = %event.term_id,
+                curve_id = %event.curve_id,
+                transaction_hash = %event.transaction_hash,
+                log_index = event.log_index,
+                "position_change has both assets_in and assets_out set"
+            );
+        }
+
         let key = (event.term_id.clone(), event.curve_id.clone());
-        let entry = state.entry(key).or_insert_with(|| {
-            (
-                BigDecimal::from(0),
-                BigDecimal::from(0),
-                BigDecimal::from(0),
-            )
+        let entry = state.entry(key).or_insert_with(|| PositionState {
+            shares_total: BigDecimal::from(0),
+            assets_in_total: BigDecimal::from(0),
+            assets_out_total: BigDecimal::from(0),
         });
 
-        let shares_before = entry.0.clone();
-        let assets_in_before = entry.1.clone();
-        let assets_out_before = entry.2.clone();
+        let shares_before = entry.shares_total.clone();
+        let assets_in_before = entry.assets_in_total.clone();
+        let assets_out_before = entry.assets_out_total.clone();
         let net_invested_before = assets_in_before.clone() - assets_out_before.clone();
 
         if event.shares_delta < zero {
+            if shares_before <= zero {
+                warn!(
+                    term_id = %event.term_id,
+                    curve_id = %event.curve_id,
+                    transaction_hash = %event.transaction_hash,
+                    log_index = event.log_index,
+                    "redemption encountered with non-positive shares_before"
+                );
+            }
+
             let shares_redeemed = -event.shares_delta.clone();
             let cost_basis = if shares_before > zero {
                 (net_invested_before.clone() * shares_redeemed.clone()) / shares_before.clone()
@@ -517,10 +547,120 @@ pub async fn build_account_realized_pnl(
             });
         }
 
-        entry.0 = shares_before + event.shares_delta.clone();
-        entry.1 = assets_in_before + event.assets_in.clone();
-        entry.2 = assets_out_before + event.assets_out.clone();
+        entry.shares_total = shares_before + event.shares_delta.clone();
+        entry.assets_in_total = assets_in_before + event.assets_in.clone();
+        entry.assets_out_total = assets_out_before + event.assets_out.clone();
     }
 
-    Ok(realized)
+    realized
+}
+
+/// Build realized PnL entries for an account over a time range
+pub async fn build_account_realized_pnl(
+    pool: &Pool<Postgres>,
+    account_id: &str,
+    range_start: DateTime<Utc>,
+    range_end: DateTime<Utc>,
+) -> Result<Vec<RealizedPnlComputed>, ApiError> {
+    let totals_before = fetch_account_position_totals_before(pool, account_id, range_start).await?;
+    let events = fetch_account_position_changes(pool, account_id, range_start, range_end).await?;
+
+    let mut state: HashMap<(String, String), PositionState> = HashMap::new();
+    for row in totals_before {
+        state.insert(
+            (row.term_id, row.curve_id),
+            PositionState {
+                shares_total: row.shares_total,
+                assets_in_total: row.assets_in_total,
+                assets_out_total: row.assets_out_total,
+            },
+        );
+    }
+
+    Ok(compute_realized_pnl(state, events))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::{TimeZone, Utc};
+
+    fn bd(value: i64) -> BigDecimal {
+        BigDecimal::from(value)
+    }
+
+    #[test]
+    fn computes_realized_pnl_for_partial_redeem() {
+        let mut state = HashMap::new();
+        state.insert(
+            ("term".to_string(), "1".to_string()),
+            PositionState {
+                shares_total: bd(10),
+                assets_in_total: bd(100),
+                assets_out_total: bd(0),
+            },
+        );
+
+        let events = vec![PositionChangeEventRow {
+            created_at: Utc.with_ymd_and_hms(2026, 1, 1, 0, 0, 0).unwrap(),
+            term_id: "term".to_string(),
+            curve_id: "1".to_string(),
+            shares_delta: bd(-4),
+            assets_in: bd(0),
+            assets_out: bd(60),
+            transaction_hash: "0xabc".to_string(),
+            log_index: 1,
+        }];
+
+        let realized = compute_realized_pnl(state, events);
+        assert_eq!(realized.len(), 1);
+        let entry = &realized[0];
+        assert_eq!(entry.shares_redeemed, bd(4));
+        assert_eq!(entry.cost_basis, bd(40));
+        assert_eq!(entry.realized_pnl, bd(20));
+        assert_eq!(entry.realized_pnl_pct, bd(50));
+    }
+
+    #[test]
+    fn computes_realized_pnl_for_multiple_redemptions() {
+        let mut state = HashMap::new();
+        state.insert(
+            ("term".to_string(), "1".to_string()),
+            PositionState {
+                shares_total: bd(10),
+                assets_in_total: bd(100),
+                assets_out_total: bd(0),
+            },
+        );
+
+        let events = vec![
+            PositionChangeEventRow {
+                created_at: Utc.with_ymd_and_hms(2026, 1, 1, 0, 0, 0).unwrap(),
+                term_id: "term".to_string(),
+                curve_id: "1".to_string(),
+                shares_delta: bd(-5),
+                assets_in: bd(0),
+                assets_out: bd(45),
+                transaction_hash: "0xaaa".to_string(),
+                log_index: 1,
+            },
+            PositionChangeEventRow {
+                created_at: Utc.with_ymd_and_hms(2026, 1, 2, 0, 0, 0).unwrap(),
+                term_id: "term".to_string(),
+                curve_id: "1".to_string(),
+                shares_delta: bd(-5),
+                assets_in: bd(0),
+                assets_out: bd(70),
+                transaction_hash: "0xbbb".to_string(),
+                log_index: 2,
+            },
+        ];
+
+        let realized = compute_realized_pnl(state, events);
+        assert_eq!(realized.len(), 2);
+        assert_eq!(realized[0].cost_basis, bd(50));
+        assert_eq!(realized[0].realized_pnl, bd(-5));
+        assert_eq!(realized[1].cost_basis, bd(55));
+        assert_eq!(realized[1].realized_pnl, bd(15));
+    }
 }
