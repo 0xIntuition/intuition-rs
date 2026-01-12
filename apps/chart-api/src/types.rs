@@ -311,9 +311,29 @@ impl SvgConfig {
 
         // Allow basic CSS color names (lowercase, no spaces or special chars)
         const ALLOWED_COLORS: &[&str] = &[
-            "black", "white", "red", "green", "blue", "yellow", "orange", "purple",
-            "pink", "gray", "grey", "cyan", "magenta", "brown", "navy", "teal",
-            "maroon", "olive", "lime", "aqua", "fuchsia", "silver", "transparent",
+            "black",
+            "white",
+            "red",
+            "green",
+            "blue",
+            "yellow",
+            "orange",
+            "purple",
+            "pink",
+            "gray",
+            "grey",
+            "cyan",
+            "magenta",
+            "brown",
+            "navy",
+            "teal",
+            "maroon",
+            "olive",
+            "lime",
+            "aqua",
+            "fuchsia",
+            "silver",
+            "transparent",
         ];
 
         let lower = color.to_lowercase();

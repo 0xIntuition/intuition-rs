@@ -51,7 +51,9 @@ impl App {
 
         if origins == "*" {
             // Explicit wildcard - allow all origins (not recommended for production)
-            warn!("CORS configured to allow all origins (*). This is not recommended for production.");
+            warn!(
+                "CORS configured to allow all origins (*). This is not recommended for production."
+            );
             cors.allow_origin(Any)
         } else if origins.is_empty() {
             // Empty/not set - restrictive mode (default secure behavior)
@@ -71,7 +73,10 @@ impl App {
                 warn!("Failed to parse CORS_ALLOWED_ORIGINS. Running in restrictive mode.");
                 cors
             } else {
-                info!("CORS configured with {} allowed origin(s)", origin_list.len());
+                info!(
+                    "CORS configured with {} allowed origin(s)",
+                    origin_list.len()
+                );
                 cors.allow_origin(origin_list)
             }
         }
@@ -126,7 +131,10 @@ impl App {
                 "/api/v1/accounts/{account_id}/positions/{term_id}/{curve_id}/pnl",
                 get(get_position_pnl_chart),
             )
-            .route("/api/v1/accounts/{account_id}/pnl", get(get_account_pnl_chart))
+            .route(
+                "/api/v1/accounts/{account_id}/pnl",
+                get(get_account_pnl_chart),
+            )
             .route(
                 "/api/v1/accounts/{account_id}/pnl/current",
                 get(get_account_pnl_current),

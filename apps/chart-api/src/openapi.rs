@@ -2,7 +2,9 @@ use crate::models::{
     AccountPnlChartPointSchema, AccountPnlChartResponse, AccountPnlSnapshot, ChartDataPointSchema,
     ChartResponse, PnlChartPointSchema, PnlChartResponse,
 };
-use crate::types::{ChartQueryParams, GraphType, Interval, OutputFormat, PnlChartQueryParams, PnlInterval};
+use crate::types::{
+    ChartQueryParams, GraphType, Interval, OutputFormat, PnlChartQueryParams, PnlInterval,
+};
 use utoipa::OpenApi;
 
 #[derive(OpenApi)]
