@@ -27,6 +27,27 @@ pub struct Image {
 }
 
 impl Image {
+    /// Validates that image data magic bytes match the claimed extension.
+    /// Returns true if the magic bytes are valid for the given extension.
+    fn validate_magic_bytes(data: &[u8], extension: &str) -> bool {
+        if data.len() < 12 {
+            return false;
+        }
+
+        match extension {
+            "jpg" | "jpeg" => data.starts_with(&[0xFF, 0xD8, 0xFF]),
+            "png" => data.starts_with(&[0x89, 0x50, 0x4E, 0x47]),
+            "gif" => data.starts_with(&[0x47, 0x49, 0x46]),
+            "bmp" => data.starts_with(&[0x42, 0x4D]),
+            "tiff" => {
+                data.starts_with(&[0x49, 0x49, 0x2A, 0x00])
+                    || data.starts_with(&[0x4D, 0x4D, 0x00, 0x2A])
+            }
+            "webp" => data.starts_with(b"RIFF") && data.get(8..12) == Some(b"WEBP"),
+            _ => false,
+        }
+    }
+
     /// Returns true if the URL is a data URL (base64 encoded)
     pub fn is_data_url(&self) -> bool {
         self.url.starts_with("data:")
@@ -86,8 +107,9 @@ impl Image {
             extension
         };
 
-        // Whitelist allowed image extensions
-        const ALLOWED_EXTENSIONS: &[&str] = &["png", "jpg", "jpeg", "gif", "webp", "bmp", "tiff", "svg"];
+        // Whitelist allowed image extensions (raster formats only)
+        // SVG is intentionally excluded due to security concerns (can contain embedded JavaScript)
+        const ALLOWED_EXTENSIONS: &[&str] = &["png", "jpg", "jpeg", "gif", "webp", "bmp", "tiff"];
         if !ALLOWED_EXTENSIONS.contains(&extension.as_str()) {
             return Err(LibError::InvalidInput(format!(
                 "Unsupported image extension: {}. Allowed: {:?}",
@@ -111,6 +133,14 @@ impl Image {
                 "Image size {} bytes exceeds maximum allowed size of {} bytes",
                 data.len(),
                 MAX_IMAGE_SIZE
+            )));
+        }
+
+        // Validate magic bytes match the claimed MIME type
+        if !Self::validate_magic_bytes(&data, &extension) {
+            return Err(LibError::InvalidInput(format!(
+                "Image content does not match claimed type: {}",
+                mime_type
             )));
         }
 
@@ -228,6 +258,18 @@ impl Image {
     pub fn new(url: String) -> Self {
         Self { url }
     }
+
+    /// Returns the cache key for this image.
+    /// For data URLs, returns "data:<uuid>" where uuid is deterministic based on content.
+    /// For regular URLs, returns the URL itself.
+    pub fn cache_key(&self) -> Option<String> {
+        if self.is_data_url() {
+            self.extract_name_and_extension()
+                .map(|output| format!("data:{}", output.name))
+        } else {
+            Some(self.url.clone())
+        }
+    }
 }
 
 #[cfg(test)]
@@ -260,8 +302,9 @@ mod tests {
 
     #[test]
     fn test_parse_data_url_valid_jpeg() {
-        // Minimal JPEG header (not a complete image, but enough for parsing)
-        let jpeg_b64 = "/9j/4AAQSkZJRg==";
+        // Minimal JPEG header (at least 12 bytes for magic byte validation)
+        // JPEG starts with FF D8 FF
+        let jpeg_b64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAA=="; // Valid JPEG header, 24 bytes
         let image = Image::new(format!("data:image/jpeg;base64,{}", jpeg_b64));
 
         let result = image.parse_data_url();
@@ -273,16 +316,13 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_data_url_svg_extension_normalized() {
+    fn test_parse_data_url_svg_rejected_for_security() {
+        // SVG is rejected due to security concerns (can contain embedded JavaScript)
         let svg_b64 = "PHN2Zz48L3N2Zz4="; // <svg></svg>
         let image = Image::new(format!("data:image/svg+xml;base64,{}", svg_b64));
 
         let result = image.parse_data_url();
-        assert!(result.is_ok());
-
-        let parsed = result.unwrap();
-        assert_eq!(parsed.mime_type, "image/svg+xml");
-        assert_eq!(parsed.extension, "svg"); // Should be normalized from svg+xml
+        assert!(result.is_err());
     }
 
     #[test]
@@ -309,7 +349,8 @@ mod tests {
     #[test]
     fn test_parse_data_url_handles_whitespace() {
         // Base64 with whitespace (some encoders add newlines)
-        let png_b64_with_ws = "iVBORw0K\nGgoAAAAN\nSUhEUgAA";
+        // Use valid PNG (1x1 transparent pixel) with whitespace inserted
+        let png_b64_with_ws = "iVBORw0KGgoAAAANSUhEUg\nAAAAEAAAABCAYAAAAfFcSJ\nAAAADUlEQVR42mNk+M9QDw\nADhgGAWjR9awAAAABJRU5E\nrkJggg==";
         let image = Image::new(format!("data:image/png;base64,{}", png_b64_with_ws));
 
         let result = image.parse_data_url();
