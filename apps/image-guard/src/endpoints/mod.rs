@@ -8,6 +8,7 @@ use crate::{error::ApiError, state::AppState};
 use axum::extract::multipart::Field;
 use log::info;
 use reqwest::Client;
+use shared_utils::image::is_valid_image_data;
 use shared_utils::types::MultiPartHandlerJson;
 use shared_utils::{
     ipfs::{IPFSResolver, IpfsResponse},
@@ -147,21 +148,7 @@ fn validate_field_metadata(field: &Field<'_>) -> Result<(String, String), ApiErr
 
 /// Validates the image bytes by checking magic bytes
 fn validate_image_bytes(data: &[u8]) -> Result<(), ApiError> {
-    if data.len() < 12 {
-        return Err(ApiError::InvalidInput("Image data too small".into()));
-    }
-
-    let is_valid_image =
-        data.starts_with(&[0xFF, 0xD8, 0xFF]) || // JPEG
-        data.starts_with(&[0x89, 0x50, 0x4E, 0x47]) || // PNG
-        data.starts_with(&[0x47, 0x49, 0x46]) || // GIF
-        data.starts_with(&[0x42, 0x4D]) || // BMP
-        data.starts_with(&[0x49, 0x49, 0x2A, 0x00]) || // TIFF little-endian
-        data.starts_with(&[0x4D, 0x4D, 0x00, 0x2A]) || // TIFF big-endian
-        // WebP: starts with "RIFF", then 4 bytes of size, then "WEBP"
-        (data.starts_with(b"RIFF") && data.get(8..12) == Some(b"WEBP"));
-
-    if !is_valid_image {
+    if !is_valid_image_data(data) {
         return Err(ApiError::InvalidInput("Invalid image format".into()));
     }
     Ok(())

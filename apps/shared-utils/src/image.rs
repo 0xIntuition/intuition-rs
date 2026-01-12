@@ -7,6 +7,10 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
+/// Maximum allowed image size in bytes (50 MB).
+/// Used for validating image data before processing and for HTTP body limits.
+pub const MAX_IMAGE_SIZE: usize = 50 * 1024 * 1024;
+
 /// Represents the name and extension of an image
 pub struct ImageOutput {
     pub name: String,
@@ -26,27 +30,44 @@ pub struct Image {
     pub url: String,
 }
 
-impl Image {
-    /// Validates that image data magic bytes match the claimed extension.
-    /// Returns true if the magic bytes are valid for the given extension.
-    fn validate_magic_bytes(data: &[u8], extension: &str) -> bool {
-        if data.len() < 12 {
-            return false;
-        }
-
-        match extension {
-            "jpg" | "jpeg" => data.starts_with(&[0xFF, 0xD8, 0xFF]),
-            "png" => data.starts_with(&[0x89, 0x50, 0x4E, 0x47]),
-            "gif" => data.starts_with(&[0x47, 0x49, 0x46]),
-            "bmp" => data.starts_with(&[0x42, 0x4D]),
-            "tiff" => {
-                data.starts_with(&[0x49, 0x49, 0x2A, 0x00])
-                    || data.starts_with(&[0x4D, 0x4D, 0x00, 0x2A])
-            }
-            "webp" => data.starts_with(b"RIFF") && data.get(8..12) == Some(b"WEBP"),
-            _ => false,
-        }
+/// Validates that image data has valid magic bytes for any supported image format.
+/// Returns true if the data starts with valid image magic bytes.
+pub fn is_valid_image_data(data: &[u8]) -> bool {
+    if data.len() < 12 {
+        return false;
     }
+
+    data.starts_with(&[0xFF, 0xD8, 0xFF]) || // JPEG
+    data.starts_with(&[0x89, 0x50, 0x4E, 0x47]) || // PNG
+    data.starts_with(&[0x47, 0x49, 0x46]) || // GIF
+    data.starts_with(&[0x42, 0x4D]) || // BMP
+    data.starts_with(&[0x49, 0x49, 0x2A, 0x00]) || // TIFF little-endian
+    data.starts_with(&[0x4D, 0x4D, 0x00, 0x2A]) || // TIFF big-endian
+    (data.starts_with(b"RIFF") && data.get(8..12) == Some(b"WEBP")) // WebP
+}
+
+/// Validates that image data magic bytes match the claimed extension.
+/// Returns true if the magic bytes are valid for the given extension.
+pub fn validate_magic_bytes_for_extension(data: &[u8], extension: &str) -> bool {
+    if data.len() < 12 {
+        return false;
+    }
+
+    match extension {
+        "jpg" | "jpeg" => data.starts_with(&[0xFF, 0xD8, 0xFF]),
+        "png" => data.starts_with(&[0x89, 0x50, 0x4E, 0x47]),
+        "gif" => data.starts_with(&[0x47, 0x49, 0x46]),
+        "bmp" => data.starts_with(&[0x42, 0x4D]),
+        "tiff" => {
+            data.starts_with(&[0x49, 0x49, 0x2A, 0x00])
+                || data.starts_with(&[0x4D, 0x4D, 0x00, 0x2A])
+        }
+        "webp" => data.starts_with(b"RIFF") && data.get(8..12) == Some(b"WEBP"),
+        _ => false,
+    }
+}
+
+impl Image {
 
     /// Returns true if the URL is a data URL (base64 encoded)
     pub fn is_data_url(&self) -> bool {
@@ -101,11 +122,8 @@ impl Image {
 
         // Normalize composite extensions (e.g., "svg+xml" -> "svg")
         // This must be done before the whitelist check
-        let extension = if let Some(base_ext) = extension.split('+').next() {
-            base_ext.to_string()
-        } else {
-            extension
-        };
+        // Note: split('+').next() always returns Some for non-empty strings
+        let extension = extension.split('+').next().unwrap_or(&extension).to_string();
 
         // Whitelist allowed image extensions (raster formats only)
         // SVG is intentionally excluded due to security concerns (can contain embedded JavaScript)
@@ -117,27 +135,34 @@ impl Image {
             )));
         }
 
-        // Decode base64 data (strip whitespace that some encoders add)
-        let base64_clean: String = base64_data.chars().filter(|c| !c.is_whitespace()).collect();
-        let data = BASE64
-            .decode(&base64_clean)
-            .map_err(|e: base64::DecodeError| LibError::Base64Decode(e.to_string()))?;
-
-        // Validate decoded data is not empty and within size limits (50MB max)
-        const MAX_IMAGE_SIZE: usize = 50 * 1024 * 1024;
-        if data.is_empty() {
-            return Err(LibError::InvalidInput("Decoded image data is empty".into()));
-        }
-        if data.len() > MAX_IMAGE_SIZE {
+        // Validate size before allocating memory for decoding
+        // Base64 encoded data is ~4/3 the size of decoded data, so check early
+        let estimated_decoded_size = base64_data.len() * 3 / 4;
+        if estimated_decoded_size > MAX_IMAGE_SIZE {
             return Err(LibError::InvalidInput(format!(
-                "Image size {} bytes exceeds maximum allowed size of {} bytes",
-                data.len(),
+                "Estimated image size {} bytes exceeds maximum allowed size of {} bytes",
+                estimated_decoded_size,
                 MAX_IMAGE_SIZE
             )));
         }
 
+        // Decode base64 data (strip whitespace that some encoders add)
+        // Use bytes iterator to avoid allocating an intermediate String
+        let base64_clean: Vec<u8> = base64_data
+            .bytes()
+            .filter(|b| !b.is_ascii_whitespace())
+            .collect();
+        let data = BASE64
+            .decode(&base64_clean)
+            .map_err(|e: base64::DecodeError| LibError::Base64Decode(e.to_string()))?;
+
+        // Validate decoded data is not empty
+        if data.is_empty() {
+            return Err(LibError::InvalidInput("Decoded image data is empty".into()));
+        }
+
         // Validate magic bytes match the claimed MIME type
-        if !Self::validate_magic_bytes(&data, &extension) {
+        if !validate_magic_bytes_for_extension(&data, &extension) {
             return Err(LibError::InvalidInput(format!(
                 "Image content does not match claimed type: {}",
                 mime_type
@@ -259,9 +284,20 @@ impl Image {
         Self { url }
     }
 
-    /// Returns the cache key for this image.
-    /// For data URLs, returns "data:<uuid>" where uuid is deterministic based on content.
-    /// For regular URLs, returns the URL itself.
+    /// Returns the cache key for this image, used for database lookups and deduplication.
+    ///
+    /// For data URLs, returns "data:<uuid>" where uuid is a deterministic UUID v5 generated
+    /// from the decoded image content. This ensures:
+    /// - Identical image data always produces the same cache key
+    /// - The key is short enough for PostgreSQL B-tree indexes (max 8KB)
+    /// - No need to store the full base64-encoded data URL in the database
+    ///
+    /// UUID v5 was chosen over SHA256 because:
+    /// - It produces a shorter, fixed-length output (36 chars vs 64 chars)
+    /// - Both provide sufficient uniqueness for our deduplication needs
+    /// - UUID format is more portable and database-friendly
+    ///
+    /// For regular HTTP URLs, returns the URL itself as the cache key.
     pub fn cache_key(&self) -> Option<String> {
         if self.is_data_url() {
             self.extract_name_and_extension()

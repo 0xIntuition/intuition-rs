@@ -19,6 +19,7 @@ use http::{
     header::{AUTHORIZATION, CONTENT_TYPE},
 };
 use log::info;
+use shared_utils::image::MAX_IMAGE_SIZE;
 use std::time::Duration;
 use tokio::net::TcpListener;
 use tower_http::cors::CorsLayer;
@@ -80,8 +81,8 @@ impl App {
         self.router()
             .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
             .layer(self.cors())
-            // Increase body limit to 50MB for large images (base64 encoded images are ~33% larger)
-            .layer(DefaultBodyLimit::max(50 * 1024 * 1024))
+            // Increase body limit to match MAX_IMAGE_SIZE for large images
+            .layer(DefaultBodyLimit::max(MAX_IMAGE_SIZE))
     }
 
     /// Initialize the application. This will read the environment variables,

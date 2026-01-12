@@ -269,12 +269,17 @@ impl IPFSResolver {
 
     /// Formats the multipart form to upload a file to IPFS.
     /// The field name "file" is required by the IPFS HTTP API.
-    fn multipart_form(&self, multi_part_handler: MultiPartHandler) -> Result<Form, LibError> {
+    fn multipart_form(
+        &self,
+        data: bytes::Bytes,
+        name: &str,
+        content_type: &str,
+    ) -> Result<Form, LibError> {
         Ok(Form::new().part(
             "file",
-            Part::stream(multi_part_handler.data.clone())
-                .file_name(multi_part_handler.name.clone())
-                .mime_str(&multi_part_handler.content_type)
+            Part::stream(data)
+                .file_name(name.to_owned())
+                .mime_str(content_type)
                 .map_err(|e| LibError::InvalidInput(format!("Invalid MIME type: {}", e)))?,
         ))
     }
@@ -360,8 +365,13 @@ impl IPFSResolver {
         loop {
             attempts += 1;
 
+            // Clone data only when needed for the request (Bytes clone is cheap - just Arc increment)
             match self
-                .upload_to_ipfs_request(multi_part_handler.clone())
+                .upload_to_ipfs_request(
+                    multi_part_handler.data.clone(),
+                    &multi_part_handler.name,
+                    &multi_part_handler.content_type,
+                )
                 .await
             {
                 Ok(resp) => {
@@ -450,17 +460,19 @@ impl IPFSResolver {
     /// Sends a request to upload a file to IPFS
     async fn upload_to_ipfs_request(
         &self,
-        multi_part_handler: MultiPartHandler,
+        data: bytes::Bytes,
+        name: &str,
+        content_type: &str,
     ) -> Result<Response, LibError> {
         let url = self.format_ipfs_upload_url();
         tracing::info!(
             "Uploading to IPFS: url={}, file_name={}, content_type={}, size={}",
             url,
-            multi_part_handler.name,
-            multi_part_handler.content_type,
-            multi_part_handler.data.len()
+            name,
+            content_type,
+            data.len()
         );
-        let form = self.multipart_form(multi_part_handler.clone())?;
+        let form = self.multipart_form(data, name, content_type)?;
         let result = self.http_client.post(&url).multipart(form).send().await;
         if let Err(ref e) = result {
             tracing::error!(
