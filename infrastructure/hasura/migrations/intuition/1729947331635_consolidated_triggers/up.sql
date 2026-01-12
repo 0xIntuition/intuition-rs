@@ -1042,3 +1042,73 @@ EXECUTE FUNCTION update_subject_predicate_aggregates();
 -- AFTER UPDATE ON position
 -- FOR EACH ROW
 -- EXECUTE FUNCTION decrement_triple_term_position_count();
+
+-- ========================================
+-- FUNCTION COMMENTS
+-- ========================================
+
+-- Stats update functions
+COMMENT ON FUNCTION update_account_stats() IS 'Trigger function that increments total_accounts in stats table when new accounts are created.';
+
+COMMENT ON FUNCTION update_atom_stats() IS 'Trigger function that increments total_atoms in stats table when new atoms are created.';
+
+COMMENT ON FUNCTION update_triple_stats() IS 'Trigger function that increments total_triples in stats table when new triples are created.';
+
+COMMENT ON FUNCTION update_position_stats() IS 'Trigger function that increments total_positions in stats table when new positions are created.';
+
+COMMENT ON FUNCTION delete_position_stats() IS 'Trigger function that decrements total_positions in stats table when positions are deleted.';
+
+COMMENT ON FUNCTION update_signal_stats() IS 'Trigger function that increments total_signals in stats table when new signals are recorded.';
+
+COMMENT ON FUNCTION update_fee_stats() IS 'Trigger function that adds fee amount to total_fees in stats table when fees are transferred.';
+
+-- Position update functions
+COMMENT ON FUNCTION update_position_deposit_assets() IS 'Updates position total_deposit_assets_after_total_fees when deposits are recorded.';
+
+COMMENT ON FUNCTION update_position_redeem_assets() IS 'Updates position total_redeem_assets_for_receiver when redemptions are recorded.';
+
+-- Term aggregation functions
+COMMENT ON FUNCTION update_term_totals() IS 'Recalculates term total_assets and total_market_cap by summing vault data when vaults change.';
+
+COMMENT ON FUNCTION update_triple_term_totals() IS 'Updates triple_term aggregates (total_assets, total_market_cap, total_position_count) when triple_vault changes.';
+
+COMMENT ON FUNCTION update_triple_vault_from_vault() IS 'Synchronizes triple_vault aggregated data when underlying vault records change.';
+
+-- State change tracking functions
+COMMENT ON FUNCTION update_term_total_state_change_from_triple_vault() IS 'Inserts term state snapshot into term_total_state_change hypertable when triple_vault is updated.';
+
+COMMENT ON FUNCTION update_term_total_state_change_from_term() IS 'Inserts term state snapshot into term_total_state_change hypertable when Atom-type terms are updated.';
+
+-- Vault position count functions
+COMMENT ON FUNCTION increment_vault_position_count() IS 'Increments vault position_count when a new position with shares > 0 is created, with retry logic for concurrency.';
+
+COMMENT ON FUNCTION reopen_vault_position_count() IS 'Increments vault position_count when a position is reopened (shares go from 0 to > 0), with retry logic.';
+
+COMMENT ON FUNCTION decrement_vault_position_count() IS 'Decrements vault position_count when a position is closed (shares go from > 0 to 0), with retry logic.';
+
+COMMENT ON FUNCTION delete_vault_position_count() IS 'Decrements vault position_count when a position with shares > 0 is deleted, with retry logic.';
+
+-- Notification and utility functions
+COMMENT ON FUNCTION notify_version_change() IS 'Sends PostgreSQL notification on version_change_channel when contract version is initialized.';
+
+COMMENT ON FUNCTION update_term_text_function() IS 'Maintains term_text table for pgai vectorization when typed value entities (thing, person, book, organization) are inserted or updated.';
+
+-- Search and query functions
+COMMENT ON FUNCTION search_positions_on_subject(search_fields JSONB, addresses TEXT[]) IS 'Returns positions for accounts where the subject matches ALL specified predicate-object pairs in the search criteria.';
+
+COMMENT ON FUNCTION accounts_that_claim_about_account(address text, subject text, predicate text) IS 'Returns accounts that have positions on triples with the specified subject, predicate, and account as object.';
+
+COMMENT ON FUNCTION following(address text) IS 'Returns all accounts that the given address follows based on FollowAction triples.';
+
+COMMENT ON FUNCTION signals_from_following(address text) IS 'Returns all signal events created by accounts that the given address follows.';
+
+COMMENT ON FUNCTION positions_from_following(address text) IS 'Returns all positions held by accounts that the given address follows.';
+
+-- Aggregate update functions
+COMMENT ON FUNCTION update_predicate_object_on_triple_insert() IS 'Increments predicate_object triple_count when a new triple is created.';
+
+COMMENT ON FUNCTION update_subject_predicate_on_triple_insert() IS 'Increments subject_predicate triple_count when a new triple is created.';
+
+COMMENT ON FUNCTION update_predicate_object_aggregates() IS 'Recalculates predicate_object total_market_cap and total_position_count when triple_term changes.';
+
+COMMENT ON FUNCTION update_subject_predicate_aggregates() IS 'Recalculates subject_predicate total_market_cap and total_position_count when triple_term changes.';

@@ -1,3 +1,4 @@
 function:
   name: signals_from_following
   schema: public
+  comment: Returns all signal events created by accounts that the given address follows.

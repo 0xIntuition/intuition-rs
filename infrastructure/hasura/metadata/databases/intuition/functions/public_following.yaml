@@ -1,3 +1,4 @@
 function:
   name: following
   schema: public
+  comment: Returns all accounts that the given address follows based on FollowAction triples.

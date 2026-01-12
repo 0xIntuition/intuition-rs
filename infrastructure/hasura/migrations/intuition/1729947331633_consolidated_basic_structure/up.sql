@@ -537,3 +537,400 @@ CREATE INDEX IF NOT EXISTS idx_share_price_change_term_id ON share_price_change(
 CREATE INDEX IF NOT EXISTS idx_share_price_change_curve_id ON share_price_change(curve_id);
 CREATE INDEX IF NOT EXISTS idx_share_price_change_block_number ON share_price_change(block_number);
 CREATE INDEX IF NOT EXISTS idx_share_price_change_updated_at ON share_price_change(updated_at);
+
+-- ========================================
+-- TYPE COMMENTS
+-- ========================================
+
+COMMENT ON TYPE vault_type IS 'Classification of vault types: Triple vaults hold knowledge claims, CounterTriple vaults hold opposing claims, Atom vaults hold individual data units.';
+
+COMMENT ON TYPE account_type IS 'Classification of blockchain accounts: Default (user wallets), AtomWallet (atom-specific vaults), ProtocolVault (protocol-owned vault).';
+
+COMMENT ON TYPE event_type IS 'Protocol event types emitted by the Multivault smart contract.';
+
+COMMENT ON TYPE atom_type IS 'Classification of atom value types including schema.org entities (Person, Organization, Book), blockchain identifiers (Account, Caip10), and generic storage (Thing, JsonObject, TextObject).';
+
+COMMENT ON TYPE atom_resolving_status IS 'Status of atom metadata resolution: Pending (awaiting processing), Resolved (metadata fetched), Failed (resolution error).';
+
+COMMENT ON TYPE image_classification IS 'Image safety classification from image-guard service: Safe (approved), Unsafe (rejected), Unknown (not yet classified).';
+
+COMMENT ON TYPE term_type IS 'Classification of terms in the system: Atom (individual data units), Triple (knowledge claims), CounterTriple (opposing claims).';
+
+-- ========================================
+-- TABLE COMMENTS
+-- ========================================
+
+COMMENT ON TABLE chainlink_price IS 'Chainlink oracle price feed data for USD-denominated asset pricing.';
+
+COMMENT ON TABLE stats IS 'Global protocol statistics aggregated from all events, updated via triggers. Single-row table (id=0).';
+
+COMMENT ON TABLE stats_hour IS 'Hourly snapshots of protocol statistics for historical tracking and analytics.';
+
+COMMENT ON TABLE account IS 'Blockchain accounts participating in the protocol, including users, atom wallets, and protocol vaults.';
+
+COMMENT ON TABLE term IS 'Unified registry of all terms (atoms, triples, counter-triples) with aggregated market data.';
+
+COMMENT ON TABLE atom IS 'Atomic data units with typed values (person, organization, thing, etc.) and metadata resolved from IPFS or blockchain.';
+
+COMMENT ON TABLE triple IS 'Knowledge claims expressed as subject-predicate-object triples, forming the core knowledge graph.';
+
+COMMENT ON TABLE vault IS 'Bonding curve vaults that hold assets backing atoms or triples, tracking shares and market capitalization.';
+
+COMMENT ON TABLE triple_vault IS 'Aggregated vault data for triples, denormalized from vault table for query performance.';
+
+COMMENT ON TABLE triple_term IS 'Aggregated term-level data for triples, tracking total assets and positions across all curves.';
+
+COMMENT ON TABLE fee_transfer IS 'Protocol fee transfers between accounts, emitted during deposit and redemption operations.';
+
+COMMENT ON TABLE deposit IS 'Deposit transactions where users stake assets into vaults and receive shares in return.';
+
+COMMENT ON TABLE redemption IS 'Redemption transactions where users burn shares and receive assets back from vaults.';
+
+COMMENT ON TABLE event IS 'Unified event log of all protocol operations for audit trail and historical analysis.';
+
+COMMENT ON TABLE position IS 'User positions in vaults representing staked assets and shares held across different curves.';
+
+COMMENT ON TABLE predicate_object IS 'Denormalized aggregate of triples grouped by (predicate, object) for efficient querying.';
+
+COMMENT ON TABLE subject_predicate IS 'Denormalized aggregate of triples grouped by (subject, predicate) for efficient querying.';
+
+COMMENT ON TABLE signal IS 'TimescaleDB hypertable tracking deposit and redemption events over time for analytics and charting.';
+
+COMMENT ON TABLE thing IS 'Generic thing entities following schema.org Thing specification for atom values.';
+
+COMMENT ON TABLE person IS 'Person entities following schema.org Person specification for atom values.';
+
+COMMENT ON TABLE organization IS 'Organization entities following schema.org Organization specification for atom values.';
+
+COMMENT ON TABLE book IS 'Book entities following schema.org Book specification for atom values.';
+
+COMMENT ON TABLE caip10 IS 'Blockchain account identifiers following CAIP-10 standard (namespace:chain_id:address).';
+
+COMMENT ON TABLE json_object IS 'Generic JSON storage for atom values that do not fit other typed schemas.';
+
+COMMENT ON TABLE text_object IS 'Plain text storage for atom values containing simple text content.';
+
+COMMENT ON TABLE byte_object IS 'Binary data storage for atom values containing raw byte arrays.';
+
+COMMENT ON TABLE atom_value IS 'Polymorphic reference table linking atoms to their typed value tables (person, thing, organization, etc.).';
+
+COMMENT ON TABLE share_price_change IS 'TimescaleDB hypertable tracking vault share price changes over time for historical analysis.';
+
+COMMENT ON TABLE initialize IS 'Contract initialization events tracking Multivault version deployments and upgrades.';
+
+COMMENT ON TABLE failed_logs IS 'Failed event logs that could not be processed, stored for debugging and reprocessing.';
+
+COMMENT ON TABLE term_text IS 'Flattened text data for terms used by pgai vectorizer for semantic search embeddings.';
+
+COMMENT ON TABLE term_total_state_change IS 'TimescaleDB hypertable tracking changes to term total_assets and total_market_cap over time.';
+
+-- ========================================
+-- COLUMN COMMENTS
+-- ========================================
+
+-- chainlink_price columns
+COMMENT ON COLUMN chainlink_price.id IS 'Block number or timestamp identifier for the price data point.';
+COMMENT ON COLUMN chainlink_price.usd IS 'USD price value from Chainlink oracle feed.';
+
+-- stats columns
+COMMENT ON COLUMN stats.id IS 'Primary key, always 0 for singleton pattern.';
+COMMENT ON COLUMN stats.total_accounts IS 'Total number of accounts created in the protocol.';
+COMMENT ON COLUMN stats.total_atoms IS 'Total number of atoms created.';
+COMMENT ON COLUMN stats.total_triples IS 'Total number of triples created.';
+COMMENT ON COLUMN stats.total_positions IS 'Total number of active positions across all vaults.';
+COMMENT ON COLUMN stats.total_signals IS 'Total number of signal events (deposits and redemptions).';
+COMMENT ON COLUMN stats.total_fees IS 'Cumulative protocol fees collected in wei.';
+COMMENT ON COLUMN stats.contract_balance IS 'Current total assets held in protocol vaults in wei.';
+COMMENT ON COLUMN stats.last_processed_block_number IS 'Most recent block number indexed by the protocol.';
+COMMENT ON COLUMN stats.last_processed_block_timestamp IS 'Timestamp of the most recent processed block.';
+COMMENT ON COLUMN stats.last_updated IS 'Timestamp of last update to this stats record.';
+
+-- stats_hour columns
+COMMENT ON COLUMN stats_hour.id IS 'Auto-incrementing primary key.';
+COMMENT ON COLUMN stats_hour.total_accounts IS 'Snapshot of total accounts at this hour.';
+COMMENT ON COLUMN stats_hour.total_atoms IS 'Snapshot of total atoms at this hour.';
+COMMENT ON COLUMN stats_hour.total_triples IS 'Snapshot of total triples at this hour.';
+COMMENT ON COLUMN stats_hour.total_positions IS 'Snapshot of total positions at this hour.';
+COMMENT ON COLUMN stats_hour.total_signals IS 'Snapshot of total signals at this hour.';
+COMMENT ON COLUMN stats_hour.total_fees IS 'Snapshot of cumulative fees at this hour.';
+COMMENT ON COLUMN stats_hour.contract_balance IS 'Snapshot of contract balance at this hour.';
+COMMENT ON COLUMN stats_hour.created_at IS 'Timestamp when this snapshot was created.';
+
+-- account columns
+COMMENT ON COLUMN account.id IS 'Account address (Ethereum address or atom wallet address).';
+COMMENT ON COLUMN account.atom_id IS 'Optional reference to atom if this account represents an atom wallet.';
+COMMENT ON COLUMN account.label IS 'Human-readable label for this account (ENS name, atom label, or address).';
+COMMENT ON COLUMN account.image IS 'Profile image URL for this account.';
+COMMENT ON COLUMN account.type IS 'Classification of account type (Default, AtomWallet, ProtocolVault).';
+
+-- term columns
+COMMENT ON COLUMN term.id IS 'Unique term identifier (vault ID for atoms/triples).';
+COMMENT ON COLUMN term.type IS 'Type of term: Atom, Triple, or CounterTriple.';
+COMMENT ON COLUMN term.atom_id IS 'Reference to atom if this term is an Atom type.';
+COMMENT ON COLUMN term.triple_id IS 'Reference to triple if this term is a Triple or CounterTriple type.';
+COMMENT ON COLUMN term.total_assets IS 'Total assets across all curves for this term, in wei.';
+COMMENT ON COLUMN term.total_market_cap IS 'Total market capitalization across all curves for this term, in wei.';
+COMMENT ON COLUMN term.created_at IS 'Timestamp when this term was created.';
+COMMENT ON COLUMN term.updated_at IS 'Timestamp of last update to this term.';
+
+-- atom columns
+COMMENT ON COLUMN atom.term_id IS 'Unique identifier linking to the term registry.';
+COMMENT ON COLUMN atom.wallet_id IS 'Dedicated vault address for this atom, holds staked assets.';
+COMMENT ON COLUMN atom.creator_id IS 'Account that created this atom via smart contract transaction.';
+COMMENT ON COLUMN atom.data IS 'Parsed and normalized data URI or value extracted from raw_data.';
+COMMENT ON COLUMN atom.raw_data IS 'Original data URI or value as emitted from the smart contract event.';
+COMMENT ON COLUMN atom.type IS 'Classification of atom value type (Person, Organization, Thing, Caip10, etc.).';
+COMMENT ON COLUMN atom.emoji IS 'Optional emoji representation for UI display.';
+COMMENT ON COLUMN atom.label IS 'Human-readable label or title for this atom.';
+COMMENT ON COLUMN atom.image IS 'URL to image representation, validated by image-guard service.';
+COMMENT ON COLUMN atom.value_id IS 'Foreign key to polymorphic value table (person, organization, thing, etc.).';
+COMMENT ON COLUMN atom.block_number IS 'Block number when this atom was created.';
+COMMENT ON COLUMN atom.created_at IS 'Timestamp when this atom was created.';
+COMMENT ON COLUMN atom.transaction_hash IS 'Transaction hash of the atom creation event.';
+COMMENT ON COLUMN atom.resolving_status IS 'Current status of metadata resolution (Pending, Resolved, Failed).';
+COMMENT ON COLUMN atom.log_index IS 'Log index within the transaction for event ordering.';
+COMMENT ON COLUMN atom.updated_at IS 'Timestamp of last update, automatically maintained by trigger.';
+
+-- triple columns
+COMMENT ON COLUMN triple.term_id IS 'Unique identifier linking to the term registry.';
+COMMENT ON COLUMN triple.creator_id IS 'Account that created this triple via smart contract transaction.';
+COMMENT ON COLUMN triple.subject_id IS 'Subject atom ID forming the first element of the triple.';
+COMMENT ON COLUMN triple.predicate_id IS 'Predicate atom ID forming the relationship of the triple.';
+COMMENT ON COLUMN triple.object_id IS 'Object atom ID forming the third element of the triple.';
+COMMENT ON COLUMN triple.counter_term_id IS 'Term ID of the opposing CounterTriple for this triple.';
+COMMENT ON COLUMN triple.block_number IS 'Block number when this triple was created.';
+COMMENT ON COLUMN triple.created_at IS 'Timestamp when this triple was created.';
+COMMENT ON COLUMN triple.transaction_hash IS 'Transaction hash of the triple creation event.';
+
+-- vault columns
+COMMENT ON COLUMN vault.term_id IS 'Term ID this vault backs (atom or triple).';
+COMMENT ON COLUMN vault.curve_id IS 'Bonding curve configuration ID determining pricing curve.';
+COMMENT ON COLUMN vault.total_shares IS 'Total shares issued by this vault.';
+COMMENT ON COLUMN vault.current_share_price IS 'Current price per share in wei.';
+COMMENT ON COLUMN vault.total_assets IS 'Total assets held in this vault in wei.';
+COMMENT ON COLUMN vault.market_cap IS 'Market capitalization (total_shares * current_share_price) in wei.';
+COMMENT ON COLUMN vault.position_count IS 'Number of active positions in this vault.';
+COMMENT ON COLUMN vault.block_number IS 'Block number of the most recent vault state update.';
+COMMENT ON COLUMN vault.log_index IS 'Log index of the most recent vault state update.';
+COMMENT ON COLUMN vault.transaction_hash IS 'Transaction hash of the most recent vault state update.';
+COMMENT ON COLUMN vault.created_at IS 'Timestamp when this vault was created.';
+COMMENT ON COLUMN vault.updated_at IS 'Timestamp of last update to this vault.';
+
+-- triple_vault columns
+COMMENT ON COLUMN triple_vault.term_id IS 'Triple term ID this aggregated vault data represents.';
+COMMENT ON COLUMN triple_vault.counter_term_id IS 'Counter-triple term ID for this triple.';
+COMMENT ON COLUMN triple_vault.curve_id IS 'Bonding curve ID for this vault.';
+COMMENT ON COLUMN triple_vault.total_shares IS 'Total shares across triple and counter-triple vaults.';
+COMMENT ON COLUMN triple_vault.total_assets IS 'Total assets across triple and counter-triple vaults, in wei.';
+COMMENT ON COLUMN triple_vault.position_count IS 'Total positions across triple and counter-triple vaults.';
+COMMENT ON COLUMN triple_vault.market_cap IS 'Total market cap across triple and counter-triple vaults, in wei.';
+COMMENT ON COLUMN triple_vault.block_number IS 'Block number of most recent update.';
+COMMENT ON COLUMN triple_vault.log_index IS 'Log index of most recent update.';
+COMMENT ON COLUMN triple_vault.updated_at IS 'Timestamp of last update.';
+
+-- triple_term columns
+COMMENT ON COLUMN triple_term.term_id IS 'Triple term ID this aggregated data represents.';
+COMMENT ON COLUMN triple_term.counter_term_id IS 'Counter-triple term ID for this triple.';
+COMMENT ON COLUMN triple_term.total_assets IS 'Total assets across all curves for this triple, in wei.';
+COMMENT ON COLUMN triple_term.total_market_cap IS 'Total market cap across all curves for this triple, in wei.';
+COMMENT ON COLUMN triple_term.total_position_count IS 'Total positions across all curves for this triple.';
+COMMENT ON COLUMN triple_term.updated_at IS 'Timestamp of last update.';
+
+-- fee_transfer columns
+COMMENT ON COLUMN fee_transfer.id IS 'Unique identifier for this fee transfer event.';
+COMMENT ON COLUMN fee_transfer.sender_id IS 'Account that paid the fee.';
+COMMENT ON COLUMN fee_transfer.receiver_id IS 'Account that received the fee (typically protocol vault).';
+COMMENT ON COLUMN fee_transfer.amount IS 'Fee amount transferred in wei.';
+COMMENT ON COLUMN fee_transfer.block_number IS 'Block number when fee was transferred.';
+COMMENT ON COLUMN fee_transfer.created_at IS 'Timestamp when fee was transferred.';
+COMMENT ON COLUMN fee_transfer.transaction_hash IS 'Transaction hash of the fee transfer event.';
+
+-- deposit columns
+COMMENT ON COLUMN deposit.id IS 'Unique identifier for this deposit event.';
+COMMENT ON COLUMN deposit.sender_id IS 'Account that initiated the deposit.';
+COMMENT ON COLUMN deposit.receiver_id IS 'Account that received the shares.';
+COMMENT ON COLUMN deposit.assets_after_fees IS 'Asset amount deposited after protocol fees, in wei.';
+COMMENT ON COLUMN deposit.shares IS 'Number of shares minted for this deposit.';
+COMMENT ON COLUMN deposit.total_shares IS 'Total shares in vault after this deposit.';
+COMMENT ON COLUMN deposit.term_id IS 'Term ID of the vault receiving the deposit.';
+COMMENT ON COLUMN deposit.vault_type IS 'Type of vault (Atom, Triple, CounterTriple).';
+COMMENT ON COLUMN deposit.curve_id IS 'Bonding curve ID of the vault.';
+COMMENT ON COLUMN deposit.block_number IS 'Block number when deposit occurred.';
+COMMENT ON COLUMN deposit.created_at IS 'Timestamp when deposit occurred.';
+COMMENT ON COLUMN deposit.transaction_hash IS 'Transaction hash of the deposit event.';
+COMMENT ON COLUMN deposit.log_index IS 'Log index within the transaction for event ordering.';
+
+-- redemption columns
+COMMENT ON COLUMN redemption.id IS 'Unique identifier for this redemption event.';
+COMMENT ON COLUMN redemption.sender_id IS 'Account that initiated the redemption.';
+COMMENT ON COLUMN redemption.receiver_id IS 'Account that received the redeemed assets.';
+COMMENT ON COLUMN redemption.assets IS 'Asset amount returned before fees, in wei.';
+COMMENT ON COLUMN redemption.vault_type IS 'Type of vault (Atom, Triple, CounterTriple).';
+COMMENT ON COLUMN redemption.fees IS 'Protocol fees charged for this redemption, in wei.';
+COMMENT ON COLUMN redemption.shares IS 'Number of shares burned for this redemption.';
+COMMENT ON COLUMN redemption.total_shares IS 'Total shares in vault after this redemption.';
+COMMENT ON COLUMN redemption.term_id IS 'Term ID of the vault being redeemed from.';
+COMMENT ON COLUMN redemption.curve_id IS 'Bonding curve ID of the vault.';
+COMMENT ON COLUMN redemption.block_number IS 'Block number when redemption occurred.';
+COMMENT ON COLUMN redemption.created_at IS 'Timestamp when redemption occurred.';
+COMMENT ON COLUMN redemption.transaction_hash IS 'Transaction hash of the redemption event.';
+COMMENT ON COLUMN redemption.log_index IS 'Log index within the transaction for event ordering.';
+
+-- event columns
+COMMENT ON COLUMN event.id IS 'Unique identifier for this event.';
+COMMENT ON COLUMN event.type IS 'Type of event (AtomCreated, TripleCreated, Deposited, Redeemed, etc.).';
+COMMENT ON COLUMN event.atom_id IS 'Reference to atom if event is AtomCreated.';
+COMMENT ON COLUMN event.triple_id IS 'Reference to triple if event is TripleCreated.';
+COMMENT ON COLUMN event.fee_transfer_id IS 'Reference to fee_transfer if event is FeesTransfered.';
+COMMENT ON COLUMN event.deposit_id IS 'Reference to deposit if event is Deposited.';
+COMMENT ON COLUMN event.redemption_id IS 'Reference to redemption if event is Redeemed.';
+COMMENT ON COLUMN event.block_number IS 'Block number when event occurred.';
+COMMENT ON COLUMN event.created_at IS 'Timestamp when event occurred.';
+COMMENT ON COLUMN event.transaction_hash IS 'Transaction hash of the event.';
+
+-- position columns
+COMMENT ON COLUMN position.id IS 'Unique identifier for this position.';
+COMMENT ON COLUMN position.account_id IS 'Account that holds this position.';
+COMMENT ON COLUMN position.term_id IS 'Term ID of the vault for this position.';
+COMMENT ON COLUMN position.curve_id IS 'Bonding curve ID of the vault.';
+COMMENT ON COLUMN position.shares IS 'Current number of shares held in this position.';
+COMMENT ON COLUMN position.total_deposit_assets_after_total_fees IS 'Cumulative assets deposited after fees, for profit/loss calculation, in wei.';
+COMMENT ON COLUMN position.total_redeem_assets_for_receiver IS 'Cumulative assets redeemed, for profit/loss calculation, in wei.';
+COMMENT ON COLUMN position.block_number IS 'Block number of most recent position update.';
+COMMENT ON COLUMN position.log_index IS 'Log index of most recent position update.';
+COMMENT ON COLUMN position.transaction_hash IS 'Transaction hash of most recent position update.';
+COMMENT ON COLUMN position.transaction_index IS 'Transaction index for event ordering.';
+COMMENT ON COLUMN position.created_at IS 'Timestamp when position was created.';
+COMMENT ON COLUMN position.updated_at IS 'Timestamp of last update to this position.';
+
+-- predicate_object columns
+COMMENT ON COLUMN predicate_object.predicate_id IS 'Predicate atom ID.';
+COMMENT ON COLUMN predicate_object.object_id IS 'Object atom ID.';
+COMMENT ON COLUMN predicate_object.triple_count IS 'Number of triples with this (predicate, object) combination.';
+COMMENT ON COLUMN predicate_object.total_position_count IS 'Total positions across all triples with this combination.';
+COMMENT ON COLUMN predicate_object.total_market_cap IS 'Total market cap across all triples with this combination, in wei.';
+
+-- subject_predicate columns
+COMMENT ON COLUMN subject_predicate.subject_id IS 'Subject atom ID.';
+COMMENT ON COLUMN subject_predicate.predicate_id IS 'Predicate atom ID.';
+COMMENT ON COLUMN subject_predicate.triple_count IS 'Number of triples with this (subject, predicate) combination.';
+COMMENT ON COLUMN subject_predicate.total_position_count IS 'Total positions across all triples with this combination.';
+COMMENT ON COLUMN subject_predicate.total_market_cap IS 'Total market cap across all triples with this combination, in wei.';
+
+-- signal columns
+COMMENT ON COLUMN signal.id IS 'Unique identifier for this signal event.';
+COMMENT ON COLUMN signal.delta IS 'Change in assets (positive for deposits, negative for redemptions), in wei.';
+COMMENT ON COLUMN signal.account_id IS 'Account that created this signal.';
+COMMENT ON COLUMN signal.atom_id IS 'Atom ID if signal is for an atom vault.';
+COMMENT ON COLUMN signal.triple_id IS 'Triple ID if signal is for a triple vault.';
+COMMENT ON COLUMN signal.term_id IS 'Term ID of the vault for this signal.';
+COMMENT ON COLUMN signal.curve_id IS 'Bonding curve ID of the vault.';
+COMMENT ON COLUMN signal.deposit_id IS 'Reference to deposit if this is a deposit signal.';
+COMMENT ON COLUMN signal.redemption_id IS 'Reference to redemption if this is a redemption signal.';
+COMMENT ON COLUMN signal.block_number IS 'Block number when signal occurred.';
+COMMENT ON COLUMN signal.created_at IS 'Timestamp when signal occurred (TimescaleDB partition column).';
+COMMENT ON COLUMN signal.transaction_hash IS 'Transaction hash of the signal event.';
+
+-- thing columns
+COMMENT ON COLUMN thing.id IS 'Unique identifier for this thing entity.';
+COMMENT ON COLUMN thing.name IS 'Name or title of the thing.';
+COMMENT ON COLUMN thing.description IS 'Description of the thing.';
+COMMENT ON COLUMN thing.image IS 'Image URL for the thing.';
+COMMENT ON COLUMN thing.url IS 'External URL or homepage for the thing.';
+
+-- person columns
+COMMENT ON COLUMN person.id IS 'Unique identifier for this person entity.';
+COMMENT ON COLUMN person.identifier IS 'External identifier (ENS name, DID, etc.) for the person.';
+COMMENT ON COLUMN person.name IS 'Full name of the person.';
+COMMENT ON COLUMN person.description IS 'Bio or description of the person.';
+COMMENT ON COLUMN person.image IS 'Profile image URL for the person.';
+COMMENT ON COLUMN person.url IS 'Personal website or homepage URL.';
+COMMENT ON COLUMN person.email IS 'Email address of the person.';
+
+-- organization columns
+COMMENT ON COLUMN organization.id IS 'Unique identifier for this organization entity.';
+COMMENT ON COLUMN organization.name IS 'Name of the organization.';
+COMMENT ON COLUMN organization.description IS 'Description or mission of the organization.';
+COMMENT ON COLUMN organization.image IS 'Logo or image URL for the organization.';
+COMMENT ON COLUMN organization.url IS 'Organization website URL.';
+COMMENT ON COLUMN organization.email IS 'Contact email for the organization.';
+
+-- book columns
+COMMENT ON COLUMN book.id IS 'Unique identifier for this book entity.';
+COMMENT ON COLUMN book.name IS 'Title of the book.';
+COMMENT ON COLUMN book.description IS 'Description or synopsis of the book.';
+COMMENT ON COLUMN book.genre IS 'Genre or category of the book.';
+COMMENT ON COLUMN book.url IS 'URL to book information or purchase page.';
+
+-- caip10 columns
+COMMENT ON COLUMN caip10.id IS 'Unique identifier for this CAIP-10 account reference.';
+COMMENT ON COLUMN caip10.namespace IS 'Blockchain namespace (e.g., "eip155" for Ethereum).';
+COMMENT ON COLUMN caip10.chain_id IS 'Chain ID within the namespace (e.g., 1 for Ethereum mainnet).';
+COMMENT ON COLUMN caip10.account_address IS 'Account address on the specified blockchain.';
+
+-- json_object columns
+COMMENT ON COLUMN json_object.id IS 'Unique identifier for this JSON object.';
+COMMENT ON COLUMN json_object.data IS 'JSONB data containing arbitrary structured content.';
+
+-- text_object columns
+COMMENT ON COLUMN text_object.id IS 'Unique identifier for this text object.';
+COMMENT ON COLUMN text_object.data IS 'Plain text content.';
+
+-- byte_object columns
+COMMENT ON COLUMN byte_object.id IS 'Unique identifier for this byte object.';
+COMMENT ON COLUMN byte_object.data IS 'Binary data stored as BYTEA.';
+
+-- atom_value columns
+COMMENT ON COLUMN atom_value.id IS 'Unique identifier matching the atom value_id.';
+COMMENT ON COLUMN atom_value.account_id IS 'Reference to account table if atom value is an Account.';
+COMMENT ON COLUMN atom_value.thing_id IS 'Reference to thing table if atom value is a Thing.';
+COMMENT ON COLUMN atom_value.person_id IS 'Reference to person table if atom value is a Person.';
+COMMENT ON COLUMN atom_value.organization_id IS 'Reference to organization table if atom value is an Organization.';
+COMMENT ON COLUMN atom_value.book_id IS 'Reference to book table if atom value is a Book.';
+COMMENT ON COLUMN atom_value.caip10_id IS 'Reference to caip10 table if atom value is a CAIP-10 account.';
+COMMENT ON COLUMN atom_value.json_object_id IS 'Reference to json_object table if atom value is JSON data.';
+COMMENT ON COLUMN atom_value.text_object_id IS 'Reference to text_object table if atom value is plain text.';
+COMMENT ON COLUMN atom_value.byte_object_id IS 'Reference to byte_object table if atom value is binary data.';
+
+-- share_price_change columns
+COMMENT ON COLUMN share_price_change.id IS 'Auto-incrementing primary key.';
+COMMENT ON COLUMN share_price_change.term_id IS 'Term ID of the vault.';
+COMMENT ON COLUMN share_price_change.vault_type IS 'Type of vault (Atom, Triple, CounterTriple).';
+COMMENT ON COLUMN share_price_change.curve_id IS 'Bonding curve ID of the vault.';
+COMMENT ON COLUMN share_price_change.share_price IS 'Share price at this point in time, in wei.';
+COMMENT ON COLUMN share_price_change.total_assets IS 'Total assets in vault at this point, in wei.';
+COMMENT ON COLUMN share_price_change.total_shares IS 'Total shares in vault at this point.';
+COMMENT ON COLUMN share_price_change.block_number IS 'Block number when price changed.';
+COMMENT ON COLUMN share_price_change.block_timestamp IS 'Block timestamp in Unix epoch seconds.';
+COMMENT ON COLUMN share_price_change.transaction_hash IS 'Transaction hash that caused the price change.';
+COMMENT ON COLUMN share_price_change.log_index IS 'Log index within the transaction.';
+COMMENT ON COLUMN share_price_change.updated_at IS 'Timestamp when this record was created (TimescaleDB partition column).';
+
+-- initialize columns
+COMMENT ON COLUMN initialize.version IS 'Multivault contract version number.';
+COMMENT ON COLUMN initialize.block_number IS 'Block number when contract was initialized.';
+COMMENT ON COLUMN initialize.block_timestamp IS 'Block timestamp in Unix epoch seconds.';
+COMMENT ON COLUMN initialize.transaction_hash IS 'Transaction hash of the initialization event.';
+COMMENT ON COLUMN initialize.log_index IS 'Log index within the transaction.';
+
+-- failed_logs columns
+COMMENT ON COLUMN failed_logs.block_number IS 'Block number of the failed log.';
+COMMENT ON COLUMN failed_logs.block_hash IS 'Block hash containing the failed log.';
+COMMENT ON COLUMN failed_logs.transaction_hash IS 'Transaction hash containing the failed log.';
+COMMENT ON COLUMN failed_logs.transaction_index IS 'Transaction index within the block.';
+COMMENT ON COLUMN failed_logs.log_index IS 'Log index within the transaction.';
+COMMENT ON COLUMN failed_logs.address IS 'Contract address that emitted the log.';
+COMMENT ON COLUMN failed_logs.data IS 'Raw log data that failed to process.';
+COMMENT ON COLUMN failed_logs.topics IS 'Log topics array for event signature and indexed parameters.';
+COMMENT ON COLUMN failed_logs.block_timestamp IS 'Block timestamp in Unix epoch seconds.';
+
+-- term_text columns
+COMMENT ON COLUMN term_text.id IS 'Term ID this text data represents.';
+COMMENT ON COLUMN term_text.title IS 'Title or label of the term for embedding generation.';
+COMMENT ON COLUMN term_text.description IS 'Description text used by pgai vectorizer for semantic search.';
+
+-- term_total_state_change columns
+COMMENT ON COLUMN term_total_state_change.term_id IS 'Term ID whose state changed.';
+COMMENT ON COLUMN term_total_state_change.total_assets IS 'Snapshot of total_assets at this point in time, in wei.';
+COMMENT ON COLUMN term_total_state_change.total_market_cap IS 'Snapshot of total_market_cap at this point in time, in wei.';
+COMMENT ON COLUMN term_total_state_change.created_at IS 'Timestamp when this state change occurred (TimescaleDB partition column).';

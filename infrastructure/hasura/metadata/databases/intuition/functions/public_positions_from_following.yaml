@@ -1,3 +1,4 @@
 function:
   name: positions_from_following
   schema: public
+  comment: Returns all positions held by accounts that the given address follows.
