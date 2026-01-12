@@ -101,8 +101,15 @@ pub async fn get_chart_data(
     let cache = ChartCache::new(state.redis.clone());
 
     // Check cache first
-    let cache_key =
-        ChartCache::cache_key(graph_type, &term_id, curve_id_opt, interval, range_start, range_end, format);
+    let cache_key = ChartCache::cache_key(
+        graph_type,
+        &term_id,
+        curve_id_opt,
+        interval,
+        range_start,
+        range_end,
+        format,
+    );
 
     if let Some(cached_data) = cache.get_string(&cache_key).await? {
         info!("Returning cached response for {}", cache_key);
@@ -144,8 +151,8 @@ pub async fn get_chart_data(
             interval,
             range_start,
         )
-            .await?
-            .map(|(_, value)| value)
+        .await?
+        .map(|(_, value)| value)
     } else {
         None
     };
