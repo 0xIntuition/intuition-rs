@@ -68,7 +68,6 @@ pub fn validate_magic_bytes_for_extension(data: &[u8], extension: &str) -> bool 
 }
 
 impl Image {
-
     /// Returns true if the URL is a data URL (base64 encoded)
     pub fn is_data_url(&self) -> bool {
         self.url.starts_with("data:")
