@@ -10,7 +10,7 @@ use chrono::Utc;
 use log::{debug, info};
 use models::{cached_image::CachedImage, traits::SimpleCrud};
 use shared_utils::{
-    image::Image,
+    image::{detect_format_from_bytes, extract_extension_from_content_type, Image},
     types::{ClassificationModel, MultiPartHandler},
 };
 
@@ -57,27 +57,52 @@ pub async fn upload_image_from_url(
     }
 
     // Download the image (with IPFS support via resolver)
-    let image_bytes = image.download(Some(&state.ipfs_resolver)).await?;
-    if let Some(image_bytes) = image_bytes {
+    let download_result = image.download(Some(&state.ipfs_resolver)).await?;
+    if let Some((image_bytes, content_type)) = download_result {
         // Validate the image bytes
         validate_image_bytes(&image_bytes)?;
 
-        // Extract the name and extension from the URL
-        let image_output = image
-            .extract_name_and_extension()
-            .ok_or(ApiError::ExtractNameAndExtension)?;
+        // Determine extension: try Content-Type first, fallback to magic bytes
+        let extension = content_type
+            .as_deref()
+            .and_then(extract_extension_from_content_type)
+            .or_else(|| detect_format_from_bytes(&image_bytes))
+            .ok_or_else(|| {
+                ApiError::InvalidInput("Unable to determine image format".to_string())
+            })?;
+
+        info!(
+            "Detected image format: {} (from {})",
+            extension,
+            if content_type.is_some() {
+                "Content-Type"
+            } else {
+                "magic bytes"
+            }
+        );
+
+        // Generate filename from URL (sanitize and truncate)
+        let name = format!(
+            "image_{}",
+            image
+                .url
+                .chars()
+                .filter(|c| c.is_alphanumeric())
+                .take(20)
+                .collect::<String>()
+        );
 
         // Construct the MultipartHandler
         let multi_part_handler = MultiPartHandler {
-            name: image_output.name, // Replace with actual name
-            content_type: format!("image/{}", image_output.extension.to_lowercase()), // Replace with actual content type
-            data: Bytes::from(image_bytes), // Convert Vec<u8> to Bytes
+            name: name.clone(),
+            content_type: format!("image/{}", extension.to_lowercase()),
+            data: Bytes::from(image_bytes),
         };
 
         // Classify the image
         let (scores, status) = handle_image(&state, &multi_part_handler).await?;
 
-        let original_name = image.combine_name_and_extension()?;
+        let original_name = format!("{}.{}", name, extension);
 
         debug!(
             "Length of `{}` type `{}` is {} bytes",

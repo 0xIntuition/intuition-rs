@@ -26,6 +26,51 @@ pub struct Image {
     pub url: String,
 }
 
+/// Extracts file extension from Content-Type header (e.g., "image/png" -> "png")
+pub fn extract_extension_from_content_type(content_type: &str) -> Option<String> {
+    let content_type = content_type.to_lowercase();
+
+    // Handle common image MIME types
+    if content_type.starts_with("image/") {
+        let subtype = content_type.strip_prefix("image/")?;
+
+        // Remove any parameters (e.g., "image/png; charset=utf-8")
+        let extension = subtype.split(';').next()?.trim();
+
+        // Map MIME subtypes to common file extensions
+        let normalized = match extension {
+            "jpeg" => "jpg",
+            "svg+xml" => "svg",
+            other => other,
+        };
+
+        return Some(normalized.to_string());
+    }
+
+    None
+}
+
+/// Detects image format from magic bytes and returns file extension
+pub fn detect_format_from_bytes(data: &[u8]) -> Option<String> {
+    match data.get(0..4)? {
+        bytes if bytes.starts_with(&[0xFF, 0xD8, 0xFF]) => Some("jpg".to_string()),
+        bytes if bytes.starts_with(&[0x89, 0x50, 0x4E, 0x47]) => Some("png".to_string()),
+        bytes if bytes.starts_with(&[0x47, 0x49, 0x46]) => Some("gif".to_string()),
+        bytes if bytes.starts_with(&[0x42, 0x4D]) => Some("bmp".to_string()),
+        bytes if bytes.starts_with(&[0x49, 0x49, 0x2A, 0x00]) => Some("tiff".to_string()),
+        bytes if bytes.starts_with(&[0x4D, 0x4D, 0x00, 0x2A]) => Some("tiff".to_string()),
+        bytes if bytes.starts_with(&[0x52, 0x49, 0x46, 0x46]) => {
+            // WebP starts with RIFF, check for WEBP signature at bytes 8-12
+            if data.len() >= 12 && &data[8..12] == b"WEBP" {
+                Some("webp".to_string())
+            } else {
+                None
+            }
+        }
+        _ => None,
+    }
+}
+
 /// Downloads response bytes with size validation.
 ///
 /// Validates size both before (via Content-Length header) and after download
@@ -60,14 +105,14 @@ impl Image {
         Ok(format!("{}.{}", image_output.name, image_output.extension))
     }
 
-    /// Downloads an image from a URL and returns the bytes.
+    /// Downloads an image from a URL and returns the bytes and Content-Type header.
     ///
     /// # Arguments
     /// * `ipfs_resolver` - Required when the URL is an IPFS URI (ipfs://...).
     ///   Optional for HTTP(S) URLs.
     ///
     /// # Returns
-    /// * `Ok(Some(bytes))` - Successfully downloaded image bytes
+    /// * `Ok(Some((bytes, content_type)))` - Successfully downloaded image bytes and optional Content-Type
     /// * `Ok(None)` - Failed to download (non-200 status code)
     /// * `Err(LibError::MissingIPFSResolver)` - IPFS URI provided without resolver
     /// * `Err(LibError::ImageTooLarge)` - Image exceeds MAX_IMAGE_SIZE (10MB)
@@ -79,7 +124,7 @@ impl Image {
     pub async fn download(
         &self,
         ipfs_resolver: Option<&IPFSResolver>,
-    ) -> Result<Option<Vec<u8>>, LibError> {
+    ) -> Result<Option<(Vec<u8>, Option<String>)>, LibError> {
         info!("Downloading image from URL: {}", self.url);
 
         // Handle IPFS URIs with IPFSResolver
@@ -105,10 +150,16 @@ impl Image {
                         ))
                     })??;
 
+            let content_type = response
+                .headers()
+                .get("content-type")
+                .and_then(|v| v.to_str().ok())
+                .map(|s| s.to_string());
+
             let bytes = download_with_size_limit(response).await?;
 
             info!("Downloaded {} bytes from IPFS: {}", bytes.len(), ipfs_cid);
-            return Ok(Some(bytes));
+            return Ok(Some((bytes, content_type)));
         }
 
         // Fallback to HTTP for non-IPFS URIs with timeout protection
@@ -123,9 +174,15 @@ impl Image {
             return Ok(None);
         }
 
+        let content_type = response
+            .headers()
+            .get("content-type")
+            .and_then(|v| v.to_str().ok())
+            .map(|s| s.to_string());
+
         let bytes = download_with_size_limit(response).await?;
 
-        Ok(Some(bytes))
+        Ok(Some((bytes, content_type)))
     }
     /// This function downloads an avatar, classifies it and stores it in the database
     pub async fn download_image_classify_and_store(
@@ -299,5 +356,79 @@ mod tests {
 
         let http_image = Image::new("https://example.com/image.png".to_string());
         assert!(!http_image.url.starts_with("ipfs://"));
+    }
+
+    #[test]
+    fn test_extract_extension_from_content_type() {
+        assert_eq!(
+            extract_extension_from_content_type("image/png"),
+            Some("png".to_string())
+        );
+        assert_eq!(
+            extract_extension_from_content_type("image/jpeg"),
+            Some("jpg".to_string())
+        );
+        assert_eq!(
+            extract_extension_from_content_type("image/gif; charset=utf-8"),
+            Some("gif".to_string())
+        );
+        assert_eq!(
+            extract_extension_from_content_type("image/svg+xml"),
+            Some("svg".to_string())
+        );
+        assert_eq!(
+            extract_extension_from_content_type("IMAGE/PNG"),
+            Some("png".to_string())
+        );
+        assert_eq!(extract_extension_from_content_type("text/html"), None);
+        assert_eq!(extract_extension_from_content_type("application/json"), None);
+    }
+
+    #[test]
+    fn test_detect_format_from_bytes() {
+        // PNG magic bytes
+        let png_bytes = vec![0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
+        assert_eq!(
+            detect_format_from_bytes(&png_bytes),
+            Some("png".to_string())
+        );
+
+        // JPEG magic bytes
+        let jpeg_bytes = vec![0xFF, 0xD8, 0xFF, 0xE0];
+        assert_eq!(
+            detect_format_from_bytes(&jpeg_bytes),
+            Some("jpg".to_string())
+        );
+
+        // GIF magic bytes
+        let gif_bytes = vec![0x47, 0x49, 0x46, 0x38, 0x39, 0x61];
+        assert_eq!(
+            detect_format_from_bytes(&gif_bytes),
+            Some("gif".to_string())
+        );
+
+        // BMP magic bytes
+        let bmp_bytes = vec![0x42, 0x4D, 0x00, 0x00];
+        assert_eq!(
+            detect_format_from_bytes(&bmp_bytes),
+            Some("bmp".to_string())
+        );
+
+        // WebP magic bytes (RIFF + WEBP signature)
+        let webp_bytes = vec![
+            0x52, 0x49, 0x46, 0x46, 0x00, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42, 0x50,
+        ];
+        assert_eq!(
+            detect_format_from_bytes(&webp_bytes),
+            Some("webp".to_string())
+        );
+
+        // Invalid bytes
+        let invalid_bytes = vec![0x00, 0x00, 0x00, 0x00];
+        assert_eq!(detect_format_from_bytes(&invalid_bytes), None);
+
+        // Empty bytes
+        let empty_bytes: Vec<u8> = vec![];
+        assert_eq!(detect_format_from_bytes(&empty_bytes), None);
     }
 }

@@ -37,6 +37,7 @@ fi
 
 # Start shared services
 docker compose -p intuition -f docker/docker-compose-shared.yml up database pgai-installer vectorizer-worker redis redis-setup ipfs safe-content graphql-engine indexer-migrations hasura-migrations prometheus grafana -d --wait --force-recreate
+docker wait indexer-migrations || true
 
 export INITIAL_CONTRACT_VERSION="v2"
 # First arg is indexer schema

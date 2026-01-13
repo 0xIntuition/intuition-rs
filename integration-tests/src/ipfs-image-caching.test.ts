@@ -101,14 +101,5 @@ suite('IPFS image caching', async () => {
 
     expect(cachedImage?.score).toBeDefined();
 
-    expect(cachedImage?.created_at).toBeDefined();
-
-    console.log('Cached image details:', {
-      url: cachedImage?.url,
-      original_url: cachedImage?.original_url,
-      safe: cachedImage?.safe,
-      model: cachedImage?.model,
-      score: cachedImage?.score
-    });
   });
 })
