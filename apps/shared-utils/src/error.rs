@@ -6,8 +6,14 @@ use thiserror::Error;
 /// libraries
 #[derive(Error, Debug)]
 pub enum LibError {
+    #[error("Base64 decode error: {0}")]
+    Base64Decode(String),
     #[error("Extract name and extension error")]
     ExtractNameAndExtension,
+    #[error("Invalid data URL format")]
+    InvalidDataUrl,
+    #[error("Invalid input: {0}")]
+    InvalidInput(String),
     #[error("Network error: {0}")]
     NetworkError(String),
     #[error("Pinata error: {0}")]
