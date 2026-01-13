@@ -40,7 +40,7 @@ docker compose -p intuition -f docker/docker-compose-shared.yml up database pgai
 
 export INITIAL_CONTRACT_VERSION="v2"
 # First arg is indexer schema
-INDEXER_SCHEMA="$1"
+export INDEXER_SCHEMA="$1"
 CONTRACT_ADDRESS=$(docker compose -p intuition -f docker/docker-compose-shared.yml exec database psql -U postgres -d storage -c "SELECT contract_address FROM histocrawler.app_config WHERE indexer_schema = '$INDEXER_SCHEMA'" -tA)
 if [ -n "$CONTRACT_ADDRESS" ]; then
   export INTUITION_CONTRACT_ADDRESS=$CONTRACT_ADDRESS
@@ -83,11 +83,11 @@ fi
 
 if [ "$2" == "test" ]; then
   echo "Starting integration tests"
-  docker compose -p intuition -f docker/docker-compose-apps.yml up integration-tests -d --force-recreate
+  docker compose -p intuition -f docker/docker-compose-shared.yml -f docker/docker-compose-apps.yml up integration-tests -d --force-recreate
 fi
 
 # Start apps
-docker compose -p intuition -f docker/docker-compose-apps.yml up resolver_consumer ipfs_upload_consumer decoded_consumer api prod-rpc-proxy histocrawler -d --force-recreate
+docker compose -p intuition -f docker/docker-compose-shared.yml -f docker/docker-compose-apps.yml up resolver_consumer ipfs_upload_consumer decoded_consumer api prod-rpc-proxy histocrawler -d --force-recreate
 
 echo -e "\nGraphQL: http://localhost:8080/console"
 # echo -e "Database: https://local.drizzle.studio/"

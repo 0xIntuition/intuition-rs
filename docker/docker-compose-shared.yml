@@ -18,7 +18,7 @@ services:
       interval: 2s
       timeout: 10s
       retries: 30
-      start_period: 30s
+      start_period: 60s
 
   drizzle-studio:
     container_name: drizzle-studio
@@ -128,6 +128,8 @@ services:
     depends_on:
       database:
         condition: service_healthy
+      pgai-installer:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
       interval: 30s
@@ -190,6 +192,8 @@ services:
     depends_on:
       database:
         condition: service_healthy
+      pgai-installer:
+        condition: service_completed_successfully
     restart: "no"
   
   hasura-migrations:
