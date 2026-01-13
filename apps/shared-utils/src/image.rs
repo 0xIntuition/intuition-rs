@@ -37,6 +37,12 @@ pub struct DataUrlParsed {
     pub data: Vec<u8>,
 }
 
+/// Represents parsed data URL info with deterministic naming
+pub struct DataUrlInfo {
+    pub parsed: DataUrlParsed,
+    pub name: String,
+    pub cache_key: String,
+}
 #[derive(Deserialize, Serialize, Debug, ToSchema)]
 #[schema(example = json!({"url": "http://example.com/image.png"}))]
 pub struct Image {
@@ -196,6 +202,19 @@ impl Image {
         })
     }
 
+    /// Parses a data URL and returns parsed data with deterministic naming metadata.
+    pub fn parse_data_url_info(&self) -> Result<DataUrlInfo, LibError> {
+        let parsed = self.parse_data_url()?;
+        let name = Uuid::new_v5(&IMAGE_CONTENT_NAMESPACE, &parsed.data).to_string();
+        let cache_key = format!("data:{}", name);
+
+        Ok(DataUrlInfo {
+            parsed,
+            name,
+            cache_key,
+        })
+    }
+
     /// Combines the name and extension of an image
     pub fn combine_name_and_extension(&self) -> Result<String, LibError> {
         let image_output = self
@@ -271,13 +290,10 @@ impl Image {
     pub fn extract_name_and_extension(&self) -> Option<ImageOutput> {
         // Handle data URLs
         if self.is_data_url() {
-            if let Ok(parsed) = self.parse_data_url() {
-                // Use UUID v5 with a custom namespace for deterministic content-based naming
-                // This ensures the same image data always produces the same filename
-                let name = Uuid::new_v5(&IMAGE_CONTENT_NAMESPACE, &parsed.data).to_string();
+            if let Ok(info) = self.parse_data_url_info() {
                 return Some(ImageOutput {
-                    name,
-                    extension: parsed.extension,
+                    name: info.name,
+                    extension: info.parsed.extension,
                 });
             }
             return None;
