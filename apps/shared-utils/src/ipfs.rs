@@ -18,6 +18,21 @@ pub const FETCH_TIMEOUT: Duration = Duration::from_secs(5);
 pub const PIN_TIMEOUT: Duration = Duration::from_secs(10);
 pub const PINATA_API_URL: &str = "https://api.pinata.cloud";
 pub const RETRY_ATTEMPTS: i32 = 3;
+const MAX_IPFS_ERROR_BODY_LOG: usize = 2048;
+
+fn truncate_for_log(body: &str, max_len: usize) -> String {
+    if body.is_empty() {
+        return String::new();
+    }
+    if body.len() <= max_len {
+        return body.to_string();
+    }
+    let mut end = max_len;
+    while end > 0 && !body.is_char_boundary(end) {
+        end -= 1;
+    }
+    format!("{}...[truncated]", &body[..end])
+}
 
 /// The response from the IPFS gateway
 #[derive(Deserialize, Default, Debug)]
@@ -228,9 +243,18 @@ impl IPFSResolver {
         &self,
         status: StatusCode,
         attempts: i32,
+        body: &str,
     ) -> Result<bool, LibError> {
         if !status.is_success() {
-            warn!("IPFS upload failed with status {}", status);
+            let body_snippet = truncate_for_log(body, MAX_IPFS_ERROR_BODY_LOG);
+            if body_snippet.is_empty() {
+                warn!("IPFS upload failed with status {}", status);
+            } else {
+                warn!(
+                    "IPFS upload failed with status {} body={}",
+                    status, body_snippet
+                );
+            }
 
             if attempts < self.retry_attempts.unwrap_or(RETRY_ATTEMPTS) {
                 let backoff = self
@@ -241,8 +265,8 @@ impl IPFSResolver {
                 return Ok(true); // true means "should continue"
             }
             return Err(LibError::NetworkError(format!(
-                "Upload failed with status {}",
-                status
+                "Upload failed with status {} body={}",
+                status, body_snippet
             )));
         }
         Ok(false) // false means "don't continue"
@@ -387,14 +411,26 @@ impl IPFSResolver {
                     let status = resp.status();
                     let body = resp.text().await.unwrap_or_default();
 
-                    if self.handle_upload_error_response(status, attempts).await? {
+                    if self
+                        .handle_upload_error_response(status, attempts, &body)
+                        .await?
+                    {
                         continue;
                     }
 
                     // Attempt to parse JSON from the body
                     let result: IpfsResponse = serde_json::from_str(&body).map_err(|e| {
-                        warn!("Failed to parse JSON response: {}", e);
-                        LibError::NetworkError(format!("Invalid JSON: {}", body))
+                        warn!(
+                            "Failed to parse JSON response (status {}): {} body={}",
+                            status,
+                            e,
+                            truncate_for_log(&body, MAX_IPFS_ERROR_BODY_LOG)
+                        );
+                        LibError::NetworkError(format!(
+                            "Invalid JSON (status {}): {}",
+                            status,
+                            truncate_for_log(&body, MAX_IPFS_ERROR_BODY_LOG)
+                        ))
                     })?;
 
                     // Pin the CID to local IPFS
@@ -433,14 +469,26 @@ impl IPFSResolver {
                     let status = resp.status();
                     let body = resp.text().await.unwrap_or_default();
 
-                    if self.handle_upload_error_response(status, attempts).await? {
+                    if self
+                        .handle_upload_error_response(status, attempts, &body)
+                        .await?
+                    {
                         continue;
                     }
 
                     // Attempt to parse JSON from the body
                     let result: IpfsResponse = serde_json::from_str(&body).map_err(|e| {
-                        warn!("Failed to parse JSON response: {}", e);
-                        LibError::NetworkError(format!("Invalid JSON: {}", body))
+                        warn!(
+                            "Failed to parse JSON response (status {}): {} body={}",
+                            status,
+                            e,
+                            truncate_for_log(&body, MAX_IPFS_ERROR_BODY_LOG)
+                        );
+                        LibError::NetworkError(format!(
+                            "Invalid JSON (status {}): {}",
+                            status,
+                            truncate_for_log(&body, MAX_IPFS_ERROR_BODY_LOG)
+                        ))
                     })?;
 
                     // Pin the CID to local IPFS
@@ -485,7 +533,8 @@ impl IPFSResolver {
         let result = self.http_client.post(&url).multipart(form).send().await;
         if let Err(ref e) = result {
             tracing::error!(
-                "IPFS upload request failed: is_connect={}, is_timeout={}, is_request={}, is_body={}, error={:#}",
+                "IPFS upload request failed: url={}, is_connect={}, is_timeout={}, is_request={}, is_body={}, error={:#}",
+                url,
                 e.is_connect(),
                 e.is_timeout(),
                 e.is_request(),
@@ -493,7 +542,7 @@ impl IPFSResolver {
                 e
             );
         }
-        result.map_err(|e| LibError::NetworkError(e.to_string()))
+        result.map_err(LibError::from)
     }
 
     /// Sends a request to upload a file to IPFS
