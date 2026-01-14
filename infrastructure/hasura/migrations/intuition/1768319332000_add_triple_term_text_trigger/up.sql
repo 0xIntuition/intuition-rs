@@ -30,10 +30,10 @@ BEGIN
     triple_text := TRIM(CONCAT(subject_label, ' ', predicate_label, ' ', object_label));
 
     -- Insert into term_text with the triple's term_id
-    -- Use the concatenated text for both title and description
+    -- Use the concatenated text for title 
     -- Set type to 'triple' to distinguish from atoms
     INSERT INTO term_text (id, title, description, type)
-    VALUES (NEW.term_id, triple_text, triple_text, 'triple')
+    VALUES (NEW.term_id, triple_text, ';', 'triple')
     ON CONFLICT (id) DO UPDATE SET
         title = EXCLUDED.title,
         description = EXCLUDED.description,
