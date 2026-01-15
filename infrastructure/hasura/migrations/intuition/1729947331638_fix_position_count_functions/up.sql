@@ -311,3 +311,12 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- ========================================
+-- FUNCTION COMMENTS
+-- ========================================
+
+COMMENT ON FUNCTION fix_all_position_counts() IS 'Maintenance function to recalculate position_count for all vaults, triple_vaults, triple_terms, and aggregates. Returns counts of updated records.';
+
+COMMENT ON FUNCTION fix_wrong_position_counts() IS 'Optimized maintenance function to fix only vaults with incorrect position_count values. Returns counts of corrected records.';
+
+COMMENT ON FUNCTION fix_position_counts_for_term(p_term_id TEXT) IS 'Targeted maintenance function to fix position_count for a specific term_id across all related tables (vault, triple_vault, triple_term, aggregates).';

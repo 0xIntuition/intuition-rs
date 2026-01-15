@@ -8,6 +8,7 @@ use crate::{error::ApiError, state::AppState};
 use axum::extract::multipart::Field;
 use log::info;
 use reqwest::Client;
+use shared_utils::image::is_valid_image_data;
 use shared_utils::types::MultiPartHandlerJson;
 use shared_utils::{
     ipfs::{IPFSResolver, IpfsResponse},
@@ -145,21 +146,9 @@ fn validate_field_metadata(field: &Field<'_>) -> Result<(String, String), ApiErr
     Ok((content_type, name))
 }
 
-/// Validates the image bytes
+/// Validates the image bytes by checking magic bytes
 fn validate_image_bytes(data: &[u8]) -> Result<(), ApiError> {
-    let is_valid_image = match data.get(0..4) {
-        Some(bytes) => {
-            bytes.starts_with(&[0xFF, 0xD8, 0xFF]) || // JPEG
-            bytes.starts_with(&[0x89, 0x50, 0x4E, 0x47]) || // PNG
-            bytes.starts_with(&[0x47, 0x49, 0x46]) || // GIF
-            bytes.starts_with(&[0x42, 0x4D]) || // BMP
-            bytes.starts_with(&[0x49, 0x49, 0x2A, 0x00]) || // TIFF
-            bytes.starts_with(&[0x4D, 0x4D, 0x00, 0x2A]) // WebP
-        }
-        None => false,
-    };
-
-    if !is_valid_image {
+    if !is_valid_image_data(data) {
         return Err(ApiError::InvalidInput("Invalid image format".into()));
     }
     Ok(())

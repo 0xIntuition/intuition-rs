@@ -10,7 +10,7 @@ use chrono::Utc;
 use log::{debug, info};
 use models::{cached_image::CachedImage, traits::SimpleCrud};
 use shared_utils::{
-    image::{detect_format_from_bytes, extract_extension_from_content_type, Image},
+    image::{Image, detect_format_from_bytes, extract_extension_from_content_type},
     types::{ClassificationModel, MultiPartHandler},
 };
 
@@ -41,9 +41,25 @@ pub async fn upload_image_from_url(
 ) -> Result<Json<Vec<CachedImage>>, ApiError> {
     let mut responses = Vec::new();
     info!("Uploading image");
+
+    let data_url_info = if image.is_data_url() {
+        Some(image.parse_data_url_info()?)
+    } else {
+        None
+    };
+
+    // Generate cache key (handles both data URLs and regular URLs)
+    let cache_key = match data_url_info.as_ref() {
+        Some(info) => info.cache_key.clone(),
+        None => image.cache_key().ok_or(ApiError::ExtractNameAndExtension)?,
+    };
+
     // If the image is already in the database, return it
+    // Note: this cache lookup is best-effort; concurrent requests can race and
+    // both process the same image. This is acceptable because IPFS hashes are
+    // content-addressed and we upsert on URL.
     if let Some(cached_image) =
-        CachedImage::find_by_original_url(&state.pg_pool, &image.url, &state.image_api_schema)
+        CachedImage::find_by_original_url(&state.pg_pool, &cache_key, &state.image_api_schema)
             .await?
     {
         info!("Image already in the database, returning it");
@@ -56,80 +72,96 @@ pub async fn upload_image_from_url(
         );
     }
 
-    // Download the image (with IPFS support via resolver)
-    let download_result = image.download(Some(&state.ipfs_resolver)).await?;
-    if let Some((image_bytes, content_type)) = download_result {
-        // Validate the image bytes
-        validate_image_bytes(&image_bytes)?;
+    let (image_bytes, content_type, image_name, original_name) = match data_url_info {
+        Some(info) => {
+            let name = info.name;
+            let parsed = info.parsed;
+            let original_name = format!("{}.{}", name, parsed.extension);
+            (parsed.data, parsed.mime_type, name, original_name)
+        }
+        None => {
+            // Download the image (with IPFS support via resolver)
+            let download_result = image.download(Some(&state.ipfs_resolver)).await?;
+            let (image_bytes, content_type) = match download_result {
+                Some(result) => result,
+                None => return Ok(Json(responses)),
+            };
 
-        // Determine extension: try Content-Type first, fallback to magic bytes
-        let extension = content_type
-            .as_deref()
-            .and_then(extract_extension_from_content_type)
-            .or_else(|| detect_format_from_bytes(&image_bytes))
-            .ok_or_else(|| {
-                ApiError::InvalidInput("Unable to determine image format".to_string())
-            })?;
+            // Determine extension: try Content-Type first, fallback to magic bytes
+            let extension = content_type
+                .as_deref()
+                .and_then(extract_extension_from_content_type)
+                .or_else(|| detect_format_from_bytes(&image_bytes))
+                .ok_or_else(|| {
+                    ApiError::InvalidInput("Unable to determine image format".to_string())
+                })?;
 
-        info!(
-            "Detected image format: {} (from {})",
-            extension,
-            if content_type.is_some() {
-                "Content-Type"
-            } else {
-                "magic bytes"
-            }
-        );
+            info!(
+                "Detected image format: {} (from {})",
+                extension,
+                if content_type.is_some() {
+                    "Content-Type"
+                } else {
+                    "magic bytes"
+                }
+            );
 
-        // Generate filename from URL (sanitize and truncate)
-        let name = format!(
-            "image_{}",
-            image
-                .url
-                .chars()
-                .filter(|c| c.is_alphanumeric())
-                .take(20)
-                .collect::<String>()
-        );
+            // Generate filename from URL (sanitize and truncate)
+            let image_name = format!(
+                "image_{}",
+                image
+                    .url
+                    .chars()
+                    .filter(|c| c.is_alphanumeric())
+                    .take(20)
+                    .collect::<String>()
+            );
 
-        // Construct the MultipartHandler
-        let multi_part_handler = MultiPartHandler {
-            name: name.clone(),
-            content_type: format!("image/{}", extension.to_lowercase()),
-            data: Bytes::from(image_bytes),
-        };
+            let content_type =
+                content_type.unwrap_or_else(|| format!("image/{}", extension.to_lowercase()));
+            let original_name = format!("{}.{}", image_name, extension);
+            (image_bytes, content_type, image_name, original_name)
+        }
+    };
 
-        // Classify the image
-        let (scores, status) = handle_image(&state, &multi_part_handler).await?;
+    // Validate the image bytes
+    validate_image_bytes(&image_bytes)?;
 
-        let original_name = format!("{}.{}", name, extension);
+    // Construct the MultipartHandler
+    let multi_part_handler = MultiPartHandler {
+        name: image_name,
+        content_type,
+        data: Bytes::from(image_bytes),
+    };
 
-        debug!(
-            "Length of `{}` type `{}` is {} bytes",
-            original_name,
-            multi_part_handler.content_type,
-            multi_part_handler.data.len()
-        );
+    // Classify the image
+    let (scores, status) = handle_image(&state, &multi_part_handler).await?;
 
-        let ipfs_response = upload_image_to_ipfs(&state, multi_part_handler).await?;
-        info!("IPFS response: {:?}", ipfs_response);
+    debug!(
+        "Length of `{}` type `{}` is {} bytes",
+        original_name,
+        multi_part_handler.content_type,
+        multi_part_handler.data.len()
+    );
 
-        let image_guard = CachedImage::builder()
-            .url(format!("ipfs://{}", ipfs_response.hash))
-            .original_url(&image.url)
-            .score(serde_json::to_string(&scores)?)
-            .model(ClassificationModel::FalconsaiNsfwImageDetection.to_string())
-            .safe(status)
-            .created_at(Utc::now())
-            .build();
+    let ipfs_response = upload_image_to_ipfs(&state, multi_part_handler).await?;
+    info!("IPFS response: {:?}", ipfs_response);
 
-        // Add to the responses vector
-        responses.push(image_guard.clone());
-        // And upsert the image guard to the database
-        image_guard
-            .upsert(&state.image_api_schema, &state.pg_pool)
-            .await?;
-    }
+    let image_guard = CachedImage::builder()
+        .url(format!("ipfs://{}", ipfs_response.hash))
+        .original_url(&cache_key)
+        .score(serde_json::to_string(&scores)?)
+        .model(ClassificationModel::FalconsaiNsfwImageDetection.to_string())
+        .safe(status)
+        .created_at(Utc::now())
+        .build();
+
+    // Add to the responses vector
+    responses.push(image_guard.clone());
+    // And upsert the image guard to the database
+    image_guard
+        .upsert(&state.image_api_schema, &state.pg_pool)
+        .await?;
 
     Ok(Json(responses))
 }

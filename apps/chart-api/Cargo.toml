@@ -1,0 +1,28 @@
+[package]
+name = "chart-api"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+alloy.workspace = true
+axum = { version = "0.8.4", features = ["tokio"] }
+chrono.workspace = true
+dotenvy.workspace = true
+env_logger.workspace = true
+envy.workspace = true
+http = "1.1.0"
+log.workspace = true
+models = { path = "../models" }
+redis = { version = "0.32.0", features = ["tokio-comp", "connection-manager"] }
+serde.workspace = true
+serde_json.workspace = true
+shared-utils = { path = "../shared-utils" }
+sqlx.workspace = true
+svg = "0.18.0"
+thiserror.workspace = true
+tokio.workspace = true
+tower-http = { version = "0.6.2", features = ["cors"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+utoipa = { version = "5.4.0" }
+utoipa-swagger-ui = { version = "9.0.2", features = ["axum"] }

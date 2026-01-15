@@ -10,6 +10,7 @@ use crate::{
 };
 use axum::{
     Router,
+    extract::DefaultBodyLimit,
     routing::{get, post},
 };
 use axum_prometheus::PrometheusMetricLayer;
@@ -18,6 +19,7 @@ use http::{
     header::{AUTHORIZATION, CONTENT_TYPE},
 };
 use log::info;
+use shared_utils::image::MAX_BODY_SIZE;
 use std::time::Duration;
 use tokio::net::TcpListener;
 use tower_http::cors::CorsLayer;
@@ -41,6 +43,7 @@ impl App {
     /// specified headers and a max age of 1 hour.
     fn cors(&self) -> CorsLayer {
         CorsLayer::new()
+            .allow_origin(tower_http::cors::Any)
             .allow_methods([Method::GET, Method::POST])
             .allow_headers([CONTENT_TYPE, AUTHORIZATION])
             .max_age(Duration::from_secs(3600))
@@ -79,6 +82,8 @@ impl App {
         self.router()
             .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
             .layer(self.cors())
+            // Increase body limit to accommodate base64-encoded images (which are ~33% larger)
+            .layer(DefaultBodyLimit::max(MAX_BODY_SIZE))
     }
 
     /// Initialize the application. This will read the environment variables,
