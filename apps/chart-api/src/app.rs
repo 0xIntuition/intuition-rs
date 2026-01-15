@@ -1,7 +1,7 @@
 use crate::{
     endpoints::{
         get_account_pnl_chart, get_account_pnl_current, get_account_realized_pnl, get_chart_data,
-        get_position_pnl_chart,
+        get_position_pnl_chart, get_raw_share_price_data,
     },
     error::ApiError,
     openapi::ApiDoc,
@@ -127,6 +127,10 @@ impl App {
             .route(
                 "/api/v1/curve/{curve_id}/term/{term_id}/data",
                 get(get_chart_data),
+            )
+            .route(
+                "/api/v1/curve/{curve_id}/term/{term_id}/data/raw",
+                get(get_raw_share_price_data),
             )
             .route(
                 "/api/v1/accounts/{account_id}/positions/{term_id}/{curve_id}/pnl",

@@ -13,6 +13,7 @@ use utoipa::OpenApi;
 #[openapi(
     paths(
         crate::endpoints::get_chart_data,
+        crate::endpoints::get_raw_share_price_data,
         crate::endpoints::get_position_pnl_chart,
         crate::endpoints::get_account_pnl_chart,
         crate::endpoints::get_account_pnl_current,
