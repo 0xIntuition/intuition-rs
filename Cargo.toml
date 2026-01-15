@@ -19,7 +19,7 @@ hypersync-client = "0.18.3"
 log = "0.4.20"
 macon = "1.2.0"
 rand = "0.9.1"
-reqwest = { version = "0.12.8", features = ["multipart", "json"] }
+reqwest = { version = "0.12.8", features = ["multipart", "json", "stream"] }
 serde = { version = "1.0.189", features = ["derive"] }
 serde_json = "1.0.107"
 sqlx = { version = "0.8.6", features = [

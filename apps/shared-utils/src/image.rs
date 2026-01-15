@@ -1,5 +1,6 @@
 use crate::{error::LibError, ipfs::IPFSResolver};
 use base64::{Engine, engine::general_purpose::STANDARD as BASE64};
+use futures_util::StreamExt;
 use log::{info, warn};
 use models::cached_image::CachedImage;
 use reqwest::Url;
@@ -32,6 +33,7 @@ pub const MAX_DOWNLOAD_IMAGE_SIZE: usize = 10 * 1024 * 1024;
 /// Timeout duration for image downloads (30 seconds).
 /// Prevents hanging requests from malicious or slow endpoints.
 const DOWNLOAD_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
+const MAX_ERROR_BODY_SIZE: usize = 4 * 1024;
 
 /// Represents the name and extension of an image
 pub struct ImageOutput {
@@ -105,11 +107,12 @@ pub fn detect_format_from_bytes(data: &[u8]) -> Option<String> {
 
 /// Downloads response bytes with size validation.
 ///
-/// Validates size both before (via Content-Length header) and after download
+/// Validates size both before (via Content-Length header) and during download
 /// to prevent oversized images from consuming excessive memory.
 async fn download_with_size_limit(response: reqwest::Response) -> Result<Vec<u8>, LibError> {
     // Check Content-Length header before downloading
-    if let Some(content_length) = response.content_length() {
+    let content_length = response.content_length();
+    if let Some(content_length) = content_length {
         if content_length as usize > MAX_DOWNLOAD_IMAGE_SIZE {
             return Err(LibError::ImageTooLarge(
                 content_length as usize,
@@ -118,7 +121,18 @@ async fn download_with_size_limit(response: reqwest::Response) -> Result<Vec<u8>
         }
     }
 
-    let bytes = response.bytes().await?.to_vec();
+    let mut bytes = Vec::with_capacity(content_length.unwrap_or(0) as usize);
+    let mut stream = response.bytes_stream();
+    let mut total_size = 0usize;
+
+    while let Some(chunk) = stream.next().await {
+        let chunk = chunk?;
+        total_size = total_size.saturating_add(chunk.len());
+        if total_size > MAX_DOWNLOAD_IMAGE_SIZE {
+            return Err(LibError::ImageTooLarge(total_size, MAX_DOWNLOAD_IMAGE_SIZE));
+        }
+        bytes.extend_from_slice(&chunk);
+    }
 
     // Verify actual size after download (in case Content-Length was missing)
     if bytes.len() > MAX_DOWNLOAD_IMAGE_SIZE {
@@ -129,6 +143,36 @@ async fn download_with_size_limit(response: reqwest::Response) -> Result<Vec<u8>
     }
 
     Ok(bytes)
+}
+
+async fn read_error_body_with_limit(response: reqwest::Response) -> Result<String, LibError> {
+    let mut stream = response.bytes_stream();
+    let mut bytes = Vec::new();
+
+    while let Some(chunk) = stream.next().await {
+        let chunk = chunk?;
+        let remaining = MAX_ERROR_BODY_SIZE.saturating_sub(bytes.len());
+        if remaining == 0 {
+            break;
+        }
+
+        if chunk.len() > remaining {
+            bytes.extend_from_slice(&chunk[..remaining]);
+            break;
+        }
+
+        bytes.extend_from_slice(&chunk);
+    }
+
+    Ok(String::from_utf8_lossy(&bytes).to_string())
+}
+
+fn format_http_error(context: &str, status: reqwest::StatusCode, body: &str) -> String {
+    if body.trim().is_empty() {
+        format!("{} {}", context, status)
+    } else {
+        format!("{} {}: {}", context, status, body.trim())
+    }
 }
 
 /// Validates that image data has valid magic bytes for any supported image format.
@@ -318,7 +362,7 @@ impl Image {
     ///
     /// # Returns
     /// * `Ok(Some((bytes, content_type)))` - Successfully downloaded image bytes and optional Content-Type
-    /// * `Ok(None)` - Failed to download (non-200 status code)
+    /// * `Ok(None)` - (no longer returned; non-200 responses return errors)
     /// * `Err(LibError::MissingIPFSResolver)` - IPFS URI provided without resolver
     /// * `Err(LibError::ImageTooLarge)` - Image exceeds MAX_DOWNLOAD_IMAGE_SIZE (10MB)
     /// * `Err(_)` - Network or other errors
@@ -362,6 +406,16 @@ impl Image {
                         ))
                     })??;
 
+            let status = response.status();
+            if !status.is_success() {
+                let body = read_error_body_with_limit(response).await?;
+                return Err(LibError::NetworkError(format_http_error(
+                    &format!("IPFS gateway error for CID {}", ipfs_cid),
+                    status,
+                    &body,
+                )));
+            }
+
             let content_type = response
                 .headers()
                 .get("content-type")
@@ -381,9 +435,15 @@ impl Image {
                 LibError::TimeoutError(format!("HTTP download timeout for URL: {}", self.url))
             })??;
 
-        if response.status() != reqwest::StatusCode::OK {
-            warn!("Failed to download image, status: {}", response.status());
-            return Ok(None);
+        let status = response.status();
+        if !status.is_success() {
+            let body = read_error_body_with_limit(response).await?;
+            warn!("Failed to download image, status: {}", status);
+            return Err(LibError::NetworkError(format_http_error(
+                &format!("HTTP download error for URL {}", self.url),
+                status,
+                &body,
+            )));
         }
 
         let content_type = response

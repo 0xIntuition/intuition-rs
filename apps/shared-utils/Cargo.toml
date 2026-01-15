@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 base64 = "0.22"
 bytes.workspace = true
+futures-util = "0.3"
 http = "1.2.0"
 log.workspace = true
 macon.workspace = true
