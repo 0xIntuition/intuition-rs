@@ -11,20 +11,14 @@ DECLARE
     object_label TEXT;
     triple_text TEXT;
 BEGIN
-    -- Get the label for the subject atom
-    SELECT COALESCE(label, '') INTO subject_label
+    -- Get all atom labels in a single query (optimized from 3 separate queries)
+    SELECT
+        COALESCE(MAX(CASE WHEN term_id = NEW.subject_id THEN label END), ''),
+        COALESCE(MAX(CASE WHEN term_id = NEW.predicate_id THEN label END), ''),
+        COALESCE(MAX(CASE WHEN term_id = NEW.object_id THEN label END), '')
+    INTO subject_label, predicate_label, object_label
     FROM atom
-    WHERE term_id = NEW.subject_id;
-
-    -- Get the label for the predicate atom
-    SELECT COALESCE(label, '') INTO predicate_label
-    FROM atom
-    WHERE term_id = NEW.predicate_id;
-
-    -- Get the label for the object atom
-    SELECT COALESCE(label, '') INTO object_label
-    FROM atom
-    WHERE term_id = NEW.object_id;
+    WHERE term_id IN (NEW.subject_id, NEW.predicate_id, NEW.object_id);
 
     -- Concatenate the labels with spaces
     triple_text := TRIM(CONCAT(subject_label, ' ', predicate_label, ' ', object_label));
