@@ -62,7 +62,7 @@ BEGIN
 
             -- Insert into term_text
             INSERT INTO term_text (id, title, description, type)
-            VALUES (triple_record.term_id, triple_text, triple_text, 'triple')
+            VALUES (triple_record.term_id, triple_text, ';', 'triple')
             ON CONFLICT (id) DO UPDATE SET
                 title = EXCLUDED.title,
                 description = EXCLUDED.description,

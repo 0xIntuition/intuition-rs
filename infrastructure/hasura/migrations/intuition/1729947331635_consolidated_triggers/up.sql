@@ -490,40 +490,27 @@ BEGIN
             IF NEW.label IS DISTINCT FROM OLD.label THEN
                 -- Update all triples where this atom is the subject, predicate, or object
                 -- We need to recalculate the concatenated text for each affected triple
-                UPDATE term_text
+                UPDATE term_text tt
                 SET
-                    title = (
-                        SELECT TRIM(CONCAT(
-                            COALESCE(subject_atom.label, ''), ' ',
-                            COALESCE(predicate_atom.label, ''), ' ',
-                            COALESCE(object_atom.label, '')
-                        ))
-                        FROM triple t
-                        LEFT JOIN atom subject_atom ON t.subject_id = subject_atom.term_id
-                        LEFT JOIN atom predicate_atom ON t.predicate_id = predicate_atom.term_id
-                        LEFT JOIN atom object_atom ON t.object_id = object_atom.term_id
-                        WHERE t.term_id = term_text.id
-                    ),
-                    description = (
-                        SELECT TRIM(CONCAT(
-                            COALESCE(subject_atom.label, ''), ' ',
-                            COALESCE(predicate_atom.label, ''), ' ',
-                            COALESCE(object_atom.label, '')
-                        ))
-                        FROM triple t
-                        LEFT JOIN atom subject_atom ON t.subject_id = subject_atom.term_id
-                        LEFT JOIN atom predicate_atom ON t.predicate_id = predicate_atom.term_id
-                        LEFT JOIN atom object_atom ON t.object_id = object_atom.term_id
-                        WHERE t.term_id = term_text.id
-                    )
-                WHERE term_text.type = 'triple'
-                AND term_text.id IN (
-                    SELECT term_id
-                    FROM triple
-                    WHERE subject_id = NEW.term_id
-                       OR predicate_id = NEW.term_id
-                       OR object_id = NEW.term_id
-                );
+                    title = TRIM(CONCAT(
+                        COALESCE(subject_atom.label, ''), ' ',
+                        COALESCE(predicate_atom.label, ''), ' ',
+                        COALESCE(object_atom.label, '')
+                    )),
+                    description = TRIM(CONCAT(
+                        COALESCE(subject_atom.label, ''), ' ',
+                        COALESCE(predicate_atom.label, ''), ' ',
+                        COALESCE(object_atom.label, '')
+                    ))
+                FROM triple t
+                LEFT JOIN atom subject_atom ON t.subject_id = subject_atom.term_id
+                LEFT JOIN atom predicate_atom ON t.predicate_id = predicate_atom.term_id
+                LEFT JOIN atom object_atom ON t.object_id = object_atom.term_id
+                WHERE tt.id = t.term_id
+                  AND tt.type = 'triple'
+                  AND (t.subject_id = NEW.term_id
+                       OR t.predicate_id = NEW.term_id
+                       OR t.object_id = NEW.term_id);
             END IF;
         ELSE
             -- For typed value entities (thing, person, book, organization)
