@@ -52,7 +52,7 @@ ALTER TABLE position_change SET (
   timescaledb.compress_orderby = 'created_at DESC'
 );
 
-SELECT add_compression_policy('position_change', INTERVAL '7 days');
+SELECT add_compression_policy('position_change', INTERVAL '7 days', if_not_exists => true);
 
 -- ========================================
 -- CONTINUOUS AGGREGATES
@@ -78,7 +78,8 @@ ALTER MATERIALIZED VIEW position_change_hourly
 SELECT add_continuous_aggregate_policy('position_change_hourly',
   start_offset => INTERVAL '3 hours',
   end_offset => INTERVAL '1 hour',
-  schedule_interval => INTERVAL '1 hour');
+  schedule_interval => INTERVAL '1 hour',
+  if_not_exists => true);
 
 CREATE MATERIALIZED VIEW IF NOT EXISTS position_change_daily
 WITH (timescaledb.continuous)
@@ -100,7 +101,8 @@ ALTER MATERIALIZED VIEW position_change_daily
 SELECT add_continuous_aggregate_policy('position_change_daily',
   start_offset => INTERVAL '3 days',
   end_offset => INTERVAL '1 day',
-  schedule_interval => INTERVAL '1 day');
+  schedule_interval => INTERVAL '1 day',
+  if_not_exists => true);
 
 -- ========================================
 -- PNL CHART FUNCTION
@@ -115,7 +117,7 @@ CREATE OR REPLACE FUNCTION get_position_pnl_chart(
   p_interval INTERVAL DEFAULT INTERVAL '1 hour'
 )
 RETURNS TABLE (
-  time TIMESTAMPTZ,
+  "time" TIMESTAMPTZ,
   shares_total NUMERIC(78, 0),
   share_price NUMERIC(78, 0),
   equity_value NUMERIC,
@@ -182,7 +184,7 @@ BEGIN
     )
   )
   SELECT
-    COALESCE(pc.bucket, pr.bucket) AS time,
+    COALESCE(pc.bucket, pr.bucket) AS "time",
     locf(pc.shares_total) AS shares_total,
     pr.share_price,
     (locf(pc.shares_total) * pr.share_price / 1e18)::NUMERIC AS equity_value,
@@ -198,7 +200,7 @@ BEGIN
       / GREATEST(locf(pc.total_assets_in) - locf(pc.total_assets_out), 1))::NUMERIC(10,4) AS pnl_pct
   FROM position_cumulative pc
   FULL OUTER JOIN price_buckets pr ON pc.bucket = pr.bucket
-  ORDER BY time;
+  ORDER BY "time";
 END;
 $$ LANGUAGE plpgsql STABLE;
 
