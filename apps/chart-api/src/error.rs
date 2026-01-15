@@ -38,7 +38,7 @@ pub enum ApiError {
     InvalidTermId(String),
     #[error("Invalid curve_id: {0}. Must be a valid numeric string")]
     InvalidCurveId(String),
-    #[error("Invalid account_id: {0}. Must be a non-empty string")]
+    #[error("Invalid account_id: {0}. Must be a 0x-prefixed 40-character hex address")]
     InvalidAccountId(String),
     #[error("Invalid graph type: {0}. Valid values are: sharePriceChange, totalMarketCap")]
     InvalidGraphType(String),

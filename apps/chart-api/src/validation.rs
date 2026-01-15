@@ -98,9 +98,18 @@ pub fn validate_curve_id(curve_id: &str) -> Result<(), ApiError> {
 
 /// Validate the account_id parameter
 ///
-/// account_id should be a non-empty string
+/// account_id should be a 0x-prefixed 40-character hex string
 pub fn validate_account_id(account_id: &str) -> Result<(), ApiError> {
-    if account_id.trim().is_empty() {
+    if !account_id.starts_with("0x") {
+        return Err(ApiError::InvalidAccountId(account_id.to_string()));
+    }
+
+    if account_id.len() != 42 {
+        return Err(ApiError::InvalidAccountId(account_id.to_string()));
+    }
+
+    let hex_part = &account_id[2..];
+    if !hex_part.chars().all(|c| c.is_ascii_hexdigit()) {
         return Err(ApiError::InvalidAccountId(account_id.to_string()));
     }
 
@@ -169,6 +178,20 @@ mod tests {
         assert!(validate_term_id("0xghij").is_err()); // Invalid hex chars
         assert!(validate_term_id("").is_err()); // Empty string
         assert!(validate_term_id("x1234").is_err()); // Wrong prefix
+    }
+
+    #[test]
+    fn test_validate_account_id_valid() {
+        assert!(validate_account_id("0x0123456789abcdef0123456789abcdef01234567").is_ok());
+        assert!(validate_account_id("0xABCDEFabcdefABCDEFabcdefABCDEFabcdefABCD").is_ok());
+    }
+
+    #[test]
+    fn test_validate_account_id_invalid() {
+        assert!(validate_account_id("0x1234").is_err()); // Too short
+        assert!(validate_account_id("1234567890abcdef0123456789abcdef01234567").is_err()); // Missing 0x
+        assert!(validate_account_id("0x0123456789abcdef0123456789abcdef0123456g").is_err()); // Invalid hex
+        assert!(validate_account_id("").is_err()); // Empty string
     }
 
     #[test]

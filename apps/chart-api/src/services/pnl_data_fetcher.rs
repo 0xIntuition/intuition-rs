@@ -1,4 +1,5 @@
 use crate::error::ApiError;
+use crate::services::compute_pnl_pct;
 use crate::types::PnlInterval;
 use chrono::{DateTime, Utc};
 use sqlx::{Pool, Postgres, Row};
@@ -337,10 +338,6 @@ pub async fn build_position_pnl_series(
 
     let scale = BigDecimal::from_str("1000000000000000000")
         .map_err(|e| ApiError::Internal(e.to_string()))?;
-    let hundred = BigDecimal::from(100);
-    let zero = BigDecimal::from(0);
-    let one = BigDecimal::from(1);
-
     let mut shares_total = totals_before.shares_total;
     let mut assets_in_total = totals_before.assets_in_total;
     let mut assets_out_total = totals_before.assets_out_total;
@@ -362,12 +359,7 @@ pub async fn build_position_pnl_series(
         let equity_value = (shares_total.clone() * share_price.clone()) / scale.clone();
         let net_invested = assets_in_total.clone() - assets_out_total.clone();
         let total_pnl = equity_value.clone() + assets_out_total.clone() - assets_in_total.clone();
-        let denom = if net_invested > zero {
-            net_invested.clone()
-        } else {
-            one.clone()
-        };
-        let pnl_pct = (total_pnl.clone() * hundred.clone()) / denom;
+        let pnl_pct = compute_pnl_pct(&total_pnl, &net_invested);
 
         series.push(PnlComputedPoint {
             timestamp: *bucket,

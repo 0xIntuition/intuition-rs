@@ -6,7 +6,7 @@ use crate::models::{
 };
 use crate::services::{
     align_pnl_range, build_pnl_expected_buckets, build_position_pnl_series,
-    account_exists, build_account_realized_pnl, fetch_account_current_totals,
+    account_exists, build_account_realized_pnl, compute_pnl_pct, fetch_account_current_totals,
     fetch_account_positions, position_exists,
 };
 use crate::state::AppState;
@@ -20,6 +20,9 @@ use axum::http::header;
 use axum::response::{IntoResponse, Response};
 use chrono::Utc;
 use sqlx::types::BigDecimal;
+use std::sync::Arc;
+use tokio::sync::Semaphore;
+use tokio::task::JoinSet;
 use tracing::info;
 
 fn bigdecimal_to_string(value: &BigDecimal) -> String {
@@ -205,24 +208,48 @@ pub async fn get_account_pnl_chart(
         return Err(ApiError::NoDataAvailable);
     }
 
-    let mut aggregates: Vec<(BigDecimal, BigDecimal, BigDecimal)> =
-        vec![(BigDecimal::from(0), BigDecimal::from(0), BigDecimal::from(0)); expected_buckets.len()];
+    let mut aggregates: Vec<(BigDecimal, BigDecimal, BigDecimal)> = vec![
+        (BigDecimal::from(0), BigDecimal::from(0), BigDecimal::from(0));
+        expected_buckets.len()
+    ];
     let mut any_series = false;
 
+    let max_concurrency = 8usize;
+    let semaphore = Arc::new(Semaphore::new(max_concurrency));
+    let mut tasks = JoinSet::new();
+
     for position in positions {
-        match build_position_pnl_series(
-            &state.pg_pool,
-            &account_id,
-            &position.term_id,
-            &position.curve_id,
-            interval,
-            range_start,
-            range_end,
-            &expected_buckets,
-        )
-        .await
-        {
-            Ok(series) => {
+        let pool = state.pg_pool.clone();
+        let account_id = account_id.clone();
+        let expected_buckets = expected_buckets.clone();
+        let interval = interval;
+        let range_start = range_start;
+        let range_end = range_end;
+        let permit = semaphore
+            .clone()
+            .acquire_owned()
+            .await
+            .map_err(|_| ApiError::Internal("PnL task semaphore closed".to_string()))?;
+
+        tasks.spawn(async move {
+            let _permit = permit;
+            build_position_pnl_series(
+                &pool,
+                &account_id,
+                &position.term_id,
+                &position.curve_id,
+                interval,
+                range_start,
+                range_end,
+                &expected_buckets,
+            )
+            .await
+        });
+    }
+
+    while let Some(result) = tasks.join_next().await {
+        match result {
+            Ok(Ok(series)) => {
                 any_series = true;
                 for (index, point) in series.iter().enumerate() {
                     let (ref mut equity, ref mut assets_in, ref mut assets_out) = aggregates[index];
@@ -231,18 +258,20 @@ pub async fn get_account_pnl_chart(
                     *assets_out = assets_out.clone() + point.total_assets_out.clone();
                 }
             }
-            Err(ApiError::NoDataAvailable) => continue,
-            Err(e) => return Err(e),
+            Ok(Err(ApiError::NoDataAvailable)) => continue,
+            Ok(Err(e)) => return Err(e),
+            Err(err) => {
+                return Err(ApiError::Internal(format!(
+                    "Position PnL task failed: {}",
+                    err
+                )))
+            }
         }
     }
 
     if !any_series {
         return Err(ApiError::NoDataAvailable);
     }
-
-    let hundred = BigDecimal::from(100);
-    let zero = BigDecimal::from(0);
-    let one = BigDecimal::from(1);
 
     let data_points = expected_buckets
         .iter()
@@ -251,12 +280,7 @@ pub async fn get_account_pnl_chart(
             let (equity_value, total_assets_in, total_assets_out) = &aggregates[index];
             let net_invested = total_assets_in.clone() - total_assets_out.clone();
             let total_pnl = equity_value.clone() + total_assets_out.clone() - total_assets_in.clone();
-            let denom = if net_invested > zero {
-                net_invested.clone()
-            } else {
-                one.clone()
-            };
-            let pnl_pct = (total_pnl.clone() * hundred.clone()) / denom;
+            let pnl_pct = compute_pnl_pct(&total_pnl, &net_invested);
             let unrealized_pnl = equity_value.clone() - net_invested.clone();
 
             AccountPnlChartPoint {
@@ -314,12 +338,7 @@ pub async fn get_account_pnl_current(
     let net_invested = totals.total_assets_in.clone() - totals.total_assets_out.clone();
     let total_pnl = totals.equity_value.clone() + totals.total_assets_out.clone()
         - totals.total_assets_in.clone();
-    let denom = if net_invested > BigDecimal::from(0) {
-        net_invested.clone()
-    } else {
-        BigDecimal::from(1)
-    };
-    let pnl_pct = (total_pnl.clone() * BigDecimal::from(100)) / denom;
+    let pnl_pct = compute_pnl_pct(&total_pnl, &net_invested);
     let unrealized_pnl = totals.equity_value.clone() - net_invested.clone();
 
     let response = AccountPnlSnapshot {

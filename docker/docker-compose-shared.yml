@@ -125,6 +125,7 @@ services:
       HASURA_GRAPHQL_ADMIN_SECRET: 'myadminsecretkey'
       HASURA_GRAPHQL_STRINGIFY_NUMERIC_TYPES: 'true'
       PINATA_AUTH: Bearer $PINATA_API_JWT
+      chartApiUrl: 'http://chart-api:3010'
     depends_on:
       database:
         condition: service_healthy
