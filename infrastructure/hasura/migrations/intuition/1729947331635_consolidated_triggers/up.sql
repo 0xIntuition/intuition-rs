@@ -484,51 +484,20 @@ BEGIN
 
     -- For update operations
     ELSIF TG_OP = 'UPDATE' THEN
-        -- Check if this is an atom table update
-        IF TG_TABLE_NAME = 'atom' THEN
-            -- Only proceed if the label changed
-            IF NEW.label IS DISTINCT FROM OLD.label THEN
-                -- Update all triples where this atom is the subject, predicate, or object
-                -- We need to recalculate the concatenated text for each affected triple
-                UPDATE term_text tt
-                SET
-                    title = TRIM(CONCAT(
-                        COALESCE(subject_atom.label, ''), ' ',
-                        COALESCE(predicate_atom.label, ''), ' ',
-                        COALESCE(object_atom.label, '')
-                    )),
-                    description = TRIM(CONCAT(
-                        COALESCE(subject_atom.label, ''), ' ',
-                        COALESCE(predicate_atom.label, ''), ' ',
-                        COALESCE(object_atom.label, '')
-                    ))
-                FROM triple t
-                LEFT JOIN atom subject_atom ON t.subject_id = subject_atom.term_id
-                LEFT JOIN atom predicate_atom ON t.predicate_id = predicate_atom.term_id
-                LEFT JOIN atom object_atom ON t.object_id = object_atom.term_id
-                WHERE tt.id = t.term_id
-                  AND tt.type = 'triple'
-                  AND (t.subject_id = NEW.term_id
-                       OR t.predicate_id = NEW.term_id
-                       OR t.object_id = NEW.term_id);
-            END IF;
-        ELSE
-            -- For typed value entities (thing, person, book, organization)
-            -- Only update if name or description changed
-            IF NEW.name <> OLD.name OR NEW.description <> OLD.description OR
-               (OLD.name IS NULL AND NEW.name IS NOT NULL) OR
-               (OLD.description IS NULL AND NEW.description IS NOT NULL) THEN
+        -- Only update if name or description changed
+        IF NEW.name <> OLD.name OR NEW.description <> OLD.description OR
+           (OLD.name IS NULL AND NEW.name IS NOT NULL) OR
+           (OLD.description IS NULL AND NEW.description IS NOT NULL) THEN
 
-                UPDATE term_text
-                SET title = NEW.name,
-                    description = NEW.description
-                WHERE id = NEW.id;
+            UPDATE term_text
+            SET title = NEW.name,
+                description = NEW.description
+            WHERE id = NEW.id;
 
-                -- If no row was updated, insert one
-                IF NOT FOUND THEN
-                    INSERT INTO term_text (id, title, description)
-                    VALUES (NEW.id, NEW.name, NEW.description);
-                END IF;
+            -- If no row was updated, insert one
+            IF NOT FOUND THEN
+                INSERT INTO term_text (id, title, description)
+                VALUES (NEW.id, NEW.name, NEW.description);
             END IF;
         END IF;
     END IF;
@@ -1122,7 +1091,7 @@ COMMENT ON FUNCTION delete_vault_position_count() IS 'Decrements vault position_
 -- Notification and utility functions
 COMMENT ON FUNCTION notify_version_change() IS 'Sends PostgreSQL notification on version_change_channel when contract version is initialized.';
 
-COMMENT ON FUNCTION update_term_text_function() IS 'Maintains term_text table for pgai vectorization when typed value entities (thing, person, book, organization) are inserted or updated, and updates triple term_text entries when atom labels change.';
+COMMENT ON FUNCTION update_term_text_function() IS 'Maintains term_text table for pgai vectorization when typed value entities (thing, person, book, organization) are inserted or updated.';
 
 -- Search and query functions
 COMMENT ON FUNCTION search_positions_on_subject(search_fields JSONB, addresses TEXT[]) IS 'Returns positions for accounts where the subject matches ALL specified predicate-object pairs in the search criteria.';
