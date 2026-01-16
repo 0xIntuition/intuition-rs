@@ -1,0 +1,81 @@
+table:
+  name: position_with_value
+  schema: public
+configuration:
+  column_config: {}
+  custom_column_names: {}
+  custom_name: positions_with_value
+  custom_root_fields:
+    select_by_pk: position_with_value
+object_relationships:
+  - name: account
+    using:
+      manual_configuration:
+        column_mapping:
+          account_id: id
+        insertion_order: null
+        remote_table:
+          name: account
+          schema: public
+  - name: term
+    using:
+      manual_configuration:
+        column_mapping:
+          term_id: id
+        insertion_order: null
+        remote_table:
+          name: term
+          schema: public
+  - name: vault
+    using:
+      manual_configuration:
+        column_mapping:
+          curve_id: curve_id
+          term_id: term_id
+        insertion_order: null
+        remote_table:
+          name: vault
+          schema: public
+select_permissions:
+  - role: anonymous
+    permission:
+      columns:
+        - block_number
+        - log_index
+        - transaction_index
+        - term_id
+        - curve_id
+        - shares
+        - total_deposit_assets_after_total_fees
+        - total_redeem_assets_for_receiver
+        - account_id
+        - id
+        - transaction_hash
+        - created_at
+        - updated_at
+        - theoretical_value
+      filter: {}
+      limit: 100
+      allow_aggregations: true
+    comment: ""
+  - role: frontend
+    permission:
+      columns:
+        - block_number
+        - log_index
+        - transaction_index
+        - term_id
+        - curve_id
+        - shares
+        - total_deposit_assets_after_total_fees
+        - total_redeem_assets_for_receiver
+        - account_id
+        - id
+        - transaction_hash
+        - created_at
+        - updated_at
+        - theoretical_value
+      filter: {}
+      limit: 100
+      allow_aggregations: true
+    comment: ""

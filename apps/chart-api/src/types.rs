@@ -193,6 +193,89 @@ pub struct ChartQueryParams {
     pub background_color: Option<String>,
 }
 
+/// Time interval for PnL chart data
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+pub enum PnlInterval {
+    #[serde(rename = "1m")]
+    OneMinute,
+    #[serde(rename = "5m")]
+    FiveMinutes,
+    #[serde(rename = "1h")]
+    OneHour,
+    #[serde(rename = "1w")]
+    OneWeek,
+    #[serde(rename = "1d")]
+    OneDay,
+}
+
+impl PnlInterval {
+    /// Parse interval from string
+    pub fn from_str(s: &str) -> Option<Self> {
+        match s {
+            "1m" => Some(PnlInterval::OneMinute),
+            "5m" => Some(PnlInterval::FiveMinutes),
+            "1h" => Some(PnlInterval::OneHour),
+            "1w" => Some(PnlInterval::OneWeek),
+            "1d" => Some(PnlInterval::OneDay),
+            _ => None,
+        }
+    }
+
+    /// Get the cache TTL in seconds for this interval
+    pub fn cache_ttl_seconds(&self) -> u64 {
+        match self {
+            PnlInterval::OneMinute => 30,
+            PnlInterval::FiveMinutes => 60,
+            PnlInterval::OneHour => 120,
+            PnlInterval::OneWeek => 300,
+            PnlInterval::OneDay => 300,
+        }
+    }
+
+    /// Get the Postgres interval string
+    pub fn as_postgres_interval(&self) -> &'static str {
+        match self {
+            PnlInterval::OneMinute => "1 minute",
+            PnlInterval::FiveMinutes => "5 minutes",
+            PnlInterval::OneHour => "1 hour",
+            PnlInterval::OneWeek => "1 week",
+            PnlInterval::OneDay => "1 day",
+        }
+    }
+}
+
+impl fmt::Display for PnlInterval {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            PnlInterval::OneMinute => write!(f, "1m"),
+            PnlInterval::FiveMinutes => write!(f, "5m"),
+            PnlInterval::OneHour => write!(f, "1h"),
+            PnlInterval::OneWeek => write!(f, "1w"),
+            PnlInterval::OneDay => write!(f, "1d"),
+        }
+    }
+}
+
+/// Query parameters for PnL chart endpoints
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct PnlChartQueryParams {
+    /// Time interval: 1m, 5m, 1h, 1d, 1w
+    pub interval: String,
+    /// Range start timestamp (unix seconds, unix milliseconds, or RFC3339)
+    pub start: String,
+    /// Range end timestamp (unix seconds, unix milliseconds, or RFC3339)
+    pub end: String,
+}
+
+/// Query parameters for realized PnL endpoints
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct PnlRealizedQueryParams {
+    /// Range start timestamp (unix seconds, unix milliseconds, or RFC3339)
+    pub start: String,
+    /// Range end timestamp (unix seconds, unix milliseconds, or RFC3339)
+    pub end: String,
+}
+
 /// SVG configuration with defaults
 #[derive(Debug, Clone)]
 pub struct SvgConfig {

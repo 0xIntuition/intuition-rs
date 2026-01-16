@@ -253,6 +253,109 @@ actions:
       - role: anonymous
       - role: frontend
     comment: Fetches chart SVG for a term/curve combination
+  - name: getChartRawJson
+    definition:
+      kind: synchronous
+      handler: '{{chartApiUrl}}'
+      request_transform:
+        method: GET
+        url: '{{$base_url}}/api/v1/curve/{{$body.input.input.curve_id}}/term/{{$body.input.input.term_id}}/data/raw'
+        query_params:
+          interval: '{{$body.input.input.interval}}'
+          format: 'json'
+          start: '{{$body.input.input.start_time}}'
+          end: '{{$body.input.input.end_time}}'
+        template_engine: Kriti
+        version: 2
+    permissions:
+      - role: anonymous
+      - role: frontend
+    comment: Fetches raw share price chart data (JSON) from share_price_change
+  - name: getChartRawSvg
+    definition:
+      kind: synchronous
+      handler: '{{chartApiUrl}}'
+      request_transform:
+        method: GET
+        url: '{{$base_url}}/api/v1/curve/{{$body.input.input.curve_id}}/term/{{$body.input.input.term_id}}/data/raw'
+        query_params:
+          interval: '{{$body.input.input.interval}}'
+          format: 'svg_json'
+          start: '{{$body.input.input.start_time}}'
+          end: '{{$body.input.input.end_time}}'
+          width: '{{$body.input.input?.width}}'
+          height: '{{$body.input.input?.height}}'
+          line_color: '{{$body.input.input?.line_color}}'
+          background_color: '{{$body.input.input?.background_color}}'
+        template_engine: Kriti
+        version: 2
+    permissions:
+      - role: anonymous
+      - role: frontend
+    comment: Fetches raw share price chart SVG from share_price_change
+  - name: getPositionPnlChart
+    definition:
+      kind: synchronous
+      handler: '{{chartApiUrl}}'
+      request_transform:
+        method: GET
+        url: '{{$base_url}}/api/v1/accounts/{{$body.input.input.account_id}}/positions/{{$body.input.input.term_id}}/{{$body.input.input.curve_id}}/pnl'
+        query_params:
+          interval: '{{$body.input.input.interval}}'
+          start: '{{$body.input.input.start_time}}'
+          end: '{{$body.input.input.end_time}}'
+        template_engine: Kriti
+        version: 2
+    permissions:
+      - role: anonymous
+      - role: frontend
+    comment: Fetches position PnL chart data
+  - name: getAccountPnlChart
+    definition:
+      kind: synchronous
+      handler: '{{chartApiUrl}}'
+      request_transform:
+        method: GET
+        url: '{{$base_url}}/api/v1/accounts/{{$body.input.input.account_id}}/pnl'
+        query_params:
+          interval: '{{$body.input.input.interval}}'
+          start: '{{$body.input.input.start_time}}'
+          end: '{{$body.input.input.end_time}}'
+        template_engine: Kriti
+        version: 2
+    permissions:
+      - role: anonymous
+      - role: frontend
+    comment: Fetches account-level PnL chart data
+  - name: getAccountPnlCurrent
+    definition:
+      kind: synchronous
+      handler: '{{chartApiUrl}}'
+      request_transform:
+        method: GET
+        url: '{{$base_url}}/api/v1/accounts/{{$body.input.input.account_id}}/pnl/current'
+        template_engine: Kriti
+        version: 2
+    permissions:
+      - role: anonymous
+      - role: frontend
+    comment: Fetches current account PnL snapshot
+  - name: getAccountPnlRealized
+    definition:
+      kind: synchronous
+      handler: '{{chartApiUrl}}'
+      request_transform:
+        method: GET
+        url: '{{$base_url}}/api/v1/accounts/{{$body.input.input.account_id}}/pnl/realized'
+        query_params:
+          start: '{{$body.input.input.start_time}}'
+          end: '{{$body.input.input.end_time}}'
+        template_engine: Kriti
+        version: 2
+    permissions:
+      - role: anonymous
+      - role: frontend
+    comment: Fetches realized PnL breakdown for an account
 custom_types:
   enums: []
   input_objects:
@@ -264,6 +367,10 @@ custom_types:
     - name: UploadImageInput
     - name: GetChartJsonInput
     - name: GetChartSvgInput
+    - name: GetPositionPnlChartInput
+    - name: GetAccountPnlChartInput
+    - name: GetAccountPnlCurrentInput
+    - name: GetAccountPnlRealizedInput
   objects:
     - name: PinOutput
     - name: UploadImageFromUrlOutput
@@ -272,4 +379,11 @@ custom_types:
     - name: ChartDataOutput
     - name: ChartDataPoint
     - name: ChartSvgOutput
+    - name: PositionPnlChartOutput
+    - name: PositionPnlChartPoint
+    - name: AccountPnlChartOutput
+    - name: AccountPnlChartPoint
+    - name: AccountPnlSnapshotOutput
+    - name: AccountPnlRealizedOutput
+    - name: AccountPnlRealizedEntry
   scalars: []

@@ -43,6 +43,34 @@ Data points are derived from the aligned interval buckets within `[start, end)`.
 - `start=2026-01-01T00:00:00Z`, `end=2026-02-01T00:00:00Z`, `interval=1w` → 4 points
 - `start=2026-01-01T00:00:00Z`, `end=2026-02-01T00:00:00Z`, `interval=1d` → 31 points
 
+## PnL Endpoints
+
+```
+GET /api/v1/accounts/{account_id}/pnl
+GET /api/v1/accounts/{account_id}/pnl/current
+GET /api/v1/accounts/{account_id}/pnl/realized
+GET /api/v1/accounts/{account_id}/positions/{term_id}/{curve_id}/pnl
+```
+
+### PnL Parameters
+
+- `account_id` must be a 0x-prefixed 40-character hex address.
+- `term_id` is a 0x-prefixed hex string.
+- `curve_id` is a numeric string.
+
+### PnL Methodology
+
+- `equity_value = shares_total * share_price / 1e18`
+- `net_invested = total_assets_in - total_assets_out`
+- `total_pnl = equity_value + total_assets_out - total_assets_in`
+- `pnl_pct = (total_pnl / net_invested) * 100` when `net_invested > 0`, otherwise `0`
+- `unrealized_pnl = equity_value - net_invested`
+
+### PnL Performance Notes
+
+- Account-level PnL aggregates per-position series and limits concurrency to avoid saturating the DB.
+- Large accounts may still need tighter ranges or longer intervals for responsive queries.
+
 ## Response Formats
 
 ### JSON Response
@@ -109,6 +137,17 @@ Redis caching with interval-based TTL:
 | `1m` | 300 seconds |
 
 Cache key format: `chart:{graph_type}:{term_id}:{curve_id}:{interval}:{start}:{end}:{format}`
+
+PnL cache keys:
+
+- Position: `pnl:position:{account_id}:{term_id}:{curve_id}:{interval}:{start}:{end}`
+- Account: `pnl:account:{account_id}:{interval}:{start}:{end}`
+
+## Migration Notes
+
+PnL endpoints require the Season 2 PnL migrations:
+
+- `infrastructure/hasura/migrations/intuition/1767883119000_season2_pnl`
 
 ## Error Responses
 

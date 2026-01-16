@@ -1,0 +1,3 @@
+function:
+  name: get_position_pnl_chart
+  schema: public

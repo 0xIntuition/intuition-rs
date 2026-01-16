@@ -215,11 +215,14 @@ pub async fn data_exists(
 
         Ok(row.is_some())
     } else {
-        // Check if term exists
+        // Check if term exists.
+        //
+        // IMPORTANT: `term_id` is the unified identifier for all terms (atoms, triples,
+        // counter-triples). It is NOT guaranteed to exist in `atom`.
         let row = sqlx::query(
             r#"
-            SELECT 1 FROM atom
-            WHERE term_id = $1
+            SELECT 1 FROM term
+            WHERE id = $1
             LIMIT 1
             "#,
         )
