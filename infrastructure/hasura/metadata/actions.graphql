@@ -93,6 +93,12 @@ type Query {
   getChartSvg(
     input: GetChartSvgInput!
   ): ChartSvgOutput
+  getChartRawJson(
+    input: GetChartJsonInput!
+  ): ChartDataOutput
+  getChartRawSvg(
+    input: GetChartSvgInput!
+  ): ChartSvgOutput
   getPositionPnlChart(
     input: GetPositionPnlChartInput!
   ): PositionPnlChartOutput

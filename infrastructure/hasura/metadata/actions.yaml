@@ -253,6 +253,46 @@ actions:
       - role: anonymous
       - role: frontend
     comment: Fetches chart SVG for a term/curve combination
+  - name: getChartRawJson
+    definition:
+      kind: synchronous
+      handler: '{{chartApiUrl}}'
+      request_transform:
+        method: GET
+        url: '{{$base_url}}/api/v1/curve/{{$body.input.input.curve_id}}/term/{{$body.input.input.term_id}}/data/raw'
+        query_params:
+          interval: '{{$body.input.input.interval}}'
+          format: 'json'
+          start: '{{$body.input.input.start_time}}'
+          end: '{{$body.input.input.end_time}}'
+        template_engine: Kriti
+        version: 2
+    permissions:
+      - role: anonymous
+      - role: frontend
+    comment: Fetches raw share price chart data (JSON) from share_price_change
+  - name: getChartRawSvg
+    definition:
+      kind: synchronous
+      handler: '{{chartApiUrl}}'
+      request_transform:
+        method: GET
+        url: '{{$base_url}}/api/v1/curve/{{$body.input.input.curve_id}}/term/{{$body.input.input.term_id}}/data/raw'
+        query_params:
+          interval: '{{$body.input.input.interval}}'
+          format: 'svg_json'
+          start: '{{$body.input.input.start_time}}'
+          end: '{{$body.input.input.end_time}}'
+          width: '{{$body.input.input?.width}}'
+          height: '{{$body.input.input?.height}}'
+          line_color: '{{$body.input.input?.line_color}}'
+          background_color: '{{$body.input.input?.background_color}}'
+        template_engine: Kriti
+        version: 2
+    permissions:
+      - role: anonymous
+      - role: frontend
+    comment: Fetches raw share price chart SVG from share_price_change
   - name: getPositionPnlChart
     definition:
       kind: synchronous
