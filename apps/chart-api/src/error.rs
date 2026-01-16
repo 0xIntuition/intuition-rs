@@ -22,6 +22,8 @@ pub enum ApiError {
     NoDataAvailable,
     #[error("Invalid interval: {0}. Valid values are: 1h, 1d, 1w, 1m")]
     InvalidInterval(String),
+    #[error("Invalid PnL interval: {0}. Valid values are: 1m, 5m, 1h, 1d, 1w")]
+    InvalidPnlInterval(String),
     #[error("Invalid format: {0}. Valid values are: json, svg, svg_json")]
     InvalidFormat(String),
     #[error("Invalid range: {0} buckets. Must be between 1 and {1}")]
@@ -36,10 +38,14 @@ pub enum ApiError {
     InvalidTermId(String),
     #[error("Invalid curve_id: {0}. Must be a valid numeric string")]
     InvalidCurveId(String),
+    #[error("Invalid account_id: {0}. Must be a 0x-prefixed 40-character hex address")]
+    InvalidAccountId(String),
     #[error("Invalid graph type: {0}. Valid values are: sharePriceChange, totalMarketCap")]
     InvalidGraphType(String),
     #[error("Missing curve_id: this graph type requires a curve_id parameter")]
     MissingCurveId,
+    #[error("Invalid account_id/term_id/curve_id combination: no position exists")]
+    InvalidPositionCombination,
     #[error(transparent)]
     Env(#[from] envy::Error),
     #[error(transparent)]
@@ -63,6 +69,7 @@ impl ApiError {
             ApiError::InvalidCombination => "INVALID_COMBINATION",
             ApiError::NoDataAvailable => "NO_DATA",
             ApiError::InvalidInterval(_) => "INVALID_INTERVAL",
+            ApiError::InvalidPnlInterval(_) => "INVALID_PNL_INTERVAL",
             ApiError::InvalidFormat(_) => "INVALID_FORMAT",
             ApiError::InvalidRange(_, _) => "INVALID_RANGE",
             ApiError::InvalidStartTimestamp(_) => "INVALID_START_TIMESTAMP",
@@ -70,8 +77,10 @@ impl ApiError {
             ApiError::InvalidTimeRange => "INVALID_TIME_RANGE",
             ApiError::InvalidTermId(_) => "INVALID_TERM_ID",
             ApiError::InvalidCurveId(_) => "INVALID_CURVE_ID",
+            ApiError::InvalidAccountId(_) => "INVALID_ACCOUNT_ID",
             ApiError::InvalidGraphType(_) => "INVALID_GRAPH_TYPE",
             ApiError::MissingCurveId => "MISSING_CURVE_ID",
+            ApiError::InvalidPositionCombination => "INVALID_POSITION_COMBINATION",
             ApiError::Env(_) => "ENV_ERROR",
             ApiError::IO(_) => "IO_ERROR",
             ApiError::Sqlx(_) => "DATABASE_ERROR",
@@ -89,6 +98,7 @@ impl IntoResponse for ApiError {
             ApiError::InvalidCombination => StatusCode::BAD_REQUEST,
             ApiError::NoDataAvailable => StatusCode::NOT_FOUND,
             ApiError::InvalidInterval(_) => StatusCode::BAD_REQUEST,
+            ApiError::InvalidPnlInterval(_) => StatusCode::BAD_REQUEST,
             ApiError::InvalidFormat(_) => StatusCode::BAD_REQUEST,
             ApiError::InvalidRange(_, _) => StatusCode::BAD_REQUEST,
             ApiError::InvalidStartTimestamp(_) => StatusCode::BAD_REQUEST,
@@ -96,8 +106,10 @@ impl IntoResponse for ApiError {
             ApiError::InvalidTimeRange => StatusCode::BAD_REQUEST,
             ApiError::InvalidTermId(_) => StatusCode::BAD_REQUEST,
             ApiError::InvalidCurveId(_) => StatusCode::BAD_REQUEST,
+            ApiError::InvalidAccountId(_) => StatusCode::BAD_REQUEST,
             ApiError::InvalidGraphType(_) => StatusCode::BAD_REQUEST,
             ApiError::MissingCurveId => StatusCode::BAD_REQUEST,
+            ApiError::InvalidPositionCombination => StatusCode::BAD_REQUEST,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         };
 

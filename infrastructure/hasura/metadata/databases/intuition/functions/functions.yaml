@@ -1,4 +1,5 @@
 - "!include public_following.yaml"
+- "!include public_get_position_pnl_chart.yaml"
 - "!include public_positions_from_following.yaml"
 - "!include public_search_positions_on_subject.yaml"
 - "!include public_search_term.yaml"

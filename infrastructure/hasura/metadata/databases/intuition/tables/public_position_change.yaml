@@ -1,0 +1,79 @@
+table:
+  name: position_change
+  schema: public
+configuration:
+  column_config: {}
+  custom_column_names: {}
+  custom_name: position_changes
+  custom_root_fields:
+    select_by_pk: position_change
+object_relationships:
+  - name: account
+    using:
+      manual_configuration:
+        column_mapping:
+          account_id: id
+        insertion_order: null
+        remote_table:
+          name: account
+          schema: public
+  - name: term
+    using:
+      manual_configuration:
+        column_mapping:
+          term_id: id
+        insertion_order: null
+        remote_table:
+          name: term
+          schema: public
+  - name: vault
+    using:
+      manual_configuration:
+        column_mapping:
+          curve_id: curve_id
+          term_id: term_id
+        insertion_order: null
+        remote_table:
+          name: vault
+          schema: public
+select_permissions:
+  - role: anonymous
+    permission:
+      columns:
+        - account_id
+        - assets_in
+        - assets_out
+        - block_number
+        - created_at
+        - curve_id
+        - event_id
+        - event_type
+        - id
+        - log_index
+        - shares_delta
+        - term_id
+        - transaction_hash
+      filter: {}
+      limit: 250
+      allow_aggregations: true
+    comment: ""
+  - role: frontend
+    permission:
+      columns:
+        - account_id
+        - assets_in
+        - assets_out
+        - block_number
+        - created_at
+        - curve_id
+        - event_id
+        - event_type
+        - id
+        - log_index
+        - shares_delta
+        - term_id
+        - transaction_hash
+      filter: {}
+      limit: 250
+      allow_aggregations: true
+    comment: ""

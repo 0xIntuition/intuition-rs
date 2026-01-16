@@ -93,6 +93,24 @@ type Query {
   getChartSvg(
     input: GetChartSvgInput!
   ): ChartSvgOutput
+  getChartRawJson(
+    input: GetChartJsonInput!
+  ): ChartDataOutput
+  getChartRawSvg(
+    input: GetChartSvgInput!
+  ): ChartSvgOutput
+  getPositionPnlChart(
+    input: GetPositionPnlChartInput!
+  ): PositionPnlChartOutput
+  getAccountPnlChart(
+    input: GetAccountPnlChartInput!
+  ): AccountPnlChartOutput
+  getAccountPnlCurrent(
+    input: GetAccountPnlCurrentInput!
+  ): AccountPnlSnapshotOutput
+  getAccountPnlRealized(
+    input: GetAccountPnlRealizedInput!
+  ): AccountPnlRealizedOutput
 }
 
 input GetChartJsonInput {
@@ -135,3 +153,97 @@ type ChartSvgOutput {
   svg: String!
 }
 
+input GetPositionPnlChartInput {
+  account_id: String!
+  term_id: String!
+  curve_id: String!
+  interval: String!
+  start_time: String!
+  end_time: String!
+}
+
+input GetAccountPnlChartInput {
+  account_id: String!
+  interval: String!
+  start_time: String!
+  end_time: String!
+}
+
+input GetAccountPnlCurrentInput {
+  account_id: String!
+}
+
+type PositionPnlChartOutput {
+  account_id: String!
+  term_id: String!
+  curve_id: String!
+  interval: String!
+  count: Int!
+  data: [PositionPnlChartPoint!]!
+}
+
+type PositionPnlChartPoint {
+  timestamp: String!
+  shares_total: String!
+  share_price: String!
+  equity_value: String!
+  total_assets_in: String!
+  total_assets_out: String!
+  net_invested: String!
+  total_pnl: String!
+  pnl_pct: String!
+  unrealized_pnl: String!
+}
+
+type AccountPnlChartOutput {
+  account_id: String!
+  interval: String!
+  count: Int!
+  data: [AccountPnlChartPoint!]!
+}
+
+type AccountPnlChartPoint {
+  timestamp: String!
+  equity_value: String!
+  total_assets_in: String!
+  total_assets_out: String!
+  net_invested: String!
+  total_pnl: String!
+  pnl_pct: String!
+  unrealized_pnl: String!
+}
+
+type AccountPnlSnapshotOutput {
+  account_id: String!
+  timestamp: String!
+  equity_value: String!
+  total_assets_in: String!
+  total_assets_out: String!
+  net_invested: String!
+  total_pnl: String!
+  pnl_pct: String!
+  unrealized_pnl: String!
+}
+
+input GetAccountPnlRealizedInput {
+  account_id: String!
+  start_time: String!
+  end_time: String!
+}
+
+type AccountPnlRealizedOutput {
+  account_id: String!
+  count: Int!
+  data: [AccountPnlRealizedEntry!]!
+}
+
+type AccountPnlRealizedEntry {
+  timestamp: String!
+  term_id: String!
+  curve_id: String!
+  shares_redeemed: String!
+  assets_out: String!
+  cost_basis: String!
+  realized_pnl: String!
+  realized_pnl_pct: String!
+}

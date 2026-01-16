@@ -93,3 +93,57 @@ impl ChartCache {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::TimeZone;
+
+    #[test]
+    fn builds_cache_key_with_curve_id() {
+        let start = Utc.with_ymd_and_hms(2026, 1, 1, 0, 0, 0).unwrap();
+        let end = Utc.with_ymd_and_hms(2026, 1, 2, 0, 0, 0).unwrap();
+        let key = ChartCache::cache_key(
+            GraphType::SharePriceChange,
+            "0xabc",
+            Some("1"),
+            Interval::Daily,
+            start,
+            end,
+            OutputFormat::Json,
+        );
+
+        assert_eq!(
+            key,
+            format!(
+                "chart:sharePriceChange:0xabc:1:1d:{}:{}:json",
+                start.timestamp(),
+                end.timestamp()
+            )
+        );
+    }
+
+    #[test]
+    fn builds_cache_key_without_curve_id() {
+        let start = Utc.with_ymd_and_hms(2026, 1, 1, 0, 0, 0).unwrap();
+        let end = Utc.with_ymd_and_hms(2026, 1, 2, 0, 0, 0).unwrap();
+        let key = ChartCache::cache_key(
+            GraphType::TotalMarketCap,
+            "0xabc",
+            None,
+            Interval::Daily,
+            start,
+            end,
+            OutputFormat::Svg,
+        );
+
+        assert_eq!(
+            key,
+            format!(
+                "chart:totalMarketCap:0xabc:none:1d:{}:{}:svg",
+                start.timestamp(),
+                end.timestamp()
+            )
+        );
+    }
+}
