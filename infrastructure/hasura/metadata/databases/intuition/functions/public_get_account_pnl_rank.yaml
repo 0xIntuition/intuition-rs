@@ -1,0 +1,4 @@
+function:
+  name: get_account_pnl_rank
+  schema: public
+  comment: Returns a specific account's rank, percentile, and key metrics in the PnL leaderboard.
