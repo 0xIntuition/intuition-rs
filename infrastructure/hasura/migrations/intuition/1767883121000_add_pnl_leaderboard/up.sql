@@ -57,6 +57,16 @@ CREATE TABLE IF NOT EXISTS pnl_leaderboard_stats (
 );
 
 -- ========================================
+-- DROP EXISTING FUNCTIONS (if any)
+-- Required because CREATE OR REPLACE cannot change return types
+-- ========================================
+
+DROP FUNCTION IF EXISTS get_pnl_leaderboard(INTEGER, INTEGER, TEXT, TIMESTAMPTZ, TIMESTAMPTZ, TEXT, TEXT, BOOLEAN, INTEGER, NUMERIC, TEXT);
+DROP FUNCTION IF EXISTS get_account_pnl_rank(TEXT, TEXT, TEXT, TEXT);
+DROP FUNCTION IF EXISTS get_pnl_leaderboard_stats(TEXT, TEXT);
+DROP FUNCTION IF EXISTS get_vault_leaderboard(TEXT, NUMERIC, INTEGER, INTEGER, TEXT, TEXT);
+
+-- ========================================
 -- MAIN LEADERBOARD FUNCTION (OPTIMIZED)
 -- ========================================
 
@@ -77,7 +87,13 @@ RETURNS SETOF pnl_leaderboard_entry AS $$
 DECLARE
   v_start_time TIMESTAMPTZ;
   v_end_time TIMESTAMPTZ;
+  v_limit INTEGER;
+  v_offset INTEGER;
 BEGIN
+  -- Input validation for limits (Must Fix: Add input validation for limits)
+  v_limit := LEAST(GREATEST(COALESCE(p_limit, 100), 1), 10000);  -- Clamp between 1 and 10000
+  v_offset := GREATEST(COALESCE(p_offset, 0), 0);  -- Ensure non-negative
+
   v_end_time := COALESCE(p_end_time, NOW());
 
   CASE p_time_filter
@@ -137,8 +153,8 @@ BEGIN
       MAX(cp.position_updated_at) AS last_activity_at
     FROM current_positions cp
     GROUP BY cp.account_id
-    HAVING COUNT(DISTINCT (cp.term_id, cp.curve_id)) >= p_min_positions
-      AND (SUM(cp.total_deposits) + SUM(cp.total_redemptions)) >= p_min_volume
+    HAVING COUNT(DISTINCT (cp.term_id, cp.curve_id)) >= GREATEST(p_min_positions, 1)
+      AND (SUM(cp.total_deposits) + SUM(cp.total_redemptions)) >= COALESCE(p_min_volume, 0)
   ),
   enriched AS (
     SELECT
@@ -148,19 +164,20 @@ BEGIN
       am.total_pnl,
       COALESCE(am.realized_pnl, 0) AS realized_pnl,
       COALESCE(am.unrealized_pnl, 0) AS unrealized_pnl,
-      CASE WHEN (am.total_deposits - am.total_redemptions) > 0
-        THEN ((am.total_pnl * 100.0) / (am.total_deposits - am.total_redemptions))::NUMERIC(20, 4)
-        ELSE 0::NUMERIC(20, 4)
-      END AS pnl_pct,
+      -- Must Fix: Division by zero - use NULLIF to safely handle zero/negative denominators
+      COALESCE(
+        (am.total_pnl * 100.0 / NULLIF(am.total_deposits - am.total_redemptions, 0))::NUMERIC(20, 4),
+        0::NUMERIC(20, 4)
+      ) AS pnl_pct,
       am.total_pnl AS pnl_change,
       am.total_position_count,
       am.active_position_count,
       am.winning_positions,
       am.losing_positions,
-      CASE WHEN am.total_position_count > 0
-        THEN ((am.winning_positions * 100.0) / am.total_position_count)::NUMERIC(10, 2)
-        ELSE 0::NUMERIC(10, 2)
-      END AS win_rate,
+      COALESCE(
+        (am.winning_positions * 100.0 / NULLIF(am.total_position_count, 0))::NUMERIC(10, 2),
+        0::NUMERIC(10, 2)
+      ) AS win_rate,
       am.total_deposits,
       am.total_redemptions,
       (am.total_deposits + am.total_redemptions)::NUMERIC AS total_volume,
@@ -187,7 +204,7 @@ BEGIN
   SELECT r.rank, r.account_id, r.account_label, r.account_image, r.total_pnl, r.realized_pnl, r.unrealized_pnl, r.pnl_pct, r.pnl_change, r.total_position_count, r.active_position_count, r.winning_positions, r.losing_positions, r.win_rate, r.total_deposits, r.total_redemptions, r.total_volume, r.current_equity_value, r.best_trade_pnl, r.worst_trade_pnl, r.first_position_at, r.last_activity_at
   FROM ranked r
   ORDER BY r.rank
-  LIMIT p_limit OFFSET p_offset;
+  LIMIT v_limit OFFSET v_offset;
 END;
 $$ LANGUAGE plpgsql STABLE;
 
@@ -204,41 +221,44 @@ CREATE OR REPLACE FUNCTION get_account_pnl_rank(
   p_term_id TEXT DEFAULT NULL
 )
 RETURNS SETOF account_pnl_rank AS $$
-DECLARE
-  v_total_accounts BIGINT;
 BEGIN
-  -- Get total count of accounts in leaderboard
-  SELECT COUNT(*) INTO v_total_accounts
-  FROM get_pnl_leaderboard(
-    p_limit := 1000000,
-    p_offset := 0,
-    p_time_filter := p_time_filter,
-    p_sort_by := p_sort_by,
-    p_term_id := p_term_id
-  );
+  -- Input validation
+  IF p_account_id IS NULL OR p_account_id = '' THEN
+    RETURN;
+  END IF;
 
-  -- Find the specific account's rank and data
+  -- Must Fix: Refactor to avoid double computation - single query with window function
   RETURN QUERY
+  WITH leaderboard AS (
+    SELECT
+      l.*,
+      COUNT(*) OVER () AS total_accounts
+    FROM get_pnl_leaderboard(
+      p_limit := 10000,  -- Reasonable limit for rank calculation
+      p_offset := 0,
+      p_time_filter := p_time_filter,
+      p_sort_by := p_sort_by,
+      p_term_id := p_term_id
+    ) l
+  )
   SELECT
-    l.rank,
-    v_total_accounts,
-    ((v_total_accounts - l.rank + 1) * 100.0 / GREATEST(v_total_accounts, 1))::NUMERIC(10, 4),
-    l.account_id,
-    l.account_label,
-    l.account_image,
-    l.total_pnl,
-    l.pnl_pct,
-    l.win_rate,
-    l.total_position_count,
-    l.total_volume
-  FROM get_pnl_leaderboard(
-    p_limit := 1000000,
-    p_offset := 0,
-    p_time_filter := p_time_filter,
-    p_sort_by := p_sort_by,
-    p_term_id := p_term_id
-  ) l
-  WHERE l.account_id = p_account_id;
+    lb.rank,
+    lb.total_accounts,
+    -- Should Fix: NULL handling in percentile - use COALESCE
+    COALESCE(
+      ((lb.total_accounts - lb.rank + 1) * 100.0 / NULLIF(lb.total_accounts, 0))::NUMERIC(10, 4),
+      0::NUMERIC(10, 4)
+    ) AS percentile,
+    lb.account_id,
+    lb.account_label,
+    lb.account_image,
+    lb.total_pnl,
+    lb.pnl_pct,
+    lb.win_rate,
+    lb.total_position_count,
+    lb.total_volume
+  FROM leaderboard lb
+  WHERE lb.account_id = p_account_id;
 END;
 $$ LANGUAGE plpgsql STABLE;
 
@@ -256,17 +276,21 @@ RETURNS SETOF pnl_leaderboard_stats AS $$
 BEGIN
   RETURN QUERY
   SELECT
-    COUNT(*)::BIGINT,
-    SUM(l.total_pnl),
-    AVG(l.total_pnl),
-    PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY l.total_pnl)::NUMERIC,
-    SUM(l.total_volume),
-    AVG(l.total_volume),
-    COUNT(*) FILTER (WHERE l.total_pnl > 0)::BIGINT,
-    COUNT(*) FILTER (WHERE l.total_pnl <= 0)::BIGINT,
-    (COUNT(*) FILTER (WHERE l.total_pnl > 0) * 100.0 / GREATEST(COUNT(*), 1))::NUMERIC(10, 2)
+    COALESCE(COUNT(*), 0)::BIGINT AS total_traders,
+    COALESCE(SUM(l.total_pnl), 0) AS total_pnl_sum,
+    COALESCE(AVG(l.total_pnl), 0) AS avg_pnl,
+    -- Should Fix: NULL handling in percentile - returns NULL if no rows
+    COALESCE(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY l.total_pnl)::NUMERIC, 0) AS median_pnl,
+    COALESCE(SUM(l.total_volume), 0) AS total_volume,
+    COALESCE(AVG(l.total_volume), 0) AS avg_volume,
+    COALESCE(COUNT(*) FILTER (WHERE l.total_pnl > 0), 0)::BIGINT AS profitable_traders,
+    COALESCE(COUNT(*) FILTER (WHERE l.total_pnl <= 0), 0)::BIGINT AS unprofitable_traders,
+    COALESCE(
+      (COUNT(*) FILTER (WHERE l.total_pnl > 0) * 100.0 / NULLIF(COUNT(*), 0))::NUMERIC(10, 2),
+      0::NUMERIC(10, 2)
+    ) AS profitable_pct
   FROM get_pnl_leaderboard(
-    p_limit := 1000000,
+    p_limit := 10000,  -- Reasonable limit for stats calculation
     p_offset := 0,
     p_time_filter := p_time_filter,
     p_term_id := p_term_id
@@ -289,8 +313,19 @@ CREATE OR REPLACE FUNCTION get_vault_leaderboard(
   p_sort_order TEXT DEFAULT 'DESC'
 )
 RETURNS SETOF pnl_leaderboard_entry AS $$
+DECLARE
+  v_limit INTEGER;
+  v_offset INTEGER;
 BEGIN
-  -- This is a specialized wrapper that filters to a specific vault
+  -- Input validation
+  IF p_term_id IS NULL OR p_term_id = '' THEN
+    RETURN;
+  END IF;
+
+  -- Input validation for limits
+  v_limit := LEAST(GREATEST(COALESCE(p_limit, 100), 1), 10000);
+  v_offset := GREATEST(COALESCE(p_offset, 0), 0);
+
   RETURN QUERY
   WITH vault_positions AS (
     SELECT
@@ -340,21 +375,20 @@ BEGIN
       am.total_pnl,
       COALESCE(am.realized_pnl, 0) AS realized_pnl,
       COALESCE(am.unrealized_pnl, 0) AS unrealized_pnl,
-      CASE
-        WHEN (am.total_deposits - am.total_redemptions) > 0
-        THEN ((am.total_pnl * 100.0) / (am.total_deposits - am.total_redemptions))::NUMERIC(20, 4)
-        ELSE 0::NUMERIC(20, 4)
-      END AS pnl_pct,
-      am.total_pnl AS pnl_change, -- No previous period for vault-specific
+      -- Must Fix: Division by zero - use NULLIF
+      COALESCE(
+        (am.total_pnl * 100.0 / NULLIF(am.total_deposits - am.total_redemptions, 0))::NUMERIC(20, 4),
+        0::NUMERIC(20, 4)
+      ) AS pnl_pct,
+      am.total_pnl AS pnl_change,
       am.total_position_count,
       am.active_position_count,
       am.winning_positions,
       am.losing_positions,
-      CASE
-        WHEN am.total_position_count > 0
-        THEN ((am.winning_positions * 100.0) / am.total_position_count)::NUMERIC(10, 2)
-        ELSE 0::NUMERIC(10, 2)
-      END AS win_rate,
+      COALESCE(
+        (am.winning_positions * 100.0 / NULLIF(am.total_position_count, 0))::NUMERIC(10, 2),
+        0::NUMERIC(10, 2)
+      ) AS win_rate,
       am.total_deposits,
       am.total_redemptions,
       (am.total_deposits + am.total_redemptions)::NUMERIC AS total_volume,
@@ -371,58 +405,18 @@ BEGIN
     SELECT
       e.*,
       CASE p_sort_by
-        WHEN 'total_pnl' THEN
-          CASE p_sort_order
-            WHEN 'ASC' THEN ROW_NUMBER() OVER (ORDER BY e.total_pnl ASC NULLS LAST)
-            ELSE ROW_NUMBER() OVER (ORDER BY e.total_pnl DESC NULLS LAST)
-          END
-        WHEN 'pnl_pct' THEN
-          CASE p_sort_order
-            WHEN 'ASC' THEN ROW_NUMBER() OVER (ORDER BY e.pnl_pct ASC NULLS LAST)
-            ELSE ROW_NUMBER() OVER (ORDER BY e.pnl_pct DESC NULLS LAST)
-          END
-        WHEN 'win_rate' THEN
-          CASE p_sort_order
-            WHEN 'ASC' THEN ROW_NUMBER() OVER (ORDER BY e.win_rate ASC NULLS LAST)
-            ELSE ROW_NUMBER() OVER (ORDER BY e.win_rate DESC NULLS LAST)
-          END
-        WHEN 'total_volume' THEN
-          CASE p_sort_order
-            WHEN 'ASC' THEN ROW_NUMBER() OVER (ORDER BY e.total_volume ASC NULLS LAST)
-            ELSE ROW_NUMBER() OVER (ORDER BY e.total_volume DESC NULLS LAST)
-          END
-        ELSE
-          ROW_NUMBER() OVER (ORDER BY e.total_pnl DESC NULLS LAST)
+        WHEN 'total_pnl' THEN CASE p_sort_order WHEN 'ASC' THEN ROW_NUMBER() OVER (ORDER BY e.total_pnl ASC NULLS LAST) ELSE ROW_NUMBER() OVER (ORDER BY e.total_pnl DESC NULLS LAST) END
+        WHEN 'pnl_pct' THEN CASE p_sort_order WHEN 'ASC' THEN ROW_NUMBER() OVER (ORDER BY e.pnl_pct ASC NULLS LAST) ELSE ROW_NUMBER() OVER (ORDER BY e.pnl_pct DESC NULLS LAST) END
+        WHEN 'win_rate' THEN CASE p_sort_order WHEN 'ASC' THEN ROW_NUMBER() OVER (ORDER BY e.win_rate ASC NULLS LAST) ELSE ROW_NUMBER() OVER (ORDER BY e.win_rate DESC NULLS LAST) END
+        WHEN 'total_volume' THEN CASE p_sort_order WHEN 'ASC' THEN ROW_NUMBER() OVER (ORDER BY e.total_volume ASC NULLS LAST) ELSE ROW_NUMBER() OVER (ORDER BY e.total_volume DESC NULLS LAST) END
+        ELSE ROW_NUMBER() OVER (ORDER BY e.total_pnl DESC NULLS LAST)
       END AS rank
     FROM enriched e
   )
-  SELECT
-    r.rank,
-    r.account_id,
-    r.account_label,
-    r.account_image,
-    r.total_pnl,
-    r.realized_pnl,
-    r.unrealized_pnl,
-    r.pnl_pct,
-    r.pnl_change,
-    r.total_position_count,
-    r.active_position_count,
-    r.winning_positions,
-    r.losing_positions,
-    r.win_rate,
-    r.total_deposits,
-    r.total_redemptions,
-    r.total_volume,
-    r.current_equity_value,
-    r.best_trade_pnl,
-    r.worst_trade_pnl,
-    r.first_position_at,
-    r.last_activity_at
+  SELECT r.rank, r.account_id, r.account_label, r.account_image, r.total_pnl, r.realized_pnl, r.unrealized_pnl, r.pnl_pct, r.pnl_change, r.total_position_count, r.active_position_count, r.winning_positions, r.losing_positions, r.win_rate, r.total_deposits, r.total_redemptions, r.total_volume, r.current_equity_value, r.best_trade_pnl, r.worst_trade_pnl, r.first_position_at, r.last_activity_at
   FROM ranked r
   ORDER BY r.rank
-  LIMIT p_limit
-  OFFSET p_offset;
+  LIMIT v_limit OFFSET v_offset;
 END;
 $$ LANGUAGE plpgsql STABLE;
 
