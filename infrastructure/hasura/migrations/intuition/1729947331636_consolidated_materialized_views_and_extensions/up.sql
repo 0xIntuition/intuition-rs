@@ -21,7 +21,7 @@ SELECT ai.create_vectorizer(
     destination => ai.destination_table('term_embeddings'),
     embedding => ai.embedding_openai('text-embedding-3-small', 768),
     loading => ai.loading_column('description'),
-    formatting => ai.formatting_python_template('title: $title id: $id $chunk')
+    formatting => ai.formatting_python_template('$title - $chunk')
 );
 
 -- ========================================

@@ -8,4 +8,5 @@
 - "!include public_search_positions_on_subject.yaml"
 - "!include public_search_term.yaml"
 - "!include public_search_term_from_following.yaml"
+- "!include public_search_term_tsvector.yaml"
 - "!include public_signals_from_following.yaml"
