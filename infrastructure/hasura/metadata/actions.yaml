@@ -1,4 +1,149 @@
 actions:
+  - name: getAccountPnlChart
+    definition:
+      kind: ""
+      handler: '{{chartApiUrl}}'
+      request_transform:
+        method: GET
+        query_params:
+          end: '{{$body.input.input.end_time}}'
+          interval: '{{$body.input.input.interval}}'
+          start: '{{$body.input.input.start_time}}'
+        template_engine: Kriti
+        url: '{{$base_url}}/api/v1/accounts/{{$body.input.input.account_id}}/pnl'
+        version: 2
+    permissions:
+      - role: anonymous
+      - role: frontend
+    comment: Fetches account-level PnL chart data
+  - name: getAccountPnlCurrent
+    definition:
+      kind: ""
+      handler: '{{chartApiUrl}}'
+      request_transform:
+        method: GET
+        template_engine: Kriti
+        url: '{{$base_url}}/api/v1/accounts/{{$body.input.input.account_id}}/pnl/current'
+        version: 2
+    permissions:
+      - role: anonymous
+      - role: frontend
+    comment: Fetches current account PnL snapshot
+  - name: getAccountPnlRealized
+    definition:
+      kind: ""
+      handler: '{{chartApiUrl}}'
+      request_transform:
+        method: GET
+        query_params:
+          end: '{{$body.input.input.end_time}}'
+          start: '{{$body.input.input.start_time}}'
+        template_engine: Kriti
+        url: '{{$base_url}}/api/v1/accounts/{{$body.input.input.account_id}}/pnl/realized'
+        version: 2
+    permissions:
+      - role: anonymous
+      - role: frontend
+    comment: Fetches realized PnL breakdown for an account
+  - name: getChartJson
+    definition:
+      kind: ""
+      handler: '{{chartApiUrl}}'
+      request_transform:
+        method: GET
+        query_params:
+          end: '{{$body.input.input.end_time}}'
+          format: json
+          graph_type: '{{$body.input.input?.graph_type}}'
+          interval: '{{$body.input.input.interval}}'
+          start: '{{$body.input.input.start_time}}'
+        template_engine: Kriti
+        url: '{{$base_url}}/api/v1/curve/{{$body.input.input.curve_id}}/term/{{$body.input.input.term_id}}/data'
+        version: 2
+    permissions:
+      - role: anonymous
+      - role: frontend
+    comment: Fetches chart data (JSON) for a term/curve combination
+  - name: getChartRawJson
+    definition:
+      kind: ""
+      handler: '{{chartApiUrl}}'
+      request_transform:
+        method: GET
+        query_params:
+          end: '{{$body.input.input.end_time}}'
+          format: json
+          interval: '{{$body.input.input.interval}}'
+          start: '{{$body.input.input.start_time}}'
+        template_engine: Kriti
+        url: '{{$base_url}}/api/v1/curve/{{$body.input.input.curve_id}}/term/{{$body.input.input.term_id}}/data/raw'
+        version: 2
+    permissions:
+      - role: anonymous
+      - role: frontend
+    comment: Fetches raw share price chart data (JSON) from share_price_change
+  - name: getChartRawSvg
+    definition:
+      kind: ""
+      handler: '{{chartApiUrl}}'
+      request_transform:
+        method: GET
+        query_params:
+          background_color: '{{$body.input.input?.background_color}}'
+          end: '{{$body.input.input.end_time}}'
+          format: svg_json
+          height: '{{$body.input.input?.height}}'
+          interval: '{{$body.input.input.interval}}'
+          line_color: '{{$body.input.input?.line_color}}'
+          start: '{{$body.input.input.start_time}}'
+          width: '{{$body.input.input?.width}}'
+        template_engine: Kriti
+        url: '{{$base_url}}/api/v1/curve/{{$body.input.input.curve_id}}/term/{{$body.input.input.term_id}}/data/raw'
+        version: 2
+    permissions:
+      - role: anonymous
+      - role: frontend
+    comment: Fetches raw share price chart SVG from share_price_change
+  - name: getChartSvg
+    definition:
+      kind: ""
+      handler: '{{chartApiUrl}}'
+      request_transform:
+        method: GET
+        query_params:
+          background_color: '{{$body.input.input?.background_color}}'
+          end: '{{$body.input.input.end_time}}'
+          format: svg_json
+          graph_type: '{{$body.input.input?.graph_type}}'
+          height: '{{$body.input.input?.height}}'
+          interval: '{{$body.input.input.interval}}'
+          line_color: '{{$body.input.input?.line_color}}'
+          start: '{{$body.input.input.start_time}}'
+          width: '{{$body.input.input?.width}}'
+        template_engine: Kriti
+        url: '{{$base_url}}/api/v1/curve/{{$body.input.input.curve_id}}/term/{{$body.input.input.term_id}}/data'
+        version: 2
+    permissions:
+      - role: anonymous
+      - role: frontend
+    comment: Fetches chart SVG for a term/curve combination
+  - name: getPositionPnlChart
+    definition:
+      kind: ""
+      handler: '{{chartApiUrl}}'
+      request_transform:
+        method: GET
+        query_params:
+          end: '{{$body.input.input.end_time}}'
+          interval: '{{$body.input.input.interval}}'
+          start: '{{$body.input.input.start_time}}'
+        template_engine: Kriti
+        url: '{{$base_url}}/api/v1/accounts/{{$body.input.input.account_id}}/positions/{{$body.input.input.term_id}}/{{$body.input.input.curve_id}}/pnl'
+        version: 2
+    permissions:
+      - role: anonymous
+      - role: frontend
+    comment: Fetches position PnL chart data
   - name: pinOrganization
     definition:
       kind: synchronous
@@ -125,6 +270,32 @@ actions:
       - role: anonymous
       - role: frontend
     comment: Uploads and pins Thing to IPFS
+  - name: uploadImage
+    definition:
+      kind: synchronous
+      handler: http://image-guard:3000/upload_image_from_url
+      request_transform:
+        body:
+          action: transform
+          template: |-
+            {
+              "url": "data:{{$body.input.image.contentType}};base64,{{$body.input.image.data}}"
+            }
+        template_engine: Kriti
+        version: 2
+      response_transform:
+        body:
+          action: transform
+          template: |-
+            {
+              "images": {{$body}}
+            }
+        template_engine: Kriti
+        version: 2
+    permissions:
+      - role: anonymous
+      - role: frontend
+    comment: 'Uploads and classifies an image file using image-guard. Accepts base64-encoded image data. Note: The original /upload endpoint requires multipart/form-data which Hasura actions cannot construct directly. This mutation uses upload_image_from_url with a data URL workaround. For direct file uploads, use the image-guard API directly or create a wrapper endpoint.'
   - name: uploadImageFromUrl
     definition:
       kind: synchronous
@@ -164,8 +335,7 @@ actions:
       request_transform:
         body:
           action: transform
-          template: |-
-            {{$body.input.json}}
+          template: '{{$body.input.json}}'
         template_engine: Kriti
         version: 2
       response_transform:
@@ -183,179 +353,6 @@ actions:
       - role: anonymous
       - role: frontend
     comment: Uploads JSON to IPFS using image-guard
-  - name: uploadImage
-    definition:
-      kind: synchronous
-      handler: http://image-guard:3000/upload_image_from_url
-      forward_client_headers: false
-      request_transform:
-        body:
-          action: transform
-          template: |-
-            {
-              "url": "data:{{$body.input.image.contentType}};base64,{{$body.input.image.data}}"
-            }
-        content_type: application/json
-        template_engine: Kriti
-        version: 2
-      response_transform:
-        body:
-          action: transform
-          template: |-
-            {
-              "images": {{$body}}
-            }
-        template_engine: Kriti
-        version: 2
-    permissions:
-      - role: anonymous
-      - role: frontend
-    comment: "Uploads and classifies an image file using image-guard. Accepts base64-encoded image data. Note: The original /upload endpoint requires multipart/form-data which Hasura actions cannot construct directly. This mutation uses upload_image_from_url with a data URL workaround. For direct file uploads, use the image-guard API directly or create a wrapper endpoint."
-  - name: getChartJson
-    definition:
-      kind: synchronous
-      handler: '{{chartApiUrl}}'
-      request_transform:
-        method: GET
-        url: '{{$base_url}}/api/v1/curve/{{$body.input.input.curve_id}}/term/{{$body.input.input.term_id}}/data'
-        query_params:
-          interval: '{{$body.input.input.interval}}'
-          format: 'json'
-          start: '{{$body.input.input.start_time}}'
-          end: '{{$body.input.input.end_time}}'
-          graph_type: '{{$body.input.input?.graph_type}}'
-        template_engine: Kriti
-        version: 2
-    permissions:
-      - role: anonymous
-      - role: frontend
-    comment: Fetches chart data (JSON) for a term/curve combination
-  - name: getChartSvg
-    definition:
-      kind: synchronous
-      handler: '{{chartApiUrl}}'
-      request_transform:
-        method: GET
-        url: '{{$base_url}}/api/v1/curve/{{$body.input.input.curve_id}}/term/{{$body.input.input.term_id}}/data'
-        query_params:
-          interval: '{{$body.input.input.interval}}'
-          format: 'svg_json'
-          start: '{{$body.input.input.start_time}}'
-          end: '{{$body.input.input.end_time}}'
-          graph_type: '{{$body.input.input?.graph_type}}'
-          width: '{{$body.input.input?.width}}'
-          height: '{{$body.input.input?.height}}'
-          line_color: '{{$body.input.input?.line_color}}'
-          background_color: '{{$body.input.input?.background_color}}'
-        template_engine: Kriti
-        version: 2
-    permissions:
-      - role: anonymous
-      - role: frontend
-    comment: Fetches chart SVG for a term/curve combination
-  - name: getChartRawJson
-    definition:
-      kind: synchronous
-      handler: '{{chartApiUrl}}'
-      request_transform:
-        method: GET
-        url: '{{$base_url}}/api/v1/curve/{{$body.input.input.curve_id}}/term/{{$body.input.input.term_id}}/data/raw'
-        query_params:
-          interval: '{{$body.input.input.interval}}'
-          format: 'json'
-          start: '{{$body.input.input.start_time}}'
-          end: '{{$body.input.input.end_time}}'
-        template_engine: Kriti
-        version: 2
-    permissions:
-      - role: anonymous
-      - role: frontend
-    comment: Fetches raw share price chart data (JSON) from share_price_change
-  - name: getChartRawSvg
-    definition:
-      kind: synchronous
-      handler: '{{chartApiUrl}}'
-      request_transform:
-        method: GET
-        url: '{{$base_url}}/api/v1/curve/{{$body.input.input.curve_id}}/term/{{$body.input.input.term_id}}/data/raw'
-        query_params:
-          interval: '{{$body.input.input.interval}}'
-          format: 'svg_json'
-          start: '{{$body.input.input.start_time}}'
-          end: '{{$body.input.input.end_time}}'
-          width: '{{$body.input.input?.width}}'
-          height: '{{$body.input.input?.height}}'
-          line_color: '{{$body.input.input?.line_color}}'
-          background_color: '{{$body.input.input?.background_color}}'
-        template_engine: Kriti
-        version: 2
-    permissions:
-      - role: anonymous
-      - role: frontend
-    comment: Fetches raw share price chart SVG from share_price_change
-  - name: getPositionPnlChart
-    definition:
-      kind: synchronous
-      handler: '{{chartApiUrl}}'
-      request_transform:
-        method: GET
-        url: '{{$base_url}}/api/v1/accounts/{{$body.input.input.account_id}}/positions/{{$body.input.input.term_id}}/{{$body.input.input.curve_id}}/pnl'
-        query_params:
-          interval: '{{$body.input.input.interval}}'
-          start: '{{$body.input.input.start_time}}'
-          end: '{{$body.input.input.end_time}}'
-        template_engine: Kriti
-        version: 2
-    permissions:
-      - role: anonymous
-      - role: frontend
-    comment: Fetches position PnL chart data
-  - name: getAccountPnlChart
-    definition:
-      kind: synchronous
-      handler: '{{chartApiUrl}}'
-      request_transform:
-        method: GET
-        url: '{{$base_url}}/api/v1/accounts/{{$body.input.input.account_id}}/pnl'
-        query_params:
-          interval: '{{$body.input.input.interval}}'
-          start: '{{$body.input.input.start_time}}'
-          end: '{{$body.input.input.end_time}}'
-        template_engine: Kriti
-        version: 2
-    permissions:
-      - role: anonymous
-      - role: frontend
-    comment: Fetches account-level PnL chart data
-  - name: getAccountPnlCurrent
-    definition:
-      kind: synchronous
-      handler: '{{chartApiUrl}}'
-      request_transform:
-        method: GET
-        url: '{{$base_url}}/api/v1/accounts/{{$body.input.input.account_id}}/pnl/current'
-        template_engine: Kriti
-        version: 2
-    permissions:
-      - role: anonymous
-      - role: frontend
-    comment: Fetches current account PnL snapshot
-  - name: getAccountPnlRealized
-    definition:
-      kind: synchronous
-      handler: '{{chartApiUrl}}'
-      request_transform:
-        method: GET
-        url: '{{$base_url}}/api/v1/accounts/{{$body.input.input.account_id}}/pnl/realized'
-        query_params:
-          start: '{{$body.input.input.start_time}}'
-          end: '{{$body.input.input.end_time}}'
-        template_engine: Kriti
-        version: 2
-    permissions:
-      - role: anonymous
-      - role: frontend
-    comment: Fetches realized PnL breakdown for an account
 custom_types:
   enums: []
   input_objects:

@@ -1,4 +1,9 @@
 function:
   name: get_vault_leaderboard
   schema: public
-  comment: Returns a leaderboard for a specific vault (term_id) with optional curve_id filter. Optimized for vault-specific queries.
+configuration:
+  custom_root_fields: {}
+  exposed_as: query
+permissions:
+  - role: anonymous
+  - role: frontend

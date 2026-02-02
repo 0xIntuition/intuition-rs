@@ -1,3 +1,51 @@
+type Query {
+  getAccountPnlChart(
+    input: GetAccountPnlChartInput!
+  ): AccountPnlChartOutput
+}
+
+type Query {
+  getAccountPnlCurrent(
+    input: GetAccountPnlCurrentInput!
+  ): AccountPnlSnapshotOutput
+}
+
+type Query {
+  getAccountPnlRealized(
+    input: GetAccountPnlRealizedInput!
+  ): AccountPnlRealizedOutput
+}
+
+type Query {
+  getChartJson(
+    input: GetChartJsonInput!
+  ): ChartDataOutput
+}
+
+type Query {
+  getChartRawJson(
+    input: GetChartJsonInput!
+  ): ChartDataOutput
+}
+
+type Query {
+  getChartRawSvg(
+    input: GetChartSvgInput!
+  ): ChartSvgOutput
+}
+
+type Query {
+  getChartSvg(
+    input: GetChartSvgInput!
+  ): ChartSvgOutput
+}
+
+type Query {
+  getPositionPnlChart(
+    input: GetPositionPnlChartInput!
+  ): PositionPnlChartOutput
+}
+
 type Mutation {
   pinOrganization(
     organization: PinOrganizationInput!
@@ -14,15 +62,24 @@ type Mutation {
   pinThing(
     thing: PinThingInput!
   ): PinOutput
-  uploadImageFromUrl(
-    image: UploadImageFromUrlInput!
-  ): UploadImageFromUrlOutput
-  uploadJsonToIpfs(
-    json: jsonb!
-  ): UploadJsonToIpfsOutput
+}
+
+type Mutation {
   uploadImage(
     image: UploadImageInput!
   ): UploadImageFromUrlOutput
+}
+
+type Mutation {
+  uploadImageFromUrl(
+    image: UploadImageFromUrlInput!
+  ): UploadImageFromUrlOutput
+}
+
+type Mutation {
+  uploadJsonToIpfs(
+    json: jsonb!
+  ): UploadJsonToIpfsOutput
 }
 
 input PinThingInput {
@@ -63,6 +120,54 @@ input UploadImageInput {
   contentType: String!
 }
 
+input GetChartJsonInput {
+  term_id: String!
+  curve_id: String!
+  interval: String!
+  start_time: String!
+  end_time: String!
+  graph_type: String
+}
+
+input GetChartSvgInput {
+  term_id: String!
+  curve_id: String!
+  interval: String!
+  start_time: String!
+  end_time: String!
+  graph_type: String
+  width: Int
+  height: Int
+  line_color: String
+  background_color: String
+}
+
+input GetPositionPnlChartInput {
+  account_id: String!
+  term_id: String!
+  curve_id: String!
+  interval: String!
+  start_time: String!
+  end_time: String!
+}
+
+input GetAccountPnlChartInput {
+  account_id: String!
+  interval: String!
+  start_time: String!
+  end_time: String!
+}
+
+input GetAccountPnlCurrentInput {
+  account_id: String!
+}
+
+input GetAccountPnlRealizedInput {
+  account_id: String!
+  start_time: String!
+  end_time: String!
+}
+
 type PinOutput {
   uri: String
 }
@@ -86,55 +191,6 @@ type UploadJsonToIpfsOutput {
   size: String!
 }
 
-type Query {
-  getChartJson(
-    input: GetChartJsonInput!
-  ): ChartDataOutput
-  getChartSvg(
-    input: GetChartSvgInput!
-  ): ChartSvgOutput
-  getChartRawJson(
-    input: GetChartJsonInput!
-  ): ChartDataOutput
-  getChartRawSvg(
-    input: GetChartSvgInput!
-  ): ChartSvgOutput
-  getPositionPnlChart(
-    input: GetPositionPnlChartInput!
-  ): PositionPnlChartOutput
-  getAccountPnlChart(
-    input: GetAccountPnlChartInput!
-  ): AccountPnlChartOutput
-  getAccountPnlCurrent(
-    input: GetAccountPnlCurrentInput!
-  ): AccountPnlSnapshotOutput
-  getAccountPnlRealized(
-    input: GetAccountPnlRealizedInput!
-  ): AccountPnlRealizedOutput
-}
-
-input GetChartJsonInput {
-  term_id: String!
-  curve_id: String!
-  interval: String!
-  start_time: String!
-  end_time: String!
-  graph_type: String
-}
-
-input GetChartSvgInput {
-  term_id: String!
-  curve_id: String!
-  interval: String!
-  start_time: String!
-  end_time: String!
-  graph_type: String
-  width: Int
-  height: Int
-  line_color: String
-  background_color: String
-}
-
 type ChartDataOutput {
   term_id: String!
   curve_id: String
@@ -151,26 +207,6 @@ type ChartDataPoint {
 
 type ChartSvgOutput {
   svg: String!
-}
-
-input GetPositionPnlChartInput {
-  account_id: String!
-  term_id: String!
-  curve_id: String!
-  interval: String!
-  start_time: String!
-  end_time: String!
-}
-
-input GetAccountPnlChartInput {
-  account_id: String!
-  interval: String!
-  start_time: String!
-  end_time: String!
-}
-
-input GetAccountPnlCurrentInput {
-  account_id: String!
 }
 
 type PositionPnlChartOutput {
@@ -225,12 +261,6 @@ type AccountPnlSnapshotOutput {
   unrealized_pnl: String!
 }
 
-input GetAccountPnlRealizedInput {
-  account_id: String!
-  start_time: String!
-  end_time: String!
-}
-
 type AccountPnlRealizedOutput {
   account_id: String!
   count: Int!
@@ -247,3 +277,4 @@ type AccountPnlRealizedEntry {
   realized_pnl: String!
   realized_pnl_pct: String!
 }
+

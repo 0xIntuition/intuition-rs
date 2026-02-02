@@ -10,7 +10,7 @@ DROP FUNCTION IF EXISTS get_pnl_leaderboard_stats(TEXT, TEXT);
 DROP FUNCTION IF EXISTS get_account_pnl_rank(TEXT, TEXT, TEXT, TEXT);
 DROP FUNCTION IF EXISTS get_pnl_leaderboard(INTEGER, INTEGER, TEXT, TIMESTAMPTZ, TIMESTAMPTZ, TEXT, TEXT, BOOLEAN, INTEGER, NUMERIC, TEXT);
 
--- Drop custom types
-DROP TYPE IF EXISTS pnl_leaderboard_stats CASCADE;
-DROP TYPE IF EXISTS account_pnl_rank CASCADE;
-DROP TYPE IF EXISTS pnl_leaderboard_entry CASCADE;
+-- Drop return type tables
+DROP TABLE IF EXISTS pnl_leaderboard_stats;
+DROP TABLE IF EXISTS account_pnl_rank;
+DROP TABLE IF EXISTS pnl_leaderboard_entry;

@@ -1,0 +1,14 @@
+table:
+  name: account_pnl_rank
+  schema: public
+select_permissions:
+  - role: anonymous
+    permission:
+      columns: '*'
+      filter: {}
+      allow_aggregations: true
+  - role: frontend
+    permission:
+      columns: '*'
+      filter: {}
+      allow_aggregations: true

@@ -1,4 +1,9 @@
 function:
   name: get_pnl_leaderboard
   schema: public
-  comment: Returns a ranked leaderboard of accounts by PnL metrics with configurable time filters, sorting options, and filters for minimum positions/volume.
+configuration:
+  custom_root_fields: {}
+  exposed_as: query
+permissions:
+  - role: anonymous
+  - role: frontend

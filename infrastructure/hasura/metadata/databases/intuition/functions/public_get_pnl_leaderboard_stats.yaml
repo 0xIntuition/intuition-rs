@@ -1,4 +1,9 @@
 function:
   name: get_pnl_leaderboard_stats
   schema: public
-  comment: Returns aggregate statistics for the PnL leaderboard including total traders, average PnL, median PnL, and profitability ratios.
+configuration:
+  custom_root_fields: {}
+  exposed_as: query
+permissions:
+  - role: anonymous
+  - role: frontend
