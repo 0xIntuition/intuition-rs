@@ -1,0 +1,9 @@
+function:
+  name: get_account_pnl_rank
+  schema: public
+configuration:
+  custom_root_fields: {}
+  exposed_as: query
+permissions:
+  - role: anonymous
+  - role: frontend

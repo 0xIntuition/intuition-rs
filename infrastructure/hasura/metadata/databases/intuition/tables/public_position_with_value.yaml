@@ -54,6 +54,8 @@ select_permissions:
         - created_at
         - updated_at
         - theoretical_value
+        - pnl
+        - pnl_pct
       filter: {}
       limit: 100
       allow_aggregations: true
@@ -75,6 +77,8 @@ select_permissions:
         - created_at
         - updated_at
         - theoretical_value
+        - pnl
+        - pnl_pct
       filter: {}
       limit: 100
       allow_aggregations: true
