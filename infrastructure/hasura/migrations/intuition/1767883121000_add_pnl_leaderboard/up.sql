@@ -47,6 +47,9 @@ CREATE TABLE pnl_leaderboard_entry (
   best_trade_pnl_formatted NUMERIC(30, 4),
   worst_trade_pnl_raw NUMERIC,
   worst_trade_pnl_formatted NUMERIC(30, 4),
+  -- Redeemable assets (previewRedeem value after fees)
+  redeemable_assets_raw NUMERIC,
+  redeemable_assets_formatted NUMERIC(30, 4),
   -- Timestamps
   first_position_at TIMESTAMPTZ,
   last_activity_at TIMESTAMPTZ
@@ -285,6 +288,9 @@ BEGIN
     ROUND(r.best_trade_pnl_raw / 1e18, 4)::NUMERIC(30, 4) AS best_trade_pnl_formatted,
     r.worst_trade_pnl_raw,
     ROUND(r.worst_trade_pnl_raw / 1e18, 4)::NUMERIC(30, 4) AS worst_trade_pnl_formatted,
+    -- Redeemable assets (not calculated for main leaderboard - use get_vault_leaderboard for this)
+    NULL::NUMERIC AS redeemable_assets_raw,
+    NULL::NUMERIC(30, 4) AS redeemable_assets_formatted,
     -- Timestamps
     r.first_position_at,
     r.last_activity_at
@@ -424,6 +430,9 @@ BEGIN
 
   RETURN QUERY
   -- All monetary values kept as raw (wei)
+  -- Curve constants (hardcoded, immutable in contracts)
+  -- SLOPE = 1e17, OFFSET = 3e19, HALF_SLOPE = 5e16
+  -- Fee constants: PROTOCOL_FEE = 125 (1.25%), EXIT_FEE = 75 (0.75%), FEE_DENOMINATOR = 10000
   WITH vault_positions AS (
     SELECT
       p.account_id,
@@ -435,14 +444,61 @@ BEGIN
       p.created_at AS position_created_at,
       p.updated_at AS position_updated_at,
       v.current_share_price,
+      v.total_shares AS vault_total_shares,
+      v.total_assets AS vault_total_assets,
       (p.shares * v.current_share_price / 1e18)::NUMERIC AS equity_value_raw,
       ((p.shares * v.current_share_price / 1e18)
         + p.total_redeem_assets_for_receiver
-        - p.total_deposit_assets_after_total_fees)::NUMERIC AS position_pnl_raw
+        - p.total_deposit_assets_after_total_fees)::NUMERIC AS position_pnl_raw,
+      -- Calculate raw assets from curve (before fees)
+      CASE
+        WHEN p.shares = 0 THEN 0::NUMERIC
+        -- Linear curve (curve_id = 1): rawAssets = shares * totalAssets / totalShares
+        WHEN p.curve_id = 1 THEN
+          CASE WHEN v.total_shares > 0
+            THEN (p.shares * v.total_assets / v.total_shares)::NUMERIC
+            ELSE 0::NUMERIC
+          END
+        -- Offset Progressive curve (curve_id = 2): Quadratic bonding curve
+        -- s = totalShares + OFFSET, sNext = s - shares
+        -- area = (s^2 - sNext^2) / 1e18, rawAssets = area * HALF_SLOPE / 1e18
+        WHEN p.curve_id = 2 THEN
+          (
+            SELECT (
+              (
+                -- sSquared (rounds down)
+                ((v.total_shares + 30000000000000000000::NUMERIC) * (v.total_shares + 30000000000000000000::NUMERIC) / 1e18)::NUMERIC
+                -
+                -- sNextSquared (rounds up)
+                (((v.total_shares + 30000000000000000000::NUMERIC - p.shares) * (v.total_shares + 30000000000000000000::NUMERIC - p.shares) + 1e18 - 1) / 1e18)::NUMERIC
+              )
+              * 50000000000000000::NUMERIC / 1e18  -- HALF_SLOPE
+            )::NUMERIC
+          )
+        ELSE 0::NUMERIC
+      END AS raw_assets_from_curve
     FROM position p
     JOIN vault v ON p.term_id = v.term_id AND p.curve_id = v.curve_id
     WHERE p.term_id = p_term_id
       AND (p_curve_id IS NULL OR p.curve_id = p_curve_id)
+  ),
+  -- Apply fees to get redeemable assets
+  vault_positions_with_fees AS (
+    SELECT
+      vp.*,
+      -- Protocol fee (1.25%, rounds up): (rawAssets * 125 + 9999) / 10000
+      ((vp.raw_assets_from_curve * 125 + 9999) / 10000)::NUMERIC AS protocol_fee,
+      -- Exit fee (0.75%, rounds up): (rawAssets * 75 + 9999) / 10000
+      -- Note: Exit fee is conditional on default vault having >= 1e18 shares, but we conservatively always apply it
+      ((vp.raw_assets_from_curve * 75 + 9999) / 10000)::NUMERIC AS exit_fee
+    FROM vault_positions vp
+  ),
+  vault_positions_final AS (
+    SELECT
+      vpf.*,
+      -- redeemable_assets = rawAssets - protocolFee - exitFee
+      GREATEST(vpf.raw_assets_from_curve - vpf.protocol_fee - vpf.exit_fee, 0)::NUMERIC AS redeemable_assets_raw
+    FROM vault_positions_with_fees vpf
   ),
   account_metrics AS (
     SELECT
@@ -459,9 +515,11 @@ BEGIN
       SUM(vp.position_pnl_raw) FILTER (WHERE vp.shares > 0)::NUMERIC AS unrealized_pnl_raw,
       MAX(vp.position_pnl_raw) AS best_trade_pnl_raw,
       MIN(vp.position_pnl_raw) AS worst_trade_pnl_raw,
+      -- Sum of redeemable assets for all open positions (shares > 0)
+      SUM(vp.redeemable_assets_raw) FILTER (WHERE vp.shares > 0)::NUMERIC AS redeemable_assets_raw,
       MIN(vp.position_created_at) AS first_position_at,
       MAX(vp.position_updated_at) AS last_activity_at
-    FROM vault_positions vp
+    FROM vault_positions_final vp
     GROUP BY vp.account_id
   ),
   enriched AS (
@@ -491,6 +549,7 @@ BEGIN
       am.current_equity_value_raw,
       am.best_trade_pnl_raw,
       am.worst_trade_pnl_raw,
+      COALESCE(am.redeemable_assets_raw, 0) AS redeemable_assets_raw,
       am.first_position_at,
       am.last_activity_at
     FROM account_metrics am
@@ -546,6 +605,9 @@ BEGIN
     ROUND(r.best_trade_pnl_raw / 1e18, 4)::NUMERIC(30, 4) AS best_trade_pnl_formatted,
     r.worst_trade_pnl_raw,
     ROUND(r.worst_trade_pnl_raw / 1e18, 4)::NUMERIC(30, 4) AS worst_trade_pnl_formatted,
+    -- Redeemable assets (previewRedeem value after fees)
+    r.redeemable_assets_raw,
+    ROUND(r.redeemable_assets_raw / 1e18, 4)::NUMERIC(30, 4) AS redeemable_assets_formatted,
     -- Timestamps
     r.first_position_at,
     r.last_activity_at
@@ -555,7 +617,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql STABLE;
 
-COMMENT ON FUNCTION get_vault_leaderboard IS 'Returns a leaderboard for a specific vault (term_id) with optional curve_id filter and sorting options (total_pnl, pnl_pct, win_rate, total_volume, position_count, newest, most_improved).';
+COMMENT ON FUNCTION get_vault_leaderboard IS 'Returns a leaderboard for a specific vault (term_id) with optional curve_id filter, sorting options, and redeemable_assets calculated using previewRedeem math with fees.';
 
 -- ========================================
 -- INDEXES FOR PERFORMANCE
