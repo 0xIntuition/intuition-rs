@@ -4,7 +4,7 @@ Season 2 Leaderboard feature for ranking accounts by PnL metrics, enabling users
 
 ## Overview
 
-This migration adds four PostgreSQL functions exposed via Hasura GraphQL:
+This migration adds six PostgreSQL functions exposed via Hasura GraphQL:
 
 | Function | Description |
 |----------|-------------|
@@ -12,6 +12,8 @@ This migration adds four PostgreSQL functions exposed via Hasura GraphQL:
 | `get_account_pnl_rank` | Individual account rank and percentile lookup |
 | `get_pnl_leaderboard_stats` | Aggregate statistics (total traders, median PnL, profitability) |
 | `get_vault_leaderboard` | Vault-specific leaderboard with `redeemable_assets` calculation |
+| `get_pnl_leaderboard_period` | **Period-specific** leaderboard showing metrics ONLY for a date range |
+| `get_vault_leaderboard_period` | **Period-specific** vault leaderboard with historical `redeemable_assets` |
 
 ## Key Features
 
@@ -365,9 +367,134 @@ redeemable_assets = rawAssets - protocolFee - exitFee
   - `idx_position_account_shares` - for account aggregation on active positions
   - `idx_position_vault_account` - composite index for vault joins
 
+## Period-Specific Functions
+
+The `_period` functions calculate metrics **only for the specified date range**, not cumulative values. They use the `share_price_change` table for accurate historical valuations.
+
+### Key Differences from Standard Functions
+
+| Aspect | Standard Functions | Period Functions |
+|--------|-------------------|------------------|
+| PnL | Cumulative all-time | Only for the specified period |
+| Share Prices | Current prices | Historical prices at period boundaries |
+| Position Count | Total positions ever | Positions with activity in period |
+| Redeemable Assets | Current vault state | Historical vault state at period end |
+
+### How Period PnL is Calculated
+
+```
+Period Total PnL = (Equity at End - Equity at Start) + (Redemptions - Deposits)
+
+Where:
+- Equity at Start = Shares at start × Share price at start
+- Equity at End = Shares at end × Share price at end
+- Redemptions/Deposits = Activity during the period only
+```
+
+### get_pnl_leaderboard_period Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `p_start_date` | TIMESTAMPTZ | required | Period start date |
+| `p_end_date` | TIMESTAMPTZ | required | Period end date |
+| `p_limit` | INTEGER | 100 | Number of results (1-10000) |
+| `p_offset` | INTEGER | 0 | Pagination offset |
+| `p_sort_by` | TEXT | 'total_pnl' | Sort field |
+| `p_sort_order` | TEXT | 'DESC' | Sort direction |
+| `p_exclude_protocol_accounts` | BOOLEAN | TRUE | Exclude protocol accounts |
+| `p_min_positions` | INTEGER | 1 | Minimum positions in period |
+| `p_min_volume` | NUMERIC | 0 | Minimum volume in period (ETH) |
+| `p_term_id` | TEXT | NULL | Filter to specific vault |
+
+### get_vault_leaderboard_period Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `p_term_id` | TEXT | required | Vault term ID |
+| `p_start_date` | TIMESTAMPTZ | required | Period start date |
+| `p_end_date` | TIMESTAMPTZ | required | Period end date |
+| `p_curve_id` | NUMERIC | NULL | Optional curve ID filter |
+| `p_limit` | INTEGER | 100 | Number of results (1-10000) |
+| `p_offset` | INTEGER | 0 | Pagination offset |
+| `p_sort_by` | TEXT | 'total_pnl' | Sort field |
+| `p_sort_order` | TEXT | 'DESC' | Sort direction |
+
+### Period Query Examples
+
+#### 11. Period Leaderboard (Jan 20-27, 2026)
+
+```graphql
+{
+  get_pnl_leaderboard_period(args: {
+    p_start_date: "2026-01-20T00:00:00Z"
+    p_end_date: "2026-01-27T23:59:59Z"
+    p_limit: 10
+    p_sort_by: "total_pnl"
+  }) {
+    rank
+    account_id
+    account_label
+    total_pnl_formatted
+    realized_pnl_formatted
+    unrealized_pnl_formatted
+    pnl_pct
+    total_volume_formatted
+    total_position_count
+    win_rate
+  }
+}
+```
+
+#### 12. Vault Period Leaderboard with Historical Redeemable Assets
+
+```graphql
+{
+  get_vault_leaderboard_period(args: {
+    p_term_id: "0x2fdb5b04829d14fc2f4191524e02c850f50fd98b16b4084a87cad0a28a8ca627"
+    p_start_date: "2026-01-20T00:00:00Z"
+    p_end_date: "2026-01-27T23:59:59Z"
+    p_limit: 10
+  }) {
+    rank
+    account_id
+    account_label
+    total_pnl_formatted
+    realized_pnl_formatted
+    unrealized_pnl_formatted
+    redeemable_assets_formatted
+    current_equity_value_formatted
+    pnl_pct
+    win_rate
+  }
+}
+```
+
+#### 13. Weekly Competition (Sort by Period PnL %)
+
+```graphql
+{
+  get_pnl_leaderboard_period(args: {
+    p_start_date: "2026-01-27T00:00:00Z"
+    p_end_date: "2026-02-03T23:59:59Z"
+    p_limit: 50
+    p_sort_by: "pnl_pct"
+    p_min_volume: 1
+  }) {
+    rank
+    account_id
+    account_label
+    total_pnl_formatted
+    pnl_pct
+    total_volume_formatted
+  }
+}
+```
+
 ## Notes
 
-- `redeemable_assets` is only calculated for `get_vault_leaderboard` (returns NULL for main leaderboard)
+- `redeemable_assets` is only calculated for vault leaderboards (returns NULL for main leaderboard)
 - Protocol accounts (`ProtocolVault`, `AtomWallet`) are excluded by default
 - Input validation: limits clamped 1-10000, offsets must be non-negative
 - Division by zero protection using `NULLIF()` throughout
+- Period functions use `share_price_change` table for historical valuations
+- If no share price exists before a date, equity is calculated as 0
