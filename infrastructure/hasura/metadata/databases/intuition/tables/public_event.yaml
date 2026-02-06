@@ -44,6 +44,15 @@ object_relationships:
         remote_table:
           name: redemption
           schema: public
+  - name: protocol_fee_accrued
+    using:
+      manual_configuration:
+        column_mapping:
+          protocol_fee_accrued_id: id
+        insertion_order: null
+        remote_table:
+          name: protocol_fee_accrued
+          schema: public
   - name: triple
     using:
       manual_configuration:
@@ -65,6 +74,7 @@ select_permissions:
         - deposit_id
         - fee_transfer_id
         - id
+        - protocol_fee_accrued_id
         - redemption_id
         - type
       filter: {}
@@ -82,6 +92,7 @@ select_permissions:
         - deposit_id
         - fee_transfer_id
         - id
+        - protocol_fee_accrued_id
         - redemption_id
         - type
       filter: {}

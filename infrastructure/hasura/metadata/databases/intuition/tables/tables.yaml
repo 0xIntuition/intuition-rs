@@ -16,6 +16,7 @@
 - "!include public_pnl_leaderboard_entry.yaml"
 - "!include public_pnl_leaderboard_stats.yaml"
 - "!include public_position.yaml"
+- "!include public_protocol_fee_accrued.yaml"
 - "!include public_position_change.yaml"
 - "!include public_position_change_daily.yaml"
 - "!include public_position_change_hourly.yaml"

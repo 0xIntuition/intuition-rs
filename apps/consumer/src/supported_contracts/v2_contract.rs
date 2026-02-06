@@ -18,6 +18,7 @@ use crate::{
             deposited::event_handler::DepositedEventHandler,
             // fee_transferred::event_handler::FeeTransferredEventHandler,
             initialized::event_handler::InitializeEventHandler,
+            protocol_fee_accrued::event_handler::ProtocolFeeAccruedEventHandler,
             redeemed::event_handler::RedeemedEventHandler,
             share_price_changed::event_handler::SharePriceChangedEventHandler,
             triple_created::event_handler::TripleCreatedEventHandler,
@@ -122,6 +123,16 @@ impl EventProcessor for &MultivaultEvents {
                     .start_timer();
                 debug!("Received: {share_price_changed_data:#?}");
                 SharePriceChangedEventHandler(share_price_changed_data)
+                    .process_event(context, message)
+                    .await?;
+                timer.observe_duration();
+            }
+            MultivaultEvents::ProtocolFeeAccrued(protocol_fee_accrued_data) => {
+                let timer = get_event_processing_histogram()
+                    .with_label_values(&["ProtocolFeeAccrued"])
+                    .start_timer();
+                debug!("Received: {protocol_fee_accrued_data:#?}");
+                ProtocolFeeAccruedEventHandler(protocol_fee_accrued_data)
                     .process_event(context, message)
                     .await?;
                 timer.observe_duration();

@@ -1,0 +1,48 @@
+table:
+  name: protocol_fee_accrued
+  schema: public
+configuration:
+  column_config: {}
+  custom_column_names: {}
+  custom_name: protocol_fee_accruals
+  custom_root_fields:
+    select_by_pk: protocol_fee_accrued
+object_relationships:
+  - name: sender
+    using:
+      manual_configuration:
+        column_mapping:
+          sender_id: id
+        insertion_order: null
+        remote_table:
+          name: account
+          schema: public
+select_permissions:
+  - role: anonymous
+    permission:
+      columns:
+        - id
+        - epoch
+        - sender_id
+        - amount
+        - block_number
+        - created_at
+        - transaction_hash
+      filter: {}
+      limit: 250
+      allow_aggregations: true
+    comment: ""
+  - role: frontend
+    permission:
+      columns:
+        - id
+        - epoch
+        - sender_id
+        - amount
+        - block_number
+        - created_at
+        - transaction_hash
+      filter: {}
+      limit: 250
+      allow_aggregations: true
+    comment: ""
