@@ -1,60 +1,91 @@
--- Fix position_with_value to use raw wei values (consistent with leaderboard functions)
--- Previously divided by 1e36/1e18 which converted to ETH and produced ugly NUMERIC decimals
--- Now keeps all monetary values in wei (18-decimal integers) matching the leaderboard pattern
+-- Fix position_with_value view:
+-- 1. Keep all monetary values in wei (no /1e18 normalization) for frontend bigint compatibility
+-- 2. Use redeemable_assets (not theoretical_value) for pnl/pnl_pct calculations
+-- 3. Add conditional exit fee logic matching contract behavior:
+--    - Exit fee only charged when default vault (curve_id=1) has >= 1e18 shares remaining
+--    - For curve_id=1: remaining = defaultVaultTotalShares - sharesToRedeem
+--    - For curve_id=2+: remaining = defaultVaultTotalShares (unaffected by this redemption)
+-- 4. Use NUMERIC integer arithmetic (TRUNC for floor-division) to match Solidity/BigInt rounding
 
 CREATE OR REPLACE VIEW public.position_with_value AS
 SELECT
-  p.id,
-  p.account_id,
-  p.term_id,
-  p.curve_id,
-  p.shares,
-  p.total_deposit_assets_after_total_fees,
-  p.total_redeem_assets_for_receiver,
-  p.block_number,
-  p.log_index,
-  p.transaction_hash,
-  p.transaction_index,
-  p.created_at,
-  p.updated_at,
-  -- Theoretical value (equity) in wei
-  (p.shares * v.current_share_price / 1e18)::NUMERIC AS theoretical_value,
-  -- PnL = equity_value + redemptions - deposits (all in wei)
-  ((p.shares * v.current_share_price / 1e18) + p.total_redeem_assets_for_receiver - p.total_deposit_assets_after_total_fees)::NUMERIC AS pnl,
-  -- PnL percentage (ROI) — ratio cancels units so result is unchanged
+  base.*,
+  -- PnL uses redeemable_assets (what user actually gets) not theoretical_value
+  (base.redeemable_assets + base.total_redeem_assets_for_receiver
+    - base.total_deposit_assets_after_total_fees)::NUMERIC AS pnl,
   CASE
-    WHEN (p.total_deposit_assets_after_total_fees - p.total_redeem_assets_for_receiver) > 0
-    THEN (((p.shares * v.current_share_price / 1e18) + p.total_redeem_assets_for_receiver - p.total_deposit_assets_after_total_fees) * 100.0
-          / (p.total_deposit_assets_after_total_fees - p.total_redeem_assets_for_receiver))::NUMERIC(20, 4)
+    WHEN (base.total_deposit_assets_after_total_fees - base.total_redeem_assets_for_receiver) > 0
+    THEN ((base.redeemable_assets + base.total_redeem_assets_for_receiver
+           - base.total_deposit_assets_after_total_fees) * 100.0
+          / (base.total_deposit_assets_after_total_fees
+             - base.total_redeem_assets_for_receiver))::NUMERIC(20, 4)
     ELSE 0::NUMERIC(20, 4)
-  END AS pnl_pct,
-  -- Redeemable assets (previewRedeem value after fees) in wei
-  CASE
-    WHEN p.shares = 0 THEN 0::NUMERIC
-    -- Linear curve (curve_id = 1): rawAssets = shares * totalAssets / totalShares
-    WHEN p.curve_id = 1 THEN
-      GREATEST(
-        (p.shares * v.total_assets / NULLIF(v.total_shares, 0))
-        - ((p.shares * v.total_assets / NULLIF(v.total_shares, 0)) * 125 + 9999) / 10000  -- protocol fee 1.25%
-        - ((p.shares * v.total_assets / NULLIF(v.total_shares, 0)) * 75 + 9999) / 10000   -- exit fee 0.75%
-      , 0)::NUMERIC
-    -- Offset Progressive curve (curve_id = 2): Quadratic bonding curve
-    WHEN p.curve_id = 2 THEN
-      (SELECT
-        GREATEST(
-          raw_assets - ((raw_assets * 125 + 9999) / 10000) - ((raw_assets * 75 + 9999) / 10000)
+  END AS pnl_pct
+FROM (
+  SELECT
+    p.id, p.account_id, p.term_id, p.curve_id, p.shares,
+    p.total_deposit_assets_after_total_fees,
+    p.total_redeem_assets_for_receiver,
+    p.block_number, p.log_index, p.transaction_hash,
+    p.transaction_index, p.created_at, p.updated_at,
+    -- Theoretical value: shares * share_price / 1e18 (kept for reference, in wei)
+    TRUNC(p.shares * v.current_share_price / 1000000000000000000::NUMERIC)::NUMERIC AS theoretical_value,
+    -- Redeemable assets with conditional exit fee (in wei)
+    CASE
+      WHEN p.shares = 0 THEN 0::NUMERIC
+      -- Linear curve (curve_id = 1): rawAssets = shares * totalAssets / totalShares
+      WHEN p.curve_id = 1 THEN
+        (SELECT GREATEST(
+          raw_a
+          -- protocol fee 1.25% (rounds up): mulDivUp(raw, 125, 10000)
+          - TRUNC((raw_a * 125 + 9999) / 10000)
+          - CASE
+              -- Exit fee only if default vault has >= 1e18 shares remaining after this redemption
+              WHEN (v_default.total_shares - p.shares) >= 1000000000000000000::NUMERIC
+              -- exit fee 0.75% (rounds up): mulDivUp(raw, 75, 10000)
+              THEN TRUNC((raw_a * 75 + 9999) / 10000)
+              ELSE 0
+            END
         , 0)::NUMERIC
-      FROM (
-        SELECT (
+        FROM (SELECT TRUNC(p.shares * v.total_assets
+                      / NULLIF(v.total_shares, 0))::NUMERIC AS raw_a) calc)
+      -- Offset Progressive curve (curve_id = 2): Quadratic bonding curve
+      -- offset = 30e18, halfSlope = 50e15
+      -- rawAssets = ud60x18Mul(area, halfSlope) = TRUNC(area * halfSlope / 1e18)
+      -- area = sSquared - sNextSquared
+      -- sSquared = TRUNC(s * s / 1e18)  (rounds down)
+      -- sNextSquared = TRUNC((sNext * sNext + 1e18 - 1) / 1e18)  (rounds up)
+      WHEN p.curve_id = 2 THEN
+        (SELECT GREATEST(
+          raw_a
+          -- protocol fee 1.25% (rounds up)
+          - TRUNC((raw_a * 125 + 9999) / 10000)
+          - CASE
+              -- Exit fee only if default vault has >= 1e18 shares remaining
+              -- For curve_id=2, default vault shares are unaffected by this redemption
+              WHEN COALESCE(v_default.total_shares, 0) >= 1000000000000000000::NUMERIC
+              -- exit fee 0.75% (rounds up)
+              THEN TRUNC((raw_a * 75 + 9999) / 10000)
+              ELSE 0
+            END
+        , 0)::NUMERIC
+        FROM (SELECT TRUNC(
           (
-            ((v.total_shares + 30000000000000000000::NUMERIC) * (v.total_shares + 30000000000000000000::NUMERIC) / 1e18)::NUMERIC
+            -- s^2 (rounds down: TRUNC of division)
+            TRUNC((v.total_shares + 30000000000000000000::NUMERIC)
+             * (v.total_shares + 30000000000000000000::NUMERIC)
+             / 1000000000000000000::NUMERIC)
             -
-            (((v.total_shares + 30000000000000000000::NUMERIC - p.shares) * (v.total_shares + 30000000000000000000::NUMERIC - p.shares) + 1e18 - 1) / 1e18)::NUMERIC
-          )
-          * 50000000000000000::NUMERIC / 1e18
-        )::NUMERIC AS raw_assets
-      ) curve_calc)
-    ELSE 0::NUMERIC
-  END AS redeemable_assets
-FROM position p
-JOIN vault v ON v.term_id = p.term_id AND v.curve_id = p.curve_id;
+            -- sNext^2 (rounds up: add 1e18-1 before TRUNC)
+            TRUNC(((v.total_shares + 30000000000000000000::NUMERIC - p.shares)
+              * (v.total_shares + 30000000000000000000::NUMERIC - p.shares)
+              + 999999999999999999::NUMERIC)
+             / 1000000000000000000::NUMERIC)
+          ) * 50000000000000000::NUMERIC / 1000000000000000000::NUMERIC
+        )::NUMERIC AS raw_a) calc)
+      ELSE 0::NUMERIC
+    END AS redeemable_assets
+  FROM position p
+  JOIN vault v ON v.term_id = p.term_id AND v.curve_id = p.curve_id
+  LEFT JOIN vault v_default ON v_default.term_id = p.term_id AND v_default.curve_id = 1
+) base;

@@ -1,4 +1,4 @@
--- Revert position_with_value to previous ETH-normalized version
+-- Revert position_with_value to previous version (ETH-normalized, no conditional exit fee)
 
 CREATE OR REPLACE VIEW public.position_with_value AS
 SELECT
