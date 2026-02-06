@@ -125,7 +125,9 @@ redeemable_assets = rawAssets - protocolFee - exitFee
 
 ## Query Examples
 
-### 1. Top 10 Traders by Total PnL (All Time)
+### get_pnl_leaderboard
+
+#### 1. Top 10 Traders by Total PnL (All Time)
 
 ```graphql
 {
@@ -139,13 +141,17 @@ redeemable_assets = rawAssets - protocolFee - exitFee
     account_id
     account_label
     total_pnl_formatted
+    realized_pnl_formatted
+    unrealized_pnl_formatted
     pnl_pct
     win_rate
+    total_volume_formatted
+    total_position_count
   }
 }
 ```
 
-### 2. Top 10 by ROI (Last 7 Days)
+#### 2. Top 10 by ROI % (Last 7 Days)
 
 ```graphql
 {
@@ -163,7 +169,7 @@ redeemable_assets = rawAssets - protocolFee - exitFee
 }
 ```
 
-### 3. Newest Traders (Last 30 Days)
+#### 3. Newest Traders (Last 30 Days)
 
 ```graphql
 {
@@ -181,7 +187,7 @@ redeemable_assets = rawAssets - protocolFee - exitFee
 }
 ```
 
-### 4. Most Improved Traders (Last 7 Days)
+#### 4. Most Improved Traders (Last 7 Days)
 
 ```graphql
 {
@@ -199,82 +205,7 @@ redeemable_assets = rawAssets - protocolFee - exitFee
 }
 ```
 
-### 5. Get My Rank
-
-```graphql
-{
-  get_account_pnl_rank(args: {
-    p_account_id: "0x91814fB52546fbFe050556c41Bdb56D9704f37D4"
-    p_sort_by: "total_pnl"
-    p_time_filter: "all_time"
-  }) {
-    rank
-    percentile
-    total_pnl_formatted
-    pnl_pct
-    win_rate
-  }
-}
-```
-
-### 6. Leaderboard Statistics
-
-```graphql
-{
-  get_pnl_leaderboard_stats(args: {
-    p_time_filter: "30d"
-  }) {
-    total_traders
-    avg_pnl_formatted
-    median_pnl_formatted
-    profitable_traders
-    unprofitable_traders
-    profitable_pct
-  }
-}
-```
-
-### 7. Vault Leaderboard with Redeemable Assets (Linear Curve)
-
-```graphql
-{
-  get_vault_leaderboard(args: {
-    p_term_id: "0x7ec36d201c842dc787b45cb5bb753bea4cf849be3908fb1b0a7d067c3c3cc1f5"
-    p_curve_id: "1"
-    p_limit: 10
-    p_sort_by: "total_pnl"
-  }) {
-    rank
-    account_id
-    account_label
-    total_pnl_formatted
-    current_equity_value_formatted
-    redeemable_assets_formatted
-  }
-}
-```
-
-### 8. Vault Leaderboard (Offset Progressive Curve)
-
-```graphql
-{
-  get_vault_leaderboard(args: {
-    p_term_id: "0x5fb82a9ddd34419ac698e2b45c75cc1fda458b026c136dfe021342f77c4be4e3"
-    p_curve_id: "2"
-    p_limit: 10
-    p_sort_by: "total_pnl"
-  }) {
-    rank
-    account_id
-    account_label
-    total_pnl_formatted
-    current_equity_value_formatted
-    redeemable_assets_formatted
-  }
-}
-```
-
-### 9. Filter by Minimum Volume and Positions
+#### 5. Filter by Minimum Volume and Positions
 
 ```graphql
 {
@@ -294,15 +225,15 @@ redeemable_assets = rawAssets - protocolFee - exitFee
 }
 ```
 
-### 10. Custom Date Range
+#### 6. Custom Date Range
 
 ```graphql
 {
   get_pnl_leaderboard(args: {
     p_limit: 20
     p_time_filter: "custom"
-    p_start_time: "2025-01-01T00:00:00Z"
-    p_end_time: "2025-01-31T23:59:59Z"
+    p_start_time: "2026-01-01T00:00:00Z"
+    p_end_time: "2026-01-31T23:59:59Z"
     p_sort_by: "total_pnl"
   }) {
     rank
@@ -310,6 +241,384 @@ redeemable_assets = rawAssets - protocolFee - exitFee
     account_label
     total_pnl_formatted
     pnl_change_formatted
+  }
+}
+```
+
+#### 7. Pagination (Page 3, 10 per page)
+
+```graphql
+{
+  get_pnl_leaderboard(args: {
+    p_limit: 10
+    p_offset: 20
+    p_sort_by: "total_pnl"
+    p_time_filter: "all_time"
+  }) {
+    rank
+    account_id
+    account_label
+    total_pnl_formatted
+  }
+}
+```
+
+---
+
+### get_account_pnl_rank
+
+#### 8. Get My Rank (All Time)
+
+```graphql
+{
+  get_account_pnl_rank(args: {
+    p_account_id: "0x91814fB52546fbFe050556c41Bdb56D9704f37D4"
+    p_sort_by: "total_pnl"
+    p_time_filter: "all_time"
+  }) {
+    rank
+    total_accounts
+    percentile
+    account_id
+    account_label
+    total_pnl_formatted
+    pnl_pct
+    win_rate
+    total_position_count
+    total_volume_formatted
+  }
+}
+```
+
+#### 9. Get My Rank in a Specific Vault
+
+```graphql
+{
+  get_account_pnl_rank(args: {
+    p_account_id: "0x91814fB52546fbFe050556c41Bdb56D9704f37D4"
+    p_sort_by: "pnl_pct"
+    p_time_filter: "7d"
+    p_term_id: "0x2fdb5b04829d14fc2f4191524e02c850f50fd98b16b4084a87cad0a28a8ca627"
+  }) {
+    rank
+    percentile
+    total_pnl_formatted
+    pnl_pct
+  }
+}
+```
+
+---
+
+### get_pnl_leaderboard_stats
+
+#### 10. Global Stats (Last 30 Days)
+
+```graphql
+{
+  get_pnl_leaderboard_stats(args: {
+    p_time_filter: "30d"
+  }) {
+    total_traders
+    total_pnl_sum_formatted
+    avg_pnl_formatted
+    median_pnl_formatted
+    total_volume_formatted
+    avg_volume_formatted
+    profitable_traders
+    unprofitable_traders
+    profitable_pct
+  }
+}
+```
+
+#### 11. Stats for a Specific Vault
+
+```graphql
+{
+  get_pnl_leaderboard_stats(args: {
+    p_time_filter: "all_time"
+    p_term_id: "0x2fdb5b04829d14fc2f4191524e02c850f50fd98b16b4084a87cad0a28a8ca627"
+  }) {
+    total_traders
+    avg_pnl_formatted
+    profitable_pct
+  }
+}
+```
+
+---
+
+### get_vault_leaderboard
+
+#### 12. Vault Leaderboard with Redeemable Assets (Linear Curve)
+
+```graphql
+{
+  get_vault_leaderboard(args: {
+    p_term_id: "0x7ec36d201c842dc787b45cb5bb753bea4cf849be3908fb1b0a7d067c3c3cc1f5"
+    p_curve_id: "1"
+    p_limit: 10
+    p_sort_by: "total_pnl"
+  }) {
+    rank
+    account_id
+    account_label
+    total_pnl_formatted
+    realized_pnl_formatted
+    unrealized_pnl_formatted
+    current_equity_value_formatted
+    redeemable_assets_formatted
+    pnl_pct
+    win_rate
+    total_volume_formatted
+  }
+}
+```
+
+#### 13. Vault Leaderboard (Offset Progressive Curve)
+
+```graphql
+{
+  get_vault_leaderboard(args: {
+    p_term_id: "0x5fb82a9ddd34419ac698e2b45c75cc1fda458b026c136dfe021342f77c4be4e3"
+    p_curve_id: "2"
+    p_limit: 10
+    p_sort_by: "total_pnl"
+  }) {
+    rank
+    account_id
+    account_label
+    total_pnl_formatted
+    current_equity_value_formatted
+    redeemable_assets_formatted
+  }
+}
+```
+
+#### 14. Vault Sorted by Volume
+
+```graphql
+{
+  get_vault_leaderboard(args: {
+    p_term_id: "0x2fdb5b04829d14fc2f4191524e02c850f50fd98b16b4084a87cad0a28a8ca627"
+    p_limit: 10
+    p_sort_by: "total_volume"
+    p_sort_order: "DESC"
+  }) {
+    rank
+    account_id
+    account_label
+    redeemable_assets_formatted
+    total_volume_formatted
+    total_position_count
+  }
+}
+```
+
+---
+
+### get_pnl_leaderboard_period
+
+#### 15. Period Leaderboard (Specific Week)
+
+```graphql
+{
+  get_pnl_leaderboard_period(args: {
+    p_start_date: "2026-01-20T00:00:00Z"
+    p_end_date: "2026-01-27T23:59:59Z"
+    p_limit: 10
+    p_sort_by: "total_pnl"
+  }) {
+    rank
+    account_id
+    account_label
+    total_pnl_formatted
+    realized_pnl_formatted
+    unrealized_pnl_formatted
+    pnl_pct
+    total_volume_formatted
+    total_position_count
+    win_rate
+  }
+}
+```
+
+#### 16. Period Leaderboard Sorted by ROI %
+
+```graphql
+{
+  get_pnl_leaderboard_period(args: {
+    p_start_date: "2026-01-27T00:00:00Z"
+    p_end_date: "2026-02-03T23:59:59Z"
+    p_limit: 20
+    p_sort_by: "pnl_pct"
+    p_min_volume: 1
+  }) {
+    rank
+    account_id
+    account_label
+    total_pnl_formatted
+    pnl_pct
+    total_volume_formatted
+  }
+}
+```
+
+#### 17. Period for a Specific Vault
+
+```graphql
+{
+  get_pnl_leaderboard_period(args: {
+    p_start_date: "2026-01-20T00:00:00Z"
+    p_end_date: "2026-01-27T23:59:59Z"
+    p_term_id: "0x2fdb5b04829d14fc2f4191524e02c850f50fd98b16b4084a87cad0a28a8ca627"
+    p_limit: 10
+  }) {
+    rank
+    account_id
+    account_label
+    total_pnl_formatted
+    pnl_pct
+    current_equity_value_formatted
+  }
+}
+```
+
+#### 18. Period with Pagination
+
+```graphql
+{
+  get_pnl_leaderboard_period(args: {
+    p_start_date: "2026-01-20T00:00:00Z"
+    p_end_date: "2026-02-03T23:59:59Z"
+    p_limit: 10
+    p_offset: 10
+    p_sort_by: "total_pnl"
+  }) {
+    rank
+    account_id
+    total_pnl_formatted
+  }
+}
+```
+
+---
+
+### get_vault_leaderboard_period
+
+#### 19. Vault Period Leaderboard with Historical Redeemable Assets
+
+```graphql
+{
+  get_vault_leaderboard_period(args: {
+    p_term_id: "0x2fdb5b04829d14fc2f4191524e02c850f50fd98b16b4084a87cad0a28a8ca627"
+    p_start_date: "2026-01-20T00:00:00Z"
+    p_end_date: "2026-01-27T23:59:59Z"
+    p_limit: 10
+  }) {
+    rank
+    account_id
+    account_label
+    total_pnl_formatted
+    realized_pnl_formatted
+    unrealized_pnl_formatted
+    redeemable_assets_formatted
+    current_equity_value_formatted
+    pnl_pct
+    win_rate
+    total_volume_formatted
+  }
+}
+```
+
+#### 20. Vault Period Sorted by Redeemable Assets
+
+```graphql
+{
+  get_vault_leaderboard_period(args: {
+    p_term_id: "0x2fdb5b04829d14fc2f4191524e02c850f50fd98b16b4084a87cad0a28a8ca627"
+    p_start_date: "2026-01-20T00:00:00Z"
+    p_end_date: "2026-01-27T23:59:59Z"
+    p_limit: 10
+    p_sort_by: "redeemable_assets"
+  }) {
+    rank
+    account_id
+    account_label
+    redeemable_assets_formatted
+    current_equity_value_formatted
+    total_pnl_formatted
+  }
+}
+```
+
+#### 21. Vault Period with Curve Filter
+
+```graphql
+{
+  get_vault_leaderboard_period(args: {
+    p_term_id: "0x2fdb5b04829d14fc2f4191524e02c850f50fd98b16b4084a87cad0a28a8ca627"
+    p_curve_id: "2"
+    p_start_date: "2026-01-20T00:00:00Z"
+    p_end_date: "2026-01-27T23:59:59Z"
+    p_limit: 10
+    p_sort_by: "total_pnl"
+  }) {
+    rank
+    account_id
+    total_pnl_formatted
+    redeemable_assets_formatted
+    pnl_pct
+  }
+}
+```
+
+---
+
+### positions_with_value (View with redeemable_assets)
+
+#### 22. Query Positions with Redeemable Assets
+
+```graphql
+{
+  positions_with_value(
+    where: { shares: { _gt: "0" } }
+    limit: 5
+  ) {
+    account_id
+    term_id
+    curve_id
+    shares
+    theoretical_value
+    pnl
+    pnl_pct
+    redeemable_assets
+  }
+}
+```
+
+#### 23. Positions for a Specific Account
+
+```graphql
+{
+  positions_with_value(
+    where: {
+      account_id: { _eq: "0x91814fB52546fbFe050556c41Bdb56D9704f37D4" }
+      shares: { _gt: "0" }
+    }
+  ) {
+    term_id
+    curve_id
+    shares
+    theoretical_value
+    pnl
+    pnl_pct
+    redeemable_assets
+    vault {
+      total_shares
+      total_assets
+    }
   }
 }
 ```
@@ -416,79 +725,8 @@ Where:
 | `p_curve_id` | NUMERIC | NULL | Optional curve ID filter |
 | `p_limit` | INTEGER | 100 | Number of results (1-10000) |
 | `p_offset` | INTEGER | 0 | Pagination offset |
-| `p_sort_by` | TEXT | 'total_pnl' | Sort field |
+| `p_sort_by` | TEXT | 'total_pnl' | Sort field (also supports `redeemable_assets`) |
 | `p_sort_order` | TEXT | 'DESC' | Sort direction |
-
-### Period Query Examples
-
-#### 11. Period Leaderboard (Jan 20-27, 2026)
-
-```graphql
-{
-  get_pnl_leaderboard_period(args: {
-    p_start_date: "2026-01-20T00:00:00Z"
-    p_end_date: "2026-01-27T23:59:59Z"
-    p_limit: 10
-    p_sort_by: "total_pnl"
-  }) {
-    rank
-    account_id
-    account_label
-    total_pnl_formatted
-    realized_pnl_formatted
-    unrealized_pnl_formatted
-    pnl_pct
-    total_volume_formatted
-    total_position_count
-    win_rate
-  }
-}
-```
-
-#### 12. Vault Period Leaderboard with Historical Redeemable Assets
-
-```graphql
-{
-  get_vault_leaderboard_period(args: {
-    p_term_id: "0x2fdb5b04829d14fc2f4191524e02c850f50fd98b16b4084a87cad0a28a8ca627"
-    p_start_date: "2026-01-20T00:00:00Z"
-    p_end_date: "2026-01-27T23:59:59Z"
-    p_limit: 10
-  }) {
-    rank
-    account_id
-    account_label
-    total_pnl_formatted
-    realized_pnl_formatted
-    unrealized_pnl_formatted
-    redeemable_assets_formatted
-    current_equity_value_formatted
-    pnl_pct
-    win_rate
-  }
-}
-```
-
-#### 13. Weekly Competition (Sort by Period PnL %)
-
-```graphql
-{
-  get_pnl_leaderboard_period(args: {
-    p_start_date: "2026-01-27T00:00:00Z"
-    p_end_date: "2026-02-03T23:59:59Z"
-    p_limit: 50
-    p_sort_by: "pnl_pct"
-    p_min_volume: 1
-  }) {
-    rank
-    account_id
-    account_label
-    total_pnl_formatted
-    pnl_pct
-    total_volume_formatted
-  }
-}
-```
 
 ## Notes
 
