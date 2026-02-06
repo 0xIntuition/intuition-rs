@@ -18,6 +18,7 @@ pub enum EventType {
     Deposited,
     Redeemed,
     FeesTransfered,
+    ProtocolFeeAccrued,
 }
 
 /// This struct represents an event in the database. Note that only one of the
@@ -33,6 +34,7 @@ pub struct Event {
     pub fee_transfer_id: Option<String>,
     pub deposit_id: Option<String>,
     pub redemption_id: Option<String>,
+    pub protocol_fee_accrued_id: Option<String>,
     pub block_number: U256Wrapper,
     pub created_at: DateTime<Utc>,
     pub transaction_hash: String,
@@ -54,8 +56,8 @@ impl SimpleCrud<String> for Event {
     {
         let query = format!(
             r#"
-            INSERT INTO {}.event (id, type, atom_id, triple_id, fee_transfer_id, deposit_id, redemption_id, block_number, created_at, transaction_hash)
-            VALUES ($1, $2::text::{}.event_type, $3, $4, $5, $6, $7, $8, $9, $10)
+            INSERT INTO {}.event (id, type, atom_id, triple_id, fee_transfer_id, deposit_id, redemption_id, protocol_fee_accrued_id, block_number, created_at, transaction_hash)
+            VALUES ($1, $2::text::{}.event_type, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             ON CONFLICT (id) DO UPDATE SET
                 type = EXCLUDED.type,
                 atom_id = EXCLUDED.atom_id,
@@ -63,10 +65,11 @@ impl SimpleCrud<String> for Event {
                 fee_transfer_id = EXCLUDED.fee_transfer_id,
                 deposit_id = EXCLUDED.deposit_id,
                 redemption_id = EXCLUDED.redemption_id,
+                protocol_fee_accrued_id = EXCLUDED.protocol_fee_accrued_id,
                 block_number = EXCLUDED.block_number,
                 created_at = EXCLUDED.created_at,
                 transaction_hash = EXCLUDED.transaction_hash
-            RETURNING id, type as event_type, atom_id, triple_id, fee_transfer_id, deposit_id, redemption_id, block_number, created_at, transaction_hash
+            RETURNING id, type as event_type, atom_id, triple_id, fee_transfer_id, deposit_id, redemption_id, protocol_fee_accrued_id, block_number, created_at, transaction_hash
             "#,
             schema, schema
         );
@@ -79,6 +82,7 @@ impl SimpleCrud<String> for Event {
             .bind(self.fee_transfer_id.clone())
             .bind(self.deposit_id.clone())
             .bind(self.redemption_id.clone())
+            .bind(self.protocol_fee_accrued_id.clone())
             .bind(self.block_number.to_big_decimal()?)
             .bind(self.created_at)
             .bind(&self.transaction_hash)
@@ -104,6 +108,7 @@ impl SimpleCrud<String> for Event {
                    fee_transfer_id,
                    deposit_id,
                    redemption_id,
+                   protocol_fee_accrued_id,
                    block_number,
                    created_at,
                    transaction_hash

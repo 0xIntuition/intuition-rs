@@ -70,6 +70,8 @@ pub enum ModelError {
     InsertError(String),
     #[error("Failed to insert data for fee transfer: {0}")]
     FeeTransferInsertError(String),
+    #[error("Failed to insert data for protocol fee accrued: {0}")]
+    ProtocolFeeAccruedInsertError(String),
     #[error("Failed to insert data for position: {0}")]
     PositionInsertError(String),
     #[error("Invalid atom type: {0}")]

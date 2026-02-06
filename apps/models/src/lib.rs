@@ -17,6 +17,7 @@ pub mod json_object;
 pub mod organization;
 pub mod person;
 pub mod position;
+pub mod protocol_fee_accrued;
 pub mod raw_logs;
 pub mod redemption;
 pub mod share_price_change;
