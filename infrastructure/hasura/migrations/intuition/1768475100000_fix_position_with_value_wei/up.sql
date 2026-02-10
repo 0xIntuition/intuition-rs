@@ -7,7 +7,9 @@
 --    - For curve_id=2+: remaining = defaultVaultTotalShares (unaffected by this redemption)
 -- 4. Use NUMERIC integer arithmetic (TRUNC for floor-division) to match Solidity/BigInt rounding
 
-CREATE OR REPLACE VIEW public.position_with_value AS
+DROP VIEW IF EXISTS public.position_with_value;
+
+CREATE VIEW public.position_with_value AS
 SELECT
   base.*,
   -- PnL uses redeemable_assets (what user actually gets) not theoretical_value

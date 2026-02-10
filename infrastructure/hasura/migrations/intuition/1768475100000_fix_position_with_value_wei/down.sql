@@ -1,6 +1,8 @@
 -- Revert position_with_value to previous version (ETH-normalized, no conditional exit fee)
 
-CREATE OR REPLACE VIEW public.position_with_value AS
+DROP VIEW IF EXISTS public.position_with_value;
+
+CREATE VIEW public.position_with_value AS
 SELECT
   p.id,
   p.account_id,
