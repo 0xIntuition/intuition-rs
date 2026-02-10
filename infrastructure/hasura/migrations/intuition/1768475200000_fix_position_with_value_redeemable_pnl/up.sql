@@ -6,16 +6,19 @@
 --    - For curve_id=1: remaining = defaultVaultTotalShares - sharesToRedeem
 --    - For curve_id=2+: remaining = defaultVaultTotalShares (unaffected by this redemption)
 -- 4. Use NUMERIC integer arithmetic (TRUNC for floor-division) to match Solidity/BigInt rounding
+-- NOTE: DROP+CREATE required because column order changed (CREATE OR REPLACE can't reorder columns)
 
-CREATE OR REPLACE VIEW public.position_with_value AS
+DROP VIEW IF EXISTS public.position_with_value;
+
+CREATE VIEW public.position_with_value AS
 SELECT
   base.*,
-  -- PnL uses redeemable_assets (what user actually gets) not theoretical_value
-  (base.redeemable_assets + base.total_redeem_assets_for_receiver
+  -- PnL uses mark-to-market theoretical value (consistent with share price)
+  (base.theoretical_value + base.total_redeem_assets_for_receiver
     - base.total_deposit_assets_after_total_fees)::NUMERIC AS pnl,
   CASE
     WHEN (base.total_deposit_assets_after_total_fees - base.total_redeem_assets_for_receiver) > 0
-    THEN ((base.redeemable_assets + base.total_redeem_assets_for_receiver
+    THEN ((base.theoretical_value + base.total_redeem_assets_for_receiver
            - base.total_deposit_assets_after_total_fees) * 100.0
           / (base.total_deposit_assets_after_total_fees
              - base.total_redeem_assets_for_receiver))::NUMERIC(20, 4)

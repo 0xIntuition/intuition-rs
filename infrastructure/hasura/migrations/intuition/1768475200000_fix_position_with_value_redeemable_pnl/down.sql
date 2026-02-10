@@ -1,4 +1,4 @@
--- Revert position_with_value to previous version (ETH-normalized, no conditional exit fee)
+-- Revert to the previous wei-based version (without conditional exit fee / redeemable pnl)
 
 CREATE OR REPLACE VIEW public.position_with_value AS
 SELECT
@@ -15,33 +15,31 @@ SELECT
   p.transaction_index,
   p.created_at,
   p.updated_at,
-  -- Theoretical value (equity) in ETH
-  (p.shares * v.current_share_price / 1e36)::NUMERIC AS theoretical_value,
-  -- PnL = equity_value + redemptions - deposits (all in ETH)
-  ((p.shares * v.current_share_price / 1e36) + (p.total_redeem_assets_for_receiver / 1e18) - (p.total_deposit_assets_after_total_fees / 1e18))::NUMERIC AS pnl,
+  -- Theoretical value (equity) in wei
+  (p.shares * v.current_share_price / 1e18)::NUMERIC AS theoretical_value,
+  -- PnL = equity_value + redemptions - deposits (all in wei)
+  ((p.shares * v.current_share_price / 1e18) + p.total_redeem_assets_for_receiver - p.total_deposit_assets_after_total_fees)::NUMERIC AS pnl,
   -- PnL percentage (ROI)
   CASE
     WHEN (p.total_deposit_assets_after_total_fees - p.total_redeem_assets_for_receiver) > 0
-    THEN (((p.shares * v.current_share_price / 1e36) + (p.total_redeem_assets_for_receiver / 1e18) - (p.total_deposit_assets_after_total_fees / 1e18)) * 100.0
-          / ((p.total_deposit_assets_after_total_fees - p.total_redeem_assets_for_receiver) / 1e18))::NUMERIC(20, 4)
+    THEN (((p.shares * v.current_share_price / 1e18) + p.total_redeem_assets_for_receiver - p.total_deposit_assets_after_total_fees) * 100.0
+          / (p.total_deposit_assets_after_total_fees - p.total_redeem_assets_for_receiver))::NUMERIC(20, 4)
     ELSE 0::NUMERIC(20, 4)
   END AS pnl_pct,
-  -- Redeemable assets (previewRedeem value after fees) in ETH
+  -- Redeemable assets (previewRedeem value after fees) in wei
   CASE
     WHEN p.shares = 0 THEN 0::NUMERIC
-    -- Linear curve (curve_id = 1): rawAssets = shares * totalAssets / totalShares
     WHEN p.curve_id = 1 THEN
       GREATEST(
         (p.shares * v.total_assets / NULLIF(v.total_shares, 0))
-        - ((p.shares * v.total_assets / NULLIF(v.total_shares, 0)) * 125 + 9999) / 10000  -- protocol fee 1.25%
-        - ((p.shares * v.total_assets / NULLIF(v.total_shares, 0)) * 75 + 9999) / 10000   -- exit fee 0.75%
-      , 0) / 1e18
-    -- Offset Progressive curve (curve_id = 2): Quadratic bonding curve
+        - ((p.shares * v.total_assets / NULLIF(v.total_shares, 0)) * 125 + 9999) / 10000
+        - ((p.shares * v.total_assets / NULLIF(v.total_shares, 0)) * 75 + 9999) / 10000
+      , 0)::NUMERIC
     WHEN p.curve_id = 2 THEN
       (SELECT
         GREATEST(
           raw_assets - ((raw_assets * 125 + 9999) / 10000) - ((raw_assets * 75 + 9999) / 10000)
-        , 0) / 1e18
+        , 0)::NUMERIC
       FROM (
         SELECT (
           (

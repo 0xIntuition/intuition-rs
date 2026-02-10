@@ -377,7 +377,7 @@ pub async fn build_position_pnl_series(
     Ok(series)
 }
 
-/// Fetch current account totals from positions and vaults
+/// Fetch current account totals using position_with_value view for accurate redeemable values
 pub async fn fetch_account_current_totals(
     pool: &Pool<Postgres>,
     account_id: &str,
@@ -385,15 +385,12 @@ pub async fn fetch_account_current_totals(
     let row = sqlx::query_as::<_, AccountCurrentTotalsRow>(
         r#"
         SELECT
-            COALESCE(SUM((p.shares * v.current_share_price) / 1000000000000000000), 0) AS equity_value,
-            COALESCE(SUM(p.total_deposit_assets_after_total_fees), 0) AS total_assets_in,
-            COALESCE(SUM(p.total_redeem_assets_for_receiver), 0) AS total_assets_out,
+            COALESCE(SUM(pwv.redeemable_assets), 0) AS equity_value,
+            COALESCE(SUM(pwv.total_deposit_assets_after_total_fees), 0) AS total_assets_in,
+            COALESCE(SUM(pwv.total_redeem_assets_for_receiver), 0) AS total_assets_out,
             COUNT(*) AS position_count
-        FROM position p
-        JOIN vault v
-          ON p.term_id = v.term_id
-         AND p.curve_id = v.curve_id
-        WHERE p.account_id = $1
+        FROM position_with_value pwv
+        WHERE pwv.account_id = $1
         "#,
     )
     .bind(account_id)
