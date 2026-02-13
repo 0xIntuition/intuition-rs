@@ -16,6 +16,8 @@ pub struct TripleTerm {
     pub total_assets: U256Wrapper,
     pub total_market_cap: U256Wrapper,
     pub total_position_count: i64,
+    pub support_position_count: i64,
+    pub oppose_position_count: i64,
     pub updated_at: DateTime<Utc>,
 }
 /// This is a trait that all models must implement.
@@ -32,14 +34,14 @@ impl SimpleCrud<FixedBytesWrapper> for TripleTerm {
     {
         let query = format!(
             r#"
-            INSERT INTO {}.triple_term (term_id, counter_term_id, total_assets, total_market_cap, total_position_count, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6)
+            INSERT INTO {}.triple_term (term_id, counter_term_id, total_assets, total_market_cap, total_position_count, support_position_count, oppose_position_count, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             ON CONFLICT (term_id) DO UPDATE SET
                 total_assets = EXCLUDED.total_assets,
                 total_market_cap = EXCLUDED.total_market_cap,
                 -- total_position_count is NOT updated here - it's managed by database triggers
                 updated_at = EXCLUDED.updated_at
-            RETURNING term_id, counter_term_id, total_assets, total_market_cap, total_position_count, updated_at
+            RETURNING term_id, counter_term_id, total_assets, total_market_cap, total_position_count, support_position_count, oppose_position_count, updated_at
             "#,
             schema,
         );
@@ -50,6 +52,8 @@ impl SimpleCrud<FixedBytesWrapper> for TripleTerm {
             .bind(self.total_assets.to_big_decimal()?)
             .bind(self.total_market_cap.to_big_decimal()?)
             .bind(self.total_position_count)
+            .bind(self.support_position_count)
+            .bind(self.oppose_position_count)
             .bind(self.updated_at)
             .fetch_one(executor)
             .await
@@ -67,14 +71,16 @@ impl SimpleCrud<FixedBytesWrapper> for TripleTerm {
     {
         let query = format!(
             r#"
-            SELECT 
-                term_id, 
+            SELECT
+                term_id,
                 counter_term_id,
                 total_assets,
                 total_market_cap,
                 total_position_count,
+                support_position_count,
+                oppose_position_count,
                 updated_at
-            FROM {}.triple_term 
+            FROM {}.triple_term
             WHERE term_id = $1
             "#,
             schema,
@@ -99,14 +105,16 @@ impl TripleTerm {
     {
         let query = format!(
             r#"
-            SELECT 
-                term_id, 
+            SELECT
+                term_id,
                 counter_term_id,
                 total_assets,
                 total_market_cap,
                 total_position_count,
+                support_position_count,
+                oppose_position_count,
                 updated_at
-            FROM {}.triple_term 
+            FROM {}.triple_term
             WHERE term_id = $1 OR counter_term_id = $1
             "#,
             schema,
