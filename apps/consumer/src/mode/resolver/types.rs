@@ -8,6 +8,7 @@ use crate::{
                 handle_binary_data, try_to_parse_json_or_text, try_to_resolve_ipfs_uri,
             },
             ens_resolver::Ens,
+            tns_resolver::Tns,
         },
         types::ResolverConsumerContext,
     },
@@ -23,7 +24,7 @@ use models::{
 use serde::{Deserialize, Serialize};
 use sqlx::{Postgres, Transaction};
 use std::str::FromStr;
-use tracing::debug;
+use tracing::{debug, warn};
 
 /// This struct represents a message that is sent to the resolver
 /// consumer to be processed.
@@ -184,36 +185,70 @@ impl ResolverMessageType {
         .ok_or(ConsumerError::AccountNotFound)
     }
 
-    /// This function processes an account message type
+    /// This function processes an account message type.
+    /// TNS resolution is attempted first. If no TNS name is found,
+    /// falls back to ENS resolution.
     async fn process_account(
         &self,
         resolver_consumer_context: &ResolverConsumerContext,
         account: &mut Account,
     ) -> Result<(), ConsumerError> {
-        let ens = Ens::get_ens(Address::from_str(&account.id)?, resolver_consumer_context).await?;
-        if let Some(_name) = ens.name.clone() {
-            debug!("ENS for account: {:?}", ens);
-            // We need to update the account metadata
+        let address = Address::from_str(&account.id)?;
+
+        // Try TNS first (priority)
+        let resolved = match Tns::reverse_resolve(address, &resolver_consumer_context.tns_client)
+            .await
+        {
+            Ok(tns) if tns.name.is_some() => {
+                debug!("TNS resolved for account: {:?}", tns);
+                // Send avatar to IPFS upload consumer for image processing
+                if let Some(ref avatar_url) = tns.avatar {
+                    debug!("Sending TNS avatar to IPFS upload consumer: {}", avatar_url);
+                    if let Err(e) = resolver_consumer_context
+                        .client
+                        .send_message(
+                            serde_json::to_string(&IpfsUploadMessage {
+                                image: avatar_url.clone(),
+                            })?,
+                            None,
+                        )
+                        .await
+                    {
+                        warn!("Failed to send TNS avatar to IPFS upload consumer: {e}");
+                    }
+                }
+                Ens {
+                    name: tns.name,
+                    image: tns.avatar,
+                }
+            }
+            Ok(_) => {
+                debug!("No TNS name found, falling back to ENS");
+                Ens::get_ens(address, resolver_consumer_context).await?
+            }
+            Err(e) => {
+                debug!("TNS resolution failed: {e}, falling back to ENS");
+                Ens::get_ens(address, resolver_consumer_context).await?
+            }
+        };
+
+        if let Some(_name) = resolved.name.clone() {
             debug!("Updating account metadata for account: {:?}", account);
             self.update_account_metadata(
                 resolver_consumer_context,
                 account.id.clone(),
-                ens.clone(),
+                resolved.clone(),
             )
             .await?;
-            // We also need to update the atom
             if let Some(atom_id) = account.atom_id.clone() {
                 debug!("Updating atom metadata for account: {:?}", account);
-                self.update_atom_metadata(resolver_consumer_context, &atom_id, ens)
+                self.update_atom_metadata(resolver_consumer_context, &atom_id, resolved)
                     .await?;
             } else {
-                // We deal with the case where the account atom_id was not set
-                // when the account was created. In this case, we need to query the DB
-                // to find the atom_id, as this update happens in another consumer
                 debug!("No atom found for account: {:?}", account)
             }
         } else {
-            debug!("No ENS found for account: {:?}", account);
+            debug!("No name resolved (TNS or ENS) for account: {:?}", account);
         }
         Ok(())
     }

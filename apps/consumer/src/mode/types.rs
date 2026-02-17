@@ -8,6 +8,7 @@ use crate::{
     config::{ConsumerType, ContractInstance, ContractVersion, IndexerSource},
     consumer_type::{redis_hybrid::RedisHybrid, redis_streams::RedisStreams},
     error::ConsumerError,
+    mode::resolver::tns_resolver::{TNSRegistry, INTUITION_RPC_URL, TNS_REGISTRY_ADDRESS},
     schemas::types::DecodedMessage,
     traits::{AtomUpdater, BasicConsumer},
 };
@@ -194,6 +195,7 @@ pub struct ResolverConsumerContext {
     pub client: Arc<dyn BasicConsumer>,
     pub ipfs_resolver: IPFSResolver,
     pub mainnet_client: Arc<ENSRegistryInstance<DynProvider, Ethereum>>,
+    pub tns_client: Arc<TNSRegistry::TNSRegistryInstance<DynProvider, Ethereum>>,
     pub pg_pool: PgPool,
     pub server_initialize: ServerInitialize,
 }
@@ -241,6 +243,19 @@ impl ConsumerMode {
         let ens_contract = ENSRegistry::new(address, dyn_provider);
 
         Ok(ens_contract)
+    }
+
+    /// Builds the alloy client for the TNS contract
+    fn build_tns_client(
+        rpc_url: &str,
+        contract_address: &str,
+    ) -> Result<TNSRegistry::TNSRegistryInstance<DynProvider, Ethereum>, ConsumerError> {
+        let provider = ProviderBuilder::new().connect_http(rpc_url.parse()?);
+        let dyn_provider = DynProvider::new(provider);
+        let address = Address::from_str(contract_address)
+            .map_err(|e| ConsumerError::AddressParse(e.to_string()))?;
+        let tns_contract = TNSRegistry::TNSRegistryInstance::new(address, dyn_provider);
+        Ok(tns_contract)
     }
 
     /// This function gets the contract version from the database, if no version is found
@@ -441,12 +456,18 @@ impl ConsumerMode {
         )
         .await?;
 
+        let tns_client = Arc::new(Self::build_tns_client(
+            INTUITION_RPC_URL,
+            TNS_REGISTRY_ADDRESS,
+        )?);
+
         let ipfs_resolver = Self::create_ipfs_resolver(data.clone()).await?;
 
         Ok(ConsumerMode::Resolver(Box::new(ResolverConsumerContext {
             client,
             ipfs_resolver,
             mainnet_client,
+            tns_client,
             pg_pool,
             server_initialize: data,
         })))

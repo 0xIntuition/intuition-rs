@@ -123,6 +123,8 @@ pub enum ConsumerError {
     RedisError(#[from] redis::RedisError),
     #[error("Term not found")]
     TermNotFound,
+    #[error("TNS resolution error: {0}")]
+    TnsError(String),
 }
 
 // Implement the Reject trait for ConsumerError
