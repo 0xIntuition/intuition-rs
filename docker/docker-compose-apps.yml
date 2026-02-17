@@ -2,7 +2,9 @@ services:
 
   
   resolver_consumer:
-    image: ghcr.io/0xintuition/apps:latest
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
     command: ./consumer --mode resolver
     environment:
       CONSUMER_TYPE: 'redis_streams'
@@ -35,10 +37,12 @@ services:
     restart: always
     volumes:
       - ./logs:/app/logs
+    networks:
+      - intuition_default
     deploy:
       replicas: 1
 
-  
+
   ipfs_upload_consumer:
     image: ghcr.io/0xintuition/apps:latest
     command: ./consumer --mode ipfs-upload
@@ -79,7 +83,7 @@ services:
       LOCALSTACK_URL: 'http://redis:6379'
       PG_MIN_CONNECTIONS: '20'
       RESOLVER_STREAM: 'resolver_stream'
-      RPC_URL_BASE: "http://prod-rpc-proxy:3008/31337/proxy"
+      RPC_URL_BASE: "http://prod-rpc-proxy:3008/1155/proxy"
       RUST_LOG: 'info'
       BACKEND_SCHEMA: 'public'
       REDIS_URL: 'redis://redis:6379'
@@ -89,6 +93,8 @@ services:
       - ./logs:/app/logs
     ports:
       - 3002:3002
+    networks:
+      - intuition_default
 
     
   api:
@@ -181,8 +187,7 @@ services:
 
 
 networks:
-  intuition-be:
-    driver: bridge
+  intuition_default:
     external: true
     
 volumes:
