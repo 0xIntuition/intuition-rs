@@ -249,11 +249,12 @@ $$ LANGUAGE plpgsql STABLE;
 
 -- ========================================
 -- 2. VAULT-SPECIFIC ALL-TIME LEADERBOARD
+--    Uses fee_config and curve_config tables
 -- ========================================
 
 CREATE OR REPLACE FUNCTION get_vault_leaderboard(
   p_term_id TEXT,
-  p_curve_id NUMERIC(78, 0) DEFAULT NULL,
+  p_curve_id NUMERIC DEFAULT NULL,
   p_limit INTEGER DEFAULT 100,
   p_offset INTEGER DEFAULT 0,
   p_sort_by TEXT DEFAULT 'total_pnl',
@@ -272,7 +273,9 @@ BEGIN
   v_offset := GREATEST(COALESCE(p_offset, 0), 0);
 
   RETURN QUERY
-  WITH vault_positions AS (
+  WITH
+  fc AS (SELECT * FROM fee_config LIMIT 1),
+  vault_positions AS (
     SELECT
       p.account_id,
       p.term_id,
@@ -291,35 +294,45 @@ BEGIN
         - p.total_deposit_assets_after_total_fees)::NUMERIC AS position_pnl_raw,
       CASE
         WHEN p.shares = 0 THEN 0::NUMERIC
-        WHEN p.curve_id = 1 THEN
+        WHEN cc.curve_type = 'linear' THEN
           CASE WHEN v.total_shares > 0
             THEN TRUNC(p.shares * v.total_assets / v.total_shares)
             ELSE 0::NUMERIC
           END
-        WHEN p.curve_id = 2 THEN
+        WHEN cc.curve_type = 'offset_progressive' THEN
           (
             SELECT TRUNC(
               (
-                TRUNC((v.total_shares + 30000000000000000000::NUMERIC) * (v.total_shares + 30000000000000000000::NUMERIC) / 1000000000000000000::NUMERIC)
+                TRUNC((v.total_shares + cc."offset") * (v.total_shares + cc."offset") / 1000000000000000000::NUMERIC)
                 -
-                TRUNC(((v.total_shares + 30000000000000000000::NUMERIC - p.shares) * (v.total_shares + 30000000000000000000::NUMERIC - p.shares) + 999999999999999999::NUMERIC) / 1000000000000000000::NUMERIC)
+                TRUNC(((v.total_shares + cc."offset" - p.shares) * (v.total_shares + cc."offset" - p.shares) + 999999999999999999::NUMERIC) / 1000000000000000000::NUMERIC)
               )
-              * 50000000000000000::NUMERIC / 1000000000000000000::NUMERIC
+              * cc.half_slope / 1000000000000000000::NUMERIC
             )
           )
         ELSE 0::NUMERIC
-      END AS raw_assets_from_curve
+      END AS raw_assets_from_curve,
+      v_default.total_shares AS default_vault_total_shares
     FROM position p
     JOIN vault v ON p.term_id = v.term_id AND p.curve_id = v.curve_id
+    LEFT JOIN curve_config cc ON p.curve_id = cc.curve_id
+    LEFT JOIN vault v_default ON p.term_id = v_default.term_id AND v_default.curve_id = (SELECT default_curve_id FROM fc)
     WHERE p.term_id = p_term_id
       AND (p_curve_id IS NULL OR p.curve_id = p_curve_id)
   ),
   vault_positions_with_fees AS (
     SELECT
       vp.*,
-      ((vp.raw_assets_from_curve * 125 + 9999) / 10000)::NUMERIC AS protocol_fee,
-      ((vp.raw_assets_from_curve * 75 + 9999) / 10000)::NUMERIC AS exit_fee
+      TRUNC((vp.raw_assets_from_curve * f.protocol_fee + f.fee_denominator - 1) / f.fee_denominator)::NUMERIC AS protocol_fee,
+      CASE
+        WHEN vp.curve_id = f.default_curve_id AND (vp.default_vault_total_shares - vp.shares) >= f.fee_threshold
+          THEN TRUNC((vp.raw_assets_from_curve * f.exit_fee + f.fee_denominator - 1) / f.fee_denominator)
+        WHEN vp.curve_id <> f.default_curve_id AND COALESCE(vp.default_vault_total_shares, 0) >= f.fee_threshold
+          THEN TRUNC((vp.raw_assets_from_curve * f.exit_fee + f.fee_denominator - 1) / f.fee_denominator)
+        ELSE 0
+      END::NUMERIC AS exit_fee
     FROM vault_positions vp
+    CROSS JOIN fc f
   ),
   vault_positions_final AS (
     SELECT
@@ -702,13 +715,14 @@ $$ LANGUAGE plpgsql STABLE;
 
 -- ========================================
 -- 4. VAULT-SPECIFIC PERIOD LEADERBOARD
+--    Uses fee_config and curve_config tables
 -- ========================================
 
 CREATE OR REPLACE FUNCTION get_vault_leaderboard_period(
   p_term_id TEXT,
   p_start_date TIMESTAMPTZ,
   p_end_date TIMESTAMPTZ,
-  p_curve_id NUMERIC(78, 0) DEFAULT NULL,
+  p_curve_id NUMERIC DEFAULT NULL,
   p_limit INTEGER DEFAULT 100,
   p_offset INTEGER DEFAULT 0,
   p_sort_by TEXT DEFAULT 'total_pnl',
@@ -741,6 +755,8 @@ BEGIN
 
   RETURN QUERY
   WITH
+  fc AS (SELECT * FROM fee_config LIMIT 1),
+
   active_accounts AS (
     SELECT DISTINCT pc.account_id
     FROM position_change_daily pc
@@ -861,33 +877,35 @@ BEGIN
       CASE WHEN (ppm.equity_at_end - ppm.equity_at_start + ppm.period_redemptions - ppm.period_deposits) < 0 THEN 1 ELSE 0 END AS is_losing,
       CASE
         WHEN ppm.shares_at_end = 0 THEN 0::NUMERIC
-        WHEN ppm.curve_id = 1 THEN
+        WHEN cc.curve_type = 'linear' THEN
           CASE WHEN ppm.vault_total_shares_end > 0
             THEN TRUNC(ppm.shares_at_end * ppm.vault_total_assets_end / ppm.vault_total_shares_end)
             ELSE 0::NUMERIC
           END
-        WHEN ppm.curve_id = 2 THEN
+        WHEN cc.curve_type = 'offset_progressive' THEN
           (
             SELECT TRUNC(
               (
-                TRUNC((ppm.vault_total_shares_end + 30000000000000000000::NUMERIC) * (ppm.vault_total_shares_end + 30000000000000000000::NUMERIC) / 1000000000000000000::NUMERIC)
+                TRUNC((ppm.vault_total_shares_end + cc."offset") * (ppm.vault_total_shares_end + cc."offset") / 1000000000000000000::NUMERIC)
                 -
-                TRUNC(((ppm.vault_total_shares_end + 30000000000000000000::NUMERIC - ppm.shares_at_end) * (ppm.vault_total_shares_end + 30000000000000000000::NUMERIC - ppm.shares_at_end) + 999999999999999999::NUMERIC) / 1000000000000000000::NUMERIC)
+                TRUNC(((ppm.vault_total_shares_end + cc."offset" - ppm.shares_at_end) * (ppm.vault_total_shares_end + cc."offset" - ppm.shares_at_end) + 999999999999999999::NUMERIC) / 1000000000000000000::NUMERIC)
               )
-              * 50000000000000000::NUMERIC / 1000000000000000000::NUMERIC
+              * cc.half_slope / 1000000000000000000::NUMERIC
             )
           )
         ELSE 0::NUMERIC
       END AS raw_assets_from_curve
     FROM position_period_metrics ppm
+    LEFT JOIN curve_config cc ON ppm.curve_id = cc.curve_id
   ),
 
   position_with_fees AS (
     SELECT
       pp.*,
-      ((pp.raw_assets_from_curve * 125 + 9999) / 10000)::NUMERIC AS protocol_fee,
-      ((pp.raw_assets_from_curve * 75 + 9999) / 10000)::NUMERIC AS exit_fee
+      TRUNC((pp.raw_assets_from_curve * f.protocol_fee + f.fee_denominator - 1) / f.fee_denominator)::NUMERIC AS protocol_fee,
+      TRUNC((pp.raw_assets_from_curve * f.exit_fee + f.fee_denominator - 1) / f.fee_denominator)::NUMERIC AS exit_fee
     FROM position_pnl pp
+    CROSS JOIN fc f
   ),
 
   position_final AS (
