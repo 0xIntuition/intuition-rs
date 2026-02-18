@@ -3,12 +3,16 @@ use chrono::{DateTime, Duration, Timelike, Utc};
 use std::cmp::Ordering;
 
 /// Align a range to interval bucket boundaries (end is exclusive)
+///
+/// The start is floored (truncated) to ensure we include data from the
+/// beginning of the range. The end is ceiled so partial-bucket data at
+/// the tail is not dropped.
 pub fn align_pnl_range(
     start: DateTime<Utc>,
     end: DateTime<Utc>,
     interval: PnlInterval,
 ) -> (DateTime<Utc>, DateTime<Utc>) {
-    let range_start = ceil_to_bucket(start, interval);
+    let range_start = truncate_to_bucket(start, interval);
     let range_end = ceil_to_bucket(end, interval);
     (range_start, range_end)
 }
