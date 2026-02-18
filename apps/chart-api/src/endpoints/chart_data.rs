@@ -141,9 +141,17 @@ pub async fn get_chart_data(
     )
     .await?;
 
+    info!(
+        "fetch_chart_data returned {} rows for term_id={}, curve_id={:?}",
+        chart_data.len(), term_id, curve_id_opt
+    );
+    for (i, dp) in chart_data.iter().enumerate() {
+        info!("  row[{}]: bucket={}, value={}", i, dp.bucket, dp.value);
+    }
+
     // Get fallback value if no data in range
     let fallback_value = if chart_data.is_empty() {
-        fetch_latest_value(
+        let fb = fetch_latest_value(
             &state.pg_pool,
             graph_type,
             &term_id,
@@ -152,7 +160,9 @@ pub async fn get_chart_data(
             range_start,
         )
         .await?
-        .map(|(_, value)| value)
+        .map(|(_, value)| value);
+        info!("No data in range, fallback_value={:?}", fb.as_ref().map(|v| v.to_string()));
+        fb
     } else {
         None
     };
@@ -164,6 +174,18 @@ pub async fn get_chart_data(
 
     // Fill gaps in data
     let data_points = fill_gaps(chart_data, interval, &expected_buckets, fallback_value);
+
+    // Log unique values in output for debugging
+    {
+        let unique: std::collections::HashSet<String> =
+            data_points.iter().map(|p| p.value.to_string()).collect();
+        info!(
+            "fill_gaps produced {} points with {} unique values: {:?}",
+            data_points.len(),
+            unique.len(),
+            unique
+        );
+    }
 
     // Generate response based on format
     let response_body = match format {
@@ -299,10 +321,20 @@ pub async fn get_raw_share_price_data(
     )
     .await?;
 
+    info!(
+        "fetch_raw_share_price_data returned {} rows for term_id={}, curve_id={}",
+        chart_data.len(), term_id, curve_id
+    );
+    for (i, dp) in chart_data.iter().enumerate() {
+        info!("  raw_row[{}]: bucket={}, value={}", i, dp.bucket, dp.value);
+    }
+
     let fallback_value = if chart_data.is_empty() {
-        fetch_latest_raw_share_price(&state.pg_pool, &term_id, &curve_id, range_start)
+        let fb = fetch_latest_raw_share_price(&state.pg_pool, &term_id, &curve_id, range_start)
             .await?
-            .map(|(_, value)| value)
+            .map(|(_, value)| value);
+        info!("No raw data in range, fallback_value={:?}", fb.as_ref().map(|v| v.to_string()));
+        fb
     } else {
         None
     };
@@ -312,6 +344,17 @@ pub async fn get_raw_share_price_data(
     }
 
     let data_points = fill_gaps(chart_data, interval, &expected_buckets, fallback_value);
+
+    {
+        let unique: std::collections::HashSet<String> =
+            data_points.iter().map(|p| p.value.to_string()).collect();
+        info!(
+            "raw fill_gaps produced {} points with {} unique values: {:?}",
+            data_points.len(),
+            unique.len(),
+            unique
+        );
+    }
 
     let response_body = match format {
         OutputFormat::Json => {

@@ -5,12 +5,16 @@ use models::types::U256Wrapper;
 use std::collections::HashMap;
 
 /// Align a range to interval bucket boundaries (end is exclusive)
+///
+/// The start is floored (truncated) to ensure we include data from the
+/// beginning of the range. The end is ceiled so partial-bucket data at
+/// the tail is not dropped.
 pub fn align_range(
     start: DateTime<Utc>,
     end: DateTime<Utc>,
     interval: Interval,
 ) -> (DateTime<Utc>, DateTime<Utc>) {
-    let range_start = ceil_to_bucket(start, interval);
+    let range_start = truncate_to_bucket(start, interval);
     let range_end = ceil_to_bucket(end, interval);
     (range_start, range_end)
 }
@@ -162,6 +166,7 @@ mod tests {
     use super::*;
     use alloy::primitives::U256;
     use chrono::{Datelike, Timelike};
+    use std::str::FromStr;
 
     #[test]
     fn test_truncate_to_bucket_hourly() {
@@ -211,5 +216,92 @@ mod tests {
 
         // Should have 4 data points with gaps filled
         assert!(!result.is_empty());
+    }
+
+    /// Reproduces the exact scenario from the production bug:
+    /// - 2 daily rows with distinct values (Feb 10 = 1e18, Feb 11 = 1.0000966e18)
+    /// - 10 expected daily buckets (Feb 7-16)
+    /// - fill_gaps should produce 2 unique values, not 1
+    #[test]
+    fn test_fill_gaps_daily_two_distinct_values() {
+        let feb10 = "2026-02-10T00:00:00Z".parse::<DateTime<Utc>>().unwrap();
+        let feb11 = "2026-02-11T00:00:00Z".parse::<DateTime<Utc>>().unwrap();
+
+        let val_a = U256Wrapper(U256::from_str("1000000000000000000").unwrap());
+        let val_b = U256Wrapper(U256::from_str("1000096601073338069").unwrap());
+
+        // Simulating what fetch_chart_data returns from DB
+        let data = vec![
+            GenericDataRow {
+                bucket: feb10,
+                term_id: "test".to_string(),
+                curve_id: Some(U256Wrapper(U256::from(1))),
+                value: val_a.clone(),
+            },
+            GenericDataRow {
+                bucket: feb11,
+                term_id: "test".to_string(),
+                curve_id: Some(U256Wrapper(U256::from(1))),
+                value: val_b.clone(),
+            },
+        ];
+
+        // Build expected buckets: Feb 7 to Feb 17 (10 days)
+        let range_start = "2026-02-07T00:00:00Z".parse::<DateTime<Utc>>().unwrap();
+        let range_end = "2026-02-17T00:00:00Z".parse::<DateTime<Utc>>().unwrap();
+        let expected_buckets = build_expected_buckets(range_start, range_end, Interval::Daily);
+        assert_eq!(expected_buckets.len(), 10);
+
+        let result = fill_gaps(data, Interval::Daily, &expected_buckets, None);
+
+        assert_eq!(result.len(), 10);
+
+        // Collect unique values
+        let unique_values: std::collections::HashSet<String> =
+            result.iter().map(|p| p.value.to_string()).collect();
+        assert_eq!(
+            unique_values.len(),
+            2,
+            "Expected 2 unique values but got {}: {:?}",
+            unique_values.len(),
+            unique_values
+        );
+
+        // Feb 7-10 should have val_a (1e18), Feb 11-16 should have val_b
+        for (i, point) in result.iter().enumerate() {
+            if i <= 3 {
+                // Feb 7, 8, 9, 10
+                assert_eq!(
+                    point.value, val_a,
+                    "Day {} should be val_a (1e18) but got {}",
+                    i, point.value
+                );
+            } else {
+                // Feb 11-16
+                assert_eq!(
+                    point.value, val_b,
+                    "Day {} should be val_b but got {}",
+                    i, point.value
+                );
+            }
+        }
+    }
+
+    /// Test that align_range floors start and ceils end
+    #[test]
+    fn test_align_range_floors_start() {
+        let start = "2026-02-07T12:30:00Z".parse::<DateTime<Utc>>().unwrap();
+        let end = "2026-02-17T12:30:00Z".parse::<DateTime<Utc>>().unwrap();
+        let (range_start, range_end) = align_range(start, end, Interval::Daily);
+        assert_eq!(
+            range_start,
+            "2026-02-07T00:00:00Z".parse::<DateTime<Utc>>().unwrap(),
+            "Start should be floored to midnight"
+        );
+        assert_eq!(
+            range_end,
+            "2026-02-18T00:00:00Z".parse::<DateTime<Utc>>().unwrap(),
+            "End should be ceiled to next midnight"
+        );
     }
 }
