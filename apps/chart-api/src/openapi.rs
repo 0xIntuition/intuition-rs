@@ -1,7 +1,7 @@
 use crate::models::{
     AccountPnlChartPointSchema, AccountPnlChartResponse, AccountPnlSnapshot, ChartDataPointSchema,
     ChartResponse, PnlChartPointSchema, PnlChartResponse, RealizedPnlEntrySchema,
-    RealizedPnlResponse,
+    RealizedPnlResponse, Season2IqEpochPointSchema, Season2IqSummaryResponse,
 };
 use crate::types::{
     ChartQueryParams, GraphType, Interval, OutputFormat, PnlChartQueryParams, PnlInterval,
@@ -17,7 +17,8 @@ use utoipa::OpenApi;
         crate::endpoints::get_position_pnl_chart,
         crate::endpoints::get_account_pnl_chart,
         crate::endpoints::get_account_pnl_current,
-        crate::endpoints::get_account_realized_pnl
+        crate::endpoints::get_account_realized_pnl,
+        crate::endpoints::get_account_season2_iq
     ),
     components(schemas(
         ChartResponse,
@@ -36,10 +37,13 @@ use utoipa::OpenApi;
         AccountPnlSnapshot,
         RealizedPnlResponse,
         RealizedPnlEntrySchema,
+        Season2IqSummaryResponse,
+        Season2IqEpochPointSchema,
     )),
     tags(
         (name = "Chart", description = "Chart data endpoints with support for multiple graph types"),
-        (name = "PnL", description = "PnL chart endpoints for account and position views")
+        (name = "PnL", description = "PnL chart endpoints for account and position views"),
+        (name = "Season2", description = "Season 2 IQ points endpoints")
     ),
     info(
         title = "Chart API",
