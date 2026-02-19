@@ -19,6 +19,9 @@ jobs:
     #   github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR'
     
     runs-on: ubuntu-latest
+    env:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
     permissions:
       contents: read
       pull-requests: read
@@ -31,11 +34,18 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Skip Claude review when credentials are unavailable
+        if: ${{ env.CLAUDE_CODE_OAUTH_TOKEN == '' && env.ANTHROPIC_API_KEY == '' }}
+        run: |
+          echo "Skipping claude-review: neither CLAUDE_CODE_OAUTH_TOKEN nor ANTHROPIC_API_KEY is configured."
+
       - name: Run Claude Code Review
+        if: ${{ env.CLAUDE_CODE_OAUTH_TOKEN != '' || env.ANTHROPIC_API_KEY != '' }}
         id: claude-review
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
@@ -54,4 +64,3 @@ jobs:
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://docs.claude.com/en/docs/claude-code/sdk#command-line for available options
           claude_args: '--allowed-tools "Bash(gh issue view:*),Bash(gh search:*),Bash(gh issue list:*),Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*)"'
-
