@@ -7,7 +7,6 @@ use sqlx::{Executor, Postgres};
 
 /// This is a struct that represents a signal. Note that the `atom_id`,
 /// `triple_id`, `deposit_id`, and `redemption_id` are mutually exclusive.
-// TODO: add a check to ensure that only one of these is set.
 #[derive(Debug, sqlx::FromRow, Builder)]
 #[sqlx(type_name = "signal")]
 pub struct Signal {
@@ -27,6 +26,64 @@ pub struct Signal {
 
 /// Implement the `Model` trait for the `Signal` struct
 impl Model for Signal {}
+
+/// Validation errors for Signal
+#[derive(Debug, Clone)]
+pub enum SignalValidationError {
+    MultipleTargetIdsSet(String),
+    NoTargetIdSet,
+}
+
+impl std::fmt::Display for SignalValidationError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::MultipleTargetIdsSet(details) => write!(f, "{}", details),
+            Self::NoTargetIdSet => write!(f, "Signal must have exactly one of atom_id, triple_id, deposit_id, or redemption_id set"),
+        }
+    }
+}
+
+impl std::error::Error for SignalValidationError {}
+
+impl Signal {
+    /// Validates that exactly one of atom_id, triple_id, deposit_id, or redemption_id is set.
+    /// These fields are mutually exclusive.
+    pub fn validate(&self) -> Result<(), SignalValidationError> {
+        let count = [
+            self.atom_id.is_some(),
+            self.triple_id.is_some(),
+            self.deposit_id.is_some(),
+            self.redemption_id.is_some(),
+        ]
+        .iter()
+        .filter(|&&b| b)
+        .count();
+
+        match count {
+            0 => Err(SignalValidationError::NoTargetIdSet),
+            1 => Ok(()),
+            _ => {
+                let mut set_fields = Vec::new();
+                if self.atom_id.is_some() {
+                    set_fields.push("atom_id");
+                }
+                if self.triple_id.is_some() {
+                    set_fields.push("triple_id");
+                }
+                if self.deposit_id.is_some() {
+                    set_fields.push("deposit_id");
+                }
+                if self.redemption_id.is_some() {
+                    set_fields.push("redemption_id");
+                }
+                Err(SignalValidationError::MultipleTargetIdsSet(format!(
+                    "Signal has multiple target IDs set: {}. Only one can be set.",
+                    set_fields.join(", ")
+                )))
+            }
+        }
+    }
+}
 
 /// Implement the `SimpleCrud` trait for the `Signal` struct
 #[async_trait]
