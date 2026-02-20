@@ -1,0 +1,28 @@
+table:
+  name: season2_leaderboard_payout
+  schema: public
+configuration:
+  column_config: {}
+  custom_column_names: {}
+  custom_name: season2_leaderboard_payouts
+  custom_root_fields:
+    select_by_pk: season2_leaderboard_payout
+select_permissions:
+  - role: anonymous
+    permission:
+      columns:
+        - rank
+        - iq_points
+      filter: {}
+      limit: 250
+      allow_aggregations: true
+    comment: ""
+  - role: frontend
+    permission:
+      columns:
+        - rank
+        - iq_points
+      filter: {}
+      limit: 250
+      allow_aggregations: true
+    comment: ""

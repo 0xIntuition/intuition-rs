@@ -99,6 +99,15 @@ array_relationships:
         remote_table:
           name: triple
           schema: public
+  - name: season2_iq_ledger_entries
+    using:
+      manual_configuration:
+        column_mapping:
+          id: account_id
+        insertion_order: null
+        remote_table:
+          name: season2_iq_ledger
+          schema: public
 remote_relationships:
   - definition:
       to_source:
