@@ -41,26 +41,12 @@ VALUES
     2000000000000000000,   -- SLOPE  = 2.0 (UD60x18)
     1000000000000000000,   -- HALF_SLOPE = 1.0 (UD60x18)
     500000000000000000,    -- OFFSET = 0.5 (UD60x18)
-    '0xe65ecaaf5964ac0d94459a66a59a8b9ebce42cbb')
-ON CONFLICT (curve_id) DO UPDATE SET
-  name = EXCLUDED.name,
-  curve_type = EXCLUDED.curve_type,
-  slope = EXCLUDED.slope,
-  half_slope = EXCLUDED.half_slope,
-  "offset" = EXCLUDED."offset",
-  contract_address = EXCLUDED.contract_address,
-  updated_at = NOW();
+    NULL)                  -- contract_address is set by the indexer per environment
+ON CONFLICT (curve_id) DO NOTHING;
 
 INSERT INTO fee_config (id, protocol_fee, exit_fee, entry_fee, fee_denominator, fee_threshold, default_curve_id)
 VALUES (1, 100, 100, 100, 10000, 100000000000000000, 1)
-ON CONFLICT (id) DO UPDATE SET
-  protocol_fee = EXCLUDED.protocol_fee,
-  exit_fee = EXCLUDED.exit_fee,
-  entry_fee = EXCLUDED.entry_fee,
-  fee_denominator = EXCLUDED.fee_denominator,
-  fee_threshold = EXCLUDED.fee_threshold,
-  default_curve_id = EXCLUDED.default_curve_id,
-  updated_at = NOW();
+ON CONFLICT (id) DO NOTHING;
 
 -- ========================================
 -- 2. RECREATE position_with_value VIEW
