@@ -41,7 +41,9 @@ select_permissions:
     permission:
       columns:
         - object_id
+        - opposer_count
         - predicate_id
+        - supporter_count
         - total_market_cap
         - total_position_count
         - triple_count
@@ -53,7 +55,9 @@ select_permissions:
     permission:
       columns:
         - object_id
+        - opposer_count
         - predicate_id
+        - supporter_count
         - total_market_cap
         - total_position_count
         - triple_count

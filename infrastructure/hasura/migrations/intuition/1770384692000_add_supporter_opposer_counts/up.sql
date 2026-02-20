@@ -1,11 +1,11 @@
 -- Add supporter_count and opposer_count columns to triple_term
 ALTER TABLE triple_term
-  ADD COLUMN supporter_count BIGINT NOT NULL DEFAULT 0,
-  ADD COLUMN opposer_count BIGINT NOT NULL DEFAULT 0;
+  ADD COLUMN IF NOT EXISTS supporter_count BIGINT NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS opposer_count BIGINT NOT NULL DEFAULT 0;
 
 -- Indexes for sorting by supporter/opposer counts
-CREATE INDEX idx_triple_term_supporter_count ON triple_term (supporter_count DESC);
-CREATE INDEX idx_triple_term_opposer_count ON triple_term (opposer_count DESC);
+CREATE INDEX IF NOT EXISTS idx_triple_term_supporter_count ON triple_term (supporter_count DESC);
+CREATE INDEX IF NOT EXISTS idx_triple_term_opposer_count ON triple_term (opposer_count DESC);
 
 -- Update trigger: update_triple_term_totals (fired by triple_vault changes)
 -- Now also sets supporter_count and opposer_count split from vault.position_count
