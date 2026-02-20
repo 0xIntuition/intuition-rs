@@ -190,6 +190,21 @@ impl ResolverMessageType {
         resolver_consumer_context: &ResolverConsumerContext,
         account: &mut Account,
     ) -> Result<(), ConsumerError> {
+        // Validate EIP-55 checksum before resolving ENS
+        // Addresses with invalid checksums should be skipped to prevent false positives
+        match Address::parse_checksummed(&account.id, None) {
+            Ok(_) => {
+                debug!("Address {} has valid EIP-55 checksum, proceeding with ENS resolution", account.id);
+            }
+            Err(e) => {
+                debug!(
+                    "Address {} has invalid EIP-55 checksum, skipping ENS resolution: {}",
+                    account.id, e
+                );
+                return Ok(());
+            }
+        }
+
         let ens = Ens::get_ens(Address::from_str(&account.id)?, resolver_consumer_context).await?;
         if let Some(_name) = ens.name.clone() {
             debug!("ENS for account: {:?}", ens);
