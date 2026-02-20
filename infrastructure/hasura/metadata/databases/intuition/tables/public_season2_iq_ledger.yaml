@@ -1,0 +1,61 @@
+table:
+  name: season2_iq_ledger
+  schema: public
+configuration:
+  column_config: {}
+  custom_column_names: {}
+  custom_name: season2_iq_ledger_entries
+  custom_root_fields:
+    select_by_pk: season2_iq_ledger
+object_relationships:
+  - name: account
+    using:
+      manual_configuration:
+        column_mapping:
+          account_id: id
+        insertion_order: null
+        remote_table:
+          name: account
+          schema: public
+  - name: season2_epoch
+    using:
+      manual_configuration:
+        column_mapping:
+          epoch: epoch
+        insertion_order: null
+        remote_table:
+          name: season2_epoch
+          schema: public
+select_permissions:
+  - role: anonymous
+    permission:
+      columns:
+        - id
+        - epoch
+        - account_id
+        - entry_type
+        - source_id
+        - iq_points
+        - metadata
+        - created_at
+        - updated_at
+      filter: {}
+      limit: 250
+      allow_aggregations: true
+    comment: ""
+  - role: frontend
+    permission:
+      columns:
+        - id
+        - epoch
+        - account_id
+        - entry_type
+        - source_id
+        - iq_points
+        - metadata
+        - created_at
+        - updated_at
+      filter: {}
+      limit: 250
+      allow_aggregations: true
+    comment: ""

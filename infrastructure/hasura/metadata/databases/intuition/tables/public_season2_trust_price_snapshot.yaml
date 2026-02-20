@@ -1,0 +1,36 @@
+table:
+  name: season2_trust_price_snapshot
+  schema: public
+configuration:
+  column_config: {}
+  custom_column_names: {}
+  custom_name: season2_trust_price_snapshots
+  custom_root_fields:
+    select_by_pk: season2_trust_price_snapshot
+select_permissions:
+  - role: anonymous
+    permission:
+      columns:
+        - snapshot_at
+        - price_usd
+        - source
+        - source_ref
+        - created_at
+        - updated_at
+      filter: {}
+      limit: 250
+      allow_aggregations: true
+    comment: ""
+  - role: frontend
+    permission:
+      columns:
+        - snapshot_at
+        - price_usd
+        - source
+        - source_ref
+        - created_at
+        - updated_at
+      filter: {}
+      limit: 250
+      allow_aggregations: true
+    comment: ""
