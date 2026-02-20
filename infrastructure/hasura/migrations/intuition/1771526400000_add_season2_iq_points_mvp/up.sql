@@ -63,7 +63,7 @@ CREATE OR REPLACE FUNCTION upsert_season2_trust_price_snapshot(
   p_source TEXT DEFAULT 'coingecko',
   p_source_ref TEXT DEFAULT NULL
 )
-RETURNS season2_trust_price_snapshot AS $$
+RETURNS SETOF season2_trust_price_snapshot AS $$
 BEGIN
   RETURN QUERY
   INSERT INTO season2_trust_price_snapshot (
