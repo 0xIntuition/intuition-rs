@@ -1,0 +1,63 @@
+table:
+  name: season2_epoch
+  schema: public
+configuration:
+  column_config: {}
+  custom_column_names: {}
+  custom_name: season2_epochs
+  custom_root_fields:
+    select_by_pk: season2_epoch
+array_relationships:
+  - name: iq_ledger_entries
+    using:
+      manual_configuration:
+        column_mapping:
+          epoch: epoch
+        insertion_order: null
+        remote_table:
+          name: season2_iq_ledger
+          schema: public
+  - name: epoch_price
+    using:
+      manual_configuration:
+        column_mapping:
+          epoch: epoch
+        insertion_order: null
+        remote_table:
+          name: season2_epoch_price
+          schema: public
+select_permissions:
+  - role: anonymous
+    permission:
+      columns:
+        - epoch
+        - start_at
+        - end_at
+        - settle_after
+        - settled_at
+        - last_settlement_force
+        - is_final
+        - finalized_at
+        - created_at
+        - updated_at
+      filter: {}
+      limit: 250
+      allow_aggregations: true
+    comment: ""
+  - role: frontend
+    permission:
+      columns:
+        - epoch
+        - start_at
+        - end_at
+        - settle_after
+        - settled_at
+        - last_settlement_force
+        - is_final
+        - finalized_at
+        - created_at
+        - updated_at
+      filter: {}
+      limit: 250
+      allow_aggregations: true
+    comment: ""
