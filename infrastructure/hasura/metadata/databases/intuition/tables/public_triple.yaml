@@ -35,6 +35,15 @@ object_relationships:
         remote_table:
           name: atom
           schema: public
+  - name: object_term
+    using:
+      manual_configuration:
+        column_mapping:
+          object_id: id
+        insertion_order: null
+        remote_table:
+          name: term
+          schema: public
   - name: predicate
     using:
       manual_configuration:
@@ -44,6 +53,15 @@ object_relationships:
         remote_table:
           name: atom
           schema: public
+  - name: predicate_term
+    using:
+      manual_configuration:
+        column_mapping:
+          predicate_id: id
+        insertion_order: null
+        remote_table:
+          name: term
+          schema: public
   - name: subject
     using:
       manual_configuration:
@@ -52,6 +70,15 @@ object_relationships:
         insertion_order: null
         remote_table:
           name: atom
+          schema: public
+  - name: subject_term
+    using:
+      manual_configuration:
+        column_mapping:
+          subject_id: id
+        insertion_order: null
+        remote_table:
+          name: term
           schema: public
   - name: term
     using:
