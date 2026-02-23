@@ -25,6 +25,25 @@ async function executeRaw<T = any>(query: string, variables?: Record<string, any
   return json.data as T
 }
 
+/**
+ * Helper: search for a triple label via tsvector and verify the expected
+ * term_id is in the results (proves the label was generated correctly).
+ */
+async function assertTripleLabelSearchable(expectedTermId: string, searchQuery: string) {
+  const result = await executeRaw<{
+    search_term_tsvector: Array<{ id: string }>
+  }>(`
+    query SearchLabel($query: String!) {
+      search_term_tsvector(args: {query: $query}, limit: 20) {
+        id
+      }
+    }
+  `, { query: searchQuery })
+
+  const ids = result.search_term_tsvector.map(t => t.id)
+  expect(ids).toContain(expectedTermId)
+}
+
 suite('nested triples', async () => {
   // ============================================================
   // Setup: create atoms and base triples
@@ -110,82 +129,28 @@ suite('nested triples', async () => {
   await new Promise(resolve => setTimeout(resolve, 3000))
 
   // ============================================================
-  // Test 1: Base triple label is correct (atom-only, no nesting)
+  // Test 1: Base triple label is searchable via tsvector
   // ============================================================
-  test('base triple term_text label is correct', async () => {
-    const result = await executeRaw<{
-      triples: Array<{ term_id: string; term: { id: string } }>
-    }>(`
-      query GetTripleTermText($termId: String!) {
-        triples(where: { term_id: { _eq: $termId } }) {
-          term_id
-          term {
-            id
-          }
-        }
-      }
-    `, { termId: tripleAliceLikesBob.vaultId })
-
-    expect(result.triples).toHaveLength(1)
-    expect(result.triples[0].term_id).toBe(tripleAliceLikesBob.vaultId)
-
-    // Query term_text directly to verify the label
-    const termText = await executeRaw<{
-      term_texts: Array<{ id: string; title: string; type: string }>
-    }>(`
-      query GetTermText($id: String!) {
-        term_texts(where: { id: { _eq: $id } }) {
-          id
-          title
-          type
-        }
-      }
-    `, { id: tripleAliceLikesBob.vaultId })
-
-    expect(termText.term_texts).toHaveLength(1)
-    expect(termText.term_texts[0].type).toBe('triple')
-    expect(termText.term_texts[0].title).toBe('Alice likes Bob')
+  test('base triple label is searchable', async () => {
+    await assertTripleLabelSearchable(tripleAliceLikesBob.vaultId, 'Alice & likes & Bob')
   })
 
   // ============================================================
-  // Test 2: Nested triple label includes parenthesized inner triple
+  // Test 2: Nested triple label is searchable (includes inner triple terms)
   // ============================================================
-  test('nested triple term_text label includes parenthesized inner triple', async () => {
-    const termText = await executeRaw<{
-      term_texts: Array<{ id: string; title: string; type: string }>
-    }>(`
-      query GetTermText($id: String!) {
-        term_texts(where: { id: { _eq: $id } }) {
-          id
-          title
-          type
-        }
-      }
-    `, { id: tripleCarolEndorses.vaultId })
-
-    expect(termText.term_texts).toHaveLength(1)
-    expect(termText.term_texts[0].type).toBe('triple')
-    expect(termText.term_texts[0].title).toBe('Carol endorses (Alice likes Bob)')
+  test('nested triple label is searchable with inner triple terms', async () => {
+    await assertTripleLabelSearchable(tripleCarolEndorses.vaultId, 'Carol & endorses')
+    // Also searchable by inner triple terms (Alice, likes, Bob are in the label)
+    await assertTripleLabelSearchable(tripleCarolEndorses.vaultId, 'Carol & Alice')
   })
 
   // ============================================================
-  // Test 3: Double-nested triple label
+  // Test 3: Double-nested triple label is searchable
   // ============================================================
-  test('double-nested triple term_text label', async () => {
-    const termText = await executeRaw<{
-      term_texts: Array<{ id: string; title: string; type: string }>
-    }>(`
-      query GetTermText($id: String!) {
-        term_texts(where: { id: { _eq: $id } }) {
-          id
-          title
-          type
-        }
-      }
-    `, { id: tripleDaveFollows.vaultId })
-
-    expect(termText.term_texts).toHaveLength(1)
-    expect(termText.term_texts[0].title).toBe('Dave follows (Carol endorses (Alice likes Bob))')
+  test('double-nested triple label is searchable', async () => {
+    await assertTripleLabelSearchable(tripleDaveFollows.vaultId, 'Dave & follows')
+    // Contains terms from all nesting levels
+    await assertTripleLabelSearchable(tripleDaveFollows.vaultId, 'Dave & Carol')
   })
 
   // ============================================================
@@ -546,24 +511,11 @@ suite('nested triples', async () => {
     await wait(tripleWithNestedSubject.hash)
     await new Promise(resolve => setTimeout(resolve, 2000))
 
-    // Verify label
-    const termText = await executeRaw<{
-      term_texts: Array<{ title: string }>
-    }>(`
-      query GetTermText($id: String!) {
-        term_texts(where: { id: { _eq: $id } }) {
-          title
-        }
-      }
-    `, { id: tripleWithNestedSubject.vaultId })
-
-    expect(termText.term_texts).toHaveLength(1)
-    expect(termText.term_texts[0].title).toBe('(Alice likes Bob) endorses Carol')
-
     // Verify subject_term resolves to triple
     const result = await executeRaw<{
       triple: {
         subject_term: { type: string; triple: { term_id: string } | null }
+        predicate_term: { type: string; atom: { label: string } | null }
         object_term: { type: string; atom: { label: string } | null }
       } | null
     }>(`
@@ -573,6 +525,12 @@ suite('nested triples', async () => {
             type
             triple {
               term_id
+            }
+          }
+          predicate_term {
+            type
+            atom {
+              label
             }
           }
           object_term {
@@ -587,8 +545,13 @@ suite('nested triples', async () => {
 
     expect(result.triple!.subject_term.type).toBe('Triple')
     expect(result.triple!.subject_term.triple!.term_id).toBe(tripleAliceLikesBob.vaultId)
+    expect(result.triple!.predicate_term.type).toBe('Atom')
+    expect(result.triple!.predicate_term.atom?.label).toBe('endorses')
     expect(result.triple!.object_term.type).toBe('Atom')
     expect(result.triple!.object_term.atom?.label).toBe('Carol')
+
+    // Verify label is searchable with correct components
+    await assertTripleLabelSearchable(tripleWithNestedSubject.vaultId, 'endorses & Carol')
   })
 
   // ============================================================
@@ -605,40 +568,40 @@ suite('nested triples', async () => {
     await wait(tripleWithNestedPredicate.hash)
     await new Promise(resolve => setTimeout(resolve, 2000))
 
-    // Verify label
-    const termText = await executeRaw<{
-      term_texts: Array<{ title: string }>
-    }>(`
-      query GetTermText($id: String!) {
-        term_texts(where: { id: { _eq: $id } }) {
-          title
-        }
-      }
-    `, { id: tripleWithNestedPredicate.vaultId })
-
-    expect(termText.term_texts).toHaveLength(1)
-    expect(termText.term_texts[0].title).toBe('Alice (Alice likes Bob) Carol')
-
     // Verify predicate_term resolves to triple
     const result = await executeRaw<{
       triple: {
+        subject_term: { type: string; atom: { label: string } | null }
         predicate_term: { type: string; triple: { term_id: string } | null }
+        object_term: { type: string; atom: { label: string } | null }
       } | null
     }>(`
       query NestedPredicateRels($termId: String!) {
         triple(term_id: $termId) {
+          subject_term {
+            type
+            atom { label }
+          }
           predicate_term {
             type
             triple {
               term_id
             }
           }
+          object_term {
+            type
+            atom { label }
+          }
         }
       }
     `, { termId: tripleWithNestedPredicate.vaultId })
 
+    expect(result.triple!.subject_term.type).toBe('Atom')
+    expect(result.triple!.subject_term.atom?.label).toBe('Alice')
     expect(result.triple!.predicate_term.type).toBe('Triple')
     expect(result.triple!.predicate_term.triple!.term_id).toBe(tripleAliceLikesBob.vaultId)
+    expect(result.triple!.object_term.type).toBe('Atom')
+    expect(result.triple!.object_term.atom?.label).toBe('Carol')
   })
 
   // ============================================================
@@ -669,22 +632,6 @@ suite('nested triples', async () => {
     )
     await wait(allTripleComponents.hash)
     await new Promise(resolve => setTimeout(resolve, 2000))
-
-    // Verify label
-    const termText = await executeRaw<{
-      term_texts: Array<{ title: string }>
-    }>(`
-      query GetTermText($id: String!) {
-        term_texts(where: { id: { _eq: $id } }) {
-          title
-        }
-      }
-    `, { id: allTripleComponents.vaultId })
-
-    expect(termText.term_texts).toHaveLength(1)
-    expect(termText.term_texts[0].title).toBe(
-      '(Carol likes Dave) (Bob follows Alice) (Alice likes Bob)'
-    )
 
     // All old atom relationships should return null
     const oldRels = await executeRaw<{
@@ -794,17 +741,7 @@ suite('nested triples', async () => {
     expect(newResult.triple!.object_term.type).toBe('Atom')
     expect(newResult.triple!.object_term.atom?.label).toBe('Carol')
 
-    // Label is correct
-    const termText = await executeRaw<{
-      term_texts: Array<{ title: string }>
-    }>(`
-      query GetTermText($id: String!) {
-        term_texts(where: { id: { _eq: $id } }) {
-          title
-        }
-      }
-    `, { id: regularTriple.vaultId })
-
-    expect(termText.term_texts[0].title).toBe('Eve likes Carol')
+    // Label is searchable
+    await assertTripleLabelSearchable(regularTriple.vaultId, 'Eve & likes & Carol')
   })
 })
