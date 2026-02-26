@@ -63,18 +63,6 @@ functions:
         definition:
           allow: true
   - function:
-      name: get_pnl_leaderboard_period
-      schema: public
-    configuration:
-      exposed_as: query
-    permissions:
-      - role: anonymous
-        definition:
-          allow: true
-      - role: frontend
-        definition:
-          allow: true
-  - function:
       name: get_vault_leaderboard_period
       schema: public
     configuration:

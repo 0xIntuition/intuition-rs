@@ -45,6 +45,31 @@ actions:
       - role: anonymous
       - role: frontend
     comment: Fetches realized PnL breakdown for an account
+  - name: get_pnl_leaderboard_period
+    definition:
+      kind: ""
+      handler: '{{chartApiUrl}}'
+      timeout: 300
+      request_transform:
+        method: GET
+        query_params:
+          start: '{{$body.input.args.p_start_date}}'
+          end: '{{$body.input.args.p_end_date}}'
+          limit: '{{$body.input.args?.p_limit}}'
+          offset: '{{$body.input.args?.p_offset}}'
+          sort_by: '{{$body.input.args?.p_sort_by}}'
+          sort_order: '{{$body.input.args?.p_sort_order}}'
+          exclude_protocol_accounts: '{{$body.input.args?.p_exclude_protocol_accounts}}'
+          min_positions: '{{$body.input.args?.p_min_positions}}'
+          min_volume: '{{$body.input.args?.p_min_volume}}'
+          term_id: '{{$body.input.args?.p_term_id}}'
+        template_engine: Kriti
+        url: '{{$base_url}}/api/v1/leaderboard/pnl/period'
+        version: 2
+    permissions:
+      - role: anonymous
+      - role: frontend
+    comment: PnL leaderboard for a period - proxied through chart-api with Redis caching
   - name: getChartJson
     definition:
       kind: ""
@@ -368,6 +393,7 @@ custom_types:
     - name: GetAccountPnlChartInput
     - name: GetAccountPnlCurrentInput
     - name: GetAccountPnlRealizedInput
+    - name: get_pnl_leaderboard_period_args
   objects:
     - name: PinOutput
     - name: UploadImageFromUrlOutput
@@ -383,4 +409,5 @@ custom_types:
     - name: AccountPnlSnapshotOutput
     - name: AccountPnlRealizedOutput
     - name: AccountPnlRealizedEntry
+    - name: PnlLeaderboardEntryOutput
   scalars: []

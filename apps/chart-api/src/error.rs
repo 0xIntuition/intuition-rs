@@ -46,6 +46,10 @@ pub enum ApiError {
     MissingCurveId,
     #[error("Invalid account_id/term_id/curve_id combination: no position exists")]
     InvalidPositionCombination,
+    #[error("Invalid sort_by: {0}. Valid values are: total_pnl, pnl, pnl_pct, roi, win_rate, total_volume, volume, position_count, positions")]
+    InvalidSortBy(String),
+    #[error("Invalid sort_order: {0}. Valid values are: ASC, DESC")]
+    InvalidSortOrder(String),
     #[error(transparent)]
     Env(#[from] envy::Error),
     #[error(transparent)]
@@ -81,6 +85,8 @@ impl ApiError {
             ApiError::InvalidGraphType(_) => "INVALID_GRAPH_TYPE",
             ApiError::MissingCurveId => "MISSING_CURVE_ID",
             ApiError::InvalidPositionCombination => "INVALID_POSITION_COMBINATION",
+            ApiError::InvalidSortBy(_) => "INVALID_SORT_BY",
+            ApiError::InvalidSortOrder(_) => "INVALID_SORT_ORDER",
             ApiError::Env(_) => "ENV_ERROR",
             ApiError::IO(_) => "IO_ERROR",
             ApiError::Sqlx(_) => "DATABASE_ERROR",
@@ -110,6 +116,8 @@ impl IntoResponse for ApiError {
             ApiError::InvalidGraphType(_) => StatusCode::BAD_REQUEST,
             ApiError::MissingCurveId => StatusCode::BAD_REQUEST,
             ApiError::InvalidPositionCombination => StatusCode::BAD_REQUEST,
+            ApiError::InvalidSortBy(_) => StatusCode::BAD_REQUEST,
+            ApiError::InvalidSortOrder(_) => StatusCode::BAD_REQUEST,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         };
 

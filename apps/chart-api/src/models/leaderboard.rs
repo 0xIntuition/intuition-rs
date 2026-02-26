@@ -1,0 +1,83 @@
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
+
+/// Per-account leaderboard entry for JSON serialization.
+/// BigDecimal fields are converted to String to avoid precision loss.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PnlLeaderboardEntry {
+    pub rank: String,
+    pub account_id: String,
+    pub account_label: Option<String>,
+    pub account_image: Option<String>,
+    pub total_pnl_raw: String,
+    pub total_pnl_formatted: String,
+    pub realized_pnl_raw: String,
+    pub realized_pnl_formatted: String,
+    pub unrealized_pnl_raw: String,
+    pub unrealized_pnl_formatted: String,
+    pub pnl_pct: String,
+    pub pnl_change_raw: String,
+    pub pnl_change_formatted: String,
+    pub total_position_count: i64,
+    pub active_position_count: i64,
+    pub winning_positions: i64,
+    pub losing_positions: i64,
+    pub win_rate: String,
+    pub total_deposits_raw: String,
+    pub total_deposits_formatted: String,
+    pub total_redemptions_raw: String,
+    pub total_redemptions_formatted: String,
+    pub total_volume_raw: String,
+    pub total_volume_formatted: String,
+    pub current_equity_value_raw: String,
+    pub current_equity_value_formatted: String,
+    pub best_trade_pnl_raw: Option<String>,
+    pub best_trade_pnl_formatted: Option<String>,
+    pub worst_trade_pnl_raw: Option<String>,
+    pub worst_trade_pnl_formatted: Option<String>,
+    pub redeemable_assets_raw: Option<String>,
+    pub redeemable_assets_formatted: Option<String>,
+    pub first_position_at: Option<DateTime<Utc>>,
+    pub last_activity_at: Option<DateTime<Utc>>,
+}
+
+/// Schema-compatible leaderboard entry for OpenAPI docs.
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct PnlLeaderboardEntrySchema {
+    pub rank: String,
+    pub account_id: String,
+    pub account_label: Option<String>,
+    pub account_image: Option<String>,
+    pub total_pnl_raw: String,
+    pub total_pnl_formatted: String,
+    pub realized_pnl_raw: String,
+    pub realized_pnl_formatted: String,
+    pub unrealized_pnl_raw: String,
+    pub unrealized_pnl_formatted: String,
+    pub pnl_pct: String,
+    pub pnl_change_raw: String,
+    pub pnl_change_formatted: String,
+    pub total_position_count: i64,
+    pub active_position_count: i64,
+    pub winning_positions: i64,
+    pub losing_positions: i64,
+    pub win_rate: String,
+    pub total_deposits_raw: String,
+    pub total_deposits_formatted: String,
+    pub total_redemptions_raw: String,
+    pub total_redemptions_formatted: String,
+    pub total_volume_raw: String,
+    pub total_volume_formatted: String,
+    pub current_equity_value_raw: String,
+    pub current_equity_value_formatted: String,
+    pub best_trade_pnl_raw: Option<String>,
+    pub best_trade_pnl_formatted: Option<String>,
+    pub worst_trade_pnl_raw: Option<String>,
+    pub worst_trade_pnl_formatted: Option<String>,
+    pub redeemable_assets_raw: Option<String>,
+    pub redeemable_assets_formatted: Option<String>,
+    pub first_position_at: Option<String>,
+    pub last_activity_at: Option<String>,
+}
+

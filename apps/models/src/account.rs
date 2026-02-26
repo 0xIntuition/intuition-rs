@@ -16,14 +16,18 @@ pub struct Account {
     pub atom_id: Option<FixedBytesWrapper>,
     pub label: String,
     pub image: Option<String>,
+    #[serde(default)]
     pub account_type: AccountType,
 }
 
 /// This is the `AccountType` enum that represents the type of an account.
-#[derive(sqlx::Type, Clone, Debug, Display, EnumString, Serialize, Deserialize, PartialEq)]
+#[derive(
+    sqlx::Type, Clone, Debug, Default, Display, EnumString, Serialize, Deserialize, PartialEq,
+)]
 #[sqlx(type_name = "account_type")]
 pub enum AccountType {
     AtomWallet,
+    #[default]
     Default,
     ProtocolVault,
 }
