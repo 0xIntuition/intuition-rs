@@ -41,6 +41,12 @@ type Query {
 }
 
 type Query {
+  get_pnl_leaderboard_period(
+    args: get_pnl_leaderboard_period_args!
+  ): [PnlLeaderboardEntryOutput!]
+}
+
+type Query {
   getPositionPnlChart(
     input: GetPositionPnlChartInput!
   ): PositionPnlChartOutput
@@ -276,5 +282,55 @@ type AccountPnlRealizedEntry {
   cost_basis: String!
   realized_pnl: String!
   realized_pnl_pct: String!
+}
+
+input get_pnl_leaderboard_period_args {
+  p_start_date: String!
+  p_end_date: String!
+  p_limit: Int
+  p_offset: Int
+  p_sort_by: String
+  p_sort_order: String
+  p_exclude_protocol_accounts: Boolean
+  p_min_positions: Int
+  p_min_volume: Float
+  p_term_id: String
+}
+
+type PnlLeaderboardEntryOutput {
+  rank: String!
+  account_id: String!
+  account_label: String
+  account_image: String
+  total_pnl_raw: String!
+  total_pnl_formatted: String!
+  realized_pnl_raw: String!
+  realized_pnl_formatted: String!
+  unrealized_pnl_raw: String!
+  unrealized_pnl_formatted: String!
+  pnl_pct: String!
+  pnl_change_raw: String!
+  pnl_change_formatted: String!
+  total_position_count: Int!
+  active_position_count: Int!
+  winning_positions: Int!
+  losing_positions: Int!
+  win_rate: String!
+  total_deposits_raw: String!
+  total_deposits_formatted: String!
+  total_redemptions_raw: String!
+  total_redemptions_formatted: String!
+  total_volume_raw: String!
+  total_volume_formatted: String!
+  current_equity_value_raw: String!
+  current_equity_value_formatted: String!
+  best_trade_pnl_raw: String
+  best_trade_pnl_formatted: String
+  worst_trade_pnl_raw: String
+  worst_trade_pnl_formatted: String
+  redeemable_assets_raw: String
+  redeemable_assets_formatted: String
+  first_position_at: String
+  last_activity_at: String
 }
 

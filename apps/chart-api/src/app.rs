@@ -1,7 +1,8 @@
 use crate::{
     endpoints::{
         get_account_pnl_chart, get_account_pnl_current, get_account_realized_pnl,
-        get_account_season2_iq, get_chart_data, get_position_pnl_chart, get_raw_share_price_data,
+        get_account_season2_iq, get_chart_data, get_pnl_leaderboard_period,
+        get_position_pnl_chart, get_raw_share_price_data,
     },
     error::ApiError,
     openapi::ApiDoc,
@@ -151,6 +152,10 @@ impl App {
             .route(
                 "/api/v1/accounts/{account_id}/season2/iq",
                 get(get_account_season2_iq),
+            )
+            .route(
+                "/api/v1/leaderboard/pnl/period",
+                get(get_pnl_leaderboard_period),
             )
             .route("/health", get(health_check))
             .with_state(self.app_state.clone())

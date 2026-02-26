@@ -276,6 +276,31 @@ pub struct PnlRealizedQueryParams {
     pub end: String,
 }
 
+/// Query parameters for PnL leaderboard period endpoint
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct PnlLeaderboardPeriodQueryParams {
+    /// Range start timestamp (unix seconds, unix milliseconds, or RFC3339)
+    pub start: String,
+    /// Range end timestamp (unix seconds, unix milliseconds, or RFC3339)
+    pub end: String,
+    /// Max results to return (1-10000, default 100)
+    pub limit: Option<i32>,
+    /// Offset for pagination (default 0)
+    pub offset: Option<i32>,
+    /// Sort field: total_pnl, pnl, pnl_pct, roi, win_rate, total_volume, volume, position_count, positions
+    pub sort_by: Option<String>,
+    /// Sort order: ASC or DESC (default DESC)
+    pub sort_order: Option<String>,
+    /// Exclude protocol accounts (default true)
+    pub exclude_protocol_accounts: Option<bool>,
+    /// Minimum position count filter (default 1)
+    pub min_positions: Option<i32>,
+    /// Minimum volume filter in ETH (default 0)
+    pub min_volume: Option<f64>,
+    /// Optional term_id filter (hex string starting with 0x)
+    pub term_id: Option<String>,
+}
+
 /// SVG configuration with defaults
 #[derive(Debug, Clone)]
 pub struct SvgConfig {

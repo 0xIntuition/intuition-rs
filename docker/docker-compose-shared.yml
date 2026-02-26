@@ -264,7 +264,9 @@ services:
       POSTGRES_PORT: 5435
     depends_on:
       reth:
-        condition: service_started 
+        condition: service_started
+      indexer-migrations:
+        condition: service_completed_successfully
     volumes:
       - contract-deployer-2-0-data:/app
 

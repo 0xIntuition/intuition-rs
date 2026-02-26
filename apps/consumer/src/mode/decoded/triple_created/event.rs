@@ -10,6 +10,7 @@ use crate::{
 use models::{
     account::{Account, AccountType},
     atom::{Atom, AtomType},
+    term::{Term, TermType},
     traits::SimpleCrud,
     triple::Triple,
     types::{FixedBytesWrapper, U256Wrapper},
@@ -163,19 +164,66 @@ pub trait TripleCreatedEvent: Clone {
             Err(ConsumerError::AccountNotFound)
         }
     }
+    /// Attempts to get subject, predicate, and object as atoms. Returns Ok(None)
+    /// if any component is a triple (nested triple) rather than an atom.
+    async fn try_get_subject_predicate_object_atoms(
+        &self,
+        decoded_consumer_context: &DecodedConsumerContext,
+    ) -> Result<Option<(Atom, Atom, Atom)>, ConsumerError> {
+        let subject_term = Term::find_by_id(
+            self.subject_id()?,
+            &decoded_consumer_context.backend_schema,
+            &decoded_consumer_context.pg_pool,
+        )
+        .await?;
+        let predicate_term = Term::find_by_id(
+            self.predicate_id()?,
+            &decoded_consumer_context.backend_schema,
+            &decoded_consumer_context.pg_pool,
+        )
+        .await?;
+        let object_term = Term::find_by_id(
+            self.object_id()?,
+            &decoded_consumer_context.backend_schema,
+            &decoded_consumer_context.pg_pool,
+        )
+        .await?;
+
+        // If any term is missing or not an atom, skip account update logic
+        match (subject_term, predicate_term, object_term) {
+            (Some(s), Some(p), Some(o))
+                if s.term_type == TermType::Atom
+                    && p.term_type == TermType::Atom
+                    && o.term_type == TermType::Atom =>
+            {
+                let atoms = Atom::find_subject_predicate_object(
+                    self.subject_id()?,
+                    self.predicate_id()?,
+                    self.object_id()?,
+                    &decoded_consumer_context.backend_schema,
+                    &decoded_consumer_context.pg_pool,
+                )
+                .await
+                .map_err(ConsumerError::ModelError)?;
+                Ok(Some(atoms))
+            }
+            _ => Ok(None),
+        }
+    }
     /// This function checks if the subject atom is an account and if the predicate and object atoms are a person or organization.
     /// If they are, it updates the account and atom with the label and image of the object atom.
     async fn check_and_update_account_predicate_object(
         &self,
         decoded_consumer_context: &DecodedConsumerContext,
     ) -> Result<(), ConsumerError> {
-        let (subject_atom, predicate_atom, object_atom) = self
-            .get_subject_predicate_object_atoms(decoded_consumer_context)
-            .await?;
-
-        if self.is_account_with_person_or_org(&subject_atom, &predicate_atom, &object_atom) {
-            self.update_account(decoded_consumer_context, &subject_atom, &object_atom)
-                .await?;
+        if let Some((subject_atom, predicate_atom, object_atom)) = self
+            .try_get_subject_predicate_object_atoms(decoded_consumer_context)
+            .await?
+        {
+            if self.is_account_with_person_or_org(&subject_atom, &predicate_atom, &object_atom) {
+                self.update_account(decoded_consumer_context, &subject_atom, &object_atom)
+                    .await?;
+            }
         }
         Ok(())
     }
