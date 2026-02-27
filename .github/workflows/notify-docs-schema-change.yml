@@ -1,0 +1,23 @@
+name: Notify docs of schema changes
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'hasura/migrations/**'
+      - 'hasura/metadata/**'
+      - 'hasura/config.yaml'
+
+jobs:
+  notify-docs:
+    name: Notify intuition-docs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch schema-changed event
+        env:
+          GH_TOKEN: ${{ secrets.DOCS_DISPATCH_TOKEN }}
+        run: |
+          gh api repos/0xIntuition/intuition-docs/dispatches \
+            --method POST \
+            --field event_type=schema-changed \
+            -f client_payload[ref]="${{ github.sha }}"
