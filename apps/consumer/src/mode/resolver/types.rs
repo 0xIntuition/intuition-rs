@@ -21,7 +21,6 @@ use models::{
     types::FixedBytesWrapper,
 };
 use serde::{Deserialize, Serialize};
-use sqlx::{Postgres, Transaction};
 use std::str::FromStr;
 use tracing::debug;
 
@@ -218,23 +217,26 @@ impl ResolverMessageType {
         Ok(())
     }
 
-    /// This function processes an atom message type
+    /// This function processes an atom message type.
+    ///
+    /// Network I/O (IPFS fetches, etc.) is performed before any DB writes
+    /// to avoid holding database connections during slow external requests.
     async fn process_atom(
         &self,
         resolver_consumer_context: &ResolverConsumerContext,
         atom_id: &str,
     ) -> Result<(), ConsumerError> {
-        let mut tx = resolver_consumer_context.pg_pool.begin().await?;
-
+        // Phase 1: Fetch atom and resolve data (includes network I/O like IPFS)
+        // No transaction needed — this avoids holding a DB connection during slow fetches
         let metadata = self
-            .resolve_and_parse_atom_data(resolver_consumer_context, atom_id, &mut tx)
+            .resolve_and_parse_atom_data(resolver_consumer_context, atom_id)
             .await?;
         debug!("Metadata: {:?}", metadata);
 
-        // If the atom type is not unknown, we handle the new atom type that was resolved
+        // Phase 2: DB writes only (fast path)
         if AtomType::from_str(&metadata.atom_type)? != AtomType::Unknown {
             debug!("Handling known atom type: {:?}", metadata);
-            self.handle_known_atom_type(resolver_consumer_context, atom_id, metadata, &mut tx)
+            self.handle_known_atom_type(resolver_consumer_context, atom_id, metadata)
                 .await?;
         } else {
             self.mark_atom_as_failed(
@@ -242,21 +244,22 @@ impl ResolverMessageType {
                     .server_initialize
                     .env
                     .backend_schema,
-                &mut tx,
+                &resolver_consumer_context.pg_pool,
                 &FixedBytesWrapper::from_str(atom_id)?,
             )
             .await?;
         }
-        tx.commit().await?;
         Ok(())
     }
 
-    /// This function resolves and parses the atom data
+    /// This function resolves and parses the atom data.
+    ///
+    /// Uses the connection pool for the initial read and performs all network I/O
+    /// (IPFS fetches) without holding a transaction open.
     async fn resolve_and_parse_atom_data(
         &self,
         resolver_consumer_context: &ResolverConsumerContext,
         atom_id: &str,
-        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<AtomMetadata, ConsumerError> {
         let atom = Atom::find_by_id(
             FixedBytesWrapper::from_str(atom_id)?,
@@ -264,7 +267,7 @@ impl ResolverMessageType {
                 .server_initialize
                 .env
                 .backend_schema,
-            tx.as_mut(),
+            &resolver_consumer_context.pg_pool,
         )
         .await?
         .ok_or(ConsumerError::AtomDataNotFound)?;
@@ -321,10 +324,9 @@ impl ResolverMessageType {
         resolver_consumer_context: &ResolverConsumerContext,
         atom_id: &str,
         metadata: AtomMetadata,
-        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<(), ConsumerError> {
         let atom = self
-            .find_and_update_atom(resolver_consumer_context, atom_id, metadata, tx)
+            .find_and_update_atom(resolver_consumer_context, atom_id, metadata)
             .await?;
 
         if let Some(image) = atom.image.clone() {
@@ -337,7 +339,7 @@ impl ResolverMessageType {
                 .server_initialize
                 .env
                 .backend_schema,
-            tx.as_mut(),
+            &resolver_consumer_context.pg_pool,
         )
         .await?;
 
@@ -351,20 +353,18 @@ impl ResolverMessageType {
         resolver_consumer_context: &ResolverConsumerContext,
         atom_id: &str,
         metadata: AtomMetadata,
-        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Atom, ConsumerError> {
-        let atom = Atom::find_by_id(
+        let mut atom = Atom::find_by_id(
             FixedBytesWrapper::from_str(atom_id)?,
             &resolver_consumer_context
                 .server_initialize
                 .env
                 .backend_schema,
-            tx.as_mut(),
+            &resolver_consumer_context.pg_pool,
         )
         .await?
         .ok_or(ConsumerError::AtomNotFound)?;
 
-        let mut atom = atom;
         metadata
             .update_atom_metadata(
                 &mut atom,
@@ -396,13 +396,13 @@ impl ResolverMessageType {
     async fn mark_atom_as_failed(
         &self,
         backend_schema: &str,
-        tx: &mut Transaction<'_, Postgres>,
+        pg_pool: &sqlx::PgPool,
         atom_id: &FixedBytesWrapper,
     ) -> Result<(), ConsumerError> {
-        let atom = Atom::find_by_id(atom_id.clone(), backend_schema, tx.as_mut())
+        let atom = Atom::find_by_id(atom_id.clone(), backend_schema, pg_pool)
             .await?
             .ok_or(ConsumerError::AtomNotFound)?;
-        atom.mark_as_failed(backend_schema, tx.as_mut())
+        atom.mark_as_failed(backend_schema, pg_pool)
             .await
             .map_err(ConsumerError::from)
     }
