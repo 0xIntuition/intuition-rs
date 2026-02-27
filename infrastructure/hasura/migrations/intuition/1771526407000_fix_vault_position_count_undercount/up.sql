@@ -2,13 +2,16 @@
 -- The same race condition also causes undercounts that stay at 0 or above (the position
 -- was never redeemed, so position_count never went negative — it just stayed wrong).
 --
--- Strategy: temporarily increase statement_timeout for this transaction only (SET LOCAL),
--- then run a batched DO block. SET LOCAL scopes the timeout to the current transaction
--- so it cannot affect other sessions or persist after the migration completes.
+-- Strategy: wrap the batched loop in a named function with a SET clause.
+-- PostgreSQL function-level SET overrides the session statement_timeout and
+-- reschedules the timer when entering the function, so this works even when
+-- Hasura applies migrations with --no-transaction (each statement goes through
+-- a separate connection from the pool, making session-level SET unreliable).
 
-SET LOCAL statement_timeout = '30min';
-
-DO $$
+CREATE OR REPLACE FUNCTION _fix_vault_position_count_undercount()
+RETURNS void
+SET statement_timeout = '30min'
+LANGUAGE plpgsql AS $$
 DECLARE
     batch_size INT := 100;
     total_fixed INT := 0;
@@ -45,3 +48,7 @@ BEGIN
     RAISE NOTICE 'Done. Total vaults fixed: %', total_fixed;
 END;
 $$;
+
+SELECT _fix_vault_position_count_undercount();
+
+DROP FUNCTION _fix_vault_position_count_undercount();
