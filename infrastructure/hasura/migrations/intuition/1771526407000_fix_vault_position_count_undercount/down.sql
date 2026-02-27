@@ -1,0 +1,1 @@
+-- No-op: data-only migration, cannot be reversed.

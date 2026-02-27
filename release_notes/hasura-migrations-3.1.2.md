@@ -10,7 +10,7 @@ Portal displays negative supporter counts (-1, and -2 in aggregate views) when s
 
 **Affected tables:** `vault.position_count`, `triple_term.supporter_count`, `predicate_object.supporter_count`, `subject_predicate.supporter_count`
 
-**Scale:** 78 vaults with `position_count = -1`, cascading to negative `supporter_count` in `triple_term`, `predicate_object` (min: -1), and `subject_predicate` (min: -2, from two affected triples summing).
+**Scale:** 2106 vaults affected total — 78 with `position_count = -1` (where the position was subsequently redeemed, pushing the count negative) and 2028 undercounted by 1 (where the position was never redeemed, so the count stayed at 0 instead of the correct 1). The negative values cascaded to `supporter_count` in `triple_term`, `predicate_object` (min: -1), and `subject_predicate` (min: -2, from two affected triples summing).
 
 **Root cause:** Event ordering race condition between `Deposited` and `SharePriceChanged` events in the decoded consumer.
 
@@ -37,26 +37,25 @@ New function `recalculate_vault_position_count_on_insert()` fires before a vault
 
 This compensates for any lost increments from positions that were created before their vault. For `ON CONFLICT DO UPDATE` cases (vault already exists), the trigger fires but its changes are discarded since the UPDATE path is taken — which is correct since the vault already has a valid `position_count`.
 
-#### 2. Data backfill (fixes existing negative values)
+#### 2. Data backfill (fixes all existing mismatched values)
 
-Updates all 78 vaults with `position_count < 0` to the correct value calculated from actual positions. The existing `AFTER UPDATE` trigger on `vault` (`update_triple_vault_from_vault`) automatically cascades the fix to `triple_term`, `predicate_object`, and `subject_predicate`.
+Recalculates `position_count` for all 2106 vaults where the stored count doesn't match the actual number of positions with `shares > 0`. Runs in batches of 200 to avoid statement timeouts from cascade triggers. The existing `AFTER UPDATE` trigger on `vault` (`update_triple_vault_from_vault`) automatically cascades the fix to `triple_term`, `predicate_object`, and `subject_predicate`.
 
-### Migration
+### Migrations
 
-`1771526406000_fix_vault_position_count_on_insert`
+#### `1771526406000_fix_vault_position_count_on_insert`
 
-### Changes
+- `recalculate_vault_position_count_on_insert()` — BEFORE INSERT trigger function on `vault` that calculates `position_count` from existing positions
+- `vault_recalculate_position_count_on_insert` — trigger binding
+- Data fix for the 78 vaults with `position_count < 0`
 
-- `infrastructure/hasura/migrations/intuition/1771526406000_fix_vault_position_count_on_insert/up.sql`
-  - `recalculate_vault_position_count_on_insert()` — BEFORE INSERT trigger function on `vault` that calculates `position_count` from existing positions
-  - `vault_recalculate_position_count_on_insert` — trigger binding
-  - Data fix UPDATE for all vaults with `position_count < 0`
+#### `1771526407000_fix_vault_position_count_undercount`
 
-- `infrastructure/hasura/migrations/intuition/1771526406000_fix_vault_position_count_on_insert/down.sql`
-  - Drops the trigger and function
+- Batched data fix (200 rows per batch) for all remaining ~2028 vaults where `position_count` is undercounted but not negative
+- Runs in a `DO` block loop to stay within statement timeout limits, since each vault UPDATE cascades through `update_triple_vault_from_vault` triggers
 
 ### Impact
 
 - **Scope:** `vault`, `triple_term`, `predicate_object`, `subject_predicate` tables. No Rust code changes.
-- **Safety:** The BEFORE INSERT trigger only runs on vault creation (not updates). The COUNT query is scoped to a specific `(term_id, curve_id)` pair, so performance impact is negligible. The data fix UPDATE targets only the 78 affected rows and cascades via existing triggers.
-- **Expected result:** All negative `supporter_count` / `opposer_count` / `position_count` values corrected to 0. Future vault creations will initialize with the correct count even when positions are created before the vault.
+- **Safety:** The BEFORE INSERT trigger only runs on vault creation (not updates). The COUNT query is scoped to a specific `(term_id, curve_id)` pair, so performance impact is negligible. The data backfill runs in batches of 200 to stay within statement timeout limits.
+- **Expected result:** All 2106 mismatched `position_count` values corrected, with cascading fixes to `supporter_count` / `opposer_count` in `triple_term`, `predicate_object`, and `subject_predicate`. Future vault creations will initialize with the correct count even when positions are created before the vault.

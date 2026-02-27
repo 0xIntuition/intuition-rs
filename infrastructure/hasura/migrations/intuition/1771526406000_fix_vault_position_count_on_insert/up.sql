@@ -29,9 +29,10 @@ CREATE TRIGGER vault_recalculate_position_count_on_insert
     FOR EACH ROW
 EXECUTE FUNCTION recalculate_vault_position_count_on_insert();
 
--- Fix existing data: recalculate vault.position_count for all negative values.
+-- Fix existing data: recalculate vault.position_count for negative values.
 -- The AFTER UPDATE trigger on vault (update_triple_vault_from_vault) will
 -- automatically cascade to triple_term, predicate_object, and subject_predicate.
+-- NOTE: Non-negative undercounts are fixed in migration 1771526407000.
 UPDATE vault v
 SET position_count = COALESCE(
     (SELECT COUNT(*)::int
