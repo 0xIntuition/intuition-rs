@@ -30,6 +30,9 @@ pub enum GraphType {
     /// Total market cap over time (term-level, no curve_id required)
     #[serde(rename = "totalMarketCap")]
     TotalMarketCap,
+    /// Per-curve market cap over time (requires curve_id)
+    #[serde(rename = "marketCapPerCurve")]
+    MarketCapPerCurve,
 }
 
 impl GraphType {
@@ -38,6 +41,7 @@ impl GraphType {
         match s.to_lowercase().replace('_', "").as_str() {
             "sharepricechange" => Some(GraphType::SharePriceChange),
             "totalmarketcap" => Some(GraphType::TotalMarketCap),
+            "marketcappercurve" | "marketcapercurve" => Some(GraphType::MarketCapPerCurve),
             _ => None,
         }
     }
@@ -47,6 +51,7 @@ impl GraphType {
         match self {
             GraphType::SharePriceChange => true,
             GraphType::TotalMarketCap => false,
+            GraphType::MarketCapPerCurve => true,
         }
     }
 
@@ -55,6 +60,7 @@ impl GraphType {
         match self {
             GraphType::SharePriceChange => "share_price_change_stats",
             GraphType::TotalMarketCap => "term_total_state_change_stats",
+            GraphType::MarketCapPerCurve => "share_price_mcap_stats",
         }
     }
 
@@ -68,6 +74,7 @@ impl GraphType {
         match self {
             GraphType::SharePriceChange => "last_share_price",
             GraphType::TotalMarketCap => "last_total_market_cap",
+            GraphType::MarketCapPerCurve => "last_market_cap",
         }
     }
 }
@@ -77,6 +84,7 @@ impl fmt::Display for GraphType {
         match self {
             GraphType::SharePriceChange => write!(f, "sharePriceChange"),
             GraphType::TotalMarketCap => write!(f, "totalMarketCap"),
+            GraphType::MarketCapPerCurve => write!(f, "marketCapPerCurve"),
         }
     }
 }
@@ -181,7 +189,7 @@ pub struct ChartQueryParams {
     pub start: String,
     /// Range end timestamp (unix seconds, unix milliseconds, or RFC3339)
     pub end: String,
-    /// Graph type: sharePriceChange (default), totalMarketCap
+    /// Graph type: sharePriceChange (default), totalMarketCap, marketCapPerCurve
     pub graph_type: Option<String>,
     /// Optional: SVG width in pixels (default: 800)
     pub width: Option<u32>,
