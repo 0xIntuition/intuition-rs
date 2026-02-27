@@ -35,7 +35,7 @@ pub async fn try_to_resolve_ipfs_uri(
     resolver_consumer_context: &ResolverConsumerContext,
 ) -> Result<Option<Response>, ConsumerError> {
     // Handle IPFS URIs
-    warn!("Trying to resolve IPFS URI: {}", atom_data);
+    debug!("Trying to resolve IPFS URI: {}", atom_data);
     if let Some(ipfs_hash) = atom_data.strip_prefix("ipfs://") {
         if let Ok(ipfs_data) = resolver_consumer_context
             .ipfs_resolver
@@ -50,7 +50,7 @@ pub async fn try_to_resolve_ipfs_uri(
             Ok(None)
         }
     } else {
-        warn!("Atom data is not an IPFS URI: {}", atom_data);
+        debug!("Atom data is not an IPFS URI: {}", atom_data);
         Ok(None)
     }
 }
