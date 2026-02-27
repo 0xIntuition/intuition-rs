@@ -1,4 +1,4 @@
-# hasura-migrations:3.1.3
+# hasura-migrations:3.1.4
 
 **Date:** 2026-02-27
 
