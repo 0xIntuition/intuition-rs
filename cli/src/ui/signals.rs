@@ -13,19 +13,16 @@ pub fn draw(f: &mut Frame, app: &App, area: Rect) {
         .signals
         .iter()
         .map(|signal| {
-            let label = signal
-                .atom
-                .as_ref()
-                .and_then(|atom| atom.label.as_deref())
-                // FIXME: Concatinate atom labels
-                // .or_else(|| {
-                //     signal
-                //         .triple
-                //         .as_ref()
-                //         .and_then(|triple| triple.label.as_deref())
-                // })
-                .unwrap_or("N/A")
-                .to_string();
+            // Concatenate atom and triple labels if both exist
+            let atom_label = signal.atom.as_ref().and_then(|atom| atom.label.clone());
+            let triple_label = signal.triple.as_ref().and_then(|triple| triple.label.clone());
+            
+            let label = match (atom_label, triple_label) {
+                (Some(atom), Some(triple)) => format!("{} | {}", atom, triple),
+                (Some(atom), None) => atom,
+                (None, Some(triple)) => triple,
+                (None, None) => "N/A".to_string(),
+            };
 
             let account_label = signal
                 .account
