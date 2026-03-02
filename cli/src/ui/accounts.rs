@@ -105,8 +105,36 @@ fn draw_account_details(f: &mut Frame, app: &App, area: Rect) {
             .claims
             .iter()
             .map(|claim| {
-                // let label = claim.triple.label.as_deref().unwrap_or("N/A").to_string();
-                let label = "FIXME";
+                // Construct label from triple's subject, predicate, and object labels
+                let subject_label = claim
+                    .triple
+                    .as_ref()
+                    .and_then(|t| t.subject.as_ref())
+                    .and_then(|s| s.label.as_deref())
+                    .unwrap_or("N/A");
+                let predicate_label = claim
+                    .triple
+                    .as_ref()
+                    .and_then(|t| t.predicate.as_ref())
+                    .and_then(|p| p.label.as_deref())
+                    .unwrap_or("N/A");
+                let object_label = claim
+                    .triple
+                    .as_ref()
+                    .and_then(|t| t.object.as_ref())
+                    .and_then(|o| o.label.as_deref())
+                    .unwrap_or("N/A");
+
+                // Format: "subject_label | predicate_label | object_label"
+                let label = if subject_label != "N/A"
+                    || predicate_label != "N/A"
+                    || object_label != "N/A"
+                {
+                    format!("{} | {} | {}", subject_label, predicate_label, object_label)
+                } else {
+                    "N/A".to_string()
+                };
+
                 ListItem::new(Line::from(format!("{}, {}", label, claim.shares)))
             })
             .collect();
