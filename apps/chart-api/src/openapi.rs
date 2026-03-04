@@ -20,7 +20,8 @@ use utoipa::OpenApi;
         crate::endpoints::get_account_pnl_current,
         crate::endpoints::get_account_realized_pnl,
         crate::endpoints::get_account_season2_iq,
-        crate::endpoints::get_pnl_leaderboard_period
+        crate::endpoints::get_pnl_leaderboard_period,
+        crate::endpoints::get_pnl_leaderboard_period_min_threshold
     ),
     components(schemas(
         ChartResponse,
