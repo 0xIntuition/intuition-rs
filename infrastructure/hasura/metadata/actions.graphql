@@ -309,6 +309,8 @@ type PnlLeaderboardEntryOutput {
   unrealized_pnl_raw: String!
   unrealized_pnl_formatted: String!
   pnl_pct: String!
+  realized_pnl_pct: String!
+  unrealized_pnl_pct: String!
   pnl_change_raw: String!
   pnl_change_formatted: String!
   total_position_count: Int!

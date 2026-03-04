@@ -146,6 +146,8 @@ pub async fn get_pnl_leaderboard_period(
             unrealized_pnl_raw: bd_to_string(&row.unrealized_pnl_raw),
             unrealized_pnl_formatted: bd_to_string(&row.unrealized_pnl_formatted),
             pnl_pct: bd_to_string(&row.pnl_pct),
+            realized_pnl_pct: bd_to_string(&row.realized_pnl_pct),
+            unrealized_pnl_pct: bd_to_string(&row.unrealized_pnl_pct),
             pnl_change_raw: bd_to_string(&row.pnl_change_raw),
             pnl_change_formatted: bd_to_string(&row.pnl_change_formatted),
             total_position_count: row.total_position_count,

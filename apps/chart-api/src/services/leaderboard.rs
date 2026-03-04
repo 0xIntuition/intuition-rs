@@ -3,7 +3,7 @@ use chrono::{DateTime, Utc};
 use sqlx::types::BigDecimal;
 use sqlx::{Pool, Postgres};
 
-/// Database row matching the `pnl_leaderboard_entry` composite type (34 columns).
+/// Database row matching the `pnl_leaderboard_entry` composite type (36 columns).
 #[derive(Debug, sqlx::FromRow)]
 pub struct PnlLeaderboardEntryRow {
     pub rank: i64,
@@ -17,6 +17,8 @@ pub struct PnlLeaderboardEntryRow {
     pub unrealized_pnl_raw: BigDecimal,
     pub unrealized_pnl_formatted: BigDecimal,
     pub pnl_pct: BigDecimal,
+    pub realized_pnl_pct: BigDecimal,
+    pub unrealized_pnl_pct: BigDecimal,
     pub pnl_change_raw: BigDecimal,
     pub pnl_change_formatted: BigDecimal,
     pub total_position_count: i64,
