@@ -6,11 +6,17 @@ use axum::{
 use serde::Serialize;
 use thiserror::Error;
 
-/// Error response body for JSON responses
+/// Extensions object for Hasura-compatible error responses
+#[derive(Serialize)]
+pub struct ErrorExtensions {
+    pub code: String,
+}
+
+/// Error response body for JSON responses (Hasura Action webhook format)
 #[derive(Serialize)]
 pub struct ErrorResponse {
-    pub error: String,
-    pub code: String,
+    pub message: String,
+    pub extensions: ErrorExtensions,
 }
 
 /// Error types for the Chart API
@@ -40,7 +46,7 @@ pub enum ApiError {
     InvalidCurveId(String),
     #[error("Invalid account_id: {0}. Must be a 0x-prefixed 40-character hex address")]
     InvalidAccountId(String),
-    #[error("Invalid graph type: {0}. Valid values are: sharePriceChange, totalMarketCap")]
+    #[error("Invalid graph type: {0}. Valid values are: sharePriceChange, totalMarketCap, marketCapPerCurve")]
     InvalidGraphType(String),
     #[error("Missing curve_id: this graph type requires a curve_id parameter")]
     MissingCurveId,
@@ -122,8 +128,10 @@ impl IntoResponse for ApiError {
         };
 
         let body = ErrorResponse {
-            error: self.to_string(),
-            code: self.code().to_string(),
+            message: self.to_string(),
+            extensions: ErrorExtensions {
+                code: self.code().to_string(),
+            },
         };
 
         (status, Json(body)).into_response()
