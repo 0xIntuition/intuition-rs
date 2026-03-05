@@ -10,7 +10,7 @@
 
 - **All-time functions** (`get_pnl_leaderboard`, `get_vault_leaderboard`): Uses the output-ratio method — `cost_of_redeemed = total_deposits * total_redemptions / (total_redemptions + equity)` — to allocate PnL proportionally between realized and unrealized.
 
-- **Period functions** (`get_pnl_leaderboard_period`, `get_vault_leaderboard_period`): Uses the share-ratio method — `cost_of_redeemed = (equity_at_start + period_deposits) * shares_removed / (shares_at_end + shares_removed)` — to allocate period PnL proportionally.
+- **Period functions** (`get_pnl_leaderboard_period`, `get_vault_leaderboard_period`): Uses the output-ratio method — `cost_of_redeemed = (equity_at_start + period_deposits) * period_redemptions / (period_redemptions + equity_at_end)` — to allocate period PnL proportionally.
 
 **Invariants preserved:**
 - `total_pnl = realized_pnl + unrealized_pnl` (always, by construction)
