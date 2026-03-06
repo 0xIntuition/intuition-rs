@@ -22,7 +22,7 @@ sol! {
     }
 }
 
-pub const TNS_REGISTRY_ADDRESS: &str = "0x34D7648aecc10fd86A53Cdd2436125342f3d7412";
+pub const TNS_REGISTRY_ADDRESS: &str = "0x3220B4EDbA3a1661F02f1D8D241DBF55EDcDa09e";
 pub const INTUITION_RPC_URL: &str = "https://intuition.calderachain.xyz";
 
 #[derive(Clone, Debug)]
@@ -351,7 +351,7 @@ mod tests {
             dyn_provider,
         );
 
-        let name = "testing.trust";
+        let name = "sammy.trust";
         println!("Querying avatar text record for: {name}");
 
         // Check what resolver we get for this name

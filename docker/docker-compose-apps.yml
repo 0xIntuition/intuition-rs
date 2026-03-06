@@ -37,6 +37,7 @@ services:
     restart: always
     volumes:
       - ./logs:/app/logs
+      - ../target/release/consumer:/app/consumer
     networks:
       - intuition_default
     deploy:
