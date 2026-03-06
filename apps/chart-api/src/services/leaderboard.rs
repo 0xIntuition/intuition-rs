@@ -3,7 +3,7 @@ use chrono::{DateTime, Utc};
 use sqlx::types::BigDecimal;
 use sqlx::{Pool, Postgres};
 
-/// Database row matching the `pnl_leaderboard_entry` composite type (34 columns).
+/// Database row matching the `pnl_leaderboard_entry` composite type (36 columns).
 #[derive(Debug, sqlx::FromRow)]
 pub struct PnlLeaderboardEntryRow {
     pub rank: i64,
@@ -17,6 +17,8 @@ pub struct PnlLeaderboardEntryRow {
     pub unrealized_pnl_raw: BigDecimal,
     pub unrealized_pnl_formatted: BigDecimal,
     pub pnl_pct: BigDecimal,
+    pub realized_pnl_pct: BigDecimal,
+    pub unrealized_pnl_pct: BigDecimal,
     pub pnl_change_raw: BigDecimal,
     pub pnl_change_formatted: BigDecimal,
     pub total_position_count: i64,
@@ -77,6 +79,51 @@ pub async fn fetch_pnl_leaderboard_period(
     .bind(min_positions)
     .bind(min_volume)
     .bind(term_id)
+    .fetch_all(&mut *tx)
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(rows)
+}
+
+/// Fetch PnL leaderboard for a given period with minimum deposit threshold filtering.
+/// Uses an extended statement_timeout (120s) since this query can be slow on large date ranges.
+pub async fn fetch_pnl_leaderboard_period_min_threshold(
+    pool: &Pool<Postgres>,
+    start_date: DateTime<Utc>,
+    end_date: DateTime<Utc>,
+    limit: i32,
+    offset: i32,
+    sort_by: &str,
+    sort_order: &str,
+    exclude_protocol_accounts: bool,
+    min_positions: i32,
+    min_volume: BigDecimal,
+    term_id: Option<&str>,
+    min_deposit: BigDecimal,
+) -> Result<Vec<PnlLeaderboardEntryRow>, ApiError> {
+    let mut tx = pool.begin().await?;
+
+    // Extend statement timeout for this slow leaderboard query
+    sqlx::query("SET LOCAL statement_timeout = '300s'")
+        .execute(&mut *tx)
+        .await?;
+
+    let rows = sqlx::query_as::<_, PnlLeaderboardEntryRow>(
+        "SELECT * FROM get_pnl_leaderboard_period($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
+    )
+    .bind(start_date)
+    .bind(end_date)
+    .bind(limit)
+    .bind(offset)
+    .bind(sort_by)
+    .bind(sort_order)
+    .bind(exclude_protocol_accounts)
+    .bind(min_positions)
+    .bind(min_volume)
+    .bind(term_id)
+    .bind(min_deposit)
     .fetch_all(&mut *tx)
     .await?;
 
