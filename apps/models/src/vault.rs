@@ -323,6 +323,42 @@ impl Vault {
             .map_err(|e| ModelError::QueryError(e.to_string()))
     }
 
+    /// Inserts a minimal vault stub if one does not already exist for the given
+    /// `(term_id, curve_id)` pair. All numeric fields default to zero and the
+    /// timestamp defaults to `NOW()`. The `ON CONFLICT DO NOTHING` clause makes
+    /// this a true no-op when the vault already exists, preserving any real data
+    /// written by `SharePriceChanged` or `AtomCreated` handlers.
+    pub async fn ensure_exists<'e, E>(
+        term_id: FixedBytesWrapper,
+        curve_id: U256Wrapper,
+        schema: &str,
+        executor: E,
+    ) -> Result<(), ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
+        let query = format!(
+            r#"
+            INSERT INTO {}.vault (
+                term_id, curve_id, total_shares, current_share_price, position_count,
+                total_assets, market_cap, block_number, log_index, transaction_hash,
+                created_at
+            )
+            VALUES ($1, $2, 0, 0, 0, 0, 0, 0, 0, '', NOW())
+            ON CONFLICT (term_id, curve_id) DO NOTHING
+            "#,
+            schema,
+        );
+
+        sqlx::query(&query)
+            .bind(term_id)
+            .bind(curve_id.to_big_decimal()?)
+            .execute(executor)
+            .await
+            .map(|_| ())
+            .map_err(|e| ModelError::VaultEnsureExistsError(e.to_string()))
+    }
+
     /// This function inserts a vault into the database
     pub async fn insert<'e, E>(&self, executor: E, schema: &str) -> Result<Self, ModelError>
     where

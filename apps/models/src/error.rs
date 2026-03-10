@@ -40,6 +40,8 @@ pub enum ModelError {
     TripleTermUpsertError(String),
     #[error("Failed to upsert data for triple vault: {0}")]
     TripleVaultUpsertError(String),
+    #[error("Failed to ensure vault exists: {0}")]
+    VaultEnsureExistsError(String),
     #[error("Failed to insert data for vault from share price: {0}")]
     VaultInsertFromSharePriceError(String),
     #[error("Failed to insert data for vault: {0}")]

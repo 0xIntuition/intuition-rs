@@ -1,0 +1,2 @@
+-- No-op: the up migration corrects data to match the source of truth (deposit/redemption tables).
+-- There is no meaningful revert since the previous values were incorrect.

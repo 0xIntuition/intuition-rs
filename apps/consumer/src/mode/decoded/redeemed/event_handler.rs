@@ -77,7 +77,7 @@ where
             .await?;
 
         self.0
-            .handle_position_shares(&vault, &sender_account, decoded_consumer_context, event)
+            .handle_position_shares(&vault, &receiver_account, decoded_consumer_context, event)
             .await?;
 
         // 4. Create event and signal records

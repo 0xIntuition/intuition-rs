@@ -71,7 +71,7 @@ pub trait RedeemedEvent: Clone {
     async fn handle_position_shares(
         &self,
         vault: &Vault,
-        sender_account: &Account,
+        receiver_account: &Account,
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
@@ -82,7 +82,7 @@ pub trait RedeemedEvent: Clone {
                 "{}-{}-{}",
                 vault.term_id,
                 RedeemedEvent::curve_id(self)?,
-                sender_account.id,
+                receiver_account.id,
             ),
             &decoded_consumer_context.backend_schema,
             &decoded_consumer_context.pg_pool,
@@ -123,7 +123,7 @@ pub trait RedeemedEvent: Clone {
         let signal = if let TermType::Triple | TermType::CounterTriple = term_type.term_type {
             Signal::builder()
                 .id(DecodedMessage::event_id(event))
-                .account_id(self.sender()?)
+                .account_id(self.receiver()?)
                 .delta(U256Wrapper::from(self.assets()?))
                 .triple_id(vault.term_id.clone())
                 .redemption_id(DecodedMessage::event_id(event))
@@ -136,7 +136,7 @@ pub trait RedeemedEvent: Clone {
         } else {
             Signal::builder()
                 .id(DecodedMessage::event_id(event))
-                .account_id(self.sender()?)
+                .account_id(self.receiver()?)
                 .delta(U256Wrapper::from(self.assets()?))
                 .atom_id(vault.term_id.clone())
                 .redemption_id(DecodedMessage::event_id(event))
