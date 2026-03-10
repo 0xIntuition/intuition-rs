@@ -17,3 +17,4 @@
 3. **Historical data fix** — updates any existing `position_change` rows where `sender_id != receiver_id` to use the correct `receiver_id`. Currently 0 rows affected, but included for correctness across environments.
 
 **Paired with:** `consumer:3.0.62` which fixes the same sender/receiver issue in the Rust consumer.
+

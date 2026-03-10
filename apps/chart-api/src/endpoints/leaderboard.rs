@@ -29,7 +29,7 @@ fn opt_bd_to_string(value: &Option<BigDecimal>) -> Option<String> {
         ("end" = String, Query, description = "Range end timestamp (unix seconds, unix milliseconds, or RFC3339)"),
         ("limit" = Option<i32>, Query, description = "Max results to return (1-10000, default 100)"),
         ("offset" = Option<i32>, Query, description = "Offset for pagination (default 0)"),
-        ("sort_by" = Option<String>, Query, description = "Sort field: total_pnl, pnl, pnl_pct, roi, win_rate, total_volume, volume, position_count, positions"),
+        ("sort_by" = Option<String>, Query, description = "Sort field: total_pnl, pnl, pnl_pct, roi, realized_pnl, unrealized_pnl, realized_pnl_pct, unrealized_pnl_pct, win_rate, total_volume, volume, position_count, positions"),
         ("sort_order" = Option<String>, Query, description = "Sort order: ASC or DESC (default DESC)"),
         ("exclude_protocol_accounts" = Option<bool>, Query, description = "Exclude protocol accounts (default true)"),
         ("min_positions" = Option<i32>, Query, description = "Minimum position count filter (default 1)"),
@@ -74,6 +74,10 @@ pub async fn get_pnl_leaderboard_period(
             | "pnl"
             | "pnl_pct"
             | "roi"
+            | "realized_pnl"
+            | "unrealized_pnl"
+            | "realized_pnl_pct"
+            | "unrealized_pnl_pct"
             | "win_rate"
             | "total_volume"
             | "volume"
@@ -197,7 +201,7 @@ pub async fn get_pnl_leaderboard_period(
         ("end" = String, Query, description = "Range end timestamp (unix seconds, unix milliseconds, or RFC3339)"),
         ("limit" = Option<i32>, Query, description = "Max results to return (1-10000, default 100)"),
         ("offset" = Option<i32>, Query, description = "Offset for pagination (default 0)"),
-        ("sort_by" = Option<String>, Query, description = "Sort field: total_pnl, pnl, pnl_pct, roi, win_rate, total_volume, volume, position_count, positions"),
+        ("sort_by" = Option<String>, Query, description = "Sort field: total_pnl, pnl, pnl_pct, roi, realized_pnl, unrealized_pnl, realized_pnl_pct, unrealized_pnl_pct, win_rate, total_volume, volume, position_count, positions"),
         ("sort_order" = Option<String>, Query, description = "Sort order: ASC or DESC (default DESC)"),
         ("exclude_protocol_accounts" = Option<bool>, Query, description = "Exclude protocol accounts (default true)"),
         ("min_positions" = Option<i32>, Query, description = "Minimum position count filter (default 1)"),
@@ -246,6 +250,10 @@ pub async fn get_pnl_leaderboard_period_min_threshold(
             | "pnl"
             | "pnl_pct"
             | "roi"
+            | "realized_pnl"
+            | "unrealized_pnl"
+            | "realized_pnl_pct"
+            | "unrealized_pnl_pct"
             | "win_rate"
             | "total_volume"
             | "volume"

@@ -69,8 +69,6 @@ impl SimpleCrud<String> for Position {
                     term_id = EXCLUDED.term_id,
                     shares = EXCLUDED.shares,
                     curve_id = EXCLUDED.curve_id,
-                    total_deposit_assets_after_total_fees = EXCLUDED.total_deposit_assets_after_total_fees,
-                    total_redeem_assets_for_receiver = EXCLUDED.total_redeem_assets_for_receiver,
                     block_number = EXCLUDED.block_number,
                     log_index = EXCLUDED.log_index,
                     transaction_hash = EXCLUDED.transaction_hash,

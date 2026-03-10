@@ -30,3 +30,4 @@ During redemptions, the `sender` is the transaction originator (e.g. a smart wal
 
 - **Scope:** Decoded consumer, redemption event processing only. Deposits are unaffected (already use receiver correctly).
 - **Paired with:** `hasura-migrations-3.1.99` which fixes the same sender/receiver issue in database triggers.
+

@@ -15,6 +15,7 @@ use models::{
     signal::Signal,
     traits::SimpleCrud,
     types::{FixedBytesWrapper, U256Wrapper},
+    vault::Vault,
 };
 use tracing::debug;
 
@@ -176,6 +177,15 @@ pub trait DepositedEvent: Clone {
         decoded_consumer_context: &DecodedConsumerContext,
         event: &DecodedMessage,
     ) -> Result<(), ConsumerError> {
+        Vault::ensure_exists(
+            FixedBytesWrapper::from(self.term_id()?),
+            U256Wrapper::from(DepositedEvent::curve_id(self)?),
+            &decoded_consumer_context.backend_schema,
+            &decoded_consumer_context.pg_pool,
+        )
+        .await
+        .map_err(ConsumerError::ModelError)?;
+
         let position_id =
             self.format_position_id(DepositedEvent::curve_id(self)?.to_string().as_str())?;
         let position = Position::find_by_id(

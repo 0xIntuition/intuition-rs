@@ -52,7 +52,7 @@ pub enum ApiError {
     MissingCurveId,
     #[error("Invalid account_id/term_id/curve_id combination: no position exists")]
     InvalidPositionCombination,
-    #[error("Invalid sort_by: {0}. Valid values are: total_pnl, pnl, pnl_pct, roi, win_rate, total_volume, volume, position_count, positions")]
+    #[error("Invalid sort_by: {0}. Valid values are: total_pnl, pnl, pnl_pct, roi, realized_pnl, unrealized_pnl, realized_pnl_pct, unrealized_pnl_pct, win_rate, total_volume, volume, position_count, positions")]
     InvalidSortBy(String),
     #[error("Invalid sort_order: {0}. Valid values are: ASC, DESC")]
     InvalidSortOrder(String),
