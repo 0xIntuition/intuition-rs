@@ -1,0 +1,2 @@
+-- Revert to the previous version without start-price fallback
+-- (restores the function from 1771526428000_fix_hourly_bucket_boundaries)
