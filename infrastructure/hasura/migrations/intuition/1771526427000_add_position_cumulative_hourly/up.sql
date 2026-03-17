@@ -55,7 +55,8 @@ WINDOW w AS (
   PARTITION BY account_id, term_id, curve_id
   ORDER BY bucket
   ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-);
+)
+ON CONFLICT DO NOTHING;
 
 RESET statement_timeout;
 
@@ -76,6 +77,7 @@ SELECT add_compression_policy('position_cumulative_hourly',
 -- ========================================
 -- Incrementally appends new rows from position_change_hourly.
 -- Scheduled 5 minutes after the cagg refresh so fresh hourly data is available.
+DROP FUNCTION IF EXISTS refresh_position_cumulative_hourly(JSONB);
 CREATE OR REPLACE FUNCTION refresh_position_cumulative_hourly(config JSONB)
 RETURNS VOID LANGUAGE plpgsql AS $$
 DECLARE
@@ -128,6 +130,15 @@ BEGIN
 END;
 $$;
 
-SELECT add_job('refresh_position_cumulative_hourly',
-  schedule_interval => INTERVAL '1 hour',
-  initial_start     => now() + INTERVAL '65 minutes');
+-- Guard against duplicate jobs on re-deployment
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM timescaledb_information.jobs
+    WHERE proc_name = 'refresh_position_cumulative_hourly'
+  ) THEN
+    PERFORM add_job('refresh_position_cumulative_hourly',
+      schedule_interval => INTERVAL '1 hour',
+      initial_start     => now() + INTERVAL '65 minutes');
+  END IF;
+END $$;

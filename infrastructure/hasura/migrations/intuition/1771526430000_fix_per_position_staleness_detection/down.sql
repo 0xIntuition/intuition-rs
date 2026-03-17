@@ -1,6 +1,7 @@
 -- Revert to the original refresh_position_cumulative_hourly from migration 1771526427000
 -- (restores single global MAX(bucket) approach)
 
+DROP FUNCTION IF EXISTS refresh_position_cumulative_hourly(JSONB);
 CREATE OR REPLACE FUNCTION refresh_position_cumulative_hourly(config JSONB)
 RETURNS VOID LANGUAGE plpgsql AS $$
 DECLARE

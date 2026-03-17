@@ -113,6 +113,7 @@ RESET statement_timeout;
 -- ========================================
 -- Step 2: Replace the refresh function
 -- ========================================
+DROP FUNCTION IF EXISTS refresh_position_cumulative_hourly(JSONB);
 CREATE OR REPLACE FUNCTION refresh_position_cumulative_hourly(config JSONB)
 RETURNS VOID LANGUAGE plpgsql AS $$
 DECLARE
