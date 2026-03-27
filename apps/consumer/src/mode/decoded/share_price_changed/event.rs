@@ -1,6 +1,9 @@
 use crate::{
     error::ConsumerError,
-    mode::{types::DecodedConsumerContext, utils::VaultOrigin},
+    mode::{
+        types::DecodedConsumerContext,
+        utils::{BlockInfo, VaultOrigin, get_or_create_term},
+    },
     schemas::types::DecodedMessage,
 };
 use alloy::primitives::FixedBytes;
@@ -89,7 +92,19 @@ pub trait SharePriceChangedEvent: Clone {
                 )
                 .await?;
             debug!("Updated vault share price and total shares");
-            // The term is going to be updated by the trigger on the vault table
+            // The vault was pre-created by the Deposited handler (Vault::ensure_exists), which
+            // does not create a Term row. Ensure the Term exists here so it is always present
+            // regardless of which handler ran first. get_or_create_term is idempotent — it
+            // returns the existing row immediately if one is already present.
+            get_or_create_term(
+                self,
+                decoded_consumer_context,
+                BlockInfo {
+                    block_number: transaction_data.block_number,
+                    block_timestamp: transaction_data.block_timestamp,
+                },
+            )
+            .await?;
         } else {
             debug!("Vault not found, creating it");
             VaultOrigin::SharePriceChanged
