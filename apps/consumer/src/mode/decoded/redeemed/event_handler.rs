@@ -96,7 +96,7 @@ where
     ) -> Result<(), ConsumerError> {
         let vault = Vault::find_by_term_id_and_curve_id(
             self.0.term_id()?.into(),
-            U256Wrapper::try_from(1)?,
+            self.0.curve_id()?.into(),
             &decoded_consumer_context.pg_pool,
             &decoded_consumer_context.backend_schema,
         )
