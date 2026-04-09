@@ -10,6 +10,7 @@ use alloy::primitives::FixedBytes;
 use models::{
     deposit::VaultType,
     share_price_change::{SharePriceChange, SharePriceChangeInternal},
+    term::TermType,
     types::{FixedBytesWrapper, U256Wrapper},
     vault::Vault,
 };
@@ -105,6 +106,21 @@ pub trait SharePriceChangedEvent: Clone {
                 },
             )
             .await?;
+            // Same race condition applies to triple_term and triple_vault: if Deposited
+            // pre-created the vault, the "vault not found" branch (which calls
+            // get_or_create_vault → ensure_triple_term_exists) is never taken.
+            // Ensure they exist here for Triple-type vaults only — CounterTriple events
+            // are excluded because ensure_triple_term_exists derives the counter_term_id
+            // from event.term_id() via get_counter_id_from_triple_id, which is only valid
+            // when event.term_id() is the canonical triple term_id (not the counter).
+            if matches!(self.vault_type()?.into(), TermType::Triple) {
+                VaultOrigin::SharePriceChanged
+                    .ensure_triple_vault_exists(self, decoded_consumer_context, transaction_data)
+                    .await?;
+                VaultOrigin::SharePriceChanged
+                    .ensure_triple_term_exists(self, decoded_consumer_context, transaction_data)
+                    .await?;
+            }
         } else {
             debug!("Vault not found, creating it");
             VaultOrigin::SharePriceChanged
