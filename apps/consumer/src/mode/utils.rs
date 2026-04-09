@@ -67,7 +67,10 @@ impl VaultOrigin {
             event.term_id()?
         );
 
-        // If this is a triple vault, also create/update the triple_vault record
+        // If this is a triple vault, also create/update the triple_vault and triple_term records.
+        // CounterTriple events are excluded: ensure_triple_term_exists derives counter_term_id
+        // from event.term_id() via get_counter_id_from_triple_id, which is only valid when
+        // event.term_id() is the canonical triple term_id (not the counter).
         if matches!(event.vault_type()?.into(), TermType::Triple) {
             self.ensure_triple_vault_exists(event, context, decoded_message)
                 .await?;
@@ -101,7 +104,7 @@ impl VaultOrigin {
     }
 
     /// This function ensures that a triple_vault record exists for the given vault
-    async fn ensure_triple_vault_exists(
+    pub async fn ensure_triple_vault_exists(
         &self,
         event: &impl SharePriceChangedEvent,
         context: &DecodedConsumerContext,
@@ -191,7 +194,7 @@ impl VaultOrigin {
         ))
     }
     /// This function gets or creates a triple term
-    async fn ensure_triple_term_exists(
+    pub async fn ensure_triple_term_exists(
         &self,
         event: &impl SharePriceChangedEvent,
         decoded_consumer_context: &DecodedConsumerContext,

@@ -35,9 +35,10 @@ impl SimpleCrud<FixedBytesWrapper> for TripleTerm {
             INSERT INTO {}.triple_term (term_id, counter_term_id, total_assets, total_market_cap, total_position_count, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6)
             ON CONFLICT (term_id) DO UPDATE SET
-                total_assets = EXCLUDED.total_assets,
-                total_market_cap = EXCLUDED.total_market_cap,
-                -- total_position_count is NOT updated here - it's managed by database triggers
+                -- total_assets, total_market_cap, and total_position_count are NOT updated here.
+                -- They are managed by the update_triple_vault_from_vault database trigger which
+                -- re-aggregates from vault rows on every vault change. Overwriting them here would
+                -- race with the trigger and produce stale values.
                 updated_at = EXCLUDED.updated_at
             RETURNING term_id, counter_term_id, total_assets, total_market_cap, total_position_count, updated_at
             "#,
