@@ -35,6 +35,18 @@ sol! {
     }
 }
 
+// Codegen to interact with the ENS Universal Resolver (ENSIP-23).
+// Handles L1 primary names, L2 primary names (Base/Optimism/Linea via CCIP-Read),
+// and offchain resolvers — in a single call.
+sol! {
+    #[allow(missing_docs)]
+    #[sol(rpc)]
+    interface UniversalResolver {
+        function reverse(bytes lookupAddress, uint256 coinType)
+            external view returns (string primary, address resolver, address reverseResolver);
+    }
+}
+
 // Codegen to interact with ERC-721 contracts for tokenURI calls (CAIP-22 resolution)
 sol! {
     #[allow(missing_docs)]

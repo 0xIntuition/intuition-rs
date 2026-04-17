@@ -1,4 +1,7 @@
-use super::{decoded::utils::get_block_timestamp, types::DecodedConsumerContext};
+use super::{
+    decoded::utils::get_block_timestamp, resolver::types::ResolverConsumerMessage,
+    types::DecodedConsumerContext,
+};
 use crate::{
     error::ConsumerError,
     mode::decoded::{
@@ -276,38 +279,50 @@ pub fn short_id(address: &str) -> String {
     format!("{}...{}", &address[..6], &address[address.len() - 4..])
 }
 
-/// This function creates a default account
+/// Creates a new default account and enqueues it for ENS resolution.
+///
+/// The account is persisted with a short-id label (e.g. `0x1234...5678`) which
+/// serves as the fallback if no ENS reverse record is found. After persisting,
+/// a message is sent to the resolver stream so the resolver consumer can
+/// attempt an ENS lookup and, if successful, update the label and avatar.
+///
+/// Enqueueing the resolver message from this function was accidentally dropped
+/// during the atom_id refactor in commit 0841ec2 (Dec 2025), which caused
+/// 200K+ accounts created via Deposited/Redeemed/AtomCreated/ProtocolFeeAccrued
+/// event handlers to be stuck with short-id labels. This is the restored path.
 pub async fn create_default_account(
     decoded_consumer_context: &DecodedConsumerContext,
     id: String,
     atom_id: Option<FixedBytesWrapper>,
 ) -> Result<Account, ConsumerError> {
-    let account = if let Some(atom_id) = atom_id {
+    let new_account = if let Some(atom_id) = atom_id {
         Account::builder()
             .id(id.clone())
             .label(short_id(&id))
             .account_type(AccountType::Default)
             .atom_id(atom_id)
             .build()
-            .upsert(
-                &decoded_consumer_context.backend_schema,
-                &decoded_consumer_context.pg_pool.clone(),
-            )
-            .await
-            .map_err(ConsumerError::ModelError)?
     } else {
         Account::builder()
             .id(id.clone())
             .label(short_id(&id))
             .account_type(AccountType::Default)
             .build()
-            .upsert(
-                &decoded_consumer_context.backend_schema,
-                &decoded_consumer_context.pg_pool.clone(),
-            )
-            .await
-            .map_err(ConsumerError::ModelError)?
     };
+
+    let account = new_account
+        .upsert(
+            &decoded_consumer_context.backend_schema,
+            &decoded_consumer_context.pg_pool,
+        )
+        .await
+        .map_err(ConsumerError::ModelError)?;
+
+    let message = ResolverConsumerMessage::new_account(account.clone());
+    decoded_consumer_context
+        .client
+        .send_message(serde_json::to_string(&message)?, None)
+        .await?;
 
     Ok(account)
 }
