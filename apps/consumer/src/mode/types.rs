@@ -3,7 +3,7 @@ use super::{
     resolver::types::ResolverConsumerMessage,
 };
 use crate::{
-    ENSRegistry::{self, ENSRegistryInstance},
+    UniversalResolver::UniversalResolverInstance,
     app_context::ServerInitialize,
     config::{ConsumerType, ContractInstance, ContractVersion, IndexerSource},
     consumer_type::{redis_hybrid::RedisHybrid, redis_streams::RedisStreams},
@@ -193,7 +193,7 @@ pub struct RawConsumerContext {
 pub struct ResolverConsumerContext {
     pub client: Arc<dyn BasicConsumer>,
     pub ipfs_resolver: IPFSResolver,
-    pub mainnet_client: Arc<ENSRegistryInstance<DynProvider, Ethereum>>,
+    pub universal_resolver: Arc<UniversalResolverInstance<DynProvider, Ethereum>>,
     pub pg_pool: PgPool,
     pub server_initialize: ServerInitialize,
 }
@@ -221,26 +221,6 @@ impl ConsumerMode {
             )),
             ConsumerType::RedisHybrid => Ok(Arc::new(RedisHybrid::new(output_queue, data).await?)),
         }
-    }
-
-    /// Builds the alloy client for the ENS contract
-    fn build_ens_client(
-        rpc_url: &str,
-        contract_address: &str,
-    ) -> Result<ENSRegistryInstance<DynProvider, Ethereum>, ConsumerError> {
-        // Initialize the provider using the provided RPC URL
-        let provider = ProviderBuilder::new().connect_http(rpc_url.parse()?);
-        // Wrap the provider in a DynProvider to erase its concrete type
-        let dyn_provider = DynProvider::new(provider);
-
-        // Parse the contract address
-        let address = Address::from_str(contract_address)
-            .map_err(|e| ConsumerError::AddressParse(e.to_string()))?;
-
-        // Instantiate the ENSRegistry contract with the dynamic provider
-        let ens_contract = ENSRegistry::new(address, dyn_provider);
-
-        Ok(ens_contract)
     }
 
     /// This function gets the contract version from the database, if no version is found
@@ -415,18 +395,30 @@ impl ConsumerMode {
         data: ServerInitialize,
         pg_pool: PgPool,
     ) -> Result<ConsumerMode, ConsumerError> {
-        let mainnet_client = Arc::new(Self::build_ens_client(
-            &data
-                .clone()
-                .env
-                .rpc_url_mainnet
-                .unwrap_or_else(|| panic!("RPC URL mainnet is not set")),
-            &data
-                .clone()
-                .env
-                .ens_contract_address
-                .unwrap_or_else(|| panic!("ENS contract address is not set")),
-        )?);
+        let rpc_url = data
+            .env
+            .rpc_url_mainnet
+            .clone()
+            .unwrap_or_else(|| panic!("RPC URL mainnet is not set"));
+
+        // Build Universal Resolver client (ENSIP-23) for modern ENS reverse lookups.
+        // Handles L1, L2 (Base/Optimism/Linea), and offchain primary names in one call.
+        // Default address is the canonical ENSIP-23 Universal Resolver on Ethereum mainnet.
+        let ur_address_str = data
+            .env
+            .universal_resolver_address
+            .clone()
+            .unwrap_or_else(|| {
+                "0xeeeeeeee14d718c2b47d9923deab1335e144eeee".to_string()
+            });
+        let ur_provider = DynProvider::new(
+            ProviderBuilder::new().connect_http(rpc_url.parse()?),
+        );
+        let ur_address = Address::from_str(&ur_address_str)
+            .map_err(|e| ConsumerError::AddressParse(e.to_string()))?;
+        let universal_resolver = Arc::new(
+            crate::UniversalResolver::new(ur_address, ur_provider),
+        );
 
         let client = Self::build_client(
             data.clone(),
@@ -446,7 +438,7 @@ impl ConsumerMode {
         Ok(ConsumerMode::Resolver(Box::new(ResolverConsumerContext {
             client,
             ipfs_resolver,
-            mainnet_client,
+            universal_resolver,
             pg_pool,
             server_initialize: data,
         })))

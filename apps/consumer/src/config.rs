@@ -21,6 +21,7 @@ pub struct Env {
     pub database_url: String,
     pub decoded_logs_stream: Option<String>,
     pub ens_contract_address: Option<String>,
+    pub universal_resolver_address: Option<String>,
     pub image_guard_url: Option<String>,
     pub indexing_source: Option<String>,
     pub intuition_contract_address: Option<String>,
