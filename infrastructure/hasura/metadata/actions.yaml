@@ -234,7 +234,6 @@ actions:
         template_engine: Kriti
         version: 2
     permissions:
-      - role: anonymous
       - role: frontend
     comment: Uploads and pins Organization to IPFS
   - name: pinPerson
@@ -277,7 +276,6 @@ actions:
         template_engine: Kriti
         version: 2
     permissions:
-      - role: anonymous
       - role: frontend
     comment: Uploads and pins Person to IPFS
   - name: pinThing
@@ -318,7 +316,6 @@ actions:
         template_engine: Kriti
         version: 2
     permissions:
-      - role: anonymous
       - role: frontend
     comment: Uploads and pins Thing to IPFS
   - name: uploadImage
@@ -344,7 +341,6 @@ actions:
         template_engine: Kriti
         version: 2
     permissions:
-      - role: anonymous
       - role: frontend
     comment: 'Uploads and classifies an image file using image-guard. Accepts base64-encoded image data. Note: The original /upload endpoint requires multipart/form-data which Hasura actions cannot construct directly. This mutation uses upload_image_from_url with a data URL workaround. For direct file uploads, use the image-guard API directly or create a wrapper endpoint.'
   - name: uploadImageFromUrl
@@ -373,7 +369,6 @@ actions:
         template_engine: Kriti
         version: 2
     permissions:
-      - role: anonymous
       - role: frontend
     comment: Uploads and classifies an image from a URL using image-guard
   - name: uploadJsonToIpfs
@@ -401,7 +396,6 @@ actions:
         template_engine: Kriti
         version: 2
     permissions:
-      - role: anonymous
       - role: frontend
     comment: Uploads JSON to IPFS using image-guard
 custom_types:
