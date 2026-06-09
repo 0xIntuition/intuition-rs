@@ -232,6 +232,11 @@ impl Image {
             return Ok(Some(parsed.data));
         }
 
+        // SSRF protection: only allow http/https to public destinations.
+        // Blocks file:// (local file read), localhost, private/link-local IPs,
+        // and cloud metadata endpoints before any network request is made.
+        crate::ssrf::validate_url_not_internal(&self.url)?;
+
         info!("Downloading image from URL: {}", self.url);
         let response = reqwest::get(&self.url).await?;
         if response.status() != reqwest::StatusCode::OK {

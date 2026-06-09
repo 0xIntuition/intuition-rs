@@ -15,9 +15,8 @@ use alloy::{
 };
 use models::{atom::Atom, traits::SimpleCrud};
 use serde_json::Value;
-use std::{net::IpAddr, str::FromStr, time::Duration};
+use std::{str::FromStr, time::Duration};
 use tracing::{debug, warn};
-use url::Url;
 
 /// Maximum response size for metadata fetches (1 MB)
 const MAX_RESPONSE_SIZE: usize = 1024 * 1024;
@@ -90,63 +89,18 @@ fn create_http_client() -> Result<reqwest::Client, ConsumerError> {
         .map_err(ConsumerError::from)
 }
 
-/// Validates that a URL does not point to internal/private networks (SSRF protection)
+/// Validates that a URL does not point to internal/private networks (SSRF protection).
+///
+/// Delegates to the canonical implementation in `shared_utils::ssrf` and maps
+/// its errors onto the consumer's error type so existing call sites and error
+/// handling are unchanged.
 fn validate_url_not_internal(url_str: &str) -> Result<(), ConsumerError> {
-    let url = Url::parse(url_str).map_err(|_| ConsumerError::UnsupportedTokenUri(url_str.to_string()))?;
-
-    // Get the host
-    let host = url.host_str().ok_or_else(|| ConsumerError::UnsupportedTokenUri(url_str.to_string()))?;
-
-    // Check for localhost variants
-    if host == "localhost" || host == "127.0.0.1" || host == "::1" || host == "[::1]" {
-        return Err(ConsumerError::SsrfBlocked(url_str.to_string()));
-    }
-
-    // Try to parse as IP address and check for private ranges
-    if let Ok(ip) = host.parse::<IpAddr>() {
-        if is_private_ip(&ip) {
-            return Err(ConsumerError::SsrfBlocked(url_str.to_string()));
-        }
-    }
-
-    // Also check common internal hostnames
-    let host_lower = host.to_lowercase();
-    if host_lower.ends_with(".local")
-        || host_lower.ends_with(".internal")
-        || host_lower.ends_with(".localhost")
-        || host_lower == "metadata.google.internal"
-        || host_lower == "169.254.169.254"
-    {
-        return Err(ConsumerError::SsrfBlocked(url_str.to_string()));
-    }
-
-    Ok(())
-}
-
-/// Checks if an IP address is in a private/internal range
-fn is_private_ip(ip: &IpAddr) -> bool {
-    match ip {
-        IpAddr::V4(ipv4) => {
-            // Private ranges: 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16
-            // Loopback: 127.0.0.0/8
-            // Link-local: 169.254.0.0/16
-            // Carrier-grade NAT: 100.64.0.0/10
-            ipv4.is_private()
-                || ipv4.is_loopback()
-                || ipv4.is_link_local()
-                || ipv4.octets()[0] == 100 && (ipv4.octets()[1] & 0xC0) == 64 // 100.64.0.0/10
-                || ipv4.is_broadcast()
-                || ipv4.is_documentation()
-        }
-        IpAddr::V6(ipv6) => {
-            ipv6.is_loopback()
-                || ipv6.is_unspecified()
-                // Unique local addresses (fc00::/7)
-                || (ipv6.segments()[0] & 0xfe00) == 0xfc00
-                // Link-local (fe80::/10)
-                || (ipv6.segments()[0] & 0xffc0) == 0xfe80
-        }
-    }
+    shared_utils::ssrf::validate_url_not_internal(url_str).map_err(|err| match err {
+        shared_utils::error::LibError::SsrfBlocked(url) => ConsumerError::SsrfBlocked(url),
+        // Unparseable URL or any other validation failure: surface as an
+        // unsupported token URI, matching prior behaviour.
+        _ => ConsumerError::UnsupportedTokenUri(url_str.to_string()),
+    })
 }
 
 /// Resolves a CAIP-22 atom by fetching tokenURI and parsing metadata
@@ -604,7 +558,8 @@ mod tests {
     /// Test private IP detection
     #[test]
     fn test_is_private_ip() {
-        use std::net::{Ipv4Addr, Ipv6Addr};
+        use shared_utils::ssrf::is_private_ip;
+        use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
         // Private IPv4
         assert!(is_private_ip(&IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1))));
