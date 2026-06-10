@@ -71,6 +71,7 @@ impl IPFSResolver {
     ) -> Result<Response, reqwest::Error> {
         self.http_client
             .post(self.format_add_remote_pin_to_pinata(cid, name))
+            .timeout(self.pin_timeout.unwrap_or(PIN_TIMEOUT))
             .send()
             .await
     }
@@ -163,7 +164,7 @@ impl IPFSResolver {
     /// Formats the URL to add a remote pin to Pinata
     fn format_add_remote_pin_to_pinata(&self, cid: &str, name: &str) -> String {
         format!(
-            "{}/api/v0/pin/remote/add?arg={}&service=Pinata&name={}",
+            "{}/api/v0/pin/remote/add?arg={}&service=Pinata&name={}&background=true",
             self.ipfs_upload_url, cid, name
         )
     }
@@ -510,6 +511,7 @@ impl IPFSResolver {
     async fn pin_with_cid(&self, cid: &str) -> Result<Response, reqwest::Error> {
         self.http_client
             .post(self.format_pin_with_cid(cid))
+            .timeout(self.pin_timeout.unwrap_or(PIN_TIMEOUT))
             .send()
             .await
     }
