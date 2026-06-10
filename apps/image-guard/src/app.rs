@@ -1,7 +1,7 @@
 use crate::{
     endpoints::{
-        upload_image::upload_image, upload_image_from_url::upload_image_from_url,
-        upload_json_to_ipfs::upload_json_to_jpfs,
+        classify::classify, upload_image::upload_image,
+        upload_image_from_url::upload_image_from_url, upload_json_to_ipfs::upload_json_to_jpfs,
     },
     error::ApiError,
     openapi::ApiDoc,
@@ -98,6 +98,7 @@ impl App {
     fn router(&self) -> Router {
         let (prometheus_layer, metric_handle) = PrometheusMetricLayer::pair();
         Router::new()
+            .route("/classify", post(classify))
             .route("/upload", post(upload_image))
             .route("/upload_image_from_url", post(upload_image_from_url))
             .route("/upload_json_to_ipfs", post(upload_json_to_jpfs))

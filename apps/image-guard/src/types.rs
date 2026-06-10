@@ -1,6 +1,31 @@
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
+/// Response returned by the `/classify` endpoint.
+///
+/// `classified` is `false` when no content classifier is configured
+/// (i.e., the service is running in db-only mode). In that case `safe`,
+/// `score`, and `model` are omitted entirely — no verdict was produced, and
+/// callers must not interpret the response as either safe or unsafe.
+#[derive(Debug, Serialize, ToSchema)]
+pub struct ClassificationResponse {
+    /// Whether the image passed the safety threshold. Omitted when no
+    /// classifier produced a verdict.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub safe: Option<bool>,
+    /// JSON-serialised classification scores (e.g. `{"normal":0.82,"nsfw":0.18}`).
+    /// Omitted when no classifier produced a verdict.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub score: Option<String>,
+    /// Name of the classification model used. Omitted when no classifier
+    /// produced a verdict.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub model: Option<String>,
+    /// `true` when a classifier was active and produced a real verdict;
+    /// `false` when the service is running without a classifier configured.
+    pub classified: bool,
+}
+
 #[derive(Deserialize)]
 pub struct Env {
     pub classification_api_port: u16,
