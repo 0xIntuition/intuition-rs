@@ -1,4 +1,23 @@
 actions:
+  - name: classifyImage
+    definition:
+      kind: synchronous
+      handler: http://image-guard:3000/classify
+      headers:
+        - name: Content-Type
+          value: application/json
+      request_transform:
+        body:
+          action: transform
+          template: |-
+            {
+              "url": "{{$body.input.image.url}}"
+            }
+        template_engine: Kriti
+        version: 2
+    permissions:
+      - role: frontend
+    comment: Classifies an image for content moderation using image-guard without uploading it to IPFS
   - name: getAccountPnlChart
     definition:
       kind: ""

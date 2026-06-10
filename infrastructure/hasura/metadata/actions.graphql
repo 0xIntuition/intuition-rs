@@ -59,6 +59,12 @@ type Query {
 }
 
 type Mutation {
+  classifyImage(
+    image: ClassifyImageInput!
+  ): ClassifyImageOutput
+}
+
+type Mutation {
   pinOrganization(
     organization: PinOrganizationInput!
   ): PinOutput
@@ -122,6 +128,10 @@ input PinJsonInput {
   json: jsonb
 }
 
+input ClassifyImageInput {
+  url: String!
+}
+
 input UploadImageFromUrlInput {
   url: String!
 }
@@ -182,6 +192,13 @@ input GetAccountPnlRealizedInput {
 
 type PinOutput {
   uri: String
+}
+
+type ClassifyImageOutput {
+  safe: Boolean
+  score: String
+  model: String
+  classified: Boolean!
 }
 
 type UploadImageFromUrlOutput {
