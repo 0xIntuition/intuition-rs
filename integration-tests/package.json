@@ -17,6 +17,7 @@
     "@faker-js/faker": "^9.0.3",
     "@graphql-codegen/client-preset": "^4.8.0",
     "@graphql-typed-document-node/core": "^3.2.0",
+    "dotenv": "^17.4.2",
     "tsx": "^4.16.5",
     "viem": "2.33.3"
   },

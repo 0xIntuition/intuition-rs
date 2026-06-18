@@ -16,22 +16,15 @@ mod traits;
 
 pub use supported_contracts::v2_contract::Multivault;
 
-// Codegen to interact with the ENS contract.
-sol!(
-    #[derive(Debug, Deserialize, Serialize)]
-    #[allow(missing_docs)]
-    #[sol(rpc)]
-    interface ENSRegistry {
-        function resolver(bytes32 node) external view returns (address);
-    }
-);
-
-// Codegen to interact with the ENSName contract.
+// Codegen to interact with the ENS Universal Resolver (ENSIP-23).
+// Handles L1 primary names, L2 primary names (Base/Optimism/Linea via CCIP-Read),
+// and offchain resolvers — in a single call.
 sol! {
     #[allow(missing_docs)]
     #[sol(rpc)]
-    interface ENSName {
-        function name(bytes32 node) external view returns (string);
+    interface UniversalResolver {
+        function reverse(bytes lookupAddress, uint256 coinType)
+            external view returns (string primary, address resolver, address reverseResolver);
     }
 }
 

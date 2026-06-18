@@ -1,3 +1,9 @@
+import dotenv from 'dotenv'
+import { resolve } from 'path'
+import { fileURLToPath } from 'url'
+
+dotenv.config({ path: resolve(fileURLToPath(import.meta.url), '../../../../.env') })
+
 import { createNonceManager, privateKeyToAccount } from 'viem/accounts'
 import { jsonRpc } from 'viem/nonce'
 
