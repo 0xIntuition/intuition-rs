@@ -225,18 +225,6 @@ impl ConsumerMode {
         }
     }
 
-    /// Builds the alloy client for the ENS Universal Resolver (ENSIP-23).
-    fn build_universal_resolver_client(
-        rpc_url: &str,
-        contract_address: &str,
-    ) -> Result<UniversalResolverInstance<DynProvider, Ethereum>, ConsumerError> {
-        let provider = ProviderBuilder::new().connect_http(rpc_url.parse()?);
-        let dyn_provider = DynProvider::new(provider);
-        let address = Address::from_str(contract_address)
-            .map_err(|e| ConsumerError::AddressParse(e.to_string()))?;
-        Ok(crate::UniversalResolver::new(address, dyn_provider))
-    }
-
     /// Builds the alloy client for the TNS contract
     fn build_tns_client(
         rpc_url: &str,
@@ -431,15 +419,21 @@ impl ConsumerMode {
         // Build Universal Resolver client (ENSIP-23) for modern ENS reverse lookups.
         // Handles L1, L2 (Base/Optimism/Linea), and offchain primary names in one call.
         // Default address is the canonical ENSIP-23 Universal Resolver on Ethereum mainnet.
-        let ur_address = data
+        let ur_address_str = data
             .env
             .universal_resolver_address
             .clone()
-            .unwrap_or_else(|| "0xce01f8eee7E479C928F8919abD53E553a36CeF67".to_string());
-        let universal_resolver = Arc::new(Self::build_universal_resolver_client(
-            &rpc_url,
-            &ur_address,
-        )?);
+            .unwrap_or_else(|| {
+                "0xeeeeeeee14d718c2b47d9923deab1335e144eeee".to_string()
+            });
+        let ur_provider = DynProvider::new(
+            ProviderBuilder::new().connect_http(rpc_url.parse()?),
+        );
+        let ur_address = Address::from_str(&ur_address_str)
+            .map_err(|e| ConsumerError::AddressParse(e.to_string()))?;
+        let universal_resolver = Arc::new(
+            crate::UniversalResolver::new(ur_address, ur_provider),
+        );
 
         let client = Self::build_client(
             data.clone(),

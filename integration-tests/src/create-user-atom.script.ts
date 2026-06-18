@@ -5,7 +5,7 @@ async function main() {
 
   const intuition = await getIntuition(0)
 
-  const userAddress = '0x25d5C9DbC1E12163B973261A08739927E4F72BA8'
+  const userAddress = '0x1Bc35cAE544DF00BfdfEE6597c4E54850eFDD9af'
 
   console.log(`Creating atom for address ${userAddress}...`)
   const atom = await intuition.getOrCreateAtom(userAddress)

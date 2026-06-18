@@ -22,6 +22,8 @@ pub enum LibError {
     PostgresConnectError(String),
     #[error("Resource does not exist")]
     ResourceNotFoundError(String),
+    #[error("SSRF protection: URL points to internal/private network or uses a disallowed scheme: {0}")]
+    SsrfBlocked(String),
     #[error(transparent)]
     Reqwest(#[from] reqwest::Error),
     #[error(transparent)]
