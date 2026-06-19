@@ -235,6 +235,7 @@ actions:
         version: 2
     permissions:
       - role: frontend
+      - role: partner
     comment: Uploads and pins Organization to IPFS
   - name: pinPerson
     definition:
@@ -277,6 +278,7 @@ actions:
         version: 2
     permissions:
       - role: frontend
+      - role: partner
     comment: Uploads and pins Person to IPFS
   - name: pinThing
     definition:
@@ -317,6 +319,7 @@ actions:
         version: 2
     permissions:
       - role: frontend
+      - role: partner
     comment: Uploads and pins Thing to IPFS
   - name: uploadImage
     definition:
@@ -342,6 +345,7 @@ actions:
         version: 2
     permissions:
       - role: frontend
+      - role: partner
     comment: 'Uploads and classifies an image file using image-guard. Accepts base64-encoded image data. Note: The original /upload endpoint requires multipart/form-data which Hasura actions cannot construct directly. This mutation uses upload_image_from_url with a data URL workaround. For direct file uploads, use the image-guard API directly or create a wrapper endpoint.'
   - name: uploadImageFromUrl
     definition:
@@ -370,6 +374,7 @@ actions:
         version: 2
     permissions:
       - role: frontend
+      - role: partner
     comment: Uploads and classifies an image from a URL using image-guard
   - name: uploadJsonToIpfs
     definition:
@@ -397,6 +402,7 @@ actions:
         version: 2
     permissions:
       - role: frontend
+      - role: partner
     comment: Uploads JSON to IPFS using image-guard
 custom_types:
   enums: []
