@@ -1,6 +1,6 @@
 # Stage 1 - Generate recipe file
 FROM rust:1.89-slim AS chef
-RUN cargo install cargo-chef
+RUN cargo install cargo-chef --locked
 WORKDIR /app
 
 FROM chef AS planner
