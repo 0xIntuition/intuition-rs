@@ -8,6 +8,7 @@ use crate::{
                 handle_binary_data, try_to_parse_json_or_text, try_to_resolve_ipfs_uri,
             },
             ens_resolver::Ens,
+            tns_resolver::Tns,
         },
         types::ResolverConsumerContext,
     },
@@ -183,27 +184,35 @@ impl ResolverMessageType {
         .ok_or(ConsumerError::AccountNotFound)
     }
 
-    /// This function processes an account message type
+    /// This function processes an account message type.
+    /// TNS resolution is attempted first. If no TNS name is found,
+    /// falls back to ENS resolution.
     async fn process_account(
         &self,
         resolver_consumer_context: &ResolverConsumerContext,
         account: &mut Account,
     ) -> Result<(), ConsumerError> {
-        let ens = Ens::get_ens(Address::from_str(&account.id)?, resolver_consumer_context).await?;
-        if let Some(_name) = ens.name.clone() {
-            debug!("ENS for account: {:?}", ens);
+        let address = Address::from_str(&account.id)?;
+
+        // TNS takes priority; fall back to ENS when no TNS name is set.
+        let mut resolved = Tns::get_tns(address, resolver_consumer_context).await?;
+        if resolved.name.is_none() {
+            resolved = Ens::get_ens(address, resolver_consumer_context).await?;
+        }
+
+        if let Some(_name) = resolved.name.clone() {
             // We need to update the account metadata
             debug!("Updating account metadata for account: {:?}", account);
             self.update_account_metadata(
                 resolver_consumer_context,
                 account.id.clone(),
-                ens.clone(),
+                resolved.clone(),
             )
             .await?;
             // We also need to update the atom
             if let Some(atom_id) = account.atom_id.clone() {
                 debug!("Updating atom metadata for account: {:?}", account);
-                self.update_atom_metadata(resolver_consumer_context, &atom_id, ens)
+                self.update_atom_metadata(resolver_consumer_context, &atom_id, resolved)
                     .await?;
             } else {
                 // We deal with the case where the account atom_id was not set
@@ -212,7 +221,7 @@ impl ResolverMessageType {
                 debug!("No atom found for account: {:?}", account)
             }
         } else {
-            debug!("No ENS found for account: {:?}", account);
+            debug!("No name resolved (TNS or ENS) for account: {:?}", account);
         }
         Ok(())
     }
