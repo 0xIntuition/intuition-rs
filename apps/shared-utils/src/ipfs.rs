@@ -16,6 +16,7 @@ use tracing::warn;
 pub const BASE_DELAY: Duration = Duration::from_secs(1);
 pub const FETCH_TIMEOUT: Duration = Duration::from_secs(5);
 pub const PIN_TIMEOUT: Duration = Duration::from_secs(10);
+pub const UPLOAD_TIMEOUT: Duration = Duration::from_secs(30);
 pub const PINATA_API_URL: &str = "https://api.pinata.cloud";
 pub const RETRY_ATTEMPTS: i32 = 3;
 const MAX_IPFS_ERROR_BODY_LOG: usize = 2048;
@@ -57,13 +58,16 @@ pub struct IPFSResolver {
     pub ipfs_fetch_url: String,
     pub ipfs_upload_url: String,
     pub pin_timeout: Option<Duration>,
+    pub upload_timeout: Option<Duration>,
     pub pinata_jwt: String,
     pub pinata_gateway_token: Option<String>,
     pub retry_attempts: Option<i32>,
 }
 
 impl IPFSResolver {
-    /// Adds a remote pin to Pinata
+    /// Adds a remote pin to Pinata (background mode — returns immediately).
+    /// This is best-effort; callers should log failures rather than propagating
+    /// them, because the content is already stored on the local IPFS node.
     async fn add_remote_pin_to_pinata(
         &self,
         cid: &str,
@@ -71,6 +75,7 @@ impl IPFSResolver {
     ) -> Result<Response, reqwest::Error> {
         self.http_client
             .post(self.format_add_remote_pin_to_pinata(cid, name))
+            .timeout(self.pin_timeout.unwrap_or(PIN_TIMEOUT))
             .send()
             .await
     }
@@ -160,10 +165,14 @@ impl IPFSResolver {
             })
     }
 
-    /// Formats the URL to add a remote pin to Pinata
+    /// Formats the URL to add a remote pin to Pinata.
+    /// Uses `background=true` so the IPFS node queues the pin request and
+    /// returns immediately instead of blocking until Pinata finishes
+    /// retrieving the content (which can hang indefinitely when the local
+    /// node is not publicly dialable via libp2p).
     fn format_add_remote_pin_to_pinata(&self, cid: &str, name: &str) -> String {
         format!(
-            "{}/api/v0/pin/remote/add?arg={}&service=Pinata&name={}",
+            "{}/api/v0/pin/remote/add?arg={}&service=Pinata&name={}&background=true",
             self.ipfs_upload_url, cid, name
         )
     }
@@ -435,9 +444,17 @@ impl IPFSResolver {
 
                     // Pin the CID to local IPFS
                     self.pin_with_cid(&result.hash).await?;
-                    // Add a remote pin to Pinata
-                    self.add_remote_pin_to_pinata(&result.hash, &multi_part_handler.name)
-                        .await?;
+                    // Add a remote pin to Pinata (best-effort — don't fail the
+                    // upload if the remote pin doesn't work)
+                    if let Err(e) = self
+                        .add_remote_pin_to_pinata(&result.hash, &multi_part_handler.name)
+                        .await
+                    {
+                        warn!(
+                            "Remote pin to Pinata failed for CID {}: {} (content is still on local IPFS)",
+                            result.hash, e
+                        );
+                    }
 
                     return Ok(result);
                 }
@@ -493,9 +510,17 @@ impl IPFSResolver {
 
                     // Pin the CID to local IPFS
                     self.pin_with_cid(&result.hash).await?;
-                    // Add a remote pin to Pinata
-                    self.add_remote_pin_to_pinata(&result.hash, &multi_part_handler.name)
-                        .await?;
+                    // Add a remote pin to Pinata (best-effort — don't fail the
+                    // upload if the remote pin doesn't work)
+                    if let Err(e) = self
+                        .add_remote_pin_to_pinata(&result.hash, &multi_part_handler.name)
+                        .await
+                    {
+                        warn!(
+                            "Remote pin to Pinata failed for CID {}: {} (content is still on local IPFS)",
+                            result.hash, e
+                        );
+                    }
 
                     return Ok(result);
                 }
@@ -510,6 +535,7 @@ impl IPFSResolver {
     async fn pin_with_cid(&self, cid: &str) -> Result<Response, reqwest::Error> {
         self.http_client
             .post(self.format_pin_with_cid(cid))
+            .timeout(self.pin_timeout.unwrap_or(PIN_TIMEOUT))
             .send()
             .await
     }
@@ -530,7 +556,13 @@ impl IPFSResolver {
             data.len()
         );
         let form = self.multipart_form(data, name, content_type)?;
-        let result = self.http_client.post(&url).multipart(form).send().await;
+        let result = self
+            .http_client
+            .post(&url)
+            .multipart(form)
+            .timeout(self.upload_timeout.unwrap_or(UPLOAD_TIMEOUT))
+            .send()
+            .await;
         if let Err(ref e) = result {
             tracing::error!(
                 "IPFS upload request failed: url={}, is_connect={}, is_timeout={}, is_request={}, is_body={}, error={:#}",
@@ -545,7 +577,7 @@ impl IPFSResolver {
         result.map_err(LibError::from)
     }
 
-    /// Sends a request to upload a file to IPFS
+    /// Sends a request to upload JSON to IPFS
     async fn upload_json_to_ipfs_request(
         &self,
         multi_part_handler: MultiPartHandlerJson,
@@ -553,6 +585,7 @@ impl IPFSResolver {
         self.http_client
             .post(self.format_ipfs_upload_url())
             .multipart(self.multipart_form_json(multi_part_handler.clone()))
+            .timeout(self.upload_timeout.unwrap_or(UPLOAD_TIMEOUT))
             .send()
             .await
     }
