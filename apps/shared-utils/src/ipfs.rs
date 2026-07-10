@@ -16,6 +16,7 @@ use tracing::warn;
 pub const BASE_DELAY: Duration = Duration::from_secs(1);
 pub const FETCH_TIMEOUT: Duration = Duration::from_secs(5);
 pub const PIN_TIMEOUT: Duration = Duration::from_secs(10);
+pub const UPLOAD_TIMEOUT: Duration = Duration::from_secs(30);
 pub const PINATA_API_URL: &str = "https://api.pinata.cloud";
 pub const RETRY_ATTEMPTS: i32 = 3;
 const MAX_IPFS_ERROR_BODY_LOG: usize = 2048;
@@ -57,22 +58,45 @@ pub struct IPFSResolver {
     pub ipfs_fetch_url: String,
     pub ipfs_upload_url: String,
     pub pin_timeout: Option<Duration>,
+    pub upload_timeout: Option<Duration>,
     pub pinata_jwt: String,
     pub pinata_gateway_token: Option<String>,
     pub retry_attempts: Option<i32>,
 }
 
 impl IPFSResolver {
-    /// Adds a remote pin to Pinata
-    async fn add_remote_pin_to_pinata(
-        &self,
-        cid: &str,
-        name: &str,
-    ) -> Result<Response, reqwest::Error> {
-        self.http_client
+    /// Adds a remote pin to Pinata (background mode — returns immediately).
+    /// Best-effort: logs failures instead of propagating them because the
+    /// content is already stored on the local IPFS node.
+    async fn add_remote_pin_to_pinata(&self, cid: &str, name: &str) {
+        let resp = match self
+            .http_client
             .post(self.format_add_remote_pin_to_pinata(cid, name))
+            .timeout(self.pin_timeout.unwrap_or(PIN_TIMEOUT))
             .send()
             .await
+        {
+            Ok(r) => r,
+            Err(e) => {
+                warn!(
+                    cid,
+                    error = %e,
+                    "remote pin to Pinata failed (transport); content is still on local IPFS"
+                );
+                return;
+            }
+        };
+
+        if !resp.status().is_success() {
+            let status = resp.status();
+            let body = resp.text().await.unwrap_or_default();
+            warn!(
+                cid,
+                %status,
+                body = truncate_for_log(&body, MAX_IPFS_ERROR_BODY_LOG).as_str(),
+                "remote pin to Pinata returned non-success status; content is still on local IPFS"
+            );
+        }
     }
     /// Fetches a file and returns its content as a string from IPFS
     /// using the configured gateway.
@@ -160,10 +184,14 @@ impl IPFSResolver {
             })
     }
 
-    /// Formats the URL to add a remote pin to Pinata
-    fn format_add_remote_pin_to_pinata(&self, cid: &str, name: &str) -> String {
+    /// Formats the URL to add a remote pin to Pinata.
+    /// Uses `background=true` so the IPFS node queues the pin request and
+    /// returns immediately instead of blocking until Pinata finishes
+    /// retrieving the content (which can hang indefinitely when the local
+    /// node is not publicly dialable via libp2p).
+    pub(crate) fn format_add_remote_pin_to_pinata(&self, cid: &str, name: &str) -> String {
         format!(
-            "{}/api/v0/pin/remote/add?arg={}&service=Pinata&name={}",
+            "{}/api/v0/pin/remote/add?arg={}&service=Pinata&name={}&background=true",
             self.ipfs_upload_url, cid, name
         )
     }
@@ -317,12 +345,13 @@ impl IPFSResolver {
         ))
     }
 
-    /// Formats the multipart form to upload a json to IPFS
-    fn multipart_form_json(&self, multi_part_handler: MultiPartHandlerJson) -> Form {
+    /// Formats the multipart form to upload JSON to IPFS.
+    /// Uses "file" as the field name (required by the IPFS HTTP API).
+    fn multipart_form_json(&self, handler: &MultiPartHandlerJson) -> Form {
         Form::new().part(
-            multi_part_handler.name.clone(),
-            Part::bytes(serde_json::to_vec(&multi_part_handler.data).unwrap())
-                .file_name(multi_part_handler.name.clone())
+            "file",
+            Part::bytes(serde_json::to_vec(&handler.data).unwrap_or_default())
+                .file_name(handler.name.clone())
                 .mime_str("application/json")
                 .unwrap(),
         )
@@ -433,11 +462,11 @@ impl IPFSResolver {
                         ))
                     })?;
 
-                    // Pin the CID to local IPFS
-                    self.pin_with_cid(&result.hash).await?;
-                    // Add a remote pin to Pinata
-                    self.add_remote_pin_to_pinata(&result.hash, &multi_part_handler.name)
-                        .await?;
+                    self.pin_locally_and_remotely(
+                        &result.hash,
+                        &multi_part_handler.name,
+                    )
+                    .await?;
 
                     return Ok(result);
                 }
@@ -462,7 +491,7 @@ impl IPFSResolver {
             attempts += 1;
 
             match self
-                .upload_json_to_ipfs_request(multi_part_handler.clone())
+                .upload_json_to_ipfs_request(&multi_part_handler)
                 .await
             {
                 Ok(resp) => {
@@ -491,11 +520,11 @@ impl IPFSResolver {
                         ))
                     })?;
 
-                    // Pin the CID to local IPFS
-                    self.pin_with_cid(&result.hash).await?;
-                    // Add a remote pin to Pinata
-                    self.add_remote_pin_to_pinata(&result.hash, &multi_part_handler.name)
-                        .await?;
+                    self.pin_locally_and_remotely(
+                        &result.hash,
+                        &multi_part_handler.name,
+                    )
+                    .await?;
 
                     return Ok(result);
                 }
@@ -506,12 +535,36 @@ impl IPFSResolver {
             }
         }?
     }
-    /// Pins a CID to local IPFS
-    async fn pin_with_cid(&self, cid: &str) -> Result<Response, reqwest::Error> {
-        self.http_client
+    /// Pins a CID locally and queues a best-effort remote pin to Pinata.
+    /// The local pin is fatal (propagates errors); the remote pin logs
+    /// failures but never fails the overall operation.
+    async fn pin_locally_and_remotely(&self, cid: &str, name: &str) -> Result<(), LibError> {
+        self.pin_with_cid(cid).await?;
+        self.add_remote_pin_to_pinata(cid, name).await;
+        Ok(())
+    }
+
+    /// Pins a CID to local IPFS. Returns an error if the request fails or the
+    /// IPFS node returns a non-success status.
+    async fn pin_with_cid(&self, cid: &str) -> Result<(), LibError> {
+        let resp = self
+            .http_client
             .post(self.format_pin_with_cid(cid))
+            .timeout(self.pin_timeout.unwrap_or(PIN_TIMEOUT))
             .send()
             .await
+            .map_err(|e| LibError::NetworkError(format!("Local IPFS pin request failed: {}", e)))?;
+
+        if !resp.status().is_success() {
+            let status = resp.status();
+            let body = resp.text().await.unwrap_or_default();
+            return Err(LibError::NetworkError(format!(
+                "Local IPFS pin failed (status {}): {}",
+                status,
+                truncate_for_log(&body, MAX_IPFS_ERROR_BODY_LOG)
+            )));
+        }
+        Ok(())
     }
 
     /// Sends a request to upload a file to IPFS
@@ -530,7 +583,13 @@ impl IPFSResolver {
             data.len()
         );
         let form = self.multipart_form(data, name, content_type)?;
-        let result = self.http_client.post(&url).multipart(form).send().await;
+        let result = self
+            .http_client
+            .post(&url)
+            .multipart(form)
+            .timeout(self.upload_timeout.unwrap_or(UPLOAD_TIMEOUT))
+            .send()
+            .await;
         if let Err(ref e) = result {
             tracing::error!(
                 "IPFS upload request failed: url={}, is_connect={}, is_timeout={}, is_request={}, is_body={}, error={:#}",
@@ -545,15 +604,91 @@ impl IPFSResolver {
         result.map_err(LibError::from)
     }
 
-    /// Sends a request to upload a file to IPFS
+    /// Sends a request to upload JSON to IPFS
     async fn upload_json_to_ipfs_request(
         &self,
-        multi_part_handler: MultiPartHandlerJson,
+        multi_part_handler: &MultiPartHandlerJson,
     ) -> Result<Response, reqwest::Error> {
         self.http_client
             .post(self.format_ipfs_upload_url())
-            .multipart(self.multipart_form_json(multi_part_handler.clone()))
+            .multipart(self.multipart_form_json(multi_part_handler))
+            .timeout(self.upload_timeout.unwrap_or(UPLOAD_TIMEOUT))
             .send()
             .await
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_test_resolver() -> IPFSResolver {
+        IPFSResolver::builder()
+            .http_client(Client::new())
+            .ipfs_upload_url("http://localhost:5001".to_string())
+            .ipfs_fetch_url("http://localhost:8080".to_string())
+            .pinata_jwt("test-jwt".to_string())
+            .build()
+    }
+
+    #[test]
+    fn remote_pin_url_includes_background_true() {
+        let resolver = make_test_resolver();
+        let url = resolver.format_add_remote_pin_to_pinata("QmTest123", "my-file");
+
+        assert!(
+            url.contains("background=true"),
+            "remote pin URL must use background=true to avoid blocking"
+        );
+        assert!(url.contains("service=Pinata"));
+        assert!(url.contains("arg=QmTest123"));
+        assert!(url.contains("name=my-file"));
+    }
+
+    #[test]
+    fn remote_pin_url_uses_ipfs_upload_url() {
+        let resolver = IPFSResolver::builder()
+            .http_client(Client::new())
+            .ipfs_upload_url("http://custom-ipfs:5001".to_string())
+            .ipfs_fetch_url("http://localhost:8080".to_string())
+            .pinata_jwt("test".to_string())
+            .build();
+
+        let url = resolver.format_add_remote_pin_to_pinata("QmAbc", "doc");
+        assert!(url.starts_with("http://custom-ipfs:5001/api/v0/pin/remote/add"));
+    }
+
+    #[test]
+    fn upload_url_format() {
+        let resolver = make_test_resolver();
+        assert_eq!(
+            resolver.format_ipfs_upload_url(),
+            "http://localhost:5001/api/v0/add"
+        );
+    }
+
+    #[test]
+    fn pin_url_format() {
+        let resolver = make_test_resolver();
+        assert_eq!(
+            resolver.format_pin_with_cid("QmTest"),
+            "http://localhost:5001/api/v0/pin/add?arg=QmTest"
+        );
+    }
+
+    #[test]
+    fn truncate_for_log_short_string() {
+        assert_eq!(truncate_for_log("hello", 10), "hello");
+    }
+
+    #[test]
+    fn truncate_for_log_long_string() {
+        let result = truncate_for_log("hello world", 5);
+        assert_eq!(result, "hello...[truncated]");
+    }
+
+    #[test]
+    fn truncate_for_log_empty() {
+        assert_eq!(truncate_for_log("", 10), "");
     }
 }
