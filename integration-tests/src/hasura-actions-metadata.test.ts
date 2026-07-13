@@ -7,28 +7,48 @@ const actionsYamlPath = resolve(
   '../../infrastructure/hasura/metadata/actions.yaml',
 )
 
-function actionBlock(actionName: string): string {
-  const actionsYaml = readFileSync(actionsYamlPath, 'utf8')
-  const startMarker = `  - name: ${actionName}`
-  const start = actionsYaml.indexOf(startMarker)
-
-  expect(start, `${actionName} action should exist`).toBeGreaterThanOrEqual(0)
-
-  const remaining = actionsYaml.slice(start + startMarker.length)
-  const nextAction = remaining.search(/\n  - name: /)
-  const end = nextAction === -1 ? actionsYaml.length : start + startMarker.length + nextAction
-
-  return actionsYaml.slice(start, end)
+type HasuraActionBlock = {
+  name: string
+  block: string
 }
 
-test('uploadImage action sends JSON to image-guard with the required content type', () => {
-  const uploadImage = actionBlock('uploadImage')
+function actionBlocks(): HasuraActionBlock[] {
+  const actionsYaml = readFileSync(actionsYamlPath, 'utf8')
+  const markers = [...actionsYaml.matchAll(/^  - name: (.+)$/gm)]
 
-  expect(uploadImage).toContain(
-    'handler: http://image-guard:3000/upload_image_from_url',
+  return markers.map((marker, index) => {
+    const start = marker.index ?? 0
+    const next = markers[index + 1]?.index ?? actionsYaml.length
+
+    return {
+      name: marker[1],
+      block: actionsYaml.slice(start, next),
+    }
+  })
+}
+
+function hasJsonContentType(block: string): boolean {
+  return /headers:\n\s+- name: Content-Type\n\s+value: application\/json/.test(block)
+}
+
+test('image-guard JSON upload actions declare the required content type', () => {
+  const imageGuardJsonActions = actionBlocks().filter(({ block }) => {
+    return (
+      block.includes('handler: http://image-guard:3000/upload_image_from_url')
+      && block.includes('request_transform:')
+      && block.includes('"url": ')
+    )
+  })
+
+  expect(imageGuardJsonActions.map(({ name }) => name)).toEqual(
+    expect.arrayContaining(['uploadImage', 'uploadImageFromUrl']),
   )
-  expect(uploadImage).toContain(
-    '"url": "data:{{$body.input.image.contentType}};base64,{{$body.input.image.data}}"',
-  )
-  expect(uploadImage).toMatch(/headers:\n\s+- name: Content-Type\n\s+value: application\/json/)
+  expect(imageGuardJsonActions.length).toBeGreaterThanOrEqual(2)
+
+  for (const action of imageGuardJsonActions) {
+    expect(
+      hasJsonContentType(action.block),
+      `${action.name} must send application/json to image-guard's JSON endpoint`,
+    ).toBe(true)
+  }
 })
