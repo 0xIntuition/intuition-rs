@@ -325,6 +325,9 @@ actions:
     definition:
       kind: synchronous
       handler: http://image-guard:3000/upload_image_from_url
+      headers:
+        - name: Content-Type
+          value: application/json
       request_transform:
         body:
           action: transform
