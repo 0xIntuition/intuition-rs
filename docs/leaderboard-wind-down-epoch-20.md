@@ -217,28 +217,41 @@ back, since a true revert to the pre-migration `settle_season2_epoch` has to
 restore its pre-migration body verbatim, bugs included (see `down.sql`'s own
 comments).
 
-A third thing surfaced while building the verification script itself, not
-the migration: `protocol_fee_accrued.epoch` turns out **not** to follow
-`season2_epoch`'s 8-30 calendar. It's a separate, far more finely grained,
-densely populated counter — real `intuition-testnet-next` data has rows for
-nearly every integer from 1 to 322+ as of 2026-09-10. This is why the
-verification script's synthetic fixture epochs are `-7` and `90000041`
-rather than small positive numbers like `7` and `41` (an earlier version
-used those and the byte-identical-fee assertion failed, correctly, because
-real `protocol_fee_accrued` rows at epoch 7 and 41 leaked into the totals).
-This is worth knowing about independently of this ticket: it means
-`settle_season2_epoch`'s fee INSERT (`WHERE pfa.epoch = p_epoch::NUMERIC`)
-has always been matching `protocol_fee_accrued` rows against a number that
-isn't actually a Season 2 epoch number in the sense `season2_epoch` defines
-it. Whether that's the intended design (`protocol_fee_accrued.epoch` means
-something else that was always meant to be compared directly, e.g. a raw
-on-chain epoch counter that happens to be fed the same integers) or a
-latent correctness bug in the fee IQ formula is a separate, substantive
-question this ticket did not investigate further and does not change —
-fixing or even fully diagnosing it would mean understanding what emits
-`protocol_fee_accrued` and what "epoch" is supposed to mean there, which is
-out of scope for a migration that only touches the leaderboard cutoff. Flagging
-it here so it isn't lost.
+A third thing surfaced while building the verification script, and it is
+worth stating precisely because the first reading of it was wrong.
+
+On `intuition-testnet-next`, `protocol_fee_accrued.epoch` spans 1 to 322
+(269 distinct values) and clearly does *not* line up with `season2_epoch`'s
+8-30 calendar. That initially looked like a latent correctness bug in the
+fee IQ formula.
+
+It is not. Checked against the environments that actually matter
+(2026-09-10):
+
+| Database | `protocol_fee_accrued.epoch` range | distinct | rows |
+| --- | --- | --- | --- |
+| `intuition-mainnet-nested-triples` | 0 - 22 | 23 | 363,172 |
+| `intuition-mainnet-next` | 0 - 22 | 23 | 363,180 |
+| `intuition-testnet-next` | 1 - 322 | 269 | 69,442 |
+
+On mainnet the counter runs 0-22, which matches the on-chain
+`TrustBonding.currentEpoch()` value of 22 read the same day. `season2_epoch`
+covers epochs 8-30 of that same on-chain sequence, so the fee INSERT's
+`WHERE pfa.epoch = p_epoch::NUMERIC` matches exactly the rows it should.
+**Fee IQ settlement is correct in production.**
+
+The 1-322 spread is a testnet-only artifact: the testnet chain cycles
+epochs far faster, so its on-chain epoch counter has run far past the
+Season 2 calendar that was designed around mainnet's 14-day cadence. The
+only consequence is for testing: synthetic fixture epochs on testnet must
+avoid colliding with real `protocol_fee_accrued` rows, which is why
+`scripts/season2_verify_leaderboard_cutoff.sql` uses `-7` and `90000041`
+rather than small positive integers like `7` and `41` (an earlier version
+used those, and the byte-identical-fee assertion failed correctly because
+real rows at those epochs leaked into the totals).
+
+No follow-up needed. Recorded here so the testnet spread isn't mistaken for
+a production bug the next time someone looks.
 
 ## Validation
 
@@ -248,3 +261,49 @@ selective (blocks leaderboard IQ, not fee IQ) rather than the function being
 broken. See the script header for the fixture design and
 `docs/leaderboard-wind-down-epoch-20.md`'s sibling migration for what it
 verifies against `intuition-testnet-next`.
+
+## End-to-end verification on real mainnet data
+
+The fixture-based script above proves the guard in isolation. This is the
+production-shaped proof: `up.sql` applied inside a transaction against
+`intuition-mainnet-nested-triples`, both epochs settled with **real** data,
+then rolled back (nothing persisted).
+
+| Epoch | fee entries | fee IQ | leaderboard entries | pnl IQ | roi IQ |
+| --- | --- | --- | --- | --- | --- |
+| **20** (<= cutoff) | 3,977 | 828,289 | **25 pnl + 25 roi** | 3,000,000 | 3,000,000 |
+| **21** (> cutoff) | 16,297 | 2,996,047 | **0** | 0 | 0 |
+
+Read together these are the two halves of the requirement:
+
+- Epoch 21 awards **fee IQ and only fee IQ** — requirement 2 holds past the
+  cutoff, and requirement 1 holds at the same time.
+- Epoch 20 still awards **the full 25-rank payout on both boards** — the
+  guard is selective, not a blanket off-switch. An implementation that
+  simply broke settlement would fail this row.
+
+Both epochs settling at all is also the proof that the two pre-existing bug
+fixes (changes 4 and 5) work: before them, `settle_season2_epoch` raised
+`42702 column reference "epoch" is ambiguous` on any epoch, and
+`42P07 relation "_tmp_active_accounts" already exists` on the second
+`get_pnl_leaderboard_period` call within one settlement. Both were confirmed
+against the deployed function before the fix.
+
+Total runtime for the epoch-20 case, including both leaderboard
+computations: ~27s.
+
+### Reversibility
+
+`up.sql` then `down.sql`, applied in one transaction against
+`intuition-testnet-next` and rolled back:
+
+| Stage | `season2_last_leaderboard_epoch` | `settle_season2_epoch` |
+| --- | --- | --- |
+| after `up.sql` | 1 (created) | 1 |
+| after `down.sql` | 0 (dropped) | 1 (restored) |
+
+After the down migration, `settle_season2_epoch(21)` raises
+`42702 column reference "epoch" is ambiguous` again — which is the intended
+outcome. `down.sql` restores the pre-migration function *verbatim*, including
+the two pre-existing bugs, because a rollback that quietly kept the fixes
+would not be a true revert. The bugs are the pre-migration state.
