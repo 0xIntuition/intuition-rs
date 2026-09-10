@@ -333,3 +333,64 @@ After the down migration, `settle_season2_epoch(21)` raises
 outcome. `down.sql` restores the pre-migration function *verbatim*, including
 the two pre-existing bugs, because a rollback that quietly kept the fixes
 would not be a true revert. The bugs are the pre-migration state.
+
+## The temp-table defect: fixed in the callee, in its own migration
+
+Review finding M1 was that the `42P07` temp-table collision was worked around
+in the caller (`settle_season2_epoch`) while the defect actually lives in
+`get_pnl_leaderboard_period`, which carried an undocumented "call me at most
+once per transaction" contract.
+
+That is now fixed properly, in
+`1771526445000_fix_pnl_leaderboard_period_temp_tables` — a **separate**
+migration, deliberately not folded into the wind-down.
+
+### Why a separate migration
+
+Postgres cannot prepend to a function body; `CREATE OR REPLACE` requires
+restating the whole thing. `get_pnl_leaderboard_period` is **637 lines**, and
+has been redefined **28 times** across the migration history — it is a hot,
+actively-maintained function owned by whoever works on PnL.
+
+Folding it in would have taken the wind-down migration from 768 lines to
+roughly 2,040, and pinned a verbatim snapshot of somebody else's evolving code
+path inside a leaderboard wind-down. Keeping it separate means it can be
+reviewed, approved and reverted on its own terms.
+
+### Why 1771526444000 keeps its caller-side DROPs
+
+They become redundant once this migration is applied, but they are idempotent
+no-ops, and keeping them means **this migration can be reverted without
+breaking settlement**. That independence is the whole point of splitting it
+out.
+
+### Fidelity
+
+`down.sql`'s function body is byte-identical to the source definition in
+`1771526443000_fix_unrealized_pnl_pre_epoch_redemptions` (verified by `diff`).
+`up.sql` differs from it by exactly **20 added lines and 0 removed lines** —
+the `DROP TABLE IF EXISTS` block and its explanatory comment. The
+`COMMENT ON FUNCTION` is byte-verbatim in both directions.
+
+### Verification
+
+`scripts/season2_verify_leaderboard_period_temp_tables.sql`, run inside
+`BEGIN;`/`ROLLBACK;` against both portal databases:
+
+| Database | three calls in one transaction | same-argument calls agree |
+| --- | --- | --- |
+| `intuition-testnet-next` | 0, 0, 0 rows | yes |
+| `intuition-mainnet-nested-triples` | 25, 25, 25 rows | yes |
+
+Three calls rather than two: the second proves the fix, the third proves it is
+not a one-shot. The assertion compares the two same-argument calls against each
+other rather than pinning an absolute row count, since counts reflect live PnL
+activity — but "no error raised" alone would be satisfied by a function that
+returned nothing, so the agreement check is what makes it a real test.
+
+Before the fix, the second call raised
+`42P07 relation "_tmp_active_accounts" already exists` — reproduced against the
+deployed function.
+
+`scripts/season2_check_verify_script_sync.sh` covers this migration's embedded
+copy too, and was negative-tested: injected drift correctly exits non-zero.
