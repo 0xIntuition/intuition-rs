@@ -106,19 +106,45 @@ RETURNS TABLE (
 -- GWTH-4354: pre-existing bug fix, unrelated to the leaderboard cutoff.
 -- This RETURNS TABLE's first OUT column is named `epoch`, which shadows
 -- the `epoch` column of `season2_epoch_price` and `season2_iq_ledger`
--- inside every `ON CONFLICT (epoch, ...)` clause below, making Postgres
--- raise "column reference \"epoch\" is ambiguous". This was never caught
--- because settle_season2_epoch has never been successfully run in any
--- environment (season2_iq_ledger is empty and settled_at is NULL for
--- every epoch everywhere, verified 2026-09-10) — see
--- docs/leaderboard-wind-down-epoch-20.md for how this was found (this
--- migration's own verification script, scripts/season2_verify_leaderboard_cutoff.sql,
--- failed against the unpatched body on first run). `use_column` makes
--- plpgsql prefer the column interpretation for every such ambiguity in
--- this function; the function already never references its OUT columns
--- by their bare names as variables (it consistently uses v_-prefixed
--- locals and p_-prefixed params instead), so this cannot change any
--- other behaviour.
+-- everywhere a bare `epoch` reference appears in a DML statement below,
+-- making Postgres raise "column reference \"epoch\" is ambiguous". There
+-- are FIVE such sites, not four: the `ON CONFLICT (epoch)` clause in the
+-- season2_epoch_price upsert, the three `ON CONFLICT (epoch, entry_type,
+-- source_id)` clauses in the season2_iq_ledger inserts (fee, pnl, roi) —
+-- and a fifth that is easy to miss because it is not an ON CONFLICT
+-- clause at all: `DELETE FROM season2_iq_ledger WHERE epoch = p_epoch`
+-- inside the `IF p_force THEN` branch a few lines below. That fifth site
+-- is exactly as ambiguous as the other four, but it never surfaced during
+-- development because p_force has never been exercised — every
+-- verification and live call so far used p_force = FALSE (see
+-- scripts/season2_verify_leaderboard_cutoff.sql's p_force test, added to
+-- cover this). This was never caught because settle_season2_epoch has
+-- never been successfully run in any environment (season2_iq_ledger is
+-- empty and settled_at is NULL for every epoch everywhere, verified
+-- 2026-09-10) — see docs/leaderboard-wind-down-epoch-20.md for how this
+-- was found (this migration's own verification script,
+-- scripts/season2_verify_leaderboard_cutoff.sql, failed against the
+-- unpatched body on first run). `use_column` makes plpgsql prefer the
+-- column interpretation for every such ambiguity in this function; the
+-- function already never references its OUT columns by their bare names
+-- as variables (it consistently uses v_-prefixed locals and p_-prefixed
+-- params instead), so this cannot change any other behaviour.
+--
+-- CAUTION for future edits: `#variable_conflict use_column` disables
+-- Postgres's 42702 ambiguity detection for every bare identifier in THIS
+-- ENTIRE FUNCTION, not just the five sites above — it is a function-wide
+-- pragma, not a per-statement one. If a future edit adds a bare
+-- reference that collides with a column name but actually intends the
+-- VARIABLE (not the column), it will silently resolve to the column
+-- instead of raising 42702 — a correctness bug with no warning at
+-- CREATE FUNCTION time or at call time. If this function is revisited,
+-- prefer a more surgical fix over relying further on this function-wide
+-- pragma: `ON CONFLICT ON CONSTRAINT <constraint_name>` (e.g.
+-- `season2_iq_ledger_epoch_entry_source_unique` for the ledger inserts,
+-- `season2_epoch_price_pkey` for the price upsert) resolves each site's
+-- ambiguity individually, by naming the constraint instead of the column
+-- list, without touching the function's global identifier resolution
+-- rule.
 DECLARE
   v_start_at TIMESTAMPTZ;
   v_end_at TIMESTAMPTZ;

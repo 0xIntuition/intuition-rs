@@ -297,3 +297,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 DROP FUNCTION IF EXISTS season2_last_leaderboard_epoch();
+
+DO $$ BEGIN
+  RAISE WARNING 'GWTH-4354 rollback: settle_season2_epoch restored to its pre-migration body, which cannot successfully settle ANY epoch (ON CONFLICT "epoch" ambiguity + get_pnl_leaderboard_period temp-table collision). See down.sql header.';
+END $$;

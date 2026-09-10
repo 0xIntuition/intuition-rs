@@ -176,19 +176,41 @@ been successfully run anywhere (see the evidence table above). Between them,
 the original, unpatched function could never successfully settle any epoch at
 all, for any reason, ever — not just epoch 21+.
 
-1. **`ON CONFLICT (epoch, ...)` is ambiguous.** `settle_season2_epoch`'s
-   `RETURNS TABLE` declares its first OUT column as `epoch`, which PL/pgSQL
-   treats as an implicit variable in scope for the whole function body. Every
-   `ON CONFLICT (epoch, ...)` clause in the function (there are four: one in
-   the `season2_epoch_price` upsert, three in the `season2_iq_ledger`
-   inserts) then has a genuine ambiguity — Postgres can't tell whether
-   `epoch` means the OUT variable or the table column — and raises `column
-   reference "epoch" is ambiguous`. Fix: `#variable_conflict use_column` at
-   the top of the function body, which tells PL/pgSQL to prefer the column
-   interpretation everywhere in the function. Safe here because the function
-   never intentionally references its OUT columns by their bare names (it
+1. **A bare `epoch` reference is ambiguous — at FIVE sites, not four.**
+   `settle_season2_epoch`'s `RETURNS TABLE` declares its first OUT column as
+   `epoch`, which PL/pgSQL treats as an implicit variable in scope for the
+   whole function body. Every bare `epoch` reference in a DML statement
+   below then has a genuine ambiguity — Postgres can't tell whether `epoch`
+   means the OUT variable or the table column — and raises `column
+   reference "epoch" is ambiguous`. There are five such sites: the
+   `ON CONFLICT (epoch)` clause in the `season2_epoch_price` upsert, the
+   three `ON CONFLICT (epoch, entry_type, source_id)` clauses in the
+   `season2_iq_ledger` inserts (fee, pnl, roi) — and a fifth that is easy to
+   miss because it isn't an `ON CONFLICT` clause at all:
+   `DELETE FROM season2_iq_ledger WHERE epoch = p_epoch` inside the
+   `IF p_force THEN` branch. That fifth site is exactly as ambiguous as the
+   other four, but it never surfaced during development (an earlier draft of
+   this writeup also undercounted it as four) because `p_force` has never
+   been exercised — every verification and live call so far used
+   `p_force = FALSE`. Fix: `#variable_conflict use_column` at the top of the
+   function body, which tells PL/pgSQL to prefer the column interpretation
+   everywhere in the function. Safe here because the function never
+   intentionally references its OUT columns by their bare names (it
    consistently uses `v_`-prefixed locals and `p_`-prefixed parameters
    instead).
+
+   **Caution for future edits:** `#variable_conflict use_column` disables
+   Postgres's `42702` ambiguity detection for every bare identifier in the
+   *entire* function, not just these five sites — it's a function-wide
+   pragma, not a per-statement one. If a future edit adds a bare reference
+   that collides with a column name but actually intends the *variable*, it
+   will silently resolve to the column instead of raising an error, with no
+   warning at `CREATE FUNCTION` time or at call time. If this function is
+   revisited, prefer `ON CONFLICT ON CONSTRAINT <constraint_name>` (e.g.
+   `season2_iq_ledger_epoch_entry_source_unique`, `season2_epoch_price_pkey`)
+   over broadening reliance on this pragma — it resolves each site's
+   ambiguity individually, by naming the constraint instead of the column
+   list, without touching the function's global identifier resolution rule.
 2. **`get_pnl_leaderboard_period`'s temp tables collide on a second call
    in the same transaction.** That function creates seven `ON COMMIT DROP`
    temp tables (`_tmp_active_accounts`, `_tmp_position_data`,
@@ -290,7 +312,11 @@ fixes (changes 4 and 5) work: before them, `settle_season2_epoch` raised
 against the deployed function before the fix.
 
 Total runtime for the epoch-20 case, including both leaderboard
-computations: ~27s.
+computations: ~27s. For comparison, `settle_season2_epoch(21)` — past the
+cutoff, so both `get_pnl_leaderboard_period` calls are skipped — took a
+measured **479 ms** on the same environment
+(`intuition-mainnet-nested-triples`): roughly a **56x** reduction, entirely
+attributable to skipping the two leaderboard computations.
 
 ### Reversibility
 
