@@ -20,7 +20,7 @@ use models::{
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use std::str::FromStr;
-use tracing::debug;
+use tracing::{debug, warn};
 /// Represents the metadata for an atom
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AtomMetadata {
@@ -146,7 +146,10 @@ impl AtomMetadata {
                 Ok(())
             }
             AtomType::Caip22 => {
-                debug!("Enqueuing CAIP-22 for resolution: {}", atom.data.clone().unwrap());
+                debug!(
+                    "Enqueuing CAIP-22 for resolution: {}",
+                    atom.data.clone().unwrap()
+                );
                 // Now that the atom type is saved to the database, we can safely
                 // enqueue the message for resolution. The resolver consumer will
                 // see the correct atom type and route to process_caip22_atom.
@@ -340,7 +343,19 @@ impl AtomMetadata {
         atom.atom_type = AtomType::from_str(&self.atom_type)?;
         atom.label = Some(self.label.clone());
         atom.image = self.image.clone();
-        atom.upsert(backend_schema, pg_pool).await?;
+        // Targeted update of the resolver-owned columns only (type, emoji, label, image,
+        // resolving_status). A full-row upsert here is what allowed a stale in-memory copy
+        // to overwrite another consumer's work.
+        let updated = atom.update_metadata(backend_schema, pg_pool).await?;
+        if updated == 0 {
+            // Both consumers read or create the row before reaching this point, so this
+            // should not happen; never silently drop the metadata if it does.
+            warn!(
+                "Atom {} not found while updating metadata, upserting it instead",
+                atom.term_id
+            );
+            atom.upsert(backend_schema, pg_pool).await?;
+        }
         Ok(AtomMetadata {
             label: self.label.clone(),
             emoji: self.emoji.clone(),
@@ -601,6 +616,50 @@ pub fn is_valid_caip10(caip10: &str) -> Result<bool, ConsumerError> {
     Ok(true)
 }
 
+/// How the decoded consumer should treat a freshly created atom, based purely on its
+/// (decoded) `data` string.
+#[derive(Debug, Clone, PartialEq)]
+pub enum AtomDataKind {
+    /// A schema.org URL (`https://schema.org/Person`, ...). Mapped directly to a
+    /// predicate; no resolver round trip needed.
+    SchemaOrgPredicate(String),
+    /// An EIP-55 checksummed address. Mapped directly to an account.
+    Address,
+    /// A CAIP-10 account identifier. Mapped directly to a `caip10` row.
+    Caip10,
+    /// A CAIP-22 NFT identifier. Needs the resolver (tokenURI fetch). The message is
+    /// enqueued by [`AtomMetadata::handle_account_or_caip10_type`] once the atom type
+    /// has been persisted.
+    Caip22,
+    /// Anything else (IPFS URI, inline JSON, plain text). Needs the resolver.
+    RequiresResolver,
+}
+
+impl AtomDataKind {
+    /// Whether the decoded consumer must enqueue a resolver message for this atom
+    /// **after** it has finished writing the atom row.
+    pub fn needs_resolver(&self) -> bool {
+        matches!(self, AtomDataKind::RequiresResolver)
+    }
+}
+
+/// Classifies atom data. Pure: no I/O, no DB access.
+pub async fn classify_atom_data(data: &str) -> Result<AtomDataKind, ConsumerError> {
+    if let Some(schema_org_url) = try_to_resolve_schema_org_url(data).await? {
+        return Ok(AtomDataKind::SchemaOrgPredicate(schema_org_url));
+    }
+    if is_valid_address(data)? {
+        return Ok(AtomDataKind::Address);
+    }
+    if is_valid_caip10(data)? {
+        return Ok(AtomDataKind::Caip10);
+    }
+    if is_valid_caip22(data)? {
+        return Ok(AtomDataKind::Caip22);
+    }
+    Ok(AtomDataKind::RequiresResolver)
+}
+
 /// Gets the metadata for a supported atom type based on the atom data.
 /// So when we receive the the atom data, there are some situations
 /// we need to handle:
@@ -613,78 +672,61 @@ pub fn is_valid_caip10(caip10: &str) -> Result<bool, ConsumerError> {
 /// 3. The atom data is a CAIP10. This is also one of the "happy paths",
 ///    since we can directly map it to an account and dont need to resolve
 ///    anything.
-/// 4. The atom data is an IPFS URI. We need to fetch the data from IPFS
-///    and then resolve it. Keep in mind that if we are parsing an IPFS URI,
-///    we need to fetch the data from IPFS and then parse it as JSON.
-/// 5. The atom data is a JSON object. We need to resolve the properties
-///    of the JSON object and then map it to an atom.
+/// 4. The atom data is a CAIP-22. The resolver fetches the tokenURI; the message is
+///    enqueued once the atom type is persisted.
+/// 5. Anything else (IPFS URI, JSON object, plain text). We store what we can parse
+///    inline and leave the rest to the resolver.
+///
+/// This function performs **no** resolver enqueueing. The decoded consumer must
+/// enqueue only after its *last* write to the atom row, otherwise a fast resolver has
+/// its label/type overwritten by the decoded consumer's stale in-memory copy
+/// (`docs/atom-resolver-race-investigation-2026-09-14.md`). Use
+/// [`AtomDataKind::needs_resolver`] to decide whether to enqueue.
 pub async fn get_supported_atom_metadata(
+    kind: &AtomDataKind,
     atom: &mut Atom,
     decoded_consumer_context: &DecodedConsumerContext,
 ) -> Result<AtomMetadata, ConsumerError> {
-    // 1. Handling the happy path (schema.org URL, predicate)
-    if let Some(schema_org_url) =
-        try_to_resolve_schema_org_url(&atom.data.clone().ok_or(ConsumerError::AtomDataNotFound)?)
-            .await?
-    {
-        debug!("Schema.org URL found, returning predicate metadata...");
-        // As we dont need to resolve anything, we can mark the atom as resolved
-        atom.resolving_status = AtomResolvingStatus::Resolved;
-        return Ok(get_predicate_metadata(schema_org_url, atom.image.clone()));
-    } else {
-        debug!("No schema.org URL found, verifying if atom data is an address...");
-    }
-
-    // 2. Handling the happy path (address)
-    if is_valid_address(&atom.data.clone().ok_or(ConsumerError::AtomDataNotFound)?)? {
-        debug!("Atom data is an address, returning account metadata...");
-        // As we dont need to resolve anything, we can mark the atom as resolved
-        atom.resolving_status = AtomResolvingStatus::Resolved;
-        Ok(AtomMetadata::address(
-            &atom.data.clone().ok_or(ConsumerError::AtomDataNotFound)?,
-            atom.image.clone(),
-        ))
-    // 3. Handling the happy path (CAIP10)
-    } else if is_valid_caip10(&atom.data.clone().ok_or(ConsumerError::AtomDataNotFound)?)? {
-        debug!("Atom data is a CAIP10, returning account metadata...");
-        // As we dont need to resolve anything, we can mark the atom as resolved
-        atom.resolving_status = AtomResolvingStatus::Resolved;
-        Ok(AtomMetadata::caip10(
-            atom.data.clone().ok_or(ConsumerError::AtomDataNotFound)?,
-        ))
-    // 4. Handling CAIP-22 (NFT asset identifier - requires resolution)
-    } else if is_valid_caip22(&atom.data.clone().ok_or(ConsumerError::AtomDataNotFound)?)? {
-        debug!("Atom data is a CAIP-22, will be enqueued for resolution after atom type is saved...");
-        // Mark as pending since we need to resolve the tokenURI
-        atom.resolving_status = AtomResolvingStatus::Pending;
-
-        // NOTE: We do NOT send the message here because the atom type needs to be
-        // saved to the database first. The message will be sent in handle_caip22_type()
-        // which is called after update_atom_metadata() saves the atom type.
-
-        // Parse the CAIP-22 to extract token_id for fallback label
-        let parsed = parse_caip22(&atom.data.clone().unwrap())?;
-        Ok(AtomMetadata::caip22(None, None, Some(parsed.token_id)))
-    } else {
-        debug!("Atom data is not an address or CAIP, verifying if it's an IPFS URI...");
-        // 5. Now we need to enqueue the message to be processed by the resolver
-        let message = ResolverConsumerMessage::new_atom(atom.term_id.0.to_string());
-        decoded_consumer_context
-            .client
-            .send_message(serde_json::to_string(&message)?, None)
-            .await?;
-
-        // 5. Now we try to parse the JSON and return the metadata. At this point
-        // the resolver will handle the rest of the cases, like text object,
-        // byte object, etc.
-        let metadata = try_to_parse_json_or_text(
-            &atom.data.clone().ok_or(ConsumerError::AtomDataNotFound)?,
-            atom,
-            decoded_consumer_context,
-        )
-        .await?;
-
-        Ok(metadata)
+    let data = atom.data.clone().ok_or(ConsumerError::AtomDataNotFound)?;
+    match kind {
+        AtomDataKind::SchemaOrgPredicate(schema_org_url) => {
+            debug!("Schema.org URL found, returning predicate metadata...");
+            // As we dont need to resolve anything, we can mark the atom as resolved
+            atom.resolving_status = AtomResolvingStatus::Resolved;
+            Ok(get_predicate_metadata(
+                schema_org_url.clone(),
+                atom.image.clone(),
+            ))
+        }
+        AtomDataKind::Address => {
+            debug!("Atom data is an address, returning account metadata...");
+            // As we dont need to resolve anything, we can mark the atom as resolved
+            atom.resolving_status = AtomResolvingStatus::Resolved;
+            Ok(AtomMetadata::address(&data, atom.image.clone()))
+        }
+        AtomDataKind::Caip10 => {
+            debug!("Atom data is a CAIP10, returning account metadata...");
+            // As we dont need to resolve anything, we can mark the atom as resolved
+            atom.resolving_status = AtomResolvingStatus::Resolved;
+            Ok(AtomMetadata::caip10(data))
+        }
+        AtomDataKind::Caip22 => {
+            debug!(
+                "Atom data is a CAIP-22, will be enqueued for resolution after atom type is saved..."
+            );
+            // Mark as pending since we need to resolve the tokenURI
+            atom.resolving_status = AtomResolvingStatus::Pending;
+            // Parse the CAIP-22 to extract token_id for fallback label
+            let parsed = parse_caip22(&data)?;
+            Ok(AtomMetadata::caip22(None, None, Some(parsed.token_id)))
+        }
+        AtomDataKind::RequiresResolver => {
+            debug!("Atom data needs the resolver, storing what can be parsed inline...");
+            // We try to parse the JSON and return the metadata. The resolver will handle
+            // the rest of the cases (IPFS, text object, byte object, ...) and mark the atom
+            // as resolved.
+            try_to_parse_json_or_text(&data, atom, decoded_consumer_context).await
+        }
     }
 }
 
@@ -707,6 +749,63 @@ pub fn get_predicate_metadata(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn classify_atom_data_routes_each_shape() -> Result<(), ConsumerError> {
+        assert_eq!(
+            classify_atom_data("https://schema.org/Person").await?,
+            AtomDataKind::SchemaOrgPredicate("Person".to_string())
+        );
+        assert_eq!(
+            classify_atom_data("http://schema.org/Thing").await?,
+            AtomDataKind::SchemaOrgPredicate("Thing".to_string())
+        );
+        assert_eq!(
+            classify_atom_data("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045").await?,
+            AtomDataKind::Address
+        );
+        assert_eq!(
+            classify_atom_data("caip10:eip155:8453:0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045")
+                .await?,
+            AtomDataKind::Caip10
+        );
+        assert_eq!(
+            classify_atom_data(
+                "caip22:eip155:1/erc721:0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D/1234"
+            )
+            .await?,
+            AtomDataKind::Caip22
+        );
+        for data in [
+            "ipfs://bafkreig776gq7wghyhpqfvpbijsh43tez4rwbr76y2t2co4ebajt6sajlu",
+            r#"{"@context":"https://schema.org","@type":"Thing","name":"Privacy Stance"}"#,
+            "plain text",
+            "https://x.com/supabase",
+            // not EIP-55 checksummed: treated as text, exactly like before
+            "0xd8da6bf26964af9d7eed9e03e53415d37aa96045",
+        ] {
+            assert_eq!(
+                classify_atom_data(data).await?,
+                AtomDataKind::RequiresResolver,
+                "{data}"
+            );
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn only_generic_data_needs_the_resolver_enqueued_by_the_handler() {
+        assert!(AtomDataKind::RequiresResolver.needs_resolver());
+        for kind in [
+            AtomDataKind::SchemaOrgPredicate("Person".to_string()),
+            AtomDataKind::Address,
+            AtomDataKind::Caip10,
+            // CAIP-22 is enqueued by `handle_account_or_caip10_type` instead.
+            AtomDataKind::Caip22,
+        ] {
+            assert!(!kind.needs_resolver(), "{kind:?}");
+        }
+    }
 
     #[test]
     fn test_is_valid_caip22() -> Result<(), ConsumerError> {
@@ -939,11 +1038,7 @@ mod tests {
         assert_eq!(metadata_with_name.atom_type, "Caip22");
 
         // When name is None but token_id is provided, use token_id as fallback
-        let metadata_with_token_id = AtomMetadata::caip22(
-            None,
-            None,
-            Some("3265".to_string()),
-        );
+        let metadata_with_token_id = AtomMetadata::caip22(None, None, Some("3265".to_string()));
         assert_eq!(metadata_with_token_id.label, "3265");
         assert_eq!(metadata_with_token_id.atom_type, "Caip22");
 
@@ -956,7 +1051,10 @@ mod tests {
         let metadata_large_token = AtomMetadata::caip22(
             None,
             None,
-            Some("115792089237316195423570985008687907853269984665640564039457584007913129639935".to_string()),
+            Some(
+                "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+                    .to_string(),
+            ),
         );
         assert_eq!(
             metadata_large_token.label,

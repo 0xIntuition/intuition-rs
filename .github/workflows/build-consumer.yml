@@ -1,0 +1,107 @@
+name: Build consumer image
+
+# Builds and publishes ghcr.io/0xintuition/consumer:<version> as a multi-arch image.
+# Each platform is built natively on a GitHub-hosted runner of that architecture and
+# pushed by digest; a final job merges the digests into the versioned tag.
+#
+# Usage: gh workflow run build-consumer.yml --ref v2_0 -f version=3.0.70
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Image tag to publish (e.g. 3.0.70)"
+        required: true
+        type: string
+      also_latest:
+        description: "Also move the :latest tag"
+        required: false
+        type: boolean
+        default: false
+
+env:
+  IMAGE: ghcr.io/0xintuition/consumer
+
+jobs:
+  build:
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      packages: write
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Platform slug
+        id: slug
+        run: echo "value=${{ matrix.platform }}" | tr '/' '-' >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push by digest
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/consumer/Dockerfile
+          platforms: ${{ matrix.platform }}
+          outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=consumer-${{ steps.slug.outputs.value }}
+          cache-to: type=gha,mode=max,scope=consumer-${{ steps.slug.outputs.value }}
+
+      - name: Export digest
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ steps.slug.outputs.value }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create multi-arch tag
+        working-directory: /tmp/digests
+        run: |
+          tags="-t ${IMAGE}:${{ inputs.version }}"
+          if [ "${{ inputs.also_latest }}" = "true" ]; then tags="$tags -t ${IMAGE}:latest"; fi
+          docker buildx imagetools create $tags $(printf "${IMAGE}@sha256:%s " *)
+
+      - name: Verify
+        run: docker buildx imagetools inspect "${IMAGE}:${{ inputs.version }}"
