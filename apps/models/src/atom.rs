@@ -61,6 +61,19 @@ pub enum AtomType {
     Unknown,
 }
 
+/// Selection thresholds for [`Atom::find_stale_for_resolution`].
+#[derive(Debug, Clone, PartialEq)]
+pub struct StaleResolutionParams {
+    /// `Pending` atoms untouched for at least this long are re-processed.
+    pub pending_min_age_secs: i64,
+    /// `Failed` atoms are only retried while younger than this window.
+    pub failed_retry_window_hours: i64,
+    /// `Failed` atoms are retried at most once per this interval.
+    pub failed_min_age_secs: i64,
+    /// Max rows returned per call.
+    pub limit: i64,
+}
+
 /// This is a trait that all models must implement.
 impl Model for Atom {}
 
@@ -248,6 +261,99 @@ impl Atom {
             .await
             .map_err(ModelError::from)
             .map(|_| ())
+    }
+
+    /// Writes only the resolver-owned columns (`type`, `emoji`, `label`, `image`,
+    /// `resolving_status`) in a single statement.
+    ///
+    /// Both the decoded consumer (initial classification) and the resolver consumer
+    /// (after fetching IPFS / parsing JSON) update these columns. A targeted `UPDATE`
+    /// instead of a full-row upsert means a concurrent writer can never resurrect stale
+    /// values for columns it does not own, and the status flips in the same statement
+    /// as the label/type, so there is no window where an atom is `Resolved` while its
+    /// metadata is still `Unknown` (see
+    /// `docs/atom-resolver-race-investigation-2026-09-14.md`).
+    ///
+    /// Returns the number of rows updated (`0` when the atom does not exist).
+    pub async fn update_metadata<'e, E>(&self, schema: &str, executor: E) -> Result<u64, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
+        let query = format!(
+            r#"
+            UPDATE {0}.atom
+            SET type = $2::text::{0}.atom_type,
+                emoji = $3,
+                label = $4,
+                image = $5,
+                resolving_status = $6::text::{0}.atom_resolving_status
+            WHERE term_id = $1
+            "#,
+            schema
+        );
+
+        sqlx::query(&query)
+            .bind(self.term_id.clone())
+            .bind(self.atom_type.to_string())
+            .bind(self.emoji.clone())
+            .bind(self.label.clone())
+            .bind(self.image.clone())
+            .bind(self.resolving_status.to_string())
+            .execute(executor)
+            .await
+            .map(|result| result.rows_affected())
+            .map_err(ModelError::from)
+    }
+
+    /// Finds atoms whose resolution never converged and that the resolver should
+    /// (re)process:
+    ///
+    /// * `Pending` atoms untouched for `pending_min_age_secs` (resolver message lost, or
+    ///   a stale write clobbered the final status);
+    /// * `Resolved` atoms whose type is still `Unknown` (metadata clobbered after the
+    ///   resolver wrote it);
+    /// * `Failed` atoms created within `failed_retry_window_hours` whose last attempt is
+    ///   older than `failed_min_age_secs` (e.g. IPFS content that had not propagated yet
+    ///   when the first attempt ran). Retries stop once the window has passed.
+    ///
+    /// Atoms without decodable `data` are skipped: there is nothing to resolve.
+    /// Newest atoms first, so user-visible rows are repaired before old backlog.
+    pub async fn find_stale_for_resolution<'e, E>(
+        schema: &str,
+        params: &StaleResolutionParams,
+        executor: E,
+    ) -> Result<Vec<FixedBytesWrapper>, ModelError>
+    where
+        E: Executor<'e, Database = Postgres>,
+    {
+        let query = format!(
+            r#"
+            SELECT term_id
+            FROM {0}.atom
+            WHERE data IS NOT NULL
+              AND data <> ''
+              AND (
+                (resolving_status = 'Pending'
+                    AND updated_at < now() - make_interval(secs => $1))
+                OR (resolving_status = 'Resolved' AND type = 'Unknown')
+                OR (resolving_status = 'Failed'
+                    AND created_at > now() - make_interval(hours => $2)
+                    AND updated_at < now() - make_interval(secs => $3))
+              )
+            ORDER BY created_at DESC
+            LIMIT $4
+            "#,
+            schema
+        );
+
+        sqlx::query_scalar::<_, FixedBytesWrapper>(&query)
+            .bind(params.pending_min_age_secs as f64)
+            .bind(params.failed_retry_window_hours as i32)
+            .bind(params.failed_min_age_secs as f64)
+            .bind(params.limit)
+            .fetch_all(executor)
+            .await
+            .map_err(ModelError::from)
     }
 
     /// Returns the updated_at field for an atom given its term_id

@@ -42,6 +42,12 @@ pub struct Env {
     pub redis_url: Option<String>,
     pub threads: Option<usize>,
     pub log_level: Option<String>,
+    /// Seconds between resolver backfill sweeps. `0` disables the sweep. Default: 300.
+    pub resolver_backfill_interval_secs: Option<u64>,
+    /// Max atoms re-processed per backfill sweep. Default: 200.
+    pub resolver_backfill_batch_size: Option<i64>,
+    /// Atoms resolved concurrently inside one backfill sweep. Default: 4.
+    pub resolver_backfill_concurrency: Option<usize>,
     // RPC URLs for CAIP-22 multi-chain resolution
     pub linea_mainnet_rpc_url: Option<String>,
     pub linea_sepolia_rpc_url: Option<String>,

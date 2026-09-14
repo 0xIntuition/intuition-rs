@@ -17,7 +17,7 @@ use crate::{
 use alloy::primitives::Address;
 use models::{
     account::Account,
-    atom::{Atom, AtomType},
+    atom::{Atom, AtomResolvingStatus, AtomType},
     traits::SimpleCrud,
     types::FixedBytesWrapper,
 };
@@ -105,8 +105,11 @@ impl ResolverMessageType {
         // Resolve the CAIP-22 (parses from atom.data, fetches tokenURI, stores as json_object)
         let metadata = resolve_caip22(atom, resolver_consumer_context).await?;
 
-        // Update atom with resolved metadata (label, image, atom_type)
+        // Update atom with resolved metadata (label, image, atom_type) and flip the
+        // status in the same statement, so there is no window where the atom is
+        // `Resolved` with stale metadata.
         let mut atom = atom.clone();
+        atom.resolving_status = AtomResolvingStatus::Resolved;
         metadata
             .update_atom_metadata(
                 &mut atom,
@@ -114,13 +117,6 @@ impl ResolverMessageType {
                 resolver_consumer_context.pool(),
             )
             .await?;
-
-        // Mark as resolved
-        atom.mark_as_resolved(
-            resolver_consumer_context.backend_schema(),
-            resolver_consumer_context.pool(),
-        )
-        .await?;
 
         debug!("Successfully resolved CAIP-22 atom: {:?}", atom);
         Ok(())
@@ -338,19 +334,16 @@ impl ResolverMessageType {
             .find_and_update_atom(resolver_consumer_context, atom_id, metadata)
             .await?;
 
-        if let Some(image) = atom.image.clone() {
-            self.handle_atom_image(resolver_consumer_context, image)
+        // schema.org objects without an image come through as `"image": ""`; do not
+        // send an empty upload request to the IPFS upload consumer for those.
+        if let Some(image) = atom
+            .image
+            .as_deref()
+            .filter(|image| !image.trim().is_empty())
+        {
+            self.handle_atom_image(resolver_consumer_context, image.to_string())
                 .await?;
         }
-
-        atom.mark_as_resolved(
-            &resolver_consumer_context
-                .server_initialize
-                .env
-                .backend_schema,
-            &resolver_consumer_context.pg_pool,
-        )
-        .await?;
 
         debug!("Updated atom metadata: {atom:?}");
         Ok(())
@@ -374,6 +367,11 @@ impl ResolverMessageType {
         .await?
         .ok_or(ConsumerError::AtomNotFound)?;
 
+        // The metadata and the `Resolved` status are written in ONE statement
+        // (`Atom::update_metadata`). A separate status-only update after the metadata
+        // write is exactly what let a concurrent stale write leave atoms `Resolved`
+        // with `Unknown` type/label.
+        atom.resolving_status = AtomResolvingStatus::Resolved;
         metadata
             .update_atom_metadata(
                 &mut atom,
@@ -462,7 +460,8 @@ impl ResolverMessageType {
         .ok_or(ConsumerError::AtomNotFound)?;
         atom.label = ens.name;
         atom.image = ens.image;
-        atom.upsert(backend_schema, &resolver_consumer_context.pg_pool)
+        // Only touch the metadata columns; never re-write the whole row from a copy.
+        atom.update_metadata(backend_schema, &resolver_consumer_context.pg_pool)
             .await?;
         Ok(())
     }

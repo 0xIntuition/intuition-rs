@@ -408,17 +408,11 @@ impl ConsumerMode {
             .env
             .universal_resolver_address
             .clone()
-            .unwrap_or_else(|| {
-                "0xeeeeeeee14d718c2b47d9923deab1335e144eeee".to_string()
-            });
-        let ur_provider = DynProvider::new(
-            ProviderBuilder::new().connect_http(rpc_url.parse()?),
-        );
+            .unwrap_or_else(|| "0xeeeeeeee14d718c2b47d9923deab1335e144eeee".to_string());
+        let ur_provider = DynProvider::new(ProviderBuilder::new().connect_http(rpc_url.parse()?));
         let ur_address = Address::from_str(&ur_address_str)
             .map_err(|e| ConsumerError::AddressParse(e.to_string()))?;
-        let universal_resolver = Arc::new(
-            crate::UniversalResolver::new(ur_address, ur_provider),
-        );
+        let universal_resolver = Arc::new(crate::UniversalResolver::new(ur_address, ur_provider));
 
         let client = Self::build_client(
             data.clone(),
@@ -502,6 +496,9 @@ impl ConsumerMode {
                     .await
             }
             ConsumerMode::Resolver(resolver_consumer_context) => {
+                // Periodic safety net: re-process atoms whose resolution did not converge
+                // (lost messages, clobbered writes, IPFS content that was not yet pinned).
+                super::resolver::backfill::spawn((**resolver_consumer_context).clone());
                 resolver_consumer_context
                     .client
                     .process_messages(self.clone())
