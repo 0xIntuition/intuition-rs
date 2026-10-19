@@ -3,6 +3,7 @@ use axum::{
     http::{Response, StatusCode},
     response::IntoResponse,
 };
+use log::{error, warn};
 use thiserror::Error;
 
 /// This enum represents the error types of our application.
@@ -17,6 +18,8 @@ pub enum ApiError {
     Env(#[from] envy::Error),
     #[error("External service error: {0}")]
     ExternalService(String),
+    #[error("Too many concurrent requests")]
+    Busy,
     #[error(transparent)]
     Axum(#[from] axum::Error),
     #[error("HF token is not set")]
@@ -39,8 +42,193 @@ pub enum ApiError {
     LocalWithClassificationAndDbOnly,
 }
 
+/// Generic client-facing messages. These are the ONLY texts a client ever sees;
+/// the detailed error (URLs, resolved IPs, sqlx/reqwest/IPFS internals) is logged
+/// server side.
+pub const MSG_INVALID_REQUEST: &str = "invalid request";
+pub const MSG_PAYLOAD_TOO_LARGE: &str = "payload too large";
+/// The image origin could not be fetched (user-supplied URL).
+pub const MSG_FETCH_FAILED: &str = "upstream fetch failed";
+/// A backing service we call (IPFS, Pinata, ...) failed.
+pub const MSG_UPSTREAM_FAILED: &str = "upstream request failed";
+pub const MSG_BUSY: &str = "service busy";
+pub const MSG_INTERNAL: &str = "internal error";
+
+impl ApiError {
+    /// Maps the error to the status code and generic message sent to clients.
+    /// Exhaustive on purpose: a new variant must pick its classification.
+    pub fn client_response(&self) -> (StatusCode, &'static str) {
+        use shared_utils::error::LibError;
+        match self {
+            ApiError::ExtractNameAndExtension
+            | ApiError::InvalidInput(_)
+            | ApiError::Multipart(_) => (StatusCode::BAD_REQUEST, MSG_INVALID_REQUEST),
+            ApiError::Lib(lib) => match lib {
+                LibError::SsrfBlocked(_)
+                | LibError::InvalidInput(_)
+                | LibError::InvalidDataUrl
+                | LibError::Base64Decode(_)
+                | LibError::ExtractNameAndExtension => {
+                    (StatusCode::BAD_REQUEST, MSG_INVALID_REQUEST)
+                }
+                LibError::PayloadTooLarge(_) => {
+                    (StatusCode::PAYLOAD_TOO_LARGE, MSG_PAYLOAD_TOO_LARGE)
+                }
+                // The user-URL fetch path (see `shared_utils::ssrf`).
+                LibError::UpstreamFetch(_) => (StatusCode::BAD_GATEWAY, MSG_FETCH_FAILED),
+                // Generic transport failures of our own dependencies (IPFS node,
+                // Pinata): not the user's URL, so a different message.
+                LibError::NetworkError(_) | LibError::TimeoutError(_) | LibError::Reqwest(_) => {
+                    (StatusCode::BAD_GATEWAY, MSG_UPSTREAM_FAILED)
+                }
+                LibError::PinataError(_)
+                | LibError::PostgresConnectError(_)
+                | LibError::ResourceNotFoundError(_)
+                | LibError::SerdeJson(_) => (StatusCode::INTERNAL_SERVER_ERROR, MSG_INTERNAL),
+            },
+            ApiError::Busy => (StatusCode::SERVICE_UNAVAILABLE, MSG_BUSY),
+            ApiError::Env(_)
+            | ApiError::ExternalService(_)
+            | ApiError::Axum(_)
+            | ApiError::HFToken(_)
+            | ApiError::Model(_)
+            | ApiError::IO(_)
+            | ApiError::Serde(_)
+            | ApiError::LocalWithClassificationAndDbOnly => {
+                (StatusCode::INTERNAL_SERVER_ERROR, MSG_INTERNAL)
+            }
+        }
+    }
+}
+
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response<Body> {
-        (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()).into_response()
+        let (status, message) = self.client_response();
+        // Full detail stays in the logs only.
+        if status.is_server_error() {
+            error!("request failed ({status}): {self:?}");
+        } else {
+            warn!("request rejected ({status}): {self}");
+        }
+        (status, message).into_response()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::body::to_bytes;
+    use shared_utils::error::LibError;
+
+    async fn render(err: ApiError) -> (StatusCode, String) {
+        let resp = err.into_response();
+        let status = resp.status();
+        let bytes = to_bytes(resp.into_body(), 4096).await.unwrap();
+        (status, String::from_utf8(bytes.to_vec()).unwrap())
+    }
+
+    #[tokio::test]
+    async fn blocked_url_is_400_and_leaks_nothing() {
+        let secret = "https://169.254.169.254/latest/meta-data/iam?token=SECRET";
+        let (status, body) = render(ApiError::Lib(LibError::SsrfBlocked(secret.into()))).await;
+        assert_eq!(status, StatusCode::BAD_REQUEST);
+        // The exact-body assertion is what proves nothing else leaks.
+        assert_eq!(body, MSG_INVALID_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn classification_table() {
+        let cases: Vec<(ApiError, StatusCode, &str)> = vec![
+            (
+                ApiError::InvalidInput("Invalid image format".into()),
+                StatusCode::BAD_REQUEST,
+                MSG_INVALID_REQUEST,
+            ),
+            (
+                ApiError::ExtractNameAndExtension,
+                StatusCode::BAD_REQUEST,
+                MSG_INVALID_REQUEST,
+            ),
+            (
+                ApiError::Lib(LibError::InvalidDataUrl),
+                StatusCode::BAD_REQUEST,
+                MSG_INVALID_REQUEST,
+            ),
+            (
+                ApiError::Lib(LibError::InvalidInput("x".into())),
+                StatusCode::BAD_REQUEST,
+                MSG_INVALID_REQUEST,
+            ),
+            (
+                ApiError::Lib(LibError::Base64Decode("x".into())),
+                StatusCode::BAD_REQUEST,
+                MSG_INVALID_REQUEST,
+            ),
+            (
+                ApiError::Lib(LibError::PayloadTooLarge("1 > 0".into())),
+                StatusCode::PAYLOAD_TOO_LARGE,
+                MSG_PAYLOAD_TOO_LARGE,
+            ),
+            (
+                ApiError::Lib(LibError::UpstreamFetch("origin returned status 404".into())),
+                StatusCode::BAD_GATEWAY,
+                "upstream fetch failed",
+            ),
+            (
+                ApiError::Lib(LibError::NetworkError("ipfs node unreachable".into())),
+                StatusCode::BAD_GATEWAY,
+                "upstream request failed",
+            ),
+            (
+                ApiError::Lib(LibError::TimeoutError("t".into())),
+                StatusCode::BAD_GATEWAY,
+                "upstream request failed",
+            ),
+            (
+                ApiError::Busy,
+                StatusCode::SERVICE_UNAVAILABLE,
+                "service busy",
+            ),
+            (
+                ApiError::Lib(LibError::PinataError("jwt abc".into())),
+                StatusCode::INTERNAL_SERVER_ERROR,
+                MSG_INTERNAL,
+            ),
+            (
+                ApiError::ExternalService("IPFS error: 10.2.3.4 refused".into()),
+                StatusCode::INTERNAL_SERVER_ERROR,
+                MSG_INTERNAL,
+            ),
+            (
+                ApiError::HFToken("hf_secret".into()),
+                StatusCode::INTERNAL_SERVER_ERROR,
+                MSG_INTERNAL,
+            ),
+            (
+                ApiError::LocalWithClassificationAndDbOnly,
+                StatusCode::INTERNAL_SERVER_ERROR,
+                MSG_INTERNAL,
+            ),
+        ];
+        for (err, want_status, want_body) in cases {
+            let label = format!("{err:?}");
+            let (status, body) = render(err).await;
+            assert_eq!(status, want_status, "{label}");
+            assert_eq!(body, want_body, "{label}");
+        }
+    }
+
+    #[tokio::test]
+    async fn io_and_serde_errors_are_exactly_the_generic_internal_message() {
+        let io = std::io::Error::other("connection to postgres://user:pw@db:5432 refused");
+        let (status, body) = render(ApiError::IO(io)).await;
+        assert_eq!(status, StatusCode::INTERNAL_SERVER_ERROR);
+        assert_eq!(body, "internal error");
+        let serde_err = serde_json::from_str::<u8>("nope").unwrap_err();
+        let (status, body) = render(ApiError::Serde(serde_err)).await;
+        assert_eq!(
+            (status, body.as_str()),
+            (StatusCode::INTERNAL_SERVER_ERROR, "internal error")
+        );
     }
 }

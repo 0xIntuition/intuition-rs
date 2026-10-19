@@ -16,13 +16,19 @@ pub enum LibError {
     InvalidInput(String),
     #[error("Network error: {0}")]
     NetworkError(String),
+    #[error("Upstream fetch failed: {0}")]
+    UpstreamFetch(String),
+    #[error("Payload too large: {0}")]
+    PayloadTooLarge(String),
     #[error("Pinata error: {0}")]
     PinataError(String),
     #[error("Postgres connection error: {0}")]
     PostgresConnectError(String),
     #[error("Resource does not exist")]
     ResourceNotFoundError(String),
-    #[error("SSRF protection: URL points to internal/private network or uses a disallowed scheme: {0}")]
+    #[error(
+        "SSRF protection: URL points to internal/private network or uses a disallowed scheme: {0}"
+    )]
     SsrfBlocked(String),
     #[error(transparent)]
     Reqwest(#[from] reqwest::Error),

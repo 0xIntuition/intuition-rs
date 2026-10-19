@@ -216,3 +216,25 @@ async fn local_classify_image(
 
     Ok(score)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::http::StatusCode;
+
+    /// An origin that answers 200 with an empty body is not an image: the
+    /// fetch layer returns the empty body and this check turns it into a 400.
+    #[test]
+    fn empty_and_truncated_bodies_are_rejected_as_invalid_requests() {
+        for body in [&[][..], &[0x89, 0x50, 0x4E, 0x47][..]] {
+            let err = validate_image_bytes(body).expect_err("must be rejected");
+            assert!(matches!(err, ApiError::InvalidInput(_)), "{err:?}");
+            assert_eq!(
+                err.client_response(),
+                (StatusCode::BAD_REQUEST, "invalid request")
+            );
+        }
+        let png = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 0];
+        assert!(validate_image_bytes(&png).is_ok());
+    }
+}

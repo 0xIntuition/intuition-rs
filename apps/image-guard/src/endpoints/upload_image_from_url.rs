@@ -11,6 +11,7 @@ use log::{debug, info};
 use models::{cached_image::CachedImage, traits::SimpleCrud};
 use shared_utils::{
     image::Image,
+    ssrf::redact_url,
     types::{ClassificationModel, MultiPartHandler},
 };
 
@@ -29,8 +30,11 @@ use shared_utils::{
                 "url": "QmcqqAoEQLAP84ptTY1VjL7UoXMbGQ8sjyAPHXog8Ynbrt"
             })
         ),
-        (status = 400, description = "Invalid input - not an image or wrong format", body = String),
-        (status = 500, description = "Internal server error", body = String)
+        (status = 400, description = "Invalid input, blocked URL or not an image (generic message)", body = String),
+        (status = 413, description = "Payload too large", body = String),
+        (status = 502, description = "Fetching the image from its origin failed (generic message)", body = String),
+        (status = 503, description = "Too many concurrent requests (generic message)", body = String),
+        (status = 500, description = "Internal server error (generic message)", body = String)
     ),
     tag = "images"
 )]
@@ -39,8 +43,15 @@ pub async fn upload_image_from_url(
     State(state): State<AppState>,
     Json(image): Json<Image>,
 ) -> Result<Json<Vec<CachedImage>>, ApiError> {
+    // Bound concurrent requests: each may buffer a full-size image. Held until
+    // the handler returns.
+    let _slot = state.acquire_upload_slot().await?;
+
     let mut responses = Vec::new();
     info!("Uploading image");
+
+    // Reject blocked/malformed remote URLs before touching the database.
+    image.precheck_remote_url()?;
 
     let data_url_info = if image.is_data_url() {
         Some(image.parse_data_url_info()?)
@@ -51,9 +62,7 @@ pub async fn upload_image_from_url(
     // Generate cache key (handles both data URLs and regular URLs)
     let cache_key = match data_url_info.as_ref() {
         Some(info) => info.cache_key.clone(),
-        None => image
-            .cache_key()
-            .ok_or(ApiError::ExtractNameAndExtension)?,
+        None => image.cache_key().ok_or(ApiError::ExtractNameAndExtension)?,
     };
 
     // If the image is already in the database, return it
@@ -70,7 +79,7 @@ pub async fn upload_image_from_url(
     } else {
         info!(
             "Image URL {} not in the database, downloading it",
-            image.url
+            redact_url(&image.url)
         );
     }
 
@@ -82,10 +91,9 @@ pub async fn upload_image_from_url(
             (parsed.data, name, parsed.mime_type, original_name)
         }
         None => {
-            let image_bytes = match image.download().await? {
-                Some(bytes) => bytes,
-                None => return Ok(Json(responses)),
-            };
+            // Origin non-200 / unreachable / oversize are errors (502/413), not
+            // an empty 200 `[]`: see `ApiError` mapping.
+            let image_bytes = image.download().await?;
 
             let image_output = image
                 .extract_name_and_extension()

@@ -1,0 +1,38 @@
+name: Metadata guard
+
+# Static check of the Hasura actions metadata (which roles may call which
+# action). Needs no services: it only reads infrastructure/hasura/metadata/actions.yaml.
+
+on:
+  pull_request:
+    paths:
+      - "infrastructure/hasura/**"
+      - "integration-tests/**"
+      - ".github/workflows/metadata-guard.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: metadata-guard-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  metadata-guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: integration-tests
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          package_json_file: integration-tests/package.json
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: integration-tests/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run test:metadata

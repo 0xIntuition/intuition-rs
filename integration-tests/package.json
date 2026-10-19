@@ -7,7 +7,8 @@
   "main": "index.js",
   "scripts": {
     "codegen": "graphql-codegen --config codegen.ts",
-    "test": "vitest --no-file-parallelism"
+    "test": "vitest --no-file-parallelism",
+    "test:metadata": "vitest run src/hasura-actions-metadata.test.ts"
   },
   "keywords": [],
   "author": "",

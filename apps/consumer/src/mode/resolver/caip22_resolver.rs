@@ -15,6 +15,10 @@ use alloy::{
 };
 use models::{atom::Atom, traits::SimpleCrud};
 use serde_json::Value;
+use shared_utils::{
+    error::LibError,
+    ssrf::{FetchLimits, FetchOutcome, fetch_public_bytes, redact_url},
+};
 use std::{str::FromStr, time::Duration};
 use tracing::{debug, warn};
 
@@ -81,26 +85,43 @@ fn get_rpc_url_for_chain(
     }
 }
 
-/// Creates a configured HTTP client with timeout
-fn create_http_client() -> Result<reqwest::Client, ConsumerError> {
-    reqwest::Client::builder()
-        .timeout(Duration::from_secs(HTTP_TIMEOUT_SECS))
-        .build()
-        .map_err(ConsumerError::from)
+/// Maps a guarded-fetch failure onto the consumer's error type. A blocked URL
+/// stays `SsrfBlocked`; an unparseable one is an unsupported token URI; every
+/// other failure (size cap, timeout, DNS, bad status, ...) is carried as the
+/// shared error, whose messages never include the request URL.
+fn map_fetch_error(err: LibError) -> ConsumerError {
+    match err {
+        LibError::SsrfBlocked(url) => ConsumerError::SsrfBlocked(url),
+        LibError::InvalidInput(_) => ConsumerError::UnsupportedTokenUri("unparseable url".into()),
+        other => ConsumerError::SharedUtils(other),
+    }
 }
 
-/// Validates that a URL does not point to internal/private networks (SSRF protection).
+/// Fetches and parses a token metadata document from an `http(s)` URL.
 ///
-/// Delegates to the canonical implementation in `shared_utils::ssrf` and maps
-/// its errors onto the consumer's error type so existing call sites and error
-/// handling are unchanged.
-fn validate_url_not_internal(url_str: &str) -> Result<(), ConsumerError> {
-    shared_utils::ssrf::validate_url_not_internal(url_str).map_err(|err| match err {
-        shared_utils::error::LibError::SsrfBlocked(url) => ConsumerError::SsrfBlocked(url),
-        // Unparseable URL or any other validation failure: surface as an
-        // unsupported token URI, matching prior behaviour.
-        _ => ConsumerError::UnsupportedTokenUri(url_str.to_string()),
-    })
+/// The URL is chosen by whoever deployed the token contract, so it goes through
+/// `shared_utils::ssrf::fetch_public_bytes`: DNS answers are validated and the
+/// connection uses only validated addresses, redirects are followed manually and
+/// re-validated per hop, and the body is capped at `MAX_RESPONSE_SIZE` within
+/// `HTTP_TIMEOUT_SECS`. Plain `http://` is accepted here (via
+/// `FetchLimits::token_metadata`) because ERC-721 token URIs have always
+/// included plain-http metadata servers; image downloads stay https-only.
+async fn fetch_http_metadata(token_uri: &str) -> Result<Value, ConsumerError> {
+    let limits =
+        FetchLimits::token_metadata(MAX_RESPONSE_SIZE, Duration::from_secs(HTTP_TIMEOUT_SECS));
+    let bytes = match fetch_public_bytes(token_uri, &limits)
+        .await
+        .map_err(map_fetch_error)?
+    {
+        FetchOutcome::Body(bytes) => bytes,
+        FetchOutcome::UnexpectedStatus(status) => {
+            return Err(ConsumerError::SharedUtils(LibError::UpstreamFetch(
+                format!("origin returned status {status}"),
+            )));
+        }
+    };
+    let text = String::from_utf8(bytes)?;
+    serde_json::from_str(&text).map_err(ConsumerError::from)
 }
 
 /// Resolves a CAIP-22 atom by fetching tokenURI and parsing metadata
@@ -117,7 +138,7 @@ pub async fn resolve_caip22(
     );
 
     let token_uri = fetch_token_uri_from_contract(&parsed, resolver_consumer_context).await?;
-    debug!("Resolved tokenURI for CAIP-22: {}", token_uri);
+    debug!("Resolved tokenURI for CAIP-22: {}", redact_url(&token_uri));
 
     let metadata_json = fetch_token_metadata(&token_uri, resolver_consumer_context).await?;
     store_metadata_json(atom, &metadata_json, resolver_consumer_context).await?;
@@ -237,7 +258,10 @@ async fn fetch_token_metadata(
             })?;
         let bytes = response.bytes().await?;
         if bytes.len() > MAX_RESPONSE_SIZE {
-            return Err(ConsumerError::ResponseTooLarge(bytes.len(), MAX_RESPONSE_SIZE));
+            return Err(ConsumerError::ResponseTooLarge(
+                bytes.len(),
+                MAX_RESPONSE_SIZE,
+            ));
         }
         let text = String::from_utf8(bytes.to_vec())?;
         return serde_json::from_str(&text).map_err(ConsumerError::from);
@@ -255,38 +279,24 @@ async fn fetch_token_metadata(
     if let Some(json_data) = token_uri.strip_prefix("data:application/json,") {
         debug!("Parsing CAIP-22 metadata from raw JSON data URI");
         if json_data.len() > MAX_RESPONSE_SIZE {
-            return Err(ConsumerError::ResponseTooLarge(json_data.len(), MAX_RESPONSE_SIZE));
+            return Err(ConsumerError::ResponseTooLarge(
+                json_data.len(),
+                MAX_RESPONSE_SIZE,
+            ));
         }
         return serde_json::from_str(json_data).map_err(ConsumerError::from);
     }
 
     // Handle HTTP(S) URLs with SSRF protection
     if token_uri.starts_with("http://") || token_uri.starts_with("https://") {
-        debug!("Fetching CAIP-22 metadata from HTTP: {}", token_uri);
-
-        // SSRF protection: validate URL before fetching
-        validate_url_not_internal(token_uri)?;
-
-        let client = create_http_client()?;
-        let response = client.get(token_uri).send().await?;
-
-        // Check content-length header if available
-        if let Some(content_length) = response.content_length() {
-            if content_length as usize > MAX_RESPONSE_SIZE {
-                return Err(ConsumerError::ResponseTooLarge(content_length as usize, MAX_RESPONSE_SIZE));
-            }
-        }
-
-        let bytes = response.bytes().await?;
-        if bytes.len() > MAX_RESPONSE_SIZE {
-            return Err(ConsumerError::ResponseTooLarge(bytes.len(), MAX_RESPONSE_SIZE));
-        }
-
-        let text = String::from_utf8(bytes.to_vec())?;
-        return serde_json::from_str(&text).map_err(ConsumerError::from);
+        debug!(
+            "Fetching CAIP-22 metadata from HTTP: {}",
+            redact_url(token_uri)
+        );
+        return fetch_http_metadata(token_uri).await;
     }
 
-    warn!("Unsupported token URI format: {}", token_uri);
+    warn!("Unsupported token URI format: {}", redact_url(token_uri));
     Err(ConsumerError::UnsupportedTokenUri(token_uri.to_string()))
 }
 
@@ -294,7 +304,10 @@ async fn fetch_token_metadata(
 fn base64_decode_with_limit(input: &str) -> Result<Vec<u8>, ConsumerError> {
     // Check input length before attempting to decode
     if input.len() > MAX_BASE64_INPUT_LENGTH {
-        return Err(ConsumerError::ResponseTooLarge(input.len(), MAX_BASE64_INPUT_LENGTH));
+        return Err(ConsumerError::ResponseTooLarge(
+            input.len(),
+            MAX_BASE64_INPUT_LENGTH,
+        ));
     }
 
     use base64::{Engine, engine::general_purpose::STANDARD};
@@ -304,7 +317,10 @@ fn base64_decode_with_limit(input: &str) -> Result<Vec<u8>, ConsumerError> {
 
     // Also check decoded size
     if decoded.len() > MAX_RESPONSE_SIZE {
-        return Err(ConsumerError::ResponseTooLarge(decoded.len(), MAX_RESPONSE_SIZE));
+        return Err(ConsumerError::ResponseTooLarge(
+            decoded.len(),
+            MAX_RESPONSE_SIZE,
+        ));
     }
 
     Ok(decoded)
@@ -321,6 +337,7 @@ fn base64_decode(input: &str) -> Result<Vec<u8>, ConsumerError> {
 
 /// Fetches tokenURI directly from a contract given RPC URL and parsed CAIP-22 data.
 /// This is useful for testing without the full ResolverConsumerContext.
+#[cfg(test)]
 pub async fn fetch_token_uri_direct(
     rpc_url: &str,
     contract_address: &str,
@@ -329,8 +346,8 @@ pub async fn fetch_token_uri_direct(
     let provider = ProviderBuilder::new().connect_http(rpc_url.parse()?);
     let dyn_provider = DynProvider::new(provider);
 
-    let address =
-        Address::from_str(contract_address).map_err(|e| ConsumerError::AddressParse(e.to_string()))?;
+    let address = Address::from_str(contract_address)
+        .map_err(|e| ConsumerError::AddressParse(e.to_string()))?;
 
     let contract = IERC721MetadataInstance::new(address, dyn_provider);
     let token_id_u256 = U256::from_str(token_id).map_err(ConsumerError::UintParse)?;
@@ -345,32 +362,13 @@ pub async fn fetch_token_uri_direct(
 }
 
 /// Fetches metadata JSON from a token URI (HTTP/HTTPS only, for testing).
-/// Includes SSRF protection, request timeouts, and response size limits.
+/// Same guarded path as production: see [`fetch_http_metadata`].
+#[cfg(test)]
 pub async fn fetch_metadata_from_http(token_uri: &str) -> Result<Value, ConsumerError> {
     if !token_uri.starts_with("http://") && !token_uri.starts_with("https://") {
         return Err(ConsumerError::UnsupportedTokenUri(token_uri.to_string()));
     }
-
-    // SSRF protection
-    validate_url_not_internal(token_uri)?;
-
-    let client = create_http_client()?;
-    let response = client.get(token_uri).send().await?;
-
-    // Check content-length header if available
-    if let Some(content_length) = response.content_length() {
-        if content_length as usize > MAX_RESPONSE_SIZE {
-            return Err(ConsumerError::ResponseTooLarge(content_length as usize, MAX_RESPONSE_SIZE));
-        }
-    }
-
-    let bytes = response.bytes().await?;
-    if bytes.len() > MAX_RESPONSE_SIZE {
-        return Err(ConsumerError::ResponseTooLarge(bytes.len(), MAX_RESPONSE_SIZE));
-    }
-
-    let text = String::from_utf8(bytes.to_vec())?;
-    serde_json::from_str(&text).map_err(ConsumerError::from)
+    fetch_http_metadata(token_uri).await
 }
 
 #[cfg(test)]
@@ -382,8 +380,10 @@ mod tests {
     /// Contract: 0x8004AA63c570c570eBF15376c0dB199918BFe9Fb
     /// Token ID: 1563
     #[tokio::test]
+    #[ignore = "Live-network test: the third-party metadata URL now answers 404 (the old code accepted that JSON error body as metadata); run manually with --ignored"]
     async fn test_fetch_real_nft_base_sepolia() {
-        let caip22_str = "caip22:eip155:84532/erc721:0x8004AA63c570c570eBF15376c0dB199918BFe9Fb/1563";
+        let caip22_str =
+            "caip22:eip155:84532/erc721:0x8004AA63c570c570eBF15376c0dB199918BFe9Fb/1563";
         let parsed = parse_caip22(caip22_str).expect("Should parse CAIP-22");
 
         assert_eq!(parsed.chain_id, 84532);
@@ -412,10 +412,7 @@ mod tests {
             println!("Base Sepolia metadata: {}", metadata);
 
             // Check that we got valid JSON with expected fields
-            assert!(
-                metadata.is_object(),
-                "Metadata should be a JSON object"
-            );
+            assert!(metadata.is_object(), "Metadata should be a JSON object");
 
             if let Some(name) = metadata.get("name") {
                 println!("NFT Name: {}", name);
@@ -451,9 +448,10 @@ mod tests {
         let rpc_url = std::env::var("ETHEREUM_SEPOLIA_RPC_URL")
             .unwrap_or_else(|_| "https://ethereum-sepolia-rpc.publicnode.com".to_string());
 
-        let token_uri = fetch_token_uri_direct(rpc_url.as_str(), &parsed.contract_address, &parsed.token_id)
-            .await
-            .expect("Should fetch tokenURI from Ethereum Sepolia");
+        let token_uri =
+            fetch_token_uri_direct(rpc_url.as_str(), &parsed.contract_address, &parsed.token_id)
+                .await
+                .expect("Should fetch tokenURI from Ethereum Sepolia");
 
         println!("Ethereum Sepolia tokenURI: {}", token_uri);
         assert!(!token_uri.is_empty(), "tokenURI should not be empty");
@@ -467,10 +465,7 @@ mod tests {
             println!("Ethereum Sepolia metadata: {}", metadata);
 
             // Check that we got valid JSON with expected fields
-            assert!(
-                metadata.is_object(),
-                "Metadata should be a JSON object"
-            );
+            assert!(metadata.is_object(), "Metadata should be a JSON object");
 
             if let Some(name) = metadata.get("name") {
                 println!("NFT Name: {}", name);
@@ -510,49 +505,119 @@ mod tests {
         assert_eq!(String::from_utf8(decoded).unwrap(), "Hello World");
     }
 
+    /// Runs `url` through the real fetch entry point and asserts it is refused by
+    /// the SSRF policy before any network I/O (every URL used here is rejected
+    /// by the synchronous checks, so no connection is attempted).
+    async fn assert_blocked(url: &str) {
+        match fetch_metadata_from_http(url).await {
+            Err(ConsumerError::SsrfBlocked(payload)) => {
+                assert!(
+                    !payload.contains('?'),
+                    "payload must be redacted: {payload}"
+                );
+            }
+            other => panic!("{url} must be SsrfBlocked, got {other:?}"),
+        }
+    }
+
     /// Test SSRF protection - blocks localhost
-    #[test]
-    fn test_ssrf_blocks_localhost() {
-        assert!(validate_url_not_internal("http://localhost/metadata.json").is_err());
-        assert!(validate_url_not_internal("http://127.0.0.1/metadata.json").is_err());
-        assert!(validate_url_not_internal("http://[::1]/metadata.json").is_err());
+    #[tokio::test]
+    async fn test_ssrf_blocks_localhost() {
+        assert_blocked("http://localhost/metadata.json").await;
+        assert_blocked("http://127.0.0.1/metadata.json").await;
+        assert_blocked("http://[::1]/metadata.json").await;
     }
 
     /// Test SSRF protection - blocks private IPs
-    #[test]
-    fn test_ssrf_blocks_private_ips() {
+    #[tokio::test]
+    async fn test_ssrf_blocks_private_ips() {
         // 10.0.0.0/8
-        assert!(validate_url_not_internal("http://10.0.0.1/metadata.json").is_err());
-        assert!(validate_url_not_internal("http://10.255.255.255/metadata.json").is_err());
+        assert_blocked("http://10.0.0.1/metadata.json").await;
+        assert_blocked("http://10.255.255.255/metadata.json").await;
 
         // 172.16.0.0/12
-        assert!(validate_url_not_internal("http://172.16.0.1/metadata.json").is_err());
-        assert!(validate_url_not_internal("http://172.31.255.255/metadata.json").is_err());
+        assert_blocked("http://172.16.0.1/metadata.json").await;
+        assert_blocked("http://172.31.255.255/metadata.json").await;
 
         // 192.168.0.0/16
-        assert!(validate_url_not_internal("http://192.168.0.1/metadata.json").is_err());
-        assert!(validate_url_not_internal("http://192.168.255.255/metadata.json").is_err());
+        assert_blocked("http://192.168.0.1/metadata.json").await;
+        assert_blocked("http://192.168.255.255/metadata.json").await;
 
         // Link-local
-        assert!(validate_url_not_internal("http://169.254.169.254/metadata.json").is_err());
+        assert_blocked("http://169.254.169.254/metadata.json").await;
     }
 
     /// Test SSRF protection - blocks internal hostnames
+    #[tokio::test]
+    async fn test_ssrf_blocks_internal_hostnames() {
+        assert_blocked("http://myservice.local/metadata.json").await;
+        assert_blocked("http://internal.internal/metadata.json").await;
+        assert_blocked("http://test.localhost/metadata.json").await;
+        assert_blocked("http://metadata.google.internal/metadata.json").await;
+    }
+
+    /// Call-site coverage for the hardening added on top of the old host check:
+    /// trailing-dot names, URL credentials, IPv4-mapped IPv6 literals and
+    /// special-use IPv6 ranges are all refused by the real fetch path.
+    #[tokio::test]
+    async fn test_ssrf_blocks_bypass_forms_at_the_fetch_entry_point() {
+        for url in [
+            "http://localhost./metadata.json",
+            "http://x.internal./metadata.json",
+            "http://metadata.google.internal./metadata.json",
+            "https://user:pw@example.com/metadata.json?token=SECRET",
+            "http://[::ffff:169.254.169.254]/metadata.json",
+            "http://[::ffff:10.0.0.1]/metadata.json",
+            "http://[64:ff9b::a9fe:a9fe]/metadata.json",
+            "http://[2001:1::1]/metadata.json",
+            "http://[5f00::1]/metadata.json",
+            "http://0.0.0.0/metadata.json",
+            "http://100.64.0.1/metadata.json",
+        ] {
+            assert_blocked(url).await;
+        }
+    }
+
     #[test]
-    fn test_ssrf_blocks_internal_hostnames() {
-        assert!(validate_url_not_internal("http://myservice.local/metadata.json").is_err());
-        assert!(validate_url_not_internal("http://internal.internal/metadata.json").is_err());
-        assert!(validate_url_not_internal("http://test.localhost/metadata.json").is_err());
-        assert!(validate_url_not_internal("http://metadata.google.internal/metadata.json").is_err());
+    fn test_fetch_errors_map_to_consumer_errors() {
+        assert!(matches!(
+            map_fetch_error(LibError::SsrfBlocked("http://h/p".into())),
+            ConsumerError::SsrfBlocked(u) if u == "http://h/p"
+        ));
+        assert!(matches!(
+            map_fetch_error(LibError::InvalidInput("x".into())),
+            ConsumerError::UnsupportedTokenUri(_)
+        ));
+        assert!(matches!(
+            map_fetch_error(LibError::PayloadTooLarge("body".into())),
+            ConsumerError::SharedUtils(LibError::PayloadTooLarge(_))
+        ));
+        assert!(matches!(
+            map_fetch_error(LibError::UpstreamFetch("dns resolution failed".into())),
+            ConsumerError::SharedUtils(LibError::UpstreamFetch(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn test_non_http_scheme_is_unsupported_not_fetched() {
+        assert!(matches!(
+            fetch_metadata_from_http("ftp://example.com/m.json").await,
+            Err(ConsumerError::UnsupportedTokenUri(_))
+        ));
     }
 
     /// Test SSRF protection - allows public URLs
     #[test]
     fn test_ssrf_allows_public_urls() {
-        assert!(validate_url_not_internal("https://example.com/metadata.json").is_ok());
-        assert!(validate_url_not_internal("https://ipfs.io/ipfs/QmTest").is_ok());
-        assert!(validate_url_not_internal("https://arweave.net/test").is_ok());
-        assert!(validate_url_not_internal("http://8.8.8.8/test").is_ok());
+        assert!(
+            shared_utils::ssrf::validate_url_not_internal("https://example.com/metadata.json")
+                .is_ok()
+        );
+        assert!(
+            shared_utils::ssrf::validate_url_not_internal("https://ipfs.io/ipfs/QmTest").is_ok()
+        );
+        assert!(shared_utils::ssrf::validate_url_not_internal("https://arweave.net/test").is_ok());
+        assert!(shared_utils::ssrf::validate_url_not_internal("http://8.8.8.8/test").is_ok());
     }
 
     /// Test private IP detection
@@ -574,8 +639,12 @@ mod tests {
 
         // Private IPv6
         assert!(is_private_ip(&IpAddr::V6(Ipv6Addr::LOCALHOST)));
-        assert!(is_private_ip(&IpAddr::V6(Ipv6Addr::new(0xfc00, 0, 0, 0, 0, 0, 0, 1))));
-        assert!(is_private_ip(&IpAddr::V6(Ipv6Addr::new(0xfe80, 0, 0, 0, 0, 0, 0, 1))));
+        assert!(is_private_ip(&IpAddr::V6(Ipv6Addr::new(
+            0xfc00, 0, 0, 0, 0, 0, 0, 1
+        ))));
+        assert!(is_private_ip(&IpAddr::V6(Ipv6Addr::new(
+            0xfe80, 0, 0, 0, 0, 0, 0, 1
+        ))));
     }
 
     /// Test base64 size limit
