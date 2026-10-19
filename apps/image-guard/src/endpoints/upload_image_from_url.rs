@@ -11,6 +11,7 @@ use log::{debug, info};
 use models::{cached_image::CachedImage, traits::SimpleCrud};
 use shared_utils::{
     image::Image,
+    ssrf::redact_url,
     types::{ClassificationModel, MultiPartHandler},
 };
 
@@ -31,7 +32,8 @@ use shared_utils::{
         ),
         (status = 400, description = "Invalid input, blocked URL or not an image (generic message)", body = String),
         (status = 413, description = "Payload too large", body = String),
-        (status = 502, description = "Upstream fetch failed (generic message)", body = String),
+        (status = 502, description = "Fetching the image from its origin failed (generic message)", body = String),
+        (status = 503, description = "Too many concurrent requests (generic message)", body = String),
         (status = 500, description = "Internal server error (generic message)", body = String)
     ),
     tag = "images"
@@ -41,6 +43,10 @@ pub async fn upload_image_from_url(
     State(state): State<AppState>,
     Json(image): Json<Image>,
 ) -> Result<Json<Vec<CachedImage>>, ApiError> {
+    // Bound concurrent requests: each may buffer a full-size image. Held until
+    // the handler returns.
+    let _slot = state.acquire_upload_slot().await?;
+
     let mut responses = Vec::new();
     info!("Uploading image");
 
@@ -73,7 +79,7 @@ pub async fn upload_image_from_url(
     } else {
         info!(
             "Image URL {} not in the database, downloading it",
-            image.url
+            redact_url(&image.url)
         );
     }
 

@@ -18,6 +18,8 @@ pub enum ApiError {
     Env(#[from] envy::Error),
     #[error("External service error: {0}")]
     ExternalService(String),
+    #[error("Too many concurrent requests")]
+    Busy,
     #[error(transparent)]
     Axum(#[from] axum::Error),
     #[error("HF token is not set")]
@@ -45,7 +47,11 @@ pub enum ApiError {
 /// server side.
 pub const MSG_INVALID_REQUEST: &str = "invalid request";
 pub const MSG_PAYLOAD_TOO_LARGE: &str = "payload too large";
-pub const MSG_UPSTREAM_FAILED: &str = "upstream fetch failed";
+/// The image origin could not be fetched (user-supplied URL).
+pub const MSG_FETCH_FAILED: &str = "upstream fetch failed";
+/// A backing service we call (IPFS, Pinata, ...) failed.
+pub const MSG_UPSTREAM_FAILED: &str = "upstream request failed";
+pub const MSG_BUSY: &str = "service busy";
 pub const MSG_INTERNAL: &str = "internal error";
 
 impl ApiError {
@@ -68,6 +74,10 @@ impl ApiError {
                 LibError::PayloadTooLarge(_) => {
                     (StatusCode::PAYLOAD_TOO_LARGE, MSG_PAYLOAD_TOO_LARGE)
                 }
+                // The user-URL fetch path (see `shared_utils::ssrf`).
+                LibError::UpstreamFetch(_) => (StatusCode::BAD_GATEWAY, MSG_FETCH_FAILED),
+                // Generic transport failures of our own dependencies (IPFS node,
+                // Pinata): not the user's URL, so a different message.
                 LibError::NetworkError(_) | LibError::TimeoutError(_) | LibError::Reqwest(_) => {
                     (StatusCode::BAD_GATEWAY, MSG_UPSTREAM_FAILED)
                 }
@@ -76,6 +86,7 @@ impl ApiError {
                 | LibError::ResourceNotFoundError(_)
                 | LibError::SerdeJson(_) => (StatusCode::INTERNAL_SERVER_ERROR, MSG_INTERNAL),
             },
+            ApiError::Busy => (StatusCode::SERVICE_UNAVAILABLE, MSG_BUSY),
             ApiError::Env(_)
             | ApiError::ExternalService(_)
             | ApiError::Axum(_)
@@ -121,12 +132,8 @@ mod tests {
         let secret = "https://169.254.169.254/latest/meta-data/iam?token=SECRET";
         let (status, body) = render(ApiError::Lib(LibError::SsrfBlocked(secret.into()))).await;
         assert_eq!(status, StatusCode::BAD_REQUEST);
+        // The exact-body assertion is what proves nothing else leaks.
         assert_eq!(body, MSG_INVALID_REQUEST);
-        for leak in [
-            "169.254", "SECRET", "http", "SSRF", "metadata", "reqwest", "sqlx",
-        ] {
-            assert!(!body.contains(leak), "body leaked {leak}: {body}");
-        }
     }
 
     #[tokio::test]
@@ -163,14 +170,24 @@ mod tests {
                 MSG_PAYLOAD_TOO_LARGE,
             ),
             (
-                ApiError::Lib(LibError::NetworkError("origin returned status 404".into())),
+                ApiError::Lib(LibError::UpstreamFetch("origin returned status 404".into())),
                 StatusCode::BAD_GATEWAY,
-                MSG_UPSTREAM_FAILED,
+                "upstream fetch failed",
+            ),
+            (
+                ApiError::Lib(LibError::NetworkError("ipfs node unreachable".into())),
+                StatusCode::BAD_GATEWAY,
+                "upstream request failed",
             ),
             (
                 ApiError::Lib(LibError::TimeoutError("t".into())),
                 StatusCode::BAD_GATEWAY,
-                MSG_UPSTREAM_FAILED,
+                "upstream request failed",
+            ),
+            (
+                ApiError::Busy,
+                StatusCode::SERVICE_UNAVAILABLE,
+                "service busy",
             ),
             (
                 ApiError::Lib(LibError::PinataError("jwt abc".into())),

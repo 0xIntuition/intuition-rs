@@ -16,6 +16,19 @@ pub struct Env {
     /// Serve `/swagger-ui` and `/api-docs` (`ENABLE_SWAGGER=true`). Off by default.
     #[serde(default)]
     pub enable_swagger: bool,
+    /// Maximum number of `/upload_image_from_url` requests processed at once
+    /// (`UPLOAD_FROM_URL_MAX_CONCURRENCY`, default 4, minimum 1). Each in-flight
+    /// request may buffer an image of up to `MAX_IMAGE_SIZE` bytes, so this
+    /// bounds the memory the endpoint can hold.
+    #[serde(default = "default_upload_from_url_max_concurrency")]
+    pub upload_from_url_max_concurrency: usize,
+}
+
+/// Default for [`Env::upload_from_url_max_concurrency`].
+pub const DEFAULT_UPLOAD_FROM_URL_MAX_CONCURRENCY: usize = 4;
+
+fn default_upload_from_url_max_concurrency() -> usize {
+    DEFAULT_UPLOAD_FROM_URL_MAX_CONCURRENCY
 }
 
 /// A multipart request with an image

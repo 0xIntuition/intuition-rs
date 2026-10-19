@@ -155,6 +155,8 @@ mod tests {
             ipfs_fetch_url: "http://127.0.0.1:1".into(),
             hf_token: None,
             flag: Flag::LocalWithDbOnly,
+            upload_slots: std::sync::Arc::new(tokio::sync::Semaphore::new(4)),
+            upload_queue_timeout: Duration::from_millis(200),
         }
     }
 
@@ -233,23 +235,14 @@ mod tests {
                 .unwrap();
             assert_eq!(r.status(), 400, "{url}");
             let body = r.text().await.unwrap();
+            // Exact body: nothing about the URL, IPs or libraries can be in it.
             assert_eq!(body, "invalid request", "{url}");
-            for leak in [
-                "169.254",
-                "127.0.0.1",
-                "10.0.0.1",
-                "metadata",
-                "reqwest",
-                "sqlx",
-                "SSRF",
-                "file:",
-            ] {
-                assert!(!body.contains(leak), "{url}: leaked {leak}");
-            }
         }
 
-        // A valid request that fails inside (dead database) is exactly the generic
-        // 500 message: no sqlx text, no DSN, no password.
+        // A valid request that fails inside is exactly the generic 500 message:
+        // no sqlx text, no DSN, no password. The failure source is deterministic:
+        // `dead_db_state` points the lazy pool at 127.0.0.1:1, where nothing
+        // listens, so the cache lookup always fails with a connection error.
         let png = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
         let r = c
             .post(format!("{base}/upload_image_from_url"))
@@ -259,5 +252,56 @@ mod tests {
             .unwrap();
         assert_eq!(r.status(), 500);
         assert_eq!(r.text().await.unwrap(), "internal error");
+    }
+
+    fn blocked_url_request(base: &str) -> reqwest::RequestBuilder {
+        reqwest::Client::new()
+            .post(format!("{base}/upload_image_from_url"))
+            .json(&serde_json::json!({ "url": "https://127.0.0.1/x.png" }))
+    }
+
+    /// The concurrency limit is wired into the real router: with every slot
+    /// taken a new request is turned away with 503 after the queue timeout
+    /// (not served, not hung), and a freed slot is usable again.
+    #[tokio::test]
+    async fn upload_from_url_requests_are_limited_by_slots() {
+        let mut state = dead_db_state();
+        state.upload_slots = std::sync::Arc::new(tokio::sync::Semaphore::new(1));
+        let held = state
+            .acquire_upload_slot()
+            .await
+            .expect("first slot is free");
+        let base = spawn(router_for_tests(state.clone())).await;
+
+        // The only slot is held: the request waits out the queue timeout and is
+        // rejected with the generic busy message, not the 400 its URL would earn.
+        let started = std::time::Instant::now();
+        let r = blocked_url_request(&base).send().await.unwrap();
+        assert_eq!(r.status(), 503);
+        assert_eq!(r.text().await.unwrap(), "service busy");
+        assert!(
+            started.elapsed() >= Duration::from_millis(150),
+            "must have queued for the slot, took {:?}",
+            started.elapsed()
+        );
+
+        // A request that gets the slot within the queue timeout is served.
+        let waiter = tokio::spawn({
+            let base = base.clone();
+            async move { blocked_url_request(&base).send().await.unwrap() }
+        });
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        drop(held);
+        let r = waiter.await.unwrap();
+        assert_eq!(r.status(), 400, "queued request runs once a slot frees up");
+        assert_eq!(state.upload_slots.available_permits(), 1, "slot released");
+    }
+
+    /// Router without the Prometheus layer (its recorder is process-global and
+    /// installed once by the full-app test).
+    fn router_for_tests(state: AppState) -> Router {
+        Router::new()
+            .route("/upload_image_from_url", post(upload_image_from_url))
+            .with_state(state)
     }
 }
