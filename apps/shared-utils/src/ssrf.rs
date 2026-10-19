@@ -35,50 +35,70 @@ use url::Host;
 /// [`fetch_public_bytes`], which resolves, validates every answer, pins the
 /// connection and re-validates each redirect hop.
 pub fn validate_url_not_internal(url_str: &str) -> Result<(), LibError> {
-    let url = Url::parse(url_str).map_err(|_| LibError::InvalidInput(url_str.to_string()))?;
+    let url = Url::parse(url_str).map_err(|_| LibError::InvalidInput("unparseable url".into()))?;
+    validate_parsed_url(&url)
+}
+
+/// Same policy as [`validate_url_not_internal`] for an already parsed URL, so
+/// callers that hold a [`Url`] do not parse twice.
+///
+/// Error payloads carry a redacted form of the URL (see [`redact_url`]), so they
+/// are safe to log.
+pub fn validate_parsed_url(url: &Url) -> Result<(), LibError> {
+    let blocked = || LibError::SsrfBlocked(redact_url(url.as_str()));
 
     // 1. Scheme allowlist. Blocks file://, gopher://, ftp://, data://, etc.
     if !matches!(url.scheme(), "http" | "https") {
-        return Err(LibError::SsrfBlocked(url_str.to_string()));
+        return Err(blocked());
     }
 
-    // A http(s) URL without a host is malformed for our purposes.
-    let host = url
-        .host_str()
-        .ok_or_else(|| LibError::SsrfBlocked(url_str.to_string()))?;
-
-    // 2a. Explicit localhost variants (covers the non-IP "localhost" label and
-    // bracketed IPv6 forms that don't parse cleanly as a bare IpAddr).
-    if host == "localhost" || host == "127.0.0.1" || host == "::1" || host == "[::1]" {
-        return Err(LibError::SsrfBlocked(url_str.to_string()));
+    // 2. Host checks. `Url::host()` is used (not `host_str()`) because
+    // `host_str()` keeps the brackets of an IPv6 literal (`[fe80::1]`).
+    match url.host() {
+        // A http(s) URL without a host is malformed for our purposes.
+        None => Err(blocked()),
+        Some(Host::Domain(domain)) if is_internal_hostname(domain) => Err(blocked()),
+        Some(Host::Domain(_)) => Ok(()),
+        Some(Host::Ipv4(v4)) if is_private_ip(&IpAddr::V4(v4)) => Err(blocked()),
+        Some(Host::Ipv6(v6)) if is_private_ip(&IpAddr::V6(v6)) => Err(blocked()),
+        Some(Host::Ipv4(_) | Host::Ipv6(_)) => Ok(()),
     }
+}
 
-    // 2b. Literal IP hosts in a private/internal range. `Url::host()` is used
-    // (not `host_str().parse()`) because `host_str()` keeps the brackets of an
-    // IPv6 literal (`[fe80::1]`), which never parses as a bare `IpAddr`.
-    let literal_ip = match url.host() {
+/// The IP address of a literal-IP URL host, if the host is one.
+pub(crate) fn literal_ip(url: &Url) -> Option<IpAddr> {
+    match url.host() {
         Some(Host::Ipv4(v4)) => Some(IpAddr::V4(v4)),
         Some(Host::Ipv6(v6)) => Some(IpAddr::V6(v6)),
         _ => None,
-    };
-    if let Some(ip) = literal_ip
-        && is_private_ip(&ip)
-    {
-        return Err(LibError::SsrfBlocked(url_str.to_string()));
     }
+}
 
-    // 2c. Common internal hostnames and the cloud metadata endpoint.
-    let host_lower = host.to_lowercase();
-    if host_lower.ends_with(".local")
-        || host_lower.ends_with(".internal")
-        || host_lower.ends_with(".localhost")
-        || host_lower == "metadata.google.internal"
-        || host_lower == "169.254.169.254"
-    {
-        return Err(LibError::SsrfBlocked(url_str.to_string()));
+/// Host-name denylist: `localhost`, the `.localhost`, `.local` and `.internal`
+/// suffixes (which also cover the cloud metadata name). The name is normalised
+/// first: a trailing root dot (`localhost.`) names the same host and must not
+/// slip past the string checks, and comparison is ASCII case-insensitive.
+fn is_internal_hostname(host: &str) -> bool {
+    let host = host.trim_end_matches('.').to_ascii_lowercase();
+    host == "localhost"
+        || host.ends_with(".localhost")
+        || host.ends_with(".local")
+        || host.ends_with(".internal")
+}
+
+/// Reduces a URL to `scheme://host[:port]/path` for logging and error payloads:
+/// userinfo, query and fragment are dropped. Non-http(s) URLs (for example huge
+/// `data:` URLs) and unparseable input are replaced by a fixed placeholder.
+pub fn redact_url(raw: &str) -> String {
+    match Url::parse(raw) {
+        Ok(url) if matches!(url.scheme(), "http" | "https") => {
+            let host = url.host_str().unwrap_or("");
+            let port = url.port().map(|p| format!(":{p}")).unwrap_or_default();
+            format!("{}://{host}{port}{}", url.scheme(), url.path())
+        }
+        Ok(url) => format!("{}:<redacted>", url.scheme()),
+        Err(_) => "<unparseable url>".to_string(),
     }
-
-    Ok(())
 }
 
 /// Returns `true` if the IP address belongs to a private, loopback, link-local,
@@ -134,7 +154,8 @@ fn is_private_ipv6(ip: &std::net::Ipv6Addr) -> bool {
             && embedded(s[6], s[7])) // NAT64 64:ff9b::/96 embedding a private v4
         || (s[0] == 0x0064 && s[1] == 0xff9b && s[2] == 1) // local-use NAT64 64:ff9b:1::/48
         || (s[0] == 0x2002 && embedded(s[1], s[2])) // 6to4 2002::/16 embedding a private v4
-        || (s[0] == 0x2001 && s[1] == 0) // Teredo 2001::/32 (embeds obfuscated v4)
+        || (s[0] == 0x2001 && (s[1] & 0xfe00) == 0) // IETF protocol assignments 2001::/23 (incl. Teredo 2001::/32)
+        || s[0] == 0x5f00 // SRv6 SIDs 5f00::/16
         || (s[0] == 0x2001 && s[1] == 0x0db8) // documentation 2001:db8::/32
         || (s[0] == 0x3fff && (s[1] & 0xf000) == 0) // documentation 3fff::/20
 }
@@ -340,7 +361,7 @@ pub fn validate_fetch_url(url: &Url, limits: &FetchLimits) -> Result<(), LibErro
         return Err(LibError::SsrfBlocked(url.to_string()));
     }
     // Host-name denylist (.local, .internal, localhost, metadata) and literal IPs.
-    validate_url_not_internal(url.as_str())
+    validate_parsed_url(url)
 }
 
 /// Validate one hop (the initial URL or a redirect target). Returns the
@@ -449,6 +470,69 @@ mod tests {
     }
 
     #[test]
+    fn blocks_hostnames_with_trailing_dot_and_mixed_case() {
+        // A trailing root dot names the same host; the denylist must see through it.
+        for u in [
+            "http://localhost./x",
+            "http://localhost../x",
+            "http://x.internal./x",
+            "http://metadata.google.internal./x",
+            "http://foo.localhost./x",
+            "http://svc.local./x",
+            "http://LOCALHOST/x",
+            "http://Metadata.Google.Internal./x",
+        ] {
+            assert!(is_ssrf_blocked(u), "{u} must be blocked");
+        }
+        // Names that merely contain the labels stay allowed.
+        for u in [
+            "https://localhost.example.com/x",
+            "https://internal.example.com/x",
+            "https://notlocal/x",
+            "https://example.com./x",
+        ] {
+            assert!(validate_url_not_internal(u).is_ok(), "{u} must be allowed");
+        }
+    }
+
+    #[test]
+    fn validate_parsed_url_matches_string_validator() {
+        for u in [
+            "http://localhost./x",
+            "https://example.com/x",
+            "ftp://example.com/x",
+            "http://[fe80::1]/x",
+        ] {
+            let parsed = Url::parse(u).unwrap();
+            assert_eq!(
+                validate_parsed_url(&parsed).is_ok(),
+                validate_url_not_internal(u).is_ok(),
+                "{u}"
+            );
+        }
+    }
+
+    #[test]
+    fn error_payloads_carry_redacted_urls_only() {
+        let Err(LibError::SsrfBlocked(payload)) =
+            validate_url_not_internal("http://user:pw@127.0.0.1:8080/a/b?token=SECRET#frag")
+        else {
+            panic!("expected SsrfBlocked");
+        };
+        assert_eq!(payload, "http://127.0.0.1:8080/a/b");
+        assert_eq!(
+            redact_url("https://u:p@example.com/p?q=1"),
+            "https://example.com/p"
+        );
+        assert_eq!(redact_url("data:image/png;base64,AAAA"), "data:<redacted>");
+        assert_eq!(redact_url("not a url"), "<unparseable url>");
+        let Err(LibError::InvalidInput(msg)) = validate_url_not_internal("not a url SECRET") else {
+            panic!("expected InvalidInput");
+        };
+        assert!(!msg.contains("SECRET"));
+    }
+
+    #[test]
     fn rejects_unparseable_input() {
         assert!(matches!(
             validate_url_not_internal("not a url"),
@@ -549,6 +633,11 @@ mod tests {
             "2001:db8::1",
             "2001:db8:ffff::1",
             "2001:0:4136:e378::1",
+            "2001:1::1",   // PCP anycast, inside 2001::/23
+            "2001:2::1",   // benchmarking, inside 2001::/23
+            "2001:1ff::1", // last /32 block of 2001::/23
+            "5f00::1",     // SRv6 SIDs 5f00::/16
+            "5f00:ffff::1",
             "fec0::1",
             "100::1",
             "::",
@@ -572,7 +661,10 @@ mod tests {
             "2606:4700::1111",
             "2a00:1450:4001::200e",
             "2001:4860:4860::8888",
-            "2001:1::1",
+            "2001:200::1", // first address after 2001::/23
+            "2001:4860::1",
+            "5eff:ffff::1", // just below 5f00::/16
+            "5f01::1",      // just above 5f00::/16
         ] {
             assert!(!is_private_ip(&ip(a)), "{a} must be allowed");
         }
