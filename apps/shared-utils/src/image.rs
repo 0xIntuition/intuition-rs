@@ -1,4 +1,5 @@
 use crate::error::LibError;
+use crate::ssrf::{FetchLimits, FetchOutcome, fetch_public_bytes, validate_fetch_url};
 use base64::{Engine, engine::general_purpose::STANDARD as BASE64};
 use log::{info, warn};
 use models::cached_image::CachedImage;
@@ -44,7 +45,7 @@ pub struct DataUrlInfo {
     pub cache_key: String,
 }
 #[derive(Deserialize, Serialize, Debug, ToSchema)]
-#[schema(example = json!({"url": "http://example.com/image.png"}))]
+#[schema(example = json!({"url": "https://example.com/image.png"}))]
 pub struct Image {
     pub url: String,
 }
@@ -102,7 +103,10 @@ impl Image {
         }
 
         // Remove "data:" prefix
-        let without_prefix = self.url.strip_prefix("data:").ok_or(LibError::InvalidDataUrl)?;
+        let without_prefix = self
+            .url
+            .strip_prefix("data:")
+            .ok_or(LibError::InvalidDataUrl)?;
 
         // Split by comma to separate metadata from data
         let (metadata, base64_data) = without_prefix
@@ -141,7 +145,11 @@ impl Image {
         // Normalize composite extensions (e.g., "svg+xml" -> "svg")
         // This must be done before the whitelist check
         // Note: split('+').next() always returns Some for non-empty strings
-        let extension = extension.split('+').next().unwrap_or(&extension).to_string();
+        let extension = extension
+            .split('+')
+            .next()
+            .unwrap_or(&extension)
+            .to_string();
 
         // Whitelist allowed image extensions (raster formats only)
         // SVG is intentionally excluded due to security concerns (can contain embedded JavaScript)
@@ -160,8 +168,7 @@ impl Image {
         if estimated_decoded_size > MAX_IMAGE_SIZE {
             return Err(LibError::InvalidInput(format!(
                 "Estimated image size {} bytes exceeds maximum allowed size of {} bytes",
-                estimated_decoded_size,
-                MAX_IMAGE_SIZE
+                estimated_decoded_size, MAX_IMAGE_SIZE
             )));
         }
 
@@ -223,28 +230,46 @@ impl Image {
         Ok(format!("{}.{}", image_output.name, image_output.extension))
     }
 
-    /// This function downloads an image from a URL and returns the bytes
-    /// For data URLs, it decodes the base64 data directly
-    pub async fn download(&self) -> Result<Option<Vec<u8>>, LibError> {
+    /// Cheap, network-free pre-check for remote URLs (scheme, credentials, host
+    /// denylist, literal IPs). Data URLs always pass. Lets callers reject a bad
+    /// URL before touching the database; `download` re-validates regardless.
+    pub fn precheck_remote_url(&self) -> Result<(), LibError> {
+        if self.is_data_url() {
+            return Ok(());
+        }
+        let url = Url::parse(&self.url).map_err(|_| LibError::InvalidInput(self.url.clone()))?;
+        validate_fetch_url(&url, &FetchLimits::default())
+    }
+
+    /// Downloads an image and returns its bytes.
+    ///
+    /// Data URLs are decoded locally (no network). Remote URLs go through
+    /// [`crate::ssrf::fetch_public_bytes`] with the default [`FetchLimits`]:
+    /// https only, DNS-pinned to public addresses, redirects re-validated, size
+    /// and time capped. The only workspace caller is image-guard's
+    /// `/upload_image_from_url`; no internal caller needs plain `http`, so the
+    /// default stays strict and nothing opts in.
+    ///
+    /// A non-200 answer from the origin is an error ([`LibError::NetworkError`])
+    /// rather than the former silent `Ok(None)`.
+    pub async fn download(&self) -> Result<Vec<u8>, LibError> {
         if self.is_data_url() {
             info!("Decoding data URL");
-            let parsed = self.parse_data_url()?;
-            return Ok(Some(parsed.data));
+            return Ok(self.parse_data_url()?.data);
         }
-
-        // SSRF protection: only allow http/https to public destinations.
-        // Blocks file:// (local file read), localhost, private/link-local IPs,
-        // and cloud metadata endpoints before any network request is made.
-        crate::ssrf::validate_url_not_internal(&self.url)?;
 
         info!("Downloading image from URL: {}", self.url);
-        let response = reqwest::get(&self.url).await?;
-        if response.status() != reqwest::StatusCode::OK {
-            warn!("Failed to download image, status: {}", response.status());
-            return Ok(None);
+        match fetch_public_bytes(&self.url, &FetchLimits::default()).await? {
+            FetchOutcome::Body(bytes) => Ok(bytes),
+            FetchOutcome::UnexpectedStatus(status) => {
+                warn!("Failed to download image, status: {status}");
+                Err(LibError::NetworkError(format!(
+                    "origin returned status {status}"
+                )))
+            }
         }
-        Ok(Some(response.bytes().await?.to_vec()))
     }
+
     /// This function downloads an avatar, classifies it and stores it in the database
     pub async fn download_image_classify_and_store(
         url: String,

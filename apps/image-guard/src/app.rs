@@ -77,13 +77,9 @@ impl App {
         Ok(())
     }
 
-    /// Merge the router with the Swagger UI.
+    /// Build the full service: routes, optional Swagger UI, CORS, body limit.
     fn merge_layers(&self) -> Router {
-        self.router()
-            .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
-            .layer(self.cors())
-            // Increase body limit to accommodate base64-encoded images (which are ~33% larger)
-            .layer(DefaultBodyLimit::max(MAX_BODY_SIZE))
+        assemble(self.app_state.clone(), self.env.enable_swagger, self.cors())
     }
 
     /// Initialize the application. This will read the environment variables,
@@ -92,18 +88,6 @@ impl App {
         let env = Self::initialize().await?;
         let app_state = AppState::new(&env).await;
         Ok(Self { env, app_state })
-    }
-
-    /// Create the router for the application.
-    fn router(&self) -> Router {
-        let (prometheus_layer, metric_handle) = PrometheusMetricLayer::pair();
-        Router::new()
-            .route("/upload", post(upload_image))
-            .route("/upload_image_from_url", post(upload_image_from_url))
-            .route("/upload_json_to_ipfs", post(upload_json_to_jpfs))
-            .route("/metrics", get(|| async move { metric_handle.render() }))
-            .layer(prometheus_layer)
-            .with_state(self.app_state.clone())
     }
 
     /// Serve the application.
@@ -117,5 +101,163 @@ impl App {
         axum::serve(listener, self.merge_layers())
             .await
             .map_err(ApiError::from)
+    }
+}
+
+/// Mount `/swagger-ui` and `/api-docs/openapi.json` only when `enabled`.
+/// The docs expose the full API surface, so they are opt-in (`ENABLE_SWAGGER`).
+fn with_swagger(router: Router, enabled: bool) -> Router {
+    if enabled {
+        router.merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
+    } else {
+        router
+    }
+}
+
+/// Business routes plus `/metrics`.
+///
+/// `/metrics` is for in-cluster Prometheus scraping only; it must never be
+/// exposed through a public ingress.
+fn router(state: AppState) -> Router {
+    let (prometheus_layer, metric_handle) = PrometheusMetricLayer::pair();
+    Router::new()
+        .route("/upload", post(upload_image))
+        .route("/upload_image_from_url", post(upload_image_from_url))
+        .route("/upload_json_to_ipfs", post(upload_json_to_jpfs))
+        .route("/metrics", get(|| async move { metric_handle.render() }))
+        .layer(prometheus_layer)
+        .with_state(state)
+}
+
+fn assemble(state: AppState, enable_swagger: bool, cors: CorsLayer) -> Router {
+    with_swagger(router(state), enable_swagger)
+        .layer(cors)
+        // Increase body limit to accommodate base64-encoded images (which are ~33% larger)
+        .layer(DefaultBodyLimit::max(MAX_BODY_SIZE))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::state::Flag;
+    use sqlx::postgres::PgPoolOptions;
+
+    /// State whose database is unreachable (lazy pool, nothing listens on :1).
+    fn dead_db_state() -> AppState {
+        AppState {
+            pg_pool: PgPoolOptions::new()
+                .acquire_timeout(Duration::from_millis(500))
+                .connect_lazy("postgres://user:hunter2@127.0.0.1:1/secretdb")
+                .expect("lazy pool"),
+            image_api_schema: "public".into(),
+            pinata_api_jwt: "jwt".into(),
+            ipfs_upload_url: "http://127.0.0.1:1".into(),
+            ipfs_fetch_url: "http://127.0.0.1:1".into(),
+            hf_token: None,
+            flag: Flag::LocalWithDbOnly,
+        }
+    }
+
+    async fn spawn(app: Router) -> String {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        tokio::spawn(async move { axum::serve(listener, app).await });
+        format!("http://{addr}")
+    }
+
+    #[tokio::test]
+    async fn swagger_is_404_unless_enabled() {
+        let off = spawn(with_swagger(Router::new(), false)).await;
+        let on = spawn(with_swagger(Router::new(), true)).await;
+        let c = reqwest::Client::new();
+        for path in ["/swagger-ui/", "/api-docs/openapi.json"] {
+            let r = c.get(format!("{off}{path}")).send().await.unwrap();
+            assert_eq!(r.status(), 404, "{path} must be hidden by default");
+            let r = c.get(format!("{on}{path}")).send().await.unwrap();
+            assert_eq!(r.status(), 200, "{path} must be served when enabled");
+        }
+        // The enabled spec really is the API document, not an empty 200.
+        let spec = c
+            .get(format!("{on}/api-docs/openapi.json"))
+            .send()
+            .await
+            .unwrap()
+            .text()
+            .await
+            .unwrap();
+        assert!(spec.contains("/upload_image_from_url"));
+    }
+
+    /// One full-app test (the Prometheus recorder is process-global, so the
+    /// complete router is assembled exactly once).
+    #[tokio::test]
+    async fn full_app_hides_docs_keeps_metrics_and_returns_generic_errors() {
+        let base = spawn(assemble(dead_db_state(), false, CorsLayer::new())).await;
+        let c = reqwest::Client::new();
+
+        // Swagger off by default in the real assembly.
+        for path in ["/swagger-ui/", "/api-docs/openapi.json"] {
+            assert_eq!(
+                c.get(format!("{base}{path}"))
+                    .send()
+                    .await
+                    .unwrap()
+                    .status(),
+                404
+            );
+        }
+        // /metrics still served for in-cluster scraping.
+        assert_eq!(
+            c.get(format!("{base}/metrics"))
+                .send()
+                .await
+                .unwrap()
+                .status(),
+            200
+        );
+
+        // Blocked URLs: 400, generic body, no URL/IP/library words, and no DB hit
+        // (the DB is dead, so reaching it would have produced a 500).
+        for url in [
+            "http://169.254.169.254/latest/meta-data/x.png",
+            "https://127.0.0.1/x.png",
+            "https://[::ffff:10.0.0.1]/x.png",
+            "https://metadata.google.internal/x.png",
+            "file:///etc/passwd",
+        ] {
+            let r = c
+                .post(format!("{base}/upload_image_from_url"))
+                .json(&serde_json::json!({ "url": url }))
+                .send()
+                .await
+                .unwrap();
+            assert_eq!(r.status(), 400, "{url}");
+            let body = r.text().await.unwrap();
+            assert_eq!(body, "invalid request", "{url}");
+            for leak in [
+                "169.254",
+                "127.0.0.1",
+                "10.0.0.1",
+                "metadata",
+                "reqwest",
+                "sqlx",
+                "SSRF",
+                "file:",
+            ] {
+                assert!(!body.contains(leak), "{url}: leaked {leak}");
+            }
+        }
+
+        // A valid request that fails inside (dead database) is exactly the generic
+        // 500 message: no sqlx text, no DSN, no password.
+        let png = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+        let r = c
+            .post(format!("{base}/upload_image_from_url"))
+            .json(&serde_json::json!({ "url": png }))
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(r.status(), 500);
+        assert_eq!(r.text().await.unwrap(), "internal error");
     }
 }

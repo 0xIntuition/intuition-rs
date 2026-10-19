@@ -13,6 +13,9 @@ pub struct Env {
     pub flag_local_with_db_only: Option<bool>,
     pub pinata_api_jwt: String,
     pub image_api_schema: String,
+    /// Serve `/swagger-ui` and `/api-docs` (`ENABLE_SWAGGER=true`). Off by default.
+    #[serde(default)]
+    pub enable_swagger: bool,
 }
 
 /// A multipart request with an image
