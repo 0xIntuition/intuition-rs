@@ -176,7 +176,7 @@ mod tests {
 
     #[test]
     fn blocks_non_http_schemes() {
-        // The original report's payload: local file read via file://.
+        // Non-http(s) schemes such as file:// must never be fetched.
         assert!(is_ssrf_blocked("file:///etc/passwd"));
         assert!(is_ssrf_blocked("file://localhost/etc/passwd"));
         assert!(is_ssrf_blocked("gopher://127.0.0.1:6379/_INFO"));
