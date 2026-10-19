@@ -301,7 +301,11 @@ impl IPFSResolver {
     }
 
     /// Handles the retry error for IPFS uploads
-    async fn handle_upload_retry_error(&self, e: LibError, attempts: i32) -> Result<(), LibError> {
+    async fn handle_upload_retry_error(
+        &self,
+        e: LibError,
+        attempts: i32,
+    ) -> Result<(), LibError> {
         // Check if this is a timeout error for proper categorization
         let is_timeout = matches!(&e, LibError::Reqwest(req_err) if req_err.is_timeout());
 
@@ -458,8 +462,11 @@ impl IPFSResolver {
                         ))
                     })?;
 
-                    self.pin_locally_and_remotely(&result.hash, &multi_part_handler.name)
-                        .await?;
+                    self.pin_locally_and_remotely(
+                        &result.hash,
+                        &multi_part_handler.name,
+                    )
+                    .await?;
 
                     return Ok(result);
                 }
@@ -483,7 +490,10 @@ impl IPFSResolver {
         loop {
             attempts += 1;
 
-            match self.upload_json_to_ipfs_request(&multi_part_handler).await {
+            match self
+                .upload_json_to_ipfs_request(&multi_part_handler)
+                .await
+            {
                 Ok(resp) => {
                     let status = resp.status();
                     let body = resp.text().await.unwrap_or_default();
@@ -510,8 +520,11 @@ impl IPFSResolver {
                         ))
                     })?;
 
-                    self.pin_locally_and_remotely(&result.hash, &multi_part_handler.name)
-                        .await?;
+                    self.pin_locally_and_remotely(
+                        &result.hash,
+                        &multi_part_handler.name,
+                    )
+                    .await?;
 
                     return Ok(result);
                 }
