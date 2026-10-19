@@ -13,7 +13,10 @@ type HasuraActionBlock = {
 }
 
 function actionBlocks(): HasuraActionBlock[] {
-  const actionsYaml = readFileSync(actionsYamlPath, 'utf8')
+  return parseActionBlocks(readFileSync(actionsYamlPath, 'utf8'))
+}
+
+function parseActionBlocks(actionsYaml: string): HasuraActionBlock[] {
   const markers = [...actionsYaml.matchAll(/^  - name: (.+)$/gm)]
 
   return markers.map((marker, index) => {
@@ -54,8 +57,29 @@ test('image-guard JSON upload actions declare the required content type', () => 
 })
 
 /**
- * Actions that proxy to image-guard / Pinata (anonymous IPFS pinning + SSRF
- * surface, ENG-16792). They must stay restricted to authenticated roles.
+ * Anonymous-access allow-list (ENG-16792). `anonymous` is the unauthenticated
+ * Hasura role, so an action that grants it is callable by anyone on the
+ * internet. Only the read-only chart / PnL actions below may do so; any other
+ * action granting `anonymous` (whatever its handler, including a templated one
+ * such as `'{{imageGuardUrl}}'`) fails this guard until a reviewer adds it here
+ * on purpose.
+ */
+const ANONYMOUS_ALLOWED_ACTIONS = [
+  'getAccountPnlChart',
+  'getAccountPnlCurrent',
+  'getAccountPnlRealized',
+  'getChartJson',
+  'getChartRawJson',
+  'getChartRawSvg',
+  'getChartSvg',
+  'getPositionPnlChart',
+  'get_pnl_leaderboard_period',
+  'get_pnl_leaderboard_period_min_threshold',
+]
+
+/**
+ * Actions that proxy to image-guard / Pinata (IPFS pinning and the
+ * user-supplied URL fetch). They must be callable by exactly these roles.
  */
 const PINNING_ACTIONS = [
   'pinThing',
@@ -65,7 +89,7 @@ const PINNING_ACTIONS = [
   'uploadImageFromUrl',
   'uploadJsonToIpfs',
 ]
-const ALLOWED_PINNING_ROLES = ['frontend', 'partner']
+const PINNING_ROLES = ['frontend', 'partner']
 
 function rolesOf(block: string): string[] {
   const permissions = block.split(/^    permissions:\n/m)[1]
@@ -79,34 +103,54 @@ function rolesOf(block: string): string[] {
   return roles
 }
 
+/** Names of actions that grant `anonymous` without being on the allow-list. */
+function unlistedAnonymousActions(blocks: HasuraActionBlock[], allowed: string[]): string[] {
+  return blocks
+    .filter(({ name, block }) => rolesOf(block).includes('anonymous') && !allowed.includes(name))
+    .map(({ name }) => name)
+}
+
 test('permission parser reads roles (guards the guard against a silent no-op)', () => {
   const chart = actionBlocks().find(({ name }) => name === 'getChartJson')
   expect(chart, 'getChartJson fixture action must exist').toBeDefined()
   expect(rolesOf(chart!.block)).toEqual(['anonymous', 'frontend'])
 })
 
-test('pinning and upload actions are never granted to anonymous or unlisted roles', () => {
+test('only allow-listed actions grant the anonymous role', () => {
+  const blocks = actionBlocks()
+  expect(unlistedAnonymousActions(blocks, ANONYMOUS_ALLOWED_ACTIONS)).toEqual([])
+  // The allow-list must not rot: every entry still exists and still grants it.
+  for (const name of ANONYMOUS_ALLOWED_ACTIONS) {
+    const action = blocks.find((b) => b.name === name)
+    expect(action, `${name} is allow-listed but missing from actions.yaml`).toBeDefined()
+    expect(rolesOf(action!.block), `${name} is allow-listed but no longer anonymous`).toContain('anonymous')
+  }
+})
+
+test('pinning and upload actions are granted to exactly frontend and partner', () => {
   const blocks = actionBlocks()
   for (const name of PINNING_ACTIONS) {
     const action = blocks.find((b) => b.name === name)
     expect(action, `${name} must exist in actions.yaml`).toBeDefined()
-    const roles = rolesOf(action!.block)
-    expect(roles.length, `${name} must declare at least one role`).toBeGreaterThan(0)
-    expect(roles, `${name} must not be callable anonymously`).not.toContain('anonymous')
-    for (const role of roles) {
-      expect(ALLOWED_PINNING_ROLES, `${name} grants unexpected role "${role}"`).toContain(role)
-    }
+    expect([...rolesOf(action!.block)].sort(), `${name} roles`).toEqual([...PINNING_ROLES].sort())
   }
 })
 
-test('any action handled by image-guard or Pinata is in the guarded list and never anonymous', () => {
-  const sensitive = actionBlocks().filter(({ block }) => {
-    return /handler: https?:\/\/(image-guard[:/]|api\.pinata\.cloud)/.test(block)
-  })
-  // Guard against the matcher silently finding nothing.
-  expect(sensitive.map(({ name }) => name).sort()).toEqual(expect.arrayContaining([...PINNING_ACTIONS].sort()))
-  for (const { name, block } of sensitive) {
-    expect(PINNING_ACTIONS, `${name} proxies to image-guard/Pinata: add it to PINNING_ACTIONS`).toContain(name)
-    expect(rolesOf(block), `${name} must not be anonymous`).not.toContain('anonymous')
-  }
+test('the guard rejects a new action with a templated handler that grants anonymous', () => {
+  const yaml = `actions:
+  - name: getChartJson
+    definition:
+      handler: '{{chartApiUrl}}'
+    permissions:
+      - role: anonymous
+      - role: frontend
+  - name: sneakyUpload
+    definition:
+      handler: '{{imageGuardUrl}}'
+    permissions:
+      - role: anonymous
+`
+  const blocks = parseActionBlocks(yaml)
+  expect(blocks.map(({ name }) => name)).toEqual(['getChartJson', 'sneakyUpload'])
+  expect(unlistedAnonymousActions(blocks, ANONYMOUS_ALLOWED_ACTIONS)).toEqual(['sneakyUpload'])
 })
