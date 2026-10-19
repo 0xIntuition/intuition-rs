@@ -16,6 +16,8 @@ pub enum LibError {
     InvalidInput(String),
     #[error("Network error: {0}")]
     NetworkError(String),
+    #[error("Upstream fetch failed: {0}")]
+    UpstreamFetch(String),
     #[error("Payload too large: {0}")]
     PayloadTooLarge(String),
     #[error("Pinata error: {0}")]

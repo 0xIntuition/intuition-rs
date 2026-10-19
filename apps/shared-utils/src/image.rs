@@ -1,5 +1,5 @@
 use crate::error::LibError;
-use crate::ssrf::{FetchLimits, FetchOutcome, fetch_public_bytes, validate_fetch_url};
+use crate::ssrf::{FetchLimits, FetchOutcome, fetch_public_bytes, redact_url, validate_fetch_url};
 use base64::{Engine, engine::general_purpose::STANDARD as BASE64};
 use log::{info, warn};
 use models::cached_image::CachedImage;
@@ -237,7 +237,8 @@ impl Image {
         if self.is_data_url() {
             return Ok(());
         }
-        let url = Url::parse(&self.url).map_err(|_| LibError::InvalidInput(self.url.clone()))?;
+        let url =
+            Url::parse(&self.url).map_err(|_| LibError::InvalidInput("unparseable url".into()))?;
         validate_fetch_url(&url, &FetchLimits::default())
     }
 
@@ -250,7 +251,7 @@ impl Image {
     /// `/upload_image_from_url`; no internal caller needs plain `http`, so the
     /// default stays strict and nothing opts in.
     ///
-    /// A non-200 answer from the origin is an error ([`LibError::NetworkError`])
+    /// A non-200 answer from the origin is an error ([`LibError::UpstreamFetch`])
     /// rather than the former silent `Ok(None)`.
     pub async fn download(&self) -> Result<Vec<u8>, LibError> {
         if self.is_data_url() {
@@ -258,12 +259,12 @@ impl Image {
             return Ok(self.parse_data_url()?.data);
         }
 
-        info!("Downloading image from URL: {}", self.url);
+        info!("Downloading image from URL: {}", redact_url(&self.url));
         match fetch_public_bytes(&self.url, &FetchLimits::default()).await? {
             FetchOutcome::Body(bytes) => Ok(bytes),
             FetchOutcome::UnexpectedStatus(status) => {
                 warn!("Failed to download image, status: {status}");
-                Err(LibError::NetworkError(format!(
+                Err(LibError::UpstreamFetch(format!(
                     "origin returned status {status}"
                 )))
             }
@@ -291,7 +292,7 @@ impl Image {
         if !status.is_success() {
             info!(
                 "Failed to upload image {}, status: {}, error: {}",
-                &url,
+                redact_url(&url),
                 &status,
                 &response.text().await?
             );
