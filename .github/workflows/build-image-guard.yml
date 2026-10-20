@@ -1,0 +1,170 @@
+name: Build image-guard image
+
+# Builds and publishes ghcr.io/0xintuition/image-guard:<version> as a multi-arch image.
+# Each platform is built natively on a GitHub-hosted runner of that architecture and
+# pushed by digest; a final job merges the digests into the versioned tag.
+#
+# Usage: gh workflow run build-image-guard.yml --ref v2_0 -f version=2.1.0
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Image tag to publish (e.g. 2.1.0; must match apps/image-guard/Cargo.toml)"
+        required: true
+        type: string
+      also_latest:
+        description: "Also move the :latest tag (only from v2_0)"
+        required: false
+        type: boolean
+        default: false
+      overwrite:
+        description: "Replace the version tag if it already exists"
+        required: false
+        type: boolean
+        default: false
+
+permissions: {}
+
+concurrency:
+  group: build-image-guard-${{ inputs.version }}
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/0xintuition/image-guard
+  CRATE_MANIFEST: apps/image-guard/Cargo.toml
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Self-test the input validator
+        run: bash .github/scripts/check-image-version.test.sh
+
+      - name: Validate inputs
+        env:
+          VERSION: ${{ inputs.version }}
+          ALSO_LATEST: ${{ inputs.also_latest }}
+        run: bash .github/scripts/check-image-version.sh "$CRATE_MANIFEST" "$VERSION" "$ALSO_LATEST" "$GITHUB_REF"
+
+  build:
+    needs: check
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      packages: write
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Platform slug
+        id: slug
+        env:
+          PLATFORM: ${{ matrix.platform }}
+        run: echo "value=${PLATFORM//\//-}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push by digest
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/image-guard/Dockerfile
+          platforms: ${{ matrix.platform }}
+          outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=image-guard-${{ steps.slug.outputs.value }}
+          cache-to: type=gha,mode=max,scope=image-guard-${{ steps.slug.outputs.value }}
+
+      - name: Export digest
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          mkdir -p /tmp/digests
+          touch "/tmp/digests/${DIGEST#sha256:}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ steps.slug.outputs.value }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    timeout-minutes: 15
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Refuse to replace an existing tag
+        if: ${{ !inputs.overwrite }}
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          if docker buildx imagetools inspect "${IMAGE}:${VERSION}" >/dev/null 2>&1; then
+            echo "::error::${IMAGE}:${VERSION} already exists; bump the crate version or dispatch with overwrite=true"
+            exit 1
+          fi
+
+      - name: Create multi-arch tag
+        working-directory: /tmp/digests
+        env:
+          VERSION: ${{ inputs.version }}
+          ALSO_LATEST: ${{ inputs.also_latest }}
+        run: |
+          shopt -s nullglob
+          refs=()
+          for digest in *; do refs+=("${IMAGE}@sha256:${digest}"); done
+          if [ "${#refs[@]}" -ne 2 ]; then
+            echo "::error::expected 2 platform digests, got ${#refs[@]}"
+            exit 1
+          fi
+          tags=(-t "${IMAGE}:${VERSION}")
+          if [ "$ALSO_LATEST" = "true" ]; then tags+=(-t "${IMAGE}:latest"); fi
+          docker buildx imagetools create "${tags[@]}" "${refs[@]}"
+
+      - name: Verify both platforms are published
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          platforms=$(docker buildx imagetools inspect "${IMAGE}:${VERSION}" --format '{{json .Manifest}}' \
+            | jq -r '[.manifests[].platform | select(.os != "unknown") | "\(.os)/\(.architecture)"] | sort | join(",")')
+          echo "published platforms: $platforms"
+          if [ "$platforms" != "linux/amd64,linux/arm64" ]; then
+            echo "::error::expected linux/amd64,linux/arm64"
+            exit 1
+          fi
