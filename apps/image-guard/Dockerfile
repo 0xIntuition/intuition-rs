@@ -1,5 +1,7 @@
 # Stage 1 - Generate recipe file
-FROM rust:1.89-slim AS chef
+# Same Debian release as the runtime stage: a newer builder glibc makes the
+# binary fail to start on bookworm.
+FROM rust:1.89.0-slim-bookworm AS chef
 RUN cargo install cargo-chef --locked
 WORKDIR /usr/src/app
 
@@ -30,10 +32,11 @@ FROM debian:bookworm-slim AS runtime
 
 WORKDIR /app
 
-# Install runtime dependencies only
+# Install runtime dependencies only (reqwest's native-tls links libssl.so.3)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     ca-certificates \
+    libssl3 \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy only the compiled binary
